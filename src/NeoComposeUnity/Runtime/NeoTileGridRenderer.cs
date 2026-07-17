@@ -1228,17 +1228,13 @@ namespace NeoCompose.Runtime
             Vector3 linkOffset,
             int baseSortingOrder)
         {
+            if (link is not INeoTileLayerLinkValue tileLayerLink) return 0;
+
             var rendered = 0;
             var tileIndex = 0;
-            foreach (var tileInstance in ReadEnumerableProperty(link, "Tiles"))
+            foreach (var tileInstance in tileLayerLink.GetTiles())
             {
-                var rawCell = ReadOptionalProperty(tileInstance, "Cell");
-                var cell = NeoGeneratedTypesSupport.ReadVector2IntValue(rawCell);
-                if (cell == null) continue;
-
-                var tileValue = ReadOptionalProperty(tileInstance, "Tile")
-                    as NeoGeneratedClassValue;
-                if (tileValue == null) continue;
+                var tileValue = tileInstance.Tile;
 
                 var sprite = ResolveSprite(tileValue);
                 if (sprite == null) continue;
@@ -1248,7 +1244,7 @@ namespace NeoCompose.Runtime
                     layer,
                     tileValue,
                     sprite,
-                    linkOffset + CellOffsetToLocalPosition(cell.Value),
+                    linkOffset + CellOffsetToLocalPosition(tileInstance.Cell),
                     Vector3.one,
                     baseSortingOrder + tileIndex++);
                 rendered++;
@@ -1691,8 +1687,7 @@ namespace NeoCompose.Runtime
                     neighbor.TileClassId,
                     StringComparison.Ordinal);
             }
-            return !string.IsNullOrEmpty(neighbor.TileValueId)
-                && string.Equals(value.valueId, neighbor.TileValueId, StringComparison.Ordinal);
+            return false;
         }
 
         private bool MatchesInheritsSmartTileNeighbor(
@@ -1708,20 +1703,7 @@ namespace NeoCompose.Runtime
             {
                 return IsClassOrSubclass(otherValue, neighbor.TileClassId!);
             }
-            if (string.IsNullOrEmpty(neighbor.TileValueId)) return false;
-            var referencedTile = ResolveTileValueById(neighbor.TileValueId!);
-            if (referencedTile == null) return false;
-            return IsClassOrSubclass(otherValue, referencedTile.classId);
-        }
-
-        private NeoGeneratedClassValue? ResolveTileValueById(string tileValueId)
-        {
-            if (tileBasesByValueId.TryGetValue(tileValueId, out var tileBase)
-                && valuesByTileBase.TryGetValue(tileBase, out var cached))
-            {
-                return cached;
-            }
-            return renderedPrimitive?.ResolveGeneratedClassValue(tileValueId);
+            return false;
         }
 
         private bool TryGetGeneratedValueForTileBase(
@@ -1935,7 +1917,7 @@ namespace NeoCompose.Runtime
                     owner.UpdateCachedSourceProjection(key, previousTilesByCell);
                 }
                 subscription = source.WatchAnyChange((_, __, changeSource) =>
-                    HandleSourceChanged(changeSource, preferValueRows: false));
+                    HandleSourceChanged(changeSource));
                 source.Client.OnWritableValueChanged += HandleWritableValueChanged;
                 writableValueSubscription = new NeoDisposableSubscription(() =>
                     source.Client.OnWritableValueChanged -= HandleWritableValueChanged);
@@ -1948,8 +1930,7 @@ namespace NeoCompose.Runtime
                 if (disposed) return;
                 if (!IsSourceValueId(valueId)) return;
                 HandleSourceChanged(
-                    source.Client.CurrentChangeSource,
-                    preferValueRows: true);
+                    source.Client.CurrentChangeSource);
             }
 
             private bool IsSourceValueId(string valueId)
@@ -1966,7 +1947,6 @@ namespace NeoCompose.Runtime
                     return false;
                 }
                 return IsSourceChildValueId(row, "Tiles", valueId) ||
-                    IsSourceChildValueId(row, "TileLayer", valueId) ||
                     IsSourceChildValueId(row, "Position", valueId) ||
                     IsSourceChildValueId(row, "Size", valueId);
             }
@@ -1981,14 +1961,10 @@ namespace NeoCompose.Runtime
                     childValueId == valueId;
             }
 
-            private void HandleSourceChanged(
-                NeoChangeSource changeSource,
-                bool preferValueRows)
+            private void HandleSourceChanged(NeoChangeSource changeSource)
             {
                 if (disposed) return;
-                var currentTilesByCell = preferValueRows
-                    ? SnapshotSourceTilesFromValueRows()
-                    : SnapshotSourceTilesFromWrapper();
+                var currentTilesByCell = SnapshotSourceTilesFromValueRows();
                 var cellsToClear = new List<Vector2Int>();
                 foreach (var cell in previousTilesByCell.Keys)
                 {
@@ -2018,37 +1994,6 @@ namespace NeoCompose.Runtime
                     changeSource);
             }
 
-            private Dictionary<Vector2Int, NeoResolvedTileInstance> SnapshotSourceTilesFromWrapper()
-            {
-                var tiles = new Dictionary<Vector2Int, NeoResolvedTileInstance>();
-                var origin = ReadSourceOrigin();
-                var order = 0;
-                foreach (var tileInstance in ReadEnumerableProperty(source, "Tiles"))
-                {
-                    var cell = NeoGeneratedTypesSupport.ReadVector2IntValue(
-                        ReadOptionalProperty(tileInstance, "Cell"));
-                    if (cell == null) continue;
-                    var tileValue = ReadOptionalProperty(tileInstance, "Tile")
-                        as NeoGeneratedClassValue;
-                    if (tileValue == null) continue;
-                    var instanceValue = tileInstance as INeoValueReference;
-                    string instanceId = string.IsNullOrEmpty(instanceValue?.valueId)
-                        ? $"{dependency.SourceValueId}:{order}"
-                        : instanceValue!.valueId!;
-                    var projectedCell = origin + cell.Value;
-                    tiles[projectedCell] = new NeoResolvedTileInstance(
-                        instanceId,
-                        dependency.TargetTileLayerId,
-                        projectedCell,
-                        tileValue,
-                        order++,
-                        NeoTileOutputSourceKind.TileLayerLink,
-                        null,
-                        dependency.SourceValueId);
-                }
-                return tiles;
-            }
-
             private Dictionary<Vector2Int, NeoResolvedTileInstance> SnapshotSourceTilesFromValueRows()
             {
                 var tiles = new Dictionary<Vector2Int, NeoResolvedTileInstance>();
@@ -2062,9 +2007,8 @@ namespace NeoCompose.Runtime
                     return tiles;
                 }
 
-                // Inline array ids (ordered lists, legacy factory rows) plus
-                // the unordered membership join (rows whose containerId is the
-                // Tiles list value).
+                // Ordered lists store ids inline. Unordered lists use the
+                // containment join.
                 var tileInstanceValueIds = new List<string>(tilesRow.value);
                 var seenTileInstanceIds = new HashSet<string>(tileInstanceValueIds);
                 foreach (var joinedId in source.Client.GetUnorderedListEntryIds(tilesValueId))
@@ -2097,16 +2041,6 @@ namespace NeoCompose.Runtime
                         dependency.SourceValueId);
                 }
                 return tiles;
-            }
-
-            private Vector2Int ReadSourceOrigin()
-            {
-                var position = NeoGeneratedTypesSupport.ReadVector3Value(
-                    ReadOptionalProperty(source, "Position"));
-                if (position == null) return Vector2Int.zero;
-                return new Vector2Int(
-                    Mathf.RoundToInt(position.Value.x),
-                    Mathf.RoundToInt(position.Value.y));
             }
 
             private Vector2Int ReadSourceOrigin(ObjectMemberValue sourceRow)
@@ -2146,16 +2080,36 @@ namespace NeoCompose.Runtime
                 out NeoGeneratedClassValue? tile)
             {
                 tile = null;
-                if (tileInstanceRow.value is null ||
-                    !tileInstanceRow.value.TryGetValue("Tile", out string tileLookupValueId) ||
-                    !source.Client.TryGetValue(tileLookupValueId, out ArrayMemberValue? tileLookup) ||
-                    tileLookup.value is null ||
-                    tileLookup.value.Length == 0)
+                if (tileInstanceRow.value is null)
                 {
                     return false;
                 }
-                tile = content.Primitive.ResolveGeneratedClassValue(tileLookup.value[0]);
+                string? assetClassId = ReadDirectReference(
+                    tileInstanceRow.value,
+                    "assetClassId");
+                if (assetClassId is null) return false;
+                string? assetValueId = ReadDirectReference(
+                    tileInstanceRow.value,
+                    "assetValueId");
+                tile = source.Client.ResolveRegisteredGeneratedAsset(
+                    assetClassId,
+                    assetValueId);
                 return tile != null;
+            }
+
+            private static string? ReadDirectReference(
+                IReadOnlyDictionary<string, string> value,
+                string key)
+            {
+                foreach (var pair in value)
+                {
+                    if (!string.Equals(pair.Key, key, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+                    return string.IsNullOrWhiteSpace(pair.Value) ? null : pair.Value;
+                }
+                return null;
             }
 
             public void Dispose()

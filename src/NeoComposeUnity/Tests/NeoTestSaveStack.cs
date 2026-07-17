@@ -129,10 +129,14 @@ namespace NeoCompose.Tests
             {
                 schema.metadata = new ProjectExportMetadata
                 {
-                    schemaVersion = 8,
+                    schemaVersion = 9,
                     projectId = schema.project.id,
                     versionId = "unit-test-version",
                 };
+                schema.internalRecordRelations ??=
+                    new System.Collections.Generic.Dictionary<
+                        string,
+                        InternalRecordRelation>();
             }
             return new NeoClient(new SchemaOnlyLoader(schema), null, saveOptions: options);
         }

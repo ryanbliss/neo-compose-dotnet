@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 8,
+    "schemaVersion": 9,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -51,6 +51,7 @@
     },
     "ownerOrganization": null
   },
+  "internalRecordRelations": {},
   "members": {
     "root-assets": {
       "id": "root-assets",

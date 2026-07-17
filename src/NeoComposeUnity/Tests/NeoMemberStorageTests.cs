@@ -130,7 +130,7 @@ namespace NeoCompose.Tests
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 NeoTestSaveStack.ClientFromSchema(data));
             StringAssert.Contains("schema version 10", error!.Message);
-            StringAssert.Contains("schema versions 8 and 9", error.Message);
+            StringAssert.Contains("schema version 9", error.Message);
             StringAssert.Contains("Update", error.Message);
         }
 
@@ -151,7 +151,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ExportSchemaVersion_CurrentIsAccepted()
+        public void ExportSchemaVersion_EightRequiresReleaseMigrationBoundary()
         {
             var current = BuildStorageProjectData();
             current.metadata = new ProjectExportMetadata
@@ -160,7 +160,10 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 versionId = "version-1",
             };
-            Assert.DoesNotThrow(() => NeoTestSaveStack.ClientFromSchema(current));
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                NeoTestSaveStack.ClientFromSchema(current));
+            StringAssert.Contains("schema version 8", error!.Message);
+            StringAssert.Contains("release-data migration boundary", error.Message);
         }
 
         [Test]
@@ -245,7 +248,7 @@ namespace NeoCompose.Tests
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 NeoTestSaveStack.ClientFromSchema(previous));
             StringAssert.Contains("schema version 7", error!.Message);
-            StringAssert.Contains("schema versions 8 and 9", error.Message);
+            StringAssert.Contains("schema version 9", error.Message);
             StringAssert.Contains("Re-export", error.Message);
         }
 
@@ -261,12 +264,12 @@ namespace NeoCompose.Tests
                     assumeCurrentSchema: false));
 
             StringAssert.Contains("metadata is missing", error!.Message);
-            StringAssert.Contains("requires schema version 8 or 9", error.Message);
+            StringAssert.Contains("requires schema version 9", error.Message);
             StringAssert.Contains("Re-export", error.Message);
         }
 
         [Test]
-        public void ExportSchemaEight_MissingClassesCollectionThrowsClearly()
+        public void CurrentExport_MissingClassesCollectionThrowsClearly()
         {
             var invalid = BuildStorageProjectData();
             invalid.classes = null!;
@@ -279,7 +282,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ExportSchemaEight_MissingMembersCollectionThrowsClearly()
+        public void CurrentExport_MissingMembersCollectionThrowsClearly()
         {
             var invalid = BuildStorageProjectData();
             invalid.members = null!;

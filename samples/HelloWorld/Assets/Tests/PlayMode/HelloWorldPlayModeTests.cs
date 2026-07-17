@@ -29,7 +29,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
             yield return null;
 
             using var store = CreateLoadedStore();
-            using var synchronizer = store.CreateNew("playmode-schema-8");
+            using var synchronizer = store.CreateNew("playmode-schema-9");
             var schema = synchronizer.Schema;
 
             Assert.IsNotNull(schema.metadata);

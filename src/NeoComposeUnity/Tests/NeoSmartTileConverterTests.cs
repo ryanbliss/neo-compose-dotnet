@@ -85,13 +85,13 @@ namespace NeoCompose.Tests
             {
                 Cell = new Vector2Int(1, 0),
                 Condition = NeoSmartTileOptionIds.ConditionInheritsFromClass,
-                TileValueId = "base-tile",
+                TileClassId = "base-tile",
             });
             rule.Neighbors.Add(new FakeSmartTileNeighbor
             {
                 Cell = new Vector2Int(-1, 0),
                 Condition = NeoSmartTileOptionIds.ConditionNotInheritsFromClass,
-                TileValueId = "other-tile",
+                TileClassId = "other-tile",
             });
             var smartTile = SmartTileWithRules(rule);
             var matcher = new RecordingNeighborMatcher();
@@ -110,18 +110,18 @@ namespace NeoCompose.Tests
             Assert.AreEqual(2, matcher.Observed.Count);
             var inheritsNeighbor = matcher.Observed[0];
             Assert.AreEqual(NeoSmartTileNeighborKind.InheritsFromClass, inheritsNeighbor.Kind);
-            Assert.AreEqual("base-tile", inheritsNeighbor.TileValueId);
+            Assert.AreEqual("base-tile", inheritsNeighbor.TileClassId);
             Assert.AreEqual(new Vector3Int(1, 0, 0), inheritsNeighbor.Offset);
             var notInheritsNeighbor = matcher.Observed[1];
             Assert.AreEqual(
                 NeoSmartTileNeighborKind.NotInheritsFromClass,
                 notInheritsNeighbor.Kind);
-            Assert.AreEqual("other-tile", notInheritsNeighbor.TileValueId);
+            Assert.AreEqual("other-tile", notInheritsNeighbor.TileClassId);
             Assert.AreEqual(new Vector3Int(-1, 0, 0), notInheritsNeighbor.Offset);
         }
 
         [Test]
-        public void ToRuleTile_PrefersClassBackedNeighborReference()
+        public void ToRuleTile_PersistsClassBackedNeighborReference()
         {
             var rule = new FakeSmartTileRule();
             rule.Neighbors.Add(new FakeSmartTileNeighbor
@@ -129,7 +129,6 @@ namespace NeoCompose.Tests
                 Cell = new Vector2Int(1, 0),
                 Condition = NeoSmartTileOptionIds.ConditionInheritsFromClass,
                 TileClassId = "base-tile-class",
-                TileValueId = "legacy-definition-value",
             });
             var matcher = new RecordingNeighborMatcher();
             var tile = Convert(SmartTileWithRules(rule), matcher);
@@ -139,7 +138,6 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(1, matcher.Observed.Count);
             Assert.AreEqual("base-tile-class", matcher.Observed[0].TileClassId);
-            Assert.AreEqual("legacy-definition-value", matcher.Observed[0].TileValueId);
         }
 
         [Test]
@@ -333,7 +331,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ToRuleTile_InheritsConditionWithoutTileValueIdThrows()
+        public void ToRuleTile_InheritsConditionWithoutTileClassIdThrows()
         {
             var rule = new FakeSmartTileRule();
             rule.Neighbors.Add(new FakeSmartTileNeighbor
@@ -416,15 +414,11 @@ namespace NeoCompose.Tests
             IReadOnlyList<Sprite> INeoSmartTileRule.Sprites => Sprites;
         }
 
-        private sealed class FakeSmartTileNeighbor
-            : INeoSmartTileNeighbor,
-              INeoSmartTileClassNeighbor
+        private sealed class FakeSmartTileNeighbor : INeoSmartTileNeighbor
         {
             public Vector2Int Cell { get; set; }
 
             public string Condition { get; set; } = NeoSmartTileOptionIds.ConditionThis;
-
-            public string? TileValueId { get; set; }
 
             public string? TileClassId { get; set; }
         }

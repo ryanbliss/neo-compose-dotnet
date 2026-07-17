@@ -1378,7 +1378,7 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(
                 new[] { "tile-override-value" },
                 NeoComposePostSynchronizeProcessor
-                    .EnumerateReferencedTileValueIds(projectData)
+                    .EnumerateReferencedTileAssetValueIds(projectData)
                     .ToArray());
         }
 

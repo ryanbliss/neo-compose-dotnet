@@ -364,7 +364,7 @@ namespace NeoCompose.Runtime
             return layer switch
             {
                 NeoGeneratedTileLayerValue generated => generated.GetRenderSnapshot(),
-                ReadOnlyNeoTileLayerRuntime legacy => legacy.GetRenderSnapshot(),
+                ReadOnlyNeoTileLayerRuntime readOnlyRuntime => readOnlyRuntime.GetRenderSnapshot(),
                 _ => new NeoTileLayerRenderSnapshot(
                     layer.GetTiles(),
                     new Dictionary<string, IReadOnlyList<NeoResolvedTileInstance>>(),
