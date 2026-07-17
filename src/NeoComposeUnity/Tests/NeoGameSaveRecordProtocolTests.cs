@@ -28,7 +28,7 @@ namespace NeoCompose.Tests
                         baseRecordStateId = "state-1",
                         baseRecordRevisionToken = "token-1",
                         set = { ["value"] = 7 },
-                        unset = { "classId" },
+                        unset = { "mark" },
                     },
                     new GameSaveStaticBindingSetChange
                     {
@@ -107,6 +107,7 @@ namespace NeoCompose.Tests
                 "\"classId\":\"class-1\",\"updatedAt\":1}}");
             var staged = JObject.Parse(
                 "{\"value-1\":{\"id\":\"value-1\",\"value\":2," +
+                "\"classId\":\"class-1\"," +
                 "\"updatedAt\":2}}");
             var cache = new GameSaveRecordCache();
             var descriptor = Descriptor("token-1", "hash-1");
@@ -120,8 +121,32 @@ namespace NeoCompose.Tests
             Assert.That(change!.baseRecordStateId, Is.EqualTo("state-1"));
             Assert.That(change.baseRecordRevisionToken, Is.EqualTo("token-1"));
             Assert.That(change.set.Keys, Is.EqualTo(new[] { "value" }));
-            Assert.That(change.unset, Is.EqualTo(new[] { "classId" }));
+            Assert.That(change.unset, Is.Empty);
             Assert.That(change.set.ContainsKey("updatedAt"), Is.False);
+        }
+
+        [Test]
+        public void BuildLivePatch_ReplacesRecordWhenStructuralFieldsChange()
+        {
+            var baseline = JObject.Parse(
+                "{\"value-1\":{\"id\":\"value-1\",\"value\":1," +
+                "\"classId\":\"class-1\"}}");
+            var staged = JObject.Parse(
+                "{\"value-1\":{\"id\":\"value-1\",\"value\":1," +
+                "\"classId\":\"class-2\"}}");
+            var cache = new GameSaveRecordCache();
+            var descriptor = Descriptor("token-1", "hash-1");
+            cache.descriptors[descriptor.LogicalKey] = descriptor;
+
+            var patch = NeoSaveSynchronizer.BuildLivePatch(baseline, staged, cache);
+
+            Assert.That(patch.changes, Has.Count.EqualTo(1));
+            var change = patch.changes.Single() as GameSaveValueReplaceChange;
+            Assert.That(change, Is.Not.Null,
+                "fields outside the server allowlist use value.replace");
+            Assert.That(change!.baseRecordStateId, Is.EqualTo("state-1"));
+            Assert.That(change.baseRecordRevisionToken, Is.EqualTo("token-1"));
+            Assert.That((string?)change.value["classId"], Is.EqualTo("class-2"));
         }
 
         [Test]

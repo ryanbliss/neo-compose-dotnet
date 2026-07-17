@@ -711,7 +711,12 @@ namespace NeoCompose.Runtime
                 next.genericBindings = existing.genericBindings;
                 NeoGenericResolution.StampGenericBindings(client, childMember, next, GenericEnv);
                 client.SetWritablePayloadRows(childOwnership, setValue?.value);
-                client.SetWritableValue(childOwnership, next);
+                client.SetWritableValue(
+                    childOwnership,
+                    next,
+                    childMember is ClassMember or ListMember or DictionaryMember
+                        ? null
+                        : "value");
                 ReinitializeChildren();
                 if (!childWillSelfNotify)
                 {

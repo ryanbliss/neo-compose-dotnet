@@ -814,11 +814,15 @@ namespace NeoCompose.Tests
             var autoCommitScheduler = new ManualLiveScheduler();
             app.Client.LiveAutoCommitDelay = autoCommitScheduler.Delay;
 
-            realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues("snap-live", "{}", "session-x")));
-
             // The game just plays — no CommitAsync anywhere.
             app.Save.Score = 41;
+            var firstValues = (JObject)JObject.Parse(
+                app.SerializeSaveData())["values"]!;
+            realtime.forkResults.Enqueue(NeoCommitResult.Committed(
+                RemoteWithValues(
+                    "snap-live",
+                    firstValues.ToString(Formatting.None),
+                    "session-x")));
 
             Assert.That(realtime.forks, Is.Empty, "the auto-commit coalesces first");
             autoCommitScheduler.Advance(0.3);
@@ -828,6 +832,93 @@ namespace NeoCompose.Tests
             Assert.That(realtime.forks, Has.Count.EqualTo(1), "the write streamed out");
             Assert.That(realtime.forks[0].patch.changes, Is.Not.Empty);
             Assert.That(realtime.commits, Is.Empty, "never the classic commit path");
+
+            app.Save.Score = 42;
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
+            autoCommitScheduler.Advance(0.3);
+            flushScheduler.Advance(0.5);
+
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
+            Assert.That(realtime.livePatches[0].patch.changes, Has.Count.EqualTo(1),
+                "a generated scalar setter targets only its value record");
+            var scalarPatch = realtime.livePatches[0].patch.changes.Single()
+                as GameSaveValuePatchChange;
+            Assert.That(
+                scalarPatch,
+                Is.Not.Null,
+                JsonConvert.SerializeObject(realtime.livePatches[0].patch));
+            Assert.That(scalarPatch!.set.Keys, Is.EqualTo(new[] { "value" }));
+            Assert.That(scalarPatch.unset, Is.Empty);
+
+            app.Dispose();
+            store.Dispose();
+        }
+
+        [Test]
+        public async Task GeneratedCollectionWrites_ReplaceOwningValueRecord()
+        {
+            var api = new FakeApiClient
+            {
+                getResult = RemoteWithValues("snap-1", "{}"),
+            };
+            var local = new NeoInMemoryLocalSaveStore();
+            var realtime = new FakeRealtimeProvider
+            {
+                State = NeoRealtimeConnectionState.Connected,
+                canCommit = true,
+            };
+            var store = new NeoProjectStore(
+                dataSource: new NeoJsonProjectDataSource(
+                    System.IO.File.ReadAllText(
+                        "Packages/com.ryanbliss.neocompose/Tests/synth-example.json")),
+                localStore: local,
+                apiClient: api,
+                targetReleaseChannelId: LiveChannel,
+                realtimeProvider: realtime);
+            await store.LoadAsync();
+            var sync = store.Open("save-1");
+            var flushScheduler = new ManualLiveScheduler();
+            sync.LiveClock = flushScheduler.Now;
+            sync.LiveDelay = flushScheduler.Delay;
+
+            var app = await global::Assets.Scripts.Neo.TestProjectNeo.Load(sync);
+            var autoCommitScheduler = new ManualLiveScheduler();
+            app.Client.LiveAutoCommitDelay = autoCommitScheduler.Delay;
+
+            app.Save.Heroes.Add(new global::Assets.Scripts.Neo.Hero(
+                Name: "Ada", Health: 7));
+            var heroesNode = app.Client.save.Get<NeoMemberListWritable>("Heroes");
+            string ownerValueId = heroesNode.overrideValueId!;
+            var firstValues = (JObject)JObject.Parse(
+                app.SerializeSaveData())["values"]!;
+            realtime.forkResults.Enqueue(NeoCommitResult.Committed(
+                RemoteWithValues(
+                    "snap-live",
+                    firstValues.ToString(Formatting.None),
+                    "session-x")));
+            autoCommitScheduler.Advance(0.3);
+            flushScheduler.Advance(0.5);
+
+            app.Save.Heroes.Add(new global::Assets.Scripts.Neo.Hero(
+                Name: "Grace", Health: 9));
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
+            autoCommitScheduler.Advance(0.3);
+            flushScheduler.Advance(0.5);
+
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
+            var ownerChanges = realtime.livePatches[0].patch.changes
+                .Where(change => change switch
+                {
+                    GameSaveValueReplaceChange replace =>
+                        replace.valueId == ownerValueId,
+                    GameSaveValuePatchChange fieldPatch =>
+                        fieldPatch.valueId == ownerValueId,
+                    _ => false,
+                })
+                .ToList();
+            Assert.That(ownerChanges, Has.Count.EqualTo(1));
+            Assert.That(ownerChanges[0], Is.TypeOf<GameSaveValueReplaceChange>(),
+                "collection structure is committed with value.replace");
 
             app.Dispose();
             store.Dispose();

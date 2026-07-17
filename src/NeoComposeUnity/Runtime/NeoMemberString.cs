@@ -79,7 +79,7 @@ namespace NeoCompose.Runtime
                 writable.value = newValue;
                 writable.neoLocalizationMode = NeoStringLocalizationMode.Literal;
                 writable.updatedAt = nowIso;
-                client.SetWritableValue(ownership, writable);
+                client.SetWritableValue(ownership, writable, "value");
                 NotifyChanged();
                 return;
             }

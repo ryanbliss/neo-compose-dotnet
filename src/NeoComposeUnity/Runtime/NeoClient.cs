@@ -169,9 +169,13 @@ namespace NeoCompose.Runtime
         /// <summary>Single chokepoint for save-value change notifications: raises
         /// the invalidation events and, in a live session, schedules the
         /// auto-commit that streams the change to the live snapshot.</summary>
-        private void RaiseSaveValueChanged(string id)
+        private void RaiseSaveValueChanged(string id, string? field = null)
         {
             OnSaveValueChanged?.Invoke(id);
+            if (!suppressLiveAutoCommit && loader is NeoSaveSynchronizer synchronizer)
+            {
+                synchronizer.MarkDirtyValue(id, field);
+            }
             ScheduleLiveAutoCommit();
         }
 
@@ -833,6 +837,10 @@ namespace NeoCompose.Runtime
             OnStaticBindingChanged?.Invoke(ownership, memberId);
             if (ownership == NeoValueOwnership.Save)
             {
+                if (loader is NeoSaveSynchronizer synchronizer)
+                {
+                    synchronizer.MarkDirtyStaticBinding(memberId);
+                }
                 ScheduleLiveAutoCommit();
             }
         }
@@ -863,6 +871,10 @@ namespace NeoCompose.Runtime
             OnStaticBindingChanged?.Invoke(ownership, memberId);
             if (ownership == NeoValueOwnership.Save)
             {
+                if (loader is NeoSaveSynchronizer synchronizer)
+                {
+                    synchronizer.MarkDirtyStaticBinding(memberId);
+                }
                 ScheduleLiveAutoCommit();
             }
             return true;
@@ -1249,7 +1261,7 @@ namespace NeoCompose.Runtime
                 updatedAt = nowIso,
                 mark = NeoValueMarks.Removed,
             };
-            SetWritableValue(ownership, tombstone);
+            SetWritableValue(ownership, tombstone, "mark");
         }
 
         /// <summary>
@@ -1336,7 +1348,8 @@ namespace NeoCompose.Runtime
 
         internal void SetWritableValue<TMemberValue>(
             NeoValueOwnership ownership,
-            TMemberValue value) where TMemberValue : MemberValue
+            TMemberValue value,
+            string? changedField = null) where TMemberValue : MemberValue
         {
             StampMapKeyForWrite(ownership, value);
             GetWritableStore(ownership).values[value.id] = value;
@@ -1346,7 +1359,7 @@ namespace NeoCompose.Runtime
             NotifyContainerMembershipChanged(ownership, value.id);
             if (ownership == NeoValueOwnership.Save)
             {
-                RaiseSaveValueChanged(value.id);
+                RaiseSaveValueChanged(value.id, changedField);
             }
         }
 

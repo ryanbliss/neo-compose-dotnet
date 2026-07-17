@@ -77,7 +77,7 @@ namespace NeoCompose.Runtime
             {
                 writable.value = normalized;
                 writable.updatedAt = nowIso;
-                client.SetWritableValue(ownership, writable);
+                client.SetWritableValue(ownership, writable, "value");
                 NotifyChanged();
                 return;
             }

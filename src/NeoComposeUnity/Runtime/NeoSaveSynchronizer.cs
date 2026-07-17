@@ -55,6 +55,10 @@ namespace NeoCompose.Runtime
         /// for the next flush. Null until a load/flush establishes it.</summary>
         private JObject? liveBaseline;
         private Dictionary<string, string?> liveStaticBindingBaseline = new();
+        private readonly Dictionary<string, HashSet<string>?> dirtyValueFields =
+            new(StringComparer.Ordinal);
+        private readonly HashSet<string> dirtyStaticBindings =
+            new(StringComparer.Ordinal);
 
         /// <summary>The most recently staged local save; what the next flush
         /// diffs against <see cref="liveBaseline"/>.</summary>
@@ -90,6 +94,36 @@ namespace NeoCompose.Runtime
         /// deterministic under test.</summary>
         internal Func<double> LiveClock = DefaultLiveClock;
         internal Func<double, Awaitable> LiveDelay = DefaultLiveDelay;
+
+        internal void MarkDirtyValue(string valueId, string? field)
+        {
+            if (string.IsNullOrEmpty(valueId)) return;
+            if (field != "value" && field != "mark") field = null;
+            if (!dirtyValueFields.TryGetValue(valueId, out var fields))
+            {
+                dirtyValueFields[valueId] = field == null
+                    ? null
+                    : new HashSet<string>(StringComparer.Ordinal) { field };
+                return;
+            }
+            if (fields == null || field == null)
+            {
+                dirtyValueFields[valueId] = null;
+                return;
+            }
+            fields.Add(field);
+        }
+
+        internal void MarkDirtyStaticBinding(string memberId)
+        {
+            if (!string.IsNullOrEmpty(memberId)) dirtyStaticBindings.Add(memberId);
+        }
+
+        private void ClearDirtyRecords()
+        {
+            dirtyValueFields.Clear();
+            dirtyStaticBindings.Clear();
+        }
 
         internal NeoSaveSynchronizer(
             InternalProjectStore core,
@@ -204,6 +238,7 @@ namespace NeoCompose.Runtime
                 }
 
                 active = loaded;
+                ClearDirtyRecords();
                 State = NeoSaveSynchronizerState.Ready;
                 ResetLiveSessionBasis(loaded);
                 AttachRealtimeHead();
@@ -258,6 +293,7 @@ namespace NeoCompose.Runtime
                 {
                     active = local;
                     core.RecordSavedFile(local, null);
+                    ClearDirtyRecords();
                     State = NeoSaveSynchronizerState.Ready;
                     OnCommitSuccess?.Invoke(local);
                     return;
@@ -285,6 +321,7 @@ namespace NeoCompose.Runtime
                 }
 
                 core.RecordSavedFile(active, committedRemote);
+                if (committedRemote != null) ClearDirtyRecords();
                 State = NeoSaveSynchronizerState.Ready;
                 OnCommitSuccess?.Invoke(active);
             }
@@ -502,7 +539,7 @@ namespace NeoCompose.Runtime
             var staged = AsValuesObject(local.values)
                 ?? throw new InvalidOperationException(
                     "Sparse save commits require an object-shaped values overlay.");
-            var changes = BuildLivePatch(
+            var changes = BuildPendingPatch(
                     baseline.values,
                     staged,
                     baseline.recordCache,
@@ -843,7 +880,7 @@ namespace NeoCompose.Runtime
                     var staged = AsValuesObject(stagedLive.values);
                     if (staged != null)
                     {
-                        localDirty = BuildLivePatch(
+                        localDirty = BuildPendingPatch(
                             liveBaseline,
                             staged,
                             current.recordCache,
@@ -972,6 +1009,7 @@ namespace NeoCompose.Runtime
             if (!ReferenceEquals(stagedLive, local)) return;
             local.liveFlushed = true;
             await core.LocalStore.CommitSaveAsync(CustomId, JsonConvert.SerializeObject(local));
+            ClearDirtyRecords();
             liveFirstDirtyAt = -1;
         }
 
@@ -1163,7 +1201,7 @@ namespace NeoCompose.Runtime
             }
 
             var baseline = liveBaseline ?? new JObject();
-            var patch = BuildLivePatch(
+            var patch = BuildPendingPatch(
                 baseline,
                 staged,
                 local.recordCache,
@@ -1171,7 +1209,11 @@ namespace NeoCompose.Runtime
                 local.staticBindings);
             if (patch.IsEmpty)
             {
-                if (ReferenceEquals(stagedLive, local)) liveFirstDirtyAt = -1;
+                if (ReferenceEquals(stagedLive, local))
+                {
+                    ClearDirtyRecords();
+                    liveFirstDirtyAt = -1;
+                }
                 return;
             }
 
@@ -1220,7 +1262,7 @@ namespace NeoCompose.Runtime
                     // Preserve the already-acknowledged batch baselines, then
                     // re-fork only the remaining staged delta on the moved head.
                     liveSnapshotId = null;
-                    var remaining = BuildLivePatch(
+                    var remaining = BuildPendingPatch(
                         liveBaseline ?? new JObject(),
                         staged,
                         local.recordCache,
@@ -1396,6 +1438,7 @@ namespace NeoCompose.Runtime
                 await core.LocalStore.CommitSaveAsync(
                     CustomId, JsonConvert.SerializeObject(adopted));
                 active = adopted;
+                ClearDirtyRecords();
                 stagedLive = null;
                 liveSnapshotId = null;
                 liveBaseline = AsValuesObject(serverHead.values) is JObject values
@@ -1663,6 +1706,123 @@ namespace NeoCompose.Runtime
         /// become field operations; unknown/non-object shapes retain the
         /// record-level replace escape hatch.
         /// </summary>
+        private NeoSavePatch BuildPendingPatch(
+            JObject baseline,
+            JObject staged,
+            GameSaveRecordCache? cache,
+            IReadOnlyDictionary<string, string?> baselineStaticBindings,
+            IReadOnlyDictionary<string, string?> stagedStaticBindings)
+        {
+            if (dirtyValueFields.Count == 0 && dirtyStaticBindings.Count == 0)
+            {
+                // Opaque developer-authored local files and explicit imports do
+                // not pass through generated setters. Diff them as a compatibility
+                // escape hatch; generated runtime writes use the targeted path.
+                return BuildLivePatch(
+                    baseline,
+                    staged,
+                    cache,
+                    baselineStaticBindings,
+                    stagedStaticBindings);
+            }
+
+            var patch = new NeoSavePatch();
+            foreach (var dirty in dirtyValueFields.OrderBy(
+                         pair => pair.Key, StringComparer.Ordinal))
+            {
+                var descriptor = FindValueDescriptor(cache, dirty.Key);
+                var hasBaseline = baseline.TryGetValue(dirty.Key, out var before);
+                var hasStaged = staged.TryGetValue(dirty.Key, out var after);
+                if (!hasStaged)
+                {
+                    if (hasBaseline
+                        && descriptor is
+                            { deleted: false, recordStateId: not null,
+                                recordRevisionToken: not null })
+                    {
+                        patch.changes.Add(new GameSaveValueRestoreToAuthoredChange
+                        {
+                            valueId = dirty.Key,
+                            baseRecordStateId = descriptor.recordStateId,
+                            baseRecordRevisionToken = descriptor.recordRevisionToken,
+                        });
+                    }
+                    continue;
+                }
+                if (hasBaseline && NeoSemanticJson.ProjectRecordsEqual(before, after))
+                {
+                    continue;
+                }
+                if (dirty.Value != null
+                    && before is JObject oldObject
+                    && after is JObject newObject
+                    && descriptor is
+                        { deleted: false, recordStateId: not null,
+                            recordRevisionToken: not null }
+                    && OnlySafeRecordFieldsDiffer(oldObject, newObject))
+                {
+                    var fieldPatch = BuildValueFieldPatch(
+                        dirty.Key, oldObject, newObject, descriptor);
+                    if (fieldPatch.set.Count != 0 || fieldPatch.unset.Count != 0)
+                    {
+                        patch.changes.Add(fieldPatch);
+                        continue;
+                    }
+                }
+                patch.changes.Add(new GameSaveValueReplaceChange
+                {
+                    valueId = dirty.Key,
+                    baseRecordStateId = descriptor is { deleted: false }
+                        ? descriptor.recordStateId
+                        : null,
+                    baseRecordRevisionToken = descriptor is { deleted: false }
+                        ? descriptor.recordRevisionToken
+                        : null,
+                    value = after!.DeepClone(),
+                });
+            }
+
+            foreach (var memberId in dirtyStaticBindings.OrderBy(
+                         id => id, StringComparer.Ordinal))
+            {
+                var descriptor = FindDescriptor(
+                    cache, NeoGameSaveRecordKinds.StaticBinding, memberId);
+                if (stagedStaticBindings.TryGetValue(memberId, out var valueId))
+                {
+                    if (baselineStaticBindings.TryGetValue(memberId, out var before)
+                        && before == valueId)
+                    {
+                        continue;
+                    }
+                    patch.changes.Add(new GameSaveStaticBindingSetChange
+                    {
+                        memberId = memberId,
+                        valueId = valueId,
+                        baseRecordStateId = descriptor is { deleted: false }
+                            ? descriptor.recordStateId
+                            : null,
+                        baseRecordRevisionToken = descriptor is { deleted: false }
+                            ? descriptor.recordRevisionToken
+                            : null,
+                    });
+                    continue;
+                }
+                if (baselineStaticBindings.ContainsKey(memberId)
+                    && descriptor is
+                        { deleted: false, recordStateId: not null,
+                            recordRevisionToken: not null })
+                {
+                    patch.changes.Add(new GameSaveStaticBindingRestoreToAuthoredChange
+                    {
+                        memberId = memberId,
+                        baseRecordStateId = descriptor.recordStateId,
+                        baseRecordRevisionToken = descriptor.recordRevisionToken,
+                    });
+                }
+            }
+            return patch;
+        }
+
         internal static NeoSavePatch BuildLivePatch(
             JObject baseline,
             JObject staged,
@@ -1680,7 +1840,8 @@ namespace NeoCompose.Runtime
                     if (existing is JObject oldObject
                         && property.Value is JObject newObject
                         && descriptor is { deleted: false, recordStateId: not null,
-                            recordRevisionToken: not null })
+                            recordRevisionToken: not null }
+                        && OnlySafeRecordFieldsDiffer(oldObject, newObject))
                     {
                         var fieldPatch = BuildValueFieldPatch(
                             property.Name, oldObject, newObject, descriptor);
@@ -1803,7 +1964,7 @@ namespace NeoCompose.Runtime
             };
             foreach (var field in staged.Properties())
             {
-                if (IsCanonicalOrTimestampField(field.Name)) continue;
+                if (!IsSafeRecordPatchField(field.Name)) continue;
                 if (!baseline.TryGetValue(field.Name, out var before)
                     || !NeoSemanticJson.ValuesEqual(before, field.Value))
                 {
@@ -1812,11 +1973,41 @@ namespace NeoCompose.Runtime
             }
             foreach (var field in baseline.Properties())
             {
-                if (IsCanonicalOrTimestampField(field.Name)) continue;
+                if (!IsSafeRecordPatchField(field.Name)) continue;
                 if (!staged.ContainsKey(field.Name)) change.unset.Add(field.Name);
             }
             return change;
         }
+
+        private static bool OnlySafeRecordFieldsDiffer(
+            JObject baseline,
+            JObject staged)
+        {
+            foreach (var field in baseline.Properties())
+            {
+                if (IsCanonicalOrTimestampField(field.Name)) continue;
+                if (staged.TryGetValue(field.Name, out var after)
+                    && NeoSemanticJson.ValuesEqual(field.Value, after))
+                {
+                    continue;
+                }
+                if (!IsSafeRecordPatchField(field.Name)) return false;
+            }
+            foreach (var field in staged.Properties())
+            {
+                if (IsCanonicalOrTimestampField(field.Name)) continue;
+                if (baseline.TryGetValue(field.Name, out var before)
+                    && NeoSemanticJson.ValuesEqual(before, field.Value))
+                {
+                    continue;
+                }
+                if (!IsSafeRecordPatchField(field.Name)) return false;
+            }
+            return true;
+        }
+
+        private static bool IsSafeRecordPatchField(string field) =>
+            field == "value" || field == "mark";
 
         private static void ApplyLocalChanges(
             JObject values,
