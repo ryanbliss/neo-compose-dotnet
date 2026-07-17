@@ -1164,64 +1164,87 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            NeoLivePatchResult result;
-            try
+            await PatchLiveBatchesAsync(realtime, local, staged, patch);
+        }
+
+        private async Awaitable<bool> PatchLiveBatchesAsync(
+            INeoRealtimeProvider realtime,
+            LocalGameSave local,
+            JObject staged,
+            NeoSavePatch patch)
+        {
+            foreach (var batch in SplitPatch(patch))
             {
-                result = await realtime.PatchLiveAsync(new NeoLivePatchRequest
+                NeoLivePatchResult result;
+                try
                 {
-                    customId = CustomId,
-                    snapshotId = liveSnapshotId,
-                    patch = patch,
-                    updatedAt = local.updatedAt,
-                });
-            }
-            catch (Exception exception)
-            {
-                HandleLiveFlushFailure(exception);
-                return;
+                    result = await realtime.PatchLiveAsync(new NeoLivePatchRequest
+                    {
+                        customId = CustomId,
+                        snapshotId = liveSnapshotId!,
+                        patch = batch,
+                        updatedAt = local.updatedAt,
+                    });
+                }
+                catch (Exception exception)
+                {
+                    HandleLiveFlushFailure(exception);
+                    return false;
+                }
+
+                if (result.IsStaleTarget)
+                {
+                    // Preserve the already-acknowledged batch baselines, then
+                    // re-fork only the remaining staged delta on the moved head.
+                    liveSnapshotId = null;
+                    var remaining = BuildLivePatch(
+                        liveBaseline ?? new JObject(),
+                        staged,
+                        local.recordCache,
+                        liveStaticBindingBaseline,
+                        local.staticBindings);
+                    await ForkLiveSessionAsync(
+                        realtime,
+                        local,
+                        staged,
+                        remaining,
+                        result.ServerHead!.snapshotId);
+                    return false;
+                }
+
+                if (result.IsConflict)
+                {
+                    // The next normalized patch uses this record's new OCC base.
+                    var descriptor = result.Conflict!.currentDescriptor;
+                    local.recordCache.descriptors[descriptor.LogicalKey] = descriptor;
+                    liveFirstDirtyAt = LiveClock();
+                    KickLiveFlushLoop();
+                    return false;
+                }
+
+                foreach (var descriptor in result.ChangedDescriptors)
+                {
+                    local.recordCache.descriptors[descriptor.LogicalKey] = descriptor;
+                }
+                local.recordCache.snapshotId = result.SnapshotId;
+                local.recordCache.snapshotRevision = result.SnapshotRevision;
+                liveBaseline ??= new JObject();
+                ApplyLocalChanges(liveBaseline, liveStaticBindingBaseline, batch);
+                local.snapshotId = result.SnapshotId;
+                local.snapshotRevision = result.SnapshotRevision;
+                local.synchronizedAt = result.SynchronizedAt.EpochMilliseconds;
+                RecordKnownLiveIdentity(
+                    local.serverId,
+                    result.SnapshotId,
+                    result.SnapshotRevision,
+                    local.synchronizedAt);
             }
 
-            if (result.IsStaleTarget)
-            {
-                // Our live snapshot froze (a newer session forked past it, or
-                // the head was repointed). Re-fork immediately; the stale base
-                // then surfaces through the typed conflict contract.
-                liveSnapshotId = null;
-                await ForkLiveSessionAsync(
-                    realtime, local, staged, patch, result.ServerHead!.snapshotId);
-                return;
-            }
-
-            if (result.IsConflict)
-            {
-                // Rebase only the stale record. The next normalized patch uses
-                // the returned descriptor as its OCC base; unrelated staged
-                // records and fields remain untouched.
-                var descriptor = result.Conflict!.currentDescriptor;
-                local.recordCache.descriptors[descriptor.LogicalKey] = descriptor;
-                liveFirstDirtyAt = LiveClock();
-                KickLiveFlushLoop();
-                return;
-            }
-
-            foreach (var descriptor in result.ChangedDescriptors)
-            {
-                local.recordCache.descriptors[descriptor.LogicalKey] = descriptor;
-            }
-            local.recordCache.snapshotId = result.SnapshotId;
-            local.recordCache.snapshotRevision = result.SnapshotRevision;
             liveBaseline = (JObject)staged.DeepClone();
             liveStaticBindingBaseline =
                 new Dictionary<string, string?>(local.staticBindings);
-            local.snapshotId = result.SnapshotId;
-            local.snapshotRevision = result.SnapshotRevision;
-            local.synchronizedAt = result.SynchronizedAt.EpochMilliseconds;
-            RecordKnownLiveIdentity(
-                local.serverId,
-                result.SnapshotId,
-                result.SnapshotRevision,
-                local.synchronizedAt);
             await PersistFlushedLocalAsync(local);
+            return true;
         }
 
         /// <summary>First flush of the session (or a re-fork after the live
@@ -1233,12 +1256,14 @@ namespace NeoCompose.Runtime
             NeoSavePatch patch,
             string baseSnapshotId)
         {
+            var batches = SplitPatch(patch);
+            if (batches.Count == 0) return;
             NeoCommitResult result;
             try
             {
                 result = await realtime.ForkLiveAsync(
                     BuildLiveForkRequest(
-                        local, patch, baseSnapshotId, local.snapshotRevision));
+                        local, batches[0], baseSnapshotId, local.snapshotRevision));
             }
             catch (Exception exception)
             {
@@ -1267,7 +1292,19 @@ namespace NeoCompose.Runtime
             }
 
             AdoptForkedHead(local, staged, result.CommittedSave!);
-            await PersistFlushedLocalAsync(local);
+            if (batches.Count == 1)
+            {
+                await PersistFlushedLocalAsync(local);
+                return;
+            }
+
+            var remainder = new NeoSavePatch
+            {
+                changes = batches.Skip(1)
+                    .SelectMany(batch => batch.changes)
+                    .ToList(),
+            };
+            await PatchLiveBatchesAsync(realtime, local, staged, remainder);
         }
 
         /// <summary>
@@ -1322,11 +1359,16 @@ namespace NeoCompose.Runtime
             }
 
             NeoCommitResult rebased;
+            var batches = SplitPatch(patch);
+            if (batches.Count == 0) return;
             try
             {
                 rebased = await realtime.ForkLiveAsync(
                     BuildLiveForkRequest(
-                        local, patch, serverHead.snapshotId, serverHead.snapshotRevision));
+                        local,
+                        batches[0],
+                        serverHead.snapshotId,
+                        serverHead.snapshotRevision));
             }
             catch (Exception exception)
             {
@@ -1352,7 +1394,18 @@ namespace NeoCompose.Runtime
             }
 
             AdoptForkedHead(local, staged, rebased.CommittedSave!);
-            await PersistFlushedLocalAsync(local);
+            if (batches.Count == 1)
+            {
+                await PersistFlushedLocalAsync(local);
+                return;
+            }
+            var remainder = new NeoSavePatch
+            {
+                changes = batches.Skip(1)
+                    .SelectMany(batch => batch.changes)
+                    .ToList(),
+            };
+            await PatchLiveBatchesAsync(realtime, local, staged, remainder);
         }
 
         /// <summary>Local-only saves can't fork (no cloud head exists); the
@@ -1754,6 +1807,19 @@ namespace NeoCompose.Runtime
                         break;
                 }
             }
+        }
+
+        private static List<NeoSavePatch> SplitPatch(NeoSavePatch patch)
+        {
+            var batches = new List<NeoSavePatch>();
+            for (var index = 0; index < patch.changes.Count; index += 64)
+            {
+                batches.Add(new NeoSavePatch
+                {
+                    changes = patch.changes.Skip(index).Take(64).ToList(),
+                });
+            }
+            return batches;
         }
 
         private static bool IsCanonicalOrTimestampField(string field) =>

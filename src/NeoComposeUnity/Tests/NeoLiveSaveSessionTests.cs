@@ -126,6 +126,16 @@ namespace NeoCompose.Tests
         private static JToken AppliedValue(string content, string valueId) =>
             JObject.Parse(content)["values"]![valueId]!;
 
+        private static string NumberedValues(int count)
+        {
+            var values = new JObject();
+            for (var index = 0; index < count; index++)
+            {
+                values[$"value-{index:000}"] = index;
+            }
+            return values.ToString(Formatting.None);
+        }
+
         private static async Task<(NeoProjectStore store,
             NeoSaveSynchronizer sync,
             FakeApiClient api,
@@ -281,6 +291,74 @@ namespace NeoCompose.Tests
                 ChangedValueIds(realtime.livePatches[0].patch),
                 Is.EquivalentTo(new[] { "b" }),
                 "the hydrated fork baseline prevents an unrelated re-upload of a");
+        }
+
+        [Test]
+        public async Task FirstFork_SplitsMoreThan64ChangedRecordsIntoBoundedWrites()
+        {
+            var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
+            var allValues = JObject.Parse(NumberedValues(65));
+            var firstValues = new JObject(
+                allValues.Properties().Take(64)
+                    .Select(property => new JProperty(
+                        property.Name, property.Value.DeepClone())));
+            realtime.forkResults.Enqueue(NeoCommitResult.Committed(
+                RemoteWithValues(
+                    "snap-live",
+                    firstValues.ToString(Formatting.None),
+                    "session-x")));
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
+
+            await sync.CommitSaveContentAsync(
+                LiveSaveContent(allValues.ToString(Formatting.None)),
+                replaceSnapshot: false);
+            scheduler.Advance(0.5);
+
+            Assert.That(realtime.forks, Has.Count.EqualTo(1));
+            Assert.That(realtime.forks[0].patch.changes, Has.Count.EqualTo(64));
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
+            Assert.That(realtime.livePatches[0].patch.changes, Has.Count.EqualTo(1));
+            Assert.That(sync.ActiveSave!.snapshotRevision, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task EstablishedLiveHead_SplitsLargeBurstsIntoSequentialBatches()
+        {
+            var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
+            await ForkEstablishedAsync(sync, realtime, scheduler, "{\"seed\":0}");
+            realtime.livePatches.Clear();
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 3));
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 4));
+
+            await sync.CommitSaveContentAsync(
+                LiveSaveContent(NumberedValues(130), "snap-live", snapshotRevision: 1),
+                replaceSnapshot: false);
+            scheduler.Advance(0.5);
+
+            Assert.That(
+                realtime.livePatches.Select(call => call.patch.changes.Count),
+                Is.EqualTo(new[] { 64, 64, 3 }));
+            Assert.That(sync.ActiveSave!.snapshotRevision, Is.EqualTo(4));
+        }
+
+        [Test]
+        public async Task ForkTransition_IsPolledWithoutRepeatingTheForkMutation()
+        {
+            var (_, sync, api, _, realtime, _) = await LiveSessionAsync();
+            realtime.forkResults.Enqueue(
+                NeoCommitResult.Transitioning("save-1", "snap-live"));
+            api.transitionStatuses.Enqueue(NeoSaveTransitionStatus.Ready(
+                RemoteWithValues("snap-live", "{\"a\":1}", "session-x")));
+
+            await sync.CommitSaveContentAsync(
+                LiveSaveContent("{\"a\":1}"),
+                replaceSnapshot: false,
+                flushLiveImmediately: true);
+
+            Assert.That(realtime.forks, Has.Count.EqualTo(1));
+            Assert.That(api.transitionStatusRequests, Is.EqualTo(new[] { "save-1" }));
+            Assert.That(sync.ActiveSave!.snapshotId, Is.EqualTo("snap-live"));
         }
 
         [Test]
@@ -574,17 +652,18 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public async Task LiveSessionsDisabled_KeepsTheClassicCommitPath()
+        public async Task LiveSessionsDisabled_KeepsTheSparseSnapshotCommitPath()
         {
-            var (_, sync, _, _, realtime, _) = await LiveSessionAsync(
+            var (_, sync, api, _, realtime, _) = await LiveSessionAsync(
                 liveSessionsEnabled: false);
-            realtime.commitResults.Enqueue(NeoCommitResult.Committed(
+            api.sparseCommitResults.Enqueue(NeoCommitResult.Committed(
                 RemoteWithValues("snap-2", "{\"a\":1}")));
 
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":1}"), replaceSnapshot: false);
 
-            Assert.That(realtime.commits, Has.Count.EqualTo(1), "classic realtime commit");
+            Assert.That(api.sparseCommits, Has.Count.EqualTo(1), "sparse REST commit");
+            Assert.That(realtime.commits, Is.Empty);
             Assert.That(realtime.forks, Is.Empty);
             Assert.That(realtime.livePatches, Is.Empty);
         }
