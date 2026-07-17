@@ -294,31 +294,34 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public async Task FirstFork_SplitsMoreThan64ChangedRecordsIntoBoundedWrites()
+        public async Task FirstFork_StagesMoreThan64ChangesBeforeAtomicActivation()
         {
-            var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
+            var (_, sync, api, _, realtime, scheduler) = await LiveSessionAsync();
             var allValues = JObject.Parse(NumberedValues(65));
-            var firstValues = new JObject(
-                allValues.Properties().Take(64)
-                    .Select(property => new JProperty(
-                        property.Name, property.Value.DeepClone())));
-            realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues(
-                    "snap-live",
-                    firstValues.ToString(Formatting.None),
-                    "session-x")));
-            realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
+            api.stagedBeginResults.Enqueue(
+                NeoCommitResult.Transitioning("save-1", "snap-live"));
+            api.transitionStatuses.Enqueue(
+                NeoSaveTransitionStatus.Staging(
+                    "save-1", "snap-live", 1, "snap-live"));
+            api.chunkedCompleteResult = RemoteWithValues(
+                "snap-live",
+                allValues.ToString(Formatting.None),
+                "session-x",
+                snapshotRevision: 3);
 
             await sync.CommitSaveContentAsync(
                 LiveSaveContent(allValues.ToString(Formatting.None)),
                 replaceSnapshot: false);
             scheduler.Advance(0.5);
 
-            Assert.That(realtime.forks, Has.Count.EqualTo(1));
-            Assert.That(realtime.forks[0].patch.changes, Has.Count.EqualTo(64));
-            Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
-            Assert.That(realtime.livePatches[0].patch.changes, Has.Count.EqualTo(1));
-            Assert.That(sync.ActiveSave!.snapshotRevision, Is.EqualTo(2));
+            Assert.That(realtime.forks, Is.Empty,
+                "no partially populated live head is published");
+            Assert.That(realtime.livePatches, Is.Empty);
+            Assert.That(api.chunkedAppends.Select(batch => batch.Count),
+                Is.EqualTo(new[] { 64, 1 }));
+            Assert.That(api.stagedBegins[0].request.liveSessionId, Is.Not.Empty);
+            Assert.That(api.chunkedCompleteCalls, Is.EqualTo(1));
+            Assert.That(sync.ActiveSave!.snapshotRevision, Is.EqualTo(3));
         }
 
         [Test]

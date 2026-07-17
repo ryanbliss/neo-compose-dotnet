@@ -114,6 +114,24 @@ namespace NeoCompose.Runtime.Json
         public NeoTimestamp updatedAt;
     }
 
+    /// <summary>
+    /// Metadata-only first phase of an atomic successor snapshot. Its records
+    /// are appended to the hidden target in bounded batches before activation.
+    /// </summary>
+    public sealed class NeoStagedSnapshotBeginRequest
+    {
+        public string baseSnapshotId = "";
+        public long baseSnapshotRevision;
+        public VersionData version = new();
+        public string? snapshotName;
+        public List<GameRuntimePlatform>? platforms;
+        public List<GameSystemInfo>? systems;
+        public List<GameInputDeviceInfo>? inputDevices;
+        public NeoTimestamp updatedAt;
+        public string uploadFingerprint = "";
+        public string? liveSessionId;
+    }
+
     public enum NeoCloneOutcome
     {
         Cloned,
@@ -166,6 +184,7 @@ namespace NeoCompose.Runtime.Json
     {
         Ready,
         Copying,
+        Staging,
         Failed,
     }
 
@@ -180,12 +199,16 @@ namespace NeoCompose.Runtime.Json
             RemoteGameSave? readySave,
             string customId,
             string targetSnapshotId,
+            long snapshotRevision,
+            string resumeToken,
             string? error)
         {
             Outcome = outcome;
             ReadySave = readySave;
             CustomId = customId;
             TargetSnapshotId = targetSnapshotId;
+            SnapshotRevision = snapshotRevision;
+            ResumeToken = resumeToken;
             Error = error;
         }
 
@@ -193,6 +216,8 @@ namespace NeoCompose.Runtime.Json
         public RemoteGameSave? ReadySave { get; }
         public string CustomId { get; }
         public string TargetSnapshotId { get; }
+        public long SnapshotRevision { get; }
+        public string ResumeToken { get; }
         public string? Error { get; }
 
         public static NeoSaveTransitionStatus Ready(RemoteGameSave save) =>
@@ -201,6 +226,8 @@ namespace NeoCompose.Runtime.Json
                 save,
                 save.id,
                 save.snapshotId,
+                save.snapshotRevision,
+                "",
                 null);
 
         public static NeoSaveTransitionStatus Copying(
@@ -211,6 +238,22 @@ namespace NeoCompose.Runtime.Json
                 null,
                 customId,
                 targetSnapshotId,
+                0,
+                "",
+                null);
+
+        public static NeoSaveTransitionStatus Staging(
+            string customId,
+            string targetSnapshotId,
+            long snapshotRevision,
+            string resumeToken) =>
+            new NeoSaveTransitionStatus(
+                NeoSaveTransitionOutcome.Staging,
+                null,
+                customId,
+                targetSnapshotId,
+                snapshotRevision,
+                resumeToken,
                 null);
 
         public static NeoSaveTransitionStatus Failed(
@@ -222,6 +265,8 @@ namespace NeoCompose.Runtime.Json
                 null,
                 customId,
                 targetSnapshotId,
+                0,
+                "",
                 error);
     }
 

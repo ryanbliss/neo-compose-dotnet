@@ -256,6 +256,38 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task StagedSnapshotBegin_UsesMetadataOnlySuccessorRoute()
+        {
+            var http = new FakeHttpClient
+            {
+                body = "{\"kind\":\"transitioning\",\"customId\":\"save-1\"," +
+                    "\"targetSnapshotId\":\"snap-next\"}",
+            };
+            var client = NewClient(new FakeProvider("the-token"), http);
+
+            var result = await client.BeginStagedSnapshotAsync(
+                "save-1",
+                new NeoStagedSnapshotBeginRequest
+                {
+                    baseSnapshotId = "snap-1",
+                    baseSnapshotRevision = 4,
+                    version = new VersionData { id = "v1", label = "1.0" },
+                    uploadFingerprint = "sha256:staged-v1",
+                    liveSessionId = "session-1",
+                });
+
+            Assert.That(result.IsTransitioning, Is.True);
+            StringAssert.EndsWith(
+                "/saves/save-1/snapshots/staged/begin", http.sends[0].url);
+            StringAssert.Contains("\"baseSnapshotRevision\":4", http.sends[0].body);
+            StringAssert.Contains("\"uploadFingerprint\":\"sha256:staged-v1\"",
+                http.sends[0].body);
+            StringAssert.Contains("\"liveSessionId\":\"session-1\"",
+                http.sends[0].body);
+            StringAssert.DoesNotContain("\"changes\"", http.sends[0].body);
+        }
+
+        [Test]
         public async Task Clone_TransitioningReturnsPollIdentityWithoutReadingPartialRecords()
         {
             var http = new FakeHttpClient
@@ -334,7 +366,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public async Task TransitionStatus_ParsesCopyingAndFailedOutcomes()
+        public async Task TransitionStatus_ParsesCopyingStagingAndFailedOutcomes()
         {
             var http = new FakeHttpClient
             {
@@ -347,6 +379,14 @@ namespace NeoCompose.Tests
             Assert.That(copying.Outcome, Is.EqualTo(NeoSaveTransitionOutcome.Copying));
             StringAssert.EndsWith(
                 "/saves/save-2/status/query", http.sends[0].url);
+
+            http.body = "{\"kind\":\"staging\",\"customId\":\"save-2\"," +
+                "\"targetSnapshotId\":\"snap-2\",\"snapshotRevision\":7," +
+                "\"resumeToken\":\"resume-2\"}";
+            var staging = await client.GetSaveTransitionStatusAsync("save-2");
+            Assert.That(staging.Outcome, Is.EqualTo(NeoSaveTransitionOutcome.Staging));
+            Assert.That(staging.SnapshotRevision, Is.EqualTo(7));
+            Assert.That(staging.ResumeToken, Is.EqualTo("resume-2"));
 
             http.body = "{\"kind\":\"failed\",\"customId\":\"save-2\"," +
                 "\"targetSnapshotId\":\"snap-2\",\"error\":\"copy failed\"}";

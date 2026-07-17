@@ -229,6 +229,11 @@ namespace HelloWorld.Assets.Tests
                 NeoSparseSnapshotCommitRequest request) =>
                 throw new NotSupportedException();
 
+            public Awaitable<NeoCommitResult> BeginStagedSnapshotAsync(
+                string customId,
+                NeoStagedSnapshotBeginRequest request) =>
+                throw new NotSupportedException();
+
             public Awaitable<NeoCloneResult> CloneSaveAsync(
                 string customId,
                 NeoCloneRequest request) =>

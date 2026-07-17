@@ -91,6 +91,10 @@ namespace NeoCompose.Tests
         public readonly Queue<NeoCommitResult> sparseCommitResults = new();
         public readonly List<(string customId, NeoSparseSnapshotCommitRequest request)>
             sparseCommits = new();
+        public readonly Queue<NeoCommitResult> stagedBeginResults = new();
+        public readonly List<(string customId, NeoStagedSnapshotBeginRequest request)>
+            stagedBegins = new();
+        public Exception? stagedBeginThrows;
         public RemoteGameSave? getResult;
         public int getCalls;
         public Exception? getThrows;
@@ -274,6 +278,15 @@ namespace NeoCompose.Tests
                     : commitResults.Dequeue());
         }
 
+        public Awaitable<NeoCommitResult> BeginStagedSnapshotAsync(
+            string customId,
+            NeoStagedSnapshotBeginRequest request)
+        {
+            stagedBegins.Add((customId, request));
+            if (stagedBeginThrows != null) throw stagedBeginThrows;
+            return NeoAwaitable.FromResult(stagedBeginResults.Dequeue());
+        }
+
         public Awaitable<NeoChunkedCreateTarget> BeginChunkedCreateAsync(
             NeoChunkedCreateRequest request)
         {
@@ -313,13 +326,25 @@ namespace NeoCompose.Tests
                         recordKind = NeoGameSaveRecordKinds.Value;
                         recordId = value.valueId;
                         break;
+                    case GameSaveValuePatchChange value:
+                        recordKind = NeoGameSaveRecordKinds.Value;
+                        recordId = value.valueId;
+                        break;
+                    case GameSaveValueRestoreToAuthoredChange value:
+                        recordKind = NeoGameSaveRecordKinds.Value;
+                        recordId = value.valueId;
+                        break;
                     case GameSaveStaticBindingSetChange binding:
+                        recordKind = NeoGameSaveRecordKinds.StaticBinding;
+                        recordId = binding.memberId;
+                        break;
+                    case GameSaveStaticBindingRestoreToAuthoredChange binding:
                         recordKind = NeoGameSaveRecordKinds.StaticBinding;
                         recordId = binding.memberId;
                         break;
                     default:
                         throw new InvalidOperationException(
-                            "Unexpected initial create change in fake API.");
+                            "Unexpected record change in fake API.");
                 }
                 var descriptor = new GameSaveRecordDescriptor
                 {

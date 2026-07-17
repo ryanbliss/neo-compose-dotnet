@@ -44,6 +44,9 @@ namespace NeoCompose.Runtime
         Awaitable<NeoCommitResult> CommitSparseSnapshotAsync(
             string customId,
             NeoSparseSnapshotCommitRequest request);
+        Awaitable<NeoCommitResult> BeginStagedSnapshotAsync(
+            string customId,
+            NeoStagedSnapshotBeginRequest request);
         Awaitable<NeoChunkedCreateTarget> BeginChunkedCreateAsync(
             NeoChunkedCreateRequest request);
         Awaitable<NeoLivePatchResult> AppendChunkedCreateAsync(
@@ -313,6 +316,66 @@ namespace NeoCompose.Runtime
                 $"Neo Compose sparse save commit returned unsupported kind '{result.kind}'.");
         }
 
+        public async Awaitable<NeoCommitResult> BeginStagedSnapshotAsync(
+            string customId,
+            NeoStagedSnapshotBeginRequest request)
+        {
+            RequireCustomId(customId);
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            RequireSnapshotId(request.baseSnapshotId);
+            if (request.baseSnapshotRevision < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(request));
+            }
+            if (string.IsNullOrWhiteSpace(request.uploadFingerprint))
+            {
+                throw new ArgumentException(
+                    "Staged snapshot upload fingerprint cannot be empty.",
+                    nameof(request));
+            }
+
+            var url = SavesUrl(
+                $"/{UnityWebRequest.EscapeURL(customId)}/snapshots/staged/begin");
+            var operation = new NeoComposeApiOperation(
+                "begin an atomic staged save snapshot", projectId, WriteScope);
+            var response = await SendAuthorizedAsync(
+                url, JsonConvert.SerializeObject(new { snapshot = request }));
+            if (response.StatusCode == 409)
+            {
+                var conflict = Deserialize<CommitResponseWire>(
+                    response.Text, "staged save snapshot conflict");
+                if (conflict.serverHead == null)
+                {
+                    throw new InvalidOperationException(
+                        "Neo Compose staged snapshot conflict omitted the server head.");
+                }
+                await NeoGameSaveRecordSync.LoadManifestAsync(
+                    this, customId, conflict.serverHead);
+                return NeoCommitResult.Conflict(conflict.serverHead);
+            }
+
+            var json = ReadBody(url, operation, response);
+            var result = Deserialize<CommitResponseWire>(
+                json, "staged save snapshot begin");
+            if (result.kind == "committed" && result.save != null)
+            {
+                await NeoGameSaveRecordSync.LoadManifestAsync(
+                    this, customId, result.save);
+                return NeoCommitResult.Committed(result.save);
+            }
+            if (result.kind == "transitioning")
+            {
+                RequireTransitionIdentity(
+                    result.customId, result.targetSnapshotId,
+                    "staged save snapshot begin");
+                return NeoCommitResult.Transitioning(
+                    result.customId, result.targetSnapshotId);
+            }
+            throw new InvalidOperationException(
+                $"Neo Compose staged snapshot begin returned unsupported kind " +
+                $"'{result.kind}'.");
+        }
+
         public async Awaitable<NeoCloneResult> CloneSaveAsync(
             string customId,
             NeoCloneRequest request)
@@ -459,6 +522,22 @@ namespace NeoCompose.Runtime
                     response.customId, response.targetSnapshotId, "copy status");
                 return NeoSaveTransitionStatus.Copying(
                     response.customId, response.targetSnapshotId);
+            }
+            if (response.kind == "staging")
+            {
+                RequireTransitionIdentity(
+                    response.customId, response.targetSnapshotId, "staging status");
+                if (response.snapshotRevision < 0
+                    || string.IsNullOrWhiteSpace(response.resumeToken))
+                {
+                    throw new InvalidOperationException(
+                        "Neo Compose staging status omitted its revision or resume token.");
+                }
+                return NeoSaveTransitionStatus.Staging(
+                    response.customId,
+                    response.targetSnapshotId,
+                    response.snapshotRevision,
+                    response.resumeToken);
             }
             if (response.kind == "failed")
             {
@@ -714,6 +793,8 @@ namespace NeoCompose.Runtime
             public RemoteGameSave? save;
             public string customId = "";
             public string targetSnapshotId = "";
+            public long snapshotRevision;
+            public string resumeToken = "";
             public string? error;
         }
 

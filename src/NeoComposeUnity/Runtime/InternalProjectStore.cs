@@ -330,6 +330,134 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>
+        /// Builds an existing-save successor behind the current readable head,
+        /// uploads every bounded record batch, and only then activates it.
+        /// Replaying the deterministic begin fingerprint resumes the same hidden
+        /// target, including after a lost response or process restart.
+        /// </summary>
+        internal async Awaitable<NeoCommitResult> StageSnapshotInChunksAsync(
+            string customId,
+            NeoStagedSnapshotBeginRequest request,
+            IReadOnlyList<GameSaveRecordChange> changes)
+        {
+            if (ApiClient == null)
+            {
+                throw new InvalidOperationException(
+                    "Staged cloud snapshots require an API client.");
+            }
+
+            var batches = BuildStagedSnapshotBatches(changes);
+            request.uploadFingerprint = BuildStagedSnapshotFingerprint(
+                customId, request, batches);
+
+            NeoCommitResult accepted;
+            try
+            {
+                accepted = await ApiClient.BeginStagedSnapshotAsync(
+                    customId, request);
+            }
+            catch
+            {
+                accepted = await ApiClient.BeginStagedSnapshotAsync(
+                    customId, request);
+            }
+            if (!accepted.IsTransitioning)
+            {
+                return accepted;
+            }
+            RequireMatchingTransition(
+                customId,
+                accepted.TargetSnapshotId,
+                accepted.CustomId,
+                accepted.TargetSnapshotId);
+
+            NeoSaveTransitionStatus staging;
+            while (true)
+            {
+                staging = await ApiClient.GetSaveTransitionStatusAsync(customId);
+                RequireMatchingTransition(
+                    customId,
+                    accepted.TargetSnapshotId,
+                    staging.CustomId,
+                    staging.TargetSnapshotId);
+                if (staging.Outcome == NeoSaveTransitionOutcome.Ready)
+                {
+                    return NeoCommitResult.Committed(
+                        staging.ReadySave
+                        ?? throw new InvalidOperationException(
+                            "Neo Compose reported a ready staged snapshot without a save."));
+                }
+                if (staging.Outcome == NeoSaveTransitionOutcome.Staging) break;
+                if (staging.Outcome == NeoSaveTransitionOutcome.Failed)
+                {
+                    throw BuildTransitionFailure(
+                        customId, accepted.TargetSnapshotId, staging.Error);
+                }
+                await Task.Delay(TimeSpan.FromMilliseconds(250));
+            }
+
+            var acceptedBatches = staging.SnapshotRevision
+                - request.baseSnapshotRevision;
+            if (acceptedBatches < 0 || acceptedBatches > batches.Count)
+            {
+                throw new InvalidOperationException(
+                    "Neo Compose staged snapshot revision does not match the upload plan.");
+            }
+
+            for (var batchIndex = (int)acceptedBatches;
+                 batchIndex < batches.Count;
+                 batchIndex++)
+            {
+                var baseRevision = request.baseSnapshotRevision + batchIndex;
+                var batch = batches[batchIndex];
+                NeoLivePatchResult appended;
+                try
+                {
+                    appended = await ApiClient.AppendChunkedCreateAsync(
+                        customId,
+                        staging.ResumeToken,
+                        baseRevision,
+                        batch,
+                        request.updatedAt);
+                }
+                catch
+                {
+                    appended = await ApiClient.AppendChunkedCreateAsync(
+                        customId,
+                        staging.ResumeToken,
+                        baseRevision,
+                        batch,
+                        request.updatedAt);
+                }
+                if (appended.Outcome != NeoLivePatchOutcome.Patched
+                    || appended.SnapshotId != accepted.TargetSnapshotId
+                    || appended.SnapshotRevision != baseRevision + 1)
+                {
+                    throw new InvalidOperationException(
+                        "A staged snapshot append returned an unexpected target or revision.");
+                }
+            }
+
+            RemoteGameSave completed;
+            try
+            {
+                completed = await ApiClient.CompleteChunkedCreateAsync(
+                    customId, staging.ResumeToken);
+            }
+            catch
+            {
+                completed = await ApiClient.CompleteChunkedCreateAsync(
+                    customId, staging.ResumeToken);
+            }
+            RequireMatchingTransition(
+                customId,
+                accepted.TargetSnapshotId,
+                completed.id,
+                completed.snapshotId);
+            return NeoCommitResult.Committed(completed);
+        }
+
         private static List<List<GameSaveRecordChange>> BuildChunkedCreateBatches(
             IReadOnlyList<GameSaveRecordChange> changes)
         {
@@ -402,6 +530,17 @@ namespace NeoCompose.Runtime
             return batches;
         }
 
+        private static List<List<GameSaveRecordChange>> BuildStagedSnapshotBatches(
+            IReadOnlyList<GameSaveRecordChange> changes)
+        {
+            var batches = new List<List<GameSaveRecordChange>>();
+            for (var index = 0; index < changes.Count; index += 64)
+            {
+                batches.Add(changes.Skip(index).Take(64).ToList());
+            }
+            return batches;
+        }
+
         private static string BuildChunkedCreateFingerprint(
             NeoChunkedCreateRequest request,
             IReadOnlyList<List<GameSaveRecordChange>> batches)
@@ -415,6 +554,29 @@ namespace NeoCompose.Runtime
                 ["protocol"] = "neo-chunked-create-v1",
                 ["metadata"] = metadata,
                 ["batches"] = serializedBatches,
+            };
+            var canonical = NeoSemanticJson.Canonicalize(plan)
+                .ToString(Formatting.None);
+            using var sha256 = SHA256.Create();
+            var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(canonical));
+            var hex = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+            return "sha256:" + hex;
+        }
+
+        private static string BuildStagedSnapshotFingerprint(
+            string customId,
+            NeoStagedSnapshotBeginRequest request,
+            IReadOnlyList<List<GameSaveRecordChange>> batches)
+        {
+            var metadata = JObject.FromObject(request);
+            metadata.Remove(nameof(request.uploadFingerprint));
+            var plan = new JObject
+            {
+                ["protocol"] = "neo-staged-snapshot-v1",
+                ["customId"] = customId,
+                ["metadata"] = metadata,
+                ["batches"] = new JArray(
+                    batches.Select(batch => JArray.FromObject(batch))),
             };
             var canonical = NeoSemanticJson.Canonicalize(plan)
                 .ToString(Formatting.None);

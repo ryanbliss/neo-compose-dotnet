@@ -316,6 +316,74 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task LargeExistingCommit_StagesAllBatchesBeforeActivation()
+        {
+            string baselineValues = LargeValuesJson(65);
+            var baseline = MaterializedRemote("snap-1", 4, baselineValues);
+            var (_, sync, api) = await LoadedExistingSaveAsync(baseline);
+            var changedValues = JObject.Parse(baselineValues);
+            foreach (var property in changedValues.Properties())
+            {
+                property.Value["value"] = property.Value["value"]!.Value<int>() + 100;
+            }
+            api.stagedBeginResults.Enqueue(
+                NeoCommitResult.Transitioning("save-1", "snap-staged"));
+            api.transitionStatuses.Enqueue(
+                NeoSaveTransitionStatus.Staging(
+                    "save-1", "snap-staged", 4, "snap-staged"));
+            api.chunkedCompleteResult = MaterializedRemote(
+                "snap-staged", 6, changedValues.ToString(Formatting.None));
+            var local = LocalGameSave.FromRemote(baseline);
+            local.values = new NeoSaveValues(changedValues);
+
+            await sync.CommitSaveContentAsync(
+                JsonConvert.SerializeObject(local), replaceSnapshot: false);
+
+            Assert.That(api.sparseCommits, Is.Empty);
+            Assert.That(api.stagedBegins, Has.Count.EqualTo(1));
+            Assert.That(
+                api.stagedBegins[0].request.uploadFingerprint,
+                Does.StartWith("sha256:"));
+            Assert.That(api.chunkedAppends.Select(batch => batch.Count),
+                Is.EqualTo(new[] { 64, 1 }));
+            Assert.That(api.chunkedAppendBaseRevisions,
+                Is.EqualTo(new long[] { 4, 5 }));
+            Assert.That(api.chunkedCompleteCalls, Is.EqualTo(1));
+            Assert.That(sync.ActiveSave!.snapshotId, Is.EqualTo("snap-staged"));
+        }
+
+        [Test]
+        public async Task LargeExistingCommit_ReplayedBeginResumesFromStagedRevision()
+        {
+            string baselineValues = LargeValuesJson(65);
+            var baseline = MaterializedRemote("snap-1", 4, baselineValues);
+            var (_, sync, api) = await LoadedExistingSaveAsync(baseline);
+            var changedValues = JObject.Parse(baselineValues);
+            foreach (var property in changedValues.Properties())
+            {
+                property.Value["value"] = property.Value["value"]!.Value<int>() + 100;
+            }
+            api.stagedBeginResults.Enqueue(
+                NeoCommitResult.Transitioning("save-1", "snap-staged"));
+            api.transitionStatuses.Enqueue(
+                NeoSaveTransitionStatus.Staging(
+                    "save-1", "snap-staged", 5, "snap-staged"));
+            api.chunkedCompleteResult = MaterializedRemote(
+                "snap-staged", 6, changedValues.ToString(Formatting.None));
+            var local = LocalGameSave.FromRemote(baseline);
+            local.values = new NeoSaveValues(changedValues);
+
+            await sync.CommitSaveContentAsync(
+                JsonConvert.SerializeObject(local), replaceSnapshot: false);
+
+            Assert.That(api.chunkedAppends, Has.Count.EqualTo(1),
+                "the staged revision proves the first batch already landed");
+            Assert.That(api.chunkedAppends[0], Has.Count.EqualTo(1));
+            Assert.That(api.chunkedAppendBaseRevisions, Is.EqualTo(new long[] { 5 }));
+            Assert.That(api.chunkedCompleteCalls, Is.EqualTo(1));
+        }
+
+        [Test]
         public async Task Commit_BestEffortCloudFailure_KeepsLocalCommit()
         {
             var (store, api, local) = await ReadyStoreWithCloudAsync();

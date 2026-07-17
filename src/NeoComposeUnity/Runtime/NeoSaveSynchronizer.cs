@@ -517,9 +517,10 @@ namespace NeoCompose.Runtime
             }
             if (changes.Count > 64)
             {
-                throw new InvalidOperationException(
-                    $"Save \"{CustomId}\" changed {changes.Count} records; one sparse " +
-                    "snapshot commit supports at most 64. Commit smaller record sets.");
+                return await core.StageSnapshotInChunksAsync(
+                    CustomId,
+                    BuildStagedSnapshotRequest(local, baseline),
+                    changes);
             }
 
             var result = await core.ApiClient!.CommitSparseSnapshotAsync(
@@ -539,6 +540,22 @@ namespace NeoCompose.Runtime
             return await HydrateRealtimeCommitResultAsync(
                 result, baseline.recordCache);
         }
+
+        private static NeoStagedSnapshotBeginRequest BuildStagedSnapshotRequest(
+            LocalGameSave local,
+            SparseCommitBaseline baseline,
+            string? liveSessionId = null) => new()
+        {
+            baseSnapshotId = baseline.snapshotId,
+            baseSnapshotRevision = baseline.snapshotRevision,
+            version = local.version,
+            snapshotName = local.snapshotName,
+            platforms = local.platforms,
+            systems = local.systems,
+            inputDevices = local.inputDevices,
+            updatedAt = local.updatedAt,
+            liveSessionId = liveSessionId,
+        };
 
         private async Awaitable<NeoCommitResult> PatchExistingLiveSnapshotAsync(
             LocalGameSave local,
@@ -1160,7 +1177,13 @@ namespace NeoCompose.Runtime
 
             if (liveSnapshotId == null)
             {
-                await ForkLiveSessionAsync(realtime, local, staged, patch, local.snapshotId!);
+                await ForkLiveSessionAsync(
+                    realtime,
+                    local,
+                    staged,
+                    patch,
+                    local.snapshotId!,
+                    local.snapshotRevision);
                 return;
             }
 
@@ -1208,7 +1231,8 @@ namespace NeoCompose.Runtime
                         local,
                         staged,
                         remaining,
-                        result.ServerHead!.snapshotId);
+                        result.ServerHead!.snapshotId,
+                        result.ServerHead.snapshotRevision);
                     return false;
                 }
 
@@ -1254,8 +1278,46 @@ namespace NeoCompose.Runtime
             LocalGameSave local,
             JObject staged,
             NeoSavePatch patch,
-            string baseSnapshotId)
+            string baseSnapshotId,
+            long baseSnapshotRevision)
         {
+            if (patch.changes.Count > 64)
+            {
+                NeoCommitResult stagedResult;
+                try
+                {
+                    stagedResult = await core.StageSnapshotInChunksAsync(
+                        CustomId,
+                        BuildStagedSnapshotRequest(
+                            local,
+                            new SparseCommitBaseline
+                            {
+                                snapshotId = baseSnapshotId,
+                                snapshotRevision = baseSnapshotRevision,
+                            },
+                            liveSessionId),
+                        patch.changes);
+                }
+                catch (Exception exception)
+                {
+                    HandleLiveFlushFailure(exception);
+                    return;
+                }
+                if (stagedResult.IsConflict)
+                {
+                    await ResolveLiveForkConflictAsync(
+                        realtime,
+                        local,
+                        staged,
+                        patch,
+                        stagedResult.ServerHead!);
+                    return;
+                }
+                AdoptForkedHead(local, staged, stagedResult.CommittedSave!);
+                await PersistFlushedLocalAsync(local);
+                return;
+            }
+
             var batches = SplitPatch(patch);
             if (batches.Count == 0) return;
             NeoCommitResult result;
@@ -1263,7 +1325,7 @@ namespace NeoCompose.Runtime
             {
                 result = await realtime.ForkLiveAsync(
                     BuildLiveForkRequest(
-                        local, batches[0], baseSnapshotId, local.snapshotRevision));
+                        local, batches[0], baseSnapshotId, baseSnapshotRevision));
             }
             catch (Exception exception)
             {
@@ -1292,19 +1354,7 @@ namespace NeoCompose.Runtime
             }
 
             AdoptForkedHead(local, staged, result.CommittedSave!);
-            if (batches.Count == 1)
-            {
-                await PersistFlushedLocalAsync(local);
-                return;
-            }
-
-            var remainder = new NeoSavePatch
-            {
-                changes = batches.Skip(1)
-                    .SelectMany(batch => batch.changes)
-                    .ToList(),
-            };
-            await PatchLiveBatchesAsync(realtime, local, staged, remainder);
+            await PersistFlushedLocalAsync(local);
         }
 
         /// <summary>
@@ -1358,27 +1408,32 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            NeoCommitResult rebased;
             var batches = SplitPatch(patch);
             if (batches.Count == 0) return;
+            NeoCommitResult rebased;
             try
             {
-                rebased = await realtime.ForkLiveAsync(
-                    BuildLiveForkRequest(
-                        local,
-                        batches[0],
-                        serverHead.snapshotId,
-                        serverHead.snapshotRevision));
-            }
-            catch (Exception exception)
-            {
-                HandleLiveFlushFailure(exception);
-                return;
-            }
-            try
-            {
-                rebased = await HydrateRealtimeCommitResultAsync(
-                    rebased, serverHead.recordCache);
+                if (patch.changes.Count > 64)
+                {
+                    rebased = await core.StageSnapshotInChunksAsync(
+                        CustomId,
+                        BuildStagedSnapshotRequest(
+                            local,
+                            SparseCommitBaseline.FromRemote(serverHead),
+                            liveSessionId),
+                        patch.changes);
+                }
+                else
+                {
+                    rebased = await realtime.ForkLiveAsync(
+                        BuildLiveForkRequest(
+                            local,
+                            batches[0],
+                            serverHead.snapshotId,
+                            serverHead.snapshotRevision));
+                    rebased = await HydrateRealtimeCommitResultAsync(
+                        rebased, serverHead.recordCache);
+                }
             }
             catch (Exception exception)
             {
@@ -1394,18 +1449,7 @@ namespace NeoCompose.Runtime
             }
 
             AdoptForkedHead(local, staged, rebased.CommittedSave!);
-            if (batches.Count == 1)
-            {
-                await PersistFlushedLocalAsync(local);
-                return;
-            }
-            var remainder = new NeoSavePatch
-            {
-                changes = batches.Skip(1)
-                    .SelectMany(batch => batch.changes)
-                    .ToList(),
-            };
-            await PatchLiveBatchesAsync(realtime, local, staged, remainder);
+            await PersistFlushedLocalAsync(local);
         }
 
         /// <summary>Local-only saves can't fork (no cloud head exists); the
