@@ -289,6 +289,38 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task OpaqueCommit_FullDiffsMixedTrackedAndUntrackedChanges()
+        {
+            var remote = MaterializedRemote(
+                "snap-1",
+                4,
+                "{\"a\":{\"id\":\"a\",\"value\":1}," +
+                "\"b\":{\"id\":\"b\",\"value\":2}}");
+            var (_, sync, api) = await LoadedExistingSaveAsync(remote);
+            api.sparseCommitResults.Enqueue(NeoCommitResult.Committed(
+                MaterializedRemote(
+                    "snap-2",
+                    1,
+                    "{\"a\":{\"id\":\"a\",\"value\":9}," +
+                    "\"b\":{\"id\":\"b\",\"value\":8}}")));
+            sync.MarkDirtyValue("a", "value");
+            var local = LocalGameSave.FromRemote(remote);
+            local.values = new NeoSaveValues(JObject.Parse(
+                "{\"a\":{\"id\":\"a\",\"value\":9}," +
+                "\"b\":{\"id\":\"b\",\"value\":8}}"));
+
+            await sync.CommitSaveContentAsync(
+                JsonConvert.SerializeObject(local), replaceSnapshot: false);
+
+            Assert.That(
+                api.sparseCommits[0].request.changes
+                    .OfType<GameSaveValuePatchChange>()
+                    .Select(change => change.valueId),
+                Is.EquivalentTo(new[] { "a", "b" }),
+                "opaque callers force a safe full diff even when dirty hints exist");
+        }
+
+        [Test]
         public async Task ExistingCommit_FollowsTransitionWithoutRepeatingMutation()
         {
             var remote = MaterializedRemote(

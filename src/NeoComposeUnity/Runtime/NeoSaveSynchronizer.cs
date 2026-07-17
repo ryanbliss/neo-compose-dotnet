@@ -59,6 +59,7 @@ namespace NeoCompose.Runtime
             new(StringComparer.Ordinal);
         private readonly HashSet<string> dirtyStaticBindings =
             new(StringComparer.Ordinal);
+        private bool stagedLiveUsesTrackedMutations = true;
 
         /// <summary>The most recently staged local save; what the next flush
         /// diffs against <see cref="liveBaseline"/>.</summary>
@@ -123,6 +124,7 @@ namespace NeoCompose.Runtime
         {
             dirtyValueFields.Clear();
             dirtyStaticBindings.Clear();
+            stagedLiveUsesTrackedMutations = true;
         }
 
         internal NeoSaveSynchronizer(
@@ -253,12 +255,17 @@ namespace NeoCompose.Runtime
         }
 
         public Awaitable CommitSaveContentAsync(string content, bool replaceSnapshot) =>
-            CommitSaveContentAsync(content, replaceSnapshot, flushLiveImmediately: false);
+            CommitSaveContentAsync(
+                content,
+                replaceSnapshot,
+                flushLiveImmediately: false,
+                useTrackedMutations: false);
 
         internal async Awaitable CommitSaveContentAsync(
             string content,
             bool replaceSnapshot,
-            bool flushLiveImmediately)
+            bool flushLiveImmediately,
+            bool useTrackedMutations = false)
         {
             if (string.IsNullOrWhiteSpace(content))
             {
@@ -271,7 +278,8 @@ namespace NeoCompose.Runtime
             // the live snapshot IS the in-place target.
             if (LiveModeEnabled)
             {
-                await StageLiveCommitAsync(content, flushLiveImmediately);
+                await StageLiveCommitAsync(
+                    content, flushLiveImmediately, useTrackedMutations);
                 return;
             }
 
@@ -299,7 +307,10 @@ namespace NeoCompose.Runtime
                     return;
                 }
 
-                var committedRemote = await CommitToCloudAsync(local, replaceSnapshot);
+                var committedRemote = await CommitToCloudAsync(
+                    local,
+                    replaceSnapshot,
+                    useTrackedMutations: useTrackedMutations);
                 if (committedRemote != null)
                 {
                     active = LocalGameSave.FromRemote(committedRemote);
@@ -424,7 +435,10 @@ namespace NeoCompose.Runtime
         /// a best-effort cloud commit failed (the local commit still stands).
         /// </summary>
         private async Awaitable<RemoteGameSave?> CommitToCloudAsync(
-            LocalGameSave local, bool replaceSnapshot, string? createAsLiveSessionId = null)
+            LocalGameSave local,
+            bool replaceSnapshot,
+            string? createAsLiveSessionId = null,
+            bool useTrackedMutations = false)
         {
             NeoCommitResult result;
             try
@@ -445,7 +459,7 @@ namespace NeoCompose.Runtime
                 {
                     var baseline = await ResolveSparseCommitBaselineAsync(local);
                     result = await CommitExistingSnapshotAsync(
-                        local, baseline, replaceSnapshot);
+                        local, baseline, replaceSnapshot, useTrackedMutations);
                 }
                 else
                 {
@@ -503,7 +517,8 @@ namespace NeoCompose.Runtime
             var rebased = await CommitExistingSnapshotAsync(
                 local,
                 SparseCommitBaseline.FromRemote(serverHead),
-                replaceSnapshot: false);
+                replaceSnapshot: false,
+                useTrackedMutations: useTrackedMutations);
             if (rebased.IsConflict)
             {
                 throw new NeoSaveConflictUnresolvedException(
@@ -534,7 +549,8 @@ namespace NeoCompose.Runtime
         private async Awaitable<NeoCommitResult> CommitExistingSnapshotAsync(
             LocalGameSave local,
             SparseCommitBaseline baseline,
-            bool replaceSnapshot)
+            bool replaceSnapshot,
+            bool useTrackedMutations)
         {
             var staged = AsValuesObject(local.values)
                 ?? throw new InvalidOperationException(
@@ -544,7 +560,8 @@ namespace NeoCompose.Runtime
                     staged,
                     baseline.recordCache,
                     baseline.staticBindings,
-                    local.staticBindings)
+                    local.staticBindings,
+                    useTrackedMutations)
                 .changes;
 
             if (replaceSnapshot)
@@ -885,7 +902,8 @@ namespace NeoCompose.Runtime
                             staged,
                             current.recordCache,
                             liveStaticBindingBaseline,
-                            stagedLive!.staticBindings);
+                            stagedLive!.staticBindings,
+                            stagedLiveUsesTrackedMutations);
                     }
                 }
 
@@ -1010,6 +1028,7 @@ namespace NeoCompose.Runtime
             local.liveFlushed = true;
             await core.LocalStore.CommitSaveAsync(CustomId, JsonConvert.SerializeObject(local));
             ClearDirtyRecords();
+            stagedLiveUsesTrackedMutations = true;
             liveFirstDirtyAt = -1;
         }
 
@@ -1020,7 +1039,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         private async Awaitable StageLiveCommitAsync(
             string content,
-            bool flushImmediately = false)
+            bool flushImmediately = false,
+            bool useTrackedMutations = false)
         {
             State = NeoSaveSynchronizerState.Committing;
             try
@@ -1043,6 +1063,10 @@ namespace NeoCompose.Runtime
                 // its live snapshot.
                 MergeKnownLiveIdentityInto(local);
 
+                var alreadyStaged = liveFirstDirtyAt >= 0;
+                stagedLiveUsesTrackedMutations = alreadyStaged
+                    ? stagedLiveUsesTrackedMutations && useTrackedMutations
+                    : useTrackedMutations;
                 active = local;
                 stagedLive = local;
                 core.RecordSavedFile(local, null);
@@ -1206,7 +1230,8 @@ namespace NeoCompose.Runtime
                 staged,
                 local.recordCache,
                 liveStaticBindingBaseline,
-                local.staticBindings);
+                local.staticBindings,
+                stagedLiveUsesTrackedMutations);
             if (patch.IsEmpty)
             {
                 if (ReferenceEquals(stagedLive, local))
@@ -1267,7 +1292,8 @@ namespace NeoCompose.Runtime
                         staged,
                         local.recordCache,
                         liveStaticBindingBaseline,
-                        local.staticBindings);
+                        local.staticBindings,
+                        stagedLiveUsesTrackedMutations);
                     await ForkLiveSessionAsync(
                         realtime,
                         local,
@@ -1439,6 +1465,7 @@ namespace NeoCompose.Runtime
                     CustomId, JsonConvert.SerializeObject(adopted));
                 active = adopted;
                 ClearDirtyRecords();
+                stagedLiveUsesTrackedMutations = true;
                 stagedLive = null;
                 liveSnapshotId = null;
                 liveBaseline = AsValuesObject(serverHead.values) is JObject values
@@ -1507,7 +1534,10 @@ namespace NeoCompose.Runtime
             try
             {
                 committed = await CommitToCloudAsync(
-                    local, replaceSnapshot: false, createAsLiveSessionId: liveSessionId);
+                    local,
+                    replaceSnapshot: false,
+                    createAsLiveSessionId: liveSessionId,
+                    useTrackedMutations: stagedLiveUsesTrackedMutations);
             }
             catch (Exception exception)
             {
@@ -1711,9 +1741,11 @@ namespace NeoCompose.Runtime
             JObject staged,
             GameSaveRecordCache? cache,
             IReadOnlyDictionary<string, string?> baselineStaticBindings,
-            IReadOnlyDictionary<string, string?> stagedStaticBindings)
+            IReadOnlyDictionary<string, string?> stagedStaticBindings,
+            bool useTrackedMutations)
         {
-            if (dirtyValueFields.Count == 0 && dirtyStaticBindings.Count == 0)
+            if (!useTrackedMutations
+                || (dirtyValueFields.Count == 0 && dirtyStaticBindings.Count == 0))
             {
                 // Opaque developer-authored local files and explicit imports do
                 // not pass through generated setters. Diff them as a compatibility

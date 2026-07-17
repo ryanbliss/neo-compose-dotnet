@@ -4691,12 +4691,13 @@ namespace NeoCompose.Runtime
             saveData.updatedAt = savedAt;
             CaptureSaveDiagnostics(savedAt);
             var content = SerializeSaveData();
-            if (flushLiveImmediately && loader is NeoSaveSynchronizer synchronizer)
+            if (loader is NeoSaveSynchronizer synchronizer)
             {
                 await synchronizer.CommitSaveContentAsync(
                     content,
                     replaceSnapshot,
-                    flushLiveImmediately: true);
+                    flushLiveImmediately,
+                    useTrackedMutations: true);
                 CaptureCommittedSaveState(content);
                 return;
             }
