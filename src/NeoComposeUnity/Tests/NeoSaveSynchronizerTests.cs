@@ -54,6 +54,49 @@ namespace NeoCompose.Tests
             return save;
         }
 
+        private static RemoteGameSave MaterializedRemote(
+            string snapshotId,
+            long snapshotRevision,
+            string valuesJson,
+            string? liveSessionId = null)
+        {
+            var save = NeoSaveTestSupport.Remote(
+                "save-1", snapshotId, snapshotRevision);
+            save.values = new NeoSaveValues(JObject.Parse(valuesJson));
+            save.liveSessionId = liveSessionId;
+            save.recordCache.snapshotId = snapshotId;
+            save.recordCache.snapshotRevision = snapshotRevision;
+            foreach (var property in ((JObject)save.values.Raw).Properties())
+            {
+                var descriptor = new GameSaveRecordDescriptor
+                {
+                    recordKind = NeoGameSaveRecordKinds.Value,
+                    recordId = property.Name,
+                    recordStateId = $"{snapshotId}:{property.Name}:{snapshotRevision}",
+                    recordRevisionToken = $"token:{snapshotRevision}:{property.Name}",
+                    contentHash = $"hash:{snapshotRevision}:{property.Name}",
+                };
+                save.recordCache.descriptors[descriptor.LogicalKey] = descriptor;
+            }
+            return save;
+        }
+
+        private static async Task<(NeoProjectStore store, NeoSaveSynchronizer sync,
+            FakeApiClient api)> LoadedExistingSaveAsync(RemoteGameSave remote)
+        {
+            var api = new FakeApiClient { getResult = remote };
+            api.list.saves.Add(RemoteGameSaveSummary.FromRemote(remote));
+            var store = new NeoProjectStore(
+                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                localStore: new NeoInMemoryLocalSaveStore(),
+                apiClient: api,
+                targetReleaseChannelId: NeoSaveTestSupport.TargetChannel);
+            await store.LoadAsync();
+            var sync = store.Open("save-1");
+            await sync.LoadSaveContentAsync();
+            return (store, sync, api);
+        }
+
         [Test]
         public async Task Load_WhenCloudUnavailable_DegradesToLocal()
         {
@@ -102,8 +145,11 @@ namespace NeoCompose.Tests
             Assert.That(sync.State, Is.EqualTo(NeoSaveSynchronizerState.Ready));
             Assert.That(sync.ActiveSave!.snapshotId, Is.EqualTo("new-head"));
             // The new head is written on top of the server head — no overwrite.
-            Assert.That(api.commits, Has.Count.EqualTo(2));
-            Assert.That(api.commits[1].request.baseSnapshotId, Is.EqualTo("remote-head"));
+            Assert.That(api.commits, Has.Count.EqualTo(1));
+            Assert.That(api.sparseCommits, Has.Count.EqualTo(1));
+            Assert.That(
+                api.sparseCommits[0].request.baseSnapshotId,
+                Is.EqualTo("remote-head"));
         }
 
         [Test]
@@ -205,6 +251,68 @@ namespace NeoCompose.Tests
                 ((JObject)sync.ActiveSave!.values.Raw)["remote"]?["value"]?.Value<int>(),
                 Is.EqualTo(9));
             Assert.That(await local.LoadSaveAsync("save-1"), Does.Contain("\"remote\""));
+        }
+
+        [Test]
+        public async Task ExistingCommit_SendsOnlySparseChangedRecords()
+        {
+            var remote = MaterializedRemote(
+                "snap-1",
+                4,
+                "{\"a\":{\"id\":\"a\",\"value\":1}," +
+                "\"b\":{\"id\":\"b\",\"value\":2}}");
+            var (_, sync, api) = await LoadedExistingSaveAsync(remote);
+            var committed = MaterializedRemote(
+                "snap-2",
+                1,
+                "{\"a\":{\"id\":\"a\",\"value\":9}," +
+                "\"b\":{\"id\":\"b\",\"value\":2}}");
+            api.sparseCommitResults.Enqueue(NeoCommitResult.Committed(committed));
+            var local = LocalGameSave.FromRemote(remote);
+            local.values = new NeoSaveValues(JObject.Parse(
+                "{\"a\":{\"id\":\"a\",\"value\":9}," +
+                "\"b\":{\"id\":\"b\",\"value\":2}}"));
+
+            await sync.CommitSaveContentAsync(
+                JsonConvert.SerializeObject(local), replaceSnapshot: false);
+
+            Assert.That(api.commits, Is.Empty);
+            Assert.That(api.sparseCommits, Has.Count.EqualTo(1));
+            var request = api.sparseCommits[0].request;
+            Assert.That(request.baseSnapshotId, Is.EqualTo("snap-1"));
+            Assert.That(request.baseSnapshotRevision, Is.EqualTo(4));
+            Assert.That(request.changes, Has.Count.EqualTo(1));
+            Assert.That(
+                ((GameSaveValuePatchChange)request.changes[0]).valueId,
+                Is.EqualTo("a"));
+            Assert.That(sync.ActiveSave!.snapshotId, Is.EqualTo("snap-2"));
+        }
+
+        [Test]
+        public async Task ExistingCommit_FollowsTransitionWithoutRepeatingMutation()
+        {
+            var remote = MaterializedRemote(
+                "snap-1", 4, "{\"a\":{\"id\":\"a\",\"value\":1}}");
+            var (_, sync, api) = await LoadedExistingSaveAsync(remote);
+            var ready = MaterializedRemote(
+                "snap-2", 1, "{\"a\":{\"id\":\"a\",\"value\":2}}");
+            api.sparseCommitResults.Enqueue(
+                NeoCommitResult.Transitioning("save-1", "snap-2"));
+            api.transitionStatuses.Enqueue(
+                NeoSaveTransitionStatus.Copying("save-1", "snap-2"));
+            api.transitionStatuses.Enqueue(NeoSaveTransitionStatus.Ready(ready));
+            var local = LocalGameSave.FromRemote(remote);
+            local.values = new NeoSaveValues(JObject.Parse(
+                "{\"a\":{\"id\":\"a\",\"value\":2}}"));
+
+            await sync.CommitSaveContentAsync(
+                JsonConvert.SerializeObject(local), replaceSnapshot: false);
+
+            Assert.That(api.sparseCommits, Has.Count.EqualTo(1));
+            Assert.That(
+                api.transitionStatusRequests,
+                Is.EqualTo(new[] { "save-1", "save-1" }));
+            Assert.That(sync.ActiveSave!.snapshotId, Is.EqualTo("snap-2"));
         }
 
         [Test]

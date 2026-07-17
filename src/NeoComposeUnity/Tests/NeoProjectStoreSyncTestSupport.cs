@@ -88,6 +88,9 @@ namespace NeoCompose.Tests
         public NeoSaveFileList list = new NeoSaveFileList();
         public readonly Queue<NeoCommitResult> commitResults = new();
         public readonly List<(NeoSaveCommitRequest request, bool replaceSnapshot)> commits = new();
+        public readonly Queue<NeoCommitResult> sparseCommitResults = new();
+        public readonly List<(string customId, NeoSparseSnapshotCommitRequest request)>
+            sparseCommits = new();
         public RemoteGameSave? getResult;
         public int getCalls;
         public Exception? getThrows;
@@ -258,6 +261,17 @@ namespace NeoCompose.Tests
         {
             commits.Add((request, replaceSnapshot));
             return NeoAwaitable.FromResult(commitResults.Dequeue());
+        }
+
+        public Awaitable<NeoCommitResult> CommitSparseSnapshotAsync(
+            string customId,
+            NeoSparseSnapshotCommitRequest request)
+        {
+            sparseCommits.Add((customId, request));
+            return NeoAwaitable.FromResult(
+                sparseCommitResults.Count != 0
+                    ? sparseCommitResults.Dequeue()
+                    : commitResults.Dequeue());
         }
 
         public Awaitable<NeoChunkedCreateTarget> BeginChunkedCreateAsync(

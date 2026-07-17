@@ -224,6 +224,11 @@ namespace HelloWorld.Assets.Tests
                 return NeoAwaitable.FromResult(NeoCommitResult.Committed(remote));
             }
 
+            public Awaitable<NeoCommitResult> CommitSparseSnapshotAsync(
+                string customId,
+                NeoSparseSnapshotCommitRequest request) =>
+                throw new NotSupportedException();
+
             public Awaitable<NeoCloneResult> CloneSaveAsync(
                 string customId,
                 NeoCloneRequest request) =>

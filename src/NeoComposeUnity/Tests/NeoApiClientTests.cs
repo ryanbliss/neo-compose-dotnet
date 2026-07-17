@@ -46,6 +46,8 @@ namespace NeoCompose.Tests
                     if (url.EndsWith("/snapshots/snap-1/query")) return RemoteJson;
                     if (url.EndsWith("/saves/commit"))
                         return "{\"kind\":\"committed\",\"save\":" + RemoteJson + "}";
+                    if (url.EndsWith("/saves/save-1/snapshots/commit"))
+                        return "{\"kind\":\"committed\",\"save\":" + RemoteJson + "}";
                     if (url.EndsWith("/saves/chunked-create/begin"))
                         return "{\"customId\":\"save-1\",\"snapshotId\":\"snap-1\"," +
                             "\"snapshotRevision\":0,\"resumeToken\":\"resume-1\"}";
@@ -69,6 +71,13 @@ namespace NeoCompose.Tests
             await client.GetSaveSnapshotsAsync("save-1");
             await client.GetSaveSnapshotAsync("save-1", "snap-1");
             await client.CommitAsync(NewCommit(), replaceSnapshot: false);
+            await client.CommitSparseSnapshotAsync(
+                "save-1",
+                new NeoSparseSnapshotCommitRequest
+                {
+                    baseSnapshotId = "snap-1",
+                    baseSnapshotRevision = 1,
+                });
             await client.BeginChunkedCreateAsync(new NeoChunkedCreateRequest
             {
                 customId = "save-1",
@@ -93,7 +102,7 @@ namespace NeoCompose.Tests
             await client.ArchiveSaveAsync("save-1");
             await client.ArchiveSnapshotAsync("save-1", "snap-1");
 
-            Assert.That(http.sends, Has.Count.EqualTo(19));
+            Assert.That(http.sends, Has.Count.EqualTo(21));
             foreach (var send in http.sends)
             {
                 Assert.That(send.bearer, Is.EqualTo("the-token"), $"Request to {send.url} must carry the bearer.");
@@ -210,6 +219,40 @@ namespace NeoCompose.Tests
             Assert.That(result.Outcome, Is.EqualTo(NeoCommitOutcome.Conflict));
             Assert.That(result.CommittedSave, Is.Null);
             Assert.That(result.ServerHead!.snapshotRevision, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task SparseCommit_UsesBoundedSnapshotRouteAndReturnsTransitionIdentity()
+        {
+            var http = new FakeHttpClient
+            {
+                body = "{\"kind\":\"transitioning\",\"customId\":\"save-1\"," +
+                    "\"targetSnapshotId\":\"snap-next\"}",
+            };
+            var client = NewClient(new FakeProvider("the-token"), http);
+            var request = new NeoSparseSnapshotCommitRequest
+            {
+                baseSnapshotId = "snap-1",
+                baseSnapshotRevision = 1,
+                changes = new List<GameSaveRecordChange>
+                {
+                    new GameSaveValueReplaceChange
+                    {
+                        valueId = "value-1",
+                        value = Newtonsoft.Json.Linq.JObject.Parse("{\"value\":2}"),
+                    },
+                },
+            };
+
+            var result = await client.CommitSparseSnapshotAsync("save-1", request);
+
+            Assert.That(result.IsTransitioning, Is.True);
+            Assert.That(result.TargetSnapshotId, Is.EqualTo("snap-next"));
+            StringAssert.EndsWith(
+                "/saves/save-1/snapshots/commit", http.sends[0].url);
+            StringAssert.Contains("\"snapshot\":", http.sends[0].body);
+            StringAssert.Contains("\"baseSnapshotRevision\":1", http.sends[0].body);
+            StringAssert.Contains("\"kind\":\"value.replace\"", http.sends[0].body);
         }
 
         [Test]

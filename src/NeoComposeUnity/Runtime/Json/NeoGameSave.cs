@@ -209,6 +209,9 @@ namespace NeoCompose.Runtime.Json
         /// <summary>Display name of the locally-staged snapshot, if any.</summary>
         public string? snapshotName;
 
+        /// <summary>The owning live session when the synchronized head is mutable.</summary>
+        public string? liveSessionId;
+
         /// <summary>Server document id once synchronized; null for local-only saves.</summary>
         public string? serverId;
 
@@ -272,6 +275,7 @@ namespace NeoCompose.Runtime.Json
                 createdAt = remote.createdAt,
                 updatedAt = remote.updatedAt,
                 snapshotName = remote.snapshotName,
+                liveSessionId = remote.liveSessionId,
                 serverId = remote.serverId,
                 snapshotId = remote.snapshotId,
                 snapshotRevision = remote.snapshotRevision,

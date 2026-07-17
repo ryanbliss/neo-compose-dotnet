@@ -41,6 +41,9 @@ namespace NeoCompose.Runtime
             string snapshotId,
             IReadOnlyList<string> recordStateIds);
         Awaitable<NeoCommitResult> CommitAsync(NeoSaveCommitRequest request, bool replaceSnapshot);
+        Awaitable<NeoCommitResult> CommitSparseSnapshotAsync(
+            string customId,
+            NeoSparseSnapshotCommitRequest request);
         Awaitable<NeoChunkedCreateTarget> BeginChunkedCreateAsync(
             NeoChunkedCreateRequest request);
         Awaitable<NeoLivePatchResult> AppendChunkedCreateAsync(
@@ -234,6 +237,13 @@ namespace NeoCompose.Runtime
 
             var json = ReadBody(url, operation, response);
             var committed = Deserialize<CommitResponseWire>(json, "save commit");
+            if (committed.kind == "transitioning")
+            {
+                RequireTransitionIdentity(
+                    committed.customId, committed.targetSnapshotId, "save commit");
+                return NeoCommitResult.Transitioning(
+                    committed.customId, committed.targetSnapshotId);
+            }
             if (committed.save == null)
             {
                 throw new InvalidOperationException(
@@ -244,6 +254,63 @@ namespace NeoCompose.Runtime
                 this, request.customId, committed.save);
 
             return NeoCommitResult.Committed(committed.save);
+        }
+
+        public async Awaitable<NeoCommitResult> CommitSparseSnapshotAsync(
+            string customId,
+            NeoSparseSnapshotCommitRequest request)
+        {
+            RequireCustomId(customId);
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            RequireSnapshotId(request.baseSnapshotId);
+            if (request.baseSnapshotRevision < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(request));
+            }
+            if (request.changes == null || request.changes.Count > 64)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(request),
+                    "A sparse snapshot commit cannot exceed 64 record changes.");
+            }
+
+            var url = SavesUrl(
+                $"/{UnityWebRequest.EscapeURL(customId)}/snapshots/commit");
+            var operation = new NeoComposeApiOperation(
+                "commit a sparse save snapshot", projectId, WriteScope);
+            var body = JsonConvert.SerializeObject(new { snapshot = request });
+            var response = await SendAuthorizedAsync(url, body);
+            if (response.StatusCode == 409)
+            {
+                var conflict = Deserialize<CommitResponseWire>(
+                    response.Text, "sparse save commit conflict");
+                if (conflict.serverHead == null)
+                {
+                    throw new InvalidOperationException(
+                        "Neo Compose sparse save conflict omitted the server head.");
+                }
+                await NeoGameSaveRecordSync.LoadManifestAsync(
+                    this, customId, conflict.serverHead);
+                return NeoCommitResult.Conflict(conflict.serverHead);
+            }
+
+            var json = ReadBody(url, operation, response);
+            var result = Deserialize<CommitResponseWire>(json, "sparse save commit");
+            if (result.kind == "committed" && result.save != null)
+            {
+                await NeoGameSaveRecordSync.LoadManifestAsync(
+                    this, customId, result.save);
+                return NeoCommitResult.Committed(result.save);
+            }
+            if (result.kind == "transitioning")
+            {
+                RequireTransitionIdentity(
+                    result.customId, result.targetSnapshotId, "sparse save commit");
+                return NeoCommitResult.Transitioning(
+                    result.customId, result.targetSnapshotId);
+            }
+            throw new InvalidOperationException(
+                $"Neo Compose sparse save commit returned unsupported kind '{result.kind}'.");
         }
 
         public async Awaitable<NeoCloneResult> CloneSaveAsync(
@@ -629,6 +696,8 @@ namespace NeoCompose.Runtime
             public string kind = "";
             public RemoteGameSave? save;
             public RemoteGameSave? serverHead;
+            public string customId = "";
+            public string targetSnapshotId = "";
         }
 
         private sealed class CloneResponseWire

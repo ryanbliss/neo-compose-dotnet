@@ -191,29 +191,42 @@ namespace NeoCompose.Runtime
                         "Neo Compose reported a completed clone without a save.");
             }
 
+            return await WaitForSaveTransitionReadyAsync(
+                accepted.CustomId, accepted.TargetSnapshotId);
+        }
+
+        internal async Awaitable<RemoteGameSave> WaitForSaveTransitionReadyAsync(
+            string customId,
+            string targetSnapshotId)
+        {
+            if (ApiClient == null)
+            {
+                throw new InvalidOperationException(
+                    "Cloud transition polling requires an API client.");
+            }
             while (true)
             {
                 var status = await ApiClient.GetSaveTransitionStatusAsync(
-                    accepted.CustomId);
+                    customId);
                 if (status.Outcome == NeoSaveTransitionOutcome.Ready)
                 {
                     var ready = status.ReadySave
                         ?? throw new InvalidOperationException(
-                            "Neo Compose reported a ready clone without a save.");
-                    RequireMatchingCloneTransition(accepted, ready.id, ready.snapshotId);
+                            "Neo Compose reported a ready transition without a save.");
+                    RequireMatchingTransition(
+                        customId, targetSnapshotId, ready.id, ready.snapshotId);
                     return ready;
                 }
 
-                RequireMatchingCloneTransition(
-                    accepted, status.CustomId, status.TargetSnapshotId);
+                RequireMatchingTransition(
+                    customId,
+                    targetSnapshotId,
+                    status.CustomId,
+                    status.TargetSnapshotId);
                 if (status.Outcome == NeoSaveTransitionOutcome.Failed)
                 {
-                    var detail = string.IsNullOrWhiteSpace(status.Error)
-                        ? "The server did not provide an error."
-                        : status.Error;
-                    throw new InvalidOperationException(
-                        $"Neo Compose clone transition for save \"{accepted.CustomId}\" " +
-                        $"and snapshot \"{accepted.TargetSnapshotId}\" failed. {detail}");
+                    throw BuildTransitionFailure(
+                        customId, targetSnapshotId, status.Error);
                 }
 
                 await Task.Delay(TimeSpan.FromMilliseconds(250));
@@ -424,17 +437,18 @@ namespace NeoCompose.Runtime
                 $"\"{snapshotId}\" failed. {detail}");
         }
 
-        private static void RequireMatchingCloneTransition(
-            NeoCloneResult accepted,
-            string customId,
-            string targetSnapshotId)
+        private static void RequireMatchingTransition(
+            string expectedCustomId,
+            string expectedTargetSnapshotId,
+            string actualCustomId,
+            string actualTargetSnapshotId)
         {
-            if (customId != accepted.CustomId
-                || targetSnapshotId != accepted.TargetSnapshotId)
+            if (actualCustomId != expectedCustomId
+                || actualTargetSnapshotId != expectedTargetSnapshotId)
             {
                 throw new InvalidOperationException(
-                    "Neo Compose clone status did not match the accepted destination " +
-                    $"'{accepted.CustomId}' / '{accepted.TargetSnapshotId}'.");
+                    "Neo Compose transition status did not match the accepted destination " +
+                    $"'{expectedCustomId}' / '{expectedTargetSnapshotId}'.");
             }
         }
 

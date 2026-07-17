@@ -635,6 +635,19 @@ namespace NeoCompose.Convex
                 return NeoCommitResult.Conflict(ParseRemoteGameSave(serverHead.ToString()));
             }
 
+            if (kind == "transitioning")
+            {
+                var customId = (string?)result["customId"];
+                var targetSnapshotId = (string?)result["targetSnapshotId"];
+                if (string.IsNullOrEmpty(customId)
+                    || string.IsNullOrEmpty(targetSnapshotId))
+                {
+                    throw new InvalidOperationException(
+                        "Realtime commit transition omitted its target identity.");
+                }
+                return NeoCommitResult.Transitioning(customId, targetSnapshotId);
+            }
+
             throw new InvalidOperationException(
                 $"Realtime commit result had an unknown kind \"{kind}\".");
         }

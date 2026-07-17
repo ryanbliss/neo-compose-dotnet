@@ -156,6 +156,23 @@ namespace NeoCompose.Convex.Tests
         }
 
         [Test]
+        public async Task CommitMapsADurableTransition()
+        {
+            var provider = await CreateConnectedProviderAsync();
+            socket.MutateImpl = _ =>
+                "{\"kind\":\"transitioning\",\"customId\":\"save-1\"," +
+                "\"targetSnapshotId\":\"snap-next\"}";
+
+            var result = await provider.CommitAsync(
+                new NeoSaveCommitRequest { customId = "save-1" },
+                replaceSnapshot: false);
+
+            Assert.That(result.IsTransitioning, Is.True);
+            Assert.That(result.CustomId, Is.EqualTo("save-1"));
+            Assert.That(result.TargetSnapshotId, Is.EqualTo("snap-next"));
+        }
+
+        [Test]
         public async Task CommitRejectsAnUnknownResultKind()
         {
             var provider = await CreateConnectedProviderAsync();

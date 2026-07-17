@@ -97,6 +97,23 @@ namespace NeoCompose.Runtime.Json
         public string resumeToken = "";
     }
 
+    /// <summary>
+    /// One bounded record delta used to create a successor snapshot without
+    /// uploading the materialized save overlay.
+    /// </summary>
+    public sealed class NeoSparseSnapshotCommitRequest
+    {
+        public string baseSnapshotId = "";
+        public long baseSnapshotRevision;
+        public VersionData version = new();
+        public List<GameSaveRecordChange> changes = new();
+        public string? snapshotName;
+        public List<GameRuntimePlatform>? platforms;
+        public List<GameSystemInfo>? systems;
+        public List<GameInputDeviceInfo>? inputDevices;
+        public NeoTimestamp updatedAt;
+    }
+
     public enum NeoCloneOutcome
     {
         Cloned,
@@ -230,6 +247,9 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>The server head moved; <see cref="NeoCommitResult.ServerHead"/> must be resolved against.</summary>
         Conflict,
+
+        /// <summary>A durable head-copy transition was accepted and must be followed.</summary>
+        Transitioning,
     }
 
     /// <summary>
@@ -243,11 +263,15 @@ namespace NeoCompose.Runtime.Json
         private NeoCommitResult(
             NeoCommitOutcome outcome,
             RemoteGameSave? committedSave,
-            RemoteGameSave? serverHead)
+            RemoteGameSave? serverHead,
+            string? customId,
+            string? targetSnapshotId)
         {
             Outcome = outcome;
             CommittedSave = committedSave;
             ServerHead = serverHead;
+            CustomId = customId;
+            TargetSnapshotId = targetSnapshotId;
         }
 
         public NeoCommitOutcome Outcome { get; }
@@ -258,12 +282,26 @@ namespace NeoCompose.Runtime.Json
         /// <summary>The current server head on conflict, or null on success.</summary>
         public RemoteGameSave? ServerHead { get; }
 
+        public string? CustomId { get; }
+        public string? TargetSnapshotId { get; }
+
         public bool IsConflict => Outcome == NeoCommitOutcome.Conflict;
+        public bool IsTransitioning => Outcome == NeoCommitOutcome.Transitioning;
 
         public static NeoCommitResult Committed(RemoteGameSave save) =>
-            new NeoCommitResult(NeoCommitOutcome.Committed, save, null);
+            new NeoCommitResult(NeoCommitOutcome.Committed, save, null, null, null);
 
         public static NeoCommitResult Conflict(RemoteGameSave serverHead) =>
-            new NeoCommitResult(NeoCommitOutcome.Conflict, null, serverHead);
+            new NeoCommitResult(NeoCommitOutcome.Conflict, null, serverHead, null, null);
+
+        public static NeoCommitResult Transitioning(
+            string customId,
+            string targetSnapshotId) =>
+            new NeoCommitResult(
+                NeoCommitOutcome.Transitioning,
+                null,
+                null,
+                customId,
+                targetSnapshotId);
     }
 }
