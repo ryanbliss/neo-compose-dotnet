@@ -460,7 +460,7 @@ namespace NeoCompose.Runtime
             var decision = await continuation.Completion;
             if (!decision.Approved) return null; // no-op.
 
-            var cloned = await core.ApiClient!.CloneSaveAsync(
+            var cloned = await core.CloneSaveToReadyAsync(
                 CustomId,
                 new NeoCloneRequest
                 {

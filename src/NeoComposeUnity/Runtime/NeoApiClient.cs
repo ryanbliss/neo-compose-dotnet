@@ -41,7 +41,8 @@ namespace NeoCompose.Runtime
             string snapshotId,
             IReadOnlyList<string> recordStateIds);
         Awaitable<NeoCommitResult> CommitAsync(NeoSaveCommitRequest request, bool replaceSnapshot);
-        Awaitable<RemoteGameSave> CloneSaveAsync(string customId, NeoCloneRequest request);
+        Awaitable<NeoCloneResult> CloneSaveAsync(string customId, NeoCloneRequest request);
+        Awaitable<NeoSaveTransitionStatus> GetSaveTransitionStatusAsync(string customId);
         Awaitable ArchiveSaveAsync(string customId);
         Awaitable<RemoteGameSave> ArchiveSnapshotAsync(string customId, string snapshotId);
     }
@@ -234,7 +235,9 @@ namespace NeoCompose.Runtime
             return NeoCommitResult.Committed(committed.save);
         }
 
-        public async Awaitable<RemoteGameSave> CloneSaveAsync(string customId, NeoCloneRequest request)
+        public async Awaitable<NeoCloneResult> CloneSaveAsync(
+            string customId,
+            NeoCloneRequest request)
         {
             RequireCustomId(customId);
             var url = SavesUrl($"/{UnityWebRequest.EscapeURL(customId)}/clone");
@@ -242,9 +245,58 @@ namespace NeoCompose.Runtime
             var operation = new NeoComposeApiOperation(
                 "clone this save file", projectId, WriteScope);
             var json = await PostAuthorizedAsync(url, operation, body);
-            var save = Deserialize<RemoteGameSave>(json, "cloned save file");
-            await NeoGameSaveRecordSync.LoadManifestAsync(this, save.id, save);
-            return save;
+            var response = Deserialize<CloneResponseWire>(json, "clone result");
+            if (response.kind == "cloned" && response.save != null)
+            {
+                await NeoGameSaveRecordSync.LoadManifestAsync(
+                    this, response.save.id, response.save);
+                return NeoCloneResult.Cloned(response.save);
+            }
+            if (response.kind == "transitioning")
+            {
+                RequireTransitionIdentity(
+                    response.customId, response.targetSnapshotId, "clone");
+                return NeoCloneResult.Transitioning(
+                    response.customId, response.targetSnapshotId);
+            }
+            throw new InvalidOperationException(
+                $"Neo Compose clone response had unsupported kind '{response.kind}'.");
+        }
+
+        public async Awaitable<NeoSaveTransitionStatus> GetSaveTransitionStatusAsync(
+            string customId)
+        {
+            RequireCustomId(customId);
+            var url = SavesUrl(
+                $"/{UnityWebRequest.EscapeURL(customId)}/status/query");
+            var operation = new NeoComposeApiOperation(
+                "read this save file's copy status", projectId, ReadScope);
+            var json = await PostAuthorizedAsync(url, operation);
+            var response = Deserialize<TransitionStatusWire>(
+                json, "save transition status");
+            if (response.kind == "ready" && response.save != null)
+            {
+                await NeoGameSaveRecordSync.LoadManifestAsync(
+                    this, response.save.id, response.save);
+                return NeoSaveTransitionStatus.Ready(response.save);
+            }
+            if (response.kind == "copying")
+            {
+                RequireTransitionIdentity(
+                    response.customId, response.targetSnapshotId, "copy status");
+                return NeoSaveTransitionStatus.Copying(
+                    response.customId, response.targetSnapshotId);
+            }
+            if (response.kind == "failed")
+            {
+                RequireTransitionIdentity(
+                    response.customId, response.targetSnapshotId, "copy status");
+                return NeoSaveTransitionStatus.Failed(
+                    response.customId, response.targetSnapshotId, response.error);
+            }
+            throw new InvalidOperationException(
+                $"Neo Compose save transition response had unsupported kind " +
+                $"'{response.kind}'.");
         }
 
         public async Awaitable ArchiveSaveAsync(string customId)
@@ -406,6 +458,20 @@ namespace NeoCompose.Runtime
             }
         }
 
+        private static void RequireTransitionIdentity(
+            string customId,
+            string targetSnapshotId,
+            string description)
+        {
+            if (string.IsNullOrWhiteSpace(customId)
+                || string.IsNullOrWhiteSpace(targetSnapshotId))
+            {
+                throw new InvalidOperationException(
+                    $"Neo Compose {description} response did not include its " +
+                    "customId and targetSnapshotId.");
+            }
+        }
+
         private static void RequireRecordReadArgs(
             string customId,
             string snapshotId,
@@ -426,6 +492,23 @@ namespace NeoCompose.Runtime
             public string kind = "";
             public RemoteGameSave? save;
             public RemoteGameSave? serverHead;
+        }
+
+        private sealed class CloneResponseWire
+        {
+            public string kind = "";
+            public RemoteGameSave? save;
+            public string customId = "";
+            public string targetSnapshotId = "";
+        }
+
+        private sealed class TransitionStatusWire
+        {
+            public string kind = "";
+            public RemoteGameSave? save;
+            public string customId = "";
+            public string targetSnapshotId = "";
+            public string? error;
         }
 
         private sealed class SnapshotListWire

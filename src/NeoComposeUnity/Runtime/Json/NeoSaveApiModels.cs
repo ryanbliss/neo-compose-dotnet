@@ -68,6 +68,117 @@ namespace NeoCompose.Runtime.Json
         public string? targetReleaseChannelId;
     }
 
+    public enum NeoCloneOutcome
+    {
+        Cloned,
+        Transitioning,
+    }
+
+    /// <summary>
+    /// The accepted result of a cloud clone. Small snapshots may complete in
+    /// the clone request; large snapshots return a durable transition identity
+    /// that must be polled by its new <see cref="CustomId"/>.
+    /// </summary>
+    public sealed class NeoCloneResult
+    {
+        private NeoCloneResult(
+            NeoCloneOutcome outcome,
+            RemoteGameSave? clonedSave,
+            string customId,
+            string targetSnapshotId)
+        {
+            Outcome = outcome;
+            ClonedSave = clonedSave;
+            CustomId = customId;
+            TargetSnapshotId = targetSnapshotId;
+        }
+
+        public NeoCloneOutcome Outcome { get; }
+        public RemoteGameSave? ClonedSave { get; }
+        public string CustomId { get; }
+        public string TargetSnapshotId { get; }
+        public bool IsTransitioning => Outcome == NeoCloneOutcome.Transitioning;
+
+        public static NeoCloneResult Cloned(RemoteGameSave save) =>
+            new NeoCloneResult(
+                NeoCloneOutcome.Cloned,
+                save,
+                save.id,
+                save.snapshotId);
+
+        public static NeoCloneResult Transitioning(
+            string customId,
+            string targetSnapshotId) =>
+            new NeoCloneResult(
+                NeoCloneOutcome.Transitioning,
+                null,
+                customId,
+                targetSnapshotId);
+    }
+
+    public enum NeoSaveTransitionOutcome
+    {
+        Ready,
+        Copying,
+        Failed,
+    }
+
+    /// <summary>
+    /// Poll result for a durable snapshot-copy transition. Partial snapshot
+    /// records are never exposed; only <see cref="ReadySave"/> is loadable.
+    /// </summary>
+    public sealed class NeoSaveTransitionStatus
+    {
+        private NeoSaveTransitionStatus(
+            NeoSaveTransitionOutcome outcome,
+            RemoteGameSave? readySave,
+            string customId,
+            string targetSnapshotId,
+            string? error)
+        {
+            Outcome = outcome;
+            ReadySave = readySave;
+            CustomId = customId;
+            TargetSnapshotId = targetSnapshotId;
+            Error = error;
+        }
+
+        public NeoSaveTransitionOutcome Outcome { get; }
+        public RemoteGameSave? ReadySave { get; }
+        public string CustomId { get; }
+        public string TargetSnapshotId { get; }
+        public string? Error { get; }
+
+        public static NeoSaveTransitionStatus Ready(RemoteGameSave save) =>
+            new NeoSaveTransitionStatus(
+                NeoSaveTransitionOutcome.Ready,
+                save,
+                save.id,
+                save.snapshotId,
+                null);
+
+        public static NeoSaveTransitionStatus Copying(
+            string customId,
+            string targetSnapshotId) =>
+            new NeoSaveTransitionStatus(
+                NeoSaveTransitionOutcome.Copying,
+                null,
+                customId,
+                targetSnapshotId,
+                null);
+
+        public static NeoSaveTransitionStatus Failed(
+            string customId,
+            string targetSnapshotId,
+            string? error) =>
+            new NeoSaveTransitionStatus(
+                NeoSaveTransitionOutcome.Failed,
+                null,
+                customId,
+                targetSnapshotId,
+                error);
+    }
+
     /// <summary>
     /// A page of saves visible to the caller for a (optional) target channel, plus
     /// a per-save <see cref="cloneRequired"/> flag: true when a save is bound to a

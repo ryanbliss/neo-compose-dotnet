@@ -210,7 +210,7 @@ namespace HelloWorld.Assets.Tests
                     serverId = "server-" + request.customId,
                     id = request.customId,
                     snapshotId = Guid.NewGuid().ToString("N"),
-                    snapshotHash = Guid.NewGuid().ToString("N"),
+                    snapshotRevision = 1,
                     releaseChannelId = Channel,
                     name = request.name,
                     projectId = "project-1",
@@ -224,7 +224,13 @@ namespace HelloWorld.Assets.Tests
                 return NeoAwaitable.FromResult(NeoCommitResult.Committed(remote));
             }
 
-            public Awaitable<RemoteGameSave> CloneSaveAsync(string customId, NeoCloneRequest request) =>
+            public Awaitable<NeoCloneResult> CloneSaveAsync(
+                string customId,
+                NeoCloneRequest request) =>
+                throw new NotSupportedException();
+
+            public Awaitable<NeoSaveTransitionStatus> GetSaveTransitionStatusAsync(
+                string customId) =>
                 throw new NotSupportedException();
 
             public Awaitable ArchiveSaveAsync(string customId)

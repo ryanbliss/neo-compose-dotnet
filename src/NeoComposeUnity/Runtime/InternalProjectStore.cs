@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 using NeoCompose.Runtime.Json;
 
@@ -161,6 +162,72 @@ namespace NeoCompose.Runtime
 
         public bool TryGetEntry(string customId, out NeoSaveListEntry entry) =>
             saves.TryGetValue(customId, out entry!);
+
+        /// <summary>
+        /// Starts one clone request, then follows a durable large-snapshot copy
+        /// by the destination id returned from that request. The clone mutation
+        /// is never repeated: doing so would allocate duplicate save files.
+        /// </summary>
+        internal async Awaitable<RemoteGameSave> CloneSaveToReadyAsync(
+            string sourceCustomId,
+            NeoCloneRequest request)
+        {
+            if (ApiClient == null)
+            {
+                throw new InvalidOperationException(
+                    "Cloud clone polling requires an API client.");
+            }
+
+            var accepted = await ApiClient.CloneSaveAsync(sourceCustomId, request);
+            if (!accepted.IsTransitioning)
+            {
+                return accepted.ClonedSave
+                    ?? throw new InvalidOperationException(
+                        "Neo Compose reported a completed clone without a save.");
+            }
+
+            while (true)
+            {
+                var status = await ApiClient.GetSaveTransitionStatusAsync(
+                    accepted.CustomId);
+                if (status.Outcome == NeoSaveTransitionOutcome.Ready)
+                {
+                    var ready = status.ReadySave
+                        ?? throw new InvalidOperationException(
+                            "Neo Compose reported a ready clone without a save.");
+                    RequireMatchingCloneTransition(accepted, ready.id, ready.snapshotId);
+                    return ready;
+                }
+
+                RequireMatchingCloneTransition(
+                    accepted, status.CustomId, status.TargetSnapshotId);
+                if (status.Outcome == NeoSaveTransitionOutcome.Failed)
+                {
+                    var detail = string.IsNullOrWhiteSpace(status.Error)
+                        ? "The server did not provide an error."
+                        : status.Error;
+                    throw new InvalidOperationException(
+                        $"Neo Compose clone transition for save \"{accepted.CustomId}\" " +
+                        $"and snapshot \"{accepted.TargetSnapshotId}\" failed. {detail}");
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(250));
+            }
+        }
+
+        private static void RequireMatchingCloneTransition(
+            NeoCloneResult accepted,
+            string customId,
+            string targetSnapshotId)
+        {
+            if (customId != accepted.CustomId
+                || targetSnapshotId != accepted.TargetSnapshotId)
+            {
+                throw new InvalidOperationException(
+                    "Neo Compose clone status did not match the accepted destination " +
+                    $"'{accepted.CustomId}' / '{accepted.TargetSnapshotId}'.");
+            }
+        }
 
         /// <summary>
         /// Rebuilds the save-list cache: local saves first, then merged with the

@@ -19,7 +19,7 @@ namespace NeoCompose.Tests
         private const string RemoteJson =
             "{" +
             "\"serverId\":\"server-1\",\"id\":\"save-1\",\"snapshotId\":\"snap-1\"," +
-            "\"snapshotHash\":\"hash-1\",\"releaseChannelId\":\"channel-dev\"," +
+            "\"snapshotRevision\":1,\"releaseChannelId\":\"channel-dev\"," +
             "\"name\":\"My Save\",\"projectId\":\"project-1\"," +
             "\"version\":{\"id\":\"v1\",\"label\":\"1.0\"}," +
             "\"author\":{\"kind\":\"user\",\"id\":\"user-1\"}," +
@@ -46,7 +46,10 @@ namespace NeoCompose.Tests
                     if (url.EndsWith("/snapshots/snap-1/query")) return RemoteJson;
                     if (url.EndsWith("/saves/commit"))
                         return "{\"kind\":\"committed\",\"save\":" + RemoteJson + "}";
-                    if (url.EndsWith("/saves/save-1/clone")) return RemoteJson;
+                    if (url.EndsWith("/saves/save-1/clone"))
+                        return "{\"kind\":\"cloned\",\"save\":" + RemoteJson + "}";
+                    if (url.EndsWith("/saves/save-1/status/query"))
+                        return "{\"kind\":\"ready\",\"save\":" + RemoteJson + "}";
                     if (url.EndsWith("/snapshots/snap-1/archive")) return RemoteJson;
                     return "{}";
                 },
@@ -59,10 +62,11 @@ namespace NeoCompose.Tests
             await client.GetSaveSnapshotAsync("save-1", "snap-1");
             await client.CommitAsync(NewCommit(), replaceSnapshot: false);
             await client.CloneSaveAsync("save-1", new NeoCloneRequest());
+            await client.GetSaveTransitionStatusAsync("save-1");
             await client.ArchiveSaveAsync("save-1");
             await client.ArchiveSnapshotAsync("save-1", "snap-1");
 
-            Assert.That(http.sends, Has.Count.EqualTo(13));
+            Assert.That(http.sends, Has.Count.EqualTo(15));
             foreach (var send in http.sends)
             {
                 Assert.That(send.bearer, Is.EqualTo("the-token"), $"Request to {send.url} must carry the bearer.");
@@ -134,7 +138,7 @@ namespace NeoCompose.Tests
             http.body = RemoteJson;
             var detail = await client.GetSaveSnapshotAsync("save-1", "snap-1");
 
-            Assert.That(detail.snapshotHash, Is.EqualTo("hash-1"));
+            Assert.That(detail.snapshotRevision, Is.EqualTo(1));
             Assert.That(detail.values, Is.Not.Null);
             StringAssert.EndsWith(
                 "/saves/save-1/snapshots/snap-1/query",
@@ -178,7 +182,51 @@ namespace NeoCompose.Tests
             Assert.That(result.IsConflict, Is.True);
             Assert.That(result.Outcome, Is.EqualTo(NeoCommitOutcome.Conflict));
             Assert.That(result.CommittedSave, Is.Null);
-            Assert.That(result.ServerHead!.snapshotHash, Is.EqualTo("hash-1"));
+            Assert.That(result.ServerHead!.snapshotRevision, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task Clone_TransitioningReturnsPollIdentityWithoutReadingPartialRecords()
+        {
+            var http = new FakeHttpClient
+            {
+                body = "{\"kind\":\"transitioning\",\"customId\":\"save-2\"," +
+                    "\"targetSnapshotId\":\"snap-2\"}",
+            };
+            var client = NewClient(new FakeProvider("the-token"), http);
+
+            var result = await client.CloneSaveAsync(
+                "save-1", new NeoCloneRequest());
+
+            Assert.That(result.Outcome, Is.EqualTo(NeoCloneOutcome.Transitioning));
+            Assert.That(result.CustomId, Is.EqualTo("save-2"));
+            Assert.That(result.TargetSnapshotId, Is.EqualTo("snap-2"));
+            Assert.That(result.ClonedSave, Is.Null);
+            Assert.That(http.sends, Has.Count.EqualTo(1),
+                "an accepted copy must not expose or request partial manifest records");
+        }
+
+        [Test]
+        public async Task TransitionStatus_ParsesCopyingAndFailedOutcomes()
+        {
+            var http = new FakeHttpClient
+            {
+                body = "{\"kind\":\"copying\",\"customId\":\"save-2\"," +
+                    "\"targetSnapshotId\":\"snap-2\"}",
+            };
+            var client = NewClient(new FakeProvider("the-token"), http);
+
+            var copying = await client.GetSaveTransitionStatusAsync("save-2");
+            Assert.That(copying.Outcome, Is.EqualTo(NeoSaveTransitionOutcome.Copying));
+            StringAssert.EndsWith(
+                "/saves/save-2/status/query", http.sends[0].url);
+
+            http.body = "{\"kind\":\"failed\",\"customId\":\"save-2\"," +
+                "\"targetSnapshotId\":\"snap-2\",\"error\":\"copy failed\"}";
+            var failed = await client.GetSaveTransitionStatusAsync("save-2");
+
+            Assert.That(failed.Outcome, Is.EqualTo(NeoSaveTransitionOutcome.Failed));
+            Assert.That(failed.Error, Is.EqualTo("copy failed"));
         }
 
         [Test]

@@ -151,7 +151,12 @@ namespace NeoCompose.Tests
             var (store, api, _) = await ReadyStoreWithCloudAsync();
             // The cloud save is bound to a different channel than the target.
             api.getResult = NeoSaveTestSupport.Remote("save-1", "snap-1", "h1", channel: "channel-prod");
-            api.cloneResult = NeoSaveTestSupport.Remote("save-2", "snap-2", "h2", channel: NeoSaveTestSupport.TargetChannel);
+            api.cloneResult = NeoCloneResult.Cloned(
+                NeoSaveTestSupport.Remote(
+                    "save-2",
+                    "snap-2",
+                    "h2",
+                    channel: NeoSaveTestSupport.TargetChannel));
 
             var sync = store.Open("save-1");
             var cloneFired = false;
@@ -165,6 +170,37 @@ namespace NeoCompose.Tests
 
             Assert.That(cloneFired, Is.True);
             Assert.That(sync.CustomId, Is.EqualTo("save-2"), "Loading switches to the clone's id.");
+            StringAssert.Contains("save-2", content);
+        }
+
+        [Test]
+        public async Task Load_CrossChannelTransitioningClone_PollsOnlyTheReturnedDestination()
+        {
+            var (store, api, _) = await ReadyStoreWithCloudAsync();
+            api.getResult = NeoSaveTestSupport.Remote(
+                "save-1", "snap-1", "h1", channel: "channel-prod");
+            api.cloneResult = NeoCloneResult.Transitioning("save-2", "snap-2");
+            api.transitionStatuses.Enqueue(
+                NeoSaveTransitionStatus.Copying("save-2", "snap-2"));
+            api.transitionStatuses.Enqueue(NeoSaveTransitionStatus.Ready(
+                NeoSaveTestSupport.Remote(
+                    "save-2",
+                    "snap-2",
+                    "h2",
+                    channel: NeoSaveTestSupport.TargetChannel)));
+
+            var sync = store.Open("save-1");
+            sync.OnSelectedSaveRequiringClone += (_, continuation) =>
+                continuation.Approve("My Clone");
+
+            var content = await sync.LoadSaveContentAsync();
+
+            Assert.That(api.cloneRequests, Is.EqualTo(new[] { "save-1" }),
+                "the accepted clone mutation must never be repeated");
+            Assert.That(
+                api.transitionStatusRequests,
+                Is.EqualTo(new[] { "save-2", "save-2" }));
+            Assert.That(sync.CustomId, Is.EqualTo("save-2"));
             StringAssert.Contains("save-2", content);
         }
 

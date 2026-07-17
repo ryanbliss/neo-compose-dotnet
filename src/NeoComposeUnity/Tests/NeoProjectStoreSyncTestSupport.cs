@@ -93,7 +93,10 @@ namespace NeoCompose.Tests
         public RemoteGameSave? getResult;
         public int getCalls;
         public Exception? getThrows;
-        public RemoteGameSave? cloneResult;
+        public NeoCloneResult? cloneResult;
+        public readonly Queue<NeoSaveTransitionStatus> transitionStatuses = new();
+        public readonly List<string> cloneRequests = new();
+        public readonly List<string> transitionStatusRequests = new();
         public readonly List<string> archivedSaves = new();
         public readonly List<string> archivedSnapshots = new();
         private GameSaveRecordPage deltaPage = new GameSaveRecordPage { isDone = true };
@@ -199,14 +202,29 @@ namespace NeoCompose.Tests
             return NeoAwaitable.FromResult(commitResults.Dequeue());
         }
 
-        public Awaitable<RemoteGameSave> CloneSaveAsync(string customId, NeoCloneRequest request)
+        public Awaitable<NeoCloneResult> CloneSaveAsync(
+            string customId,
+            NeoCloneRequest request)
         {
+            cloneRequests.Add(customId);
             if (cloneResult == null)
             {
                 throw new InvalidOperationException("No clone result configured.");
             }
 
             return NeoAwaitable.FromResult(cloneResult);
+        }
+
+        public Awaitable<NeoSaveTransitionStatus> GetSaveTransitionStatusAsync(
+            string customId)
+        {
+            transitionStatusRequests.Add(customId);
+            if (transitionStatuses.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "No save transition status configured.");
+            }
+            return NeoAwaitable.FromResult(transitionStatuses.Dequeue());
         }
 
         public Exception? archiveThrows;
