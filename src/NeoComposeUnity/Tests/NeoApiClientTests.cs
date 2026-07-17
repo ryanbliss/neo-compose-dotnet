@@ -35,7 +35,22 @@ namespace NeoCompose.Tests
         [Test]
         public async Task EveryRequest_AttachesBearerToken()
         {
-            var http = new FakeHttpClient { body = CombinedBody };
+            var http = new FakeHttpClient
+            {
+                bodyForUrl = url =>
+                {
+                    if (url.EndsWith("/saves/query"))
+                        return "{\"saves\":[],\"cloneRequired\":{}}";
+                    if (url.EndsWith("/saves/save-1/query")) return RemoteJson;
+                    if (url.EndsWith("/snapshots/query")) return "{\"snapshots\":[]}";
+                    if (url.EndsWith("/snapshots/snap-1/query")) return RemoteJson;
+                    if (url.EndsWith("/saves/commit"))
+                        return "{\"kind\":\"committed\",\"save\":" + RemoteJson + "}";
+                    if (url.EndsWith("/saves/save-1/clone")) return RemoteJson;
+                    if (url.EndsWith("/snapshots/snap-1/archive")) return RemoteJson;
+                    return "{}";
+                },
+            };
             var client = NewClient(new FakeProvider("the-token"), http);
 
             await client.ListSavesAsync(null);
@@ -47,7 +62,7 @@ namespace NeoCompose.Tests
             await client.ArchiveSaveAsync("save-1");
             await client.ArchiveSnapshotAsync("save-1", "snap-1");
 
-            Assert.That(http.sends, Has.Count.EqualTo(8));
+            Assert.That(http.sends, Has.Count.EqualTo(13));
             foreach (var send in http.sends)
             {
                 Assert.That(send.bearer, Is.EqualTo("the-token"), $"Request to {send.url} must carry the bearer.");
@@ -167,6 +182,38 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task RecordReads_UsePagedAllPartitionRoutes()
+        {
+            var http = new FakeHttpClient();
+            var client = NewClient(new FakeProvider("the-token"), http);
+
+            await client.GetSaveRecordManifestPageAsync(
+                "save-1", "snap-1", new GameSaveRecordPageRequest
+                {
+                    cursor = "cursor-1",
+                    numItems = 64,
+                });
+            await client.GetSaveRecordDeltaPageAsync(
+                "save-1", "snap-1", new GameSaveRecordDeltaPageRequest
+                {
+                    afterRevision = 4,
+                    throughRevision = 7,
+                    numItems = 64,
+                });
+            await client.GetSaveRecordStatesAsync(
+                "save-1", "snap-1", new[] { "state-1" });
+
+            StringAssert.EndsWith("/records/manifest/query", http.sends[0].url);
+            StringAssert.Contains("\"cursor\":\"cursor-1\"", http.sends[0].body);
+            StringAssert.DoesNotContain("mapKey", http.sends[0].body);
+            StringAssert.EndsWith("/records/delta/query", http.sends[1].url);
+            StringAssert.Contains("\"afterRevision\":4", http.sends[1].body);
+            StringAssert.Contains("\"throughRevision\":7", http.sends[1].body);
+            StringAssert.EndsWith("/records/states/query", http.sends[2].url);
+            StringAssert.Contains("\"recordStateIds\":[\"state-1\"]", http.sends[2].body);
+        }
+
+        [Test]
         public void Unauthorized401_ThrowsNotSignedIn()
         {
             var http = new FakeHttpClient
@@ -267,6 +314,7 @@ namespace NeoCompose.Tests
             public readonly List<(string url, string method, string? body, string? bearer)> sends = new();
             public long status = 200;
             public string body = "{}";
+            public System.Func<string, string>? bodyForUrl;
 
             public Task<NeoComposeWebResponse> SendAsync(
                 string url,
@@ -275,7 +323,25 @@ namespace NeoCompose.Tests
                 string? bearerToken)
             {
                 sends.Add((url, method, jsonBody, bearerToken));
-                return Task.FromResult(new NeoComposeWebResponse(status, false, body, ""));
+                if (url.Contains("/records/manifest/query"))
+                {
+                    return Task.FromResult(new NeoComposeWebResponse(
+                        200, false,
+                        "{\"page\":[],\"isDone\":true,\"continueCursor\":null}", ""));
+                }
+                if (url.Contains("/records/delta/query"))
+                {
+                    return Task.FromResult(new NeoComposeWebResponse(
+                        200, false,
+                        "{\"page\":[],\"isDone\":true,\"continueCursor\":null}", ""));
+                }
+                if (url.Contains("/records/states/query"))
+                {
+                    return Task.FromResult(new NeoComposeWebResponse(
+                        200, false, "{\"states\":[]}", ""));
+                }
+                return Task.FromResult(new NeoComposeWebResponse(
+                    status, false, bodyForUrl?.Invoke(url) ?? body, ""));
             }
 
             public Task<byte[]> DownloadAsync(string url) =>

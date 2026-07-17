@@ -321,7 +321,7 @@ namespace NeoCompose.Tests
         public readonly List<(string? channel, Action<NeoSaveFileList> onChanged)> ListSubscriptions =
             new();
 
-        public readonly List<(string customId, Action<RemoteGameSave> onChanged)> HeadSubscriptions =
+        public readonly List<(string customId, Action<GameSaveSnapshotRevisionSignal> onChanged)> HeadSubscriptions =
             new();
 
         public readonly Queue<NeoCommitResult> commitResults = new();
@@ -379,7 +379,9 @@ namespace NeoCompose.Tests
             return new SubscriptionHandle();
         }
 
-        public IDisposable SubscribeSaveHead(string customId, Action<RemoteGameSave> onChanged)
+        public IDisposable SubscribeSaveRevision(
+            string customId,
+            Action<GameSaveSnapshotRevisionSignal> onChanged)
         {
             HeadSubscriptions.Add((customId, onChanged));
             return new SubscriptionHandle();
@@ -425,7 +427,11 @@ namespace NeoCompose.Tests
         {
             foreach (var subscription in HeadSubscriptions.ToArray())
             {
-                subscription.onChanged(remote);
+                subscription.onChanged(new GameSaveSnapshotRevisionSignal
+                {
+                    snapshotId = remote.snapshotId,
+                    snapshotRevision = remote.snapshotRevision,
+                });
             }
         }
 

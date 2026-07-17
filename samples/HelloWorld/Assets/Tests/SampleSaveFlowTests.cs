@@ -190,6 +190,19 @@ namespace HelloWorld.Assets.Tests
                 string snapshotId) =>
                 GetSaveAsync(customId);
 
+            public Awaitable<GameSaveRecordPage> GetSaveRecordManifestPageAsync(
+                string customId, string snapshotId, GameSaveRecordPageRequest request) =>
+                NeoAwaitable.FromResult(new GameSaveRecordPage { isDone = true });
+
+            public Awaitable<GameSaveRecordPage> GetSaveRecordDeltaPageAsync(
+                string customId, string snapshotId, GameSaveRecordDeltaPageRequest request) =>
+                NeoAwaitable.FromResult(new GameSaveRecordPage { isDone = true });
+
+            public Awaitable<IReadOnlyList<GameSaveRecordState>> GetSaveRecordStatesAsync(
+                string customId, string snapshotId, IReadOnlyList<string> recordStateIds) =>
+                NeoAwaitable.FromResult<IReadOnlyList<GameSaveRecordState>>(
+                    new List<GameSaveRecordState>());
+
             public Awaitable<NeoCommitResult> CommitAsync(NeoSaveCommitRequest request, bool replaceSnapshot)
             {
                 var remote = new RemoteGameSave

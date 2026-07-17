@@ -240,7 +240,9 @@ namespace NeoCompose.Convex
                 onChanged);
         }
 
-        public IDisposable SubscribeSaveHead(string customId, Action<RemoteGameSave> onChanged)
+        public IDisposable SubscribeSaveRevision(
+            string customId,
+            Action<GameSaveSnapshotRevisionSignal> onChanged)
         {
             if (string.IsNullOrWhiteSpace(customId))
             {
@@ -252,13 +254,13 @@ namespace NeoCompose.Convex
             }
 
             return SubscribeCore(
-                "gameSaves:get",
+                "gameSaveRecordReads:getSnapshotRevision",
                 new Dictionary<string, object?>
                 {
                     ["projectId"] = projectId,
                     ["customId"] = customId,
                 },
-                ParseRemoteGameSave,
+                ParseSnapshotRevisionSignal,
                 onChanged);
         }
 
@@ -333,7 +335,8 @@ namespace NeoCompose.Convex
                 ["projectId"] = projectId,
                 ["customId"] = request.customId,
                 ["snapshotId"] = request.snapshotId,
-                ["patch"] = ToWireArgs(request.patch),
+                ["changes"] = ToWireArgs(request.patch.changes),
+                ["updatedAt"] = ToWireArgs(request.updatedAt),
             };
             var json = await current.MutateAsync(
                 "gameSaves:patchLiveSnapshot", args, CancellationToken.None);
@@ -453,11 +456,11 @@ namespace NeoCompose.Convex
                         "Realtime live patch result was patched but did not include the snapshotId.");
                 }
 
-                var snapshotHash = (string?)result["snapshotHash"];
-                if (snapshotHash == null)
+                var snapshotRevision = (long?)result["snapshotRevision"];
+                if (snapshotRevision == null)
                 {
                     throw new InvalidOperationException(
-                        "Realtime live patch result was patched but did not include the snapshotHash.");
+                        "Realtime live patch result was patched but did not include snapshotRevision.");
                 }
 
                 var synchronizedAt = result["synchronizedAt"];
@@ -469,8 +472,9 @@ namespace NeoCompose.Convex
 
                 return NeoLivePatchResult.Patched(
                     snapshotId,
-                    snapshotHash,
-                    synchronizedAt.ToObject<NeoTimestamp>());
+                    snapshotRevision.Value,
+                    synchronizedAt.ToObject<NeoTimestamp>(),
+                    result["changedDescriptors"]?.ToObject<List<GameSaveRecordDescriptor>>());
             }
 
             if (kind == "staleTarget")
@@ -482,7 +486,21 @@ namespace NeoCompose.Convex
                         "Realtime live patch result was a stale target but did not include the server head.");
                 }
 
-                return NeoLivePatchResult.StaleTarget(ParseRemoteGameSave(serverHead.ToString()));
+                return NeoLivePatchResult.StaleTarget(
+                    serverHead.ToObject<GameSaveSnapshotRevisionSignal>()
+                    ?? throw new InvalidOperationException(
+                        "Realtime stale-target server head deserialized to null."));
+            }
+
+            if (kind == "conflict")
+            {
+                var conflict = result["conflict"]?.ToObject<GameSaveRecordConflict>();
+                if (conflict == null)
+                {
+                    throw new InvalidOperationException(
+                        "Realtime live patch conflict did not include conflict details.");
+                }
+                return NeoLivePatchResult.RecordConflict(conflict);
             }
 
             throw new InvalidOperationException(
@@ -500,6 +518,18 @@ namespace NeoCompose.Convex
             }
 
             return save;
+        }
+
+        private static GameSaveSnapshotRevisionSignal ParseSnapshotRevisionSignal(string json)
+        {
+            var signal = JsonConvert.DeserializeObject<GameSaveSnapshotRevisionSignal>(
+                json, NeoSaveJson.ContentSettings);
+            if (signal == null)
+            {
+                throw new InvalidOperationException(
+                    "Realtime save revision signal deserialized to null.");
+            }
+            return signal;
         }
 
         /// <summary>

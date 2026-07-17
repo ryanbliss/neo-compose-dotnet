@@ -83,21 +83,23 @@ namespace NeoCompose.Convex.Tests
         }
 
         [Test]
-        public async Task SaveHeadSubscriptionTargetsTheGetQueryAndParses()
+        public async Task SaveRevisionSubscriptionTargetsCompactQueryAndParses()
         {
             var provider = await CreateConnectedProviderAsync();
-            var received = new List<RemoteGameSave>();
-            provider.SubscribeSaveHead("save-1", received.Add);
+            var received = new List<GameSaveSnapshotRevisionSignal>();
+            provider.SubscribeSaveRevision("save-1", received.Add);
 
             var (functionName, args) = socket.Observations[0];
-            Assert.That(functionName, Is.EqualTo("gameSaves:get"));
+            Assert.That(functionName, Is.EqualTo("gameSaveRecordReads:getSnapshotRevision"));
             Assert.That(args["customId"], Is.EqualTo("save-1"));
 
-            socket.PushJson("gameSaves:get", RemoteSaveJson);
+            socket.PushJson(
+                "gameSaveRecordReads:getSnapshotRevision",
+                "{\"snapshotId\":\"snap-1\",\"snapshotRevision\":7}");
             dispatcher.Flush();
 
             Assert.That(received, Has.Count.EqualTo(1));
-            Assert.That(received[0].snapshotHash, Is.EqualTo("hash-1"));
+            Assert.That(received[0].snapshotRevision, Is.EqualTo(7));
         }
 
         [Test]
@@ -195,8 +197,11 @@ namespace NeoCompose.Convex.Tests
                 liveSessionId = "session-1",
                 baseSnapshotId = "snap-0",
             };
-            request.patch.entries["value-1"] = JToken.FromObject(11);
-            request.patch.restoredToAuthored.Add("value-2");
+            request.patch.changes.Add(new GameSaveValueReplaceChange
+            {
+                valueId = "value-1",
+                value = JToken.FromObject(11),
+            });
 
             var result = await provider.ForkLiveAsync(request);
 
@@ -210,10 +215,9 @@ namespace NeoCompose.Convex.Tests
             Assert.That(save["liveSessionId"], Is.EqualTo("session-1"));
             Assert.That(save["baseSnapshotId"], Is.EqualTo("snap-0"));
             var patch = (Dictionary<string, object?>)save["patch"]!;
-            var entries = (Dictionary<string, object?>)patch["entries"]!;
-            Assert.That(entries["value-1"], Is.EqualTo(11d));
-            var restored = (List<object?>)patch["restoredToAuthored"]!;
-            Assert.That(restored[0], Is.EqualTo("value-2"));
+            var changes = (List<object?>)patch["changes"]!;
+            Assert.That(((Dictionary<string, object?>)changes[0]!)["kind"],
+                Is.EqualTo("value.replace"));
         }
 
         [Test]
@@ -236,32 +240,34 @@ namespace NeoCompose.Convex.Tests
             var provider = await CreateConnectedProviderAsync();
             socket.MutateImpl = _ =>
                 "{\"kind\":\"patched\",\"snapshotId\":\"snap-live\"," +
-                "\"snapshotHash\":\"hash-2\",\"synchronizedAt\":42}";
+                "\"snapshotRevision\":2,\"synchronizedAt\":42," +
+                "\"changedDescriptors\":[]}";
 
             var request = new NeoLivePatchRequest
             {
                 customId = "save-1",
                 snapshotId = "snap-live",
             };
-            request.patch.entries["value-1"] = JToken.FromObject(
-                new { mark = "removed" });
+            request.patch.changes.Add(new GameSaveValueReplaceChange
+            {
+                valueId = "value-1",
+                value = JToken.FromObject(new { mark = "removed" }),
+            });
 
             var result = await provider.PatchLiveAsync(request);
 
             Assert.That(result.Outcome, Is.EqualTo(NeoLivePatchOutcome.Patched));
             Assert.That(result.SnapshotId, Is.EqualTo("snap-live"));
-            Assert.That(result.SnapshotHash, Is.EqualTo("hash-2"));
+            Assert.That(result.SnapshotRevision, Is.EqualTo(2));
             Assert.That(result.SynchronizedAt.EpochMilliseconds, Is.EqualTo(42));
 
             var (functionName, args) = socket.Mutations[0];
             Assert.That(functionName, Is.EqualTo("gameSaves:patchLiveSnapshot"));
             Assert.That(args["customId"], Is.EqualTo("save-1"));
             Assert.That(args["snapshotId"], Is.EqualTo("snap-live"));
-            var patch = (Dictionary<string, object?>)args["patch"]!;
-            var entries = (Dictionary<string, object?>)patch["entries"]!;
-            var tombstone = (Dictionary<string, object?>)entries["value-1"]!;
-            Assert.That(tombstone["mark"], Is.EqualTo("removed"));
-            Assert.That(((List<object?>)patch["restoredToAuthored"]!), Is.Empty);
+            var changes = (List<object?>)args["changes"]!;
+            var replace = (Dictionary<string, object?>)changes[0]!;
+            Assert.That(replace["kind"], Is.EqualTo("value.replace"));
         }
 
         [Test]
@@ -269,14 +275,14 @@ namespace NeoCompose.Convex.Tests
         {
             var provider = await CreateConnectedProviderAsync();
             socket.MutateImpl = _ =>
-                "{\"kind\":\"staleTarget\",\"serverHead\":" + LiveRemoteSaveJson + "}";
+                "{\"kind\":\"staleTarget\",\"serverHead\":" +
+                "{\"snapshotId\":\"snap-live\",\"snapshotRevision\":3}}";
 
             var result = await provider.PatchLiveAsync(
                 new NeoLivePatchRequest { customId = "save-1", snapshotId = "snap-stale" });
 
             Assert.That(result.IsStaleTarget, Is.True);
             Assert.That(result.ServerHead!.snapshotId, Is.EqualTo("snap-live"));
-            Assert.That(result.ServerHead.liveSessionId, Is.EqualTo("session-1"));
         }
 
         /// <summary>
@@ -297,16 +303,21 @@ namespace NeoCompose.Convex.Tests
                 liveSessionId = "session-1",
                 baseSnapshotId = "snap-0",
             };
-            request.patch.entries["stamp"] = new JValue(
-                new DateTime(2026, 6, 11, 11, 50, 29, 643, DateTimeKind.Utc));
+            request.patch.changes.Add(new GameSaveValueReplaceChange
+            {
+                valueId = "stamp",
+                value = new JValue(
+                    new DateTime(2026, 6, 11, 11, 50, 29, 643, DateTimeKind.Utc)),
+            });
 
             await provider.ForkLiveAsync(request);
 
             var (_, args) = socket.Mutations[0];
             var save = (Dictionary<string, object?>)args["save"]!;
             var patch = (Dictionary<string, object?>)save["patch"]!;
-            var entries = (Dictionary<string, object?>)patch["entries"]!;
-            Assert.That(entries["stamp"], Is.EqualTo("2026-06-11T11:50:29.643Z"));
+            var changes = (List<object?>)patch["changes"]!;
+            var replace = (Dictionary<string, object?>)changes[0]!;
+            Assert.That(replace["value"], Is.EqualTo("2026-06-11T11:50:29.643Z"));
         }
 
         [Test]

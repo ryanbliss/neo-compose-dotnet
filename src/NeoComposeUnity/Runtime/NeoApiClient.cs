@@ -28,6 +28,18 @@ namespace NeoCompose.Runtime
         Awaitable<RemoteGameSave> GetSaveAsync(string customId);
         Awaitable<IReadOnlyList<RemoteGameSaveSummary>> GetSaveSnapshotsAsync(string customId);
         Awaitable<RemoteGameSave> GetSaveSnapshotAsync(string customId, string snapshotId);
+        Awaitable<GameSaveRecordPage> GetSaveRecordManifestPageAsync(
+            string customId,
+            string snapshotId,
+            GameSaveRecordPageRequest request);
+        Awaitable<GameSaveRecordPage> GetSaveRecordDeltaPageAsync(
+            string customId,
+            string snapshotId,
+            GameSaveRecordDeltaPageRequest request);
+        Awaitable<IReadOnlyList<GameSaveRecordState>> GetSaveRecordStatesAsync(
+            string customId,
+            string snapshotId,
+            IReadOnlyList<string> recordStateIds);
         Awaitable<NeoCommitResult> CommitAsync(NeoSaveCommitRequest request, bool replaceSnapshot);
         Awaitable<RemoteGameSave> CloneSaveAsync(string customId, NeoCloneRequest request);
         Awaitable ArchiveSaveAsync(string customId);
@@ -84,7 +96,9 @@ namespace NeoCompose.Runtime
             var operation = new NeoComposeApiOperation(
                 "read this save file", projectId, ReadScope);
             var json = await PostAuthorizedAsync(url, operation);
-            return Deserialize<RemoteGameSave>(json, "save file");
+            var save = Deserialize<RemoteGameSave>(json, "save file");
+            await NeoGameSaveRecordSync.LoadManifestAsync(this, customId, save);
+            return save;
         }
 
         public async Awaitable<IReadOnlyList<RemoteGameSaveSummary>> GetSaveSnapshotsAsync(
@@ -114,7 +128,65 @@ namespace NeoCompose.Runtime
             var operation = new NeoComposeApiOperation(
                 "read this save file snapshot", projectId, ReadScope);
             var json = await PostAuthorizedAsync(url, operation);
-            return Deserialize<RemoteGameSave>(json, "save snapshot");
+            var save = Deserialize<RemoteGameSave>(json, "save snapshot");
+            await NeoGameSaveRecordSync.LoadManifestAsync(this, customId, save);
+            return save;
+        }
+
+        public async Awaitable<GameSaveRecordPage> GetSaveRecordManifestPageAsync(
+            string customId,
+            string snapshotId,
+            GameSaveRecordPageRequest request)
+        {
+            RequireRecordReadArgs(customId, snapshotId, request);
+            var url = SnapshotRecordsUrl(customId, snapshotId, "/manifest/query");
+            var operation = new NeoComposeApiOperation(
+                "read this save snapshot's record manifest", projectId, ReadScope);
+            var json = await PostAuthorizedAsync(
+                url, operation, JsonConvert.SerializeObject(request));
+            return Deserialize<GameSaveRecordPage>(json, "save record manifest page");
+        }
+
+        public async Awaitable<GameSaveRecordPage> GetSaveRecordDeltaPageAsync(
+            string customId,
+            string snapshotId,
+            GameSaveRecordDeltaPageRequest request)
+        {
+            RequireRecordReadArgs(customId, snapshotId, request);
+            if (request.throughRevision < request.afterRevision)
+            {
+                throw new ArgumentException(
+                    "Delta throughRevision cannot precede afterRevision.", nameof(request));
+            }
+            var url = SnapshotRecordsUrl(customId, snapshotId, "/delta/query");
+            var operation = new NeoComposeApiOperation(
+                "read this save snapshot's record delta", projectId, ReadScope);
+            var json = await PostAuthorizedAsync(
+                url, operation, JsonConvert.SerializeObject(request));
+            return Deserialize<GameSaveRecordPage>(json, "save record delta page");
+        }
+
+        public async Awaitable<IReadOnlyList<GameSaveRecordState>> GetSaveRecordStatesAsync(
+            string customId,
+            string snapshotId,
+            IReadOnlyList<string> recordStateIds)
+        {
+            RequireCustomId(customId);
+            RequireSnapshotId(snapshotId);
+            if (recordStateIds == null)
+            {
+                throw new ArgumentNullException(nameof(recordStateIds));
+            }
+            var request = new GameSaveRecordStatesRequest();
+            request.recordStateIds.AddRange(recordStateIds);
+            var url = SnapshotRecordsUrl(customId, snapshotId, "/states/query");
+            var operation = new NeoComposeApiOperation(
+                "read this save snapshot's record states", projectId, ReadScope);
+            var json = await PostAuthorizedAsync(
+                url, operation, JsonConvert.SerializeObject(request));
+            var response = Deserialize<GameSaveRecordStatesResponse>(
+                json, "save record states");
+            return response.states;
         }
 
         public async Awaitable<NeoCommitResult> CommitAsync(
@@ -142,6 +214,9 @@ namespace NeoCompose.Runtime
                         "Neo Compose save commit conflict response did not include the server head.");
                 }
 
+                await NeoGameSaveRecordSync.LoadManifestAsync(
+                    this, request.customId, conflict.serverHead);
+
                 return NeoCommitResult.Conflict(conflict.serverHead);
             }
 
@@ -152,6 +227,9 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     "Neo Compose save commit response did not include the committed save.");
             }
+
+            await NeoGameSaveRecordSync.LoadManifestAsync(
+                this, request.customId, committed.save);
 
             return NeoCommitResult.Committed(committed.save);
         }
@@ -164,7 +242,9 @@ namespace NeoCompose.Runtime
             var operation = new NeoComposeApiOperation(
                 "clone this save file", projectId, WriteScope);
             var json = await PostAuthorizedAsync(url, operation, body);
-            return Deserialize<RemoteGameSave>(json, "cloned save file");
+            var save = Deserialize<RemoteGameSave>(json, "cloned save file");
+            await NeoGameSaveRecordSync.LoadManifestAsync(this, save.id, save);
+            return save;
         }
 
         public async Awaitable ArchiveSaveAsync(string customId)
@@ -189,7 +269,9 @@ namespace NeoCompose.Runtime
             var operation = new NeoComposeApiOperation(
                 "archive this save snapshot", projectId, ArchiveScope);
             var json = await PostAuthorizedAsync(url, operation);
-            return Deserialize<RemoteGameSave>(json, "archived save file");
+            var save = Deserialize<RemoteGameSave>(json, "archived save file");
+            await NeoGameSaveRecordSync.LoadManifestAsync(this, customId, save);
+            return save;
         }
 
         private string ReadScope => $"project:{projectId}:save:read";
@@ -198,6 +280,14 @@ namespace NeoCompose.Runtime
 
         private string SavesUrl(string suffix) =>
             $"{apiBaseUrl}/api/projects/{UnityWebRequest.EscapeURL(projectId)}/saves{suffix}";
+
+        private string SnapshotRecordsUrl(
+            string customId,
+            string snapshotId,
+            string suffix) =>
+            SavesUrl(
+                $"/{UnityWebRequest.EscapeURL(customId)}/snapshots/" +
+                $"{UnityWebRequest.EscapeURL(snapshotId)}/records{suffix}");
 
         private async Awaitable<string> PostAuthorizedAsync(
             string url,
@@ -305,6 +395,29 @@ namespace NeoCompose.Runtime
             if (string.IsNullOrWhiteSpace(customId))
             {
                 throw new ArgumentException("Save customId cannot be empty.", nameof(customId));
+            }
+        }
+
+        private static void RequireSnapshotId(string snapshotId)
+        {
+            if (string.IsNullOrWhiteSpace(snapshotId))
+            {
+                throw new ArgumentException("Snapshot id cannot be empty.", nameof(snapshotId));
+            }
+        }
+
+        private static void RequireRecordReadArgs(
+            string customId,
+            string snapshotId,
+            GameSaveRecordPageRequest request)
+        {
+            RequireCustomId(customId);
+            RequireSnapshotId(snapshotId);
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (request.numItems <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(request), "Record page size must be positive.");
             }
         }
 

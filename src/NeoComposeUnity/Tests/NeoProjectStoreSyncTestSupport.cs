@@ -123,6 +123,19 @@ namespace NeoCompose.Tests
             NeoAwaitable.FromResult(
                 getResult ?? NeoSaveTestSupport.Remote(customId, snapshotId, "snapshot-hash"));
 
+        public Awaitable<GameSaveRecordPage> GetSaveRecordManifestPageAsync(
+            string customId, string snapshotId, GameSaveRecordPageRequest request) =>
+            NeoAwaitable.FromResult(new GameSaveRecordPage { isDone = true });
+
+        public Awaitable<GameSaveRecordPage> GetSaveRecordDeltaPageAsync(
+            string customId, string snapshotId, GameSaveRecordDeltaPageRequest request) =>
+            NeoAwaitable.FromResult(new GameSaveRecordPage { isDone = true });
+
+        public Awaitable<IReadOnlyList<GameSaveRecordState>> GetSaveRecordStatesAsync(
+            string customId, string snapshotId, IReadOnlyList<string> recordStateIds) =>
+            NeoAwaitable.FromResult<IReadOnlyList<GameSaveRecordState>>(
+                new List<GameSaveRecordState>());
+
         public Awaitable<NeoCommitResult> CommitAsync(NeoSaveCommitRequest request, bool replaceSnapshot)
         {
             commits.Add((request, replaceSnapshot));
