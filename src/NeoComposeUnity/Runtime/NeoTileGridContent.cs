@@ -12,8 +12,8 @@ namespace NeoCompose.Runtime
     public interface INeoTileGridContent
     {
         NeoReadOnlyTileGridPrimitive Primitive { get; }
-        IReadOnlyList<ReadOnlyNeoTileLayerRuntime> TileLayersInOrder { get; }
-        IReadOnlyList<ReadOnlyNeoObjectLayerRuntime> ObjectLayersInOrder { get; }
+        IReadOnlyList<IReadOnlyNeoTileLayerRuntime> TileLayersInOrder { get; }
+        IReadOnlyList<IReadOnlyNeoObjectLayerRuntime> ObjectLayersInOrder { get; }
         NeoTileGridRenderer? Renderer { get; }
         IDisposable OnChanged(Action<NeoTileGridChangedArgs> handler);
     }
@@ -26,7 +26,7 @@ namespace NeoCompose.Runtime
     public static class NeoTileGridContentLookupExtensions
     {
         public static NeoResolvedTileInstance<TTile>? GetTile<TTile>(
-            this ReadOnlyNeoTileLayerRuntime layer,
+            this IReadOnlyNeoTileLayerRuntime layer,
             Vector2Int cell)
             where TTile : class, INeoValueReference
         {
@@ -35,7 +35,7 @@ namespace NeoCompose.Runtime
         }
 
         public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
-            this ReadOnlyNeoTileLayerRuntime layer,
+            this IReadOnlyNeoTileLayerRuntime layer,
             Vector2Int cell)
             where TTile : class, INeoValueReference
         {
@@ -47,7 +47,7 @@ namespace NeoCompose.Runtime
         }
 
         public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
-            this ReadOnlyNeoTileLayerRuntime layer)
+            this IReadOnlyNeoTileLayerRuntime layer)
             where TTile : class, INeoValueReference
         {
             if (layer is null) throw new ArgumentNullException(nameof(layer));
@@ -64,7 +64,7 @@ namespace NeoCompose.Runtime
         }
 
         public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
-            this ReadOnlyNeoObjectLayerRuntime layer,
+            this IReadOnlyNeoObjectLayerRuntime layer,
             Vector2Int cell)
             where TObject : class, INeoValueReference
         {
@@ -73,7 +73,7 @@ namespace NeoCompose.Runtime
         }
 
         public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
-            this ReadOnlyNeoObjectLayerRuntime layer,
+            this IReadOnlyNeoObjectLayerRuntime layer,
             Vector2Int cell)
             where TObject : class, INeoValueReference
         {
@@ -91,7 +91,7 @@ namespace NeoCompose.Runtime
         }
 
         public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
-            this ReadOnlyNeoObjectLayerRuntime layer)
+            this IReadOnlyNeoObjectLayerRuntime layer)
             where TObject : class, INeoValueReference
         {
             if (layer is null) throw new ArgumentNullException(nameof(layer));
@@ -114,7 +114,7 @@ namespace NeoCompose.Runtime
         /// e.g. <c>content.Objects.GetObject&lt;PlayerSpawnObject&gt;()</c>.
         /// </summary>
         public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
-            this ReadOnlyNeoObjectLayerRuntime layer)
+            this IReadOnlyNeoObjectLayerRuntime layer)
             where TObject : class, INeoValueReference
         {
             if (layer is null) throw new ArgumentNullException(nameof(layer));
@@ -461,7 +461,7 @@ namespace NeoCompose.Runtime
         // concatenate per-cell results in pattern order.
 
         public static NeoResolvedTileInstance? GetTile(
-            this ReadOnlyNeoTileLayerRuntime layer,
+            this IReadOnlyNeoTileLayerRuntime layer,
             Vector2Int origin,
             NeoCellPattern pattern)
         {
@@ -476,7 +476,7 @@ namespace NeoCompose.Runtime
         }
 
         public static IReadOnlyList<NeoResolvedTileInstance> GetTiles(
-            this ReadOnlyNeoTileLayerRuntime layer,
+            this IReadOnlyNeoTileLayerRuntime layer,
             Vector2Int origin,
             NeoCellPattern pattern)
         {
@@ -495,7 +495,7 @@ namespace NeoCompose.Runtime
         }
 
         public static NeoResolvedTileInstance<TTile>? GetTile<TTile>(
-            this ReadOnlyNeoTileLayerRuntime layer,
+            this IReadOnlyNeoTileLayerRuntime layer,
             Vector2Int origin,
             NeoCellPattern pattern)
             where TTile : class, INeoValueReference
@@ -511,7 +511,7 @@ namespace NeoCompose.Runtime
         }
 
         public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
-            this ReadOnlyNeoTileLayerRuntime layer,
+            this IReadOnlyNeoTileLayerRuntime layer,
             Vector2Int origin,
             NeoCellPattern pattern)
             where TTile : class, INeoValueReference
@@ -531,7 +531,7 @@ namespace NeoCompose.Runtime
         }
 
         public static NeoResolvedObjectInstance? GetObject(
-            this ReadOnlyNeoObjectLayerRuntime layer,
+            this IReadOnlyNeoObjectLayerRuntime layer,
             Vector2Int origin,
             NeoCellPattern pattern)
         {
@@ -546,7 +546,7 @@ namespace NeoCompose.Runtime
         }
 
         public static IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
-            this ReadOnlyNeoObjectLayerRuntime layer,
+            this IReadOnlyNeoObjectLayerRuntime layer,
             Vector2Int origin,
             NeoCellPattern pattern)
         {
@@ -561,7 +561,7 @@ namespace NeoCompose.Runtime
         }
 
         public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
-            this ReadOnlyNeoObjectLayerRuntime layer,
+            this IReadOnlyNeoObjectLayerRuntime layer,
             Vector2Int origin,
             NeoCellPattern pattern)
             where TObject : class, INeoValueReference
@@ -577,7 +577,7 @@ namespace NeoCompose.Runtime
         }
 
         public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
-            this ReadOnlyNeoObjectLayerRuntime layer,
+            this IReadOnlyNeoObjectLayerRuntime layer,
             Vector2Int origin,
             NeoCellPattern pattern)
             where TObject : class, INeoValueReference

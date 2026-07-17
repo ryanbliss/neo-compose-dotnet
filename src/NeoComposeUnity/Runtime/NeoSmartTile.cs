@@ -68,10 +68,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         string Condition { get; }
 
-        /// <summary>
-        /// The referenced tile value id for the inherits-from-class conditions.
-        /// </summary>
-        string? TileValueId { get; }
+        /// <summary>The relation-selected tile class.</summary>
+        string? TileClassId { get; }
     }
 
     public enum NeoSmartTileNeighborKind
@@ -220,18 +218,18 @@ namespace NeoCompose.Runtime
         public NeoRuleTileNeighbor(
             Vector3Int offset,
             NeoSmartTileNeighborKind kind,
-            string? tileValueId = null)
+            string? tileClassId = null)
         {
             Offset = offset;
             Kind = kind;
-            TileValueId = tileValueId;
+            TileClassId = tileClassId;
         }
 
         public Vector3Int Offset { get; }
 
         public NeoSmartTileNeighborKind Kind { get; }
 
-        public string? TileValueId { get; }
+        public string? TileClassId { get; }
     }
 
     public interface INeoSmartTileNeighborMatcher
@@ -300,7 +298,7 @@ namespace NeoCompose.Runtime
         [SerializeField]
         private NeoSmartTileNeighborKind kind;
         [SerializeField]
-        private string tileValueId = "";
+        private string tileClassId = "";
 
         public int Id => id;
 
@@ -313,7 +311,7 @@ namespace NeoCompose.Runtime
                 id = id,
                 offset = neighbor.Offset,
                 kind = neighbor.Kind,
-                tileValueId = neighbor.TileValueId ?? "",
+                tileClassId = neighbor.TileClassId ?? "",
             };
         }
 
@@ -322,7 +320,7 @@ namespace NeoCompose.Runtime
             return new NeoRuleTileNeighbor(
                 offset,
                 kind,
-                string.IsNullOrWhiteSpace(tileValueId) ? null : tileValueId);
+                string.IsNullOrWhiteSpace(tileClassId) ? null : tileClassId);
         }
     }
 
@@ -398,17 +396,22 @@ namespace NeoCompose.Runtime
             }
 
             // ParseCondition only returns This, NotThis, or the two
-            // inherits-from-class kinds, which require a referenced tile value.
-            if (string.IsNullOrEmpty(neighbor.TileValueId))
+            // inherits-from-class kinds, which require a relation-selected
+            // tile class.
+            string? tileClassId = neighbor.TileClassId;
+            if (string.IsNullOrEmpty(tileClassId))
             {
                 throw new InvalidOperationException(
                     $"Smart tile rule {ruleIndex} neighbor at cell "
                         + $"({neighbor.Cell.x}, {neighbor.Cell.y}) uses condition "
-                        + $"'{neighbor.Condition}' but has no TileValueId.");
+                        + $"'{neighbor.Condition}' but has no TileClassId.");
             }
 
             return tile.RegisterCustomNeighbor(
-                new NeoRuleTileNeighbor(offset, kind, neighbor.TileValueId));
+                new NeoRuleTileNeighbor(
+                    offset,
+                    kind,
+                    tileClassId));
         }
 
         private static Sprite[] SpritesForRule(

@@ -235,6 +235,11 @@ namespace NeoCompose.Runtime
         }
 
         protected ProjectData data;
+        internal NeoInternalRecordRelationGraph InternalRecordRelations { get; private set; } = null!;
+        private IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>?
+            generatedReadOnlyClassFactories;
+        private IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>?
+            generatedWritableClassFactories;
         protected ProjectSaveData saveData;
         protected ProjectSaveData sessionData;
         private readonly INeoSaveLoader loader;
@@ -306,6 +311,8 @@ namespace NeoCompose.Runtime
             this.data = loader.Schema;
             ValidateExportSchemaVersion(data.metadata);
             ValidateClassMemberPayload(data);
+            ValidateInternalRecordRelations(data);
+            InternalRecordRelations = new NeoInternalRecordRelationGraph(data);
             ValidateNoLegacyTileGridContents(data);
             AdoptStampedMainValueRows();
             SaveOptions = saveOptions ?? new NeoSaveOptions();
@@ -863,22 +870,115 @@ namespace NeoCompose.Runtime
 
         private static void ValidateExportSchemaVersion(ProjectExportMetadata? metadata)
         {
-            const int requiredVersion = 8;
-
-            // Schema 8 is the coordinated Class/Member wire cutover. There is
-            // deliberately no schema-7 reader or field-alias layer.
+            const int currentVersion = 9;
             if (metadata is null)
             {
                 throw new System.InvalidOperationException(
-                    $"Project export metadata is missing (this SDK requires schema version {requiredVersion}). Re-export the project from the current web app.");
+                    $"Project export metadata is missing (this SDK requires schema version {currentVersion}). Re-export the project from the current web app.");
             }
-            if (metadata.schemaVersion != requiredVersion)
+            if (metadata.schemaVersion != currentVersion)
             {
-                string action = metadata.schemaVersion < requiredVersion
+                string action = metadata.schemaVersion < currentVersion
                     ? "Re-export the project from the current web app."
                     : "Update the NeoCompose SDK.";
                 throw new System.InvalidOperationException(
-                    $"Project export schema version {metadata.schemaVersion} is unsupported; this SDK accepts only schema version {requiredVersion}. {action}");
+                    $"Project export schema version {metadata.schemaVersion} is unsupported; this SDK accepts only schema version {currentVersion}. Older releases must be upgraded through the supported release-data migration boundary before loading. {action}");
+            }
+        }
+
+        private static void ValidateInternalRecordRelations(ProjectData data)
+        {
+            if (data.internalRecordRelations is null)
+            {
+                throw new System.InvalidOperationException(
+                    "Project export schema version 9 is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
+            }
+
+            var knownKinds = new HashSet<string>(System.StringComparer.Ordinal)
+            {
+                InternalRecordRelationKinds.WorldGridTileImport,
+                InternalRecordRelationKinds.WorldGridObjectImport,
+                InternalRecordRelationKinds.WorldGridTileLayer,
+                InternalRecordRelationKinds.WorldGridObjectLayer,
+                InternalRecordRelationKinds.WorldTileCompatibleLayer,
+                InternalRecordRelationKinds.WorldTileDefaultLayer,
+                InternalRecordRelationKinds.WorldObjectCompatibleLayer,
+                InternalRecordRelationKinds.WorldObjectDefaultLayer,
+                InternalRecordRelationKinds.WorldTileLayerLinkTarget,
+                InternalRecordRelationKinds.WorldObjectLayerLinkTarget,
+                InternalRecordRelationKinds.WorldSmartTileNeighborTile,
+            };
+            var edgeKeys = new HashSet<string>(System.StringComparer.Ordinal);
+            foreach (var pair in data.internalRecordRelations)
+            {
+                InternalRecordRelation relation = pair.Value
+                    ?? throw new System.InvalidOperationException(
+                        $"Internal record relation '{pair.Key}' is null.");
+                if (!string.Equals(pair.Key, relation.id, System.StringComparison.Ordinal))
+                {
+                    throw new System.InvalidOperationException(
+                        $"Internal record relation dictionary key '{pair.Key}' does not match row id '{relation.id}'.");
+                }
+                if (!knownKinds.Contains(relation.relationKind))
+                {
+                    throw new System.InvalidOperationException(
+                        $"Internal record relation '{relation.id}' uses unsupported relation kind '{relation.relationKind}'. Update the NeoCompose SDK.");
+                }
+                bool smartTileNeighbor = relation.relationKind
+                    == InternalRecordRelationKinds.WorldSmartTileNeighborTile;
+                string expectedSourceKind = smartTileNeighbor ? "value" : "class";
+                if (!string.Equals(
+                    relation.sourceRecordKind,
+                    expectedSourceKind,
+                    System.StringComparison.Ordinal))
+                {
+                    throw new System.InvalidOperationException(
+                        $"World relation '{relation.id}' has unsupported source record kind '{relation.sourceRecordKind}'.");
+                }
+                if (!string.Equals(relation.targetRecordKind, "class", System.StringComparison.Ordinal))
+                {
+                    throw new System.InvalidOperationException(
+                        $"World relation '{relation.id}' has unsupported target record kind '{relation.targetRecordKind}'.");
+                }
+                bool sourceExists = smartTileNeighbor
+                    ? data.values.ContainsKey(relation.sourceRecordId)
+                    : data.classes.ContainsKey(relation.sourceRecordId);
+                if (!sourceExists)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Internal record relation '{relation.id}' references missing source {expectedSourceKind} '{relation.sourceRecordId}'.");
+                }
+                if (!data.classes.ContainsKey(relation.targetRecordId))
+                {
+                    throw new System.InvalidOperationException(
+                        $"Internal record relation '{relation.id}' references missing target class '{relation.targetRecordId}'.");
+                }
+                bool ordered =
+                    relation.relationKind == InternalRecordRelationKinds.WorldGridTileLayer
+                    || relation.relationKind == InternalRecordRelationKinds.WorldGridObjectLayer;
+                if (ordered && string.IsNullOrEmpty(relation.orderKey))
+                {
+                    throw new System.InvalidOperationException(
+                        $"Ordered internal record relation '{relation.id}' is missing orderKey.");
+                }
+                if (!ordered && relation.orderKey is not null)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Unordered internal record relation '{relation.id}' must not define orderKey.");
+                }
+                string edgeKey = string.Join("\n", new[]
+                {
+                    relation.relationKind,
+                    relation.sourceRecordKind,
+                    relation.sourceRecordId,
+                    relation.targetRecordKind,
+                    relation.targetRecordId,
+                });
+                if (!edgeKeys.Add(edgeKey))
+                {
+                    throw new System.InvalidOperationException(
+                        $"Internal record relation '{relation.id}' duplicates a live edge.");
+                }
             }
         }
 
@@ -1022,7 +1122,9 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Stable-id overlay resolution for a writable (Save/Session) node: the
-        /// ownership store's row when present — a removal tombstone
+        /// selected ownership store's row when present, then the authored
+        /// default. Save and Session are independent overlays; neither falls
+        /// through to the other. A removal tombstone
         /// (<see cref="MemberValue.IsRemoved"/>) resolves as <b>unset</b>
         /// (returns false, never falling through) — otherwise the authored asset
         /// default. This is the shadow rule <c>save.values[id] ?? authored</c>
@@ -1040,7 +1142,7 @@ namespace NeoCompose.Runtime
                 var store = GetWritableStore(ownership);
                 if (store.values.TryGetValue(id, out MemberValue overlaid))
                 {
-                    if (overlaid.IsRemoved) return false; // explicit unset; no fallthrough
+                    if (overlaid.IsRemoved) return false;
                     value = overlaid as TValue;
                     return value is not null;
                 }
@@ -1048,6 +1150,43 @@ namespace NeoCompose.Runtime
             if (data.values.TryGetValue(id, out MemberValue assetRow))
             {
                 value = assetRow as TValue;
+                return value is not null;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Resolves the row a writable mutation should clone. Session writes
+        /// may shadow an existing Save row, while ordinary Session member
+        /// reads remain independent from Save via
+        /// <see cref="TryGetOverlaidValue{TValue}"/>.
+        /// </summary>
+        internal bool TryGetWritableShadowSource<TValue>(
+            NeoValueOwnership ownership,
+            string id,
+            [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
+        {
+            value = null;
+            if (ownership != NeoValueOwnership.Asset)
+            {
+                var store = GetWritableStore(ownership);
+                if (store.values.TryGetValue(id, out MemberValue ownedRow))
+                {
+                    if (ownedRow.IsRemoved) return false;
+                    value = ownedRow as TValue;
+                    return value is not null;
+                }
+            }
+            if (ownership == NeoValueOwnership.Session
+                && saveData.values.TryGetValue(id, out MemberValue saveRow))
+            {
+                if (saveRow.IsRemoved) return false;
+                value = saveRow as TValue;
+                return value is not null;
+            }
+            if (data.values.TryGetValue(id, out MemberValue authoredRow))
+            {
+                value = authoredRow as TValue;
                 return value is not null;
             }
             return false;
@@ -3298,6 +3437,95 @@ namespace NeoCompose.Runtime
             {
                 generatedValuesInternal.Remove(key);
             }
+        }
+
+        /// <summary>
+        /// Registers the project-specific generated class factories used by
+        /// relation-backed runtime features that resolve class defaults or
+        /// optional instance overrides without a generated lookup member.
+        /// Generated project constructors call this once before constructing
+        /// their root wrappers.
+        /// </summary>
+        public void RegisterGeneratedClassFactories(
+            IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+                readOnlyFactories,
+            IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
+                writableFactories)
+        {
+            if (readOnlyFactories is null)
+            {
+                throw new System.ArgumentNullException(nameof(readOnlyFactories));
+            }
+            if (writableFactories is null)
+            {
+                throw new System.ArgumentNullException(nameof(writableFactories));
+            }
+            if (readOnlyFactories.Count == 0
+                && writableFactories.Count == 0
+                && generatedReadOnlyClassFactories is not null)
+            {
+                return;
+            }
+            generatedReadOnlyClassFactories = readOnlyFactories;
+            generatedWritableClassFactories = writableFactories;
+        }
+
+        internal NeoGeneratedClassValue? ResolveRegisteredGeneratedClassValue(
+            string valueId)
+        {
+            if (string.IsNullOrWhiteSpace(valueId)) return null;
+            EnsureGeneratedClassFactoriesRegistered();
+            return NeoGeneratedTypesSupport.ResolveClassValue(
+                    this,
+                    valueId,
+                    generatedReadOnlyClassFactories!,
+                    generatedWritableClassFactories!)
+                as NeoGeneratedClassValue;
+        }
+
+        internal NeoGeneratedClassValue? ResolveRegisteredGeneratedAsset(
+            string assetClassId,
+            string? assetValueId)
+        {
+            if (string.IsNullOrWhiteSpace(assetClassId)) return null;
+            EnsureGeneratedClassFactoriesRegistered();
+            NeoGeneratedClassValue? generated = string.IsNullOrWhiteSpace(assetValueId)
+                ? NeoGeneratedTypesSupport.CreateReadOnlyClassDefault(
+                    this,
+                    assetClassId,
+                    generatedReadOnlyClassFactories!)
+                : ResolveRegisteredGeneratedClassValue(assetValueId!);
+            if (generated is null) return null;
+            return ClassExtendsClass(generated.classId, assetClassId) ? generated : null;
+        }
+
+        private void EnsureGeneratedClassFactoriesRegistered()
+        {
+            if (generatedReadOnlyClassFactories is not null
+                && generatedWritableClassFactories is not null)
+            {
+                return;
+            }
+            throw new System.InvalidOperationException(
+                "Generated class factories are not registered on this NeoClient. "
+                    + "Construct the generated project facade before using relation-backed runtime queries.");
+        }
+
+        private bool ClassExtendsClass(string? classId, string expectedClassId)
+        {
+            var visited = new HashSet<string>(System.StringComparer.Ordinal);
+            string? cursor = classId;
+            while (!string.IsNullOrWhiteSpace(cursor) && visited.Add(cursor!))
+            {
+                if (string.Equals(cursor, expectedClassId, System.StringComparison.Ordinal))
+                {
+                    return true;
+                }
+                cursor = data.classes.TryGetValue(cursor!, out NeoSchemaClass? schemaClass)
+                    ? schemaClass.extendsClassId
+                    : null;
+            }
+            return false;
         }
 
         public void RegisterNativeFunctionInvokers(

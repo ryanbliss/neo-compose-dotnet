@@ -6,6 +6,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NUnit.Framework;
@@ -25,45 +26,349 @@ namespace NeoCompose.Tests
         private const string BaseTileClassId = "base-tile-class";
         private const string SubTileClassId = "sub-tile-class";
         private const string OtherTileClassId = "other-tile-class";
+        private const string BackgroundLayerClassId = "background-layer-class";
+        private const string ObjectsLayerClassId = "objects-layer-class";
 
         [Test]
-        public void TileLayerLinkPayloadsResolveThroughCurrentObjectPosition()
+        public void SchemaNineClassBackedLayerResolvesClassDefaultTileWithoutDefinitionValue()
         {
-            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
-            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+            var data = BuildClassBackedTileGridProjectData();
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+
+            var layer = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+            var tile = layer.GetTile(new Vector2Int(2, 3));
+
+            Assert.NotNull(tile);
+            Assert.IsInstanceOf<TestTile>(tile!.Info);
+            Assert.IsNull(tile.Info.valueId);
+            Assert.AreEqual(TileClassId, ((TestTile)tile.Info).classId);
+            Assert.AreEqual(BackgroundLayerClassId, layer.LayerClassId);
+            Assert.AreEqual("background-layer-override", layer.LayerOverrideValueId);
+            Assert.AreEqual("Override Background", layer.Name);
+            Assert.AreEqual("Default layer description", layer.Description);
+            Assert.AreEqual("background-layer-override", layer.valueId);
+        }
+
+        [Test]
+        public void SchemaNineLayerWithoutOverrideUsesClassDefaults()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            var backgroundLink = (ObjectMemberValue)data.values["background-link"];
+            backgroundLink.value!.Remove("layerOverrideValueId");
+            data.values.Remove("background-layer-override");
+            data.values.Remove("background-layer-override-name");
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+
+            var layer = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+
+            Assert.IsNull(layer.LayerOverrideValueId);
+            Assert.IsNull(layer.valueId);
+            Assert.AreEqual("Default Background", layer.Name);
+            Assert.AreEqual("Default layer description", layer.Description);
+        }
+
+        [Test]
+        public void SchemaNineGenericPlacementWritesClassReferenceAndEnforcesGridImports()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoTileGridPrimitive.ResolveForSave(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string>
+                {
+                    [typeof(TestTile)] = TileClassId,
+                    [typeof(TestOtherTile)] = OtherTileClassId,
+                });
+            var layer = primitive.BindWritableTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+            var lifecycle = new RecordingTileSetLifecycle();
+            primitive.Lifecycle = lifecycle;
+
+            var placed = layer.Place<TestTile>(new Vector2Int(7, 8));
+            var updated = layer.Place<TestTile>(new Vector2Int(7, 8));
+            var rejected = layer.Place<TestOtherTile>(new Vector2Int(9, 10));
+
+            Assert.IsTrue(placed.Ok, placed.Message);
+            Assert.IsTrue(updated.Ok, updated.Message);
+            Assert.IsFalse(rejected.Ok);
+            Assert.AreEqual("tile-grid-asset-not-imported", rejected.ErrorCode);
+            Assert.IsNotNull(lifecycle.ExistingInstance);
+            Assert.AreEqual(
+                BackgroundLayerClassId,
+                lifecycle.ExistingInstance!["layerClassId"]!.Value<string>());
+            Assert.AreNotEqual(
+                "background-link",
+                lifecycle.ExistingInstance["layerClassId"]!.Value<string>());
+            var resolved = layer.GetTile(new Vector2Int(7, 8));
+            Assert.NotNull(resolved);
+            Assert.IsInstanceOf<TestTile>(resolved!.Info);
+            Assert.IsNull(resolved.Info.valueId);
+        }
+
+        [Test]
+        public void SchemaNineObjectPlacementWritesClassReferenceInSaveAndSession()
+        {
+            foreach (bool useSession in new[] { false, true })
             {
-                [TileClassId] = (resolvedClient, node) => new TestTile(resolvedClient, node),
+                var client = NeoTestSaveStack.ClientFromSchema(
+                    BuildClassBackedTileGridProjectData());
+                var primitive = useSession
+                    ? NeoTileGridPrimitive.ResolveForSession(
+                        client,
+                        "town-grid",
+                        BuildClassBackedReadOnlyFactories(),
+                        BuildClassBackedWritableFactories(),
+                        new Dictionary<Type, string>
+                        {
+                            [typeof(TestComposedObject)] = ObjectClassId,
+                        })
+                    : NeoTileGridPrimitive.ResolveForSave(
+                        client,
+                        "town-grid",
+                        BuildClassBackedReadOnlyFactories(),
+                        BuildClassBackedWritableFactories(),
+                        new Dictionary<Type, string>
+                        {
+                            [typeof(TestComposedObject)] = ObjectClassId,
+                        });
+                var layer = primitive.BindWritableObjectLayer<TestAuthoredObjectLayer>(
+                    ObjectsLayerClassId,
+                    new[] { ObjectClassId });
+                var changed = 0;
+                using var subscription = layer.OnChanged(_ => changed++);
+
+                var placed = layer.Spawn<TestComposedObject>(new Vector2Int(4, 5));
+
+                Assert.IsTrue(placed.Ok, placed.Message);
+                Assert.AreEqual(1, changed);
+                var resolved = layer.GetObject(new Vector2Int(4, 5));
+                Assert.NotNull(resolved);
+                Assert.IsInstanceOf<TestComposedObject>(resolved!.Info);
+                Assert.IsNull(resolved.Info.valueId);
+                var writtenRows = useSession ? client.sessionValues : client.saveValues;
+                var placement = (ObjectMemberValue)writtenRows[resolved.InstanceId.Value];
+                Assert.AreEqual(ObjectClassId, placement.classId);
+                Assert.AreEqual(ObjectClassId, placement.value!["assetClassId"]);
+                Assert.IsFalse(placement.value.ContainsKey("objectValueId"));
+
+                var asset = (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(
+                    client,
+                    "shop-object",
+                    BuildClassBackedReadOnlyFactories(),
+                    BuildClassBackedWritableFactories())!;
+                var placedAsset = layer.Spawn(new Vector2Int(6, 7), asset);
+
+                Assert.IsTrue(placedAsset.Ok, placedAsset.Message);
+                Assert.AreEqual(2, changed);
+                var resolvedAsset = layer.GetObject(new Vector2Int(6, 7));
+                Assert.NotNull(resolvedAsset);
+                Assert.AreEqual("shop-object", resolvedAsset!.Info.valueId);
+                var assetPlacement = (ObjectMemberValue)writtenRows[
+                    resolvedAsset.InstanceId.Value];
+                Assert.AreEqual(ObjectClassId, assetPlacement.value!["assetClassId"]);
+                Assert.AreEqual("shop-object", assetPlacement.value["assetValueId"]);
+            }
+        }
+
+        [Test]
+        public void SchemaNineSharedLayerClassCreatesDistinctGridBoundInstances()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.values["winter-grid"] = new ObjectMemberValue
+            {
+                id = "winter-grid",
+                classId = GridClassId,
+                value = new Dictionary<string, string>
+                {
+                    ["Children"] = "winter-grid-children",
+                },
             };
+            data.values["winter-grid-children"] = new ArrayMemberValue
+            {
+                id = "winter-grid-children",
+                value = new[] { "winter-background-link" },
+            };
+            data.values["winter-background-link"] = new ObjectMemberValue
+            {
+                id = "winter-background-link",
+                classId = TileLayerLinkClassId,
+                value = new Dictionary<string, string>
+                {
+                    ["layerClassId"] = BackgroundLayerClassId,
+                    ["Tiles"] = "winter-background-tiles",
+                },
+            };
+            data.values["winter-background-tiles"] = new ArrayMemberValue
+            {
+                id = "winter-background-tiles",
+                value = Array.Empty<string>(),
+            };
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            var town = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                factories,
+                writableFactories);
+            var winter = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "winter-grid",
+                factories,
+                writableFactories);
+
+            var townLayer = town.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+            var winterLayer = winter.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+
+            Assert.AreEqual(townLayer.GetType(), winterLayer.GetType());
+            Assert.AreNotSame(townLayer, winterLayer);
+            Assert.AreEqual("background-layer-override", townLayer.LayerOverrideValueId);
+            Assert.IsNull(winterLayer.LayerOverrideValueId);
+        }
+
+        [Test]
+        public void SchemaNineLayerLinkRelationRoutesClassBackedTilesAndSubscriptions()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(
+                BuildClassBackedTileGridProjectData());
+            SeedWritableTileLayerLink(client);
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            var source = (TestTileLayerLink)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "shop-floor-link",
+                factories,
+                writableFactories)!;
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
                 client,
                 "town-grid",
                 factories,
-                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>());
+                writableFactories);
+            var layer = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+            var tile = layer.GetTile(new Vector2Int(9, 22));
+            Assert.NotNull(tile);
+            Assert.AreEqual(BackgroundLayerClassId, tile!.LayerId);
+            Assert.IsNull(tile.Info.valueId);
+            var sprite = CreateTestSprite("schema-nine-live-linked");
+            ((TestTile)tile.Info).Sprite = sprite;
+            var content = new TestTileGridContent(primitive, new[] { layer });
+            var go = new GameObject("NeoTileGridRenderer schema-nine source clear test");
+            var changed = 0;
 
-            var tiles = primitive.GetTiles("background-layer", TileClassId);
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(content);
+                using var subscription = layer.OnChanged(_ => changed++);
+                var tilemap = go.GetComponentInChildren<Tilemap>();
+
+                Assert.NotNull(tilemap);
+                Assert.NotNull(tilemap!.GetTile(new Vector3Int(9, 22, 0)));
+
+                source.ClearTiles();
+
+                Assert.AreEqual(1, changed);
+                Assert.IsNull(layer.GetTile(new Vector2Int(9, 22)));
+                Assert.IsNull(tilemap.GetTile(new Vector3Int(9, 22, 0)));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(sprite.texture);
+                UnityEngine.Object.DestroyImmediate(sprite);
+            }
+        }
+
+        [Test]
+        public void SchemaNineMultipleDirectSourceLinksAggregateAndKeepPrimaryWriteOwner()
+        {
+            ProjectData data = BuildClassBackedTileGridProjectData();
+            var backgroundLink = (ObjectMemberValue)data.values["background-link"];
+            backgroundLink.value!.Remove("layerOverrideValueId");
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoTileGridPrimitive.ResolveForSave(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+            var layer = primitive.BindWritableTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+
+            Assert.NotNull(layer.GetTile(new Vector2Int(12, 13)));
+
+            var placed = layer.Place<TestTile>(new Vector2Int(14, 15));
+
+            Assert.IsTrue(placed.Ok, placed.Message);
+            var created = layer.GetTile(new Vector2Int(14, 15));
+            Assert.NotNull(created);
+            var placement = (ObjectMemberValue)client.saveValues[created!.InstanceId.Value];
+            Assert.AreEqual("background-link-tiles", placement.containerId);
+            Assert.AreNotEqual("blocked-path-tiles", placement.containerId);
+        }
+
+        [Test]
+        public void TileLayerLinkPayloadsResolveThroughCurrentObjectPosition()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            var factories = BuildClassBackedReadOnlyFactories();
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                factories,
+                BuildClassBackedWritableFactories());
+
+            var tiles = primitive.GetTiles(BackgroundLayerClassId, TileClassId);
             var candidates = primitive.GetTileCandidates<TestTile>(
-                "background-layer",
+                BackgroundLayerClassId,
                 new Vector2Int(9, 22),
                 TileClassId);
 
-            Assert.AreEqual(1, tiles.Count);
-            Assert.AreEqual(new Vector2Int(9, 22), tiles[0].Cell);
-            Assert.AreEqual(NeoTileOutputSourceKind.TileLayerLink, tiles[0].SourceKind);
-            Assert.AreEqual("shop-1:shop-floor-link:floor-local", tiles[0].InstanceId.Value);
-            Assert.AreEqual("shop-1", tiles[0].SourceObjectInstanceId);
-            Assert.AreEqual("shop-floor-link", tiles[0].SourceTileLayerLinkId);
-            Assert.IsInstanceOf<TestTile>(tiles[0].Info);
-            Assert.AreEqual(1, candidates.Count);
+            Assert.AreEqual(3, tiles.Count, "all class-backed sources should aggregate");
+            var projected = tiles.Single(tile => tile.SourceTileLayerLinkId == "shop-floor-link");
+            Assert.AreEqual(new Vector2Int(9, 22), projected.Cell);
+            Assert.AreEqual(NeoTileOutputSourceKind.TileLayerLink, projected.SourceKind);
+            Assert.AreEqual("shop-1:shop-floor-link:floor-local", projected.InstanceId.Value);
+            Assert.AreEqual("shop-1", projected.SourceObjectInstanceId);
+            Assert.IsInstanceOf<TestTile>(projected.Info);
+            Assert.AreEqual(1, candidates.Count, "only the projected source occupies (9, 22)");
             Assert.AreEqual(NeoTileOutputSourceKind.TileLayerLink, candidates[0].SourceKind);
         }
 
         [Test]
         public void TileLayerLinkPayloadsStopResolvingWhenSourceTilesAreCleared()
         {
-            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
             SeedWritableTileLayerLink(client);
-            var readOnlyFactories = BuildReadOnlyFactories();
-            var writableFactories = BuildWritableFactories();
+            var readOnlyFactories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
             var source = (TestTileLayerLink)NeoGeneratedTypesSupport.ResolveClassValue(
                 client,
                 "shop-floor-link",
@@ -75,30 +380,34 @@ namespace NeoCompose.Tests
                 readOnlyFactories,
                 writableFactories);
 
-            Assert.AreEqual(1, primitive.GetTiles("background-layer", TileClassId).Count);
+            Assert.AreEqual(
+                3,
+                primitive.GetTiles(BackgroundLayerClassId, TileClassId).Count,
+                "fixture should expose direct, projected, and blocked-path tiles before clear");
 
             source.ClearTiles();
 
-            Assert.AreEqual(0, primitive.GetTiles("background-layer", TileClassId).Count);
+            var remaining = primitive.GetTiles(BackgroundLayerClassId, TileClassId);
+            Assert.AreEqual(2, remaining.Count);
+            Assert.IsFalse(remaining.Any(tile => tile.SourceTileLayerLinkId == "shop-floor-link"));
         }
 
         [Test]
         public void Render_LiveSyncClearsProjectedTilesWhenSourceTilesAreCleared()
         {
-            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
             SeedWritableTileLayerLink(client);
-            var readOnlyFactories = BuildReadOnlyFactories();
-            var writableFactories = BuildWritableFactories();
+            var readOnlyFactories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
             var source = (TestTileLayerLink)NeoGeneratedTypesSupport.ResolveClassValue(
                 client,
                 "shop-floor-link",
                 readOnlyFactories,
                 writableFactories)!;
-            var tile = (TestTile)NeoGeneratedTypesSupport.ResolveClassValue(
+            var tile = (TestTile)NeoGeneratedTypesSupport.CreateReadOnlyClassDefault(
                 client,
-                "floor-tile",
-                readOnlyFactories,
-                writableFactories)!;
+                TileClassId,
+                readOnlyFactories);
             var sprite = CreateTestSprite("live-linked");
             tile.Sprite = sprite;
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
@@ -118,12 +427,14 @@ namespace NeoCompose.Tests
                 using var subscription = layer.OnChanged(_ => changed++);
 
                 var tilemap = go.GetComponentInChildren<Tilemap>();
-                Assert.IsNotNull(tilemap);
+                Assert.IsNotNull(tilemap, "renderer should create the layer tilemap");
                 Assert.IsTrue(renderer.IsLiveSynced);
                 Assert.AreSame(content, renderer.CurrentContent);
                 Assert.AreEqual(0, layer.GetTilesCalls);
                 Assert.AreEqual(1, layer.GetRenderSnapshotCalls);
-                Assert.IsNotNull(tilemap!.GetTile(new Vector3Int(9, 22, 0)));
+                Assert.IsNotNull(
+                    tilemap!.GetTile(new Vector3Int(9, 22, 0)),
+                    "projected class-default tile should render at the object-relative cell");
 
                 layer.ThrowOnGetTiles = true;
                 layer.ThrowOnGetRenderSnapshot = true;
@@ -144,20 +455,19 @@ namespace NeoCompose.Tests
         [UnityTest]
         public IEnumerator RenderAsync_LiveSyncFalseKeepsOneShotRenderedTiles()
         {
-            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
             SeedWritableTileLayerLink(client);
-            var readOnlyFactories = BuildReadOnlyFactories();
-            var writableFactories = BuildWritableFactories();
+            var readOnlyFactories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
             var source = (TestTileLayerLink)NeoGeneratedTypesSupport.ResolveClassValue(
                 client,
                 "shop-floor-link",
                 readOnlyFactories,
                 writableFactories)!;
-            var tile = (TestTile)NeoGeneratedTypesSupport.ResolveClassValue(
+            var tile = (TestTile)NeoGeneratedTypesSupport.CreateReadOnlyClassDefault(
                 client,
-                "floor-tile",
-                readOnlyFactories,
-                writableFactories)!;
+                TileClassId,
+                readOnlyFactories);
             var sprite = CreateTestSprite("one-shot-linked");
             tile.Sprite = sprite;
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
@@ -185,13 +495,15 @@ namespace NeoCompose.Tests
                 Assert.IsTrue(complete, "Async tile grid render did not complete.");
 
                 var tilemap = go.GetComponentInChildren<Tilemap>();
-                Assert.IsNotNull(tilemap);
+                Assert.IsNotNull(tilemap, "renderer should create the one-shot layer tilemap");
                 Assert.IsFalse(renderer.IsLiveSynced);
-                Assert.IsNotNull(tilemap!.GetTile(new Vector3Int(9, 22, 0)));
+                Assert.IsNotNull(
+                    tilemap!.GetTile(new Vector3Int(9, 22, 0)),
+                    "projected class-default tile should be present after one-shot render");
 
                 source.ClearTiles();
 
-                Assert.AreEqual(0, primitive.GetTiles("background-layer", TileClassId).Count);
+                Assert.AreEqual(2, primitive.GetTiles(BackgroundLayerClassId, TileClassId).Count);
                 Assert.IsNotNull(tilemap.GetTile(new Vector3Int(9, 22, 0)));
 
                 async void Render()
@@ -578,108 +890,74 @@ namespace NeoCompose.Tests
         [Test]
         public void TileLayerLinkQueries_ProjectAuthoredTilesFromTheLinkOrigin()
         {
-            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
-            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
-            {
-                [TileClassId] = (resolvedClient, node) => new TestTile(resolvedClient, node),
-            };
-            var tile = (TestTile)NeoGeneratedTypesSupport.ResolveClassValue(
+            var data = BuildClassBackedTileGridProjectData();
+            var placement = (ObjectMemberValue)data.values["class-backed-placement"];
+            placement.value!["assetValueId"] = "floor-tile";
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            client.RegisterGeneratedClassFactories(factories, writableFactories);
+            var link = (TestTileLayerLink)NeoGeneratedTypesSupport.ResolveClassValue(
                 client,
-                "floor-tile",
+                "background-link",
                 factories,
-                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
-            var link = new FakeTileLayerLinkValue
-            {
-                Position = new Vector3(10f, 20f, 0f),
-                Tiles = new object[]
-                {
-                    new FakeTileInstanceValue { Cell = new Vector2Int(1, 2), Tile = tile },
-                    new FakeTileInstanceValue { Cell = new Vector2Int(2, 2), Tile = tile },
-                },
-            };
+                writableFactories)!;
 
             var tiles = link.GetTiles();
-            Assert.AreEqual(2, tiles.Count);
-            Assert.AreEqual(new Vector2Int(11, 22), tiles[0].Cell);
-            Assert.AreEqual(new Vector2Int(12, 22), tiles[1].Cell);
+            Assert.AreEqual(1, tiles.Count);
+            Assert.AreEqual(new Vector2Int(2, 3), tiles[0].Cell);
             Assert.AreEqual(NeoTileOutputSourceKind.TileLayerLink, tiles[0].SourceKind);
-            Assert.AreEqual("fake-tile-link", tiles[0].SourceTileLayerLinkId);
-            Assert.AreEqual("fake-target-layer", tiles[0].LayerId);
+            Assert.AreEqual("background-link", tiles[0].SourceTileLayerLinkId);
+            Assert.AreEqual(BackgroundLayerClassId, tiles[0].LayerId);
+            Assert.AreEqual("floor-tile", tiles[0].Info.valueId);
 
-            Assert.IsNotNull(link.GetTile(new Vector2Int(11, 22)));
-            Assert.IsNull(link.GetTile(new Vector2Int(1, 2)), "local cells must be projected");
-            Assert.IsNotNull(link.GetTile<TestTile>(new Vector2Int(11, 22)));
+            Assert.IsNotNull(link.GetTile(new Vector2Int(2, 3)));
+            Assert.IsNotNull(link.GetTile<TestTile>(new Vector2Int(2, 3)));
+            Assert.IsNull(link.GetTile(new Vector2Int(20, 30)));
+        }
 
-            // Pattern queries search projected cells, nearest first.
-            Assert.IsNotNull(link.GetTile(new Vector2Int(13, 22), NeoCellPattern.Cross(1)));
-            Assert.IsNull(link.GetTile(new Vector2Int(15, 22), NeoCellPattern.Cross(1)));
-            Assert.AreEqual(2, link.GetTiles(new Vector2Int(11, 22), NeoCellPattern.Box(1)).Count);
+        [Test]
+        public void TileLayerLinkQueries_ResolveClassDefaultsWithoutDefinitionValues()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(
+                BuildClassBackedTileGridProjectData());
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            client.RegisterGeneratedClassFactories(factories, writableFactories);
+            var link = (TestTileLayerLink)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "background-link",
+                factories,
+                writableFactories)!;
+
+            var tile = link.GetTile(new Vector2Int(2, 3));
+
+            Assert.IsNotNull(tile);
+            Assert.AreEqual(TileClassId, ((TestTile)tile!.Info).classId);
+            Assert.IsNull(tile.Info.valueId);
         }
 
         [Test]
         public void ObjectLayerLinkQueries_ProjectAuthoredObjectsFromTheLinkOrigin()
         {
-            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
-            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
-            {
-                [ObjectClassId] = (resolvedClient, node) =>
-                    new TestComposedObject(resolvedClient, node),
-            };
-            var obj = (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(
+            var client = NeoTestSaveStack.ClientFromSchema(
+                BuildClassBackedTileGridProjectData());
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            client.RegisterGeneratedClassFactories(factories, writableFactories);
+            var link = (TestObjectLayerLink)NeoGeneratedTypesSupport.ResolveClassValue(
                 client,
-                "shop-object",
+                "objects-link",
                 factories,
-                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
-            var link = new FakeObjectLayerLinkValue
-            {
-                Position = new Vector3(5f, 5f, 0f),
-                Objects = new object[] { obj },
-            };
+                writableFactories)!;
 
             var objects = link.GetObjects();
             Assert.AreEqual(1, objects.Count);
-            // TestComposedObject has no Position, so it projects at the link origin.
-            Assert.AreEqual(new Vector2Int(5, 5), objects[0].Cell);
-            Assert.AreEqual("fake-object-layer", objects[0].LayerId);
-            Assert.AreSame(obj, objects[0].Info);
-
-            Assert.IsNotNull(link.GetObject(new Vector2Int(5, 5)));
-            Assert.IsNotNull(link.GetObject<TestComposedObject>(new Vector2Int(5, 5)));
-            Assert.IsNull(link.GetObject(new Vector2Int(6, 5)));
-            Assert.IsNotNull(link.GetObject(new Vector2Int(6, 5), NeoCellPattern.Cross(1)));
-            Assert.IsNull(link.GetObject(new Vector2Int(8, 5), NeoCellPattern.Cross(1)));
-        }
-
-        private sealed class FakeLayerReference : INeoValueReference
-        {
-            public FakeLayerReference(string valueId)
-            {
-                this.valueId = valueId;
-            }
-
-            public string? valueId { get; }
-        }
-
-        private sealed class FakeTileLayerLinkValue : INeoTileLayerLinkValue
-        {
-            public string? valueId => "fake-tile-link";
-            public Vector3 Position { get; set; }
-            public INeoValueReference TileLayer { get; } = new FakeLayerReference("fake-target-layer");
-            public IReadOnlyList<object> Tiles { get; set; } = new List<object>();
-        }
-
-        private sealed class FakeTileInstanceValue
-        {
-            public Vector2Int Cell { get; set; }
-            public NeoGeneratedClassValue? Tile { get; set; }
-        }
-
-        private sealed class FakeObjectLayerLinkValue : INeoObjectLayerLinkValue
-        {
-            public string? valueId => "fake-object-link";
-            public Vector3 Position { get; set; }
-            public INeoValueReference ObjectLayer { get; } = new FakeLayerReference("fake-object-layer");
-            public IReadOnlyList<object> Objects { get; set; } = new List<object>();
+            Assert.AreEqual(new Vector2Int(10, 20), objects[0].Cell);
+            Assert.AreEqual(ObjectsLayerClassId, objects[0].LayerId);
+            Assert.AreEqual("shop-1", objects[0].Info.valueId);
+            Assert.IsNotNull(link.GetObject(new Vector2Int(10, 20)));
+            Assert.IsNotNull(link.GetObject<TestComposedObject>(new Vector2Int(10, 20)));
         }
 
         [Test]
@@ -707,6 +985,19 @@ namespace NeoCompose.Tests
 
                 database.RemoveTileAsset("floor-tile");
                 Assert.IsNull(database.TryGetTileBase("floor-tile"));
+
+                database.SetTileClassAsset(
+                    TileClassId,
+                    "Assets/Neo/Generated/Tiles/tile-class.asset",
+                    "hash-class",
+                    tile);
+                Assert.AreSame(tile, database.TryGetTileBaseForClass(TileClassId));
+                Assert.AreEqual(0, database.FindMissingTileAssets(new HashSet<string>()).Length);
+                Assert.AreEqual(
+                    1,
+                    database.FindMissingTileClassAssets(new HashSet<string>()).Length);
+                database.RemoveTileClassAsset(TileClassId);
+                Assert.IsNull(database.TryGetTileBaseForClass(TileClassId));
             }
             finally
             {
@@ -779,6 +1070,49 @@ namespace NeoCompose.Tests
                 UnityEngine.Object.DestroyImmediate(go);
                 UnityEngine.Object.DestroyImmediate(generatedTile.sprite.texture);
                 UnityEngine.Object.DestroyImmediate(generatedTile.sprite);
+                UnityEngine.Object.DestroyImmediate(generatedTile);
+                UnityEngine.Object.DestroyImmediate(database);
+            }
+        }
+
+        [Test]
+        public void Render_PrefersEditorGeneratedTileAssetForClassDefaultPlacement()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+            var layer = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+            var generatedTile = ScriptableObject.CreateInstance<Tile>();
+            var database = ScriptableObject.CreateInstance<NeoAssetDatabase>();
+            database.SetTileClassAsset(
+                TileClassId,
+                "Assets/Neo/Generated/Tiles/tile-class.asset",
+                "hash-class",
+                generatedTile);
+            var go = new GameObject("NeoTileGridRenderer class asset test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.AssetDatabase = database;
+                renderer.Render(primitive, new[] { layer });
+
+                var tilemap = go.GetComponentInChildren<Tilemap>();
+                Assert.IsNotNull(tilemap);
+                Assert.AreSame(
+                    generatedTile,
+                    tilemap!.GetTile(new Vector3Int(2, 3, 0)));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
                 UnityEngine.Object.DestroyImmediate(generatedTile);
                 UnityEngine.Object.DestroyImmediate(database);
             }
@@ -881,9 +1215,9 @@ namespace NeoCompose.Tests
             var neighborSprite = CreateTestSprite("subclass-neighbor");
             smartTileValue.Sprite = defaultSprite;
             neighborValue.Sprite = neighborSprite;
-            smartTileValue.SmartTile = SmartTileWithInheritsNeighbor(
+            smartTileValue.SmartTile = SmartTileWithInheritsClassNeighbor(
                 connectedSprite,
-                "base-tile");
+                BaseTileClassId);
 
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
                 client,
@@ -915,7 +1249,7 @@ namespace NeoCompose.Tests
 
                 layer.SetTile(new NeoResolvedTileInstance(
                     "subclass-neighbor",
-                    "background-layer",
+                    BackgroundLayerClassId,
                     new Vector2Int(1, 0),
                     neighborValue,
                     1));
@@ -958,9 +1292,9 @@ namespace NeoCompose.Tests
             var neighborSprite = CreateTestSprite("unrelated-neighbor");
             smartTileValue.Sprite = defaultSprite;
             neighborValue.Sprite = neighborSprite;
-            smartTileValue.SmartTile = SmartTileWithInheritsNeighbor(
+            smartTileValue.SmartTile = SmartTileWithInheritsClassNeighbor(
                 connectedSprite,
-                "base-tile");
+                BaseTileClassId);
 
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
                 client,
@@ -1016,26 +1350,27 @@ namespace NeoCompose.Tests
         [Test]
         public void Render_RendersObjectCompositionChildrenInsteadOfParentSprite()
         {
-            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
-            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
-            {
-                [ObjectClassId] = (resolvedClient, node) =>
-                    new TestComposedObject(resolvedClient, node),
-                [TileClassId] = (resolvedClient, node) => new TestTile(resolvedClient, node),
-            };
-            var parentSprite = CreateTestSprite("legacy-parent");
+            var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            client.RegisterGeneratedClassFactories(factories, writableFactories);
+            var parentSprite = CreateTestSprite("parent");
             var childSprite = CreateTestSprite("child-object");
             var tileSprite = CreateTestSprite("child-tile");
             var obj = (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(
                 client,
                 "shop-object",
                 factories,
-                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
-            var tile = (TestTile)NeoGeneratedTypesSupport.ResolveClassValue(
+                writableFactories)!;
+            var tile = (TestTile)NeoGeneratedTypesSupport.CreateReadOnlyClassDefault(
                 client,
-                "floor-tile",
+                TileClassId,
+                factories);
+            var tileLayerLink = (TestTileLayerLink)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "shop-floor-link",
                 factories,
-                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
+                writableFactories)!;
             tile.Sprite = tileSprite;
             obj.Sprite = parentSprite;
             obj.Children = new object[]
@@ -1047,18 +1382,7 @@ namespace NeoCompose.Tests
                     Position = new Vector3(0f, 0f, 0f),
                     Size = new Vector3(2f, 1f, 0f),
                 },
-                new TestTileLayerLinkChild
-                {
-                    Name = "Tile Link",
-                    Tiles = new object[]
-                    {
-                        new TestTileInstanceChild
-                        {
-                            Cell = new Vector2Int(1, 0),
-                            Tile = tile,
-                        },
-                    },
-                },
+                tileLayerLink,
             };
             var go = new GameObject("NeoTileGridRenderer object composition test");
 
@@ -1112,7 +1436,7 @@ namespace NeoCompose.Tests
                 var tileChild = objectRoot.Find("child-tile");
                 Assert.IsNotNull(tileChild);
                 var tileChildRenderer = tileChild!.GetComponent<SpriteRenderer>();
-                Assert.AreEqual(new Vector3(3f, 1f, 0f), tileChild.localPosition);
+                Assert.AreEqual(new Vector3(-1f, 5f, 0f), tileChild.localPosition);
                 Assert.AreSame(tileSprite, tileChildRenderer.sprite);
                 Assert.AreEqual(2f, tileChildRenderer.bounds.size.x, 0.0001f);
                 Assert.AreEqual(2f, tileChildRenderer.bounds.size.y, 0.0001f);
@@ -1262,7 +1586,7 @@ namespace NeoCompose.Tests
 
             public string Condition { get; set; } = NeoSmartTileOptionIds.ConditionThis;
 
-            public string? TileValueId { get; set; }
+            public string? TileClassId { get; set; }
         }
 
         private sealed class MutableTestTileLayerRuntime : ReadOnlyNeoTileLayerRuntime
@@ -1290,7 +1614,9 @@ namespace NeoCompose.Tests
                 tilesByCell.TryGetValue(cell, out var tile) ? tile : null;
         }
 
-        private sealed class TestTileLayerLink : NeoGeneratedClassValue
+        private sealed class TestTileLayerLink
+            : NeoGeneratedClassValue,
+              INeoTileLayerLinkValue
         {
             private NeoList<string>? tiles;
 
@@ -1315,6 +1641,71 @@ namespace NeoCompose.Tests
             public void ClearTiles()
             {
                 Tiles.Clear();
+            }
+        }
+
+        private sealed class TestObjectLayerLink
+            : NeoGeneratedClassValue,
+              INeoObjectLayerLinkValue
+        {
+            public TestObjectLayerLink(NeoClient client, NeoMemberClass node)
+                : base(client, node, ObjectLayerLinkClassId)
+            {
+            }
+        }
+
+        private sealed class TestAuthoredTileLayer : NeoGeneratedTileLayerValue
+        {
+            public TestAuthoredTileLayer(
+                NeoClient client,
+                NeoMemberClass node,
+                bool isReadOnly = true)
+                : base(client, node, BackgroundLayerClassId, isReadOnly)
+            {
+            }
+
+            public string? Name => node.Get<NeoMemberString>("Name").Text;
+
+            public string? Description =>
+                node.Get<NeoMemberString>("Description").Text;
+
+            public NeoPlacementResult Place<TAsset>(Vector2Int cell)
+                where TAsset : class => TrySetTileClass<TAsset>(cell);
+        }
+
+        private sealed class TestAuthoredObjectLayer : NeoGeneratedObjectLayerValue
+        {
+            public TestAuthoredObjectLayer(
+                NeoClient client,
+                NeoMemberClass node,
+                bool isReadOnly = true)
+                : base(client, node, ObjectsLayerClassId, isReadOnly)
+            {
+            }
+
+            public NeoPlacementResult Spawn<TAsset>(Vector2Int cell)
+                where TAsset : class => TrySpawnClass<TAsset>(cell);
+
+            public NeoPlacementResult Spawn(
+                Vector2Int cell,
+                INeoValueReference asset) => TrySpawnValue(cell, asset);
+        }
+
+        private sealed class TestOtherTile : NeoGeneratedClassValue
+        {
+            public TestOtherTile(NeoClient client, NeoMemberClass node)
+                : base(client, node, OtherTileClassId)
+            {
+            }
+        }
+
+        private sealed class RecordingTileSetLifecycle : NeoTileGridLifecycle
+        {
+            public JObject? ExistingInstance { get; private set; }
+
+            public override void BeforeSetTile(NeoTileSetContext context)
+            {
+                ExistingInstance = context.ExistingInstance;
             }
         }
 
@@ -1373,7 +1764,7 @@ namespace NeoCompose.Tests
             public TestGeneratedTileLayerRuntime(NeoReadOnlyTileGridPrimitive primitive)
                 : base(
                     primitive,
-                    "background-layer",
+                    BackgroundLayerClassId,
                     "Background",
                     TileClassId,
                     null,
@@ -1434,16 +1825,16 @@ namespace NeoCompose.Tests
         {
             public TestTileGridContent(
                 NeoReadOnlyTileGridPrimitive primitive,
-                IReadOnlyList<ReadOnlyNeoTileLayerRuntime> tileLayers)
+                IReadOnlyList<IReadOnlyNeoTileLayerRuntime> tileLayers)
             {
                 Primitive = primitive;
                 TileLayersInOrder = tileLayers;
-                ObjectLayersInOrder = Array.Empty<ReadOnlyNeoObjectLayerRuntime>();
+                ObjectLayersInOrder = Array.Empty<IReadOnlyNeoObjectLayerRuntime>();
             }
 
             public NeoReadOnlyTileGridPrimitive Primitive { get; }
-            public IReadOnlyList<ReadOnlyNeoTileLayerRuntime> TileLayersInOrder { get; }
-            public IReadOnlyList<ReadOnlyNeoObjectLayerRuntime> ObjectLayersInOrder { get; }
+            public IReadOnlyList<IReadOnlyNeoTileLayerRuntime> TileLayersInOrder { get; }
+            public IReadOnlyList<IReadOnlyNeoObjectLayerRuntime> ObjectLayersInOrder { get; }
             public NeoTileGridRenderer? Renderer => Primitive.Renderer;
             public IDisposable OnChanged(Action<NeoTileGridChangedArgs> handler) =>
                 Primitive.OnChanged(handler);
@@ -1468,18 +1859,6 @@ namespace NeoCompose.Tests
             public Vector3 Size { get; set; } = Vector3.one;
         }
 
-        private sealed class TestTileLayerLinkChild
-        {
-            public string Name { get; set; } = "";
-            public IReadOnlyList<object> Tiles { get; set; } = new List<object>();
-        }
-
-        private sealed class TestTileInstanceChild
-        {
-            public Vector2Int Cell { get; set; }
-            public NeoGeneratedClassValue? Tile { get; set; }
-        }
-
         private static Sprite CreateTestSprite(string name)
         {
             var texture = new Texture2D(1, 1);
@@ -1497,9 +1876,9 @@ namespace NeoCompose.Tests
             UnityEngine.Object.DestroyImmediate(sprite);
         }
 
-        private static TestSmartTile SmartTileWithInheritsNeighbor(
+        private static TestSmartTile SmartTileWithInheritsClassNeighbor(
             Sprite connectedSprite,
-            string tileValueId)
+            string tileClassId)
         {
             var rule = new TestSmartTileRule();
             rule.Sprites.Add(connectedSprite);
@@ -1507,7 +1886,7 @@ namespace NeoCompose.Tests
             {
                 Cell = new Vector2Int(1, 0),
                 Condition = NeoSmartTileOptionIds.ConditionInheritsFromClass,
-                TileValueId = tileValueId,
+                TileClassId = tileClassId,
             });
             var smartTile = new TestSmartTile();
             smartTile.Rules.Add(rule);
@@ -1547,6 +1926,11 @@ namespace NeoCompose.Tests
                         resolvedClient,
                         node,
                         () => new TestTileLayerLink(resolvedClient, node)),
+                [ObjectLayerLinkClassId] = (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                        resolvedClient,
+                        node,
+                        () => new TestObjectLayerLink(resolvedClient, node)),
             };
         }
 
@@ -1596,6 +1980,290 @@ namespace NeoCompose.Tests
 
         private const string GridClassId = "grid-class";
         private const string ObjectLayerLinkClassId = "object-layer-link-class";
+
+        private static ProjectData BuildClassBackedTileGridProjectData()
+        {
+            var data = BuildTileGridProjectData();
+            data.metadata = new ProjectExportMetadata
+            {
+                schemaVersion = 9,
+                projectId = "project-a",
+                versionId = "version-relations",
+            };
+            data.classes[TileInstanceClassId].schema.Remove("Tile");
+            data.classes[TileLayerLinkClassId].schema.Remove("TileLayer");
+            data.classes[ObjectLayerLinkClassId].schema.Remove("ObjectLayer");
+            data.classes[BackgroundLayerClassId] = new NeoSchemaClass
+            {
+                id = BackgroundLayerClassId,
+                projectId = "project-a",
+                name = "Background Tile Layer",
+                schema = new Dictionary<string, string>
+                {
+                    ["Name"] = "background-layer-name-member",
+                    ["Description"] = "background-layer-description-member",
+                },
+            };
+            data.classes[ObjectsLayerClassId] = new NeoSchemaClass
+            {
+                id = ObjectsLayerClassId,
+                projectId = "project-a",
+                name = "Objects Layer",
+                schema = new Dictionary<string, string>(),
+            };
+            data.members["background-layer-name-member"] = new StringMember
+            {
+                id = "background-layer-name-member",
+                projectId = "project-a",
+                name = "Name",
+                kind = MemberKind.String,
+                localizable = false,
+                defaultValue = new StringMemberValueBase
+                {
+                    value = "Default Background",
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.members["background-layer-description-member"] = new StringMember
+            {
+                id = "background-layer-description-member",
+                projectId = "project-a",
+                name = "Description",
+                kind = MemberKind.String,
+                localizable = false,
+                defaultValue = new StringMemberValueBase
+                {
+                    value = "Default layer description",
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.internalRecordRelations = new Dictionary<string, InternalRecordRelation>
+            {
+                ["relation-grid-layer"] = Relation(
+                    "relation-grid-layer",
+                    InternalRecordRelationKinds.WorldGridTileLayer,
+                    GridClassId,
+                    BackgroundLayerClassId,
+                    "a0"),
+                ["relation-grid-import"] = Relation(
+                    "relation-grid-import",
+                    InternalRecordRelationKinds.WorldGridTileImport,
+                    GridClassId,
+                    TileClassId),
+                ["relation-tile-compatible"] = Relation(
+                    "relation-tile-compatible",
+                    InternalRecordRelationKinds.WorldTileCompatibleLayer,
+                    TileClassId,
+                    BackgroundLayerClassId),
+                ["relation-grid-object-layer"] = Relation(
+                    "relation-grid-object-layer",
+                    InternalRecordRelationKinds.WorldGridObjectLayer,
+                    GridClassId,
+                    ObjectsLayerClassId,
+                    "b0"),
+                ["relation-grid-object-import"] = Relation(
+                    "relation-grid-object-import",
+                    InternalRecordRelationKinds.WorldGridObjectImport,
+                    GridClassId,
+                    ObjectClassId),
+                ["relation-object-compatible"] = Relation(
+                    "relation-object-compatible",
+                    InternalRecordRelationKinds.WorldObjectCompatibleLayer,
+                    ObjectClassId,
+                    ObjectsLayerClassId),
+                ["relation-link-target"] = Relation(
+                    "relation-link-target",
+                    InternalRecordRelationKinds.WorldTileLayerLinkTarget,
+                    TileLayerLinkClassId,
+                    BackgroundLayerClassId),
+                ["relation-object-link-target"] = Relation(
+                    "relation-object-link-target",
+                    InternalRecordRelationKinds.WorldObjectLayerLinkTarget,
+                    ObjectLayerLinkClassId,
+                    ObjectsLayerClassId),
+            };
+
+            var backgroundLink = (ObjectMemberValue)data.values["background-link"];
+            backgroundLink.value!["layerClassId"] = BackgroundLayerClassId;
+            backgroundLink.value["layerOverrideValueId"] = "background-layer-override";
+            backgroundLink.value.Remove("TileLayer");
+            data.values["background-layer-override"] = new ObjectMemberValue
+            {
+                id = "background-layer-override",
+                classId = BackgroundLayerClassId,
+                containerId = "background-link",
+                value = new Dictionary<string, string>
+                {
+                    ["Name"] = "background-layer-override-name",
+                },
+            };
+            data.values["background-layer-override-name"] = new StringMemberValue
+            {
+                id = "background-layer-override-name",
+                value = "Override Background",
+            };
+            var objectsLink = (ObjectMemberValue)data.values["objects-link"];
+            objectsLink.value!["layerClassId"] = ObjectsLayerClassId;
+            objectsLink.value.Remove("ObjectLayer");
+            var shop = (ObjectMemberValue)data.values["shop-1"];
+            shop.value!["assetClassId"] = ObjectClassId;
+            var shopFloorLink = (ObjectMemberValue)data.values["shop-floor-link"];
+            shopFloorLink.value!["layerClassId"] = BackgroundLayerClassId;
+            shopFloorLink.value.Remove("TileLayer");
+            ((ArrayMemberValue)data.values["background-link-tiles"]).value =
+                new[] { "class-backed-placement" };
+            data.values["class-backed-placement"] = new ObjectMemberValue
+            {
+                id = "class-backed-placement",
+                classId = TileInstanceClassId,
+                containerId = "background-link-tiles",
+                value = new Dictionary<string, string>
+                {
+                    ["Cell"] = "class-backed-placement-cell",
+                    ["assetClassId"] = TileClassId,
+                },
+            };
+            data.values["class-backed-placement-cell"] = new Vector2MemberValue
+            {
+                id = "class-backed-placement-cell",
+                value = new NeoVector2Value { x = 2, y = 3 },
+            };
+            var floorLocal = (ObjectMemberValue)data.values["floor-local"];
+            floorLocal.value!["assetClassId"] = TileClassId;
+            floorLocal.value.Remove("Tile");
+            ((ArrayMemberValue)data.values["town-grid-children"]).value =
+                new[] { "background-link", "objects-link", "blocked-path-link" };
+            data.values["blocked-path-link"] = new ObjectMemberValue
+            {
+                id = "blocked-path-link",
+                classId = TileLayerLinkClassId,
+                value = new Dictionary<string, string>
+                {
+                    ["layerClassId"] = BackgroundLayerClassId,
+                    ["Tiles"] = "blocked-path-tiles",
+                },
+            };
+            data.values["blocked-path-tiles"] = new ArrayMemberValue
+            {
+                id = "blocked-path-tiles",
+                value = new[] { "blocked-path-placement" },
+            };
+            data.values["blocked-path-placement"] = new ObjectMemberValue
+            {
+                id = "blocked-path-placement",
+                classId = TileInstanceClassId,
+                value = new Dictionary<string, string>
+                {
+                    ["Cell"] = "blocked-path-cell",
+                    ["assetClassId"] = TileClassId,
+                },
+            };
+            data.values["blocked-path-cell"] = new Vector2MemberValue
+            {
+                id = "blocked-path-cell",
+                value = new NeoVector2Value { x = 12, y = 13 },
+            };
+            return data;
+        }
+
+        private static InternalRecordRelation Relation(
+            string id,
+            string kind,
+            string sourceClassId,
+            string targetClassId,
+            string? orderKey = null)
+        {
+            return new InternalRecordRelation
+            {
+                id = id,
+                projectId = "project-a",
+                relationKind = kind,
+                sourceRecordKind = "class",
+                sourceRecordId = sourceClassId,
+                targetRecordKind = "class",
+                targetRecordId = targetClassId,
+                orderKey = orderKey,
+                createdAt = "2026-01-01T00:00:00.000Z",
+                updatedAt = "2026-01-01T00:00:00.000Z",
+            };
+        }
+
+        private static Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+            BuildClassBackedReadOnlyFactories()
+        {
+            return new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+            {
+                [TileClassId] = (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                        resolvedClient,
+                        node,
+                        () => new TestTile(resolvedClient, node)),
+                [OtherTileClassId] = (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                        resolvedClient,
+                        node,
+                        () => new TestOtherTile(resolvedClient, node)),
+                [ObjectClassId] = (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                        resolvedClient,
+                        node,
+                        () => new TestComposedObject(resolvedClient, node)),
+                [TileLayerLinkClassId] = (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                        resolvedClient,
+                        node,
+                        () => new TestTileLayerLink(resolvedClient, node)),
+                [ObjectLayerLinkClassId] = (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                        resolvedClient,
+                        node,
+                        () => new TestObjectLayerLink(resolvedClient, node)),
+                [BackgroundLayerClassId] = (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                        resolvedClient,
+                        node,
+                        () => new TestAuthoredTileLayer(resolvedClient, node)),
+                [ObjectsLayerClassId] = (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                        resolvedClient,
+                        node,
+                        () => new TestAuthoredObjectLayer(resolvedClient, node)),
+            };
+        }
+
+        private static Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
+            BuildClassBackedWritableFactories()
+        {
+            return new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
+            {
+                [BackgroundLayerClassId] = (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                        resolvedClient,
+                        node,
+                        () => new TestAuthoredTileLayer(
+                            resolvedClient,
+                            node,
+                            isReadOnly: false)),
+                [ObjectsLayerClassId] = (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                        resolvedClient,
+                        node,
+                        () => new TestAuthoredObjectLayer(
+                            resolvedClient,
+                            node,
+                            isReadOnly: false)),
+                [TileLayerLinkClassId] = (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                        resolvedClient,
+                        node,
+                        () => new TestTileLayerLink(
+                            resolvedClient,
+                            node,
+                            isReadOnly: false)),
+            };
+        }
 
         /// <summary>
         /// Values-native world fixture: the grid value's "Children" ordered

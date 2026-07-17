@@ -30,9 +30,6 @@ namespace HelloWorld.Assets.Tests
         // tree, different prefix.)
         private const string FixturesRoot = "Assets/Tests";
         private const string SampleProjectRoot = "Assets/Resources/Neo";
-        private const string GlassFloorTileValueId = "8f96912d-5bbb-428c-84eb-8932ef588142";
-        private const string BootGlyphTileValueId = "8f96912d-5bbb-428c-84eb-8932ef588143";
-        private const string RedNovaWarningTileValueId = "8f96912d-5bbb-428c-84eb-8932ef588144";
         private static readonly string SampleProjectJson =
             File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json"));
         private static NeoJsonProjectDataSource CreateSampleProjectSource() =>
@@ -49,8 +46,6 @@ namespace HelloWorld.Assets.Tests
             }
             ownedResources.Clear();
         }
-        private const string PlayerSpawnObjectValueId = "8f96912d-5bbb-428c-84eb-8932ef588151";
-        private const string VaultPlaqueObjectValueId = "8f96912d-5bbb-428c-84eb-8932ef588152";
         private const string BlockedPathValueId = "432f5226-99d8-4d59-8cf0-4d86ca64462f";
         private static readonly string[] OldConsoleLandingDialogueIds =
         {
@@ -825,24 +820,26 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void TileGridSaveAndSessionMutation_ConvertsOldConsoleLandingTiles()
+        public void TileGridSaveAndSessionMutation_UsesClassDefaultTiles()
         {
             var (store, client) = LoadSampleStack(EnglishLocalizationOptions());
             var cell = new Vector2Int(20, 20);
-            var glassFloor = ResolveSampleValue<GlassFloorTile>(client, GlassFloorTileValueId);
-            var redNova = ResolveSampleValue<RedNovaWarningTile>(client, RedNovaWarningTileValueId);
-            var bootGlyph = ResolveSampleValue<BootGlyphTile>(client, BootGlyphTileValueId);
             var saveContent = OldConsoleLandingGridContent.ResolveForSave(
                 client.Client,
                 client.Assets.Worlds.OldConsoleLanding.valueId!);
 
             Assert.IsNull(client.Assets.Worlds.OldConsoleLanding.Content.Background.GetTile(cell));
-            AssertPlacementOk(saveContent.Background.TrySetTile(cell, glassFloor));
+            AssertPlacementOk(
+                saveContent.Background.TrySetTile<GlassFloorTile>(cell),
+                "set GlassFloorTile class default");
             var placed = client.Assets.Worlds.OldConsoleLanding.Content.Background.GetTiles()
                 .Single(tile => tile.Cell == cell);
-            Assert.AreSame(glassFloor, placed.Info);
+            Assert.IsInstanceOf<GlassFloorTile>(placed.Info);
+            Assert.IsNull(placed.Info.valueId);
 
-            AssertPlacementOk(saveContent.Background.TryConvertTile(placed.InstanceId, redNova));
+            AssertPlacementOk(
+                saveContent.Background.TryConvertTile<RedNovaWarningTile>(placed.InstanceId),
+                "convert to RedNovaWarningTile class default in Save");
             Assert.IsInstanceOf<RedNovaWarningTile>(
                 client.Assets.Worlds.OldConsoleLanding.Content.Background.GetTile(cell)?.Info);
             client.CommitAsync().GetAwaiter().GetResult();
@@ -856,7 +853,9 @@ namespace HelloWorld.Assets.Tests
             var sessionContent = OldConsoleLandingGridContent.ResolveForSession(
                 reopened.Client,
                 reopened.Assets.Worlds.OldConsoleLanding.valueId!);
-            AssertPlacementOk(sessionContent.Background.TryConvertTile(placed.InstanceId, bootGlyph));
+            AssertPlacementOk(
+                sessionContent.Background.TryConvertTile<BootGlyphTile>(placed.InstanceId),
+                "convert persisted placement to BootGlyphTile class default in Session");
 
             Assert.IsInstanceOf<BootGlyphTile>(
                 reopened.Assets.Worlds.OldConsoleLanding.Content.Background.GetTile(cell)?.Info);
@@ -869,28 +868,27 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void TileGridSaveMutation_SpawnsSwapsAndDespawnsOldConsoleLandingObjects()
+        public void TileGridSaveMutation_UsesClassDefaultObjects()
         {
             var (store, client) = LoadSampleStack(EnglishLocalizationOptions());
             var cell = new Vector2Int(21, 20);
-            var playerSpawn = ResolveSampleValue<PlayerSpawnObject>(client, PlayerSpawnObjectValueId);
-            var vaultPlaque = ResolveSampleValue<VaultPlaqueObject>(client, VaultPlaqueObjectValueId);
             var saveContent = OldConsoleLandingGridContent.ResolveForSave(
                 client.Client,
                 client.Assets.Worlds.OldConsoleLanding.valueId!);
 
             Assert.IsNull(client.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject(cell));
-            AssertPlacementOk(saveContent.Objects.TrySpawn(cell, playerSpawn));
+            AssertPlacementOk(saveContent.Objects.TrySpawn<PlayerSpawnObject>(cell));
 
             var placed = client.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObjects()
                 .Single(obj => obj.Cell == cell);
             Assert.IsInstanceOf<PlayerSpawnObject>(placed.Info);
+            Assert.IsNull(placed.Info.valueId);
 
-            var duplicate = saveContent.Objects.TrySpawn(cell, vaultPlaque);
+            var duplicate = saveContent.Objects.TrySpawn<VaultPlaqueObject>(cell);
             Assert.IsFalse(duplicate.Ok);
             Assert.AreEqual("tile-grid-object-cell-occupied", duplicate.ErrorCode);
 
-            AssertPlacementOk(saveContent.Objects.TrySwapVariant(placed.InstanceId, vaultPlaque));
+            AssertPlacementOk(saveContent.Objects.TrySwapVariant<VaultPlaqueObject>(placed.InstanceId));
             var swapped = client.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObjects()
                 .Single(obj => obj.Cell == cell);
             Assert.AreEqual(placed.InstanceId, swapped.InstanceId);
@@ -960,22 +958,11 @@ namespace HelloWorld.Assets.Tests
                 .GetResult());
         }
 
-        private static T ResolveSampleValue<T>(HelloWorldNeo client, string valueId)
-            where T : class
+        private static void AssertPlacementOk(NeoPlacementResult result, string? context = null)
         {
-            var resolved = NeoGeneratedTypesSupport.ResolveClassValue(
-                client.Client,
-                valueId,
-                HelloWorldNeo.NeoReadOnlyValueFactories,
-                HelloWorldNeo.NeoWritableValueFactories);
-            return resolved as T
-                ?? throw new System.InvalidOperationException(
-                    $"Expected sample value '{valueId}' to resolve as {typeof(T).Name}.");
-        }
-
-        private static void AssertPlacementOk(NeoPlacementResult result)
-        {
-            Assert.IsTrue(result.Ok, result.Message ?? result.ErrorCode);
+            Assert.IsTrue(
+                result.Ok,
+                $"{context ?? "placement"}: {result.Message ?? result.ErrorCode}");
         }
 
         // Builds a raw NeoClient (not the generated HelloWorld facade) over the save

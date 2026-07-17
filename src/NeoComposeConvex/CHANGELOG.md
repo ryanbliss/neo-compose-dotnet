@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0] - 2026-07-17
+
+### Breaking
+
+- Requires `com.ryanbliss.neocompose` 0.3.0 and schema-9 project exports with
+  class-backed tile-grid relations. Re-export projects and regenerate their C#
+  types and synchronized Unity assets before upgrading.
+
 ## [0.2.1] - 2026-07-16
 
 ### Changed

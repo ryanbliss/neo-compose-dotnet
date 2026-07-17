@@ -4,7 +4,6 @@
 #nullable enable
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
 using UnityEngine;
@@ -289,13 +288,42 @@ namespace NeoCompose.Runtime
 
             var byCell = new Dictionary<Vector2Int, NeoResolvedTileInstance>();
             string sourceId = link.valueId ?? string.Empty;
-            string layerId = ReadTargetLayerId(link, "TileLayer");
-            var order = 0;
-
-            void Project(Vector2Int projectedCell, string instanceId, NeoGeneratedClassValue tileValue)
+            if (!TryGetValueRow(link, out var client, out ObjectMemberValue? linkRow))
             {
+                return new TileProjection(
+                    Array.Empty<NeoResolvedTileInstance>(),
+                    byCell);
+            }
+            string layerId = ReadTargetLayerClassId(
+                (NeoGeneratedClassValue)link,
+                InternalRecordRelationKinds.WorldTileLayerLinkTarget);
+            var order = 0;
+            var origin = ReadRowOrigin(client!, linkRow!);
+            foreach (var instanceValueId in ReadRowListIds(client!, linkRow!, "Tiles"))
+            {
+                if (!client!.TryGetValue(
+                        instanceValueId,
+                        out ObjectMemberValue? placement)
+                    || placement?.value is null)
+                {
+                    continue;
+                }
+                string? assetClassId = ReadDirectReference(
+                    placement.value,
+                    "assetClassId");
+                if (assetClassId is null) continue;
+                string? assetValueId = ReadDirectReference(
+                    placement.value,
+                    "assetValueId");
+                var tileValue = client.ResolveRegisteredGeneratedAsset(
+                    assetClassId,
+                    assetValueId);
+                if (tileValue is null) continue;
+                var cell = ReadRowCell(client, instanceValueId);
+                if (cell is null) continue;
+                var projectedCell = origin + cell.Value;
                 byCell[projectedCell] = new NeoResolvedTileInstance(
-                    instanceId,
+                    instanceValueId,
                     layerId,
                     projectedCell,
                     tileValue,
@@ -305,78 +333,9 @@ namespace NeoCompose.Runtime
                     sourceId);
             }
 
-            if (TryGetValueRow(link, out var client, out ObjectMemberValue? linkRow))
-            {
-                var origin = ReadRowOrigin(client!, linkRow!);
-                var wrapperItems = SnapshotWrapperTileItems(link);
-                foreach (var instanceValueId in ReadRowListIds(client!, linkRow!, "Tiles"))
-                {
-                    if (!wrapperItems.TryGetValue(instanceValueId, out var item)) continue;
-                    var cell = ReadRowCell(client!, instanceValueId) ?? item.Cell;
-                    Project(origin + cell, instanceValueId, item.Tile);
-                }
-            }
-            else
-            {
-                var origin = ReadLinkOrigin(link);
-                foreach (var tileInstance in ReadEnumerableProperty(link, "Tiles"))
-                {
-                    var cell = NeoGeneratedTypesSupport.ReadVector2IntValue(
-                        ReadOptionalProperty(tileInstance, "Cell"));
-                    if (cell == null) continue;
-                    if (ReadOptionalProperty(tileInstance, "Tile") is not NeoGeneratedClassValue tileValue)
-                    {
-                        continue;
-                    }
-
-                    var instanceValue = tileInstance as INeoValueReference;
-                    string instanceId = string.IsNullOrEmpty(instanceValue?.valueId)
-                        ? $"{sourceId}:{order}"
-                        : instanceValue!.valueId!;
-                    Project(origin + cell.Value, instanceId, tileValue);
-                }
-            }
-
             var winners = new List<NeoResolvedTileInstance>(byCell.Values);
             winners.Sort((left, right) => left.Order.CompareTo(right.Order));
             return new TileProjection(winners, byCell);
-        }
-
-        private readonly struct WrapperTileItem
-        {
-            public WrapperTileItem(Vector2Int cell, NeoGeneratedClassValue tile)
-            {
-                Cell = cell;
-                Tile = tile;
-            }
-
-            public Vector2Int Cell { get; }
-            public NeoGeneratedClassValue Tile { get; }
-        }
-
-        /// <summary>
-        /// The wrapper's tile instances keyed by value id — used to resolve
-        /// typed tile values for the row-listed members (rows alone can't
-        /// resolve generated classes without the project's factories).
-        /// </summary>
-        private static Dictionary<string, WrapperTileItem> SnapshotWrapperTileItems(
-            INeoTileLayerLinkValue link)
-        {
-            var items = new Dictionary<string, WrapperTileItem>();
-            foreach (var tileInstance in ReadEnumerableProperty(link, "Tiles"))
-            {
-                if (tileInstance is not INeoValueReference instanceValue) continue;
-                if (string.IsNullOrEmpty(instanceValue.valueId)) continue;
-                var cell = NeoGeneratedTypesSupport.ReadVector2IntValue(
-                    ReadOptionalProperty(tileInstance, "Cell"));
-                if (cell == null) continue;
-                if (ReadOptionalProperty(tileInstance, "Tile") is not NeoGeneratedClassValue tileValue)
-                {
-                    continue;
-                }
-                items[instanceValue.valueId!] = new WrapperTileItem(cell.Value, tileValue);
-            }
-            return items;
         }
 
         /// <summary>
@@ -391,54 +350,44 @@ namespace NeoCompose.Runtime
             if (link is null) throw new ArgumentNullException(nameof(link));
 
             var objects = new List<NeoResolvedObjectInstance>();
-            string sourceId = link.valueId ?? string.Empty;
-            string layerId = ReadTargetLayerId(link, "ObjectLayer");
-            var origin = ReadLinkOrigin(link);
+            if (!TryGetValueRow(link, out var client, out ObjectMemberValue? linkRow))
+            {
+                return objects;
+            }
+            string layerId = ReadTargetLayerClassId(
+                (NeoGeneratedClassValue)link,
+                InternalRecordRelationKinds.WorldObjectLayerLinkTarget);
+            var origin = ReadRowOrigin(client!, linkRow!);
             var order = 0;
 
-            void Project(NeoGeneratedClassValue generatedObject)
+            foreach (var objectValueId in ReadRowListIds(client!, linkRow!, "Objects"))
             {
-                var localPosition = NeoGeneratedTypesSupport.ReadVector3Value(
-                    ReadOptionalProperty(generatedObject, "Position")) ?? Vector3.zero;
+                if (!client!.TryGetValue(
+                        objectValueId,
+                        out ObjectMemberValue? objectRow)
+                    || objectRow?.value is null)
+                {
+                    continue;
+                }
+                string? assetClassId = ReadDirectReference(
+                    objectRow.value,
+                    "assetClassId") ?? objectRow.classId;
+                if (string.IsNullOrWhiteSpace(assetClassId)) continue;
+                var generatedObject = client.ResolveRegisteredGeneratedAsset(
+                    assetClassId!,
+                    objectValueId);
+                if (generatedObject is null) continue;
+                var localPosition = ReadRowPosition(client, objectRow);
                 var cell = origin + new Vector2Int(
                     Mathf.RoundToInt(localPosition.x),
                     Mathf.RoundToInt(localPosition.y));
-                string instanceId = string.IsNullOrEmpty(generatedObject.valueId)
-                    ? $"{sourceId}:{order}"
-                    : generatedObject.valueId!;
                 objects.Add(new NeoResolvedObjectInstance(
-                    instanceId,
+                    objectValueId,
                     layerId,
                     cell,
                     new[] { cell },
                     generatedObject,
                     order++));
-            }
-
-            if (TryGetValueRow(link, out var client, out ObjectMemberValue? linkRow))
-            {
-                origin = ReadRowOrigin(client!, linkRow!);
-                var wrapperObjects = new Dictionary<string, NeoGeneratedClassValue>();
-                foreach (var objectValue in ReadEnumerableProperty(link, "Objects"))
-                {
-                    if (objectValue is not NeoGeneratedClassValue generatedObject) continue;
-                    if (string.IsNullOrEmpty(generatedObject.valueId)) continue;
-                    wrapperObjects[generatedObject.valueId!] = generatedObject;
-                }
-
-                foreach (var objectValueId in ReadRowListIds(client!, linkRow!, "Objects"))
-                {
-                    if (!wrapperObjects.TryGetValue(objectValueId, out var generatedObject)) continue;
-                    Project(generatedObject);
-                }
-            }
-            else
-            {
-                foreach (var objectValue in ReadEnumerableProperty(link, "Objects"))
-                {
-                    if (objectValue is not NeoGeneratedClassValue generatedObject) continue;
-                    Project(generatedObject);
-                }
             }
 
             return objects;
@@ -502,10 +451,9 @@ namespace NeoCompose.Runtime
                 return Array.Empty<string>();
             }
 
-            // Inline array ids (ordered lists, legacy factory rows) plus the
-            // unordered membership join (rows whose containerId is the list
-            // value id); the array is only the null-vs-present discriminator
-            // for unordered lists.
+            // Ordered lists store ids inline. Unordered lists use the
+            // containment join; their inline array is only the present/null
+            // discriminator.
             var ids = new List<string>(listRow.value);
             var seen = new HashSet<string>(ids);
             foreach (var joinedId in client.GetUnorderedListEntryIds(listValueId))
@@ -531,6 +479,25 @@ namespace NeoCompose.Runtime
                 Mathf.RoundToInt(positionRow.value.y));
         }
 
+        private static Vector3 ReadRowPosition(
+            NeoClient client,
+            ObjectMemberValue objectRow)
+        {
+            if (objectRow.value is null
+                || !objectRow.value.TryGetValue("Position", out string positionValueId)
+                || !client.TryGetValue(
+                    positionValueId,
+                    out Vector3MemberValue? positionRow)
+                || positionRow?.value is null)
+            {
+                return Vector3.zero;
+            }
+            return new Vector3(
+                (float)positionRow.value.x,
+                (float)positionRow.value.y,
+                (float)positionRow.value.z);
+        }
+
         private static Vector2Int? ReadRowCell(NeoClient client, string tileInstanceValueId)
         {
             if (!client.TryGetValue(tileInstanceValueId, out ObjectMemberValue? instanceRow) ||
@@ -547,45 +514,31 @@ namespace NeoCompose.Runtime
                 Mathf.RoundToInt(cellRow.value.y));
         }
 
-        private static Vector2Int ReadLinkOrigin(INeoValueReference link)
+        private static string? ReadDirectReference(
+            IReadOnlyDictionary<string, string> value,
+            string key)
         {
-            var position = NeoGeneratedTypesSupport.ReadVector3Value(
-                ReadOptionalProperty(link, "Position"));
-            if (position == null) return Vector2Int.zero;
-            return new Vector2Int(
-                Mathf.RoundToInt(position.Value.x),
-                Mathf.RoundToInt(position.Value.y));
-        }
-
-        private static string ReadTargetLayerId(INeoValueReference link, string propertyName)
-        {
-            return ReadOptionalProperty(link, propertyName) is INeoValueReference layer
-                && !string.IsNullOrEmpty(layer.valueId)
-                    ? layer.valueId!
-                    : string.Empty;
-        }
-
-        private static IEnumerable ReadEnumerableProperty(object source, string propertyName)
-        {
-            return ReadOptionalProperty(source, propertyName) as IEnumerable
-                ?? Array.Empty<object>();
-        }
-
-        private static object? ReadOptionalProperty(object? source, string propertyName)
-        {
-            if (source is null) return null;
-            var property = source.GetType().GetProperty(propertyName);
-            if (property is null || !property.CanRead) return null;
-            try
+            foreach (var pair in value)
             {
-                return property.GetValue(source);
+                if (!string.Equals(pair.Key, key, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                return string.IsNullOrWhiteSpace(pair.Value) ? null : pair.Value;
             }
-            catch (Exception)
-            {
-                // Generated getters throw for required members that have no
-                // value yet; an unreadable member simply doesn't contribute.
-                return null;
-            }
+            return null;
         }
+
+        private static string ReadTargetLayerClassId(
+            NeoGeneratedClassValue link,
+            string relationKind)
+        {
+            if (string.IsNullOrWhiteSpace(link.classId)) return string.Empty;
+            var targets = link.Client.InternalRecordRelations.Resolve(
+                relationKind,
+                link.classId!);
+            return targets.Count == 0 ? string.Empty : targets[0].TargetRecordId;
+        }
+
     }
 }

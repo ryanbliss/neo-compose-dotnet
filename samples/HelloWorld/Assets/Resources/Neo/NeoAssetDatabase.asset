@@ -567,8 +567,8 @@ MonoBehaviour:
     - {fileID: -981331918, guid: 020316b11f10c457f88f6813001595c9, type: 3}
     audioClip: {fileID: 0}
   tileAssets:
-  - tileValueId: 8f96912d-5bbb-428c-84eb-8932ef588144
+  - assetValueId:
     tileClassId: d931c907-19cd-4f3d-b04a-e6f1945fb216
-    assetPath: Assets/Neo/Generated/Tiles/8f96912d-5bbb-428c-84eb-8932ef588144.asset
-    contentHash: d931c907-19cd-4f3d-b04a-e6f1945fb216:1782012571783:tile
-    tileBase: {fileID: 11400000, guid: a69dcd3ee54c2434c9c84d35925c0257, type: 2}
+    assetPath: Assets/Neo/Generated/Tiles/d931c907-19cd-4f3d-b04a-e6f1945fb216.asset
+    contentHash: d931c907-19cd-4f3d-b04a-e6f1945fb216:1784282874548:tile
+    tileBase: {fileID: 11400000, guid: dca25962250b94d7589e7f517324f6af, type: 2}

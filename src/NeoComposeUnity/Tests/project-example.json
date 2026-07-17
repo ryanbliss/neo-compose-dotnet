@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 8,
+    "schemaVersion": 9,
     "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
     "versionId": "version-1",
     "semver": {
@@ -20,6 +20,7 @@
     "rootSaveFileMemberId": "97f1760a-972a-469b-8ceb-67800332deb2",
     "rootSessionMemberId": "0d5f42dd-f6c9-4d54-84dd-b69cb9ef7b3a"
   },
+  "internalRecordRelations": {},
   "members": {
     "1f3e5850-4b17-481b-a1b8-989368744da1": {
       "_id": "69e8508019f7c06f14880283",

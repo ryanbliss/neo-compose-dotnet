@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 8,
+    "schemaVersion": 9,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -1885,6 +1885,7 @@
       }
     }
   },
+  "internalRecordRelations": {},
   "enums": {
     "enum-element": {
       "id": "enum-element",

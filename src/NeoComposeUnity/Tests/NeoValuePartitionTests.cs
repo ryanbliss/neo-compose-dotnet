@@ -28,6 +28,7 @@ namespace NeoCompose.Tests
     {
         private const string GridClassId = "grid-class";
         private const string TileClassId = "tile-class";
+        private const string TileLayerClassId = "background-layer";
         private const string TileInstanceClassId = "tile-instance-class";
         private const string TileLayerLinkClassId = "tile-layer-link-class";
         private const string WorldPartitionKey = "world:" + GridClassId;
@@ -397,6 +398,13 @@ namespace NeoCompose.Tests
                 name = "Tile",
                 schema = new Dictionary<string, string>(),
             };
+            var tileLayerClass = new NeoSchemaClass
+            {
+                id = TileLayerClassId,
+                projectId = "project-a",
+                name = "Background",
+                schema = new Dictionary<string, string>(),
+            };
             var tileInstanceClass = new NeoSchemaClass
             {
                 id = TileInstanceClassId,
@@ -405,7 +413,6 @@ namespace NeoCompose.Tests
                 schema = new Dictionary<string, string>
                 {
                     ["Cell"] = "tile-instance-cell-member",
-                    ["Tile"] = "tile-instance-tile-member",
                 },
             };
             var tileLayerLinkClass = new NeoSchemaClass
@@ -415,7 +422,6 @@ namespace NeoCompose.Tests
                 name = "Tile Layer Link",
                 schema = new Dictionary<string, string>
                 {
-                    ["TileLayer"] = "tile-layer-link-layer-member",
                     ["Tiles"] = "tile-layer-link-tiles-member",
                 },
             };
@@ -429,11 +435,8 @@ namespace NeoCompose.Tests
                     TileLayerLinkClassId,
                     new JObject
                     {
-                        ["TileLayer"] = "background-link-layer",
                         ["Tiles"] = TilesListValueId,
                     }),
-                ["background-link-layer"] = PartitionRow(
-                    "background-link-layer", null, new JArray("background-layer")),
                 [TilesListValueId] = PartitionRow(TilesListValueId, null, new JArray()),
                 ["floor-1"] = PartitionRow(
                     "floor-1",
@@ -441,13 +444,11 @@ namespace NeoCompose.Tests
                     new JObject
                     {
                         ["Cell"] = "floor-1-cell",
-                        ["Tile"] = "floor-1-tile",
+                        ["assetClassId"] = TileClassId,
                     },
                     containerId: TilesListValueId),
                 ["floor-1-cell"] = PartitionRow(
                     "floor-1-cell", null, new JObject { ["x"] = 3, ["y"] = 4 }),
-                ["floor-1-tile"] = PartitionRow(
-                    "floor-1-tile", null, new JArray("floor-tile")),
             };
 
             return new ProjectData
@@ -488,22 +489,6 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Cell",
                         kind = MemberKind.Vector2Int,
-                    },
-                    ["tile-instance-tile-member"] = new LookupMember
-                    {
-                        id = "tile-instance-tile-member",
-                        projectId = "project-a",
-                        name = "Tile",
-                        kind = MemberKind.Lookup,
-                        collectionMemberId = "tile-layer-link-tiles-member",
-                    },
-                    ["tile-layer-link-layer-member"] = new LookupMember
-                    {
-                        id = "tile-layer-link-layer-member",
-                        projectId = "project-a",
-                        name = "TileLayer",
-                        kind = MemberKind.Lookup,
-                        collectionMemberId = "grid-children-member",
                     },
                     ["tile-layer-link-tiles-member"] = new ListMember
                     {
@@ -553,10 +538,47 @@ namespace NeoCompose.Tests
                     [rootClass.id] = rootClass,
                     [GridClassId] = gridClass,
                     [TileClassId] = tileClass,
+                    [TileLayerClassId] = tileLayerClass,
                     [TileInstanceClassId] = tileInstanceClass,
                     [TileLayerLinkClassId] = tileLayerLinkClass,
                 },
+                internalRecordRelations = new Dictionary<string, InternalRecordRelation>
+                {
+                    ["grid-background-layer"] = ClassRelation(
+                        "grid-background-layer",
+                        InternalRecordRelationKinds.WorldGridTileLayer,
+                        GridClassId,
+                        TileLayerClassId,
+                        "a0"),
+                    ["background-link-target"] = ClassRelation(
+                        "background-link-target",
+                        InternalRecordRelationKinds.WorldTileLayerLinkTarget,
+                        TileLayerLinkClassId,
+                        TileLayerClassId),
+                },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
+            };
+        }
+
+        private static InternalRecordRelation ClassRelation(
+            string id,
+            string relationKind,
+            string sourceClassId,
+            string targetClassId,
+            string? orderKey = null)
+        {
+            return new InternalRecordRelation
+            {
+                id = id,
+                projectId = "project-a",
+                relationKind = relationKind,
+                sourceRecordKind = "class",
+                sourceRecordId = sourceClassId,
+                targetRecordKind = "class",
+                targetRecordId = targetClassId,
+                orderKey = orderKey,
+                createdAt = "2026-07-17T00:00:00.000Z",
+                updatedAt = "2026-07-17T00:00:00.000Z",
             };
         }
 
