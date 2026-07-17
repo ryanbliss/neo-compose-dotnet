@@ -44,18 +44,33 @@ namespace NeoCompose.Tests
   }
 }");
 
-            var noOp = NeoSaveSynchronizer.BuildLivePatch(baseline, metadataOnly);
+            var cache = new GameSaveRecordCache();
+            var descriptor = new GameSaveRecordDescriptor
+            {
+                recordKind = NeoGameSaveRecordKinds.Value,
+                recordId = "row-1",
+                recordStateId = "state-1",
+                recordRevisionToken = "token-1",
+                contentHash = "hash-1",
+            };
+            cache.descriptors[descriptor.LogicalKey] = descriptor;
+            var noOp = NeoSaveSynchronizer.BuildLivePatch(
+                baseline, metadataOnly, cache);
 
             Assert.That(noOp.IsEmpty, Is.True,
                 "server-managed top-level metadata must not create a patch entry");
 
             ((JObject)metadataOnly["row-1"]!["value"]!)["updatedAt"] = 11;
-            var nestedChange = NeoSaveSynchronizer.BuildLivePatch(baseline, metadataOnly);
+            var nestedChange = NeoSaveSynchronizer.BuildLivePatch(
+                baseline, metadataOnly, cache);
 
-            Assert.That(nestedChange.entries.Keys, Is.EquivalentTo(new[] { "row-1" }),
+            Assert.That(nestedChange.changes, Has.Count.EqualTo(1));
+            var change = nestedChange.changes[0] as GameSaveValuePatchChange;
+            Assert.That(change, Is.Not.Null);
+            Assert.That(change!.valueId, Is.EqualTo("row-1"));
+            Assert.That(change.set.Keys, Is.EqualTo(new[] { "value" }),
                 "nested updatedAt is authored domain data and remains semantic");
-            Assert.That(nestedChange.baseMapKeys.ContainsKey("row-1"), Is.True);
-            Assert.That(nestedChange.baseMapKeys["row-1"], Is.Null);
+            Assert.That(change.baseRecordStateId, Is.EqualTo("state-1"));
         }
 
         [Test]

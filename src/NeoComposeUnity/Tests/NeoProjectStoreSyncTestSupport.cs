@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Tests
 {
@@ -35,7 +36,7 @@ namespace NeoCompose.Tests
             "{\"name\":\"" + name + "\",\"projectId\":\"project-1\"," +
             "\"releaseChannelId\":\"" + TargetChannel + "\"," +
             "\"serverId\":\"server-1\",\"snapshotId\":\"snap-1\",\"snapshotHash\":\"hash-1\"," +
-            "\"synchronizedAt\":3," +
+            "\"snapshotRevision\":1,\"synchronizedAt\":3," +
             "\"version\":{\"id\":\"v1\",\"label\":\"1.0\"}," +
             "\"values\":{},\"createdAt\":1,\"updatedAt\":2}";
 
@@ -43,7 +44,8 @@ namespace NeoCompose.Tests
             string id,
             string snapshotId,
             string snapshotHash,
-            string channel = TargetChannel)
+            string channel = TargetChannel,
+            long snapshotRevision = 1)
         {
             return new RemoteGameSave
             {
@@ -51,6 +53,7 @@ namespace NeoCompose.Tests
                 id = id,
                 snapshotId = snapshotId,
                 snapshotHash = snapshotHash,
+                snapshotRevision = snapshotRevision,
                 releaseChannelId = channel,
                 name = "Cloud " + id,
                 projectId = "project-1",
@@ -93,6 +96,54 @@ namespace NeoCompose.Tests
         public RemoteGameSave? cloneResult;
         public readonly List<string> archivedSaves = new();
         public readonly List<string> archivedSnapshots = new();
+        private GameSaveRecordPage deltaPage = new GameSaveRecordPage { isDone = true };
+        private readonly Dictionary<string, GameSaveRecordState> recordStates = new();
+
+        public void SetValueDelta(string snapshotId, long revision, string valuesJson)
+        {
+            var descriptors = new List<GameSaveRecordDescriptor>();
+            recordStates.Clear();
+            foreach (var property in JObject.Parse(valuesJson).Properties())
+            {
+                var stateId = $"{snapshotId}:{property.Name}:{revision}";
+                descriptors.Add(new GameSaveRecordDescriptor
+                {
+                    recordKind = NeoGameSaveRecordKinds.Value,
+                    recordId = property.Name,
+                    mapKey = (property.Value as JObject)?["mapKey"]?.Value<string>(),
+                    recordStateId = stateId,
+                    recordRevisionToken = $"token:{revision}:{property.Name}",
+                    contentHashAlgorithm = "sha256-canonical-json-v1",
+                    contentHash = $"content:{revision}:{property.Name}",
+                    lastChangedRevision = revision,
+                });
+
+                JObject data;
+                if (property.Value is JObject row)
+                {
+                    data = (JObject)row.DeepClone();
+                    data.Remove("id");
+                    data.Remove("mapKey");
+                }
+                else
+                {
+                    data = new JObject { ["value"] = property.Value.DeepClone() };
+                }
+                recordStates[stateId] = new GameSaveRecordState
+                {
+                    id = stateId,
+                    recordKind = NeoGameSaveRecordKinds.Value,
+                    recordId = property.Name,
+                    dataSchemaVersion = 1,
+                    dataJson = data.ToString(Newtonsoft.Json.Formatting.None),
+                };
+            }
+            deltaPage = new GameSaveRecordPage
+            {
+                page = descriptors,
+                isDone = true,
+            };
+        }
 
         public Awaitable<NeoSaveFileList> ListSavesAsync(string? targetReleaseChannelId) =>
             NeoAwaitable.FromResult(list);
@@ -129,12 +180,18 @@ namespace NeoCompose.Tests
 
         public Awaitable<GameSaveRecordPage> GetSaveRecordDeltaPageAsync(
             string customId, string snapshotId, GameSaveRecordDeltaPageRequest request) =>
-            NeoAwaitable.FromResult(new GameSaveRecordPage { isDone = true });
+            NeoAwaitable.FromResult(deltaPage);
 
         public Awaitable<IReadOnlyList<GameSaveRecordState>> GetSaveRecordStatesAsync(
-            string customId, string snapshotId, IReadOnlyList<string> recordStateIds) =>
-            NeoAwaitable.FromResult<IReadOnlyList<GameSaveRecordState>>(
-                new List<GameSaveRecordState>());
+            string customId, string snapshotId, IReadOnlyList<string> recordStateIds)
+        {
+            var states = new List<GameSaveRecordState>();
+            foreach (var id in recordStateIds)
+            {
+                if (recordStates.TryGetValue(id, out var state)) states.Add(state);
+            }
+            return NeoAwaitable.FromResult<IReadOnlyList<GameSaveRecordState>>(states);
+        }
 
         public Awaitable<NeoCommitResult> CommitAsync(NeoSaveCommitRequest request, bool replaceSnapshot)
         {

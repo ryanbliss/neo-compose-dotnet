@@ -77,13 +77,53 @@ namespace NeoCompose.Tests
 
         private static RemoteGameSave RemoteWithValues(
             string snapshotId, string snapshotHash, string valuesJson,
-            string? liveSessionId = null)
+            string? liveSessionId = null,
+            long snapshotRevision = 1)
         {
             var remote = NeoSaveTestSupport.Remote("save-1", snapshotId, snapshotHash);
             remote.values = new NeoSaveValues(JToken.Parse(valuesJson));
             remote.liveSessionId = liveSessionId;
+            remote.snapshotRevision = snapshotRevision;
+            remote.recordCache.snapshotId = snapshotId;
+            remote.recordCache.snapshotRevision = snapshotRevision;
+            foreach (var property in ((JObject)remote.values.Raw).Properties())
+            {
+                var descriptor = new GameSaveRecordDescriptor
+                {
+                    recordKind = NeoGameSaveRecordKinds.Value,
+                    recordId = property.Name,
+                    recordStateId = $"{snapshotId}:{property.Name}:{snapshotRevision}",
+                    recordRevisionToken = $"token:{snapshotRevision}:{property.Name}",
+                    contentHashAlgorithm = "sha256-canonical-json-v1",
+                    contentHash = $"content:{snapshotRevision}:{property.Name}",
+                };
+                remote.recordCache.descriptors[descriptor.LogicalKey] = descriptor;
+            }
             return remote;
         }
+
+        private static NeoLivePatchResult Patched(string snapshotId, long revision) =>
+            NeoLivePatchResult.Patched(
+                snapshotId,
+                revision,
+                new NeoTimestamp(40 + revision),
+                new List<GameSaveRecordDescriptor>());
+
+        private static IEnumerable<string> ChangedValueIds(NeoSavePatch patch) =>
+            patch.changes.Select(change => change switch
+            {
+                GameSaveValuePatchChange valuePatch => valuePatch.valueId,
+                GameSaveValueReplaceChange replace => replace.valueId,
+                _ => null,
+            }).Where(id => id != null).Select(id => id!);
+
+        private static JToken ReplacedValue(NeoSavePatch patch, string valueId) =>
+            patch.changes.OfType<GameSaveValueReplaceChange>()
+                .Single(change => change.valueId == valueId)
+                .value;
+
+        private static JToken AppliedValue(string content, string valueId) =>
+            JObject.Parse(content)["values"]![valueId]!;
 
         private static async Task<(NeoProjectStore store,
             NeoSaveSynchronizer sync,
@@ -171,7 +211,7 @@ namespace NeoCompose.Tests
             Assert.That(realtime.forks, Has.Count.EqualTo(1),
                 "explicit save must not wait for the live flush debounce");
             Assert.That(
-                realtime.forks[0].patch.entries,
+                realtime.forks[0].patch.changes,
                 Is.Not.Empty,
                 "the immediate flush carries the staged save-value write");
             Assert.That(commits, Has.Count.EqualTo(1), "local commit still succeeds");
@@ -197,11 +237,13 @@ namespace NeoCompose.Tests
             Assert.That(fork.customId, Is.EqualTo("save-1"));
             Assert.That(fork.baseSnapshotId, Is.EqualTo("snap-1"));
             Assert.That(fork.liveSessionId, Is.Not.Empty);
-            Assert.That(fork.patch.entries.Keys, Is.EquivalentTo(new[] { "a" }));
-            Assert.That(fork.patch.restoredToAuthored, Is.Empty);
+            Assert.That(ChangedValueIds(fork.patch), Is.EquivalentTo(new[] { "a" }));
+            Assert.That(
+                fork.patch.changes.OfType<GameSaveValueRestoreToAuthoredChange>(),
+                Is.Empty);
 
             Assert.That(sync.ActiveSave!.snapshotId, Is.EqualTo("snap-live"));
-            Assert.That(sync.ActiveSave.snapshotHash, Is.EqualTo("hash-live"));
+            Assert.That(sync.ActiveSave.snapshotRevision, Is.EqualTo(1));
         }
 
         [Test]
@@ -221,7 +263,7 @@ namespace NeoCompose.Tests
 
             scheduler.Advance(0.2);
             Assert.That(realtime.forks, Has.Count.EqualTo(1), "one coalesced flush");
-            var entry = (int?)realtime.forks[0].patch.entries["a"];
+            var entry = (int?)ReplacedValue(realtime.forks[0].patch, "a");
             Assert.That(entry, Is.EqualTo(2), "the flush carries the latest staged state");
         }
 
@@ -251,8 +293,7 @@ namespace NeoCompose.Tests
             var (_, sync, api, _, realtime, scheduler) = await LiveSessionAsync();
             await ForkEstablishedAsync(sync, realtime, scheduler);
 
-            realtime.livePatchResults.Enqueue(NeoLivePatchResult.Patched(
-                "snap-live", "hash-2", new NeoTimestamp(42)));
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":2,\"b\":true}", "snap-live", "hash-live"),
                 replaceSnapshot: false);
@@ -262,8 +303,8 @@ namespace NeoCompose.Tests
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
             var patch = realtime.livePatches[0];
             Assert.That(patch.snapshotId, Is.EqualTo("snap-live"));
-            Assert.That(patch.patch.entries.Keys, Is.EquivalentTo(new[] { "a", "b" }));
-            Assert.That(sync.ActiveSave!.snapshotHash, Is.EqualTo("hash-2"));
+            Assert.That(ChangedValueIds(patch.patch), Is.EquivalentTo(new[] { "a", "b" }));
+            Assert.That(sync.ActiveSave!.snapshotRevision, Is.EqualTo(2));
             Assert.That(api.commits, Is.Empty, "the classic path never ran");
         }
 
@@ -273,16 +314,18 @@ namespace NeoCompose.Tests
             var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
             await ForkEstablishedAsync(sync, realtime, scheduler, "{\"a\":1,\"b\":2}");
 
-            realtime.livePatchResults.Enqueue(NeoLivePatchResult.Patched(
-                "snap-live", "hash-2", new NeoTimestamp(42)));
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":1}", "snap-live", "hash-live"),
                 replaceSnapshot: false);
             scheduler.Advance(0.5);
 
             var patch = realtime.livePatches[0].patch;
-            Assert.That(patch.entries, Is.Empty, "\"a\" is unchanged");
-            Assert.That(patch.restoredToAuthored, Is.EquivalentTo(new[] { "b" }));
+            Assert.That(ChangedValueIds(patch), Is.Empty, "\"a\" is unchanged");
+            Assert.That(
+                patch.changes.OfType<GameSaveValueRestoreToAuthoredChange>()
+                    .Select(change => change.valueId),
+                Is.EquivalentTo(new[] { "b" }));
         }
 
         [Test]
@@ -302,15 +345,14 @@ namespace NeoCompose.Tests
             scheduler.Advance(0.5);
             Assert.That(realtime.livePatches, Is.Empty, "offline: deltas stay staged");
 
-            realtime.livePatchResults.Enqueue(NeoLivePatchResult.Patched(
-                "snap-live", "hash-2", new NeoTimestamp(42)));
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
             realtime.canCommit = true;
             realtime.SetState(NeoRealtimeConnectionState.Connected);
 
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1), "one composed patch");
             var patch = realtime.livePatches[0].patch;
-            Assert.That(patch.entries.Keys, Is.EquivalentTo(new[] { "a", "c" }));
-            Assert.That((int?)patch.entries["a"], Is.EqualTo(3));
+            Assert.That(ChangedValueIds(patch), Is.EquivalentTo(new[] { "a", "c" }));
+            Assert.That((int?)ReplacedValue(patch, "a"), Is.EqualTo(3));
         }
 
         [Test]
@@ -333,27 +375,35 @@ namespace NeoCompose.Tests
         [Test]
         public async Task CoEditorPatch_AutoAppliesAndRaisesLiveContentChanged()
         {
-            var (_, sync, _, local, realtime, scheduler) = await LiveSessionAsync();
+            var (_, sync, api, local, realtime, scheduler) = await LiveSessionAsync();
             await ForkEstablishedAsync(sync, realtime, scheduler);
             var headChanges = new List<RemoteGameSave>();
             var liveChanges = new List<string>();
             sync.OnRemoteHeadChanged += headChanges.Add;
             sync.OnLiveContentChanged += liveChanges.Add;
 
+            api.SetValueDelta(
+                "snap-live", 2, "{\"a\":{\"value\":1},\"web\":{\"value\":5}}");
             realtime.PushHead(RemoteWithValues(
-                "snap-live", "hash-web", "{\"a\":1,\"web\":5}", "session-x"));
+                "snap-live",
+                "",
+                "{}",
+                "session-x",
+                snapshotRevision: 2));
 
             Assert.That(headChanges, Is.Empty, "live applies replace the divergence event");
             Assert.That(liveChanges, Has.Count.EqualTo(1));
-            Assert.That(liveChanges[0], Does.Contain("\"web\":5"));
-            Assert.That(sync.ActiveSave!.snapshotHash, Is.EqualTo("hash-web"));
-            Assert.That(await local.LoadSaveAsync("save-1"), Does.Contain("\"web\":5"));
+            Assert.That((int?)AppliedValue(liveChanges[0], "web")["value"], Is.EqualTo(5));
+            Assert.That(sync.ActiveSave!.snapshotRevision, Is.EqualTo(2));
+            Assert.That(
+                (int?)AppliedValue((await local.LoadSaveAsync("save-1"))!, "web")["value"],
+                Is.EqualTo(5));
         }
 
         [Test]
         public async Task CoEditorPatch_NeverStompsLocallyDirtyKeys()
         {
-            var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
+            var (_, sync, api, _, realtime, scheduler) = await LiveSessionAsync();
             await ForkEstablishedAsync(sync, realtime, scheduler);
             var liveChanges = new List<string>();
             sync.OnLiveContentChanged += liveChanges.Add;
@@ -363,20 +413,26 @@ namespace NeoCompose.Tests
                 LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
                 replaceSnapshot: false);
 
+            api.SetValueDelta(
+                "snap-live", 2, "{\"a\":{\"value\":9},\"web\":{\"value\":5}}");
             realtime.PushHead(RemoteWithValues(
-                "snap-live", "hash-web", "{\"a\":9,\"web\":5}", "session-x"));
+                "snap-live",
+                "",
+                "{}",
+                "session-x",
+                snapshotRevision: 2));
 
             Assert.That(liveChanges, Has.Count.EqualTo(1));
             Assert.That(liveChanges[0], Does.Contain("\"a\":2"), "the dirty key wins");
-            Assert.That(liveChanges[0], Does.Contain("\"web\":5"), "the clean key applies");
+            Assert.That((int?)AppliedValue(liveChanges[0], "web")["value"], Is.EqualTo(5),
+                "the clean key applies");
 
             // The pending flush then sends only the dirty key.
-            realtime.livePatchResults.Enqueue(NeoLivePatchResult.Patched(
-                "snap-live", "hash-3", new NeoTimestamp(43)));
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 3));
             scheduler.Advance(0.5);
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
             Assert.That(
-                realtime.livePatches[0].patch.entries.Keys,
+                ChangedValueIds(realtime.livePatches[0].patch),
                 Is.EquivalentTo(new[] { "a" }));
         }
 
@@ -411,7 +467,11 @@ namespace NeoCompose.Tests
             await ForkEstablishedAsync(sync, realtime, scheduler);
 
             realtime.livePatchResults.Enqueue(NeoLivePatchResult.StaleTarget(
-                RemoteWithValues("snap-other", "hash-other", "{\"o\":1}", "session-other")));
+                new GameSaveSnapshotRevisionSignal
+                {
+                    snapshotId = "snap-other",
+                    snapshotRevision = 2,
+                }));
             realtime.forkResults.Enqueue(NeoCommitResult.Committed(
                 RemoteWithValues("snap-live-2", "hash-live-2", "{\"a\":2}", "session-x")));
 
@@ -498,8 +558,7 @@ namespace NeoCompose.Tests
             var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
             await ForkEstablishedAsync(sync, realtime, scheduler);
 
-            realtime.livePatchResults.Enqueue(NeoLivePatchResult.Patched(
-                "snap-live", "hash-2", new NeoTimestamp(42)));
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
                 replaceSnapshot: false);
@@ -509,7 +568,7 @@ namespace NeoCompose.Tests
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1),
                 "the teardown flush bypasses the throttle");
             Assert.That(
-                realtime.livePatches[0].patch.entries.Keys,
+                ChangedValueIds(realtime.livePatches[0].patch),
                 Is.EquivalentTo(new[] { "a" }));
         }
 
@@ -592,13 +651,12 @@ namespace NeoCompose.Tests
             // Not terminal: the re-armed staged delta retries on the next window.
             // Once the underlying cause clears, a later flush succeeds.
             realtime.livePatchThrows = null;
-            realtime.livePatchResults.Enqueue(NeoLivePatchResult.Patched(
-                "snap-live", "hash-2", new NeoTimestamp(42)));
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
             scheduler.Advance(10);
 
             Assert.That(realtime.livePatches, Has.Count.EqualTo(2),
                 "server rejection is not terminal; the staged delta retries and then succeeds");
-            Assert.That(sync.ActiveSave!.snapshotHash, Is.EqualTo("hash-2"));
+            Assert.That(sync.ActiveSave!.snapshotRevision, Is.EqualTo(2));
         }
 
         /// <summary>
@@ -649,7 +707,7 @@ namespace NeoCompose.Tests
             flushScheduler.Advance(0.5);
 
             Assert.That(realtime.forks, Has.Count.EqualTo(1), "the write streamed out");
-            Assert.That(realtime.forks[0].patch.entries, Is.Not.Empty);
+            Assert.That(realtime.forks[0].patch.changes, Is.Not.Empty);
             Assert.That(realtime.commits, Is.Empty, "never the classic commit path");
 
             app.Dispose();
@@ -703,8 +761,7 @@ namespace NeoCompose.Tests
             // the game's serialized payload for a save created from defaults:
             // the synchronizer's own record must supply it, or this flush would
             // fall back into the classic append path and freeze the live head.
-            realtime.livePatchResults.Enqueue(NeoLivePatchResult.Patched(
-                "snap-created", "hash-2", new NeoTimestamp(42)));
+            realtime.livePatchResults.Enqueue(Patched("snap-created", 2));
             await sync.CommitSaveContentAsync(
                 NeoSaveTestSupport.SaveContent("New Save", "{\"a\":2}"),
                 replaceSnapshot: false);
@@ -724,10 +781,16 @@ namespace NeoCompose.Tests
                 "the create flush attaches the head subscription");
             var liveChanges = new List<string>();
             sync.OnLiveContentChanged += liveChanges.Add;
+            api.SetValueDelta(
+                "snap-created", 3, "{\"a\":{\"value\":2},\"web\":{\"value\":5}}");
             realtime.PushHead(RemoteWithValues(
-                "snap-created", "hash-web", "{\"a\":2,\"web\":5}", "stamped"));
+                "snap-created",
+                "",
+                "{}",
+                "stamped",
+                snapshotRevision: 3));
             Assert.That(liveChanges, Has.Count.EqualTo(1), "web edits reach the game");
-            Assert.That(liveChanges[0], Does.Contain("\"web\":5"));
+            Assert.That((int?)AppliedValue(liveChanges[0], "web")["value"], Is.EqualTo(5));
         }
 
         /// <summary>
@@ -819,7 +882,7 @@ namespace NeoCompose.Tests
             scheduler.Advance(0.5);
 
             Assert.That(realtime.forks, Has.Count.EqualTo(1));
-            var entry = realtime.forks[0].patch.entries["stamp"];
+            var entry = ReplacedValue(realtime.forks[0].patch, "stamp");
             var value = entry["value"];
             Assert.That(value, Is.Not.Null);
             Assert.That(value!.Type, Is.EqualTo(JTokenType.String));
@@ -845,12 +908,11 @@ namespace NeoCompose.Tests
             // The failure re-armed the throttle; the next window retries the
             // same composed delta.
             realtime.livePatchThrows = null;
-            realtime.livePatchResults.Enqueue(NeoLivePatchResult.Patched(
-                "snap-live", "hash-2", new NeoTimestamp(42)));
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
             scheduler.Advance(0.5);
             Assert.That(realtime.livePatches, Has.Count.EqualTo(2));
             Assert.That(
-                realtime.livePatches[1].patch.entries.Keys,
+                ChangedValueIds(realtime.livePatches[1].patch),
                 Is.EquivalentTo(new[] { "a" }));
         }
     }

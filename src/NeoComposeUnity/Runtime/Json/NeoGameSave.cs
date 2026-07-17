@@ -134,8 +134,8 @@ namespace NeoCompose.Runtime.Json
     /// <summary>
     /// A save as it exists in the cloud: shared content plus server identity and
     /// synchronization metadata. Returned by the runtime save API. The head
-    /// snapshot's content is inlined; <see cref="snapshotHash"/> drives optimistic
-    /// concurrency and conflict detection.
+    /// snapshot content is assembled from record state; the snapshot id and
+    /// <see cref="snapshotRevision"/> drive synchronization and conflict detection.
     /// </summary>
     [JsonConverter(typeof(Schema8SaveEnvelopeConverter<RemoteGameSave>))]
     public sealed class RemoteGameSave : NeoGameSaveBase
@@ -149,7 +149,10 @@ namespace NeoCompose.Runtime.Json
         /// <summary>The head snapshot id this content came from.</summary>
         public string snapshotId = "";
 
-        /// <summary>Content hash of the head snapshot; used to detect conflicts.</summary>
+        /// <summary>
+        /// Legacy local-artifact field. Cloud synchronization uses
+        /// <see cref="snapshotRevision"/> instead.
+        /// </summary>
         public string snapshotHash = "";
 
         /// <summary>Monotonic record-delta cursor for this snapshot.</summary>
@@ -220,7 +223,10 @@ namespace NeoCompose.Runtime.Json
         /// <summary>Last synchronized head snapshot id; null for local-only saves.</summary>
         public string? snapshotId;
 
-        /// <summary>Hash of the last synchronized snapshot; the conflict base.</summary>
+        /// <summary>
+        /// Legacy opaque local-artifact field retained so existing disk files
+        /// continue to round-trip without loss.
+        /// </summary>
         public string? snapshotHash;
 
         /// <summary>Last fully-applied cloud record revision.</summary>

@@ -16,14 +16,6 @@ namespace NeoCompose.Runtime.Json
     {
         public List<GameSaveRecordChange> changes = new();
 
-        // Local projection retained for source compatibility with games that
-        // inspected staged patches. It is never serialized to the cloud wire.
-        [JsonIgnore] public Dictionary<string, Newtonsoft.Json.Linq.JToken> entries = new();
-        [JsonIgnore] public List<string> restoredToAuthored = new();
-        [JsonIgnore] public Dictionary<string, string?> baseMapKeys = new();
-        [JsonIgnore] public Dictionary<string, string?> staticBindings = new();
-        [JsonIgnore] public List<string> restoredStaticBindingsToAuthored = new();
-
         [JsonIgnore]
         public bool IsEmpty => changes.Count == 0;
     }
@@ -77,9 +69,6 @@ namespace NeoCompose.Runtime.Json
         public GameSaveSnapshotRevisionSignal? ServerHead { get; private set; }
         public GameSaveRecordConflict? Conflict { get; private set; }
 
-        [System.Obsolete("Use SnapshotRevision.")]
-        public string SnapshotHash { get; private set; } = "";
-
         public bool IsStaleTarget => Outcome == NeoLivePatchOutcome.StaleTarget;
         public bool IsConflict => Outcome == NeoLivePatchOutcome.Conflict;
 
@@ -96,31 +85,11 @@ namespace NeoCompose.Runtime.Json
                 ChangedDescriptors = changedDescriptors ?? new List<GameSaveRecordDescriptor>(),
             };
 
-        [System.Obsolete("Use the snapshot-revision patch result.")]
-        public static NeoLivePatchResult Patched(
-            string snapshotId,
-            string snapshotHash,
-            NeoTimestamp synchronizedAt) =>
-            new NeoLivePatchResult(NeoLivePatchOutcome.Patched)
-            {
-                SnapshotId = snapshotId,
-                SnapshotHash = snapshotHash,
-                SynchronizedAt = synchronizedAt,
-            };
-
         public static NeoLivePatchResult StaleTarget(GameSaveSnapshotRevisionSignal serverHead) =>
             new NeoLivePatchResult(NeoLivePatchOutcome.StaleTarget)
             {
                 ServerHead = serverHead,
             };
-
-        [System.Obsolete("Use a payload-free server-head signal.")]
-        public static NeoLivePatchResult StaleTarget(RemoteGameSave serverHead) =>
-            StaleTarget(new GameSaveSnapshotRevisionSignal
-            {
-                snapshotId = serverHead.snapshotId,
-                snapshotRevision = serverHead.snapshotRevision,
-            });
 
         public static NeoLivePatchResult RecordConflict(GameSaveRecordConflict conflict) =>
             new NeoLivePatchResult(NeoLivePatchOutcome.Conflict)

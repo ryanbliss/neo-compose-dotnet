@@ -231,6 +231,7 @@ namespace NeoCompose.Runtime
                 customId = customId,
                 name = local.name,
                 releaseChannelId = remote?.releaseChannelId ?? local.releaseChannelId,
+                snapshotRevision = remote?.snapshotRevision ?? local.snapshotRevision,
                 snapshotHash = remote?.snapshotHash ?? local.snapshotHash,
                 isLocalOnly = remote == null,
                 existsRemotely = remote != null,
@@ -268,6 +269,7 @@ namespace NeoCompose.Runtime
                 customId = customId,
                 name = local.name,
                 releaseChannelId = channel,
+                snapshotRevision = local.snapshotRevision,
                 snapshotHash = local.snapshotHash,
                 isLocalOnly = local.IsLocalOnly,
                 existsRemotely = !local.IsLocalOnly,
@@ -308,6 +310,7 @@ namespace NeoCompose.Runtime
 
             entry.name = remote.name;
             entry.releaseChannelId = remote.releaseChannelId;
+            entry.snapshotRevision = remote.snapshotRevision;
             entry.snapshotHash = remote.snapshotHash;
             entry.existsRemotely = true;
             entry.isLocalOnly = false;
@@ -326,7 +329,8 @@ namespace NeoCompose.Runtime
         private void EvictMovedDetail(RemoteGameSaveSummary summary)
         {
             if (remoteDetailCache.TryGetValue(summary.id, out var cached)
-                && cached.save.snapshotHash != summary.snapshotHash)
+                && (cached.save.snapshotId != summary.snapshotId
+                    || cached.save.snapshotRevision != summary.snapshotRevision))
             {
                 remoteDetailCache.Remove(summary.id);
             }

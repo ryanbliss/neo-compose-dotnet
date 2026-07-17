@@ -44,6 +44,7 @@ namespace NeoCompose.Runtime
         public string customId = "";
         public string name = "";
         public string releaseChannelId = "";
+        public long snapshotRevision;
         public string? snapshotHash;
         public bool isLocalOnly;
         public bool existsRemotely;
@@ -62,7 +63,7 @@ namespace NeoCompose.Runtime
 
     /// <summary>
     /// Describes a divergence between the local and cloud heads of the same save
-    /// (different <see cref="RemoteGameSave.snapshotHash"/>, neither an ancestor).
+    /// (different snapshot identities or record revisions, neither an ancestor).
     /// </summary>
     public sealed class NeoSaveConflict
     {

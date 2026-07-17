@@ -98,7 +98,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public async Task HeadPush_RaisesTheDivergenceEventOnlyWhenTheHashMoves()
+        public async Task RevisionSignal_RaisesDivergenceOnlyWhenTheSnapshotMoves()
         {
             var (store, api, local, realtime) =
                 await ReadyStoreWithRealtimeAsync(NeoRealtimeConnectionState.Connected);
@@ -113,15 +113,18 @@ namespace NeoCompose.Tests
             var divergences = new List<RemoteGameSave>();
             sync.OnRemoteHeadChanged += divergences.Add;
 
-            // Same hash as the active state: cache primed, no event.
+            // Same applied revision: this is our own echo, so no event.
             realtime.PushHead(NeoSaveTestSupport.Remote("save-1", "snap-1", "hash-1"));
             Assert.That(divergences, Is.Empty);
 
             // A new head from another device: event fires, never auto-applies.
-            realtime.PushHead(NeoSaveTestSupport.Remote("save-1", "snap-2", "hash-2"));
+            var moved = NeoSaveTestSupport.Remote(
+                "save-1", "snap-2", "", snapshotRevision: 2);
+            api.getResult = moved;
+            realtime.PushHead(moved);
             Assert.That(divergences, Has.Count.EqualTo(1));
             Assert.That(divergences[0].snapshotId, Is.EqualTo("snap-2"));
-            Assert.That(sync.ActiveSave!.snapshotHash, Is.EqualTo("hash-1"), "no auto-apply");
+            Assert.That(sync.ActiveSave!.snapshotRevision, Is.EqualTo(1), "no auto-apply");
         }
 
         [Test]

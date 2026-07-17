@@ -249,34 +249,41 @@ namespace NeoCompose.Tests
         {
             var patch = new NeoSavePatch
             {
-                baseMapKeys = new Dictionary<string, string?>
+                changes = new List<GameSaveRecordChange>
                 {
-                    ["value-main"] = null,
-                    ["value-world"] = "world:grid-1",
-                },
-                staticBindings = new Dictionary<string, string?>
-                {
-                    ["member-current"] = "v-runtime",
-                    ["member-cleared"] = null,
-                },
-                restoredStaticBindingsToAuthored = new List<string>
-                {
-                    "member-restored",
+                    new GameSaveStaticBindingSetChange
+                    {
+                        memberId = "member-current",
+                        valueId = "v-runtime",
+                    },
+                    new GameSaveStaticBindingSetChange
+                    {
+                        memberId = "member-cleared",
+                        valueId = null,
+                    },
+                    new GameSaveStaticBindingRestoreToAuthoredChange
+                    {
+                        memberId = "member-restored",
+                        baseRecordStateId = "binding-state-1",
+                        baseRecordRevisionToken = "binding-token-1",
+                    },
                 },
             };
 
             var roundTripped = JsonConvert.DeserializeObject<NeoSavePatch>(
                 JsonConvert.SerializeObject(patch))!;
 
-            Assert.That(roundTripped.staticBindings["member-current"], Is.EqualTo("v-runtime"));
-            Assert.That(roundTripped.baseMapKeys.ContainsKey("value-main"), Is.True);
-            Assert.That(roundTripped.baseMapKeys["value-main"], Is.Null);
-            Assert.That(roundTripped.baseMapKeys["value-world"], Is.EqualTo("world:grid-1"));
-            Assert.That(roundTripped.staticBindings.ContainsKey("member-cleared"), Is.True);
-            Assert.That(roundTripped.staticBindings["member-cleared"], Is.Null);
-            CollectionAssert.AreEqual(
-                new[] { "member-restored" },
-                roundTripped.restoredStaticBindingsToAuthored);
+            var current = (GameSaveStaticBindingSetChange)roundTripped.changes[0];
+            Assert.That(current.memberId, Is.EqualTo("member-current"));
+            Assert.That(current.valueId, Is.EqualTo("v-runtime"));
+            var cleared = (GameSaveStaticBindingSetChange)roundTripped.changes[1];
+            Assert.That(cleared.memberId, Is.EqualTo("member-cleared"));
+            Assert.That(cleared.valueId, Is.Null,
+                "null remains a semantic binding tombstone");
+            var restored = (GameSaveStaticBindingRestoreToAuthoredChange)
+                roundTripped.changes[2];
+            Assert.That(restored.memberId, Is.EqualTo("member-restored"));
+            Assert.That(restored.baseRecordStateId, Is.EqualTo("binding-state-1"));
             Assert.That(roundTripped.IsEmpty, Is.False);
         }
 
