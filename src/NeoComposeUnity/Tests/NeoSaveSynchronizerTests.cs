@@ -126,6 +126,87 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task Commit_RealtimeMetadataOnlySuccess_HydratesRecordContent()
+        {
+            var api = new FakeApiClient();
+            var local = new NeoInMemoryLocalSaveStore();
+            var realtime = new FakeRealtimeProvider
+            {
+                State = NeoRealtimeConnectionState.Connected,
+                canCommit = true,
+            };
+            var store = new NeoProjectStore(
+                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                localStore: local,
+                apiClient: api,
+                targetReleaseChannelId: NeoSaveTestSupport.TargetChannel,
+                options: new NeoSaveOptions { LiveSessionsEnabled = false },
+                realtimeProvider: realtime);
+            await store.LoadAsync();
+
+            api.SetValueManifest(
+                "new-head", 2, "{\"a\":{\"id\":\"a\",\"value\":1}}");
+            realtime.commitResults.Enqueue(NeoCommitResult.Committed(
+                NeoSaveTestSupport.Remote("save-1", "new-head", snapshotRevision: 2)));
+
+            var sync = store.CreateNew("save-1");
+            await sync.CommitSaveContentAsync(
+                NeoSaveTestSupport.SaveContent(
+                    "Local", "{\"a\":{\"id\":\"a\",\"value\":1}}"),
+                replaceSnapshot: false);
+
+            var values = (JObject)sync.ActiveSave!.values.Raw;
+            Assert.That(values["a"]?["value"]?.Value<int>(), Is.EqualTo(1));
+            Assert.That(sync.ActiveSave.recordCache.descriptors, Has.Count.EqualTo(1));
+            Assert.That(await local.LoadSaveAsync("save-1"), Does.Contain("\"a\""));
+        }
+
+        [Test]
+        public async Task Commit_RealtimeMetadataOnlyConflict_HydratesBeforeKeepRemote()
+        {
+            var api = new FakeApiClient();
+            var local = new NeoInMemoryLocalSaveStore();
+            var realtime = new FakeRealtimeProvider
+            {
+                State = NeoRealtimeConnectionState.Connected,
+                canCommit = true,
+            };
+            var store = new NeoProjectStore(
+                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                localStore: local,
+                apiClient: api,
+                targetReleaseChannelId: NeoSaveTestSupport.TargetChannel,
+                options: new NeoSaveOptions { LiveSessionsEnabled = false },
+                realtimeProvider: realtime);
+            await store.LoadAsync();
+
+            api.SetValueManifest(
+                "remote-head", 3, "{\"remote\":{\"id\":\"remote\",\"value\":9}}");
+            realtime.commitResults.Enqueue(NeoCommitResult.Conflict(
+                NeoSaveTestSupport.Remote("save-1", "remote-head", snapshotRevision: 3)));
+
+            RemoteGameSave? presentedRemote = null;
+            var sync = store.CreateNew("save-1");
+            sync.OnConflict += (conflict, continuation) =>
+            {
+                presentedRemote = conflict.Remote;
+                continuation.KeepRemote();
+            };
+            await sync.CommitSaveContentAsync(
+                NeoSaveTestSupport.SaveContent(
+                    "Local", "{\"local\":{\"id\":\"local\",\"value\":1}}"),
+                replaceSnapshot: false);
+
+            Assert.That(
+                ((JObject)presentedRemote!.values.Raw)["remote"]?["value"]?.Value<int>(),
+                Is.EqualTo(9));
+            Assert.That(
+                ((JObject)sync.ActiveSave!.values.Raw)["remote"]?["value"]?.Value<int>(),
+                Is.EqualTo(9));
+            Assert.That(await local.LoadSaveAsync("save-1"), Does.Contain("\"remote\""));
+        }
+
+        [Test]
         public async Task Commit_BestEffortCloudFailure_KeepsLocalCommit()
         {
             var (store, api, local) = await ReadyStoreWithCloudAsync();

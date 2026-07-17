@@ -248,6 +248,42 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task MetadataOnlyFork_HydratesBaselineAndPreservesRecordCache()
+        {
+            var (_, sync, api, _, realtime, scheduler) = await LiveSessionAsync();
+            api.SetValueManifest(
+                "snap-live", 2, "{\"a\":{\"id\":\"a\",\"value\":1}}");
+            var committedMetadata = NeoSaveTestSupport.Remote(
+                "save-1", "snap-live", snapshotRevision: 2);
+            committedMetadata.liveSessionId = "session-x";
+            realtime.forkResults.Enqueue(
+                NeoCommitResult.Committed(committedMetadata));
+
+            await sync.CommitSaveContentAsync(
+                LiveSaveContent("{\"a\":{\"id\":\"a\",\"value\":1}}"),
+                replaceSnapshot: false);
+            scheduler.Advance(0.5);
+
+            Assert.That(sync.ActiveSave!.recordCache.descriptors, Has.Count.EqualTo(1));
+
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 3));
+            await sync.CommitSaveContentAsync(
+                LiveSaveContent(
+                    "{\"a\":{\"id\":\"a\",\"value\":1}," +
+                    "\"b\":{\"id\":\"b\",\"value\":2}}",
+                    "snap-live",
+                    snapshotRevision: 2),
+                replaceSnapshot: false);
+            scheduler.Advance(0.5);
+
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
+            Assert.That(
+                ChangedValueIds(realtime.livePatches[0].patch),
+                Is.EquivalentTo(new[] { "b" }),
+                "the hydrated fork baseline prevents an unrelated re-upload of a");
+        }
+
+        [Test]
         public async Task RapidCommits_CoalesceIntoOneFlushOfTheLatestState()
         {
             var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
@@ -491,13 +527,15 @@ namespace NeoCompose.Tests
         [Test]
         public async Task ForkConflict_KeepRemoteAdoptsTheServerHead()
         {
-            var (_, sync, _, local, realtime, scheduler) = await LiveSessionAsync();
+            var (_, sync, api, local, realtime, scheduler) = await LiveSessionAsync();
             var liveChanges = new List<string>();
             sync.OnLiveContentChanged += liveChanges.Add;
             sync.OnConflict += (_, continuation) => continuation.KeepRemote();
 
+            api.SetValueManifest(
+                "snap-2", 2, "{\"s\":{\"id\":\"s\",\"value\":1}}");
             realtime.forkResults.Enqueue(NeoCommitResult.Conflict(
-                RemoteWithValues("snap-2", "{\"s\":1}")));
+                NeoSaveTestSupport.Remote("save-1", "snap-2", snapshotRevision: 2)));
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":1}"), replaceSnapshot: false);
             scheduler.Advance(0.5);
@@ -505,8 +543,8 @@ namespace NeoCompose.Tests
             Assert.That(realtime.forks, Has.Count.EqualTo(1));
             Assert.That(sync.ActiveSave!.snapshotId, Is.EqualTo("snap-2"));
             Assert.That(liveChanges, Has.Count.EqualTo(1), "the game is told to re-apply");
-            Assert.That(liveChanges[0], Does.Contain("\"s\":1"));
-            Assert.That(await local.LoadSaveAsync("save-1"), Does.Contain("\"s\":1"));
+            Assert.That(liveChanges[0], Does.Contain("\"s\""));
+            Assert.That(await local.LoadSaveAsync("save-1"), Does.Contain("\"s\""));
 
             // Dirt was discarded by the developer's explicit choice: nothing
             // further flushes.

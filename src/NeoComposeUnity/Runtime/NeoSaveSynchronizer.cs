@@ -290,24 +290,66 @@ namespace NeoCompose.Runtime
         /// back to one REST attempt so a flaky socket never costs a save.
         /// </summary>
         private async Awaitable<NeoCommitResult> CommitTransportAsync(
-            NeoSaveCommitRequest request, bool replaceSnapshot)
+            NeoSaveCommitRequest request,
+            bool replaceSnapshot,
+            GameSaveRecordCache? reusableCache = null)
         {
             var realtime = core.RealtimeProvider;
             if (realtime != null && realtime.CanCommit)
             {
+                NeoCommitResult realtimeResult;
                 try
                 {
-                    return await realtime.CommitAsync(request, replaceSnapshot);
+                    realtimeResult = await realtime.CommitAsync(request, replaceSnapshot);
                 }
                 catch (Exception exception)
                 {
                     Debug.LogWarning(
                         $"[NeoCompose] Realtime commit for save \"{CustomId}\" failed; retrying " +
                         $"over REST. {exception.GetType().Name}: {exception.Message}");
+                    return await core.ApiClient!.CommitAsync(request, replaceSnapshot);
                 }
+
+                // Convex mutation results intentionally carry head metadata only.
+                // Materialize record content through the bounded REST reads before
+                // any caller persists or presents the result. Keep this outside the
+                // mutation catch: a failed read must never repeat an accepted write.
+                return await HydrateRealtimeCommitResultAsync(
+                    realtimeResult, reusableCache);
             }
 
             return await core.ApiClient!.CommitAsync(request, replaceSnapshot);
+        }
+
+        private async Awaitable<NeoCommitResult> HydrateRealtimeCommitResultAsync(
+            NeoCommitResult result,
+            GameSaveRecordCache? reusableCache)
+        {
+            var save = result.IsConflict ? result.ServerHead! : result.CommittedSave!;
+            if (save.recordCache.snapshotId == save.snapshotId
+                && save.recordCache.snapshotRevision == save.snapshotRevision)
+            {
+                return result;
+            }
+
+            await NeoGameSaveRecordSync.LoadManifestAsync(
+                core.ApiClient!,
+                CustomId,
+                save,
+                CloneRecordStateCache(reusableCache));
+            return result;
+        }
+
+        private static GameSaveRecordCache CloneRecordStateCache(
+            GameSaveRecordCache? source)
+        {
+            var clone = new GameSaveRecordCache();
+            if (source == null) return clone;
+            foreach (var cached in source.states)
+            {
+                clone.states[cached.Key] = cached.Value;
+            }
+            return clone;
         }
 
         /// <summary>
@@ -335,7 +377,8 @@ namespace NeoCompose.Runtime
                 }
                 else
                 {
-                    result = await CommitTransportAsync(request, replaceSnapshot);
+                    result = await CommitTransportAsync(
+                        request, replaceSnapshot, local.recordCache);
                 }
             }
             catch (Exception ex)
@@ -386,7 +429,9 @@ namespace NeoCompose.Runtime
             // Keep local: write a NEW head on top of the server head — never a
             // destructive overwrite, so neither side's data is lost.
             var rebased = await CommitTransportAsync(
-                BuildCommitRequest(local, serverHead.snapshotId), replaceSnapshot: false);
+                BuildCommitRequest(local, serverHead.snapshotId),
+                replaceSnapshot: false,
+                reusableCache: serverHead.recordCache);
             if (rebased.IsConflict)
             {
                 throw new NeoSaveConflictUnresolvedException(
@@ -1024,6 +1069,20 @@ namespace NeoCompose.Runtime
                 return;
             }
 
+            try
+            {
+                result = await HydrateRealtimeCommitResultAsync(
+                    result, local.recordCache);
+            }
+            catch (Exception exception)
+            {
+                // The fork mutation may already have committed. Surface the read
+                // failure and retain the staged local content; never repeat the
+                // mutation merely because record materialization failed.
+                HandleLiveFlushFailure(exception);
+                return;
+            }
+
             if (result.IsConflict)
             {
                 await ResolveLiveForkConflictAsync(realtime, local, staged, patch, result.ServerHead!);
@@ -1091,6 +1150,16 @@ namespace NeoCompose.Runtime
                 rebased = await realtime.ForkLiveAsync(
                     BuildLiveForkRequest(
                         local, patch, serverHead.snapshotId, serverHead.snapshotRevision));
+            }
+            catch (Exception exception)
+            {
+                HandleLiveFlushFailure(exception);
+                return;
+            }
+            try
+            {
+                rebased = await HydrateRealtimeCommitResultAsync(
+                    rebased, serverHead.recordCache);
             }
             catch (Exception exception)
             {

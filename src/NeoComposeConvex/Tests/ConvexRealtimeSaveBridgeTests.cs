@@ -25,8 +25,8 @@ namespace NeoCompose.Convex.Tests
         private const string RemoteSaveJson =
             "{\"id\":\"save-1\",\"serverId\":\"server-1\",\"name\":\"Cloud Save\"," +
             "\"projectId\":\"project-1\",\"releaseChannelId\":\"channel-dev\"," +
-            "\"snapshotId\":\"snap-1\",\"snapshotHash\":\"hash-1\"," +
-            "\"version\":{\"id\":\"v1\",\"label\":\"1.0\"},\"values\":{}," +
+            "\"snapshotId\":\"snap-1\"," +
+            "\"version\":{\"id\":\"v1\",\"label\":\"1.0\"}," +
             "\"createdAt\":1,\"updatedAt\":2,\"synchronizedAt\":3}";
 
         private FakeAccessTokenProvider tokens = null!;
@@ -346,8 +346,8 @@ namespace NeoCompose.Convex.Tests
         private const string LiveRemoteSaveJson =
             "{\"id\":\"save-1\",\"serverId\":\"server-1\",\"name\":\"Cloud Save\"," +
             "\"projectId\":\"project-1\",\"releaseChannelId\":\"channel-dev\"," +
-            "\"snapshotId\":\"snap-live\",\"snapshotHash\":\"hash-live\"," +
-            "\"version\":{\"id\":\"v1\",\"label\":\"1.0\"},\"values\":{}," +
+            "\"snapshotId\":\"snap-live\"," +
+            "\"version\":{\"id\":\"v1\",\"label\":\"1.0\"}," +
             "\"createdAt\":1,\"updatedAt\":2,\"synchronizedAt\":3," +
             "\"liveSessionId\":\"session-1\"}";
     }

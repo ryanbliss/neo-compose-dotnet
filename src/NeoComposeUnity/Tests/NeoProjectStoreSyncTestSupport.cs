@@ -110,6 +110,48 @@ namespace NeoCompose.Tests
         private readonly Dictionary<string, GameSaveRecordDescriptor>
             manifestDescriptors = new();
 
+        public void SetValueManifest(string snapshotId, long revision, string valuesJson)
+        {
+            manifestDescriptors.Clear();
+            recordStates.Clear();
+            foreach (var property in JObject.Parse(valuesJson).Properties())
+            {
+                var stateId = $"{snapshotId}:{property.Name}:{revision}";
+                var descriptor = new GameSaveRecordDescriptor
+                {
+                    recordKind = NeoGameSaveRecordKinds.Value,
+                    recordId = property.Name,
+                    mapKey = (property.Value as JObject)?["mapKey"]?.Value<string>(),
+                    recordStateId = stateId,
+                    recordRevisionToken = $"token:{revision}:{property.Name}",
+                    contentHashAlgorithm = "sha256-canonical-json-v1",
+                    contentHash = $"content:{revision}:{property.Name}",
+                    lastChangedRevision = revision,
+                };
+                manifestDescriptors[descriptor.LogicalKey] = descriptor;
+
+                JObject data;
+                if (property.Value is JObject row)
+                {
+                    data = (JObject)row.DeepClone();
+                    data.Remove("id");
+                    data.Remove("mapKey");
+                }
+                else
+                {
+                    data = new JObject { ["value"] = property.Value.DeepClone() };
+                }
+                recordStates[stateId] = new GameSaveRecordState
+                {
+                    id = stateId,
+                    recordKind = NeoGameSaveRecordKinds.Value,
+                    recordId = property.Name,
+                    dataSchemaVersion = 1,
+                    dataJson = data.ToString(Newtonsoft.Json.Formatting.None),
+                };
+            }
+        }
+
         public void SetValueDelta(string snapshotId, long revision, string valuesJson)
         {
             var descriptors = new List<GameSaveRecordDescriptor>();
