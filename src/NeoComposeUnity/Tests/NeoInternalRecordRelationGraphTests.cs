@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NUnit.Framework;
@@ -88,6 +89,50 @@ namespace NeoCompose.Tests
                 graph.ResolveTargetIds(
                     InternalRecordRelationKinds.WorldTileDefaultLayer,
                     "tile-base"));
+        }
+
+        [Test]
+        public void Resolve_ChildLayerRedeclarationOverridesInheritedOrderAndKeepsProvenance()
+        {
+            ProjectData data = Data(
+                Classes(
+                    Class("grid-base"),
+                    Class("grid-child", "grid-base"),
+                    Class("layer-a"),
+                    Class("layer-b")),
+                Relations(
+                    Relation(
+                        "base-a",
+                        InternalRecordRelationKinds.WorldGridTileLayer,
+                        "grid-base",
+                        "layer-a",
+                        "a0"),
+                    Relation(
+                        "base-b",
+                        InternalRecordRelationKinds.WorldGridTileLayer,
+                        "grid-base",
+                        "layer-b",
+                        "b0"),
+                    Relation(
+                        "child-b",
+                        InternalRecordRelationKinds.WorldGridTileLayer,
+                        "grid-child",
+                        "layer-b",
+                        "00")));
+            var graph = new NeoInternalRecordRelationGraph(data);
+
+            var effective = graph.Resolve(
+                InternalRecordRelationKinds.WorldGridTileLayer,
+                "grid-child");
+
+            CollectionAssert.AreEqual(
+                new[] { "layer-b", "layer-a" },
+                effective.Select(relation => relation.TargetRecordId).ToArray());
+            CollectionAssert.AreEqual(
+                new[] { "base-b", "child-b" },
+                effective[0].RelationIds);
+            Assert.AreEqual("grid-child", effective[0].DeclaredSourceRecordId);
+            Assert.AreEqual(0, effective[0].SourceAncestryDepth);
         }
 
         [Test]

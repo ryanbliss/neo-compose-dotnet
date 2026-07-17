@@ -801,18 +801,24 @@ namespace NeoCompose.Runtime
             string instanceId,
             Vector2Int cell,
             IReadOnlyList<Vector2Int> footprint,
-            int order)
+            int order,
+            string assetClassId,
+            string? assetValueId)
         {
             InstanceId = instanceId;
             Cell = cell;
             Footprint = footprint;
             Order = order;
+            AssetClassId = assetClassId;
+            AssetValueId = assetValueId;
         }
 
         public string InstanceId { get; }
         public Vector2Int Cell { get; }
         public IReadOnlyList<Vector2Int> Footprint { get; }
         public int Order { get; }
+        public string AssetClassId { get; }
+        public string? AssetValueId { get; }
     }
 
     /// <summary>One grid-child layer link (TileLayerLink or ObjectLayerLink).</summary>
@@ -1116,26 +1122,63 @@ namespace NeoCompose.Runtime
             string layerClassId,
             bool isTileLayer)
         {
-            NeoGridLayerLinkModel? match = null;
+            NeoGridLayerLinkModel? overrideOwner = null;
+            bool foundLayer = false;
             foreach (var link in ResolveGridLinks(null))
             {
                 if (link.IsTileLink != isTileLayer || link.LayerId != layerClassId)
                 {
                     continue;
                 }
-                if (match is not null)
+                foundLayer = true;
+                if (link.LayerOverrideValueId is null) continue;
+                if (overrideOwner is not null)
                 {
                     throw new InvalidOperationException(
-                        $"Grid '{GridValueId}' has multiple bindings for layer class '{layerClassId}'.");
+                        $"Grid '{GridValueId}' has multiple override-owning links for layer class '{layerClassId}'. Source links may share a layer target, but at most one may define layerOverrideValueId.");
                 }
-                match = link;
+                overrideOwner = link;
             }
-            if (match is null)
+            if (!foundLayer)
             {
                 throw new InvalidOperationException(
                     $"Grid '{GridValueId}' has no binding for layer class '{layerClassId}'.");
             }
-            return match.LayerOverrideValueId;
+            return overrideOwner?.LayerOverrideValueId;
+        }
+
+        private protected NeoGridLayerLinkModel? ResolveDirectWriteTargetLink(
+            string layerClassId,
+            bool isTileLayer,
+            out bool ambiguous)
+        {
+            ambiguous = false;
+            NeoGridLayerLinkModel? onlyMatch = null;
+            NeoGridLayerLinkModel? overrideOwner = null;
+            int matches = 0;
+            foreach (var link in ResolveGridLinks(null))
+            {
+                if (link.IsTileLink != isTileLayer || link.LayerId != layerClassId)
+                {
+                    continue;
+                }
+                matches += 1;
+                onlyMatch ??= link;
+                if (link.LayerOverrideValueId is null) continue;
+                if (overrideOwner is not null)
+                {
+                    ambiguous = true;
+                    return null;
+                }
+                overrideOwner = link;
+            }
+            if (matches <= 1) return onlyMatch;
+            if (overrideOwner is not null) return overrideOwner;
+            // Preserve the schema-8 placement-owner contract: grid Children
+            // order is authored order, so the first direct link is the
+            // canonical write target while later links remain additional
+            // aggregated sources (for example Hello World's BlockedPath).
+            return onlyMatch;
         }
 
         internal string ResolveGeneratedClassId(Type generatedType)
@@ -1412,8 +1455,8 @@ namespace NeoCompose.Runtime
             int bestOrder = int.MinValue;
             foreach (var record in LookupCache.ObjectCandidatesAt(layerId, cell))
             {
-                TObject? obj = ResolveGeneratedValue<TObject>(
-                    record.InstanceId,
+                TObject? obj = ResolveObjectPlacementAsset<TObject>(
+                    record,
                     expectedObjectFamilyClassId);
                 if (obj is null) continue;
                 if (best is not null && record.Order < bestOrder) continue;
@@ -1495,8 +1538,8 @@ namespace NeoCompose.Runtime
             NeoObjectPlacementRecord record,
             string expectedObjectFamilyClassId)
         {
-            var obj = ResolveGeneratedValue<NeoGeneratedClassValue>(
-                record.InstanceId,
+            var obj = ResolveObjectPlacementAsset<NeoGeneratedClassValue>(
+                record,
                 expectedObjectFamilyClassId);
             if (obj is null) return null;
             return new NeoResolvedObjectInstance(
@@ -1506,6 +1549,29 @@ namespace NeoCompose.Runtime
                 record.Footprint,
                 obj,
                 record.Order);
+        }
+
+        private TGenerated? ResolveObjectPlacementAsset<TGenerated>(
+            NeoObjectPlacementRecord record,
+            string expectedFamilyClassId)
+            where TGenerated : class, INeoValueReference
+        {
+            if (!ClassExtendsClass(record.AssetClassId, expectedFamilyClassId)) return null;
+            object? resolved = record.AssetValueId is not null
+                ? NeoGeneratedTypesSupport.ResolveClassValue(
+                    client,
+                    record.AssetValueId,
+                    readOnlyFactories,
+                    writableFactories)
+                : ResolveGeneratedClassDefault(record.AssetClassId);
+            if (resolved is not NeoGeneratedClassValue generated
+                || !ClassExtendsClass(
+                    generated.classId ?? record.AssetClassId,
+                    record.AssetClassId))
+            {
+                return null;
+            }
+            return resolved as TGenerated;
         }
 
         // -------------------------------------------------------------------
@@ -1970,6 +2036,47 @@ namespace NeoCompose.Runtime
             if (string.IsNullOrEmpty(entryRow.classId)) return null;
 
             string instanceId = $"{objectValueId}:{linkValueId}:{entryId}";
+            if (client.ProjectSchemaVersion >= 9
+                && entryRow.value is not null
+                && ReadDirectReference(entryRow.value, "assetClassId") is string assetClassId)
+            {
+                Vector2Int localCell = Vector2Int.zero;
+                string? cellValueId = null;
+                string? positionKey = FindSchemaKey(
+                    entryRow.classId!,
+                    LinkTilePositionKeyCandidates);
+                if (positionKey is not null
+                    && entryRow.value.TryGetValue(positionKey, out string positionRowId))
+                {
+                    cellValueId = positionRowId;
+                    dependencyIds?.Add(positionRowId);
+                    localCell = ReadCellRow(positionRowId) ?? Vector2Int.zero;
+                }
+                int tileOrder = tileIndex;
+                string? orderKey = FindSchemaKey(entryRow.classId!, OrderKeyCandidates);
+                if (orderKey is not null
+                    && entryRow.value.TryGetValue(orderKey, out string orderRowId))
+                {
+                    dependencyIds?.Add(orderRowId);
+                    if (client.ResolveEffectiveRow(orderRowId) is NumberMemberValue orderRow
+                        && orderRow.value is not null)
+                    {
+                        tileOrder = (int)orderRow.value.Value;
+                    }
+                }
+                return new NeoTilePlacementRecord(
+                    instanceId,
+                    entryId,
+                    origin + localCell,
+                    assetClassId,
+                    ReadDirectReference(entryRow.value, "assetValueId"),
+                    CombineTileLayerLinkOrder(sourceOrder, tileOrder),
+                    linkValueId,
+                    objectValueId,
+                    entryRow.updatedAt.EpochMilliseconds,
+                    cellValueId,
+                    tileLookupValueId: null);
+            }
             string? tileKey = entryRow.value is null
                 ? null
                 : FindSchemaKey(entryRow.classId!, TileKeyCandidates);
@@ -2127,13 +2234,26 @@ namespace NeoCompose.Runtime
                     if (client.ResolveEffectiveRow(objectValueId) is not ObjectMemberValue objectRow) continue;
                     if (objectRow.IsRemoved) continue;
                     if (string.IsNullOrEmpty(objectRow.classId)) continue;
+                    string? assetClassId = client.ProjectSchemaVersion >= 9
+                        ? objectRow.value is null
+                            ? null
+                            : ReadDirectReference(objectRow.value, "assetClassId")
+                        : objectRow.classId;
+                    if (assetClassId is null) continue;
+                    string? assetValueId = client.ProjectSchemaVersion >= 9
+                        ? objectRow.value is null
+                            ? null
+                            : ReadDirectReference(objectRow.value, "assetValueId")
+                        : objectValueId;
                     Vector2Int cell = ReadObjectOrigin(objectRow, dependencyIds);
                     var footprint = ReadObjectFootprint(objectRow, cell, dependencyIds);
                     records.Add(new NeoObjectPlacementRecord(
                         objectValueId,
                         cell,
                         footprint,
-                        order));
+                        order,
+                        assetClassId,
+                        assetValueId));
                     order += 1;
                 }
             }
@@ -2621,15 +2741,18 @@ namespace NeoCompose.Runtime
                 return NeoPlacementResult.Success();
             }
 
-            NeoGridLayerLinkModel? targetLink = null;
-            foreach (var link in ResolveGridLinks(null))
-            {
-                if (!link.IsTileLink || link.LayerId != layerId) continue;
-                targetLink = link;
-                break;
-            }
+            NeoGridLayerLinkModel? targetLink = ResolveDirectWriteTargetLink(
+                layerId,
+                isTileLayer: true,
+                out bool ambiguousTarget);
             if (targetLink is null)
             {
+                if (ambiguousTarget)
+                {
+                    return NeoPlacementResult.Error(
+                        "tile-grid-layer-link-ambiguous",
+                        $"Grid '{GridValueId}' has multiple override-owning tile links targeting layer '{layerId}'; cannot choose where to create a direct tile placement.");
+                }
                 return NeoPlacementResult.Error(
                     "tile-grid-layer-link-missing",
                     $"Grid '{GridValueId}' has no tile layer link targeting layer '{layerId}'; cannot place a tile.");
@@ -2864,15 +2987,18 @@ namespace NeoCompose.Runtime
                     $"Object layer '{layerId}' already has object instance '{occupants[occupants.Count - 1].InstanceId}' at cell ({cell.x}, {cell.y}).");
             }
 
-            NeoGridLayerLinkModel? targetLink = null;
-            foreach (var link in ResolveGridLinks(null))
-            {
-                if (link.IsTileLink || link.LayerId != layerId) continue;
-                targetLink = link;
-                break;
-            }
+            NeoGridLayerLinkModel? targetLink = ResolveDirectWriteTargetLink(
+                layerId,
+                isTileLayer: false,
+                out bool ambiguousTarget);
             if (targetLink is null)
             {
+                if (ambiguousTarget)
+                {
+                    return NeoPlacementResult.Error(
+                        "tile-grid-layer-link-ambiguous",
+                        $"Grid '{GridValueId}' has multiple override-owning object links targeting layer '{layerId}'; cannot choose where to create a direct object placement.");
+                }
                 return NeoPlacementResult.Error(
                     "tile-grid-layer-link-missing",
                     $"Grid '{GridValueId}' has no object layer link targeting layer '{layerId}'; cannot spawn an object.");
@@ -3004,6 +3130,10 @@ namespace NeoCompose.Runtime
             var shadow = (ObjectMemberValue)client.CloneRowForWrite(objectRow);
             shadow.classId = variantClassId;
             shadow.value ??= new Dictionary<string, string>();
+            if (client.ProjectSchemaVersion >= 9)
+            {
+                shadow.value["assetClassId"] = variantClassId;
+            }
             if (variantValueId is null)
             {
                 shadow.value.Remove("assetValueId");
@@ -3208,6 +3338,10 @@ namespace NeoCompose.Runtime
                 foreach (var pair in assetRow.value) record[pair.Key] = pair.Value;
                 record["assetValueId"] = assetValueId;
             }
+            if (client.ProjectSchemaVersion >= 9)
+            {
+                record["assetClassId"] = objectClassId;
+            }
             var positionRow = new Vector3MemberValue
             {
                 id = Guid.NewGuid().ToString(),
@@ -3359,12 +3493,6 @@ namespace NeoCompose.Runtime
 
         private JObject BuildObjectInstanceJson(NeoObjectPlacementRecord record, string layerId)
         {
-            ObjectMemberValue? objectRow =
-                client.ResolveEffectiveRow(record.InstanceId) as ObjectMemberValue;
-            string? objectClassId = objectRow?.classId;
-            string? assetValueId = objectRow?.value is not null
-                ? ReadDirectReference(objectRow.value, "assetValueId", "objectValueId")
-                : null;
             var footprint = new JArray();
             foreach (var cell in record.Footprint)
             {
@@ -3373,8 +3501,10 @@ namespace NeoCompose.Runtime
             return new JObject
             {
                 ["id"] = record.InstanceId,
-                ["assetValueId"] = assetValueId is null ? JValue.CreateNull() : new JValue(assetValueId),
-                ["assetClassId"] = objectClassId is null ? JValue.CreateNull() : new JValue(objectClassId),
+                ["assetValueId"] = record.AssetValueId is null
+                    ? JValue.CreateNull()
+                    : new JValue(record.AssetValueId),
+                ["assetClassId"] = record.AssetClassId,
                 ["position"] = new JObject { ["x"] = record.Cell.x, ["y"] = record.Cell.y },
                 ["footprint"] = footprint,
                 ["layerClassId"] = layerId,

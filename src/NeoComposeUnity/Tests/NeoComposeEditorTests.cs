@@ -520,6 +520,136 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task Synchronizer_FullExportCachesRelationHeadsWithoutPayloadSnapshots()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.exportResponse.syncState = new NeoComposeUnityExportSyncState
+            {
+                cursor = new NeoComposeUnityExportCursor
+                {
+                    createdAt = 100,
+                    transactionIds = new List<string> { "tx-1" },
+                    versionsStamp = "1:100",
+                },
+                heads = new List<NeoComposeUnityExportHeadDescriptor>
+                {
+                    new()
+                    {
+                        recordKind = "value",
+                        recordId = "value-1",
+                        snapshotId = "snapshot-value",
+                        contentHash = "value-hash",
+                    },
+                    new()
+                    {
+                        recordKind = "internal-record-relation",
+                        recordId = "relation-1",
+                        snapshotId = "snapshot-relation",
+                        contentHash = "relation-hash",
+                    },
+                },
+                snapshots = new List<NeoComposeUnityExportCachedSnapshot>
+                {
+                    new()
+                    {
+                        id = "snapshot-value",
+                        recordKind = "value",
+                        recordId = "value-1",
+                        contentHash = "value-hash",
+                        data = JObject.Parse("{ \"id\": \"value-1\" }"),
+                    },
+                    new()
+                    {
+                        id = "snapshot-relation",
+                        recordKind = "internal-record-relation",
+                        recordId = "relation-1",
+                        contentHash = "relation-hash",
+                        data = JObject.Parse("{ \"id\": \"relation-1\" }"),
+                    },
+                },
+            };
+            var cache = new FakeExportCache();
+            var synchronizer = new NeoComposeSynchronizer(
+                api,
+                new FakeConfirmationService(true),
+                new FakeAssetService(),
+                cache);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsTrue(result.success, result.message);
+            CollectionAssert.AreEquivalent(
+                new[] { "value:value-1", "internal-record-relation:relation-1" },
+                cache.state!.heads
+                    .Select(head => $"{head.recordKind}:{head.recordId}")
+                    .ToArray());
+            CollectionAssert.AreEqual(
+                new[] { "snapshot-value" },
+                cache.state.snapshots.Select(snapshot => snapshot.id).ToArray());
+        }
+
+        [TestCase("internal-record-relation", false, false)]
+        [TestCase("internal-record-relation", true, true)]
+        [TestCase("class", true, true)]
+        public async Task Synchronizer_RelationAndInheritanceDeltasFallBackToFullExport(
+            string recordKind,
+            bool codegenAffected,
+            bool runtimeContractAffected)
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient
+            {
+                deltaResponse = new NeoComposeUnityExportDeltaManifestResponse
+                {
+                    cursor = new NeoComposeUnityExportCursor
+                    {
+                        createdAt = 200,
+                        transactionIds = new List<string> { "tx-2" },
+                        versionsStamp = "1:200",
+                    },
+                    codegenAffected = codegenAffected,
+                    runtimeContractAffected = runtimeContractAffected,
+                    records = new List<NeoComposeUnityExportHeadDescriptor>
+                    {
+                        new()
+                        {
+                            recordKind = recordKind,
+                            recordId = "changed-record",
+                            snapshotId = "snapshot-changed",
+                        },
+                    },
+                },
+            };
+            var assets = new FakeAssetService();
+            assets.files["Assets/Resources/Neo/project.json"] = "{}";
+            var cache = new FakeExportCache
+            {
+                state = new NeoComposeUnityExportSyncState
+                {
+                    cursor = new NeoComposeUnityExportCursor
+                    {
+                        createdAt = 100,
+                        transactionIds = new List<string> { "tx-1" },
+                        versionsStamp = "1:100",
+                    },
+                },
+            };
+            var synchronizer = new NeoComposeSynchronizer(
+                api,
+                new FakeConfirmationService(true),
+                assets,
+                cache);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsTrue(result.success, result.message);
+            Assert.AreEqual(1, api.deltaExportCalls);
+            Assert.AreEqual(1, api.fullExportCalls);
+            Assert.AreEqual(0, api.snapshotExportCalls);
+        }
+
+        [Test]
         public async Task Synchronizer_WritesLocalizationFilesToResourcesByDefault()
         {
             var config = MakeConfig();
