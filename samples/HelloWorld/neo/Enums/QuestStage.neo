@@ -1,15 +1,15 @@
 @id("a5c2a3f4-f91a-4878-bec0-a38b432ad762")
 enum QuestStage {
-  @id("arrival")
+  @id("718721e3-e457-5204-8d05-c1c3e03a3294")
   arrival,
-  @id("ended")
+  @id("154ded59-2f9b-529b-835a-45e33fb095a0")
   ended,
-  @id("endgame")
+  @id("462b9987-f994-5321-9e15-772514147483")
   endgame,
-  @id("followTheWakes")
+  @id("2a9f4a83-7dc5-501f-ab72-f76ad1f48f28")
   followTheWakes,
-  @id("threePaths")
+  @id("9e32a0e7-fc6e-591a-b34d-afc37366ca63")
   threePaths,
-  @id("vaultOpen")
+  @id("b296b05a-1e9a-5b10-85c1-140e4fce6d4e")
   vaultOpen,
 }

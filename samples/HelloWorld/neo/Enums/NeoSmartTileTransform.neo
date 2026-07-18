@@ -1,15 +1,16 @@
 @id("d97f73bc-656f-489f-86de-6cb874ca8181")
 enum NeoSmartTileTransform {
-  @id("Fixed")
+  @id("3f16d1d6-ec8b-532b-ad8b-23af9ea01172")
   Fixed,
-  @id("Rotated")
+  @id("d6e0f63f-910c-5e51-ac77-250c7f606664")
   Rotated,
-  @id("MirrorX")
+  @id("00edc26a-6ef4-57db-a290-f1f8300146e9")
   MirrorX,
-  @id("MirrorY")
+  @id("c1c2577b-870f-5305-b206-3c70dfeb775b")
   MirrorY,
-  @id("MirrorXY")
+  @id("35b53059-1836-5fac-bcde-291274dcebc7")
   MirrorXY,
-  @id("RotatedMirror")
+  @id("9da42749-b317-5558-8f76-0a9fcb69229d")
   RotatedMirror,
 }
+

@@ -1,9 +1,10 @@
 @id("6ff1b376-1b30-449d-8439-d822be95cec1")
 enum NeoSmartTileCollider {
-  @id("None")
+  @id("cfca7937-a285-5b1a-97f4-6c088137a517")
   None,
-  @id("Sprite")
+  @id("6cf2f768-993c-5e9c-8bcb-60e1a0d8c575")
   Sprite,
-  @id("Grid")
+  @id("5e0f42af-fff5-5a65-9844-f11f36ae55a8")
   Grid,
 }
+

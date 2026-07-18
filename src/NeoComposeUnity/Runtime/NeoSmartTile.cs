@@ -108,25 +108,25 @@ namespace NeoCompose.Runtime
     /// </summary>
     public static class NeoSmartTileOptionIds
     {
-        public const string ConditionThis = "This";
-        public const string ConditionNotThis = "NotThis";
-        public const string ConditionInheritsFromClass = "InheritsFromClass";
-        public const string ConditionNotInheritsFromClass = "NotInheritsFromClass";
+        public const string ConditionThis = "fe185d9d-63c5-5f71-be71-408db18a84ee";
+        public const string ConditionNotThis = "53438afa-206b-5bec-a202-c9b60d1ad8b6";
+        public const string ConditionInheritsFromClass = "04d1dedf-8b84-5638-8db1-158c4243ef3f";
+        public const string ConditionNotInheritsFromClass = "bc62a20a-a386-5224-b54b-12c00e7c576b";
 
-        public const string OutputSingle = "Single";
-        public const string OutputRandom = "Random";
-        public const string OutputAnimation = "Animation";
+        public const string OutputSingle = "b76ada21-68e0-5b52-bdfe-3b1f95a8c896";
+        public const string OutputRandom = "717e141c-a3af-535e-9f30-da2a9241803d";
+        public const string OutputAnimation = "649f99d0-c726-5f20-aeea-786a0776f53f";
 
-        public const string ColliderNone = "None";
-        public const string ColliderSprite = "Sprite";
-        public const string ColliderGrid = "Grid";
+        public const string ColliderNone = "cfca7937-a285-5b1a-97f4-6c088137a517";
+        public const string ColliderSprite = "6cf2f768-993c-5e9c-8bcb-60e1a0d8c575";
+        public const string ColliderGrid = "5e0f42af-fff5-5a65-9844-f11f36ae55a8";
 
-        public const string TransformFixed = "Fixed";
-        public const string TransformRotated = "Rotated";
-        public const string TransformMirrorX = "MirrorX";
-        public const string TransformMirrorY = "MirrorY";
-        public const string TransformMirrorXY = "MirrorXY";
-        public const string TransformRotatedMirror = "RotatedMirror";
+        public const string TransformFixed = "3f16d1d6-ec8b-532b-ad8b-23af9ea01172";
+        public const string TransformRotated = "d6e0f63f-910c-5e51-ac77-250c7f606664";
+        public const string TransformMirrorX = "00edc26a-6ef4-57db-a290-f1f8300146e9";
+        public const string TransformMirrorY = "c1c2577b-870f-5305-b206-3c70dfeb775b";
+        public const string TransformMirrorXY = "35b53059-1836-5fac-bcde-291274dcebc7";
+        public const string TransformRotatedMirror = "9da42749-b317-5558-8f76-0a9fcb69229d";
 
         public static NeoSmartTileNeighborKind ParseCondition(string condition)
         {
