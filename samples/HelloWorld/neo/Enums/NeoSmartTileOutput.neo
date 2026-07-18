@@ -1,0 +1,9 @@
+@id("551025ad-e441-4d43-90b0-2821c6235786")
+enum NeoSmartTileOutput {
+  @id("Single")
+  Single,
+  @id("Random")
+  Random,
+  @id("Animation")
+  Animation,
+}

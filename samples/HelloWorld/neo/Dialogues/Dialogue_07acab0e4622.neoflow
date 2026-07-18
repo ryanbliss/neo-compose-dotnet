@@ -1,0 +1,25 @@
+@id("7a6bcb67-d42a-4eb8-9934-0263d506e85c")
+@settings(
+  name: "Old Console Landing: exit prompt quiet",
+  description: "Player checks the ship's launch console when there is nothing to relay (no boot trace yet, or the seal is already open).",
+  saveOptionChoices: true,
+)
+sealed class Dialogue_07acab0e4622 : Dialogue {
+  @primary
+  BlockedPath Value_e53f1acd8b23 = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+
+  @id("0cc54f9b-9e85-4e75-a066-225bf720ad6e")
+  override Trigger Trigger = new() => Node_d0f9c3e6a87e;
+
+  @id("eb3578e1-3923-4a53-be9e-d637471d6f00")
+  Text Node_d0f9c3e6a87e = new(
+    name: "start",
+  ) {
+    @primary
+    BlockedPath Value_fa8cb753c239 = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+  
+    """
+    Your ship's launch console idles through its pre-flight loop, patient as ever. "Nothing to relay," it reports. "The deck still has business with you — or you with it. We fly when you're done."
+    """
+  }
+}

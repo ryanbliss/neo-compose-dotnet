@@ -1,0 +1,204 @@
+@id("76546514-8523-4127-91f1-24cfd5a141a6")
+@settings(
+  name: "Pour Lords: money older than light",
+  saveOptionChoices: true,
+)
+sealed class Dialogue_ef3985a16585 : Dialogue {
+  @primary
+  Outpost Value_4dfcdc2153a0 = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+
+  @id("ec99a707-f72e-5223-93bd-9947ab7fbbb2")
+  void NeoFunction_4e44c6ffcc0e5094ad9dc3b402e153ee() {
+    root.Save.Inventory.Remove(Value_4dfcdc2153a0);
+  }
+
+  @id("37fd3378-2891-5466-90a8-1dbc1758b1a1")
+  bool NeoFunction_87e13f23cd395fe787d30f36055105b0() {
+    return (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes) && !root.Save.Quest.EvidenceLedger && Value_4dfcdc2153a0.Save.Reputation >= 1;
+  }
+
+  @id("3033ed4d-b7fd-5ba2-a418-5c5b095cbbae")
+  void NeoFunction_22da634745dc5a59a08b4b57ba1c1f9f() {
+    Value_4dfcdc2153a0.Save.Reputation += 1;
+  }
+
+  @id("3d167acf-6206-58c9-b369-8b6264b5b64d")
+  void NeoFunction_27f788e01efc54a4990caa90ca416ae3() {
+    if (root.Save.Quest.Stage == QuestStage.followTheWakes) { root.Save.Quest.Stage = QuestStage.threePaths; }
+  }
+
+  @id("b29ed7aa-af0f-595e-83ef-de152e65e287")
+  void NeoFunction_196fe5626afb5acca81d4ec18da4856a() {
+    root.Save.Quest.EvidenceLedger = true;
+  }
+
+  @id("52068637-6301-5fb5-b318-d61d6358f7c1")
+  bool NeoFunction_1a366ec3d02f512a8a70adcb68d7c828() {
+    return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == "18b9a621-ea41-4ac7-8a46-9cc443f2b480"; }));
+  }
+
+  @id("ac9a8816-6fca-458d-a1ce-ec883d285cc8")
+  override Trigger Trigger = new(
+    group: Visits.High,
+    order: 0,
+    when: [
+    @id("82db4290-2c59-56f4-9b38-b13f22b394ef")
+    NeoFunction_87e13f23cd395fe787d30f36055105b0,
+  ],
+    limit: 1,
+  ) => Node_b91c7fe4b261;
+
+  @id("e422ba33-c809-4969-a63a-9196cd93d46d")
+  Text Node_5b7c74e83f2f = new(
+    name: "p3",
+  ) {
+    @primary
+    Outpost Value_008bef8a39ff = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    No signature. Just a header, same on every ancient page: 'SAMPLE LEDGER — DO NOT SHIP.' We built an empire on a placeholder, and I find that absolutely hilarious and you should too.
+    """
+  
+    return Node_20312930db2f;
+  }
+
+  @id("1c6ce424-63cf-44d8-a6ec-e5ef80a07292")
+  Text Node_257611ba3f59 = new(
+    name: "p2",
+  ) {
+    @primary
+    Outpost Value_c75608460a0f = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    First entry: fuel futures, sold and settled... dated before the world's first sunrise. Money older than light, friend. The books don't start at the beginning — they start BEFORE it. Someone funded this world like a venture.
+    """
+  
+    @id("91451efd-f9ea-4489-afbe-63d40e7b63e8")
+    Option Option_a89fe160215f = new(
+      name: "Who",
+    ) {
+      """
+      Who signs the first page?
+      """
+    
+      return Node_5b7c74e83f2f;
+    }
+  }
+
+  @id("94e9e42d-b496-4cc1-84ef-8eddda11cadd")
+  Text Node_b91c7fe4b261 = new(
+    name: "p1",
+  ) {
+    @primary
+    Outpost Value_79c7bec35a9b = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    The investigator returns! You've been good for business and better for gossip, so here's the house secret, on the house. Our oldest account books.
+    """
+  
+    @id("1cba594e-379e-4949-bfe7-8fef2b0d56da")
+    Option Option_c1791fd8bdc3 = new(
+      name: "Open",
+    ) {
+      """
+      Show me.
+      """
+    
+      return Node_257611ba3f59;
+    }
+  }
+
+  @id("d85f300c-6497-4440-8eb4-550bf0e7356b")
+  Actions Node_20312930db2f = new(
+    name: "p4",
+  ) {
+    @primary
+    Outpost Value_198a22e9925f = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    @id("8298ae34-02cf-4f7b-bbd9-ea33403ae250")
+    NeoFunction_27f788e01efc54a4990caa90ca416ae3();
+  
+    @id("7bc9e7d2-22bd-4ba3-af81-4dc7b665dc88")
+    NeoFunction_196fe5626afb5acca81d4ec18da4856a();
+  
+    return Node_e3503eac0214;
+  }
+
+  @id("e7ead4f0-12b7-4e92-a3f1-2d8a2fcb6a1a")
+  Text Node_3a44a73ed271 = new(
+    name: "p5",
+  ) {
+    @primary
+    Outpost Value_dbd25003c957 = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    Take the page. The Lords always pay debts to people who might end the world — it's just good bookkeeping.
+    """
+  }
+
+  @id("f9bbf58f-df8f-4a35-a67a-a280c276d4a5")
+  Text Node_e3503eac0214 = new(
+    name: "p4ask",
+  ) {
+    @primary
+    Outpost Value_0e92f4eeb2c3 = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    The Margrave's decanter stands empty beside the impossible ledger. Tradition says a deal this old closes with a drink.
+    """
+  
+    @id("1f93c851-c1a3-45da-ba63-de3eb30f5e2f")
+    Option Option_a785e5645617 = new(
+      name: "Pour",
+      selectableWhen: [
+      @id("46b9c5b4-f793-5fce-996c-8cfff96821d9")
+      NeoFunction_1a366ec3d02f512a8a70adcb68d7c828,
+    ],
+    ) {
+      """
+      Pour from your Helium-3 Flask
+      """
+    
+      return Node_6630ed41022b;
+    }
+  
+    @id("68770b22-62c1-4e47-b732-ccb39e8a588f")
+    Option Option_fe6e98ff7f55 = new(
+      name: "Decline",
+    ) {
+      """
+      Keep the flask sealed
+      """
+    
+      return Node_3a44a73ed271;
+    }
+  }
+
+  @id("6dd2b402-6128-41b1-b6fa-12da561312ed")
+  Actions Node_6630ed41022b = new(
+    name: "give flask",
+  ) {
+    Outpost Value_33728cb87950 = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    @primary
+    Item Value_d19c374f2221 = Reference<Item>(id: "18b9a621-ea41-4ac7-8a46-9cc443f2b480");
+  
+    @id("6c4c9091-51dd-4587-a14f-858d23a3d0cd")
+    NeoFunction_4e44c6ffcc0e5094ad9dc3b402e153ee();
+  
+    return Node_6e6ffa460782;
+  }
+
+  @id("c44e89ca-d6ec-4722-ac68-f9cbc50ec7a7")
+  Actions Node_6e6ffa460782 = new(
+    name: "give flask (2)",
+  ) {
+    @primary
+    Outpost Value_0aeeccb4abf3 = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    @id("a77da640-7669-4f9f-b453-95efa9a73fd7")
+    NeoFunction_22da634745dc5a59a08b4b57ba1c1f9f();
+  
+    return Node_3a44a73ed271;
+  }
+}

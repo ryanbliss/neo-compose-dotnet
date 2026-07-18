@@ -1,0 +1,272 @@
+@id("40383b6c-50e8-44ca-aa91-d633efe861ce")
+@settings(
+  name: "Ursa Major: the stars don't move",
+  saveOptionChoices: true,
+)
+sealed class Dialogue_51f9d2219889 : Dialogue {
+  @primary
+  Outpost Value_babc7567395f = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+
+  @id("a1d925ba-9aa1-59e0-bd7c-d70c2da06fce")
+  void NeoFunction_5c505ee6d83e519c8e89d15b85735f7f() {
+    Value_babc7567395f.Save.Reputation += 1;
+  }
+
+  @id("be971b39-b802-5145-87be-6b3191b6f200")
+  void NeoFunction_8bc5ca33529058caaab5aad1e7d1e45d() {
+    Value_babc7567395f.Save.Reputation += 1;
+  }
+
+  @id("d49556c7-c35b-5314-8def-3fbe8f004593")
+  void NeoFunction_9aad2a2dc77d5f539e30aea528a17b5c() {
+    root.Save.Inventory.Remove(Value_babc7567395f);
+  }
+
+  @id("f6fd85dc-c219-53db-a36e-450eca23e226")
+  void NeoFunction_df4b981a7bac557aa3bdaf9e911a14b7() {
+    if (root.Save.Quest.Stage == QuestStage.followTheWakes) { root.Save.Quest.Stage = QuestStage.threePaths; }
+  }
+
+  @id("9b542a6b-cb0a-5efc-aa9f-26f97b6bf8e1")
+  void NeoFunction_011ee3b5d4c35ce2be5feab5866ce980() {
+    root.Save.Quest.EvidenceArchive = true;
+  }
+
+  @id("b5c4d825-de0d-5709-8623-3d59e541d73d")
+  bool NeoFunction_a1b592464e1c5a49ab8f5fca7c85f552() {
+    return !root.Save.Quest.EvidenceArchive && (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes);
+  }
+
+  @id("2b07518a-aaf5-5f83-9df4-36588f6030f5")
+  bool NeoFunction_e35df6a3ab7857dd86139280473abaa4() {
+    return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == "c8eb381b-9c3f-4120-b8c3-3872cdde5148"; }));
+  }
+
+  @id("c9c0f8f0-427b-4582-baee-3c101c54dc5a")
+  override Trigger Trigger = new(
+    group: Visits.Urgent,
+    order: 0,
+    when: [
+    @id("f9ecd70b-0e09-50e9-9f6f-91602ad8af8d")
+    NeoFunction_a1b592464e1c5a49ab8f5fca7c85f552,
+  ],
+    limit: 1,
+  ) => Node_dc252fcef8d7;
+
+  @id("36323840-d25a-4a70-b71e-be4880b3adf3")
+  Text Node_2fa45e216727 = new(
+    name: "u4",
+  ) {
+    @primary
+    Outpost Value_a338c5d0ac78 = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    """
+    The monks on Enceladus — their geyser hymns. I always took them for noise, but the cadence... it's structured. Line lengths, repeated headers. Take the survey data to them. Tell them the sky held still.
+    """
+  
+    return Node_fc6086f3ca53;
+  }
+
+  @id("9b16b30d-f21b-47e7-b659-9f1c640971e0")
+  Text Node_b59a6fa31bef = new(
+    name: "u1b",
+  ) {
+    @primary
+    Outpost Value_b2d644b95514 = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    """
+    Right. Right. Parallax: when you move, near stars should shift against far ones. It is geometry. It is the LAW.
+    """
+  
+    return Node_ca0de59717a2;
+  }
+
+  @id("e13ae51f-1fe1-482e-b792-0fdf10144e80")
+  Text Node_b3fe51892a8c = new(
+    name: "u6",
+  ) {
+    @primary
+    Outpost Value_a8e710834faf = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    """
+    Whatever they sing back to you — that's the half of the proof we couldn't read. Go. And traveler... thank you for looking up with us.
+    """
+  }
+
+  @id("b1a0b87f-29cd-4d51-8f2d-e694bd25cfa5")
+  Text Node_ca0de59717a2 = new(
+    name: "u2",
+  ) {
+    @primary
+    Outpost Value_1979d932dbef = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    """
+    Nothing moved. Not one star. Not by a hair. We crossed half the system and the sky did not notice. The stars are not far away, traveler — they are PAINTED. A... a backdrop. A skybox.
+    """
+  
+    @id("9bd8be89-e216-4717-a56e-2571a79b10f2")
+    Option Option_b959cda05b85 = new(
+      name: "Calm",
+    ) {
+      """
+      Then we're the first people to ever really look. That's not nothing.
+      """
+    
+      return Node_a852e940574e;
+    }
+  
+    @id("03e51da9-a543-4415-98f8-6b127cb99cd9")
+    Option Option_8fce15cd1c99 = new(
+      name: "Blunt",
+    ) {
+      """
+      So the sky is fake. What's behind it?
+      """
+    
+      return Node_d65f1d794d12;
+    }
+  }
+
+  @id("3377e893-5481-461c-b313-4faa29613f71")
+  Text Node_dc252fcef8d7 = new(
+    name: "u1",
+  ) {
+    @primary
+    Outpost Value_ddc84a8dec20 = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    """
+    You came back. Good. Close the door. ...We finished the parallax survey last night. Twelve years of baselines, every outpost, both solstices.
+    """
+  
+    @id("9f52af2d-842c-4874-b604-de42236790f2")
+    Option Option_a6de54503982 = new(
+      name: "And?",
+    ) {
+      """
+      And? What did you find?
+      """
+    
+      return Node_ca0de59717a2;
+    }
+  
+    @id("3a268786-6c52-45dc-862d-24ad06887f87")
+    Option Option_b11fb0f7098c = new(
+      name: "Steady",
+    ) {
+      """
+      Breathe. Start from the beginning.
+      """
+    
+      return Node_b59a6fa31bef;
+    }
+  }
+
+  @id("c459804c-ad20-4fb5-8cc5-f689781def2c")
+  Text Node_d65f1d794d12 = new(
+    name: "u3cold",
+  ) {
+    @primary
+    Outpost Value_0f41449fb881 = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    """
+    Behind it? BEHIND it? Forty years staring up and you ask what's behind the— ...I don't know. Nobody knows. That's the worst part.
+    """
+  
+    return Node_2fa45e216727;
+  }
+
+  @id("2a5974f2-d1f6-49fb-98f8-c0ecb0c875be")
+  Actions Node_a852e940574e = new(
+    name: "u3warm",
+  ) {
+    @primary
+    Outpost Value_13438c648bf4 = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    @id("ff48b978-e50d-49e7-9b00-a001f63b9464")
+    NeoFunction_5c505ee6d83e519c8e89d15b85735f7f();
+  
+    return Node_2fa45e216727;
+  }
+
+  @id("baea9274-0bcd-4eaf-ba0b-af105654a294")
+  Actions Node_fc6086f3ca53 = new(
+    name: "u5",
+  ) {
+    @primary
+    Outpost Value_df5b32041578 = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    @id("8a69573c-5a18-4ec2-b6ac-cd57f2c53da2")
+    NeoFunction_df4b981a7bac557aa3bdaf9e911a14b7();
+  
+    @id("8055814e-6ac3-40a7-bce2-4894563ebdfd")
+    NeoFunction_011ee3b5d4c35ce2be5feab5866ce980();
+  
+    return Node_ba7e42f4784d;
+  }
+
+  @id("ccc02c47-74dc-4227-83e1-f3a027f30467")
+  Text Node_ba7e42f4784d = new(
+    name: "u5ask",
+  ) {
+    @primary
+    Outpost Value_ca1ea843cc3b = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    """
+    The Curator eyes the rigging bag on your shoulder. 'The high scope hasn't been climbed since the sky froze. Old knees,' he admits.
+    """
+  
+    @id("b305fc58-9b44-44c9-a744-858a57d9057d")
+    Option Option_3676da9a535f = new(
+      name: "Rig",
+      selectableWhen: [
+      @id("2b7cd2cd-9cec-5dc2-ba85-a287e3f06873")
+      NeoFunction_e35df6a3ab7857dd86139280473abaa4,
+    ],
+    ) {
+      """
+      Leave your Low-G Pitons rigged on the high scope
+      """
+    
+      return Node_1574d776c960;
+    }
+  
+    @id("3ee81a7e-09b8-4ca9-947f-d7e16952a346")
+    Option Option_488d973fd0b2 = new(
+      name: "Keep",
+    ) {
+      """
+      You'll be needing them yourself
+      """
+    
+      return Node_b3fe51892a8c;
+    }
+  }
+
+  @id("67a8857e-f680-48ed-a6b4-0f485205be59")
+  Actions Node_146330023e8b = new(
+    name: "give pitons (2)",
+  ) {
+    @primary
+    Outpost Value_2564af03a463 = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    @id("240474f0-0df8-4735-ac4d-774fa036b5bb")
+    NeoFunction_8bc5ca33529058caaab5aad1e7d1e45d();
+  
+    return Node_b3fe51892a8c;
+  }
+
+  @id("888bb7bd-6861-4ce6-a0c9-64c133991dfe")
+  Actions Node_1574d776c960 = new(
+    name: "give pitons",
+  ) {
+    Outpost Value_7d1e96574893 = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    @primary
+    Item Value_8fc757d45e68 = Reference<Item>(id: "c8eb381b-9c3f-4120-b8c3-3872cdde5148");
+  
+    @id("6c90b27b-f336-4860-98e5-d2f55d043a6e")
+    NeoFunction_9aad2a2dc77d5f539e30aea528a17b5c();
+  
+    return Node_146330023e8b;
+  }
+}

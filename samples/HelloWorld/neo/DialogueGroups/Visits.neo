@@ -1,0 +1,16 @@
+@id("c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43")
+DialogueGroup Visits = new(
+  kind: .Lookup,
+  parent: Outposts,
+  collection: Reference<Member>(id: "2827aefd-7f57-48ea-994c-c5c39ec659e3"),
+  collectionValue: Reference(id: "75c7623a-dcdb-4ca1-b5e5-a809da678766"),
+) {
+  @id("legacy-function:0b391fd3-cc53-57c3-a31d-4d665f0c1240")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native bool Condition1();
+
+  when: [
+    @id("0b391fd3-cc53-57c3-a31d-4d665f0c1240")
+    Condition1,
+  ];
+}

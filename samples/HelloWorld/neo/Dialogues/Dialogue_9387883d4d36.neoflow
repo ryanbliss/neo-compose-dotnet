@@ -1,0 +1,25 @@
+@id("bbda459e-c77e-4084-9047-22b1dfbb0bff")
+@settings(
+  name: "Old Console Landing: vault plaque reward",
+  description: "Player reads the plaque after the seal is down; the console records the claim.",
+  saveOptionChoices: true,
+)
+sealed class Dialogue_9387883d4d36 : Dialogue {
+  @primary
+  BlockedPath Value_caaaaf6a4ef6 = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+
+  @id("1b871ef2-5140-4e48-a6e6-d64524e1566b")
+  override Trigger Trigger = new() => Node_fbf56d93490c;
+
+  @id("17e3953c-ebb8-4804-bef6-b62fa626ee72")
+  Text Node_fbf56d93490c = new(
+    name: "start",
+  ) {
+    @primary
+    BlockedPath Value_2d976b4e8902 = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+  
+    """
+    The plaque has already re-etched itself: SEAL RELEASED — RUNNER, FIRST OF THE NEW TRAFFIC. "The recovery cache sits in the vault ahead," the console says. "Whatever's in it is yours, receipt and all."
+    """
+  }
+}

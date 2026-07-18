@@ -1,0 +1,12 @@
+@id("localization-status-update-needed")
+LocalizationStatus UpdateNeeded = new(
+  slug: "update-needed",
+  name: "Update needed",
+  description: "The source text changed after this locale's text was translated.",
+  color: null,
+  emoji: "🚧",
+  archivedAt: null,
+  transitionRules: null,
+  transitionOnTextEdit: NeedsReview,
+  transitionWhenSourceBecomes: BlockedByPredecessor,
+);

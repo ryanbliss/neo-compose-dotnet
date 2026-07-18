@@ -1,0 +1,15 @@
+@id("d97f73bc-656f-489f-86de-6cb874ca8181")
+enum NeoSmartTileTransform {
+  @id("Fixed")
+  Fixed,
+  @id("Rotated")
+  Rotated,
+  @id("MirrorX")
+  MirrorX,
+  @id("MirrorY")
+  MirrorY,
+  @id("MirrorXY")
+  MirrorXY,
+  @id("RotatedMirror")
+  RotatedMirror,
+}

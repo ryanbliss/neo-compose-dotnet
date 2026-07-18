@@ -1,0 +1,11 @@
+@id("ba63d042-51c1-4bce-be70-d9848e6bb240")
+enum NeoSmartTileCondition {
+  @id("This")
+  This,
+  @id("NotThis")
+  NotThis,
+  @id("InheritsFromClass")
+  InheritsFromClass,
+  @id("NotInheritsFromClass")
+  NotInheritsFromClass,
+}

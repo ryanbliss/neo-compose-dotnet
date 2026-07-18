@@ -1,0 +1,12 @@
+@id("localization-status-needs-translation")
+LocalizationStatus NeedsTranslation = new(
+  slug: "needs-translation",
+  name: "Needs translation",
+  description: "The text has not been translated for this locale yet.",
+  color: null,
+  emoji: "🆕",
+  archivedAt: null,
+  transitionRules: null,
+  transitionOnTextEdit: NeedsReview,
+  transitionWhenSourceBecomes: BlockedByPredecessor,
+);

@@ -1,0 +1,24 @@
+@id("50c76b46-1ac7-4c30-962d-0164a1f65637")
+@settings(
+  name: "Shuffle 1",
+  saveOptionChoices: true,
+)
+sealed class Dialogue_281ba9feae42 : Dialogue {
+  @primary
+  Outpost Value_566cd230783d = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+
+  @id("84bc85cd-c1b6-4a19-a3c5-342f25e962f3")
+  override Trigger Trigger = new(
+    group: Reference<DialogueGroup>(id: "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43"),
+  ) => Node_0cc05709f299;
+
+  @id("4dca4c60-300f-48db-8edd-4fcd3da840b9")
+  Text Node_0cc05709f299 = new() {
+    @primary
+    Outpost Value_0e77b091d23f = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    All praise the sun!
+    """
+  }
+}

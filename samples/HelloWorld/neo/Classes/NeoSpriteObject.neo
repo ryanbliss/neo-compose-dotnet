@@ -1,0 +1,14 @@
+@id("7cb1b706-95d2-4465-8e75-c82a6b7d8830")
+@system(worldKind: .SpriteObject, disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+class NeoSpriteObject : NeoObjectBase {
+  @id("441cb790-a45f-4488-a5a9-6f375af6c369")
+  @locked
+  @settings(localizable: false)
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  virtual string Name = "";
+
+  @id("e9288ba9-f5a2-4485-8443-6afb155b31e0")
+  @locked
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  virtual SpriteInfo Sprite;
+}

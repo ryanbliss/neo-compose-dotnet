@@ -1,0 +1,244 @@
+@id("4aba3b7a-d052-4499-8e2f-696183816cc4")
+@settings(
+  name: "Plutocracy intro",
+  description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  saveOptionChoices: true,
+)
+sealed class Dialogue_3e88810d17be : Dialogue {
+  @primary
+  Outpost Value_6a1192e6b0af = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+
+  @id("ea568c94-3bc2-538f-8030-ff46ea5660f3")
+  void NeoFunction_d0b87e81a30958f7b378fe305ae81580() {
+    root.Save.Inventory.Add(Value_6a1192e6b0af);
+  }
+
+  @id("fbdcb434-7860-50d0-a00f-2a43545db3a3")
+  void NeoFunction_6f6a0f35c7b350e8b7f4d04f057b5123() {
+    Value_6a1192e6b0af.Save.Reputation += 1;
+  }
+
+  @id("a2af8479-5f19-5743-9a45-0eea97fb1ca6")
+  void NeoFunction_5373541fe50a52b9b152b1085820c856() {
+    Value_6a1192e6b0af.Save.Reputation -= 1;
+  }
+
+  @id("f908f16c-1117-408a-8c8d-14849d82d42f")
+  override Trigger Trigger = new(
+    group: Introductions.Urgent,
+    order: 0,
+    limit: 1,
+  ) => Node_ef8d61f4887c;
+
+  @id("1c5bf3a8-fe52-4402-a627-2cf0bfd7d33c")
+  Text Node_ef8d61f4887c = new(
+    name: "pl1",
+  ) {
+    @primary
+    Outpost Value_edecccbecde9 = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    Ah. The famous investigator, here at the edge of everything. Do you know what they took from us, before you were even born? A WORD. 'Planet.' One word, and the whole system stopped writing.
+    """
+  
+    @id("2b9e18bd-a3b3-4326-828b-9ccd864856a3")
+    Option Option_4a58843209ce = new(
+      name: "Listen",
+    ) {
+      """
+      Go on.
+      """
+    
+      return Node_5a1d43ab41b0;
+    }
+  
+    @id("54c3d2dd-a25c-4af6-a81e-0c1c884e5388")
+    Option Option_6ff0a2f36539 = new(
+      name: "Cut",
+    ) {
+      """
+      The Second Sun. It's yours, isn't it?
+      """
+    
+      return Node_5a1d43ab41b0;
+    }
+  }
+
+  @id("0bc7f57e-41ca-4954-9bdc-b025b3ff6976")
+  Text Node_5a1d43ab41b0 = new(
+    name: "pl2",
+  ) {
+    @primary
+    Outpost Value_20058a4da0b7 = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    The Gyre builds it, yes — but it will orbit US. A sun of Pluto's own. And when it lights, no astronomer alive will dare write 'dwarf' next to our name again.
+    """
+  
+    return Node_33f534254029;
+  }
+
+  @id("aab83184-4566-4586-a7fc-a8bc640c100c")
+  Text Node_33f534254029 = new(
+    name: "pl3",
+  ) {
+    @primary
+    Outpost Value_33fe8ce11a0d = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    So. The ledgers are open, the manifest is in your coat, and the question, investigator, is what you do with your evening.
+    """
+  
+    @id("9539da55-ed13-4228-85a1-a85efb22c90d")
+    Option Option_53ac7090c9fc = new(
+      name: "Side",
+    ) {
+      """
+      A sun for Pluto. Honestly? Earned.
+      """
+    
+      return Node_843a332a1f05;
+    }
+  
+    @id("3c47d0d4-f986-421a-afb0-7bcdd05621ea")
+    Option Option_de8e5bcabf82 = new(
+      name: "Expose",
+    ) {
+      """
+      The whole system will know by morning. All of it.
+      """
+    
+      return Node_4f00e129d170;
+    }
+  
+    @id("24844262-fff0-4b23-8378-d461d4b884c5")
+    Option Option_398f8d637759 = new(
+      name: "Broker",
+    ) {
+      """
+      There's a third way: share the Second Sun. Every outpost, one sky.
+      """
+    
+      return Node_2536f54b81cc;
+    }
+  }
+
+  @id("dff9f481-8ed1-43d0-83ab-d5ac83f107ec")
+  Text Node_843a332a1f05 = new(
+    name: "ple1",
+  ) {
+    @primary
+    Outpost Value_c2884e985460 = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    We knew you were reasonable. Wear this signet — when the new dawn comes, it will mark you a Friend of Pluto.
+    """
+  
+    return Node_375aa1d687d7;
+  }
+
+  @id("6ed1ee1c-6eff-4614-80b4-a3d94b1fb318")
+  Actions Node_375aa1d687d7 = new(
+    name: "pla1",
+  ) {
+    @primary
+    Outpost Value_65d558efcf69 = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    @id("7eb438ef-4230-4e38-a4bb-109eb7612ea2")
+    NeoFunction_6f6a0f35c7b350e8b7f4d04f057b5123();
+  
+    return Node_2fd3183f45fc;
+  }
+
+  @id("69ea0164-dd19-47ad-8521-403c2d07d78b")
+  Text Node_97feed7940c8 = new(
+    name: "pe1",
+  ) {
+    @primary
+    Outpost Value_cbf3a6c4bbfd = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    The sun sets on Earth. Somewhere past Neptune, a second dawn is loading.
+    """
+  }
+
+  @id("11a8047d-5736-4f58-a5c8-dcffc12bdaca")
+  Text Node_4f00e129d170 = new(
+    name: "ple2",
+  ) {
+    @primary
+    Outpost Value_edc773fc03bc = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    Then run fast, little herald. Light takes five hours to reach Earth from here — your warning will be racing it the whole way.
+    """
+  
+    return Node_335933e4e8c2;
+  }
+
+  @id("7188e155-1ddd-4bfa-b833-5adcab2ba360")
+  Actions Node_335933e4e8c2 = new(
+    name: "pla2",
+  ) {
+    @primary
+    Outpost Value_484a895365cc = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    @id("8a4202b1-dae7-4405-8421-1a28e212f7c6")
+    NeoFunction_5373541fe50a52b9b152b1085820c856();
+  
+    return Node_5c1fef32518d;
+  }
+
+  @id("2b1e3eeb-7041-4b4f-be16-29950655c02f")
+  Text Node_5c1fef32518d = new(
+    name: "pe2",
+  ) {
+    @primary
+    Outpost Value_7fc971c1e3bb = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    Behind you, the Plutocracy begins erasing its ledgers. The race to sunrise has started.
+    """
+  }
+
+  @id("1c03b39e-8bbe-4fea-80df-fd693dbcd154")
+  Actions Node_2fd3183f45fc = new(
+    name: "grant Plutonian Signet",
+  ) {
+    @primary
+    Item Value_b1db77bb01db = Reference<Item>(id: "e812e95c-d4dc-4f5d-8f42-ce57e5501eab");
+  
+    Outpost Value_6da5a446fa15 = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    @id("711ab375-5c19-4e01-b75c-4f9dc14d92e8")
+    NeoFunction_d0b87e81a30958f7b378fe305ae81580();
+  
+    return Node_97feed7940c8;
+  }
+
+  @id("cc88dd2c-2924-44bf-99c4-93cc15492463")
+  Text Node_2536f54b81cc = new(
+    name: "ple3",
+  ) {
+    @primary
+    Outpost Value_b83429636645 = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    ...A shared dawn. The Mercurials prophesied a Red Nova; perhaps prophecy is only a plan that no one has priced yet. Bring us the system's signatures, investigator. Pluto will sign last — but Pluto will sign.
+    """
+  
+    return Node_51901e1a2fc8;
+  }
+
+  @id("ff193404-6ae3-4398-83f6-bb3b4bfd78dc")
+  Text Node_51901e1a2fc8 = new(
+    name: "pe3",
+  ) {
+    @primary
+    Outpost Value_b0052c1ca6e0 = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    One sky. Thirteen outposts. A sun that belongs to everyone. The Accord begins with you.
+    """
+  }
+}

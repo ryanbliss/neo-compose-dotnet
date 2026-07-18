@@ -1,0 +1,21 @@
+@id("576de38f-6c77-440d-91b3-95a19aad5e23")
+enum Planet {
+  @id("mercury")
+  mercury,
+  @id("venus")
+  venus,
+  @id("earth")
+  earth,
+  @id("mars")
+  mars,
+  @id("jupiter")
+  jupiter,
+  @id("saturn")
+  saturn,
+  @id("uranus")
+  uranus,
+  @id("neptune")
+  neptune,
+  @id("pluto")
+  pluto,
+}

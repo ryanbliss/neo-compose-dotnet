@@ -1,0 +1,12 @@
+@id("localization-status-in-progress")
+LocalizationStatus InProgress = new(
+  slug: "in-progress",
+  name: "In progress",
+  description: "A translator is actively working on the text.",
+  color: null,
+  emoji: "✍️",
+  archivedAt: null,
+  transitionRules: null,
+  transitionOnTextEdit: NeedsReview,
+  transitionWhenSourceBecomes: BlockedByPredecessor,
+);

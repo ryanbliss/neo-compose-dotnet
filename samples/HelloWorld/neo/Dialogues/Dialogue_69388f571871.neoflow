@@ -1,0 +1,111 @@
+@id("ec6050b7-a01a-42c0-855b-e60d8e55e1ac")
+@settings(
+  name: "Ursa Major intro",
+  description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  saveOptionChoices: true,
+)
+sealed class Dialogue_69388f571871 : Dialogue {
+  @primary
+  Outpost Value_2caa6456ee8f = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+
+  @id("08700746-d38b-5735-8421-6e825e1d6668")
+  void NeoFunction_80e888962fad5f87afc5dd04c2c977fa() {
+    Value_2caa6456ee8f.Save.Unlocked = true;
+  }
+
+  @id("46674347-a533-48a8-9a4c-096a30c25e1a")
+  override Trigger Trigger = new(
+    group: Introductions.Urgent,
+    order: 0,
+    limit: 1,
+  ) => Node_5eb776c85b30;
+
+  @id("2477047f-ac50-4df1-b2c4-0d1be0b33b36")
+  Text Node_5eb776c85b30 = new(
+    name: "u1",
+  ) {
+    @primary
+    Outpost Value_04d6fdd5dc67 = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    """
+    Keep your voice down — the interferometer is listening. You're here about the sun. Everyone is, lately.
+    """
+  
+    @id("14c6dadd-3fd4-43e4-bcd5-f8eec3d0e8df")
+    Option Option_b298b9d0cca1 = new(
+      name: "Data",
+    ) {
+      """
+      Show me the numbers.
+      """
+    
+      return Node_5601f2899d89;
+    }
+  
+    @id("9ac2305f-83d3-4645-b3b5-c3b86765fecb")
+    Option Option_46a8b4f51485 = new(
+      name: "Hunch",
+    ) {
+      """
+      Just tell me your gut.
+      """
+    
+      return Node_adb7f764c487;
+    }
+  }
+
+  @id("33142484-5c93-4073-9a83-4735e3b7af3b")
+  Text Node_adb7f764c487 = new(
+    name: "u2g",
+  ) {
+    @primary
+    Outpost Value_b951b2117e2e = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    """
+    Gut? We're scientists, we don't... oh, fine. My gut says the sun is losing weight, and it is NOT on a diet.
+    """
+  
+    return Node_5601f2899d89;
+  }
+
+  @id("ad78a0fc-2533-40de-80ad-67948083142a")
+  Text Node_5601f2899d89 = new(
+    name: "u2",
+  ) {
+    @primary
+    Outpost Value_499581d4a05a = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    """
+    Solar mass is down three tenths of a percent in a single year. That does not happen. Something is siphoning the corona — and every tanker wake we track curves past Saturn into the deep system.
+    """
+  
+    return Node_a2da74317fb0;
+  }
+
+  @id("7ca5e198-5832-4385-9976-386798b32004")
+  Actions Node_a2da74317fb0 = new(
+    name: "u3",
+  ) {
+    @primary
+    Outpost Value_05a7972d6462 = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  
+    Outpost Value_97dc6d41702c = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    @id("68eb6912-4f33-49d0-948e-3ddcb1702764")
+    NeoFunction_80e888962fad5f87afc5dd04c2c977fa();
+  
+    return Node_d46243cf144a;
+  }
+
+  @id("2d68a48e-4d26-49e1-86cd-f05ec580ec6b")
+  Text Node_d46243cf144a = new(
+    name: "u4",
+  ) {
+    @primary
+    Outpost Value_54e2a2d39e42 = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    """
+    The Etna Diadem monks on Enceladus watch the deep current — monks notice what telescopes can't. Go gently. And if the sun flickers... call it in.
+    """
+  }
+}

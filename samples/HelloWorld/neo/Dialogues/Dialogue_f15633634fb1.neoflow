@@ -1,0 +1,39 @@
+@id("cb0ac79c-f3b4-4c96-b968-8c4173c1f712")
+@settings(
+  name: "Old Console Landing: recovery cache",
+  description: "Player opens the recovery cache in the vault and claims the bits.",
+  saveOptionChoices: true,
+)
+sealed class Dialogue_f15633634fb1 : Dialogue {
+  @primary
+  BlockedPath Value_9c87d645868a = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+
+  @id("d2f84eb0-2e86-4875-b0d3-1d70e2529f8e")
+  override Trigger Trigger = new() => Node_7121c1203e10;
+
+  @id("1e6004f9-4e7f-431e-a520-7fac2b691975")
+  Text Node_7121c1203e10 = new(
+    name: "start",
+  ) {
+    @primary
+    BlockedPath Value_0c9e1d6f9a37 = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+  
+    """
+    The cache reads your boot trace one more time — out of politeness — then unlatches with a soft hydraulic sigh. Inside: a neat stack of bits, old but honest.
+    """
+  
+    return Node_9d3214020186;
+  }
+
+  @id("172817c7-6b1b-4495-af82-a95a7be77551")
+  Text Node_9d3214020186 = new(
+    name: "voice",
+  ) {
+    @primary
+    BlockedPath Value_41fbcb70af7a = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+  
+    """
+    "Recovery payout, as promised," the console says. "Twenty-five bits, minted back when this deck still had traffic. Spend them somewhere that matters, runner."
+    """
+  }
+}

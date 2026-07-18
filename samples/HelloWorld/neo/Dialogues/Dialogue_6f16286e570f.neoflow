@@ -1,0 +1,57 @@
+@id("d755935f-4c3a-4d43-8c40-4ba3f7d28063")
+@settings(
+  name: "Old Console Landing: barrier ready",
+  description: "Player presents the boot trace at the seal (or plaque); the quarantine seal releases and the vault opens.",
+  saveOptionChoices: true,
+)
+sealed class Dialogue_6f16286e570f : Dialogue {
+  @primary
+  BlockedPath Value_f222282e106c = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+
+  @id("915d736e-80cd-5830-afb5-d3c1373aca14")
+  void NeoFunction_ac6985f3c53d5a50a5d239a36382d437() {
+    Value_f222282e106c.ClearPath();
+  }
+
+  @id("27bba0a1-d9f4-46bd-9cc1-424c5c19e85a")
+  override Trigger Trigger = new() => Node_71c2924434fa;
+
+  @id("91b6a4d9-678b-43c9-8166-c640db1dd29a")
+  Text Node_71c2924434fa = new(
+    name: "start",
+  ) {
+    @primary
+    BlockedPath Value_172585db65f9 = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+  
+    """
+    The seal reads the boot trace humming in your boots. "Trace accepted," the console says, and for the first time it sounds almost relieved. "Stand clear."
+    """
+  
+    return Node_bec9c0e667f0;
+  }
+
+  @id("2ec78483-0d82-44d6-9523-044d0777ab53")
+  Actions Node_bec9c0e667f0 = new(
+    name: "clear",
+  ) {
+    @primary
+    BlockedPath Value_2ea1b2fe55d1 = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+  
+    @id("553bd936-450b-494e-8119-d51bf53d6c7c")
+    NeoFunction_ac6985f3c53d5a50a5d239a36382d437();
+  
+    return Node_a3a12b819197;
+  }
+
+  @id("80d28883-d244-498b-a106-d98432157c82")
+  Text Node_a3a12b819197 = new(
+    name: "done",
+  ) {
+    @primary
+    BlockedPath Value_d1eb3c388622 = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+  
+    """
+    The field collapses into a line of falling sparks. Down the corridor, the vault answers with a heavy, satisfied click. Somewhere inside, a recovery cache is waiting to be claimed.
+    """
+  }
+}

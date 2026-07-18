@@ -1,0 +1,216 @@
+@id("ca84c4df-d86f-4c96-abf0-1ff0c83c702f")
+@settings(
+  name: "Etna: the hymns were logs",
+  saveOptionChoices: true,
+)
+sealed class Dialogue_7c7b4e9fbc31 : Dialogue {
+  @primary
+  Outpost Value_db92d93666c6 = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+
+  @id("a50310d3-59ea-5f50-83c2-d7ffbd1daa88")
+  void NeoFunction_6ba5da7f0f77501b9c416aade4de582e() {
+    root.Save.Quest.EvidenceArchive = true;
+  }
+
+  @id("5afaf79f-f1cd-59f2-a6eb-6b53708d286b")
+  void NeoFunction_0792bae0bf715e71a4b7f11a643058c7() {
+    root.Save.Inventory.Remove(Value_db92d93666c6);
+  }
+
+  @id("af2d9978-6576-56d7-99fa-615aa4d77892")
+  void NeoFunction_293f2057448052f591ec50ab3064bf64() {
+    Value_db92d93666c6.Save.Reputation -= 1;
+  }
+
+  @id("1c86e5d0-a2af-5845-9bd9-108d4c5f97c6")
+  bool NeoFunction_35e057aee31350b9af816e74599e9cb0() {
+    return root.Save.Quest.Stage == QuestStage.threePaths && !root.Save.Quest.EvidenceArchive && root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == "0e9655ec-dc98-477c-b0ff-90d8f203040a"; }));
+  }
+
+  @id("a083eec7-1abc-58a8-ad9a-0e9e8a9f13a6")
+  void NeoFunction_0c0164c171705407b27f72550f3ed1fb() {
+    Value_db92d93666c6.Save.Reputation += 1;
+  }
+
+  @id("a928b8df-ace6-4b69-97a9-3c190a9bb948")
+  override Trigger Trigger = new(
+    group: Visits.High,
+    order: 0,
+    when: [
+    @id("2750ef9f-5c09-5098-85b5-83a86b862d4d")
+    NeoFunction_35e057aee31350b9af816e74599e9cb0,
+  ],
+    limit: 1,
+  ) => Node_9c014c659e2e;
+
+  @id("25417f0a-9494-411e-8c80-65ba3abd6a0a")
+  Text Node_626c65d0357a = new(
+    name: "h1b",
+  ) {
+    @primary
+    Outpost Value_817d1002e808 = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  
+    """
+    Because neither is singing, traveler. Both are RECITING. The corn from its wiring, we from our fathers. Same source.
+    """
+  
+    return Node_16fcc5103bfa;
+  }
+
+  @id("fad306ca-ec34-4c0d-b2d0-1aeace1eb548")
+  Actions Node_09ce76006ee4 = new(
+    name: "h3w",
+  ) {
+    @primary
+    Outpost Value_26de433432f6 = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  
+    @id("2b55ed52-fad7-4e0c-89cf-9cd602e8d6b7")
+    NeoFunction_0c0164c171705407b27f72550f3ed1fb();
+  
+    return Node_a9b039a758c5;
+  }
+
+  @id("01b4a453-6c26-4886-9470-701095c346b4")
+  Actions Node_a9b039a758c5 = new(
+    name: "h4",
+  ) {
+    @primary
+    Outpost Value_86da860e4904 = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  
+    @id("c9eb5167-5de6-438a-bd2c-f80f8adf29e1")
+    NeoFunction_6ba5da7f0f77501b9c416aade4de582e();
+  
+    return Node_33aa81a86368;
+  }
+
+  @id("9d1d4787-58c6-43dd-9b7f-f040e1a0625b")
+  Actions Node_ed8dde640eeb = new(
+    name: "h3c",
+  ) {
+    @primary
+    Outpost Value_023114e2d0b7 = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  
+    @id("1c5b294b-eff6-4baa-89ca-f55aa755c0aa")
+    NeoFunction_293f2057448052f591ec50ab3064bf64();
+  
+    return Node_a9b039a758c5;
+  }
+
+  @id("3e2b564e-e3ab-47cc-8adb-6810d0b7c858")
+  Text Node_9c014c659e2e = new(
+    name: "h1",
+  ) {
+    @primary
+    Outpost Value_2a80ca0c5220 = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  
+    """
+    You carry the humming grain. Sit by the south geyser — listen. Your corn and our hymn... they hum the SAME line.
+    """
+  
+    @id("d1f952e6-e98b-4419-9f84-64b38ef3e0e5")
+    Option Option_589ec2dd5b0c = new(
+      name: "Offer",
+    ) {
+      """
+      Offer the Storm Corn
+      """
+    
+      return Node_4ca9960d6b91;
+    }
+  
+    @id("27dd1f16-c9f5-4d90-a3e9-414887c3f054")
+    Option Option_dea8be2cb7cf = new(
+      name: "Why",
+    ) {
+      """
+      Why would corn know your scripture?
+      """
+    
+      return Node_626c65d0357a;
+    }
+  }
+
+  @id("43d949e8-b108-45ab-a0b0-b9a11e7fa261")
+  Text Node_33aa81a86368 = new(
+    name: "h5",
+  ) {
+    @primary
+    Outpost Value_7f05d6161e4d = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  
+    """
+    Write it down, traveler: the world keeps minutes of its own birth. Whatever opens with such a key... it was built to be opened.
+    """
+  }
+
+  @id("d72d0c98-47b4-4c61-929e-cafe3b3e38e8")
+  Text Node_a463a74da574 = new(
+    name: "h2",
+  ) {
+    @primary
+    Outpost Value_cb4caaf4a01f = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  
+    """
+    We transcribed the south hymn against your grain's hum. Line lengths. Repeated headers. Timestamps, traveler. Our holiest hymn is a record of the world starting up. Generations chanted a boot log phonetically and called the warmth it gave them faith.
+    """
+  
+    @id("c2e2c822-35b7-4317-b296-2cbc6b5f993f")
+    Option Option_b73402cd2153 = new(
+      name: "Gentle",
+    ) {
+      """
+      It still gave warmth. That part was real.
+      """
+    
+      return Node_09ce76006ee4;
+    }
+  
+    @id("fcc9d4c5-714f-472a-85b8-0bc6467e91c1")
+    Option Option_b923d0f493c6 = new(
+      name: "Hollow",
+    ) {
+      """
+      So your faith is a transcription error.
+      """
+    
+      return Node_ed8dde640eeb;
+    }
+  }
+
+  @id("bab0263f-7612-4b5f-82df-8d2878ffa9fe")
+  Text Node_16fcc5103bfa = new(
+    name: "h1x",
+  ) {
+    @primary
+    Outpost Value_d25f86ed7f1b = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  
+    """
+    Then let the grain answer for itself, traveler.
+    """
+  
+    @id("281adb46-b69e-434f-9106-1aa805d88ed7")
+    Option Option_722b9e52c1ea = new(
+      name: "Offer",
+    ) {
+      """
+      Hand over the Storm Corn
+      """
+    
+      return Node_4ca9960d6b91;
+    }
+  }
+
+  @id("70951b24-a71e-4b39-8101-c197d2063a2f")
+  Actions Node_4ca9960d6b91 = new(
+    name: "give corn",
+  ) {
+    Outpost Value_ae9a9aad42a6 = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  
+    @primary
+    Item Value_0c70a9bdf9a3 = Reference<Item>(id: "0e9655ec-dc98-477c-b0ff-90d8f203040a");
+  
+    @id("f260b8ef-c819-4408-bf87-a716c9c33f45")
+    NeoFunction_0792bae0bf715e71a4b7f11a643058c7();
+  
+    return Node_a463a74da574;
+  }
+}

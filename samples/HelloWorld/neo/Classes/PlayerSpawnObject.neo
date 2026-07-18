@@ -1,0 +1,39 @@
+@id("7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f")
+@relations(
+  compatibleLayers: [
+    @id("neo-tile-grid-record-relations-v1-relation-7c5a2aa92febb3a06dbbdbd16336bacc")
+    DefaultObjectLayer,
+  ],
+  defaultLayer:
+    @id("neo-tile-grid-record-relations-v1-relation-bafe60914eda064ee17ae4f0c918ec29")
+    DefaultObjectLayer
+)
+class PlayerSpawnObject : ConsoleObject {
+  @id("neo-tile-grid-record-relations-v1-member-5544b0deacdcfd845f211f1bb0cf21da")
+  @settings(localizable: false)
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override string Name = "Player Spawn";
+
+  @id("35275ba0-4a3f-4b83-8b09-fccb7bd7a515")
+  @locked
+  @settings(kind: .Ordered)
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override List<NeoObjectBase> Children = [Reference<NeoObjectBase>(id: "d0d48343-8748-40bf-b35a-3e88cdd7e3a5")];
+
+  @id("47c21aa5-e852-41d2-882c-b4f555aee9dd")
+  @locked
+  @settings(kind: .Ordered)
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override List<NeoObjectPlacementTile> PlacementTiles = [Reference<NeoObjectPlacementTile>(id: "6de63821-b102-4b62-aac6-c99c8aabecc9")];
+
+  @id("e5f5125c-fe5c-46b4-9589-9c6ae6fcba19")
+  @locked
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override NeoCollider? Collider = new NeoCollider { isTrigger = Reference<bool>(id: "38170df8-0175-40a0-87f4-10145984914d"), offset = Reference<Vector2>(id: "4cc9752c-508e-43f8-9589-18d25679e8c0"), size = Reference<Vector2>(id: "ee73946a-62a2-4a20-8403-22a50101a38c") };
+
+  @id("2b10e854-d60a-40a7-bc4c-8aede3e5049e")
+  @locked
+  @storage(allowed: .Session)
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override Vector3 Position = new(0, 0, 0);
+}

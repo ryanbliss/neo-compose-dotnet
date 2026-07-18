@@ -1,0 +1,12 @@
+@id("localization-status-approved")
+LocalizationStatus Approved = new(
+  slug: "approved",
+  name: "Approved",
+  description: "The text is ready for release.",
+  color: null,
+  emoji: "✅",
+  archivedAt: null,
+  transitionRules: null,
+  transitionOnTextEdit: null,
+  transitionWhenSourceBecomes: null,
+);

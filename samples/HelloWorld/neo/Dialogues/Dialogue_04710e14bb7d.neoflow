@@ -1,0 +1,331 @@
+@id("3e45ea6f-e8ad-4fcf-938d-808b36cf92ae")
+@settings(
+  name: "Mercurial intro",
+  saveOptionChoices: true,
+)
+sealed class Dialogue_04710e14bb7d : Dialogue {
+  @primary
+  Outpost Value_11052ab5b643 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+
+  @id("d8c2fc74-0464-55c1-8a24-7651c453037a")
+  void NeoFunction_a2f4f433f82e571a8b74b5f4e0ed95dd() {
+    Value_11052ab5b643.Save.Unlocked = true;
+  }
+
+  @id("80bcec65-816e-524d-9e4c-2e4a5f092602")
+  void NeoFunction_4b286512cfa6593099e2833fed3dc5c1() {
+    if (root.Save.Quest.Stage == QuestStage.arrival) { root.Save.Quest.Stage = QuestStage.followTheWakes; }
+  }
+
+  @id("87461e6d-5b4b-51ec-b1fa-e7baf8a1373c")
+  void NeoFunction_abf64b18a5e95940af4c88df3c50bea3() {
+    Value_11052ab5b643.Save.Unlocked = true;
+  }
+
+  @id("legacy-function:640bc771-6f2c-46b0-9b9f-4d8eababb6b2")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native void Action7();
+
+  @id("legacy-function:82701398-39e0-4178-9315-ec1ee8f2d129")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native void Action9();
+
+  @id("c75306da-5ca6-4301-83e0-e472b2f065ce")
+  override Trigger Trigger = new(
+    group: Introductions.Urgent,
+    order: 0,
+    limit: 1,
+  ) => Node_b51e9009b349;
+
+  @id("39a5ee9e-fab9-4728-9dcf-3b9f71c97276")
+  Text Node_2878f58333ef = new(
+    name: "mx1",
+  ) {
+    @primary
+    Outpost Value_a33cbec37dcc = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    A Hand not of Light draweth from the corona. It rideth the flare-wakes outward, past the Wanderers, into the Deep Current. Follow the wakes, seeker, and thou shalt find the Spender.
+    """
+  
+    return Node_2430235bc5df;
+  }
+
+  @id("bb9cab7b-be5b-4464-a9fd-99b4582d3716")
+  Actions Node_b5ae028c5d57 = new(
+    name: "Increase rep",
+  ) {
+    @primary
+    Outpost Value_89c11873ac67 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    @id("82701398-39e0-4178-9315-ec1ee8f2d129")
+    Action9();
+  
+    return Node_072ccbdc1a32;
+  }
+
+  @id("70d647e0-09f6-4537-9576-b876550c13d2")
+  Text Node_b51e9009b349 = new(
+    name: "Hello",
+  ) {
+    @primary
+    Outpost Value_894f49f24b96 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    Light graces you, brave traveler. We've been expecting you.
+    """
+  
+    @id("c21e9a69-facc-4ccc-b108-362f84011aba")
+    Option Option_73557ca1bab4 = new(
+      name: "Surprise",
+    ) {
+      """
+      You've been <i>expecting </i>me?
+      """
+    
+      return Node_bdae74add698;
+    }
+  
+    @id("577544d5-d515-470f-9bdb-17d998d7e7d0")
+    Option Option_f72b1f7d35d8 = new(
+      name: "Doubt",
+    ) {
+      """
+      I bet you say that to everyone
+      """
+    
+      return Node_8b2d9d305d89;
+    }
+  }
+
+  @id("ce3058ab-c8a3-4460-abb8-56428fcd87fe")
+  Text Node_072ccbdc1a32 = new(
+    name: "Asketh",
+  ) {
+    @primary
+    Outpost Value_d3b344851dec = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    Light Shines its abundance on Mercurial. Ask that which hath evadeth you in Darker realms.
+    """
+  
+    @id("7a2031fb-f402-4f66-bc2d-998d2ee48ab6")
+    Option Option_b803b19c8d99 = new(
+      name: "Cosmic",
+    ) {
+      """
+      There are reports of cosmic disturbances
+      """
+    
+      return Node_dfcba44173f9;
+    }
+  
+    @id("fe7da25d-d51c-4435-82de-3cf16520dcdf")
+    Option Option_def949316185 = new(
+      name: "Accuse",
+    ) {
+      """
+      I know you have been causing the solar flares <i>(Lie)</i>
+      """
+    
+      return Node_72839165a98a;
+    }
+  }
+
+  @id("53533587-0a22-4c28-8c63-0f9f71e5a65a")
+  Text Node_167a73e246fd = new(
+    name: "mx4",
+  ) {
+    @primary
+    Outpost Value_efa0c9d211d2 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    Begin where vanity shineth — Venus. And where stone remembereth — Mars. The Light goeth with thee, seeker. Spend it well.
+    """
+  }
+
+  @id("c0a52f57-4a5b-440a-9069-ac5ec1ef92ec")
+  Text Node_601ab0bb03da = new(
+    name: "mx2",
+  ) {
+    @primary
+    Outpost Value_4ffcd0e20e0f = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    When Sun hath given all it may, it giveth all at once. Red Nova is the last gift, the bright goodbye. It was not yet Time — unless the Spender maketh it so.
+    """
+  
+    return Node_2878f58333ef;
+  }
+
+  @id("440a56f1-27f1-412c-9ef5-2d39aba04a52")
+  Text Node_dfcba44173f9 = new(
+    name: "Cosmos crieth",
+  ) {
+    @primary
+    Outpost Value_2e6c11d7f9db = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    Aye, Cosmos crieth out through the Light. It was not Time for Red Nova, yet Time disturbeth all until Nova come.
+    """
+  
+    @id("83a11bd5-e0df-4675-940d-e411bc92d0a5")
+    Option Option_84c3720fbcee = new(
+      name: "Who",
+    ) {
+      """
+      Who spendeth the Sun before its Time?
+      """
+    
+      return Node_2878f58333ef;
+    }
+  
+    @id("d6e9a342-351d-4ca3-bc67-fec19a979221")
+    Option Option_6d09277dc2b3 = new(
+      name: "Prophecy",
+    ) {
+      """
+      What is the Red Nova?
+      """
+    
+      return Node_601ab0bb03da;
+    }
+  }
+
+  @id("9a3a071b-2f56-41db-a8d2-fc0e727d1663")
+  Text Node_8b2d9d305d89 = new(
+    name: "Sun offers light",
+  ) {
+    @primary
+    Outpost Value_e83f6e8467d4 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    The Sun offereth its Light freely, but it cannot reach those inclined to Darkness.
+    """
+  
+    @id("ec77f515-6f67-4c6e-8071-c67e3941193c")
+    Option Option_e4deefc32bf7 = new(
+      name: "Fair",
+    ) {
+      """
+      Fair enough. Well, I am looking for some information.
+      """
+    
+      return Node_072ccbdc1a32;
+    }
+  
+    @id("4180d4be-1858-4e98-992e-acf54b7f8fac")
+    Option Option_0e0a42f30dd5 = new(
+      name: "Rude",
+    ) {
+      """
+      Aren't you blind? Sounds pretty dark to me...
+      """
+    
+      return Node_0b524751f724;
+    }
+  }
+
+  @id("0d9ad299-b9b6-4a6a-9d44-d40ca94d77d6")
+  Text Node_bdae74add698 = new(
+    name: "Sun shineth",
+  ) {
+    @primary
+    Outpost Value_71a6adf12200 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    Sun shineth for those that seeketh.
+    """
+  
+    @id("448f16cd-7284-448b-90c4-f4fed1934c22")
+    Option Option_cf96804d48ae = new(
+      name: "Seeketh",
+    ) {
+      """
+      Well, I indeed was sent here to seeketh knowledge.
+      """
+    
+      return Node_b5ae028c5d57;
+    }
+  
+    @id("0bc6c92e-beaa-45b4-a5c2-7b12bc34b129")
+    Option Option_d6cfa15f9289 = new(
+      name: "Mock",
+    ) {
+      """
+      Does the sun shineth for those that seeketh to be blind?
+      """
+    
+      return Node_0b524751f724;
+    }
+  }
+
+  @id("50173bd6-451c-4cc2-9227-b14af9400e01")
+  Actions Node_0b524751f724 = new(
+    name: "Decrease rep",
+  ) {
+    @primary
+    Outpost Value_35e559b75942 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    @id("640bc771-6f2c-46b0-9b9f-4d8eababb6b2")
+    Action7();
+  
+    return Node_72839165a98a;
+  }
+
+  @id("763f2a05-38e3-4e93-b377-b85e0c94b329")
+  Text Node_72839165a98a = new(
+    name: "Light to dark",
+  ) {
+    @primary
+    Outpost Value_81061786b486 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    Ah, so the Light has chosen Darkness as its vessel. Alas, all Light goes Dark in time. 
+    """
+  
+    @id("9f77e6c6-24d1-41e1-91cb-f968f943f4f8")
+    Option Option_2dcfa5aa27a9 = new(
+      name: "Okay",
+    ) {
+      """
+      Uh, okay...
+      """
+    
+      return Node_072ccbdc1a32;
+    }
+  }
+
+  @id("2864cab4-38c1-4bb3-915b-48e52025bab3")
+  Actions Node_2be9b3c26ebe = new(
+    name: "mx3b",
+  ) {
+    Outpost Value_0cada8f6799a = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    @primary
+    Outpost Value_895bd2f8bd28 = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
+  
+    @id("9387357d-21f5-4b29-87fe-9b28d081573d")
+    NeoFunction_a2f4f433f82e571a8b74b5f4e0ed95dd();
+  
+    @id("c92be1f7-4d45-4a52-80f3-7ac16949ab7b")
+    NeoFunction_4b286512cfa6593099e2833fed3dc5c1();
+  
+    return Node_167a73e246fd;
+  }
+
+  @id("4ad9e8a1-d99d-4fa0-836b-102abc91900b")
+  Actions Node_2430235bc5df = new(
+    name: "mx3a",
+  ) {
+    Outpost Value_06092fa92cca = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    @primary
+    Outpost Value_329eb58ec606 = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
+  
+    @id("c303f726-41d9-4ee8-9c65-0397c902b7a6")
+    NeoFunction_abf64b18a5e95940af4c88df3c50bea3();
+  
+    return Node_2be9b3c26ebe;
+  }
+}

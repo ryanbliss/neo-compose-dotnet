@@ -1,0 +1,15 @@
+@id("e8f566bf-e173-4634-bc74-d4bbc9685db4")
+@system(disallow: [.DeleteRecord], reason: "Every project needs a default dialogue priority group.")
+PriorityGroup Default = new() {
+  @id("dea5cd10-d2dd-4681-a372-c66a1ca60f43")
+  PriorityOption Urgent = new();
+
+  @id("90a9ef4a-7555-46db-b639-f3876eb4d3e2")
+  PriorityOption High = new();
+
+  @id("4a10ea58-0ba6-49a9-b4ad-179980fcb50c")
+  PriorityOption Medium = new();
+
+  @id("b9198323-3c40-497b-b997-02d7d2b7b32a")
+  PriorityOption Low = new();
+}

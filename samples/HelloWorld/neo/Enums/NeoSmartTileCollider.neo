@@ -1,0 +1,9 @@
+@id("6ff1b376-1b30-449d-8439-d822be95cec1")
+enum NeoSmartTileCollider {
+  @id("None")
+  None,
+  @id("Sprite")
+  Sprite,
+  @id("Grid")
+  Grid,
+}

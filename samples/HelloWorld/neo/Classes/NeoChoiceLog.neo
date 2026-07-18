@@ -1,0 +1,9 @@
+@id("af5795d0-e019-4776-8b7c-d0206f90d59f")
+@system(disallow: [.EditRecord, .DeleteRecord], reason: "Generated dialogue memory schema required by the Neo Compose dialogue runtime.")
+class NeoChoiceLog {
+  @id("dd65f671-aedb-4c17-8849-1a3290b5c4d0")
+  @locked
+  @settings(localizable: true)
+  @system(disallow: [.EditRecord, .DeleteRecord], reason: "Generated dialogue memory schema required by the Neo Compose dialogue runtime.")
+  virtual string ChoiceId = "48020dd6-3fb9-4b73-98be-fba38e00285b";
+}

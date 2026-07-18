@@ -1,0 +1,9 @@
+@id("neo-tile-grid-record-relations-v1-class-c0ae01529031e2de38dc078687d59140")
+@relations(
+  targetLayer:
+    @id("neo-tile-grid-record-relations-v1-relation-5a8db36d51aaac0858eb4a03bff7c1dd")
+    CollisionTileLayer
+)
+class CollisionsTileLayerLink : NeoTileLayerLink {
+
+}

@@ -1,0 +1,11 @@
+@id("a2d44a04-35a6-4529-8fd2-f54a55cf518b")
+enum JupiterMoon {
+  @id("io")
+  io,
+  @id("europa")
+  europa,
+  @id("ganymede")
+  ganymede,
+  @id("callisto")
+  callisto,
+}

@@ -1,5 +1,0 @@
-string FullDisplayText(SaturnOutpost this, Root root) {
-	get {
-		return $"{this.Name}, {this.Moon}, {this.Planet}";
-	}
-}

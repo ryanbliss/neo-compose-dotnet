@@ -1,5 +1,1 @@
 .neo/
-bin/
-obj/
-
-!NeoCompose.Schema.csproj

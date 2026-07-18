@@ -1,0 +1,131 @@
+@id("ac09da54-857f-4981-8ccf-942e5cfa8d85")
+@settings(
+  name: "Caelus Anchorpoint intro",
+  description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  saveOptionChoices: true,
+)
+sealed class Dialogue_486e95364248 : Dialogue {
+  @primary
+  Outpost Value_83e2f944ce90 = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+
+  @id("8028c6aa-5f4e-55c2-91d8-29a320b7058b")
+  void NeoFunction_578e85757499518897a226322d2e098a() {
+    root.Save.Inventory.Add(Value_83e2f944ce90);
+  }
+
+  @id("d4903d53-600a-5d4a-a092-3fec63f7a93e")
+  void NeoFunction_335c4f7569dc5957a3b2de2a82b896cc() {
+    Value_83e2f944ce90.Save.Unlocked = true;
+  }
+
+  @id("3e2cb735-460d-4893-a1ff-de3dc0e21d14")
+  override Trigger Trigger = new(
+    group: Introductions.Urgent,
+    order: 0,
+    limit: 1,
+  ) => Node_f4bcda732048;
+
+  @id("1de676c2-b398-4898-b852-e92d07ff1310")
+  Text Node_f4bcda732048 = new(
+    name: "c1",
+  ) {
+    @primary
+    Outpost Value_7b138a4991a8 = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    """
+    Welcome to Caelus Anchorpoint. Yes, the station is sideways. No, we will not fix it. How can we help?
+    """
+  
+    @id("4ccd8ff7-62ee-4663-97a8-3ac6696afd57")
+    Option Option_c982ac1b12a7 = new(
+      name: "Logs",
+    ) {
+      """
+      I need your relay logs — command bursts headed to Neptune.
+      """
+    
+      return Node_134c57e12342;
+    }
+  
+    @id("c55728aa-be40-4efc-93f9-41839d1a5f82")
+    Option Option_1bea191cb242 = new(
+      name: "Joke",
+    ) {
+      """
+      How do you even pour coffee sideways?
+      """
+    
+      return Node_3e49a98dda7e;
+    }
+  }
+
+  @id("0b96f7d5-aa57-430b-b739-aa18d145449e")
+  Text Node_3e49a98dda7e = new(
+    name: "c2j",
+  ) {
+    @primary
+    Outpost Value_c15311073c7d = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    """
+    Carefully. ...You want the relay logs. They all do, eventually. You'd think we were the only honest router in the outer system. We are.
+    """
+  
+    return Node_134c57e12342;
+  }
+
+  @id("7f5434c7-ec9b-4bfa-982f-c381e3e6f4cb")
+  Text Node_134c57e12342 = new(
+    name: "c2",
+  ) {
+    @primary
+    Outpost Value_725524ae24b5 = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    """
+    Command bursts to the Gyre Collective every six hours, origin masked. But the BILLING ledger isn't masked, and every account roots back to one rock: Pluto.
+    """
+  
+    return Node_440c305d9e9b;
+  }
+
+  @id("5bc3a377-c75c-4cf6-b67f-e81ffac16f71")
+  Actions Node_440c305d9e9b = new(
+    name: "c3",
+  ) {
+    @primary
+    Outpost Value_a09a231b981b = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
+  
+    Outpost Value_c2affecd1ca9 = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    @id("05dbfa2e-e7f1-466f-9541-353970a844b1")
+    NeoFunction_335c4f7569dc5957a3b2de2a82b896cc();
+  
+    return Node_96b265c2b6de;
+  }
+
+  @id("094a1fd8-c313-4a18-a898-d2b31327c633")
+  Text Node_ae3cfde7ff07 = new(
+    name: "c4",
+  ) {
+    @primary
+    Outpost Value_3305a8560f75 = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    """
+    Take a gyro stabilizer — Neptune's storms chew up dirtsider ships for breakfast. And traveler? Whatever the Gyre is building out there, the invoices say it's nearly finished.
+    """
+  }
+
+  @id("2502a650-e6cb-42e7-ac68-444808062b25")
+  Actions Node_96b265c2b6de = new(
+    name: "grant Gyro Stabilizer",
+  ) {
+    @primary
+    Item Value_deeb717e9c4b = Reference<Item>(id: "73a11098-70fa-4608-bfb6-0ab25571e576");
+  
+    Outpost Value_5aa8741600c1 = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    @id("afd16a0e-16f3-4317-914b-eb83acdbcd44")
+    NeoFunction_578e85757499518897a226322d2e098a();
+  
+    return Node_ae3cfde7ff07;
+  }
+}

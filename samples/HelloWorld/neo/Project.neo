@@ -1,0 +1,4 @@
+Project Project = new(
+  defaultTextureTemplate: PivotCenter16x16,
+  defaultPriorityGroup: Default,
+);

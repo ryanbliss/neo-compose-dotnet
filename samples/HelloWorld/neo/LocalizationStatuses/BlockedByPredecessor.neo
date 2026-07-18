@@ -1,0 +1,12 @@
+@id("localization-status-blocked-by-predecessor")
+LocalizationStatus BlockedByPredecessor = new(
+  slug: "blocked-by-predecessor",
+  name: "Blocked by predecessor",
+  description: "A source locale earlier in the fallback chain needs attention first.",
+  color: null,
+  emoji: "🛑",
+  archivedAt: null,
+  transitionRules: null,
+  transitionOnTextEdit: NeedsReview,
+  transitionWhenSourceBecomes: BlockedByPredecessor,
+);

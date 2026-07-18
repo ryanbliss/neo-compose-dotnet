@@ -1,0 +1,19 @@
+@id("8ccfe860-309f-428b-b74c-76a873bdea8a")
+class OutpostSaveData {
+  @id("5a4d8d10-9fef-4197-a7a1-1dc1b112677b")
+  virtual bool Unlocked = false;
+
+  @id("0c02e45d-bb5b-44c3-8b48-91fa75171ff2")
+  virtual bool Visited {
+    get {
+      return this.VisitCount > 0;
+    }
+  }
+
+  @id("68cd6fe1-7683-4c67-8030-acd6334f77a2")
+  @settings(min: 0)
+  virtual int VisitCount = 0;
+
+  @id("1d1d14bc-987e-4079-a8f8-09998d5954fc")
+  virtual int Reputation = 0;
+}

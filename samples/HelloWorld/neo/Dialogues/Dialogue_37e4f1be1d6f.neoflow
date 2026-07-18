@@ -1,0 +1,131 @@
+@id("c5efb7ea-bd7d-4640-876f-21df7047e01e")
+@settings(
+  name: "Pour Lords intro",
+  description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  saveOptionChoices: true,
+)
+sealed class Dialogue_37e4f1be1d6f : Dialogue {
+  @primary
+  Outpost Value_526fa128f131 = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+
+  @id("bf3d2967-dc54-5454-84e4-a442c8d4be33")
+  void NeoFunction_18c09f5fbcba5177a4b27e3093089fbc() {
+    root.Save.Inventory.Add(Value_526fa128f131);
+  }
+
+  @id("5621fbd1-3998-5538-93a7-7a3ee18cb346")
+  void NeoFunction_7876769e79145a8f9f918d01d820c09c() {
+    Value_526fa128f131.Save.Unlocked = true;
+  }
+
+  @id("e27ab43e-b0d2-4bc3-a0df-1bbe28cbb101")
+  override Trigger Trigger = new(
+    group: Introductions.Urgent,
+    order: 0,
+    limit: 1,
+  ) => Node_59f13bcec4b1;
+
+  @id("497ff204-2e39-4a9d-a997-452e0aa2989d")
+  Text Node_59f13bcec4b1 = new(
+    name: "p1",
+  ) {
+    @primary
+    Outpost Value_ac0e3b891fd5 = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    WELL, WELL. A dirtsider at the Pour Lords' table. We sell fuel, friend. Power, by the liter. What's your poison?
+    """
+  
+    @id("de638d27-5f42-4767-ba5c-a2ed8cf1e997")
+    Option Option_32e900f7fe35 = new(
+      name: "Direct",
+    ) {
+      """
+      Who's buying enough fuel to drain a star?
+      """
+    
+      return Node_10d3be70d492;
+    }
+  
+    @id("1d2cf6c1-f288-4a04-a89e-35b2f1fb7074")
+    Option Option_464955da3353 = new(
+      name: "Flatter",
+    ) {
+      """
+      Impressive operation. The whole system runs on you.
+      """
+    
+      return Node_862f43baf391;
+    }
+  }
+
+  @id("80dd7c1e-7f43-4b72-bd01-c22798fd9de0")
+  Text Node_862f43baf391 = new(
+    name: "p2f",
+  ) {
+    @primary
+    Outpost Value_bcecc2b4c587 = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    FINALLY, someone with taste. For that, you get a straight answer — a rare vintage around here:
+    """
+  
+    return Node_10d3be70d492;
+  }
+
+  @id("318e544c-a076-460b-990c-73078f9ec034")
+  Text Node_10d3be70d492 = new(
+    name: "p2",
+  ) {
+    @primary
+    Outpost Value_1eeba2fe908b = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    We don't drain the sun — we WISH we could, the margins would be obscene. But someone's been underselling us solar condensate at half rate. Brokered through Titan. Always anonymous. It's embarrassing, frankly.
+    """
+  
+    return Node_c08c41418ecc;
+  }
+
+  @id("de9d7ade-4353-43d7-b704-7e5a5e0504ad")
+  Actions Node_c08c41418ecc = new(
+    name: "p3",
+  ) {
+    @primary
+    Outpost Value_e299645bdcb9 = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
+  
+    Outpost Value_c1523eb97fed = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    @id("b9664f53-e3a6-4cff-b88b-d0dac313d46f")
+    NeoFunction_7876769e79145a8f9f918d01d820c09c();
+  
+    return Node_b60f2b2120b2;
+  }
+
+  @id("1fb19902-62aa-4900-82f0-d5c4a5a17a03")
+  Text Node_44be39ca7dbd = new(
+    name: "p4",
+  ) {
+    @primary
+    Outpost Value_d62a1558798d = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    Helium-3, on the house. Ask the smugglers on Titan who signs the condensate manifests. And tell them the Lords want a better rate.
+    """
+  }
+
+  @id("554fd5b3-d99f-4d66-b7ea-3f1b0de5b610")
+  Actions Node_b60f2b2120b2 = new(
+    name: "grant Helium-3 Flask",
+  ) {
+    @primary
+    Item Value_badddb920a66 = Reference<Item>(id: "18b9a621-ea41-4ac7-8a46-9cc443f2b480");
+  
+    Outpost Value_e241aab8fe2b = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    @id("dac725ea-a192-4c36-9593-4c5542dc6d3f")
+    NeoFunction_18c09f5fbcba5177a4b27e3093089fbc();
+  
+    return Node_44be39ca7dbd;
+  }
+}

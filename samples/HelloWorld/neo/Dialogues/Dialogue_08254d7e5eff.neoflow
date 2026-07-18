@@ -1,0 +1,162 @@
+@id("9a0fd022-08ea-4bc1-a13d-302308f76900")
+@settings(
+  name: "Capitol: the Old Console",
+  saveOptionChoices: true,
+)
+sealed class Dialogue_08254d7e5eff : Dialogue {
+  @primary
+  Outpost Value_900e897d2825 = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+
+  @id("a27fb754-2f4a-59b1-94e9-1a189446f334")
+  void NeoFunction_5bb9bb7a464e5898bdad9da4d63df529() {
+    root.Save.Inventory.Remove(Value_900e897d2825);
+  }
+
+  @id("f6bd0417-4f00-5f98-b1f2-3bb56d173938")
+  bool NeoFunction_74024eb085305a32aa4edc8458f8a5f2() {
+    return root.Save.Quest.Stage == QuestStage.vaultOpen && root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == "fec825b2-2449-4ae2-a4bd-b29f8cf73e3c"; }));
+  }
+
+  @id("add23745-9e97-5fce-90d1-4707dee6e5bf")
+  void NeoFunction_acbe0471127e5150ada3392c76ee2cdc() {
+    Value_900e897d2825.ShowRelic();
+  }
+
+  @id("5525313e-a37c-56b2-838c-5145e4b5383b")
+  void NeoFunction_7af236d7e39c5edaa82ff25a9de48154() {
+    root.Save.Quest.Stage = QuestStage.endgame;
+  }
+
+  @id("5ef0d5a1-5d62-4533-82e8-91775954c831")
+  override Trigger Trigger = new(
+    group: Visits.High,
+    order: 1,
+    when: [
+    @id("d8922469-b568-5854-a4f2-470b1c98c8a9")
+    NeoFunction_74024eb085305a32aa4edc8458f8a5f2,
+  ],
+    limit: 1,
+  ) => Node_07693829fb02;
+
+  @id("48742087-af52-4be7-b5d1-e11102d134dc")
+  Text Node_e11f85a6fc88 = new(
+    name: "o3",
+  ) {
+    @primary
+    Outpost Value_1c5d24bcc945 = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    """
+    The Patriarch closes his eyes: 'The counting ended, and we remained.' The Forewoman checks her sums twice. The Regent just smiles, like a man whose deletion is finally relevant. The world overflowed, traveler. The resets are failing. That's why you remember every run — and why, this time, everything gets to MATTER.
+    """
+  
+    @id("7e1656d4-43ee-4753-b9d8-677e510c5695")
+    Option Option_c554728821c7 = new(
+      name: "Ready",
+    ) {
+      """
+      Then let's decide what happens next.
+      """
+    
+      return Node_e9caccc2944c;
+    }
+  }
+
+  @id("faa12773-5350-4cc9-a95e-6055e95192b2")
+  Text Node_924aa823bf76 = new(
+    name: "o2",
+  ) {
+    @primary
+    Outpost Value_7e742e736db9 = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    """
+    'HELLO, WORLD!' That's all it says. The first artifact of existence, and it's a greeting — OUR greeting, the one the Capitol's said to every visitor since the beginning. The terminal below it is still running. One number, incrementing nowhere: RUN #2,147,483,648.
+    """
+  
+    @id("10ce05eb-6a68-401d-af0e-6e2ba395fc1a")
+    Option Option_73c0caf9f091 = new(
+      name: "Overflow",
+    ) {
+      """
+      That number... it's one past the largest count the world can hold.
+      """
+    
+      return Node_e11f85a6fc88;
+    }
+  }
+
+  @id("4c20c2cd-5f45-4a36-8306-adbf77e77ca3")
+  Text Node_600d872e5a12 = new(
+    name: "o5",
+  ) {
+    @primary
+    Outpost Value_92dcbc0bf9b3 = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    """
+    The terminal blinks, patient as scripture: AWAITING FINAL OUTPUT_ Behind you the Abyssal Lantern gutters out, its oil spent. Its work is done.
+    """
+  }
+
+  @id("5e9f8668-2b30-409d-847a-415ea5048948")
+  Actions Node_2909df4c5959 = new(
+    name: "o4 (2)",
+  ) {
+    Outpost Value_384ea94b1609 = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    @primary
+    Item Value_b0daee44e52a = Reference<Item>(id: "fec825b2-2449-4ae2-a4bd-b29f8cf73e3c");
+  
+    @id("282bb874-fa3b-4e07-a9b0-4ae2cd382d33")
+    NeoFunction_5bb9bb7a464e5898bdad9da4d63df529();
+  
+    return Node_600d872e5a12;
+  }
+
+  @id("cba4d16d-bc15-424a-a534-a4fc0c50aadf")
+  Actions Node_e9caccc2944c = new(
+    name: "o4",
+  ) {
+    @primary
+    Outpost Value_a18a860a96d2 = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    @id("7417de5a-516c-4c42-85cc-0407364ee475")
+    NeoFunction_7af236d7e39c5edaa82ff25a9de48154();
+  
+    return Node_2909df4c5959;
+  }
+
+  @id("5df7e0e9-5d18-4bb7-957d-70c6f1c6c319")
+  Text Node_07693829fb02 = new(
+    name: "o1",
+  ) {
+    @primary
+    Outpost Value_d2e66d2bbd99 = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    """
+    The lantern holds. Down the shaft — your pitons would've saved an hour on those dead stairs — past pipes labeled in no alphabet, into a room that hums like the corn. A brass plaque. A terminal. And three people who got here first.
+    """
+  
+    @id("843ec6c4-19fb-4608-b649-c691e8353c97")
+    Option Option_cef22a286eb7 = new(
+      name: "Plaque",
+    ) {
+      """
+      Read the plaque.
+      """
+    
+      return Node_1a65531ff752;
+    }
+  }
+
+  @id("8726230d-5d4a-4002-9596-05038b7c0fc4")
+  Actions Node_1a65531ff752 = new(
+    name: "show relic",
+  ) {
+    @primary
+    Outpost Value_b7bea70f6f25 = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    @id("c6446a36-18f6-46ef-8f22-39766fac12a0")
+    NeoFunction_acbe0471127e5150ada3392c76ee2cdc();
+  
+    return Node_924aa823bf76;
+  }
+}

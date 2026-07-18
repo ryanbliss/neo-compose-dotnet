@@ -1,0 +1,13 @@
+@id("d0b44688-28ab-44ba-b2a1-5cdad0f51e50")
+enum WorldEnding {
+  @id("commentOut")
+  commentOut,
+  @id("goodbyeWorld")
+  goodbyeWorld,
+  @id("helloWorld")
+  helloWorld,
+  @id("none")
+  none,
+  @id("secondSun")
+  secondSun,
+}

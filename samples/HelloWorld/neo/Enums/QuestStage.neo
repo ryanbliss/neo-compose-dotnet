@@ -1,0 +1,15 @@
+@id("a5c2a3f4-f91a-4878-bec0-a38b432ad762")
+enum QuestStage {
+  @id("arrival")
+  arrival,
+  @id("ended")
+  ended,
+  @id("endgame")
+  endgame,
+  @id("followTheWakes")
+  followTheWakes,
+  @id("threePaths")
+  threePaths,
+  @id("vaultOpen")
+  vaultOpen,
+}

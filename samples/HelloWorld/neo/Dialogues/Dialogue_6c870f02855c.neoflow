@@ -1,0 +1,237 @@
+@id("0a535f0b-c85b-4a2c-a97f-724dda757726")
+@settings(
+  name: "Mercurial: the countdown verses",
+  saveOptionChoices: true,
+)
+sealed class Dialogue_6c870f02855c : Dialogue {
+  @primary
+  Outpost Value_f1d72074e696 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+
+  @id("d5e0c186-0500-5f1e-be57-c988d784dab6")
+  void NeoFunction_6ad31049e685521f8be1178b80a88e65() {
+    Value_f1d72074e696.Save.Reputation -= 1;
+  }
+
+  @id("cb82f5cf-188d-5e6d-95e2-8611f29b8560")
+  bool NeoFunction_29731a3a7d9a5f979c1b6ba1854d4c0c() {
+    return (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes) && !root.Save.Quest.EvidenceFaith && Value_f1d72074e696.Save.Reputation >= 0;
+  }
+
+  @id("6cdfbf49-82f4-5a24-8854-c82040d54880")
+  void NeoFunction_4cf98b5a73aa5087af846b6c04e70d38() {
+    if (root.Save.Quest.Stage == QuestStage.followTheWakes) { root.Save.Quest.Stage = QuestStage.threePaths; }
+  }
+
+  @id("ce7bcbae-4538-5aa9-ab21-c27e8bd4b783")
+  void NeoFunction_e6a2862bba255805906f3288b44c1a01() {
+    root.Save.Quest.EvidenceFaith = true;
+  }
+
+  @id("d3ec0929-ed76-55d8-b5ca-8d858f4054d1")
+  void NeoFunction_ca70b8d6b72659c7863f8dc4642b020f() {
+    Value_f1d72074e696.Save.Reputation += 1;
+  }
+
+  @id("d95c73df-d91a-5d99-b4f7-d8b767b6d80d")
+  void NeoFunction_cf154be5a1c05a2ea75a2a457afbd0b9() {
+    root.Save.Inventory.Remove(Value_f1d72074e696);
+  }
+
+  @id("f9707091-5cdc-5bee-a08b-e3c697e433e5")
+  void NeoFunction_398638a0021858e0b6c06a8661edce56() {
+    Value_f1d72074e696.Save.Reputation += 1;
+  }
+
+  @id("aa69fac3-2deb-5f39-9e41-48d8627407e2")
+  bool NeoFunction_012d66b14ccb5717a4b648d81a85b47b() {
+    return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == "a840747f-9d6b-4d71-af3a-16b294ec436d"; }));
+  }
+
+  @id("21ed3382-2b74-4538-bb6e-f9090c09478b")
+  override Trigger Trigger = new(
+    group: Visits.High,
+    order: 0,
+    when: [
+    @id("fe5e8099-d429-53a9-9d71-5288e90cc818")
+    NeoFunction_29731a3a7d9a5f979c1b6ba1854d4c0c,
+  ],
+    limit: 1,
+  ) => Node_d9348b402fe5;
+
+  @id("c83c7f96-f99f-402f-a68b-6b2f9dc63563")
+  Actions Node_32f9b39fee89 = new(
+    name: "m3w",
+  ) {
+    @primary
+    Outpost Value_39a7c10e91be = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    @id("971102a4-7180-450a-b84c-482f5fd74bed")
+    NeoFunction_398638a0021858e0b6c06a8661edce56();
+  
+    return Node_dc38f930f0b7;
+  }
+
+  @id("e9e34f80-92f8-4dd0-a008-9143c94f265c")
+  Text Node_d751fb1ac2af = new(
+    name: "m2",
+  ) {
+    @primary
+    Outpost Value_fa49e43d40be = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    'Ten the gates of warmth. Nine the wells sealed. Eight the breath withdrawn...' Thou hearest it too. The holy verses COUNT, seeker. Downward. And between the seventh and sixth verse, words our tongues were never shaped for: 'TODO — handle exit gracefully.'
+    """
+  
+    @id("ba08b005-a440-42ba-b74f-09574da3ec01")
+    Option Option_a5c042156cfd = new(
+      name: "Truth",
+    ) {
+      """
+      Your scripture is the world's README. You've guarded the truth all along.
+      """
+    
+      return Node_32f9b39fee89;
+    }
+  
+    @id("02a56aa5-7bc1-439c-8b6b-4b5abc7e9f9d")
+    Option Option_c01e376ef84d = new(
+      name: "Pity",
+    ) {
+      """
+      You worshipped an instruction manual.
+      """
+    
+      return Node_6a73f9670ee4;
+    }
+  }
+
+  @id("2d2e5053-2cc8-4eba-a8c4-32ea56582f3a")
+  Actions Node_dc38f930f0b7 = new(
+    name: "m4",
+  ) {
+    @primary
+    Outpost Value_ffe251134816 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    @id("b8af3b74-e7d3-43c3-a0d1-20f70b8d5b97")
+    NeoFunction_4cf98b5a73aa5087af846b6c04e70d38();
+  
+    @id("9180d76c-fd46-4778-9dc7-a40cafd7a2e7")
+    NeoFunction_e6a2862bba255805906f3288b44c1a01();
+  
+    return Node_1840a2780b34;
+  }
+
+  @id("0606fbb4-c9c9-43b4-a63d-c1ee1e86bc4e")
+  Actions Node_6a73f9670ee4 = new(
+    name: "m3c",
+  ) {
+    @primary
+    Outpost Value_0898d3cbbbc3 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    @id("5f5a90dc-2f86-4b5e-b6c4-154e65119c3b")
+    NeoFunction_6ad31049e685521f8be1178b80a88e65();
+  
+    return Node_dc38f930f0b7;
+  }
+
+  @id("78043415-1cea-43c4-9c53-a6e9dd33f338")
+  Text Node_ee1617762de0 = new(
+    name: "m5",
+  ) {
+    @primary
+    Outpost Value_32687fcb26c3 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    The Light does not mind being understood, seeker. When the counting ends, remember: the verses were never a prophecy. They were a shutdown sequence.
+    """
+  }
+
+  @id("ab36a12a-b2a3-47d3-b8de-39b12cccf112")
+  Text Node_d9348b402fe5 = new(
+    name: "m1",
+  ) {
+    @primary
+    Outpost Value_6383e819d63f = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    Seeker. The Patriarch will read thee the Red Nova verses in canonical order. Few outsiders hear them ordered. Sit in the Light.
+    """
+  
+    @id("c49bdd5c-7478-4980-8c80-89becbd87935")
+    Option Option_5c28dbc3e085 = new(
+      name: "Sit",
+    ) {
+      """
+      I'm listening.
+      """
+    
+      return Node_d751fb1ac2af;
+    }
+  }
+
+  @id("fa16e98b-5a0b-4d9f-8cd8-6cc588fb4765")
+  Text Node_1840a2780b34 = new(
+    name: "m4ask",
+  ) {
+    @primary
+    Outpost Value_9ed39ac139c2 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    The Patriarch folds the verses into your hands. Up close, his sun-burns glisten — decades of staring into the Light.
+    """
+  
+    @id("2c938d29-8bea-49b5-bb46-31eb4401801d")
+    Option Option_e148e79b36e6 = new(
+      name: "Anoint",
+      selectableWhen: [
+      @id("7a17c8c5-e9d4-581f-b450-3756199f1e82")
+      NeoFunction_012d66b14ccb5717a4b648d81a85b47b,
+    ],
+    ) {
+      """
+      Anoint his burns with the Cryo Salve
+      """
+    
+      return Node_6f10166d3cba;
+    }
+  
+    @id("2c6c6535-500d-4661-b3d4-c71b3c74ac52")
+    Option Option_b57347c63c56 = new(
+      name: "Leave",
+    ) {
+      """
+      Take the verses and go
+      """
+    
+      return Node_ee1617762de0;
+    }
+  }
+
+  @id("3d5754bd-42e8-40fb-ae7a-444369685dce")
+  Actions Node_7b6782fb99cf = new(
+    name: "give salve (2)",
+  ) {
+    @primary
+    Outpost Value_3e5b391a1db0 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    @id("955ed726-bf4e-494f-b3c7-1f72d7eedb55")
+    NeoFunction_ca70b8d6b72659c7863f8dc4642b020f();
+  
+    return Node_ee1617762de0;
+  }
+
+  @id("6708d73c-0372-4c29-9efa-fb1fb55ea566")
+  Actions Node_6f10166d3cba = new(
+    name: "give salve",
+  ) {
+    Outpost Value_7fec67f8f39b = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    @primary
+    Item Value_900f1b5de253 = Reference<Item>(id: "a840747f-9d6b-4d71-af3a-16b294ec436d");
+  
+    @id("10ccafed-a3aa-44c9-8ee1-ed94d0f172f2")
+    NeoFunction_cf154be5a1c05a2ea75a2a457afbd0b9();
+  
+    return Node_7b6782fb99cf;
+  }
+}

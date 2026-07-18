@@ -1,0 +1,146 @@
+@id("1e787e7d-a6cc-454c-bfa4-49b493f2d683")
+@settings(
+  name: "Caelus: the relay key",
+  saveOptionChoices: true,
+)
+sealed class Dialogue_1198f9f26677 : Dialogue {
+  @primary
+  Outpost Value_a52503e02bf5 = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+
+  @id("2d28ad1e-f4e2-5885-b325-b2d888d0fb1a")
+  void NeoFunction_3baa6049d9dd5559924911b99354c39d() {
+    root.Save.Inventory.Remove(Value_a52503e02bf5);
+  }
+
+  @id("787ad654-fd22-5f34-bbe2-a77b681ac11a")
+  bool NeoFunction_ab833a0dcc615f0291780acb27929b2b() {
+    return root.Save.Quest.Stage == QuestStage.threePaths && !root.Save.Quest.EvidenceLedger && root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == "0c962c81-359a-4f8b-9263-7b6bb33b42b7"; }));
+  }
+
+  @id("20b3fd3c-83a0-5c2c-9c83-140b83349315")
+  void NeoFunction_12a1092d03295534926ccd24464b1dce() {
+    root.Save.Quest.EvidenceLedger = true;
+  }
+
+  @id("754a87d7-95cb-4fbb-a4f6-376a64cc0fc0")
+  override Trigger Trigger = new(
+    group: Visits.High,
+    order: 0,
+    when: [
+    @id("d71ea14b-2aeb-5778-b61e-d6b61b3a7484")
+    NeoFunction_ab833a0dcc615f0291780acb27929b2b,
+  ],
+    limit: 1,
+  ) => Node_7704d7b71897;
+
+  @id("f9cf6cfb-f753-4358-9796-431de2c58a6e")
+  Actions Node_e86b0b41f10d = new(
+    name: "c3",
+  ) {
+    @primary
+    Outpost Value_1e57e1a15fdd = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    @id("ad04c7d3-cde9-49a2-bb3a-2a6d4ea63b4b")
+    NeoFunction_12a1092d03295534926ccd24464b1dce();
+  
+    return Node_5058709c86db;
+  }
+
+  @id("cdc1876b-615e-4699-ad2d-aff1aad78ad1")
+  Text Node_5058709c86db = new(
+    name: "c4",
+  ) {
+    @primary
+    Outpost Value_8b2f958bd9e7 = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    """
+    Ledger closed. Whatever you're unlocking with this — when it opens, the Anchorpoint wants a copy of the minutes. We're the only honest router left; act like it matters.
+    """
+  }
+
+  @id("98e7371b-0c29-4379-9664-0235bf94b513")
+  Text Node_947c66e6f613 = new(
+    name: "c2",
+  ) {
+    @primary
+    Outpost Value_f55c4228f21c = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    """
+    ...That's not a shipping manifest. It's a CHANGELOG. Entry one, oldest stamp in existence: 'v0.1.0 — removed `pluto` from the Planet enum.' The Plutocracy isn't avenging an insult, traveler. They were DELETED. And somebody kept the receipt.
+    """
+  
+    @id("722168b1-7d76-4ebf-9819-2cd7914522f2")
+    Option Option_0e235e670d0d = new(
+      name: "Keep",
+    ) {
+      """
+      I'm keeping this.
+      """
+    
+      return Node_e86b0b41f10d;
+    }
+  
+    @id("fe5b992d-bd57-4d90-b5e3-45cffd17a9ae")
+    Option Option_7edf83f9a5a1 = new(
+      name: "Shaken",
+    ) {
+      """
+      What kind of world keeps a changelog?
+      """
+    
+      return Node_4f9b60e003f2;
+    }
+  }
+
+  @id("94786126-9a31-4474-84a7-752c743e5b26")
+  Text Node_7704d7b71897 = new(
+    name: "c1",
+  ) {
+    @primary
+    Outpost Value_3c95befa4977 = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    """
+    You still have the manifest? Feed it to the relay. Our key decodes anything that ever passed through this system — and EVERYTHING passes through us.
+    """
+  
+    @id("bdd9c5a1-3638-4c55-bea1-460370e42812")
+    Option Option_d6c10270035b = new(
+      name: "Feed",
+    ) {
+      """
+      Feed the Manifest to the relay
+      """
+    
+      return Node_7a7b4cc48ae8;
+    }
+  }
+
+  @id("af5cd864-c89a-4cd8-8153-668598ff3332")
+  Text Node_4f9b60e003f2 = new(
+    name: "c2b",
+  ) {
+    @primary
+    Outpost Value_8e37d14326e4 = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    """
+    The kind that gets CHANGED, friend. The kind somebody maintains. ...I need to sit down sideways for a minute.
+    """
+  
+    return Node_e86b0b41f10d;
+  }
+
+  @id("27a6c575-e72b-4bfc-9d1a-f390cfe528ed")
+  Actions Node_7a7b4cc48ae8 = new(
+    name: "give manifest",
+  ) {
+    Outpost Value_dc5988f49cc8 = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    @primary
+    Item Value_718469ea0a50 = Reference<Item>(id: "0c962c81-359a-4f8b-9263-7b6bb33b42b7");
+  
+    @id("01e3c472-26db-4f57-b606-b1fdf821044b")
+    NeoFunction_3baa6049d9dd5559924911b99354c39d();
+  
+    return Node_947c66e6f613;
+  }
+}

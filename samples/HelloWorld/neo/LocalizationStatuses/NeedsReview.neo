@@ -1,0 +1,12 @@
+@id("localization-status-needs-review")
+LocalizationStatus NeedsReview = new(
+  slug: "needs-review",
+  name: "Needs review",
+  description: "The text has been edited and is waiting for review.",
+  color: null,
+  emoji: "📚",
+  archivedAt: null,
+  transitionRules: null,
+  transitionOnTextEdit: null,
+  transitionWhenSourceBecomes: UpdateNeeded,
+);

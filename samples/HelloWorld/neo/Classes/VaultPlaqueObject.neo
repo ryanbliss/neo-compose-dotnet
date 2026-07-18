@@ -1,0 +1,39 @@
+@id("cacf06dd-db1d-4f48-99c7-f3cea5a6961f")
+@relations(
+  compatibleLayers: [
+    @id("neo-tile-grid-record-relations-v1-relation-d92169f1a3d93fda6dfa5a03e5c523af")
+    DefaultObjectLayer,
+  ],
+  defaultLayer:
+    @id("neo-tile-grid-record-relations-v1-relation-e2b72fb554c3dbfc86cde50f39ab2feb")
+    DefaultObjectLayer
+)
+class VaultPlaqueObject : ConsoleObject {
+  @id("neo-tile-grid-record-relations-v1-member-6600a0b0a8a2c976fd3b76e3199a91f7")
+  @settings(localizable: false)
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override string Name = "Vault Plaque";
+
+  @id("502c9308-974b-446d-935b-c22adde5a9d2")
+  virtual Dialogue VaultPlaqueLocked = Reference<Dialogue>(id: "da73bce9-0d39-4c27-bb09-32b538f97f61");
+
+  @id("d4a33b58-95a5-4874-8236-05ec38df8f82")
+  virtual Dialogue VaultPlaqueReward = Reference<Dialogue>(id: "bbda459e-c77e-4084-9047-22b1dfbb0bff");
+
+  @id("c481dc1e-b5fd-4352-a76b-536cc3e17f71")
+  @locked
+  @settings(kind: .Ordered)
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override List<NeoObjectBase> Children = [Reference<NeoObjectBase>(id: "522f0109-97d2-4ac1-ad7c-70357d278035")];
+
+  @id("430fca56-b45a-4896-9ab2-795a3faf57f6")
+  @locked
+  @settings(kind: .Ordered)
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override List<NeoObjectPlacementTile> PlacementTiles = [Reference<NeoObjectPlacementTile>(id: "293652f8-54d6-4168-89be-7ac75207dcd0")];
+
+  @id("neo-tile-grid-record-relations-v1-member-f7282b53bd3722c4d54307079bf7e242")
+  @locked
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override Vector3 Position = new(0, 0, 0);
+}
