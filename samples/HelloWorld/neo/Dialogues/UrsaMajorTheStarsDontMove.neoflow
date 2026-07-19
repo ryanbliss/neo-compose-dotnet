@@ -8,37 +8,37 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
   Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
 
   @id("a1d925ba-9aa1-59e0-bd7c-d70c2da06fce")
-  void NeoFunction_5c505ee6d83e519c8e89d15b85735f7f() {
+  void Action1() {
     outpost.Save.Reputation += 1;
   }
 
   @id("be971b39-b802-5145-87be-6b3191b6f200")
-  void NeoFunction_8bc5ca33529058caaab5aad1e7d1e45d() {
+  void Action2() {
     outpost.Save.Reputation += 1;
   }
 
   @id("d49556c7-c35b-5314-8def-3fbe8f004593")
-  void NeoFunction_9aad2a2dc77d5f539e30aea528a17b5c() {
+  void Action3() {
     root.Save.Inventory.Remove(outpost);
   }
 
   @id("f6fd85dc-c219-53db-a36e-450eca23e226")
-  void NeoFunction_df4b981a7bac557aa3bdaf9e911a14b7() {
+  void Action4() {
     if (root.Save.Quest.Stage == QuestStage.followTheWakes) { root.Save.Quest.Stage = QuestStage.threePaths; }
   }
 
   @id("9b542a6b-cb0a-5efc-aa9f-26f97b6bf8e1")
-  void NeoFunction_011ee3b5d4c35ce2be5feab5866ce980() {
+  void Action5() {
     root.Save.Quest.EvidenceArchive = true;
   }
 
   @id("b5c4d825-de0d-5709-8623-3d59e541d73d")
-  bool NeoFunction_a1b592464e1c5a49ab8f5fca7c85f552() {
+  bool Condition1() {
     return !root.Save.Quest.EvidenceArchive && (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes);
   }
 
   @id("2b07518a-aaf5-5f83-9df4-36588f6030f5")
-  bool NeoFunction_e35df6a3ab7857dd86139280473abaa4() {
+  bool Condition2() {
     return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == "c8eb381b-9c3f-4120-b8c3-3872cdde5148"; }));
   }
 
@@ -48,7 +48,7 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
     order: 0,
     when: [
     @id("f9ecd70b-0e09-50e9-9f6f-91602ad8af8d")
-    NeoFunction_a1b592464e1c5a49ab8f5fca7c85f552,
+    Condition1,
   ],
     limit: 1,
   ) => U1;
@@ -183,7 +183,7 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
   
     @id("ff48b978-e50d-49e7-9b00-a001f63b9464")
-    NeoFunction_5c505ee6d83e519c8e89d15b85735f7f();
+    Action1();
   
     return U4;
   }
@@ -196,10 +196,10 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
   
     @id("8a69573c-5a18-4ec2-b6ac-cd57f2c53da2")
-    NeoFunction_df4b981a7bac557aa3bdaf9e911a14b7();
+    Action4();
   
     @id("8055814e-6ac3-40a7-bce2-4894563ebdfd")
-    NeoFunction_011ee3b5d4c35ce2be5feab5866ce980();
+    Action5();
   
     return U5ask;
   }
@@ -220,7 +220,7 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
       name: "Rig",
       selectableWhen: [
       @id("2b7cd2cd-9cec-5dc2-ba85-a287e3f06873")
-      NeoFunction_e35df6a3ab7857dd86139280473abaa4,
+      Condition2,
     ],
     ) {
       """
@@ -250,7 +250,7 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
   
     @id("240474f0-0df8-4735-ac4d-774fa036b5bb")
-    NeoFunction_8bc5ca33529058caaab5aad1e7d1e45d();
+    Action2();
   
     return U6;
   }
@@ -265,7 +265,7 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
     Item item = Reference<Item>(id: "c8eb381b-9c3f-4120-b8c3-3872cdde5148");
   
     @id("6c90b27b-f336-4860-98e5-d2f55d043a6e")
-    NeoFunction_9aad2a2dc77d5f539e30aea528a17b5c();
+    Action3();
   
     return GivePitons2;
   }

@@ -9,12 +9,12 @@ sealed class VenusianIntro : Dialogue {
   Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
 
   @id("586db42e-af9c-5453-8895-ae859ff2629e")
-  void NeoFunction_0d888ea569985076b9e5ef3f1d236c7f() {
+  void Action1() {
     outpost.Save.Unlocked = true;
   }
 
   @id("fe7817ec-0dc1-5093-b12f-a61038e1894f")
-  void NeoFunction_68136789fb9e5645a999471b83194e4a() {
+  void Action2() {
     root.Save.Inventory.Add(outpost);
   }
 
@@ -97,7 +97,7 @@ sealed class VenusianIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     @id("c9369ac2-54cc-449a-af76-160933d4c375")
-    NeoFunction_0d888ea569985076b9e5ef3f1d236c7f();
+    Action1();
   
     return GrantCloudsilkParasol;
   }
@@ -124,7 +124,7 @@ sealed class VenusianIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     @id("efbc6f53-5351-4788-bc16-524e756d4a40")
-    NeoFunction_68136789fb9e5645a999471b83194e4a();
+    Action2();
   
     return V5;
   }

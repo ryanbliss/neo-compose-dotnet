@@ -9,12 +9,12 @@ sealed class OlympicMonsIntro : Dialogue {
   Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
 
   @id("a5564a94-77d7-5fe9-90fd-bbe5d1ddd4c9")
-  void NeoFunction_d01156a57b825f3ca5d3b3f47b4cd9fa() {
+  void Action1() {
     outpost.Save.Unlocked = true;
   }
 
   @id("ca107d1d-c9eb-5295-a84a-bf9cea42f1cb")
-  void NeoFunction_fe74eebae49f5c308bad7f43f3aea50f() {
+  void Action2() {
     root.Save.Inventory.Add(outpost);
   }
 
@@ -97,7 +97,7 @@ sealed class OlympicMonsIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
   
     @id("74756349-5b68-4eee-b324-f15cd9bbcc91")
-    NeoFunction_d01156a57b825f3ca5d3b3f47b4cd9fa();
+    Action1();
   
     return GrantLowGPitons;
   }
@@ -124,7 +124,7 @@ sealed class OlympicMonsIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
   
     @id("40f15f9c-6a11-4afc-ba2d-420aa8e1adf3")
-    NeoFunction_fe74eebae49f5c308bad7f43f3aea50f();
+    Action2();
   
     return M5;
   }

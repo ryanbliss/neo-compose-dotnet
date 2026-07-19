@@ -9,7 +9,7 @@ sealed class OldConsoleLandingExitPromptRelay : Dialogue {
   BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
 
   @id("8f96da3c-b8ca-59e4-a038-fe33836ca33e")
-  void NeoFunction_c690ab71b6905870b800453cf51d34d5() {
+  void Action1() {
     blockedPath.ClearPath();
   }
 
@@ -38,7 +38,7 @@ sealed class OldConsoleLandingExitPromptRelay : Dialogue {
     BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
   
     @id("7fc0dbae-47f9-40f8-9ae9-6424a759a3b8")
-    NeoFunction_c690ab71b6905870b800453cf51d34d5();
+    Action1();
   
     return Done;
   }

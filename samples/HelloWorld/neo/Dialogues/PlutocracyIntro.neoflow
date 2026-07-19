@@ -9,17 +9,17 @@ sealed class PlutocracyIntro : Dialogue {
   Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
 
   @id("ea568c94-3bc2-538f-8030-ff46ea5660f3")
-  void NeoFunction_d0b87e81a30958f7b378fe305ae81580() {
+  void Action1() {
     root.Save.Inventory.Add(outpost);
   }
 
   @id("fbdcb434-7860-50d0-a00f-2a43545db3a3")
-  void NeoFunction_6f6a0f35c7b350e8b7f4d04f057b5123() {
+  void Action2() {
     outpost.Save.Reputation += 1;
   }
 
   @id("a2af8479-5f19-5743-9a45-0eea97fb1ca6")
-  void NeoFunction_5373541fe50a52b9b152b1085820c856() {
+  void Action3() {
     outpost.Save.Reputation -= 1;
   }
 
@@ -145,7 +145,7 @@ sealed class PlutocracyIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
   
     @id("7eb438ef-4230-4e38-a4bb-109eb7612ea2")
-    NeoFunction_6f6a0f35c7b350e8b7f4d04f057b5123();
+    Action2();
   
     return GrantPlutonianSignet;
   }
@@ -184,7 +184,7 @@ sealed class PlutocracyIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
   
     @id("8a4202b1-dae7-4405-8421-1a28e212f7c6")
-    NeoFunction_5373541fe50a52b9b152b1085820c856();
+    Action3();
   
     return Pe2;
   }
@@ -211,7 +211,7 @@ sealed class PlutocracyIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
   
     @id("711ab375-5c19-4e01-b75c-4f9dc14d92e8")
-    NeoFunction_d0b87e81a30958f7b378fe305ae81580();
+    Action1();
   
     return Pe1;
   }

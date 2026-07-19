@@ -9,12 +9,12 @@ sealed class PourLordsIntro : Dialogue {
   Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
 
   @id("bf3d2967-dc54-5454-84e4-a442c8d4be33")
-  void NeoFunction_18c09f5fbcba5177a4b27e3093089fbc() {
+  void Action1() {
     root.Save.Inventory.Add(outpost);
   }
 
   @id("5621fbd1-3998-5538-93a7-7a3ee18cb346")
-  void NeoFunction_7876769e79145a8f9f918d01d820c09c() {
+  void Action2() {
     outpost.Save.Unlocked = true;
   }
 
@@ -97,7 +97,7 @@ sealed class PourLordsIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
   
     @id("b9664f53-e3a6-4cff-b88b-d0dac313d46f")
-    NeoFunction_7876769e79145a8f9f918d01d820c09c();
+    Action2();
   
     return GrantHelium3Flask;
   }
@@ -124,7 +124,7 @@ sealed class PourLordsIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
   
     @id("dac725ea-a192-4c36-9593-4c5542dc6d3f")
-    NeoFunction_18c09f5fbcba5177a4b27e3093089fbc();
+    Action1();
   
     return P4;
   }

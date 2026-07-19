@@ -9,17 +9,17 @@ sealed class TitanIntro : Dialogue {
   Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
 
   @id("eb39eb32-e477-5f0f-99ec-45522e535d19")
-  void NeoFunction_503fe05df4c3500b9da9cd514b44e261() {
+  void Action1() {
     root.Save.Bits -= 200;
   }
 
   @id("1d99fca7-b6b9-5bcf-97a4-e99a0864bd69")
-  void NeoFunction_29e8f9d2034c5da3a608553787edb393() {
+  void Action2() {
     root.Save.Inventory.Add(outpost);
   }
 
   @id("2bf31893-3df0-5033-9ba3-24cec7f99e28")
-  void NeoFunction_5302814e7dc95f819ecfbb8afb644e9a() {
+  void Action3() {
     outpost.Save.Unlocked = true;
   }
 
@@ -86,7 +86,7 @@ sealed class TitanIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
   
     @id("d2188e44-7be9-44ad-873f-c7dd7c901697")
-    NeoFunction_503fe05df4c3500b9da9cd514b44e261();
+    Action1();
   
     return T3;
   }
@@ -115,7 +115,7 @@ sealed class TitanIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
   
     @id("0e6ddbee-d12a-4edf-b391-ba11f2741d49")
-    NeoFunction_5302814e7dc95f819ecfbb8afb644e9a();
+    Action3();
   
     return GrantSmugglersManifest;
   }
@@ -142,7 +142,7 @@ sealed class TitanIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
   
     @id("84c58cc0-446b-4e86-847c-2c486c869e92")
-    NeoFunction_29e8f9d2034c5da3a608553787edb393();
+    Action2();
   
     return T5;
   }

@@ -8,17 +8,17 @@ sealed class VenusianTheOldestPattern : Dialogue {
   Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
 
   @id("4eede4c6-17c9-5de2-8365-e992e11b56df")
-  bool NeoFunction_7371b54c887d52d7864f87cbbb25a454() {
+  bool Condition1() {
     return root.Save.Quest.Stage == QuestStage.threePaths && !root.Save.Quest.EvidenceFaith && root.Save.Bits >= 150;
   }
 
   @id("d27b191a-3c34-5718-b3c2-fc5d523c18ff")
-  void NeoFunction_a98c46eb12f256e5aa35ec5c1691b91e() {
+  void Action1() {
     root.Save.Quest.EvidenceFaith = true;
   }
 
   @id("285db144-2551-55aa-bd47-a267376ea5c9")
-  void NeoFunction_332216a0e35a5c07a447575e354cdbef() {
+  void Action2() {
     root.Save.Bits -= 150;
   }
 
@@ -28,7 +28,7 @@ sealed class VenusianTheOldestPattern : Dialogue {
     order: 0,
     when: [
     @id("307c83bd-5da3-5bd0-a7db-6104b1779f20")
-    NeoFunction_7371b54c887d52d7864f87cbbb25a454,
+    Condition1,
   ],
     limit: 1,
   ) => V1;
@@ -89,7 +89,7 @@ sealed class VenusianTheOldestPattern : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     @id("9f4f993d-c685-4620-9bc0-c9b57226887d")
-    NeoFunction_332216a0e35a5c07a447575e354cdbef();
+    Action2();
   
     return V3;
   }
@@ -116,7 +116,7 @@ sealed class VenusianTheOldestPattern : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     @id("199efa5f-5349-444f-b5a7-569560c694d1")
-    NeoFunction_a98c46eb12f256e5aa35ec5c1691b91e();
+    Action1();
   
     return V5;
   }

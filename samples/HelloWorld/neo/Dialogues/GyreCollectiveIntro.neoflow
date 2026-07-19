@@ -9,17 +9,17 @@ sealed class GyreCollectiveIntro : Dialogue {
   Outpost outpost = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
 
   @id("13ab8b1c-41a5-5309-8f12-fcbb67167284")
-  void NeoFunction_248918b15b1052d094c37165f26aafce() {
+  void Action1() {
     outpost.Save.Reputation -= 1;
   }
 
   @id("7ec86f3f-5002-50f4-95b7-cf752dcd2275")
-  void NeoFunction_ee1a9061766a51fea49301b5c20f9cee() {
+  void Action2() {
     outpost.Save.Reputation += 1;
   }
 
   @id("29ea2df0-5c02-53aa-9766-e9b2cecea47d")
-  void NeoFunction_35dbc724d06c549797e4dd44538b5eac() {
+  void Action3() {
     outpost.Save.Unlocked = true;
   }
 
@@ -148,7 +148,7 @@ sealed class GyreCollectiveIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
   
     @id("4edc6349-88f4-4c9b-9438-d00b5f078f3c")
-    NeoFunction_ee1a9061766a51fea49301b5c20f9cee();
+    Action2();
   
     return G5;
   }
@@ -161,7 +161,7 @@ sealed class GyreCollectiveIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
   
     @id("3ef76487-fd19-45ac-9ad3-346482e29dae")
-    NeoFunction_248918b15b1052d094c37165f26aafce();
+    Action1();
   
     return G5;
   }
@@ -176,7 +176,7 @@ sealed class GyreCollectiveIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
   
     @id("6736f285-f610-4b3c-b3dd-279235fa32c5")
-    NeoFunction_35dbc724d06c549797e4dd44538b5eac();
+    Action3();
   
     return G6;
   }

@@ -9,7 +9,7 @@ sealed class EuropapasIntro : Dialogue {
   Outpost outpost = Reference<Outpost>(id: "83cc2935-5a85-4d71-9e50-4e4496f00631");
 
   @id("4098e134-2cec-58c9-9b4a-47063b16572b")
-  void NeoFunction_ae7f3dc9ded15b88834ca12b0f652aa0() {
+  void Action1() {
     root.Save.Inventory.Add(outpost);
   }
 
@@ -92,7 +92,7 @@ sealed class EuropapasIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "83cc2935-5a85-4d71-9e50-4e4496f00631");
   
     @id("277e6454-a07b-4855-914b-1960f0911643")
-    NeoFunction_ae7f3dc9ded15b88834ca12b0f652aa0();
+    Action1();
   
     return E4;
   }

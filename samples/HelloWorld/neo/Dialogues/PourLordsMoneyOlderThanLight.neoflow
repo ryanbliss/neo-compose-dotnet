@@ -8,32 +8,32 @@ sealed class PourLordsMoneyOlderThanLight : Dialogue {
   Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
 
   @id("ec99a707-f72e-5223-93bd-9947ab7fbbb2")
-  void NeoFunction_4e44c6ffcc0e5094ad9dc3b402e153ee() {
+  void Action1() {
     root.Save.Inventory.Remove(outpost);
   }
 
   @id("37fd3378-2891-5466-90a8-1dbc1758b1a1")
-  bool NeoFunction_87e13f23cd395fe787d30f36055105b0() {
+  bool Condition1() {
     return (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes) && !root.Save.Quest.EvidenceLedger && outpost.Save.Reputation >= 1;
   }
 
   @id("3033ed4d-b7fd-5ba2-a418-5c5b095cbbae")
-  void NeoFunction_22da634745dc5a59a08b4b57ba1c1f9f() {
+  void Action2() {
     outpost.Save.Reputation += 1;
   }
 
   @id("3d167acf-6206-58c9-b369-8b6264b5b64d")
-  void NeoFunction_27f788e01efc54a4990caa90ca416ae3() {
+  void Action3() {
     if (root.Save.Quest.Stage == QuestStage.followTheWakes) { root.Save.Quest.Stage = QuestStage.threePaths; }
   }
 
   @id("b29ed7aa-af0f-595e-83ef-de152e65e287")
-  void NeoFunction_196fe5626afb5acca81d4ec18da4856a() {
+  void Action4() {
     root.Save.Quest.EvidenceLedger = true;
   }
 
   @id("52068637-6301-5fb5-b318-d61d6358f7c1")
-  bool NeoFunction_1a366ec3d02f512a8a70adcb68d7c828() {
+  bool Condition2() {
     return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == "18b9a621-ea41-4ac7-8a46-9cc443f2b480"; }));
   }
 
@@ -43,7 +43,7 @@ sealed class PourLordsMoneyOlderThanLight : Dialogue {
     order: 0,
     when: [
     @id("82db4290-2c59-56f4-9b38-b13f22b394ef")
-    NeoFunction_87e13f23cd395fe787d30f36055105b0,
+    Condition1,
   ],
     limit: 1,
   ) => P1;
@@ -116,10 +116,10 @@ sealed class PourLordsMoneyOlderThanLight : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
   
     @id("8298ae34-02cf-4f7b-bbd9-ea33403ae250")
-    NeoFunction_27f788e01efc54a4990caa90ca416ae3();
+    Action3();
   
     @id("7bc9e7d2-22bd-4ba3-af81-4dc7b665dc88")
-    NeoFunction_196fe5626afb5acca81d4ec18da4856a();
+    Action4();
   
     return P4ask;
   }
@@ -152,7 +152,7 @@ sealed class PourLordsMoneyOlderThanLight : Dialogue {
       name: "Pour",
       selectableWhen: [
       @id("46b9c5b4-f793-5fce-996c-8cfff96821d9")
-      NeoFunction_1a366ec3d02f512a8a70adcb68d7c828,
+      Condition2,
     ],
     ) {
       """
@@ -184,7 +184,7 @@ sealed class PourLordsMoneyOlderThanLight : Dialogue {
     Item item = Reference<Item>(id: "18b9a621-ea41-4ac7-8a46-9cc443f2b480");
   
     @id("6c4c9091-51dd-4587-a14f-858d23a3d0cd")
-    NeoFunction_4e44c6ffcc0e5094ad9dc3b402e153ee();
+    Action1();
   
     return GiveFlask2;
   }
@@ -197,7 +197,7 @@ sealed class PourLordsMoneyOlderThanLight : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
   
     @id("a77da640-7669-4f9f-b453-95efa9a73fd7")
-    NeoFunction_22da634745dc5a59a08b4b57ba1c1f9f();
+    Action2();
   
     return P5;
   }

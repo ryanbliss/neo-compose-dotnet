@@ -9,7 +9,7 @@ sealed class UrsaMajorIntro : Dialogue {
   Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
 
   @id("08700746-d38b-5735-8421-6e825e1d6668")
-  void NeoFunction_80e888962fad5f87afc5dd04c2c977fa() {
+  void Action1() {
     outpost.Save.Unlocked = true;
   }
 
@@ -92,7 +92,7 @@ sealed class UrsaMajorIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
   
     @id("68eb6912-4f33-49d0-948e-3ddcb1702764")
-    NeoFunction_80e888962fad5f87afc5dd04c2c977fa();
+    Action1();
   
     return U4;
   }

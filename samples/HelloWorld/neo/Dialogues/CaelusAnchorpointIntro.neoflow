@@ -9,12 +9,12 @@ sealed class CaelusAnchorpointIntro : Dialogue {
   Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
 
   @id("8028c6aa-5f4e-55c2-91d8-29a320b7058b")
-  void NeoFunction_578e85757499518897a226322d2e098a() {
+  void Action1() {
     root.Save.Inventory.Add(outpost);
   }
 
   @id("d4903d53-600a-5d4a-a092-3fec63f7a93e")
-  void NeoFunction_335c4f7569dc5957a3b2de2a82b896cc() {
+  void Action2() {
     outpost.Save.Unlocked = true;
   }
 
@@ -97,7 +97,7 @@ sealed class CaelusAnchorpointIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
   
     @id("05dbfa2e-e7f1-466f-9541-353970a844b1")
-    NeoFunction_335c4f7569dc5957a3b2de2a82b896cc();
+    Action2();
   
     return GrantGyroStabilizer;
   }
@@ -124,7 +124,7 @@ sealed class CaelusAnchorpointIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
   
     @id("afd16a0e-16f3-4317-914b-eb83acdbcd44")
-    NeoFunction_578e85757499518897a226322d2e098a();
+    Action1();
   
     return C4;
   }

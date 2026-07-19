@@ -8,17 +8,17 @@ sealed class CaelusTheRelayKey : Dialogue {
   Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
 
   @id("2d28ad1e-f4e2-5885-b325-b2d888d0fb1a")
-  void NeoFunction_3baa6049d9dd5559924911b99354c39d() {
+  void Action1() {
     root.Save.Inventory.Remove(outpost);
   }
 
   @id("787ad654-fd22-5f34-bbe2-a77b681ac11a")
-  bool NeoFunction_ab833a0dcc615f0291780acb27929b2b() {
+  bool Condition1() {
     return root.Save.Quest.Stage == QuestStage.threePaths && !root.Save.Quest.EvidenceLedger && root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == "0c962c81-359a-4f8b-9263-7b6bb33b42b7"; }));
   }
 
   @id("20b3fd3c-83a0-5c2c-9c83-140b83349315")
-  void NeoFunction_12a1092d03295534926ccd24464b1dce() {
+  void Action2() {
     root.Save.Quest.EvidenceLedger = true;
   }
 
@@ -28,7 +28,7 @@ sealed class CaelusTheRelayKey : Dialogue {
     order: 0,
     when: [
     @id("d71ea14b-2aeb-5778-b61e-d6b61b3a7484")
-    NeoFunction_ab833a0dcc615f0291780acb27929b2b,
+    Condition1,
   ],
     limit: 1,
   ) => C1;
@@ -41,7 +41,7 @@ sealed class CaelusTheRelayKey : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
   
     @id("ad04c7d3-cde9-49a2-bb3a-2a6d4ea63b4b")
-    NeoFunction_12a1092d03295534926ccd24464b1dce();
+    Action2();
   
     return C4;
   }
@@ -139,7 +139,7 @@ sealed class CaelusTheRelayKey : Dialogue {
     Item item = Reference<Item>(id: "0c962c81-359a-4f8b-9263-7b6bb33b42b7");
   
     @id("01e3c472-26db-4f57-b606-b1fdf821044b")
-    NeoFunction_3baa6049d9dd5559924911b99354c39d();
+    Action1();
   
     return C2;
   }

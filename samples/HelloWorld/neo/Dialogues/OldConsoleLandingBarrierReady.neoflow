@@ -9,7 +9,7 @@ sealed class OldConsoleLandingBarrierReady : Dialogue {
   BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
 
   @id("915d736e-80cd-5830-afb5-d3c1373aca14")
-  void NeoFunction_ac6985f3c53d5a50a5d239a36382d437() {
+  void Action1() {
     blockedPath.ClearPath();
   }
 
@@ -38,7 +38,7 @@ sealed class OldConsoleLandingBarrierReady : Dialogue {
     BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
   
     @id("553bd936-450b-494e-8119-d51bf53d6c7c")
-    NeoFunction_ac6985f3c53d5a50a5d239a36382d437();
+    Action1();
   
     return Done;
   }

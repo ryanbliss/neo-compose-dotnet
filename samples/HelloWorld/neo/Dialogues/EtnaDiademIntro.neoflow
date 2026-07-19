@@ -9,7 +9,7 @@ sealed class EtnaDiademIntro : Dialogue {
   Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
 
   @id("d6f163cb-e9ff-50b9-95bd-3aff33dcb2a9")
-  void NeoFunction_a5fa26bcb32b51a281002b067eefe51f() {
+  void Action1() {
     root.Save.Inventory.Add(outpost);
   }
 
@@ -92,7 +92,7 @@ sealed class EtnaDiademIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
   
     @id("b99b2701-e160-4d3a-b6aa-2e063dfa9594")
-    NeoFunction_a5fa26bcb32b51a281002b067eefe51f();
+    Action1();
   
     return D4;
   }
