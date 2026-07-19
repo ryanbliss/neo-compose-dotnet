@@ -29,10 +29,6 @@ sealed class CapitolOGIntro : Dialogue {
   @incomplete("UI-authored logic has no tracked NeoScript source")
   native string TextValue3();
 
-  @id("legacy-function:bb43d0ca-ef12-4805-b0ea-f42b11adeadc")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native void Action3();
-
   @id("legacy-function:acf5e41c-755e-4dd6-9307-fbefd33f019e")
   @incomplete("UI-authored logic has no tracked NeoScript source")
   native void Action4();
@@ -127,7 +123,7 @@ sealed class CapitolOGIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
     @id("bb43d0ca-ef12-4805-b0ea-f42b11adeadc")
-    Action3();
+    outpost.PlayAnimation();
   
     return Welcome;
   }
