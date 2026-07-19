@@ -1,0 +1,45 @@
+@id("4c196697-4e08-4aeb-823f-322b353071ac")
+class Outpost : IHasName {
+  @id("d7607422-7e33-402f-9fe6-8e9ac85a7019")
+  virtual AnimationInfo? AnimatedImage;
+
+  @id("e549555b-9276-48d8-be33-156972520d31")
+  native virtual string DebugLog(string text);
+
+  @id("514a79c5-dd23-4ede-9fc8-b07b3c866fe5")
+  virtual string FullDisplayText {
+    get {
+      return $"{this.Name}, {this.Planet}";
+    }
+  }
+
+  @id("7ce8a389-265c-4ad4-90f4-42c3e91e7648")
+  virtual SpriteInfo Image;
+
+  @id("b56410b3-b2da-4681-897f-a25ce0a0ceb1")
+  @settings(localizable: true, searchKey: true)
+  virtual string Name;
+
+  @id("3166fd08-4bdb-4df9-b100-ecccec859443")
+  virtual Planet Planet;
+
+  @id("cab850e3-cf8c-42b3-a70b-f0066089e6fb")
+  native virtual async bool PlayAnimation();
+
+  @id("cccadaa5-0623-4a0f-9197-7175726c0e8b")
+  virtual OutpostSaveData Save {
+    get {
+      return this.SaveUnsafe!;
+    }
+  }
+
+  @id("f66fba24-44d4-467c-98ac-4db1539910df")
+  virtual OutpostSaveData? SaveUnsafe {
+    get {
+      return root.Save.OutpostSaveMap.FirstOrDefault((key, value) => { return key == this.Id; });
+    }
+  }
+
+  @id("736ca2ec-5f56-4f93-8cc5-c8b2ae8f76a1")
+  native virtual bool ShowRelic();
+}

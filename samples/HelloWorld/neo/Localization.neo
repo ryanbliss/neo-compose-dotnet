@@ -1,0 +1,19 @@
+@id("localization-config")
+Localization Localization = new(
+  mainLocale: "en-US",
+  mainLocaleDefaultStatus: Approved,
+  statuses: [NeedsTranslation, InProgress, NeedsReview, UpdateNeeded, BlockedByPredecessor, Approved],
+  locales: [new(
+    locale: "en-US",
+    sourceLocale: null,
+    name: "English (US)",
+    sortOrder: 0,
+    archivedAt: null,
+  ), new(
+    locale: "es-ES",
+    sourceLocale: "en-US",
+    name: "Spanish (Spain)",
+    sortOrder: 1,
+    archivedAt: null,
+  )],
+);

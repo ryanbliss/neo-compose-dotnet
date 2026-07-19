@@ -1,0 +1,8 @@
+@id("38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6")
+@system(worldKind: .ObjectPlacementTile, disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+class NeoObjectPlacementTile {
+  @id("b0b3c45c-a87d-4218-b056-7418ef46aac5")
+  @locked
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  virtual Vector2Int Cell = new(0, 0);
+}

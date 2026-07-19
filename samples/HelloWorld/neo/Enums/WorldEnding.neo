@@ -1,0 +1,13 @@
+@id("d0b44688-28ab-44ba-b2a1-5cdad0f51e50")
+enum WorldEnding {
+  @id("498b8b7f-6470-5de3-a20d-d7ec9307933f")
+  commentOut,
+  @id("03d93640-bd3d-59cd-b973-19083e0496bf")
+  goodbyeWorld,
+  @id("d3e24170-8855-56e2-bee8-773d01636c6b")
+  helloWorld,
+  @id("43694573-50a6-53eb-9a27-bd913ee6f884")
+  none,
+  @id("7359d943-87e9-576f-8857-7dc583fa1760")
+  secondSun,
+}

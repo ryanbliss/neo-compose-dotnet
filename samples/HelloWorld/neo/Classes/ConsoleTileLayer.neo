@@ -1,0 +1,6 @@
+@id("fbbd7a13-2b2a-4d0c-bd8f-78b5474cd4ba")
+abstract class ConsoleTileLayer : NeoTileLayer {
+  @id("679e3c47-e6eb-4808-bcc5-2f8440612626")
+  @settings(localizable: false)
+  virtual string DisplayName;
+}

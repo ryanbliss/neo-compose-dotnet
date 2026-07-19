@@ -1,5 +1,0 @@
-string FullDisplayText(Outpost this, Root root) {
-	get {
-		return $"{this.Name}, {this.Planet}";
-	}
-}

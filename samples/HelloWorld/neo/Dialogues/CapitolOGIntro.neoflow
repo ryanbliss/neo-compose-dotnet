@@ -1,0 +1,512 @@
+@id("3e842799-4859-4fbc-a317-8640bc6875e5")
+@settings(
+  name: "Capitol OG Intro",
+  saveOptionChoices: true
+)
+sealed class CapitolOGIntro : Dialogue {
+  @primary
+  Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+
+  @id("9e728dda-a27a-5c36-ae80-fc899e6a912c")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native string TextValue1();
+
+  @id("7e85f950-5d21-5d20-ab6a-9e04fac29ddb")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native string TextValue2();
+
+  @id("69423da3-5f79-546a-a341-144bed9e99f2")
+  void Action1() {
+    root.Save.Bits -= outpost.Value;
+    	root.Save.Inventory.Add(outpost);
+  }
+
+  @id("legacy-function:cc2ffd9e-c4e7-4cbe-b2cf-53ed2777510f")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native void Action2();
+
+  @id("b63dbe3c-0a77-5fc9-a5d5-f6c0001d2f33")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native string TextValue3();
+
+  @id("legacy-function:bb43d0ca-ef12-4805-b0ea-f42b11adeadc")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native void Action3();
+
+  @id("legacy-function:acf5e41c-755e-4dd6-9307-fbefd33f019e")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native void Action4();
+
+  @id("legacy-function:0207d58c-639e-4634-932c-45e12dbe790e")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native void Action5();
+
+  @id("92af2c36-ce4d-5a72-88e2-b1ce0a4d1e0e")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native string TextValue4();
+
+  @id("1b721d4d-cd04-5040-a131-8b1f0121bc80")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native string TextValue5();
+
+  @id("1b402846-aa11-5024-bfee-02c13942e5d1")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native string TextValue6();
+
+  @id("184c00b7-4ec9-5bea-b6a6-f38c04a2e336")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native string TextValue7();
+
+  @id("08a26b40-fb34-50d6-bd5b-d1f31f20ff37")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native string TextValue8();
+
+  @id("637aae58-34b4-5e7d-a2a5-9bb8926306e2")
+  bool Condition1() {
+    return root.Save.Bits >= outpost.Value;
+  }
+
+  @id("legacy-function:eec3e59e-8492-4fcc-aa7f-bc7c5df841a7")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native void Action6();
+
+  @id("7302f173-a206-56aa-8c97-ae6666d32e85")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native string TextValue9();
+
+  @id("1330a804-8602-5058-ae0d-b4aff4751b8c")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native string TextValue10();
+
+  @id("287cd394-421b-548a-8d5c-a4cef60f200f")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native string TextValue11();
+
+  @id("2eaf56a2-ff01-5402-b815-a161271f4a5d")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native string TextValue12();
+
+  @id("6527d737-f33a-5e4f-872f-49963334cc96")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native string TextValue13();
+
+  @id("fc1f8d6d-7922-52a8-97e4-784597dcb68e")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native string TextValue14();
+
+  @id("c9e20901-680c-5e79-9c56-c6a3862c2a9a")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native string TextValue15();
+
+  @id("17d6690c-5649-4e6c-b252-bb237c884b5b")
+  override Trigger Trigger = new(
+    group: Introductions.Urgent,
+    order: 0,
+    limit: 1,
+  ) => Actions1;
+
+  @id("c246e26f-2736-4930-8a15-7e0155ca8573")
+  Text Welcome = new(
+    name: "Welcome!",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    Item item = Reference<Item>(id: "18b9a621-ea41-4ac7-8a46-9cc443f2b480");
+  
+    """
+    Hello, traveler! Welcome to the best planet of the best solar system in the <b>ENTIRE</b> galaxy! {item.Name} 
+    """
+  
+    return Intro;
+  }
+
+  @id("32014fbd-2fa1-40e9-840c-567f4d421952")
+  Actions Actions1 = new() {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    @id("bb43d0ca-ef12-4805-b0ea-f42b11adeadc")
+    Action3();
+  
+    return Welcome;
+  }
+
+  @id("55cd604a-448b-4eb4-bd13-aa8c0f8143c9")
+  Text Intro = new(
+    name: "Intro",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    """
+    As the OGs of the system, you probably won't want to leave {outpost.Planet} during your stay, but you're <i>mostly</i> welcome to leave whenever you want!
+    """
+  
+    return WhatBringsYouHere;
+  }
+
+  @id("050f1583-b0fa-44a4-964b-74d2c267aad8")
+  Text WhatBringsYouHere = new(
+    name: "What brings you here?",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    """
+    So, what brings you to {outpost.Planet}?
+    """
+  
+    @id("73b12994-15b0-407a-84c1-64337cdcaf27")
+    Option Missions = new(
+      name: "Missions",
+    ) {
+      """
+      Rumors of cosmic disturbances
+      """
+    
+      return Shock;
+    }
+  
+    @id("1d446373-0dc1-4540-9405-ac2de3c8faa9")
+    Option Tourist = new(
+      name: "Tourist",
+    ) {
+      """
+      To visit {outpost.Planet}, of course! <i>(lie)</i>
+      """
+    
+      return BuySouvenir;
+    }
+  }
+
+  @id("37137d01-a012-423b-9760-ef9bc8b9f1c2")
+  Text Shock = new(
+    name: "Shock",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    """
+    What, here? You might as well turn around right now!
+    """
+  
+    @id("b24ed163-2369-4bcb-9f1e-12712cb0c3be")
+    Option Question = new(
+      name: "Question",
+    ) {
+      """
+      So you haven't noticed anything strange?
+      """
+    
+      return StrangeCult;
+    }
+  
+    @id("5e6af9dc-e006-4e13-8937-0eee7764186d")
+    Option Accuse = new(
+      name: "Accuse",
+    ) {
+      """
+      I know it was you <i>(lie)</i>
+      """
+    
+      return LoseReputationAction;
+    }
+  }
+
+  @id("d8f50e6c-86a2-4b77-8309-7304355ce6bc")
+  Text BuySouvenir = new(
+    name: "Buy souvenir?",
+    saveChoice: false,
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    Item item = Reference<Item>(id: "ca105d9d-2885-4f33-80d4-206d5e207173");
+  
+    """
+    I knew it! Before you continue, would you like to purchase this very special {item.Name}? It is truly the PINNACLE of human craftsmanship!
+    """
+  
+    @id("e1fd78a9-c6e7-48a9-b9d8-26cdb8fd3608")
+    Option Yes = new(
+      name: "Yes",
+    ) {
+      """
+      Buy the hat <b>(</b>{item.Value}<b> bits)</b>
+      """
+    
+      return IfCanAfford;
+    }
+  
+    @id("7a2bfc68-b904-4123-aea5-96bb2721c7ab")
+    Option No = new(
+      name: "No",
+    ) {
+      """
+      No thanks
+      """
+    
+      return NotFashionable;
+    }
+  }
+
+  @id("4246b2de-dfd3-4de5-b2c0-f340026a8625")
+  Text NotFashionable = new(
+    name: "Not fashionable",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    """
+    That makes sense, not everyone can pull off such fashion.
+    """
+  
+    return GuiltTripMercurialWarning;
+  }
+
+  @id("887487ff-d89b-409e-849d-2a72633d92be")
+  Conditions IfCanAfford = new(
+    name: "If can afford",
+  ) {
+    @primary
+    Item item = Reference<Item>(id: "ca105d9d-2885-4f33-80d4-206d5e207173");
+  
+    @id("abbbe4c1-7df8-436b-ba52-d004e5246be2")
+    Outcome CanAfford = new(
+      name: "Can afford",
+      when: [
+      @id("2576959d-3416-587e-8ff9-6a7c106b6486")
+      Condition1,
+    ],
+    ) => AddItemAction;
+  
+    @id("1b863d00-f027-46da-87a5-e4c08549bcf2")
+    Outcome Else = new(
+      name: "else",
+    ) => ImpossibleToReach;
+  }
+
+  @id("7a457b41-7a06-43d2-a3e4-c6d2f1bbf41b")
+  Text Jerk = new(
+    name: "Jerk",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    """
+    Wow. You're a real jerk, you know that?
+    """
+  
+    return BlameTheMercurials;
+  }
+
+  @id("85859d34-8444-410d-8c77-fed6401527c5")
+  Text StrangeCult = new(
+    name: "Strange cult",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    Outpost outpost_2 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    Strange? Hmm...the {outpost_2.Name}s are a strange bunch, constantly staring into the sun. Even with all the solar flares we've been having lately! Blind as a bat, yep.
+    """
+  
+    return UNLOCKMERCIAL;
+  }
+
+  @id("9d3b6734-3e17-4f92-a2d0-79931808728b")
+  Actions LoseReputationAction = new(
+    name: "Lose reputation action",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    @id("eec3e59e-8492-4fcc-aa7f-bc7c5df841a7")
+    Action6();
+  
+    return Jerk;
+  }
+
+  @id("0f2865ae-afae-475a-a7c4-e1910d6fa8fe")
+  Actions AddItemAction = new(
+    name: "Add item action",
+  ) {
+    @primary
+    Item item = Reference<Item>(id: "ca105d9d-2885-4f33-80d4-206d5e207173");
+  
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    @id("feaa216b-31aa-4250-be85-4447ee79cde2")
+    Action1();
+  
+    @id("cc2ffd9e-c4e7-4cbe-b2cf-53ed2777510f")
+    Action2();
+  
+    return ThankYou;
+  }
+
+  @id("46e5522e-fe64-49f3-b67e-fb0b1b2ba9d0")
+  Text ImpossibleToReach = new(
+    name: "Impossible to reach",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    """
+    How are you so poor?! You managed to lose the game in a way that should never happen, congratulations!
+    """
+  }
+
+  @id("3d2bccf1-71e6-4f85-99ef-a4a2c208a52e")
+  Actions UNLOCKMERCIAL = new(
+    name: "UNLOCK MERCIAL",
+  ) {
+    @primary
+    Outpost outpost_2 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    Session session = root.Session;
+  
+    @id("acf5e41c-755e-4dd6-9307-fbefd33f019e")
+    Action4();
+  
+    @id("0207d58c-639e-4634-932c-45e12dbe790e")
+    Action5();
+  }
+
+  @id("87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8")
+  Text GuiltTripMercurialWarning = new(
+    name: "Guilt trip mercurial warning",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    Outpost outpost_2 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    Well, hope you brought another hat then. The sun has been flaring up lately. Something to do with the {outpost_2.Name}s.
+    """
+  
+    @id("f60e18fa-7180-4873-80ea-71132f191bfe")
+    Option Thanks = new(
+      name: "Thanks",
+    ) {
+      """
+      Thanks for the warning
+      """
+    
+      return EnjoyYourVisit;
+    }
+  
+    @id("2d63d4be-9f49-472c-92a8-d93a9da268c5")
+    Option Who = new(
+      name: "Who?",
+    ) {
+      """
+      Who are the {outpost_2.Name}s?
+      """
+    
+      return OptionalMercurialLore;
+    }
+  }
+
+  @id("d4a4adee-a368-44d7-9d5c-b8483a8ed53a")
+  Text ThankYou = new(
+    name: "Thank you!",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    Outpost outpost_2 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    Fabulous! Hey, I'd recommend staying away from the {outpost_2.Name}s. Rumor has it they are causing an uptick in solar flares, but don't worry! That's what the hat is for!
+    """
+  
+    @id("2019213b-8f57-41ec-8089-13c3023eee94")
+    Option Thanks = new(
+      name: "Thanks",
+    ) {
+      """
+      Thanks for the warning
+      """
+    
+      return EnjoyYourVisit;
+    }
+  
+    @id("933f4e34-2bed-4899-a4c6-840fe6e04ece")
+    Option Who = new(
+      name: "Who?",
+    ) {
+      """
+      Who are the {outpost_2.Name}s?
+      """
+    
+      return OptionalMercurialLore_2;
+    }
+  }
+
+  @id("d04d75d7-6e7b-44c9-bcc9-7c61a8cb2fd5")
+  Text BlameTheMercurials = new(
+    name: "Blame the mercurials",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    Outpost outpost_2 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    All I know is that there have been an increase in solar flares. Rumor has it the {outpost_2.Name}s know more. Now get out of here.
+    """
+  
+    return UNLOCKMERCIAL;
+  }
+
+  @id("0fd9e64b-e419-4adf-ac59-f3bc54ad11a0")
+  Text OptionalMercurialLore = new(
+    name: "Optional Mercurial lore",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    Outpost outpost_2 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    Strange bunch, those ones. They are a cult who moved to {outpost_2.Planet} — the planet closest to the sun — so they could stare at it all the time. Super blind, yep.
+    """
+  
+    return GuiltTripMercurialWarning;
+  }
+
+  @id("4620eef5-e9d4-4b2e-93cf-b1f039dbd79b")
+  Text EnjoyYourVisit = new(
+    name: "Enjoy your visit!",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    """
+    Of course, enjoy your visit to {outpost.Planet}!
+    """
+  
+    return UNLOCKMERCIAL;
+  }
+
+  @id("b5be7c15-28f8-4dda-a400-d48dfee783cb")
+  Text OptionalMercurialLore_2 = new(
+    name: "Optional Mercurial lore",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  
+    Outpost outpost_2 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    Strange bunch, those ones. They are a cult who moved to {outpost_2.Planet} — the planet closest to the sun — so they could stare at it all the time. Super blind, yep.
+    """
+  
+    return ThankYou;
+  }
+}

@@ -1,0 +1,111 @@
+@id("c3786df3-6cf4-49de-aa1d-902d27a91b5e")
+@settings(
+  name: "Etna Diadem intro",
+  description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  saveOptionChoices: true
+)
+sealed class EtnaDiademIntro : Dialogue {
+  @primary
+  Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+
+  @id("d6f163cb-e9ff-50b9-95bd-3aff33dcb2a9")
+  void Action1() {
+    root.Save.Inventory.Add(outpost);
+  }
+
+  @id("0cf0dcad-45e9-4d95-9584-ebb62fe735b8")
+  override Trigger Trigger = new(
+    group: Introductions.Urgent,
+    order: 0,
+    limit: 1,
+  ) => D1;
+
+  @id("88ab92f5-b09c-4387-b875-0507db9717e9")
+  Text D1 = new(
+    name: "d1",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  
+    """
+    Welcome, traveler. Sit. The geysers are singing tonight.
+    """
+  
+    @id("fd7b37ed-4fe8-4659-bda7-e16abcb9bc04")
+    Option Listen = new(
+      name: "Listen",
+    ) {
+      """
+      ...What do they sing?
+      """
+    
+      return D2;
+    }
+  
+    @id("8f0c166d-55c6-4877-a1a3-d07f0a90b2f4")
+    Option Hurry = new(
+      name: "Hurry",
+    ) {
+      """
+      No time to sit. The sun is dying.
+      """
+    
+      return D2h;
+    }
+  }
+
+  @id("9ca0aa41-79d6-4183-b4d2-8ac7a686e2c2")
+  Text D2h = new(
+    name: "d2h",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  
+    """
+    The sun is not dying. It is being SPENT. There is a difference, and the difference is a choice. ...Sit anyway. The geysers insist.
+    """
+  
+    return D2;
+  }
+
+  @id("86696bfc-335b-4364-9a0c-981bdf1503c9")
+  Text D2 = new(
+    name: "d2",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  
+    """
+    The deep current turns toward Neptune. The cold ones gather what the bright one sheds. We do not judge them — winter teaches its own prayers. But we remember everything.
+    """
+  
+    return D3;
+  }
+
+  @id("114f7c86-87fb-49f3-acbc-6b3e9127b435")
+  Actions D3 = new(
+    name: "d3",
+  ) {
+    @primary
+    Item item = Reference<Item>(id: "a840747f-9d6b-4d71-af3a-16b294ec436d");
+  
+    Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  
+    @id("b99b2701-e160-4d3a-b6aa-2e063dfa9594")
+    Action1();
+  
+    return D4;
+  }
+
+  @id("4c241f5d-6146-425b-87df-9fba078efa15")
+  Text D4 = new(
+    name: "d4",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  
+    """
+    Cryo salve, for burns of both kinds. Where you are going, the cold can scald worse than any flare.
+    """
+  }
+}

@@ -1,0 +1,204 @@
+@id("76546514-8523-4127-91f1-24cfd5a141a6")
+@settings(
+  name: "Pour Lords: money older than light",
+  saveOptionChoices: true
+)
+sealed class PourLordsMoneyOlderThanLight : Dialogue {
+  @primary
+  Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+
+  @id("ec99a707-f72e-5223-93bd-9947ab7fbbb2")
+  void Action1() {
+    root.Save.Inventory.Remove(outpost);
+  }
+
+  @id("37fd3378-2891-5466-90a8-1dbc1758b1a1")
+  bool Condition1() {
+    return (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes) && !root.Save.Quest.EvidenceLedger && outpost.Save.Reputation >= 1;
+  }
+
+  @id("3033ed4d-b7fd-5ba2-a418-5c5b095cbbae")
+  void Action2() {
+    outpost.Save.Reputation += 1;
+  }
+
+  @id("3d167acf-6206-58c9-b369-8b6264b5b64d")
+  void Action3() {
+    if (root.Save.Quest.Stage == QuestStage.followTheWakes) { root.Save.Quest.Stage = QuestStage.threePaths; }
+  }
+
+  @id("b29ed7aa-af0f-595e-83ef-de152e65e287")
+  void Action4() {
+    root.Save.Quest.EvidenceLedger = true;
+  }
+
+  @id("52068637-6301-5fb5-b318-d61d6358f7c1")
+  bool Condition2() {
+    return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == "18b9a621-ea41-4ac7-8a46-9cc443f2b480"; }));
+  }
+
+  @id("ac9a8816-6fca-458d-a1ce-ec883d285cc8")
+  override Trigger Trigger = new(
+    group: Visits.High,
+    order: 0,
+    when: [
+    @id("82db4290-2c59-56f4-9b38-b13f22b394ef")
+    Condition1,
+  ],
+    limit: 1,
+  ) => P1;
+
+  @id("e422ba33-c809-4969-a63a-9196cd93d46d")
+  Text P3 = new(
+    name: "p3",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    No signature. Just a header, same on every ancient page: 'SAMPLE LEDGER — DO NOT SHIP.' We built an empire on a placeholder, and I find that absolutely hilarious and you should too.
+    """
+  
+    return P4;
+  }
+
+  @id("1c6ce424-63cf-44d8-a6ec-e5ef80a07292")
+  Text P2 = new(
+    name: "p2",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    First entry: fuel futures, sold and settled... dated before the world's first sunrise. Money older than light, friend. The books don't start at the beginning — they start BEFORE it. Someone funded this world like a venture.
+    """
+  
+    @id("91451efd-f9ea-4489-afbe-63d40e7b63e8")
+    Option Who = new(
+      name: "Who",
+    ) {
+      """
+      Who signs the first page?
+      """
+    
+      return P3;
+    }
+  }
+
+  @id("94e9e42d-b496-4cc1-84ef-8eddda11cadd")
+  Text P1 = new(
+    name: "p1",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    The investigator returns! You've been good for business and better for gossip, so here's the house secret, on the house. Our oldest account books.
+    """
+  
+    @id("1cba594e-379e-4949-bfe7-8fef2b0d56da")
+    Option Open = new(
+      name: "Open",
+    ) {
+      """
+      Show me.
+      """
+    
+      return P2;
+    }
+  }
+
+  @id("d85f300c-6497-4440-8eb4-550bf0e7356b")
+  Actions P4 = new(
+    name: "p4",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    @id("8298ae34-02cf-4f7b-bbd9-ea33403ae250")
+    Action3();
+  
+    @id("7bc9e7d2-22bd-4ba3-af81-4dc7b665dc88")
+    Action4();
+  
+    return P4ask;
+  }
+
+  @id("e7ead4f0-12b7-4e92-a3f1-2d8a2fcb6a1a")
+  Text P5 = new(
+    name: "p5",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    Take the page. The Lords always pay debts to people who might end the world — it's just good bookkeeping.
+    """
+  }
+
+  @id("f9bbf58f-df8f-4a35-a67a-a280c276d4a5")
+  Text P4ask = new(
+    name: "p4ask",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    The Margrave's decanter stands empty beside the impossible ledger. Tradition says a deal this old closes with a drink.
+    """
+  
+    @id("1f93c851-c1a3-45da-ba63-de3eb30f5e2f")
+    Option Pour = new(
+      name: "Pour",
+      selectableWhen: [
+      @id("46b9c5b4-f793-5fce-996c-8cfff96821d9")
+      Condition2,
+    ],
+    ) {
+      """
+      Pour from your Helium-3 Flask
+      """
+    
+      return GiveFlask;
+    }
+  
+    @id("68770b22-62c1-4e47-b732-ccb39e8a588f")
+    Option Decline = new(
+      name: "Decline",
+    ) {
+      """
+      Keep the flask sealed
+      """
+    
+      return P5;
+    }
+  }
+
+  @id("6dd2b402-6128-41b1-b6fa-12da561312ed")
+  Actions GiveFlask = new(
+    name: "give flask",
+  ) {
+    Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    @primary
+    Item item = Reference<Item>(id: "18b9a621-ea41-4ac7-8a46-9cc443f2b480");
+  
+    @id("6c4c9091-51dd-4587-a14f-858d23a3d0cd")
+    Action1();
+  
+    return GiveFlask2;
+  }
+
+  @id("c44e89ca-d6ec-4722-ac68-f9cbc50ec7a7")
+  Actions GiveFlask2 = new(
+    name: "give flask (2)",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    @id("a77da640-7669-4f9f-b453-95efa9a73fd7")
+    Action2();
+  
+    return P5;
+  }
+}

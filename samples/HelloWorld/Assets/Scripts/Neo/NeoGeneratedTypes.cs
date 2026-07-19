@@ -436,9 +436,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             this.optionId = optionId;
         }
 
-        public static readonly NeoSmartTileOutput Single = FromOptionId("Single");
-        public static readonly NeoSmartTileOutput Random = FromOptionId("Random");
-        public static readonly NeoSmartTileOutput Animation = FromOptionId("Animation");
+        public static readonly NeoSmartTileOutput Single = FromOptionId("b76ada21-68e0-5b52-bdfe-3b1f95a8c896");
+        public static readonly NeoSmartTileOutput Random = FromOptionId("717e141c-a3af-535e-9f30-da2a9241803d");
+        public static readonly NeoSmartTileOutput Animation = FromOptionId("649f99d0-c726-5f20-aeea-786a0776f53f");
 
         public static NeoSmartTileOutput FromOptionId(string optionId)
         {
@@ -460,9 +460,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return id switch
             {
-                "Single" => true,
-                "Random" => true,
-                "Animation" => true,
+                "b76ada21-68e0-5b52-bdfe-3b1f95a8c896" => true,
+                "717e141c-a3af-535e-9f30-da2a9241803d" => true,
+                "649f99d0-c726-5f20-aeea-786a0776f53f" => true,
                 _ => false,
             };
         }
@@ -471,9 +471,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return optionId switch
             {
-                "Single" => "35370b82-4269-4fdf-b768-c268edbab60e",
-                "Random" => "37e58009-597f-4075-8f84-793a5e63cb44",
-                "Animation" => "d6191a4c-6b7b-4e86-a1ed-adbb43f2752c",
+                "b76ada21-68e0-5b52-bdfe-3b1f95a8c896" => "35370b82-4269-4fdf-b768-c268edbab60e",
+                "717e141c-a3af-535e-9f30-da2a9241803d" => "37e58009-597f-4075-8f84-793a5e63cb44",
+                "649f99d0-c726-5f20-aeea-786a0776f53f" => "d6191a4c-6b7b-4e86-a1ed-adbb43f2752c",
                 _ => optionId,
             };
         }
@@ -504,15 +504,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             this.optionId = optionId;
         }
 
-        public static readonly Planet mercury = FromOptionId("mercury");
-        public static readonly Planet venus = FromOptionId("venus");
-        public static readonly Planet earth = FromOptionId("earth");
-        public static readonly Planet mars = FromOptionId("mars");
-        public static readonly Planet jupiter = FromOptionId("jupiter");
-        public static readonly Planet saturn = FromOptionId("saturn");
-        public static readonly Planet uranus = FromOptionId("uranus");
-        public static readonly Planet neptune = FromOptionId("neptune");
-        public static readonly Planet pluto = FromOptionId("pluto");
+        public static readonly Planet mercury = FromOptionId("423134f9-3331-5b33-944b-5e4d7160e060");
+        public static readonly Planet venus = FromOptionId("f492d879-e4a7-5419-9a8c-6f890d4657c7");
+        public static readonly Planet earth = FromOptionId("901a21ff-6ad4-5791-8ae3-2f9df559b9ff");
+        public static readonly Planet mars = FromOptionId("4f9bc257-1579-59b5-90c3-417c3518e407");
+        public static readonly Planet jupiter = FromOptionId("78eea93e-734b-5c5a-8b2f-3410f0701cef");
+        public static readonly Planet saturn = FromOptionId("dd859a21-d18e-5ad4-962d-af6b939b7f29");
+        public static readonly Planet uranus = FromOptionId("0e7998db-d1c8-5036-955e-923dbc5fb78a");
+        public static readonly Planet neptune = FromOptionId("7eda9aa1-0212-5433-b292-349d4b63039e");
+        public static readonly Planet pluto = FromOptionId("987a97e1-02c7-52f1-a638-117d76726337");
 
         public static Planet FromOptionId(string optionId)
         {
@@ -534,15 +534,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return id switch
             {
-                "mercury" => true,
-                "venus" => true,
-                "earth" => true,
-                "mars" => true,
-                "jupiter" => true,
-                "saturn" => true,
-                "uranus" => true,
-                "neptune" => true,
-                "pluto" => true,
+                "423134f9-3331-5b33-944b-5e4d7160e060" => true,
+                "f492d879-e4a7-5419-9a8c-6f890d4657c7" => true,
+                "901a21ff-6ad4-5791-8ae3-2f9df559b9ff" => true,
+                "4f9bc257-1579-59b5-90c3-417c3518e407" => true,
+                "78eea93e-734b-5c5a-8b2f-3410f0701cef" => true,
+                "dd859a21-d18e-5ad4-962d-af6b939b7f29" => true,
+                "0e7998db-d1c8-5036-955e-923dbc5fb78a" => true,
+                "7eda9aa1-0212-5433-b292-349d4b63039e" => true,
+                "987a97e1-02c7-52f1-a638-117d76726337" => true,
                 _ => false,
             };
         }
@@ -551,15 +551,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return optionId switch
             {
-                "mercury" => "4e5a1262-ba35-4bf6-a68a-45b27479143d",
-                "venus" => "fe5ab262-4a0f-4551-ab27-5fd1c97da128",
-                "earth" => "165b49a1-0b48-4e99-beec-079dc0531484",
-                "mars" => "92fe9254-9e61-40c6-aced-6f55692b0120",
-                "jupiter" => "dae6ab0c-4b82-4a11-8057-097a193fecea",
-                "saturn" => "1f81373c-bdb0-47ab-87a8-283c45f1a686",
-                "uranus" => "fafce114-ab70-4813-a4e2-cb436b66aba6",
-                "neptune" => "1ad90a45-a7f6-4e11-9524-5f6d05fe5ab6",
-                "pluto" => "ee2f7b0b-786c-41ca-8578-6f348194d52c",
+                "423134f9-3331-5b33-944b-5e4d7160e060" => "4e5a1262-ba35-4bf6-a68a-45b27479143d",
+                "f492d879-e4a7-5419-9a8c-6f890d4657c7" => "fe5ab262-4a0f-4551-ab27-5fd1c97da128",
+                "901a21ff-6ad4-5791-8ae3-2f9df559b9ff" => "165b49a1-0b48-4e99-beec-079dc0531484",
+                "4f9bc257-1579-59b5-90c3-417c3518e407" => "92fe9254-9e61-40c6-aced-6f55692b0120",
+                "78eea93e-734b-5c5a-8b2f-3410f0701cef" => "dae6ab0c-4b82-4a11-8057-097a193fecea",
+                "dd859a21-d18e-5ad4-962d-af6b939b7f29" => "1f81373c-bdb0-47ab-87a8-283c45f1a686",
+                "0e7998db-d1c8-5036-955e-923dbc5fb78a" => "fafce114-ab70-4813-a4e2-cb436b66aba6",
+                "7eda9aa1-0212-5433-b292-349d4b63039e" => "1ad90a45-a7f6-4e11-9524-5f6d05fe5ab6",
+                "987a97e1-02c7-52f1-a638-117d76726337" => "ee2f7b0b-786c-41ca-8578-6f348194d52c",
                 _ => optionId,
             };
         }
@@ -590,9 +590,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             this.optionId = optionId;
         }
 
-        public static readonly NeoSmartTileCollider None = FromOptionId("None");
-        public static readonly NeoSmartTileCollider Sprite = FromOptionId("Sprite");
-        public static readonly NeoSmartTileCollider Grid = FromOptionId("Grid");
+        public static readonly NeoSmartTileCollider None = FromOptionId("cfca7937-a285-5b1a-97f4-6c088137a517");
+        public static readonly NeoSmartTileCollider Sprite = FromOptionId("6cf2f768-993c-5e9c-8bcb-60e1a0d8c575");
+        public static readonly NeoSmartTileCollider Grid = FromOptionId("5e0f42af-fff5-5a65-9844-f11f36ae55a8");
 
         public static NeoSmartTileCollider FromOptionId(string optionId)
         {
@@ -614,9 +614,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return id switch
             {
-                "None" => true,
-                "Sprite" => true,
-                "Grid" => true,
+                "cfca7937-a285-5b1a-97f4-6c088137a517" => true,
+                "6cf2f768-993c-5e9c-8bcb-60e1a0d8c575" => true,
+                "5e0f42af-fff5-5a65-9844-f11f36ae55a8" => true,
                 _ => false,
             };
         }
@@ -625,9 +625,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return optionId switch
             {
-                "None" => "63c4fc38-4be9-4fdb-925c-5b7d3942fa21",
-                "Sprite" => "9c77cfbc-049e-44c9-8dae-144ad8758c1b",
-                "Grid" => "0465f25d-046c-404a-b642-0bc9a52ca208",
+                "cfca7937-a285-5b1a-97f4-6c088137a517" => "63c4fc38-4be9-4fdb-925c-5b7d3942fa21",
+                "6cf2f768-993c-5e9c-8bcb-60e1a0d8c575" => "9c77cfbc-049e-44c9-8dae-144ad8758c1b",
+                "5e0f42af-fff5-5a65-9844-f11f36ae55a8" => "0465f25d-046c-404a-b642-0bc9a52ca208",
                 _ => optionId,
             };
         }
@@ -658,8 +658,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             this.optionId = optionId;
         }
 
-        public static readonly SaturnMoon titan = FromOptionId("titan");
-        public static readonly SaturnMoon enceladus = FromOptionId("enceladus");
+        public static readonly SaturnMoon titan = FromOptionId("71a4807b-b9d9-5ed7-b4b1-39cce6b49457");
+        public static readonly SaturnMoon enceladus = FromOptionId("8875803f-5d33-582a-bb56-1389f7746d34");
 
         public static SaturnMoon FromOptionId(string optionId)
         {
@@ -681,8 +681,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return id switch
             {
-                "titan" => true,
-                "enceladus" => true,
+                "71a4807b-b9d9-5ed7-b4b1-39cce6b49457" => true,
+                "8875803f-5d33-582a-bb56-1389f7746d34" => true,
                 _ => false,
             };
         }
@@ -691,8 +691,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return optionId switch
             {
-                "titan" => "c59bdeaf-9f71-4970-a95f-058c7f54c18b",
-                "enceladus" => "543a1e52-c9ca-470a-ad07-884ee0c55cc2",
+                "71a4807b-b9d9-5ed7-b4b1-39cce6b49457" => "c59bdeaf-9f71-4970-a95f-058c7f54c18b",
+                "8875803f-5d33-582a-bb56-1389f7746d34" => "543a1e52-c9ca-470a-ad07-884ee0c55cc2",
                 _ => optionId,
             };
         }
@@ -723,10 +723,10 @@ namespace HelloWorld.Assets.Scripts.Neo
             this.optionId = optionId;
         }
 
-        public static readonly JupiterMoon io = FromOptionId("io");
-        public static readonly JupiterMoon europa = FromOptionId("europa");
-        public static readonly JupiterMoon ganymede = FromOptionId("ganymede");
-        public static readonly JupiterMoon callisto = FromOptionId("callisto");
+        public static readonly JupiterMoon io = FromOptionId("5cdeb824-3b72-511b-b248-584bbe2002f4");
+        public static readonly JupiterMoon europa = FromOptionId("017b6de2-cab7-5dcc-949e-127e81452071");
+        public static readonly JupiterMoon ganymede = FromOptionId("5503d837-8ff6-5ac1-9293-ca496c608890");
+        public static readonly JupiterMoon callisto = FromOptionId("5bf07e46-2cd8-5277-8910-e66fd3ddef3c");
 
         public static JupiterMoon FromOptionId(string optionId)
         {
@@ -748,10 +748,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return id switch
             {
-                "io" => true,
-                "europa" => true,
-                "ganymede" => true,
-                "callisto" => true,
+                "5cdeb824-3b72-511b-b248-584bbe2002f4" => true,
+                "017b6de2-cab7-5dcc-949e-127e81452071" => true,
+                "5503d837-8ff6-5ac1-9293-ca496c608890" => true,
+                "5bf07e46-2cd8-5277-8910-e66fd3ddef3c" => true,
                 _ => false,
             };
         }
@@ -760,10 +760,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return optionId switch
             {
-                "io" => "03d962a1-c763-4589-89bd-f0db811c9b95",
-                "europa" => "134542ba-7414-4353-b0bd-5773e31d63bf",
-                "ganymede" => "15a60d3e-940d-4ac4-b6ba-ac1403dcfea2",
-                "callisto" => "c9ec2854-89aa-4a36-bbd8-ece671852b77",
+                "5cdeb824-3b72-511b-b248-584bbe2002f4" => "03d962a1-c763-4589-89bd-f0db811c9b95",
+                "017b6de2-cab7-5dcc-949e-127e81452071" => "134542ba-7414-4353-b0bd-5773e31d63bf",
+                "5503d837-8ff6-5ac1-9293-ca496c608890" => "15a60d3e-940d-4ac4-b6ba-ac1403dcfea2",
+                "5bf07e46-2cd8-5277-8910-e66fd3ddef3c" => "c9ec2854-89aa-4a36-bbd8-ece671852b77",
                 _ => optionId,
             };
         }
@@ -794,12 +794,12 @@ namespace HelloWorld.Assets.Scripts.Neo
             this.optionId = optionId;
         }
 
-        public static readonly QuestStage arrival = FromOptionId("arrival");
-        public static readonly QuestStage ended = FromOptionId("ended");
-        public static readonly QuestStage endgame = FromOptionId("endgame");
-        public static readonly QuestStage followTheWakes = FromOptionId("followTheWakes");
-        public static readonly QuestStage threePaths = FromOptionId("threePaths");
-        public static readonly QuestStage vaultOpen = FromOptionId("vaultOpen");
+        public static readonly QuestStage arrival = FromOptionId("718721e3-e457-5204-8d05-c1c3e03a3294");
+        public static readonly QuestStage ended = FromOptionId("154ded59-2f9b-529b-835a-45e33fb095a0");
+        public static readonly QuestStage endgame = FromOptionId("462b9987-f994-5321-9e15-772514147483");
+        public static readonly QuestStage followTheWakes = FromOptionId("2a9f4a83-7dc5-501f-ab72-f76ad1f48f28");
+        public static readonly QuestStage threePaths = FromOptionId("9e32a0e7-fc6e-591a-b34d-afc37366ca63");
+        public static readonly QuestStage vaultOpen = FromOptionId("b296b05a-1e9a-5b10-85c1-140e4fce6d4e");
 
         public static QuestStage FromOptionId(string optionId)
         {
@@ -821,12 +821,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return id switch
             {
-                "arrival" => true,
-                "ended" => true,
-                "endgame" => true,
-                "followTheWakes" => true,
-                "threePaths" => true,
-                "vaultOpen" => true,
+                "718721e3-e457-5204-8d05-c1c3e03a3294" => true,
+                "154ded59-2f9b-529b-835a-45e33fb095a0" => true,
+                "462b9987-f994-5321-9e15-772514147483" => true,
+                "2a9f4a83-7dc5-501f-ab72-f76ad1f48f28" => true,
+                "9e32a0e7-fc6e-591a-b34d-afc37366ca63" => true,
+                "b296b05a-1e9a-5b10-85c1-140e4fce6d4e" => true,
                 _ => false,
             };
         }
@@ -835,12 +835,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return optionId switch
             {
-                "arrival" => "arrival",
-                "ended" => "ended",
-                "endgame" => "endgame",
-                "followTheWakes" => "followTheWakes",
-                "threePaths" => "threePaths",
-                "vaultOpen" => "vaultOpen",
+                "718721e3-e457-5204-8d05-c1c3e03a3294" => "arrival",
+                "154ded59-2f9b-529b-835a-45e33fb095a0" => "ended",
+                "462b9987-f994-5321-9e15-772514147483" => "endgame",
+                "2a9f4a83-7dc5-501f-ab72-f76ad1f48f28" => "followTheWakes",
+                "9e32a0e7-fc6e-591a-b34d-afc37366ca63" => "threePaths",
+                "b296b05a-1e9a-5b10-85c1-140e4fce6d4e" => "vaultOpen",
                 _ => optionId,
             };
         }
@@ -871,10 +871,10 @@ namespace HelloWorld.Assets.Scripts.Neo
             this.optionId = optionId;
         }
 
-        public static readonly NeoSmartTileCondition This = FromOptionId("This");
-        public static readonly NeoSmartTileCondition NotThis = FromOptionId("NotThis");
-        public static readonly NeoSmartTileCondition InheritsFromClass = FromOptionId("InheritsFromClass");
-        public static readonly NeoSmartTileCondition NotInheritsFromClass = FromOptionId("NotInheritsFromClass");
+        public static readonly NeoSmartTileCondition This = FromOptionId("fe185d9d-63c5-5f71-be71-408db18a84ee");
+        public static readonly NeoSmartTileCondition NotThis = FromOptionId("53438afa-206b-5bec-a202-c9b60d1ad8b6");
+        public static readonly NeoSmartTileCondition InheritsFromClass = FromOptionId("04d1dedf-8b84-5638-8db1-158c4243ef3f");
+        public static readonly NeoSmartTileCondition NotInheritsFromClass = FromOptionId("bc62a20a-a386-5224-b54b-12c00e7c576b");
 
         public static NeoSmartTileCondition FromOptionId(string optionId)
         {
@@ -896,10 +896,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return id switch
             {
-                "This" => true,
-                "NotThis" => true,
-                "InheritsFromClass" => true,
-                "NotInheritsFromClass" => true,
+                "fe185d9d-63c5-5f71-be71-408db18a84ee" => true,
+                "53438afa-206b-5bec-a202-c9b60d1ad8b6" => true,
+                "04d1dedf-8b84-5638-8db1-158c4243ef3f" => true,
+                "bc62a20a-a386-5224-b54b-12c00e7c576b" => true,
                 _ => false,
             };
         }
@@ -908,10 +908,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return optionId switch
             {
-                "This" => "7a6d716c-1c9f-45c5-8f15-29d87beb162b",
-                "NotThis" => "7dcfeadc-d448-478d-82ae-33ebbdd62c7a",
-                "InheritsFromClass" => "ce735446-bbb5-4f10-ab06-5f43e7be9ff0",
-                "NotInheritsFromClass" => "d305c446-c6f3-4f07-83d4-8388d6695a4c",
+                "fe185d9d-63c5-5f71-be71-408db18a84ee" => "7a6d716c-1c9f-45c5-8f15-29d87beb162b",
+                "53438afa-206b-5bec-a202-c9b60d1ad8b6" => "7dcfeadc-d448-478d-82ae-33ebbdd62c7a",
+                "04d1dedf-8b84-5638-8db1-158c4243ef3f" => "ce735446-bbb5-4f10-ab06-5f43e7be9ff0",
+                "bc62a20a-a386-5224-b54b-12c00e7c576b" => "d305c446-c6f3-4f07-83d4-8388d6695a4c",
                 _ => optionId,
             };
         }
@@ -942,11 +942,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             this.optionId = optionId;
         }
 
-        public static readonly WorldEnding commentOut = FromOptionId("commentOut");
-        public static readonly WorldEnding goodbyeWorld = FromOptionId("goodbyeWorld");
-        public static readonly WorldEnding helloWorld = FromOptionId("helloWorld");
-        public static readonly WorldEnding none = FromOptionId("none");
-        public static readonly WorldEnding secondSun = FromOptionId("secondSun");
+        public static readonly WorldEnding commentOut = FromOptionId("498b8b7f-6470-5de3-a20d-d7ec9307933f");
+        public static readonly WorldEnding goodbyeWorld = FromOptionId("03d93640-bd3d-59cd-b973-19083e0496bf");
+        public static readonly WorldEnding helloWorld = FromOptionId("d3e24170-8855-56e2-bee8-773d01636c6b");
+        public static readonly WorldEnding none = FromOptionId("43694573-50a6-53eb-9a27-bd913ee6f884");
+        public static readonly WorldEnding secondSun = FromOptionId("7359d943-87e9-576f-8857-7dc583fa1760");
 
         public static WorldEnding FromOptionId(string optionId)
         {
@@ -968,11 +968,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return id switch
             {
-                "commentOut" => true,
-                "goodbyeWorld" => true,
-                "helloWorld" => true,
-                "none" => true,
-                "secondSun" => true,
+                "498b8b7f-6470-5de3-a20d-d7ec9307933f" => true,
+                "03d93640-bd3d-59cd-b973-19083e0496bf" => true,
+                "d3e24170-8855-56e2-bee8-773d01636c6b" => true,
+                "43694573-50a6-53eb-9a27-bd913ee6f884" => true,
+                "7359d943-87e9-576f-8857-7dc583fa1760" => true,
                 _ => false,
             };
         }
@@ -981,11 +981,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return optionId switch
             {
-                "commentOut" => "commentOut",
-                "goodbyeWorld" => "goodbyeWorld",
-                "helloWorld" => "helloWorld",
-                "none" => "none",
-                "secondSun" => "secondSun",
+                "498b8b7f-6470-5de3-a20d-d7ec9307933f" => "commentOut",
+                "03d93640-bd3d-59cd-b973-19083e0496bf" => "goodbyeWorld",
+                "d3e24170-8855-56e2-bee8-773d01636c6b" => "helloWorld",
+                "43694573-50a6-53eb-9a27-bd913ee6f884" => "none",
+                "7359d943-87e9-576f-8857-7dc583fa1760" => "secondSun",
                 _ => optionId,
             };
         }
@@ -1016,12 +1016,12 @@ namespace HelloWorld.Assets.Scripts.Neo
             this.optionId = optionId;
         }
 
-        public static readonly NeoSmartTileTransform Fixed = FromOptionId("Fixed");
-        public static readonly NeoSmartTileTransform Rotated = FromOptionId("Rotated");
-        public static readonly NeoSmartTileTransform MirrorX = FromOptionId("MirrorX");
-        public static readonly NeoSmartTileTransform MirrorY = FromOptionId("MirrorY");
-        public static readonly NeoSmartTileTransform MirrorXY = FromOptionId("MirrorXY");
-        public static readonly NeoSmartTileTransform RotatedMirror = FromOptionId("RotatedMirror");
+        public static readonly NeoSmartTileTransform Fixed = FromOptionId("3f16d1d6-ec8b-532b-ad8b-23af9ea01172");
+        public static readonly NeoSmartTileTransform Rotated = FromOptionId("d6e0f63f-910c-5e51-ac77-250c7f606664");
+        public static readonly NeoSmartTileTransform MirrorX = FromOptionId("00edc26a-6ef4-57db-a290-f1f8300146e9");
+        public static readonly NeoSmartTileTransform MirrorY = FromOptionId("c1c2577b-870f-5305-b206-3c70dfeb775b");
+        public static readonly NeoSmartTileTransform MirrorXY = FromOptionId("35b53059-1836-5fac-bcde-291274dcebc7");
+        public static readonly NeoSmartTileTransform RotatedMirror = FromOptionId("9da42749-b317-5558-8f76-0a9fcb69229d");
 
         public static NeoSmartTileTransform FromOptionId(string optionId)
         {
@@ -1043,12 +1043,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return id switch
             {
-                "Fixed" => true,
-                "Rotated" => true,
-                "MirrorX" => true,
-                "MirrorY" => true,
-                "MirrorXY" => true,
-                "RotatedMirror" => true,
+                "3f16d1d6-ec8b-532b-ad8b-23af9ea01172" => true,
+                "d6e0f63f-910c-5e51-ac77-250c7f606664" => true,
+                "00edc26a-6ef4-57db-a290-f1f8300146e9" => true,
+                "c1c2577b-870f-5305-b206-3c70dfeb775b" => true,
+                "35b53059-1836-5fac-bcde-291274dcebc7" => true,
+                "9da42749-b317-5558-8f76-0a9fcb69229d" => true,
                 _ => false,
             };
         }
@@ -1057,12 +1057,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return optionId switch
             {
-                "Fixed" => "8e21d44a-8cc4-4bca-aea4-419c3ec1b1da",
-                "Rotated" => "678e286f-3f0a-4fe4-8ae2-0fcebccec0c3",
-                "MirrorX" => "b586d36f-35f7-4482-9cf7-8740d247f93f",
-                "MirrorY" => "7a8a6e8e-2775-4ba9-995a-4edf8b988bf6",
-                "MirrorXY" => "f6057c5a-d772-4043-a327-b785a8776379",
-                "RotatedMirror" => "a9d35370-fe60-40b4-afae-f8269c8aa55b",
+                "3f16d1d6-ec8b-532b-ad8b-23af9ea01172" => "8e21d44a-8cc4-4bca-aea4-419c3ec1b1da",
+                "d6e0f63f-910c-5e51-ac77-250c7f606664" => "678e286f-3f0a-4fe4-8ae2-0fcebccec0c3",
+                "00edc26a-6ef4-57db-a290-f1f8300146e9" => "b586d36f-35f7-4482-9cf7-8740d247f93f",
+                "c1c2577b-870f-5305-b206-3c70dfeb775b" => "7a8a6e8e-2775-4ba9-995a-4edf8b988bf6",
+                "35b53059-1836-5fac-bcde-291274dcebc7" => "f6057c5a-d772-4043-a327-b785a8776379",
+                "9da42749-b317-5558-8f76-0a9fcb69229d" => "a9d35370-fe60-40b4-afae-f8269c8aa55b",
                 _ => optionId,
             };
         }

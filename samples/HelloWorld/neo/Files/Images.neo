@@ -1,0 +1,131 @@
+ImageRegistry Images = new() {
+  @id("2c68221a-2a3c-45d4-8565-c5c23c0654d3")
+  @settings(template: PivotCenter16x16)
+  NeoImage BootGlyphTile = new("Files/Images/boot-glyph-tile.png");
+
+  @id("1d2aae1d-6912-454b-833a-48f355959526")
+  @settings(template: PivotCenter16x16)
+  NeoImage Callisto = new("Files/Images/Callisto.png");
+
+  @id("5cc531eb-25a5-469f-877d-10afb4c5489e")
+  @settings(template: PivotCenter16x16)
+  NeoImage Earth = new("Files/Images/Earth.png");
+
+  @id("615fb640-00f1-416b-af1b-be81a97efc44")
+  @settings(template: PivotCenter16x16)
+  NeoImage EarthDayAndNight = new("Files/Images/Earth (day and night).png");
+
+  @id("58adbc26-d0af-46e5-8a67-80b1f2ed907c")
+  @settings(template: PivotCenter16x16)
+  NeoImage Enceladus = new("Files/Images/Enceladus.png");
+
+  @id("501220c3-2e57-42d2-9e9e-02402cf89938")
+  @settings(template: PivotCenter16x16)
+  NeoImage Europa = new("Files/Images/Europa.png");
+
+  @id("58b3b0b3-257a-46ee-ba87-bab09972ff63")
+  @settings(template: PivotCenter48x48)
+  NeoImage ExitPromptObject = new("Files/Images/exit-prompt-object.png");
+
+  @id("4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506")
+  NeoImage FirstWorldIcon = new("Files/Images/First world icon.png");
+
+  @id("1e4112b5-503c-4cfc-a026-4f5d38e6999c")
+  @settings(template: PivotCenter16x16)
+  NeoImage FlareStatic = new("Files/Images/Flare static.png");
+
+  @id("4c0979c9-a84b-4679-93d8-601be3eba540")
+  @settings(template: PivotCenter16x16)
+  NeoImage Ganymede = new("Files/Images/Ganymede.png");
+
+  @id("acf20f9d-cd05-4205-a449-a0c21dcd4e12")
+  @settings(template: PivotCenter16x16)
+  NeoImage GlassFloorTile = new("Files/Images/glass-floor-tile.png");
+
+  @id("84de284b-34fe-4775-8385-f9edf883c90d")
+  @settings(template: PivotCenter16x16)
+  NeoImage GlassFloorVariants = new("Files/Images/glass-floor-variants.png");
+
+  @id("7d8b0f36-24c6-4be5-afaa-065be59100b1")
+  @settings(template: PivotCenter16x16)
+  NeoImage HullPlatingAutotile = new("Files/Images/hull-plating-autotile.png");
+
+  @id("ad8b2628-2e12-4c8a-90e5-b4334b430b6e")
+  @settings(template: PivotCenter16x16)
+  NeoImage HullWallTile = new("Files/Images/hull-wall-tile.png");
+
+  @id("554cfefd-6410-4930-913d-879409ec9db2")
+  @settings(template: PivotCenter16x16)
+  NeoImage Io = new("Files/Images/Io.png");
+
+  @id("6e1643e2-5b91-45a6-a4b1-435f36c1a0f9")
+  @settings(template: PivotCenter16x16)
+  NeoImage Jupiter = new("Files/Images/Jupiter.png");
+
+  @id("f35d7f06-1670-4d53-9468-82266fe8c41e")
+  @settings(template: PivotCenter16x16)
+  NeoImage Mars = new("Files/Images/Mars.png");
+
+  @id("e55c6f29-b498-433b-85a8-89672290f3c0")
+  @settings(template: PivotCenter16x16)
+  NeoImage Mercury = new("Files/Images/Mercury.png");
+
+  @id("dea050c2-de92-40f6-a1c0-fe64ab6f6165")
+  @settings(template: PivotCenter16x16)
+  NeoImage Neptune = new("Files/Images/Neptune.png");
+
+  @id("4bdf7916-db7e-42f9-8b75-02ab429ac1f2")
+  @settings(template: PivotCenter48x48)
+  NeoImage PlayerSpawnObject = new("Files/Images/player-spawn-object.png");
+
+  @id("8260f51a-291a-4191-9ebd-8ed9c04fd9bc")
+  @settings(template: PivotCenter16x16)
+  NeoImage Pluto = new("Files/Images/Pluto.png");
+
+  @id("ea87154e-d1dd-49f4-8050-96f1493a81fc")
+  @settings(template: PivotCenter48x48)
+  NeoImage RecoveryCacheObject = new("Files/Images/recovery-cache-object.png");
+
+  @id("666675d5-8a39-41c1-ba2c-18f014bf03f5")
+  @settings(template: PivotCenter16x16)
+  NeoImage RedNovaWarningTile = new("Files/Images/red-nova-warning-tile.png");
+
+  @id("027cc2b7-71d3-451d-a9db-fae0e6cbbfc4")
+  @settings(template: PivotCenter26x16)
+  NeoImage Saturn = new("Files/Images/Saturn.png");
+
+  @id("18da2470-d75e-4634-97ce-7ea8bd26b743")
+  @settings(template: PivotCenter16x16)
+  NeoImage SealBarrierTile = new("Files/Images/seal-barrier-tile.png");
+
+  @id("8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7")
+  @settings(template: PivotCenter16x16)
+  NeoImage ShipThruster = new("Files/Images/Ship (thruster).png");
+
+  @id("301f56dd-27b3-46f4-8b86-6492ef7b7910")
+  NeoImage Sun = new("Files/Images/Sun.png");
+
+  @id("478dec23-1b25-4642-8012-7083dee04cb7")
+  @settings(template: PivotCenter16x16)
+  NeoImage Titan = new("Files/Images/Titan.png");
+
+  @id("fea246bc-056a-45b4-983e-9209e35d0ef0")
+  @settings(template: PivotCenter16x16)
+  NeoImage Uranus = new("Files/Images/Uranus.png");
+
+  @id("02e201f3-f061-4310-bdde-54e2dd905634")
+  NeoImage VaultPlaque = new("Files/Images/Vault plaque.png");
+
+  @id("ea5a70da-6213-4b4b-bd44-ab84adc449e0")
+  @settings(template: PivotCenter48x48)
+  NeoImage VaultPlaqueObject = new("Files/Images/vault-plaque-object.png");
+
+  @id("65625941-be23-4913-8131-f383bf4ff690")
+  @settings(template: PivotCenter16x16)
+  NeoImage VenusCloudy = new("Files/Images/Venus (cloudy).png");
+
+  @id("355390cf-4ce9-410d-af90-25273ae4bd3b")
+  @settings(template: PivotCenter16x16)
+  NeoImage VoidTile = new("Files/Images/void-tile.png");
+
+}

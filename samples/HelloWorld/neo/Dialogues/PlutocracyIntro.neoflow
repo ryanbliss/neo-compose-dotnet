@@ -1,0 +1,244 @@
+@id("4aba3b7a-d052-4499-8e2f-696183816cc4")
+@settings(
+  name: "Plutocracy intro",
+  description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  saveOptionChoices: true
+)
+sealed class PlutocracyIntro : Dialogue {
+  @primary
+  Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+
+  @id("ea568c94-3bc2-538f-8030-ff46ea5660f3")
+  void Action1() {
+    root.Save.Inventory.Add(outpost);
+  }
+
+  @id("fbdcb434-7860-50d0-a00f-2a43545db3a3")
+  void Action2() {
+    outpost.Save.Reputation += 1;
+  }
+
+  @id("a2af8479-5f19-5743-9a45-0eea97fb1ca6")
+  void Action3() {
+    outpost.Save.Reputation -= 1;
+  }
+
+  @id("f908f16c-1117-408a-8c8d-14849d82d42f")
+  override Trigger Trigger = new(
+    group: Introductions.Urgent,
+    order: 0,
+    limit: 1,
+  ) => Pl1;
+
+  @id("1c5bf3a8-fe52-4402-a627-2cf0bfd7d33c")
+  Text Pl1 = new(
+    name: "pl1",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    Ah. The famous investigator, here at the edge of everything. Do you know what they took from us, before you were even born? A WORD. 'Planet.' One word, and the whole system stopped writing.
+    """
+  
+    @id("2b9e18bd-a3b3-4326-828b-9ccd864856a3")
+    Option Listen = new(
+      name: "Listen",
+    ) {
+      """
+      Go on.
+      """
+    
+      return Pl2;
+    }
+  
+    @id("54c3d2dd-a25c-4af6-a81e-0c1c884e5388")
+    Option Cut = new(
+      name: "Cut",
+    ) {
+      """
+      The Second Sun. It's yours, isn't it?
+      """
+    
+      return Pl2;
+    }
+  }
+
+  @id("0bc7f57e-41ca-4954-9bdc-b025b3ff6976")
+  Text Pl2 = new(
+    name: "pl2",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    The Gyre builds it, yes — but it will orbit US. A sun of Pluto's own. And when it lights, no astronomer alive will dare write 'dwarf' next to our name again.
+    """
+  
+    return Pl3;
+  }
+
+  @id("aab83184-4566-4586-a7fc-a8bc640c100c")
+  Text Pl3 = new(
+    name: "pl3",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    So. The ledgers are open, the manifest is in your coat, and the question, investigator, is what you do with your evening.
+    """
+  
+    @id("9539da55-ed13-4228-85a1-a85efb22c90d")
+    Option Side = new(
+      name: "Side",
+    ) {
+      """
+      A sun for Pluto. Honestly? Earned.
+      """
+    
+      return Ple1;
+    }
+  
+    @id("3c47d0d4-f986-421a-afb0-7bcdd05621ea")
+    Option Expose = new(
+      name: "Expose",
+    ) {
+      """
+      The whole system will know by morning. All of it.
+      """
+    
+      return Ple2;
+    }
+  
+    @id("24844262-fff0-4b23-8378-d461d4b884c5")
+    Option Broker = new(
+      name: "Broker",
+    ) {
+      """
+      There's a third way: share the Second Sun. Every outpost, one sky.
+      """
+    
+      return Ple3;
+    }
+  }
+
+  @id("dff9f481-8ed1-43d0-83ab-d5ac83f107ec")
+  Text Ple1 = new(
+    name: "ple1",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    We knew you were reasonable. Wear this signet — when the new dawn comes, it will mark you a Friend of Pluto.
+    """
+  
+    return Pla1;
+  }
+
+  @id("6ed1ee1c-6eff-4614-80b4-a3d94b1fb318")
+  Actions Pla1 = new(
+    name: "pla1",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    @id("7eb438ef-4230-4e38-a4bb-109eb7612ea2")
+    Action2();
+  
+    return GrantPlutonianSignet;
+  }
+
+  @id("69ea0164-dd19-47ad-8521-403c2d07d78b")
+  Text Pe1 = new(
+    name: "pe1",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    The sun sets on Earth. Somewhere past Neptune, a second dawn is loading.
+    """
+  }
+
+  @id("11a8047d-5736-4f58-a5c8-dcffc12bdaca")
+  Text Ple2 = new(
+    name: "ple2",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    Then run fast, little herald. Light takes five hours to reach Earth from here — your warning will be racing it the whole way.
+    """
+  
+    return Pla2;
+  }
+
+  @id("7188e155-1ddd-4bfa-b833-5adcab2ba360")
+  Actions Pla2 = new(
+    name: "pla2",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    @id("8a4202b1-dae7-4405-8421-1a28e212f7c6")
+    Action3();
+  
+    return Pe2;
+  }
+
+  @id("2b1e3eeb-7041-4b4f-be16-29950655c02f")
+  Text Pe2 = new(
+    name: "pe2",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    Behind you, the Plutocracy begins erasing its ledgers. The race to sunrise has started.
+    """
+  }
+
+  @id("1c03b39e-8bbe-4fea-80df-fd693dbcd154")
+  Actions GrantPlutonianSignet = new(
+    name: "grant Plutonian Signet",
+  ) {
+    @primary
+    Item item = Reference<Item>(id: "e812e95c-d4dc-4f5d-8f42-ce57e5501eab");
+  
+    Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    @id("711ab375-5c19-4e01-b75c-4f9dc14d92e8")
+    Action1();
+  
+    return Pe1;
+  }
+
+  @id("cc88dd2c-2924-44bf-99c4-93cc15492463")
+  Text Ple3 = new(
+    name: "ple3",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    ...A shared dawn. The Mercurials prophesied a Red Nova; perhaps prophecy is only a plan that no one has priced yet. Bring us the system's signatures, investigator. Pluto will sign last — but Pluto will sign.
+    """
+  
+    return Pe3;
+  }
+
+  @id("ff193404-6ae3-4398-83f6-bb3b4bfd78dc")
+  Text Pe3 = new(
+    name: "pe3",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    """
+    One sky. Thirteen outposts. A sun that belongs to everyone. The Accord begins with you.
+    """
+  }
+}

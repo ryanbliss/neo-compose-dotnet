@@ -1,5 +1,0 @@
-bool Visited(OutpostSaveData this, Root root) {
-	get {
-		return this.VisitCount > 0;
-	}
-}

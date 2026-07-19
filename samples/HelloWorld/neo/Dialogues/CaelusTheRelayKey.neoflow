@@ -1,0 +1,146 @@
+@id("1e787e7d-a6cc-454c-bfa4-49b493f2d683")
+@settings(
+  name: "Caelus: the relay key",
+  saveOptionChoices: true
+)
+sealed class CaelusTheRelayKey : Dialogue {
+  @primary
+  Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+
+  @id("2d28ad1e-f4e2-5885-b325-b2d888d0fb1a")
+  void Action1() {
+    root.Save.Inventory.Remove(outpost);
+  }
+
+  @id("787ad654-fd22-5f34-bbe2-a77b681ac11a")
+  bool Condition1() {
+    return root.Save.Quest.Stage == QuestStage.threePaths && !root.Save.Quest.EvidenceLedger && root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == "0c962c81-359a-4f8b-9263-7b6bb33b42b7"; }));
+  }
+
+  @id("20b3fd3c-83a0-5c2c-9c83-140b83349315")
+  void Action2() {
+    root.Save.Quest.EvidenceLedger = true;
+  }
+
+  @id("754a87d7-95cb-4fbb-a4f6-376a64cc0fc0")
+  override Trigger Trigger = new(
+    group: Visits.High,
+    order: 0,
+    when: [
+    @id("d71ea14b-2aeb-5778-b61e-d6b61b3a7484")
+    Condition1,
+  ],
+    limit: 1,
+  ) => C1;
+
+  @id("f9cf6cfb-f753-4358-9796-431de2c58a6e")
+  Actions C3 = new(
+    name: "c3",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    @id("ad04c7d3-cde9-49a2-bb3a-2a6d4ea63b4b")
+    Action2();
+  
+    return C4;
+  }
+
+  @id("cdc1876b-615e-4699-ad2d-aff1aad78ad1")
+  Text C4 = new(
+    name: "c4",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    """
+    Ledger closed. Whatever you're unlocking with this — when it opens, the Anchorpoint wants a copy of the minutes. We're the only honest router left; act like it matters.
+    """
+  }
+
+  @id("98e7371b-0c29-4379-9664-0235bf94b513")
+  Text C2 = new(
+    name: "c2",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    """
+    ...That's not a shipping manifest. It's a CHANGELOG. Entry one, oldest stamp in existence: 'v0.1.0 — removed `pluto` from the Planet enum.' The Plutocracy isn't avenging an insult, traveler. They were DELETED. And somebody kept the receipt.
+    """
+  
+    @id("722168b1-7d76-4ebf-9819-2cd7914522f2")
+    Option Keep = new(
+      name: "Keep",
+    ) {
+      """
+      I'm keeping this.
+      """
+    
+      return C3;
+    }
+  
+    @id("fe5b992d-bd57-4d90-b5e3-45cffd17a9ae")
+    Option Shaken = new(
+      name: "Shaken",
+    ) {
+      """
+      What kind of world keeps a changelog?
+      """
+    
+      return C2b;
+    }
+  }
+
+  @id("94786126-9a31-4474-84a7-752c743e5b26")
+  Text C1 = new(
+    name: "c1",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    """
+    You still have the manifest? Feed it to the relay. Our key decodes anything that ever passed through this system — and EVERYTHING passes through us.
+    """
+  
+    @id("bdd9c5a1-3638-4c55-bea1-460370e42812")
+    Option Feed = new(
+      name: "Feed",
+    ) {
+      """
+      Feed the Manifest to the relay
+      """
+    
+      return GiveManifest;
+    }
+  }
+
+  @id("af5cd864-c89a-4cd8-8153-668598ff3332")
+  Text C2b = new(
+    name: "c2b",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    """
+    The kind that gets CHANGED, friend. The kind somebody maintains. ...I need to sit down sideways for a minute.
+    """
+  
+    return C3;
+  }
+
+  @id("27a6c575-e72b-4bfc-9d1a-f390cfe528ed")
+  Actions GiveManifest = new(
+    name: "give manifest",
+  ) {
+    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    @primary
+    Item item = Reference<Item>(id: "0c962c81-359a-4f8b-9263-7b6bb33b42b7");
+  
+    @id("01e3c472-26db-4f57-b606-b1fdf821044b")
+    Action1();
+  
+    return C2;
+  }
+}

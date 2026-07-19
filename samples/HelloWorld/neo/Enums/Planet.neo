@@ -1,0 +1,21 @@
+@id("576de38f-6c77-440d-91b3-95a19aad5e23")
+enum Planet {
+  @id("423134f9-3331-5b33-944b-5e4d7160e060")
+  mercury,
+  @id("f492d879-e4a7-5419-9a8c-6f890d4657c7")
+  venus,
+  @id("901a21ff-6ad4-5791-8ae3-2f9df559b9ff")
+  earth,
+  @id("4f9bc257-1579-59b5-90c3-417c3518e407")
+  mars,
+  @id("78eea93e-734b-5c5a-8b2f-3410f0701cef")
+  jupiter,
+  @id("dd859a21-d18e-5ad4-962d-af6b939b7f29")
+  saturn,
+  @id("0e7998db-d1c8-5036-955e-923dbc5fb78a")
+  uranus,
+  @id("7eda9aa1-0212-5433-b292-349d4b63039e")
+  neptune,
+  @id("987a97e1-02c7-52f1-a638-117d76726337")
+  pluto,
+}

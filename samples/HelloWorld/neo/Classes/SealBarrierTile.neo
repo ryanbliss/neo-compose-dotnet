@@ -1,0 +1,20 @@
+@id("720c1361-de9e-4c12-b90e-bb6ac9e1ce8b")
+@relations(
+  compatibleLayers: [
+    @id("neo-tile-grid-record-relations-v1-relation-6066a662ca007c99bd8625fbff1630cf")
+    CollisionTileLayer,
+  ],
+  defaultLayer:
+    @id("neo-tile-grid-record-relations-v1-relation-aa7d2d6109f2e47ca74b61d152714995")
+    CollisionTileLayer
+)
+class SealBarrierTile : ConsoleTile {
+  @id("neo-tile-grid-record-relations-v1-member-4392efaf0b72696ac7f7145b13f4c808")
+  @settings(localizable: false)
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override string Name = "Seal Barrier";
+
+  @id("neo-tile-grid-record-relations-v1-member-22d2189b7b892371aa4bd2142e7a8832")
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override SpriteInfo Sprite = Reference<NeoImage>(id: "18da2470-d75e-4634-97ce-7ea8bd26b743").Slice(0);
+}

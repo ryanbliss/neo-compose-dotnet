@@ -1,0 +1,4 @@
+@id("9acf9982-4b14-4cc1-bc26-5aba3dfa3f9a")
+DialogueGroup Outposts = new(
+  kind: .Folder,
+);

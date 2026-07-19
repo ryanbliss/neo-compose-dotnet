@@ -1,0 +1,7 @@
+@id("9d3ef3f4-0823-412b-a2b6-97874739072d")
+enum SaturnMoon {
+  @id("71a4807b-b9d9-5ed7-b4b1-39cce6b49457")
+  titan,
+  @id("8875803f-5d33-582a-bb56-1389f7746d34")
+  enceladus,
+}

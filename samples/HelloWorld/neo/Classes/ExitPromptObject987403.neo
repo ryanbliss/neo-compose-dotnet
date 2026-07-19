@@ -1,0 +1,43 @@
+@id("neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403")
+@relations(
+  compatibleLayers: [
+    @id("neo-tile-grid-record-relations-v1-relation-ca02829e9d4494a82db336f8fa0e3b7d")
+    DefaultObjectLayer,
+  ],
+  defaultLayer:
+    @id("neo-tile-grid-record-relations-v1-relation-e522347208edbc469734ca718a426003")
+    DefaultObjectLayer
+)
+class ExitPromptObject987403 : ExitPromptObject {
+  @id("neo-tile-grid-record-relations-v1-member-f5cbad50312ebc69397239b2f2035a87")
+  @locked
+  @settings(kind: .Ordered)
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override List<NeoObjectBase> Children = [Reference<NeoObjectBase>(id: "b9de5fe2-8ddc-4b79-bfb2-bd802d8a4fa4"), Reference<NeoObjectBase>(id: "03665dc8-a346-46aa-89c8-f04e5f4e643b")];
+
+  @id("neo-tile-grid-record-relations-v1-member-ff953f886996cd9b7f725ce578fe90cc")
+  @locked
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override NeoCollider? Collider = new NeoCollider { isTrigger = Reference<bool>(id: "6779d5af-238f-41ab-a4eb-fa7c8e610411"), offset = Reference<Vector2>(id: "7d1cbc2c-39db-4b62-b83d-b79f2f7350f9"), size = Reference<Vector2>(id: "097a905d-7b18-4d34-b9e0-85f57c1e4b32") };
+
+  @id("neo-tile-grid-record-relations-v1-member-b4b64e2fc5bb9ca854c58419e63e8409")
+  @settings(localizable: false)
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override string Name = "Exit Prompt";
+
+  @id("neo-tile-grid-record-relations-v1-member-8b86fa92f77a420dc3e61fca997644f5")
+  @locked
+  @settings(kind: .Ordered)
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override List<NeoObjectPlacementTile> PlacementTiles = [Reference<NeoObjectPlacementTile>(id: "67dfd2a6-d845-4311-9f72-433501e54347"), Reference<NeoObjectPlacementTile>(id: "93b59706-7fa4-4ec0-bf43-41a48b51b632")];
+
+  @id("neo-tile-grid-record-relations-v1-member-df3924f038bd73f8515d31f77f04683d")
+  @locked
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override Vector3 Position = new(6, -1, 0);
+
+  @id("neo-tile-grid-record-relations-v1-member-f87a1ce82507a55782cd5f947b46b5f5")
+  @locked
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override Vector3 Size = new(2, 1, 0);
+}

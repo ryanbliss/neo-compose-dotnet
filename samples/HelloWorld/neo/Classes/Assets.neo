@@ -1,0 +1,31 @@
+@id("dd0bbe5a-47ef-4164-9421-caea07f6f56f")
+class Assets {
+  @id("3b73b328-9a9d-4ee3-955c-9cc573170346")
+  virtual Art Art = new Art();
+
+  @id("6cc17e87-3907-4f96-84a2-b0b5a32bac25")
+  virtual Audio Audio = new Audio();
+
+  @id("92fe2bbb-e542-40a7-9d5e-7a7ad5b9abca")
+  virtual ComputedText Computed;
+
+  @id("214df1a1-abca-4141-987b-380a5417c70a")
+  @settings(kind: .Ordered)
+  virtual List<Item> Items = [];
+
+  @id("2c57948b-7479-47e0-b97c-242f6d543ae0")
+  virtual LookupContainer LookupContainer;
+
+  @id("2827aefd-7f57-48ea-994c-c5c39ec659e3")
+  @settings(kind: .Ordered)
+  virtual List<Outpost> Outposts = [];
+
+  @id("7ec79ef8-a216-407f-8886-9f770bc9895b")
+  @locked
+  @settings(kind: .Ordered)
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  virtual List<NeoSortingLayer> SortingLayers = [Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb")];
+
+  @id("80d05ad2-08ff-4e17-8b29-8b185562b2c6")
+  virtual Worlds Worlds;
+}

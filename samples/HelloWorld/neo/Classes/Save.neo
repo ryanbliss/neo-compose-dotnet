@@ -1,0 +1,35 @@
+@id("96e8284d-ae43-4e91-919d-86c25ce098e0")
+class Save {
+  @id("1f76e191-faaf-4840-9bb0-29785a1c8ed6")
+  @settings(min: 0)
+  virtual int Bits = 1000;
+
+  @id("5155954d-ca1d-441e-b9ee-1837b0a08e05")
+  virtual bool Dead = false;
+
+  @id("bf4a75b5-acf9-4ff8-8511-57f871749db3")
+  @settings(collection: Assets.Items, multiselect: true)
+  virtual List<Item> Inventory = [];
+
+  @id("82a12a52-95ac-453a-9353-24c11a63c530")
+  @settings(collection: Assets.Outposts)
+  virtual Outpost Location = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+
+  @id("99b07db1-f732-437e-a903-98183edca96b")
+  @locked
+  @system(disallow: [.EditRecord, .DeleteRecord, .ReplaceValue], reason: "Generated dialogue memory schema required by the Neo Compose dialogue runtime.")
+  virtual NeoMemory NeoMemory;
+
+  @id("f977a94e-aa40-414c-9812-dacdd50110a8")
+  virtual Dictionary<string, OutpostSaveData?> OutpostSaveMap;
+
+  @id("4868ab84-027a-405d-bfca-d04d4d4917fa")
+  virtual QuestState Quest = new QuestState();
+
+  @id("c151eda4-ecce-4edf-988d-25a97c657146")
+  @settings(kind: .Ordered)
+  virtual List<PlanetVisit> Visited = [];
+
+  @id("ebab06a2-98e9-4a30-bb13-cfea8f910462")
+  virtual Planet World = .earth;
+}

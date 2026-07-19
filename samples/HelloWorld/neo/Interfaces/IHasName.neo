@@ -1,0 +1,5 @@
+@id("27d59731-311d-4d80-833a-916760c7ed30")
+interface IHasName {
+  @id("26aa1820-9569-5f18-ae80-d3f0543c5914")
+  string Name { get; }
+}

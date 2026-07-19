@@ -14,6 +14,8 @@
   transition polling/retry support.
 - Live save synchronization now emits dirty-field patches so concurrent changes
   to untouched fields survive.
+- Updated `NeoSmartTileCondition` constants to the stable UUID option identities
+  emitted by Neo Compose format-4 projects.
 
 ## [0.3.0] - 2026-07-17
 

@@ -1,0 +1,54 @@
+@id("b44d80a9-7760-4919-8844-0cb71d08b788")
+@relations(
+  objectLayers: [
+    @id("neo-tile-grid-record-relations-v1-relation-165190d5aa7f73f3ba06bb226441470f")
+    DefaultObjectLayer,
+  ],
+  tileImports: [
+    @id("neo-tile-grid-record-relations-v1-relation-245a337e09a853fd209a26904b530dc7")
+    SealBarrierTile,
+
+    @id("neo-tile-grid-record-relations-v1-relation-40a7e0950021f8a68f54b1718ef5e41f")
+    GlassFloorTile,
+
+    @id("neo-tile-grid-record-relations-v1-relation-afb929285befbc47b194bf6d2faf4c6c")
+    VoidTile,
+
+    @id("neo-tile-grid-record-relations-v1-relation-b41136b4d7a8a770e394c3a44728fa4b")
+    HullPlatingTile,
+
+    @id("neo-tile-grid-record-relations-v1-relation-d8cbf2a291860ef3565b77d68ba56d40")
+    RedNovaWarningTile,
+
+    @id("neo-tile-grid-record-relations-v1-relation-ea17c1370dfd56b3a7990587e62107d3")
+    BootGlyphTile,
+  ],
+  objectImports: [
+    @id("neo-tile-grid-record-relations-v1-relation-4efa782ecbf2d95cf28c5c5fa49a5832")
+    VaultPlaqueObject,
+
+    @id("neo-tile-grid-record-relations-v1-relation-5620bfb5b4930653158539ddd1c08e12")
+    RecoveryCacheObject,
+
+    @id("neo-tile-grid-record-relations-v1-relation-570a7115d1e966ea3d6c4e8f7837321e")
+    ExitPromptObject987403,
+
+    @id("neo-tile-grid-record-relations-v1-relation-d8e791449a8f97c742e0a72c48c550f4")
+    PlayerSpawnObject,
+
+    @id("neo-tile-grid-record-relations-v1-relation-f41693e0f580d66257d3618ef50889eb")
+    ExitPromptObjecta26352,
+  ],
+  tileLayers: [
+    @id("neo-tile-grid-record-relations-v1-relation-7517aaa6ab12b45cff8e6534ceb09f6f")
+    BackgroundTileLayer,
+
+    @id("neo-tile-grid-record-relations-v1-relation-d9afac9fa84b67caa47ce7b6950e78c7")
+    CollisionTileLayer,
+  ]
+)
+class OldConsoleLandingGrid : NeoTileGrid {
+  @id("f7493cd5-3da1-44ef-a275-5997d765b640")
+  @settings(localizable: false)
+  virtual string DisplayName;
+}

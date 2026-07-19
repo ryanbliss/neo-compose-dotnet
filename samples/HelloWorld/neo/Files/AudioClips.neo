@@ -1,0 +1,23 @@
+AudioClipRegistry AudioClips = new() {
+  @id("bdfb6dee-83d1-4c24-b9f3-9e539ab66603")
+  NeoAudioClip BitsGain = new("Files/AudioClips/bits-gain.wav");
+
+  @id("8421abd8-bbce-40eb-bb5c-9a62bd733256")
+  NeoAudioClip BitsSpend = new("Files/AudioClips/bits-spend.wav");
+
+  @id("8fd1307e-600d-4da4-a346-be2a971032ad")
+  NeoAudioClip DialogClose = new("Files/AudioClips/dialog-close.wav");
+
+  @id("13ba540a-49c0-4928-b6ee-f3eed339c050")
+  NeoAudioClip DialogNext = new("Files/AudioClips/dialog-next.wav");
+
+  @id("1d017b1d-2a6d-4819-a6f7-3b228cc7a04e")
+  NeoAudioClip DialogOpen = new("Files/AudioClips/dialog-open.wav");
+
+  @id("c1a2fa28-c886-48c0-8d06-1bcc195a5f80")
+  NeoAudioClip ItemGet = new("Files/AudioClips/item-get.wav");
+
+  @id("581af432-06f7-4b80-b673-fcc387039159")
+  NeoAudioClip RocketThrust = new("Files/AudioClips/rocket-thrust.wav");
+
+}

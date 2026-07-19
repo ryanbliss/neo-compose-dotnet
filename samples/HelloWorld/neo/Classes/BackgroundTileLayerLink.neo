@@ -1,0 +1,9 @@
+@id("neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152")
+@relations(
+  targetLayer:
+    @id("neo-tile-grid-record-relations-v1-relation-fbb7121429305252969835cad7fa087c")
+    BackgroundTileLayer
+)
+class BackgroundTileLayerLink : NeoTileLayerLink {
+
+}

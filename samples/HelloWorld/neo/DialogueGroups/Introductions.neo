@@ -1,0 +1,16 @@
+@id("9b1c8f42-18fc-4e34-9b46-3e1c138874bc")
+DialogueGroup Introductions = new(
+  kind: .Lookup,
+  parent: Outposts,
+  collection: Reference<Member>(id: "2827aefd-7f57-48ea-994c-c5c39ec659e3"),
+  collectionValue: Reference(id: "75c7623a-dcdb-4ca1-b5e5-a809da678766"),
+) {
+  @id("legacy-function:ca9a29af-3009-502e-a5dd-8690138e57ac")
+  @incomplete("UI-authored logic has no tracked NeoScript source")
+  native bool Condition1();
+
+  when: [
+    @id("ca9a29af-3009-502e-a5dd-8690138e57ac")
+    Condition1,
+  ];
+}

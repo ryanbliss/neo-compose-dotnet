@@ -1,0 +1,131 @@
+@id("c5efb7ea-bd7d-4640-876f-21df7047e01e")
+@settings(
+  name: "Pour Lords intro",
+  description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  saveOptionChoices: true
+)
+sealed class PourLordsIntro : Dialogue {
+  @primary
+  Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+
+  @id("bf3d2967-dc54-5454-84e4-a442c8d4be33")
+  void Action1() {
+    root.Save.Inventory.Add(outpost);
+  }
+
+  @id("5621fbd1-3998-5538-93a7-7a3ee18cb346")
+  void Action2() {
+    outpost.Save.Unlocked = true;
+  }
+
+  @id("e27ab43e-b0d2-4bc3-a0df-1bbe28cbb101")
+  override Trigger Trigger = new(
+    group: Introductions.Urgent,
+    order: 0,
+    limit: 1,
+  ) => P1;
+
+  @id("497ff204-2e39-4a9d-a997-452e0aa2989d")
+  Text P1 = new(
+    name: "p1",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    WELL, WELL. A dirtsider at the Pour Lords' table. We sell fuel, friend. Power, by the liter. What's your poison?
+    """
+  
+    @id("de638d27-5f42-4767-ba5c-a2ed8cf1e997")
+    Option Direct = new(
+      name: "Direct",
+    ) {
+      """
+      Who's buying enough fuel to drain a star?
+      """
+    
+      return P2;
+    }
+  
+    @id("1d2cf6c1-f288-4a04-a89e-35b2f1fb7074")
+    Option Flatter = new(
+      name: "Flatter",
+    ) {
+      """
+      Impressive operation. The whole system runs on you.
+      """
+    
+      return P2f;
+    }
+  }
+
+  @id("80dd7c1e-7f43-4b72-bd01-c22798fd9de0")
+  Text P2f = new(
+    name: "p2f",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    FINALLY, someone with taste. For that, you get a straight answer — a rare vintage around here:
+    """
+  
+    return P2;
+  }
+
+  @id("318e544c-a076-460b-990c-73078f9ec034")
+  Text P2 = new(
+    name: "p2",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    We don't drain the sun — we WISH we could, the margins would be obscene. But someone's been underselling us solar condensate at half rate. Brokered through Titan. Always anonymous. It's embarrassing, frankly.
+    """
+  
+    return P3;
+  }
+
+  @id("de9d7ade-4353-43d7-b704-7e5a5e0504ad")
+  Actions P3 = new(
+    name: "p3",
+  ) {
+    @primary
+    Outpost outpost_2 = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
+  
+    Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    @id("b9664f53-e3a6-4cff-b88b-d0dac313d46f")
+    Action2();
+  
+    return GrantHelium3Flask;
+  }
+
+  @id("1fb19902-62aa-4900-82f0-d5c4a5a17a03")
+  Text P4 = new(
+    name: "p4",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    """
+    Helium-3, on the house. Ask the smugglers on Titan who signs the condensate manifests. And tell them the Lords want a better rate.
+    """
+  }
+
+  @id("554fd5b3-d99f-4d66-b7ea-3f1b0de5b610")
+  Actions GrantHelium3Flask = new(
+    name: "grant Helium-3 Flask",
+  ) {
+    @primary
+    Item item = Reference<Item>(id: "18b9a621-ea41-4ac7-8a46-9cc443f2b480");
+  
+    Outpost outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    @id("dac725ea-a192-4c36-9593-4c5542dc6d3f")
+    Action1();
+  
+    return P4;
+  }
+}

@@ -1,0 +1,111 @@
+@id("4d20ac4c-4d3c-4458-ab82-9aefd0b6ffe5")
+@settings(
+  name: "Europapas intro",
+  description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  saveOptionChoices: true
+)
+sealed class EuropapasIntro : Dialogue {
+  @primary
+  Outpost outpost = Reference<Outpost>(id: "83cc2935-5a85-4d71-9e50-4e4496f00631");
+
+  @id("4098e134-2cec-58c9-9b4a-47063b16572b")
+  void Action1() {
+    root.Save.Inventory.Add(outpost);
+  }
+
+  @id("193e526d-1f9d-4f6b-be05-ee5441bd1aa4")
+  override Trigger Trigger = new(
+    group: Introductions.Urgent,
+    order: 0,
+    limit: 1,
+  ) => E1;
+
+  @id("dd017c40-afb4-4821-9217-1ab38323d430")
+  Text E1 = new(
+    name: "e1",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "83cc2935-5a85-4d71-9e50-4e4496f00631");
+  
+    """
+    Shhh. You'll scare the deepfish. ...Topside business, is it?
+    """
+  
+    @id("822bb183-5ed9-42bb-bf8b-2331ab95295c")
+    Option Ask = new(
+      name: "Ask",
+    ) {
+      """
+      Have you seen anything strange under the ice?
+      """
+    
+      return E2;
+    }
+  
+    @id("e31da4f4-ff05-4b12-9cf2-4efe01bc95e3")
+    Option Wait = new(
+      name: "Wait",
+    ) {
+      """
+      ...(wait silently with the fishers)
+      """
+    
+      return E2b;
+    }
+  }
+
+  @id("eef7a429-fc57-4484-8c55-b6c9a98ee5e6")
+  Text E2b = new(
+    name: "e2b",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "83cc2935-5a85-4d71-9e50-4e4496f00631");
+  
+    """
+    Patient one, eh? The deepfish like you. So do I. Listen close, then:
+    """
+  
+    return E2;
+  }
+
+  @id("8276785c-0cb0-4cc0-8902-a77593c9171a")
+  Text E2 = new(
+    name: "e2",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "83cc2935-5a85-4d71-9e50-4e4496f00631");
+  
+    """
+    Strange? Tankers sinking heat-exchangers straight through our crust. Dumping waste heat from something HUGE they're running out by Saturn. Our ocean's a degree warmer. A DEGREE.
+    """
+  
+    return E3;
+  }
+
+  @id("d665a10b-15b6-49f4-b06f-3505436d70e6")
+  Actions E3 = new(
+    name: "e3",
+  ) {
+    @primary
+    Item item = Reference<Item>(id: "fec825b2-2449-4ae2-a4bd-b29f8cf73e3c");
+  
+    Outpost outpost = Reference<Outpost>(id: "83cc2935-5a85-4d71-9e50-4e4496f00631");
+  
+    @id("277e6454-a07b-4855-914b-1960f0911643")
+    Action1();
+  
+    return E4;
+  }
+
+  @id("7de9154a-5314-4317-b519-04b49ec431b1")
+  Text E4 = new(
+    name: "e4",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "83cc2935-5a85-4d71-9e50-4e4496f00631");
+  
+    """
+    Take this abyssal lantern. Light that works under ice works in any shadow — and you're headed where the sun itself is being stolen from.
+    """
+  }
+}

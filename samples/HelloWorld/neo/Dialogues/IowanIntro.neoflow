@@ -1,0 +1,179 @@
+@id("876ca4f1-9c37-4375-ae47-c80c8cc396e5")
+@settings(
+  name: "Iowan intro",
+  description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  saveOptionChoices: true
+)
+sealed class IowanIntro : Dialogue {
+  @primary
+  Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
+
+  @id("9bcdaa37-98b5-5429-8021-9f946a620427")
+  void Action1() {
+    outpost.Save.Unlocked = true;
+  }
+
+  @id("0e52a5a0-8826-558f-a0b6-9da05297b85f")
+  void Action2() {
+    root.Save.Inventory.Add(outpost);
+  }
+
+  @id("074637ca-a908-5a53-900b-270a185d809f")
+  void Action3() {
+    outpost.Save.Unlocked = true;
+  }
+
+  @id("232b260b-432e-5a0c-8a43-2cdffcb2b9b8")
+  void Action4() {
+    if (root.Save.Quest.Stage == QuestStage.arrival || root.Save.Quest.Stage == QuestStage.followTheWakes) { root.Save.Quest.Stage = QuestStage.threePaths; }
+  }
+
+  @id("9f45e2dc-f8ff-541b-bb48-4be8eb2b89a0")
+  void Action5() {
+    outpost.Save.Unlocked = true;
+  }
+
+  @id("5abe2f7d-637b-4d10-872f-0777235f2a04")
+  override Trigger Trigger = new(
+    group: Introductions.Urgent,
+    order: 0,
+    limit: 1,
+  ) => I1;
+
+  @id("7fb7b2e7-8f4c-4560-bf73-322ec421fe47")
+  Actions GrantStormCorn = new(
+    name: "grant Storm Corn",
+  ) {
+    Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
+  
+    @primary
+    Item item = Reference<Item>(id: "0e9655ec-dc98-477c-b0ff-90d8f203040a");
+  
+    @id("d8e4dfcf-4c19-4973-a020-06358c1bbac4")
+    Action2();
+  
+    return I5;
+  }
+
+  @id("b803bb12-e35c-450b-907b-efe617fc4233")
+  Actions I4a = new(
+    name: "i4a",
+  ) {
+    Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
+  
+    @primary
+    Outpost outpost_2 = Reference<Outpost>(id: "83cc2935-5a85-4d71-9e50-4e4496f00631");
+  
+    @id("19781ef2-66b2-4851-8cb6-3cb1393a9915")
+    Action5();
+  
+    return I4b;
+  }
+
+  @id("642967c4-4f97-4966-a62f-2c87231786ea")
+  Text I1 = new(
+    name: "i1",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
+  
+    """
+    Howdy, stranger! Welcome to Iowan — best storm corn in four hundred moons, and don't let Venus tell you otherwise.
+    """
+  
+    @id("5de8e168-75b1-446e-ba22-d9ee3da88fea")
+    Option Corn = new(
+      name: "Corn?",
+    ) {
+      """
+      You grow corn... on Jupiter?
+      """
+    
+      return I2;
+    }
+  
+    @id("49789b78-ff3a-4a98-9846-3c89286180df")
+    Option Business = new(
+      name: "Business",
+    ) {
+      """
+      I'm tracking the freighters that ride the flare wakes.
+      """
+    
+      return I3;
+    }
+  }
+
+  @id("3646ffb7-5ed3-48ef-ae45-6197412fdba6")
+  Text I3 = new(
+    name: "i3",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
+  
+    """
+    Freighters, eh? Pour Lords on Ganymede run all the fuel out here — start with their ledgers. The Europapas folk have seen things under the ice, too. And the eggheads up Ursa Major chart every wake in the sky. Pick your moon, stranger.
+    """
+  
+    return I4a;
+  }
+
+  @id("8d42f81e-ebee-4aaf-8993-1674f5c1eb80")
+  Actions I4c = new(
+    name: "i4c",
+  ) {
+    Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
+  
+    @primary
+    Outpost outpost_2 = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  
+    @id("66eb4131-942d-4e35-8785-38be13173913")
+    Action3();
+  
+    @id("e47f29bd-a3fe-4163-9ab4-23053479fba1")
+    Action4();
+  
+    return GrantStormCorn;
+  }
+
+  @id("67b3afa2-71d4-49e7-91ba-757edca1f925")
+  Actions I4b = new(
+    name: "i4b",
+  ) {
+    Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
+  
+    @primary
+    Outpost outpost_2 = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
+  
+    @id("56cebd90-e85a-4740-a3a3-461d02f5753a")
+    Action1();
+  
+    return I4c;
+  }
+
+  @id("45c15aa4-d60e-405e-a84d-ff6708725dbe")
+  Text I5 = new(
+    name: "i5",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
+  
+    """
+    Take an ear of storm corn for the road. It hums when a flare's coming. Don't ask us why — we just farm here.
+    """
+  }
+
+  @id("428a8d9f-5e5d-424a-99a5-d66050713dde")
+  Text I2 = new(
+    name: "i2",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
+  
+    """
+    Cloud-vat corn, sweetened by lightning! Was, anyway. The flare radiation's been cooking the crop bone-white. First season we've ever lost.
+    """
+  
+    return I3;
+  }
+}

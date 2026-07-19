@@ -1,0 +1,24 @@
+@id("911d074c-e2e6-4fdc-933a-11f1cde605a0")
+@settings(
+  name: "Shuffle 2",
+  saveOptionChoices: true
+)
+sealed class Shuffle2 : Dialogue {
+  @primary
+  Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+
+  @id("2de198bd-088b-4479-a520-617204310796")
+  override Trigger Trigger = new(
+    group: Reference<DialogueGroup>(id: "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43"),
+  ) => Text1;
+
+  @id("38fd172c-d4fb-4c62-823c-9300c6832e3c")
+  Text Text1 = new() {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  
+    """
+    Sun bless you
+    """
+  }
+}

@@ -1,0 +1,29 @@
+@id("9a6019b6-680f-4300-8cea-bde6fce47fc1")
+class Art {
+  @id("8d27045c-c3a0-44ae-9095-499e2f9779a7")
+  virtual SpriteInfo FirstWorldIconSprite;
+
+  @id("f6c2157b-c0f2-4d6d-b16c-412675070862")
+  virtual AnimationInfo? FlareAnimation;
+
+  @id("13e587b4-f143-419e-b2f1-a5fb2fef92fd")
+  virtual SpriteInfo FlareStaticSprite;
+
+  @id("dca14d32-7e42-4db4-8174-de9f3798a5be")
+  virtual SpriteInfo JupiterSprite;
+
+  @id("8042556b-586e-4f79-b358-80924968a7b8")
+  virtual SpriteInfo SaturnSprite;
+
+  @id("7a3f6a94-a649-4b75-8776-eb623f55fe1b")
+  virtual AnimationInfo? ShipAnimation;
+
+  @id("7d53ed57-05e7-47f9-a805-f7917b77dc55")
+  virtual SpriteInfo ShipSprite;
+
+  @id("dfa0872f-9f3e-4083-8244-9f6d0fa88f8b")
+  virtual SpriteInfo SunSprite;
+
+  @id("20d4dfe4-935c-441d-b2c2-ca8052c5a96e")
+  virtual SpriteInfo VaultPlaqueSprite;
+}

@@ -1,0 +1,25 @@
+@id("a8305a31-7f6c-4ff5-8a9f-5871ef451093")
+@relations(
+  defaultLayer:
+    @id("neo-tile-grid-record-relations-v1-relation-555f2840f4b52d2b3ee3fa81a76fae10")
+    CollisionTileLayer,
+  compatibleLayers: [
+    @id("neo-tile-grid-record-relations-v1-relation-72bfec4bad85da08e34af2c9e3e38ba5")
+    CollisionTileLayer,
+  ]
+)
+class HullPlatingTile : ConsoleTile {
+  @id("neo-tile-grid-record-relations-v1-member-9a08564ac837f8674e2e13c1f9937ccd")
+  @settings(localizable: false)
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override string Name = "Hull Plating";
+
+  @id("neo-tile-grid-record-relations-v1-member-ff2fa3d156f0a3df6b066f1599049c70")
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override SpriteInfo Sprite = Reference<NeoImage>(id: "ad8b2628-2e12-4c8a-90e5-b4334b430b6e").Slice(0);
+
+  @id("neo-tile-grid-record-relations-v1-member-636b8784cd42599650e36ab6b0999e6c")
+  @locked
+  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  override NeoSmartTile? SmartTile = new NeoSmartTile { DefaultCollider = "e6fc9ff8-59fe-4a0e-80b4-9145159f6309", Rules = Reference<List<NeoSmartTileRule>>(id: "b80dbc98-b8dc-45ba-8fef-dc275607ea6b") };
+}
