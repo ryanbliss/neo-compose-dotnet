@@ -5,7 +5,6 @@ using System;
 using HelloWorld.Assets.Scripts.Neo;
 using NeoCompose.Runtime;
 using UnityEngine;
-using UnityEngine.Tilemaps;
 using UnityEngine.UI;
 
 namespace HelloWorld.Assets.Scripts
@@ -128,7 +127,6 @@ namespace HelloWorld.Assets.Scripts
             renderer = world.AddComponent<NeoTileGridRenderer>();
             renderer.CellSize = 1f;
             renderer.RenderObjects = true;
-            renderer.Lifecycle = new LandingTileGridLifecycle();
 
             BuildChrome();
             root.SetActive(false);
@@ -257,18 +255,5 @@ namespace HelloWorld.Assets.Scripts
             loadingPanel.SetActive(false);
         }
 
-        private sealed class LandingTileGridLifecycle : NeoTileGridLifecycle
-        {
-            public override void OnTileLayerCreated(NeoTileLayerContext context)
-            {
-                if (!string.Equals(context.Layer.DisplayName, "Collisions", StringComparison.OrdinalIgnoreCase))
-                {
-                    return;
-                }
-
-                context.Tilemap.gameObject.AddComponent<TilemapCollider2D>();
-            }
-
-        }
     }
 }

@@ -12,6 +12,16 @@ using UnityEditor;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
+    public partial class CollisionTileLayer
+    {
+        protected override void OnRenderTargetCreated(
+            NeoTileLayerRenderTargetContext context)
+        {
+            base.OnRenderTargetCreated(context);
+            context.Target.Tilemap.gameObject.AddComponent<UnityEngine.Tilemaps.TilemapCollider2D>();
+        }
+    }
+
     public partial class PlayerSpawnObject
     {
         protected override void OnObjectSpawned(NeoObjectBehaviour behaviour)

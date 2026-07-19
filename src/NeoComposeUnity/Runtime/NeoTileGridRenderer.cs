@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using NeoCompose.Runtime.Json;
 using UnityEngine;
@@ -68,6 +69,12 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, TileBase> tileBasesByClassId = new();
         private readonly Dictionary<TileBase, NeoGeneratedClassValue> valuesByTileBase = new();
         private readonly Dictionary<string, Tilemap> tilemapsByLayerId = new();
+        private readonly Dictionary<string, TileLayerTargetRegistration>
+            tileTargetsByLayerId = new();
+        private readonly Dictionary<GameObject, TileLayerTargetRegistration>
+            tileTargetsByRoot = new(ReferenceComparer<GameObject>.Instance);
+        private readonly Dictionary<Tilemap, TileLayerTargetRegistration>
+            tileTargetsByTilemap = new(ReferenceComparer<Tilemap>.Instance);
         private readonly Dictionary<string, Dictionary<Vector2Int, TileBase>> renderedTilesByLayerId = new();
         private readonly Dictionary<string, Dictionary<Vector2Int, int>> tileCandidateCountsByLayerId = new();
         private readonly Dictionary<string, Dictionary<Vector2Int, string>> renderedTileSourceIdsByLayerId = new();
@@ -85,6 +92,43 @@ namespace NeoCompose.Runtime
         private INeoTileGridContent? currentContent;
         private NeoReadOnlyTileGridPrimitive? renderedPrimitive;
         private CancellationTokenSource? activeRenderCancellation;
+        private List<TileLayerTargetRegistration>? activeRenderTargets;
+
+        private sealed class TileLayerTargetRegistration
+        {
+            public TileLayerTargetRegistration(
+                NeoTileGridRenderer renderer,
+                IReadOnlyNeoTileLayerRuntime layer,
+                INeoTileGridContent? content,
+                NeoTileLayerRenderTarget target,
+                INeoTileLayerRenderTargetProvider? provider)
+            {
+                Renderer = renderer;
+                Layer = layer;
+                Content = content;
+                Target = target;
+                Provider = provider;
+            }
+
+            public NeoTileGridRenderer Renderer { get; }
+            public IReadOnlyNeoTileLayerRuntime Layer { get; }
+            public INeoTileGridContent? Content { get; }
+            public NeoTileLayerRenderTarget Target { get; }
+            public INeoTileLayerRenderTargetProvider? Provider { get; }
+            public bool DidNotifyDestroying { get; set; }
+            public bool DidNotifyDestroyed { get; set; }
+            public NeoTileLayerRenderTargetDestroyReason DestroyReason { get; set; }
+        }
+
+        private sealed class ReferenceComparer<T> : IEqualityComparer<T>
+            where T : class
+        {
+            public static readonly ReferenceComparer<T> Instance = new();
+
+            public bool Equals(T? left, T? right) => ReferenceEquals(left, right);
+
+            public int GetHashCode(T value) => RuntimeHelpers.GetHashCode(value);
+        }
 
         private readonly struct NeoTileSourceProjectionKey
             : IEquatable<NeoTileSourceProjectionKey>
@@ -191,7 +235,8 @@ namespace NeoCompose.Runtime
             RenderOneShot(
                 content.Primitive,
                 content.TileLayersInOrder,
-                content.ObjectLayersInOrder);
+                content.ObjectLayersInOrder,
+                content);
             currentContent = content;
             StartLiveSync(content);
         }
@@ -211,12 +256,15 @@ namespace NeoCompose.Runtime
             options ??= new NeoTileGridRenderOptions();
             StopLiveSync();
             var renderScope = BeginRenderScope(options.CancellationToken);
+            var renderTargets = activeRenderTargets!;
             try
             {
                 await RenderOneShotAsync(
                     content.Primitive,
                     content.TileLayersInOrder,
                     content.ObjectLayersInOrder,
+                    content,
+                    renderTargets,
                     options,
                     renderScope.Token);
                 currentContent = content;
@@ -239,78 +287,98 @@ namespace NeoCompose.Runtime
             CancelInFlightRender();
             StopLiveSync();
             currentContent = null;
-            RenderOneShot(primitive, tileLayers, objectLayers);
+            RenderOneShot(primitive, tileLayers, objectLayers, null);
         }
 
         private void RenderOneShot(
             NeoReadOnlyTileGridPrimitive primitive,
             IEnumerable<IReadOnlyNeoTileLayerRuntime> tileLayers,
-            IEnumerable<IReadOnlyNeoObjectLayerRuntime>? objectLayers = null)
+            IEnumerable<IReadOnlyNeoObjectLayerRuntime>? objectLayers,
+            INeoTileGridContent? content)
         {
             if (primitive == null) throw new ArgumentNullException(nameof(primitive));
             if (tileLayers == null) throw new ArgumentNullException(nameof(tileLayers));
 
             renderedPrimitive = primitive;
             var grid = EnsureGrid();
-            if (clearBeforeRender)
+            var createdTargets = new List<TileLayerTargetRegistration>();
+            try
             {
-                ClearChildren(grid.transform);
-                ClearRenderedIndexes();
-            }
-
-            int sortingOrder = 0;
-            foreach (var layer in tileLayers)
-            {
-                tileLayersByLayerId[layer.LayerId] = layer;
-                var tilemap = CreateTilemap(
-                    grid.transform,
-                    layer,
-                    sortingOrder++ * FallbackSortingOrderStride);
-                Lifecycle?.OnTileLayerCreated(new NeoTileLayerContext(this, layer, tilemap));
-                var positions = new List<Vector3Int>();
-                var tiles = new List<TileBase>();
-                var renderedTiles = new Dictionary<Vector2Int, TileBase>();
-                var snapshot = NeoWorldLayerRuntimeSupport.GetRenderSnapshot(layer);
-                CacheTileLayerSnapshot(layer.LayerId, snapshot);
-                foreach (var tile in snapshot.Winners)
+                if (clearBeforeRender)
                 {
-                    var tileBase = TileBaseFor(tile.Tile);
-                    if (tileBase == null) continue;
-                    positions.Add(new Vector3Int(tile.Cell.x, tile.Cell.y, 0));
-                    tiles.Add(tileBase);
-                    renderedTiles[tile.Cell] = tileBase;
-                    CacheRenderedTileSource(layer.LayerId, tile);
+                    DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.Replaced);
+                    ClearChildren(grid.transform);
+                    ClearRenderedIndexes();
                 }
-                renderedTilesByLayerId[layer.LayerId] = renderedTiles;
 
-                if (positions.Count > 0)
+                int sortingOrder = 0;
+                foreach (var layer in tileLayers)
                 {
-                    tilemap.SetTiles(positions.ToArray(), tiles.ToArray());
-                    tilemap.CompressBounds();
-                }
-            }
-
-            if (renderObjects && objectLayers != null)
-            {
-                foreach (var layer in objectLayers)
-                {
-                    objectLayersByLayerId[layer.LayerId] = layer;
-                    var root = CreateObjectLayerRoot(grid.transform, layer);
-                    Lifecycle?.OnObjectLayerCreated(new NeoObjectLayerContext(this, layer, root));
-                    var layerFallbackSortingOrder =
-                        sortingOrder++ * FallbackSortingOrderStride;
-                    objectLayerFallbackSortingOrdersByLayerId[layer.LayerId] =
-                        layerFallbackSortingOrder;
-                    foreach (var obj in layer.GetObjects())
+                    tileLayersByLayerId[layer.LayerId] = layer;
+                    var registration = CreateTileLayerTarget(
+                        grid.transform,
+                        layer,
+                        content,
+                        sortingOrder++ * FallbackSortingOrderStride);
+                    createdTargets.Add(registration);
+                    var tilemap = registration.Target.Tilemap;
+                    registration.Provider?.OnRenderTargetCreated(
+                        CreateTargetContext(registration));
+                    Lifecycle?.OnTileLayerCreated(new NeoTileLayerContext(this, layer, tilemap));
+                    var positions = new List<Vector3Int>();
+                    var tiles = new List<TileBase>();
+                    var renderedTiles = new Dictionary<Vector2Int, TileBase>();
+                    var snapshot = NeoWorldLayerRuntimeSupport.GetRenderSnapshot(layer);
+                    CacheTileLayerSnapshot(layer.LayerId, snapshot);
+                    foreach (var tile in snapshot.Winners)
                     {
-                        if (!ShouldRenderObjectInstance(layer, obj)) continue;
-                        objectRootsByInstanceId[obj.InstanceId] =
-                            SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
+                        var tileBase = TileBaseFor(tile.Tile);
+                        if (tileBase == null) continue;
+                        positions.Add(new Vector3Int(tile.Cell.x, tile.Cell.y, 0));
+                        tiles.Add(tileBase);
+                        renderedTiles[tile.Cell] = tileBase;
+                        CacheRenderedTileSource(layer.LayerId, tile);
+                    }
+                    renderedTilesByLayerId[layer.LayerId] = renderedTiles;
+
+                    if (positions.Count > 0)
+                    {
+                        tilemap.SetTiles(positions.ToArray(), tiles.ToArray());
+                    }
+                    tilemap.CompressBounds();
+                    registration.Provider?.OnInitiallyRendered(
+                        CreateTargetContext(registration));
+                }
+
+                if (renderObjects && objectLayers != null)
+                {
+                    foreach (var layer in objectLayers)
+                    {
+                        objectLayersByLayerId[layer.LayerId] = layer;
+                        var root = CreateObjectLayerRoot(grid.transform, layer);
+                        Lifecycle?.OnObjectLayerCreated(new NeoObjectLayerContext(this, layer, root));
+                        var layerFallbackSortingOrder =
+                            sortingOrder++ * FallbackSortingOrderStride;
+                        objectLayerFallbackSortingOrdersByLayerId[layer.LayerId] =
+                            layerFallbackSortingOrder;
+                        foreach (var obj in layer.GetObjects())
+                        {
+                            if (!ShouldRenderObjectInstance(layer, obj)) continue;
+                            objectRootsByInstanceId[obj.InstanceId] =
+                                SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
+                        }
                     }
                 }
-            }
 
-            Lifecycle?.OnGridLoaded(new NeoTileGridLoadedContext(this, primitive));
+                Lifecycle?.OnGridLoaded(new NeoTileGridLoadedContext(this, primitive));
+            }
+            catch
+            {
+                DestroyTileTargets(
+                    createdTargets,
+                    NeoTileLayerRenderTargetDestroyReason.RenderCancelled);
+                throw;
+            }
         }
 
         /// <summary>
@@ -329,9 +397,17 @@ namespace NeoCompose.Runtime
             StopLiveSync();
             currentContent = null;
             var renderScope = BeginRenderScope(options.CancellationToken);
+            var renderTargets = activeRenderTargets!;
             try
             {
-                await RenderOneShotAsync(primitive, tileLayers, objectLayers, options, renderScope.Token);
+                await RenderOneShotAsync(
+                    primitive,
+                    tileLayers,
+                    objectLayers,
+                    null,
+                    renderTargets,
+                    options,
+                    renderScope.Token);
             }
             finally
             {
@@ -341,14 +417,23 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Cancels the render scope of any in-flight <c>RenderAsync</c>. The superseded
-        /// call still owns (and disposes) its own scope; this only signals it.
+        /// call still owns (and disposes) its own scope; targets it already created are
+        /// rolled back here before the replacement render begins.
         /// </summary>
         private void CancelInFlightRender()
         {
             var inFlight = activeRenderCancellation;
             if (inFlight == null) return;
+            var targets = activeRenderTargets;
             activeRenderCancellation = null;
+            activeRenderTargets = null;
             inFlight.Cancel();
+            if (targets != null)
+            {
+                DestroyTileTargets(
+                    targets,
+                    NeoTileLayerRenderTargetDestroyReason.RenderCancelled);
+            }
         }
 
         private CancellationTokenSource BeginRenderScope(CancellationToken callerToken)
@@ -356,6 +441,7 @@ namespace NeoCompose.Runtime
             CancelInFlightRender();
             var renderScope = CancellationTokenSource.CreateLinkedTokenSource(callerToken);
             activeRenderCancellation = renderScope;
+            activeRenderTargets = new List<TileLayerTargetRegistration>();
             return renderScope;
         }
 
@@ -364,6 +450,7 @@ namespace NeoCompose.Runtime
             if (activeRenderCancellation == renderScope)
             {
                 activeRenderCancellation = null;
+                activeRenderTargets = null;
             }
             renderScope.Dispose();
         }
@@ -372,6 +459,8 @@ namespace NeoCompose.Runtime
             NeoReadOnlyTileGridPrimitive primitive,
             IEnumerable<IReadOnlyNeoTileLayerRuntime> tileLayers,
             IEnumerable<IReadOnlyNeoObjectLayerRuntime>? objectLayers,
+            INeoTileGridContent? content,
+            List<TileLayerTargetRegistration> renderScopeTargets,
             NeoTileGridRenderOptions options,
             CancellationToken token)
         {
@@ -387,87 +476,109 @@ namespace NeoCompose.Runtime
             }
 
             var grid = EnsureGrid();
-            if (clearBeforeRender)
+            var createdTargets = new List<TileLayerTargetRegistration>();
+            try
             {
-                ClearChildren(grid.transform);
-                ClearRenderedIndexes();
-                await YieldNextFrameAsync(token);
-            }
-
-            int sortingOrder = 0;
-            foreach (var layer in tileLayers)
-            {
-                token.ThrowIfCancellationRequested();
-                tileLayersByLayerId[layer.LayerId] = layer;
-                var tilemap = CreateTilemap(
-                    grid.transform,
-                    layer,
-                    sortingOrder++ * FallbackSortingOrderStride);
-                var positions = new List<Vector3Int>(options.NormalizedMaxTilesPerFrame);
-                var tiles = new List<TileBase>(options.NormalizedMaxTilesPerFrame);
-                var renderedTiles = new Dictionary<Vector2Int, TileBase>();
-                var snapshot = NeoWorldLayerRuntimeSupport.GetRenderSnapshot(layer);
-                CacheTileLayerSnapshot(layer.LayerId, snapshot);
-                foreach (var tile in snapshot.Winners)
+                if (clearBeforeRender)
                 {
-                    token.ThrowIfCancellationRequested();
-                    var tileBase = TileBaseFor(tile.Tile);
-                    if (tileBase == null) continue;
-
-                    positions.Add(new Vector3Int(tile.Cell.x, tile.Cell.y, 0));
-                    tiles.Add(tileBase);
-                    renderedTiles[tile.Cell] = tileBase;
-                    CacheRenderedTileSource(layer.LayerId, tile);
-                    if (positions.Count < options.NormalizedMaxTilesPerFrame) continue;
-
-                    SetTileBatch(tilemap, positions, tiles);
-                    positions.Clear();
-                    tiles.Clear();
+                    DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.Replaced);
+                    ClearChildren(grid.transform);
+                    ClearRenderedIndexes();
                     await YieldNextFrameAsync(token);
                 }
 
-                if (positions.Count > 0)
-                {
-                    SetTileBatch(tilemap, positions, tiles);
-                }
-
-                tilemap.CompressBounds();
-                renderedTilesByLayerId[layer.LayerId] = renderedTiles;
-                Lifecycle?.OnTileLayerCreated(new NeoTileLayerContext(this, layer, tilemap));
-                await YieldNextFrameAsync(token);
-            }
-
-            if (renderObjects && objectLayers != null)
-            {
-                foreach (var layer in objectLayers)
+                int sortingOrder = 0;
+                foreach (var layer in tileLayers)
                 {
                     token.ThrowIfCancellationRequested();
-                    objectLayersByLayerId[layer.LayerId] = layer;
-                    var root = CreateObjectLayerRoot(grid.transform, layer);
-                    Lifecycle?.OnObjectLayerCreated(new NeoObjectLayerContext(this, layer, root));
-                    var layerFallbackSortingOrder =
-                        sortingOrder++ * FallbackSortingOrderStride;
-                    objectLayerFallbackSortingOrdersByLayerId[layer.LayerId] =
-                        layerFallbackSortingOrder;
-                    var renderedThisFrame = 0;
-                    foreach (var obj in layer.GetObjects())
+                    tileLayersByLayerId[layer.LayerId] = layer;
+                    var registration = CreateTileLayerTarget(
+                        grid.transform,
+                        layer,
+                        content,
+                        sortingOrder++ * FallbackSortingOrderStride);
+                    createdTargets.Add(registration);
+                    renderScopeTargets.Add(registration);
+                    var tilemap = registration.Target.Tilemap;
+                    registration.Provider?.OnRenderTargetCreated(
+                        CreateTargetContext(registration));
+                    Lifecycle?.OnTileLayerCreated(new NeoTileLayerContext(this, layer, tilemap));
+                    token.ThrowIfCancellationRequested();
+
+                    var positions = new List<Vector3Int>(options.NormalizedMaxTilesPerFrame);
+                    var tiles = new List<TileBase>(options.NormalizedMaxTilesPerFrame);
+                    var renderedTiles = new Dictionary<Vector2Int, TileBase>();
+                    var snapshot = NeoWorldLayerRuntimeSupport.GetRenderSnapshot(layer);
+                    CacheTileLayerSnapshot(layer.LayerId, snapshot);
+                    foreach (var tile in snapshot.Winners)
                     {
                         token.ThrowIfCancellationRequested();
-                        if (!ShouldRenderObjectInstance(layer, obj)) continue;
-                        objectRootsByInstanceId[obj.InstanceId] =
-                            SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
-                        renderedThisFrame += 1;
-                        if (renderedThisFrame < options.NormalizedMaxObjectsPerFrame) continue;
-                        renderedThisFrame = 0;
+                        var tileBase = TileBaseFor(tile.Tile);
+                        if (tileBase == null) continue;
+
+                        positions.Add(new Vector3Int(tile.Cell.x, tile.Cell.y, 0));
+                        tiles.Add(tileBase);
+                        renderedTiles[tile.Cell] = tileBase;
+                        CacheRenderedTileSource(layer.LayerId, tile);
+                        if (positions.Count < options.NormalizedMaxTilesPerFrame) continue;
+
+                        SetTileBatch(tilemap, positions, tiles);
+                        positions.Clear();
+                        tiles.Clear();
                         await YieldNextFrameAsync(token);
                     }
 
+                    if (positions.Count > 0)
+                    {
+                        SetTileBatch(tilemap, positions, tiles);
+                    }
+
+                    tilemap.CompressBounds();
+                    renderedTilesByLayerId[layer.LayerId] = renderedTiles;
+                    registration.Provider?.OnInitiallyRendered(
+                        CreateTargetContext(registration));
                     await YieldNextFrameAsync(token);
                 }
-            }
 
-            token.ThrowIfCancellationRequested();
-            Lifecycle?.OnGridLoaded(new NeoTileGridLoadedContext(this, primitive));
+                if (renderObjects && objectLayers != null)
+                {
+                    foreach (var layer in objectLayers)
+                    {
+                        token.ThrowIfCancellationRequested();
+                        objectLayersByLayerId[layer.LayerId] = layer;
+                        var root = CreateObjectLayerRoot(grid.transform, layer);
+                        Lifecycle?.OnObjectLayerCreated(new NeoObjectLayerContext(this, layer, root));
+                        var layerFallbackSortingOrder =
+                            sortingOrder++ * FallbackSortingOrderStride;
+                        objectLayerFallbackSortingOrdersByLayerId[layer.LayerId] =
+                            layerFallbackSortingOrder;
+                        var renderedThisFrame = 0;
+                        foreach (var obj in layer.GetObjects())
+                        {
+                            token.ThrowIfCancellationRequested();
+                            if (!ShouldRenderObjectInstance(layer, obj)) continue;
+                            objectRootsByInstanceId[obj.InstanceId] =
+                                SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
+                            renderedThisFrame += 1;
+                            if (renderedThisFrame < options.NormalizedMaxObjectsPerFrame) continue;
+                            renderedThisFrame = 0;
+                            await YieldNextFrameAsync(token);
+                        }
+
+                        await YieldNextFrameAsync(token);
+                    }
+                }
+
+                token.ThrowIfCancellationRequested();
+                Lifecycle?.OnGridLoaded(new NeoTileGridLoadedContext(this, primitive));
+            }
+            catch
+            {
+                DestroyTileTargets(
+                    createdTargets,
+                    NeoTileLayerRenderTargetDestroyReason.RenderCancelled);
+                throw;
+            }
         }
 
         public void Clear()
@@ -476,6 +587,7 @@ namespace NeoCompose.Runtime
             StopLiveSync();
             currentContent = null;
             renderedPrimitive = null;
+            DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.RendererCleared);
             ClearChildren(EnsureGrid().transform);
             ClearRenderedIndexes();
             spriteTiles.Clear();
@@ -497,6 +609,7 @@ namespace NeoCompose.Runtime
         {
             CancelInFlightRender();
             StopLiveSync();
+            DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.RendererDestroyed);
             DisposeObjectPositionSubscriptions();
         }
 
@@ -653,6 +766,17 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 SetResolvedTileAt(layer, tilemap, renderedTiles, cell);
+            }
+
+            if (tileTargetsByLayerId.TryGetValue(layer.LayerId, out var registration))
+            {
+                registration.Provider?.OnRenderTargetChanged(
+                    new NeoTileLayerRenderTargetChangedContext(
+                        this,
+                        layer,
+                        registration.Content,
+                        registration.Target,
+                        change));
             }
         }
 
@@ -887,6 +1011,7 @@ namespace NeoCompose.Runtime
         private void ClearRenderedIndexes()
         {
             tilemapsByLayerId.Clear();
+            tileTargetsByLayerId.Clear();
             renderedTilesByLayerId.Clear();
             tileCandidateCountsByLayerId.Clear();
             renderedTileSourceIdsByLayerId.Clear();
@@ -1025,18 +1150,242 @@ namespace NeoCompose.Runtime
             return dependencies;
         }
 
-        private Tilemap CreateTilemap(
+        private TileLayerTargetRegistration CreateTileLayerTarget(
             Transform parent,
             IReadOnlyNeoTileLayerRuntime layer,
-            int sortingOrder)
+            INeoTileGridContent? content,
+            int fallbackSortingOrder)
         {
-            var go = new GameObject($"Tile Layer - {layer.DisplayName}");
-            go.transform.SetParent(parent, false);
-            var tilemap = go.AddComponent<Tilemap>();
-            var renderer = go.AddComponent<TilemapRenderer>();
-            ApplySorting(renderer, layer.SortingLayerName, layer.SortingOrder ?? sortingOrder);
-            tilemapsByLayerId[layer.LayerId] = tilemap;
-            return tilemap;
+            if (tileTargetsByLayerId.TryGetValue(layer.LayerId, out var previous))
+            {
+                DestroyTileTarget(
+                    previous,
+                    NeoTileLayerRenderTargetDestroyReason.Replaced);
+            }
+
+            int effectiveSortingOrder = layer.SortingOrder ?? fallbackSortingOrder;
+            var provider = layer as INeoTileLayerRenderTargetProvider;
+            var createContext = new NeoTileLayerCreateContext(
+                this,
+                layer,
+                content,
+                parent,
+                effectiveSortingOrder);
+            NeoTileLayerRenderTarget? target = null;
+            try
+            {
+                target = provider?.CreateRenderTarget(createContext);
+                target ??= CreateDefaultTileLayerTarget(parent, layer);
+                ValidateTileLayerTarget(layer, parent, target);
+
+                var renderer = target.Tilemap.GetComponent<TilemapRenderer>();
+                ApplySorting(renderer, layer.SortingLayerName, effectiveSortingOrder);
+
+                var registration = new TileLayerTargetRegistration(
+                    this,
+                    layer,
+                    content,
+                    target,
+                    provider);
+                var lifetime = target.Root.AddComponent<NeoTileLayerRenderTargetLifetime>();
+                lifetime.Initialize(() => OnTileLayerTargetDestroyed(registration));
+
+                tileTargetsByLayerId[layer.LayerId] = registration;
+                tileTargetsByRoot[target.Root] = registration;
+                tileTargetsByTilemap[target.Tilemap] = registration;
+                tilemapsByLayerId[layer.LayerId] = target.Tilemap;
+                return registration;
+            }
+            catch
+            {
+                if (target != null && target.Root != null &&
+                    !tileTargetsByRoot.ContainsKey(target.Root))
+                {
+                    DestroyTargetRoot(target.Root);
+                }
+                throw;
+            }
+        }
+
+        private static NeoTileLayerRenderTarget CreateDefaultTileLayerTarget(
+            Transform parent,
+            IReadOnlyNeoTileLayerRuntime layer)
+        {
+            var root = new GameObject($"Tile Layer - {layer.DisplayName}");
+            root.transform.SetParent(parent, false);
+            var tilemap = root.AddComponent<Tilemap>();
+            root.AddComponent<TilemapRenderer>();
+            return new NeoTileLayerRenderTarget(root, tilemap);
+        }
+
+        private void ValidateTileLayerTarget(
+            IReadOnlyNeoTileLayerRuntime layer,
+            Transform parent,
+            NeoTileLayerRenderTarget target)
+        {
+            string description =
+                $"tile layer '{layer.GetType().Name}' (id '{layer.LayerId}')";
+            if (target.Root == null)
+            {
+                throw new InvalidOperationException(
+                    $"Render target for {description} has a destroyed root GameObject.");
+            }
+            if (target.Tilemap == null)
+            {
+                throw new InvalidOperationException(
+                    $"Render target for {description} has a destroyed Tilemap.");
+            }
+            if (target.Root.transform.parent != parent)
+            {
+                throw new InvalidOperationException(
+                    $"Render target root for {description} must be parented directly beneath " +
+                    $"the renderer Grid '{parent.name}'.");
+            }
+            if (target.Tilemap.transform != target.Root.transform &&
+                !target.Tilemap.transform.IsChildOf(target.Root.transform))
+            {
+                throw new InvalidOperationException(
+                    $"Render target Tilemap for {description} must be on the target root or one " +
+                    "of its descendants.");
+            }
+            if (!target.Tilemap.TryGetComponent<TilemapRenderer>(out _))
+            {
+                throw new InvalidOperationException(
+                    $"Render target Tilemap for {description} must have a TilemapRenderer on " +
+                    "the same GameObject.");
+            }
+
+            if (tileTargetsByTilemap.TryGetValue(target.Tilemap, out var tilemapOwner))
+            {
+                throw new InvalidOperationException(
+                    $"Render target Tilemap for {description} is already registered to tile layer " +
+                    $"'{tilemapOwner.Layer.GetType().Name}' (id '{tilemapOwner.Layer.LayerId}').");
+            }
+
+            if (tileTargetsByRoot.TryGetValue(target.Root, out var rootOwner))
+            {
+                throw new InvalidOperationException(
+                    $"Render target root for {description} is already registered to tile layer " +
+                    $"'{rootOwner.Layer.GetType().Name}' (id '{rootOwner.Layer.LayerId}').");
+            }
+        }
+
+        private static NeoTileLayerRenderTargetContext CreateTargetContext(
+            TileLayerTargetRegistration registration) =>
+            new(
+                registration.Renderer,
+                registration.Layer,
+                registration.Content,
+                registration.Target);
+
+        private void DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason reason)
+        {
+            DestroyTileTargets(
+                new List<TileLayerTargetRegistration>(tileTargetsByLayerId.Values),
+                reason);
+        }
+
+        private void DestroyTileTargets(
+            IEnumerable<TileLayerTargetRegistration> registrations,
+            NeoTileLayerRenderTargetDestroyReason reason)
+        {
+            foreach (var registration in registrations)
+            {
+                DestroyTileTarget(registration, reason);
+            }
+        }
+
+        private void DestroyTileTarget(
+            TileLayerTargetRegistration registration,
+            NeoTileLayerRenderTargetDestroyReason reason)
+        {
+            NotifyTileLayerTargetDestroying(registration, reason);
+            RemoveActiveTileTargetIndexes(registration);
+            if (registration.Target.Root != null)
+            {
+                DestroyTargetRoot(registration.Target.Root);
+            }
+        }
+
+        private void NotifyTileLayerTargetDestroying(
+            TileLayerTargetRegistration registration,
+            NeoTileLayerRenderTargetDestroyReason reason)
+        {
+            if (registration.DidNotifyDestroying) return;
+            registration.DidNotifyDestroying = true;
+            registration.DestroyReason = reason;
+            try
+            {
+                registration.Provider?.OnRenderTargetDestroying(
+                    new NeoTileLayerRenderTargetDestroyContext(
+                        this,
+                        registration.Layer,
+                        registration.Content,
+                        registration.Target,
+                        reason));
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+            }
+        }
+
+        private void OnTileLayerTargetDestroyed(TileLayerTargetRegistration registration)
+        {
+            if (registration.DidNotifyDestroyed) return;
+            if (!registration.DidNotifyDestroying)
+            {
+                NotifyTileLayerTargetDestroying(
+                    registration,
+                    NeoTileLayerRenderTargetDestroyReason.ExternallyDestroyed);
+            }
+
+            registration.DidNotifyDestroyed = true;
+            RemoveActiveTileTargetIndexes(registration);
+            tileTargetsByRoot.Remove(registration.Target.Root);
+            tileTargetsByTilemap.Remove(registration.Target.Tilemap);
+            try
+            {
+                registration.Provider?.OnRenderTargetDestroyed(
+                    new NeoTileLayerRenderTargetDestroyedContext(
+                        this,
+                        registration.Layer,
+                        registration.Content,
+                        registration.Target,
+                        registration.DestroyReason));
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+            }
+        }
+
+        private void RemoveActiveTileTargetIndexes(
+            TileLayerTargetRegistration registration)
+        {
+            if (tileTargetsByLayerId.TryGetValue(registration.Layer.LayerId, out var current) &&
+                ReferenceEquals(current, registration))
+            {
+                tileTargetsByLayerId.Remove(registration.Layer.LayerId);
+            }
+            if (tilemapsByLayerId.TryGetValue(registration.Layer.LayerId, out var tilemap) &&
+                ReferenceEquals(tilemap, registration.Target.Tilemap))
+            {
+                tilemapsByLayerId.Remove(registration.Layer.LayerId);
+            }
+        }
+
+        private static void DestroyTargetRoot(GameObject root)
+        {
+            if (root == null) return;
+            if (Application.isPlaying)
+            {
+                UnityEngine.Object.Destroy(root);
+            }
+            else
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
         }
 
         private GameObject CreateObjectLayerRoot(

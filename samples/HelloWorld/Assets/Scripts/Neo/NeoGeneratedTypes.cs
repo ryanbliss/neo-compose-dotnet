@@ -7866,7 +7866,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         int SortingOrder { get; }
     }
 
-    public abstract partial class NeoTileLayer : NeoGeneratedTileLayerValue, IReadOnlyNeoTileLayer
+    public abstract partial class NeoTileLayer : NeoGeneratedTileLayerValue, IReadOnlyNeoTileLayer, INeoTileLayerRenderTargetProvider
     {
         internal NeoTileLayer(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, "a3e4a1df-f487-44bc-bf90-2edc4a88f1ad", isReadOnly, inheritedStorageOwnership)
@@ -7919,6 +7919,40 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool TryWritable(out NeoTileLayer writable)
         {
             return TryWritable<NeoTileLayer>(out writable);
+        }
+
+        NeoTileLayerRenderTarget? INeoTileLayerRenderTargetProvider.CreateRenderTarget(NeoTileLayerCreateContext context) => CreateRenderTarget(context);
+
+        void INeoTileLayerRenderTargetProvider.OnRenderTargetCreated(NeoTileLayerRenderTargetContext context) => OnRenderTargetCreated(context);
+
+        void INeoTileLayerRenderTargetProvider.OnInitiallyRendered(NeoTileLayerRenderTargetContext context) => OnInitiallyRendered(context);
+
+        void INeoTileLayerRenderTargetProvider.OnRenderTargetChanged(NeoTileLayerRenderTargetChangedContext context) => OnRenderTargetChanged(context);
+
+        void INeoTileLayerRenderTargetProvider.OnRenderTargetDestroying(NeoTileLayerRenderTargetDestroyContext context) => OnRenderTargetDestroying(context);
+
+        void INeoTileLayerRenderTargetProvider.OnRenderTargetDestroyed(NeoTileLayerRenderTargetDestroyedContext context) => OnRenderTargetDestroyed(context);
+
+        protected virtual NeoTileLayerRenderTarget? CreateRenderTarget(NeoTileLayerCreateContext context) => null;
+
+        protected virtual void OnRenderTargetCreated(NeoTileLayerRenderTargetContext context)
+        {
+        }
+
+        protected virtual void OnInitiallyRendered(NeoTileLayerRenderTargetContext context)
+        {
+        }
+
+        protected virtual void OnRenderTargetChanged(NeoTileLayerRenderTargetChangedContext context)
+        {
+        }
+
+        protected virtual void OnRenderTargetDestroying(NeoTileLayerRenderTargetDestroyContext context)
+        {
+        }
+
+        protected virtual void OnRenderTargetDestroyed(NeoTileLayerRenderTargetDestroyedContext context)
+        {
         }
 
         public virtual string Name
