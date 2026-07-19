@@ -22,14 +22,6 @@ sealed class MercurialIntro : Dialogue {
     outpost.Save.Unlocked = true;
   }
 
-  @id("legacy-function:640bc771-6f2c-46b0-9b9f-4d8eababb6b2")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native void Action4();
-
-  @id("legacy-function:82701398-39e0-4178-9315-ec1ee8f2d129")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native void Action5();
-
   @id("c75306da-5ca6-4301-83e0-e472b2f065ce")
   override Trigger Trigger = new(
     group: Introductions.Urgent,
@@ -59,7 +51,7 @@ sealed class MercurialIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     @id("82701398-39e0-4178-9315-ec1ee8f2d129")
-    Action5();
+    outpost.Save.Reputation++;
   
     return Asketh;
   }
@@ -268,7 +260,7 @@ sealed class MercurialIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     @id("640bc771-6f2c-46b0-9b9f-4d8eababb6b2")
-    Action4();
+    outpost.SaveUnsafe.Reputation--;
   
     return LightToDark;
   }
