@@ -51,7 +51,6 @@
     },
     "ownerOrganization": null
   },
-  "internalRecordRelations": {},
   "members": {
     "root-assets": {
       "id": "root-assets",
@@ -1117,7 +1116,7 @@
               "function": {
                 "type": "classConstructor",
                 "info": {
-                  "classTypeInfo": {
+                  "schemaClassInfo": {
                     "type": 7,
                     "required": true,
                     "classId": "class-sample-tile-instance"
@@ -1972,9 +1971,13 @@
       "name": "Element",
       "options": {
         "fire": {
+          "id": "fire",
+          "name": "fire",
           "text": "Fire"
         },
         "ice": {
+          "id": "ice",
+          "name": "ice",
           "text": "Ice"
         }
       },
@@ -1994,6 +1997,7 @@
       "name": "IContract",
       "members": {
         "Title": {
+          "id": "interface-contract-title",
           "kind": "property",
           "accessModifierKind": "public",
           "typeInfo": {
@@ -2003,6 +2007,7 @@
           "settable": false
         },
         "Run": {
+          "id": "interface-contract-run",
           "kind": "function",
           "accessModifierKind": "public",
           "returnTypeInfo": {
@@ -2019,6 +2024,7 @@
           "deferred": false
         },
         "Missing": {
+          "id": "interface-contract-missing",
           "kind": "property",
           "accessModifierKind": "public",
           "typeInfo": {
@@ -2028,6 +2034,7 @@
           "settable": false
         },
         "MissingLater": {
+          "id": "interface-contract-missing-later",
           "kind": "function",
           "accessModifierKind": "public",
           "returnTypeInfo": {
@@ -2054,6 +2061,7 @@
       "name": "IHeroDeferredTransform",
       "members": {
         "TransformLater": {
+          "id": "interface-hero-transform-later",
           "kind": "function",
           "accessModifierKind": "public",
           "returnTypeInfo": {
@@ -2603,6 +2611,7 @@
       "updatedAt": 0
     }
   },
+  "internalRecordRelations": {},
   "values": {
     "v-num": {
       "id": "v-num",
@@ -2949,12 +2958,14 @@
     "dialogue-linked-hero": {
       "id": "dialogue-linked-hero",
       "projectId": "test-project",
+      "sourceName": "LinkedHeroDialogue",
       "name": "Linked Hero",
       "description": "Synthetic dialogue for generated Unity tests.",
       "primaryLinkedValueId": "v-dict",
       "linkedValues": [
         {
           "valueId": "v-dict",
+          "sourceName": "Src_v_dict",
           "source": 0
         }
       ],
@@ -2964,6 +2975,7 @@
       "triggerNode": {
         "id": "dialogue-linked-hero-trigger",
         "type": 0,
+        "sourceName": "LinkedHeroTrigger",
         "layout": {
           "x": 0,
           "y": 0,
@@ -2988,6 +3000,7 @@
         "dialogue-linked-hero-text": {
           "id": "dialogue-linked-hero-text",
           "type": 1,
+          "sourceName": "LinkedHeroText",
           "text": "Synthetic hello.",
           "name": "Greeting",
           "layout": {
@@ -3001,6 +3014,7 @@
           "linkedValues": [
             {
               "valueId": "v-dict",
+              "sourceName": "Src_v_dict",
               "source": 0
             }
           ],
@@ -3009,6 +3023,7 @@
             "options": [
               {
                 "id": "dialogue-linked-hero-option",
+                "sourceName": "LinkedHeroOption",
                 "text": "Continue",
                 "name": "Continue"
               }
@@ -3022,6 +3037,7 @@
     "dialogue-ts-compiled-assign-add": {
       "id": "dialogue-ts-compiled-assign-add",
       "projectId": "test-project",
+      "sourceName": "Dialogue_dialogue_ts_compiled_assign_add",
       "name": "dialogue-ts-compiled-assign-add",
       "description": "Synthetic TypeScript-compiled action dialogue.",
       "primaryLinkedValueId": null,
@@ -3032,6 +3048,7 @@
       "triggerNode": {
         "id": "dialogue-ts-compiled-assign-add-trigger",
         "type": 0,
+        "sourceName": "Trigger_dialogue_ts_compiled_assign_add",
         "layout": {
           "x": 0,
           "y": 0,
@@ -3050,6 +3067,7 @@
         "dialogue-ts-compiled-assign-add-actions": {
           "id": "dialogue-ts-compiled-assign-add-actions",
           "type": 2,
+          "sourceName": "Actions_dialogue_ts_compiled_assign_add",
           "name": "Compiled action",
           "layout": {
             "x": 240,
@@ -3066,6 +3084,8 @@
               "type": 0,
               "logic": {
                 "type": 1,
+                "sourceFunctionId": "sample-dialogue-action-function",
+                "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score += 3;",
                 "action": {
                   "parameters": [
@@ -3224,6 +3244,7 @@
     "dialogue-ts-compiled-assign-subtract": {
       "id": "dialogue-ts-compiled-assign-subtract",
       "projectId": "test-project",
+      "sourceName": "Dialogue_dialogue_ts_compiled_assign_subtract",
       "name": "dialogue-ts-compiled-assign-subtract",
       "description": "Synthetic TypeScript-compiled action dialogue.",
       "primaryLinkedValueId": null,
@@ -3234,6 +3255,7 @@
       "triggerNode": {
         "id": "dialogue-ts-compiled-assign-subtract-trigger",
         "type": 0,
+        "sourceName": "Trigger_dialogue_ts_compiled_assign_subtract",
         "layout": {
           "x": 0,
           "y": 0,
@@ -3252,6 +3274,7 @@
         "dialogue-ts-compiled-assign-subtract-actions": {
           "id": "dialogue-ts-compiled-assign-subtract-actions",
           "type": 2,
+          "sourceName": "Actions_dialogue_ts_compiled_assign_subtract",
           "name": "Compiled action",
           "layout": {
             "x": 240,
@@ -3268,6 +3291,8 @@
               "type": 0,
               "logic": {
                 "type": 1,
+                "sourceFunctionId": "sample-dialogue-action-function",
+                "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score -= 3;",
                 "action": {
                   "parameters": [
@@ -3426,6 +3451,7 @@
     "dialogue-ts-compiled-assign-multiply": {
       "id": "dialogue-ts-compiled-assign-multiply",
       "projectId": "test-project",
+      "sourceName": "Dialogue_dialogue_ts_compiled_assign_multiply",
       "name": "dialogue-ts-compiled-assign-multiply",
       "description": "Synthetic TypeScript-compiled action dialogue.",
       "primaryLinkedValueId": null,
@@ -3436,6 +3462,7 @@
       "triggerNode": {
         "id": "dialogue-ts-compiled-assign-multiply-trigger",
         "type": 0,
+        "sourceName": "Trigger_dialogue_ts_compiled_assign_multiply",
         "layout": {
           "x": 0,
           "y": 0,
@@ -3454,6 +3481,7 @@
         "dialogue-ts-compiled-assign-multiply-actions": {
           "id": "dialogue-ts-compiled-assign-multiply-actions",
           "type": 2,
+          "sourceName": "Actions_dialogue_ts_compiled_assign_multiply",
           "name": "Compiled action",
           "layout": {
             "x": 240,
@@ -3470,6 +3498,8 @@
               "type": 0,
               "logic": {
                 "type": 1,
+                "sourceFunctionId": "sample-dialogue-action-function",
+                "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score *= 3;",
                 "action": {
                   "parameters": [
@@ -3628,6 +3658,7 @@
     "dialogue-ts-compiled-assign-divide": {
       "id": "dialogue-ts-compiled-assign-divide",
       "projectId": "test-project",
+      "sourceName": "Dialogue_dialogue_ts_compiled_assign_divide",
       "name": "dialogue-ts-compiled-assign-divide",
       "description": "Synthetic TypeScript-compiled action dialogue.",
       "primaryLinkedValueId": null,
@@ -3638,6 +3669,7 @@
       "triggerNode": {
         "id": "dialogue-ts-compiled-assign-divide-trigger",
         "type": 0,
+        "sourceName": "Trigger_dialogue_ts_compiled_assign_divide",
         "layout": {
           "x": 0,
           "y": 0,
@@ -3656,6 +3688,7 @@
         "dialogue-ts-compiled-assign-divide-actions": {
           "id": "dialogue-ts-compiled-assign-divide-actions",
           "type": 2,
+          "sourceName": "Actions_dialogue_ts_compiled_assign_divide",
           "name": "Compiled action",
           "layout": {
             "x": 240,
@@ -3672,6 +3705,8 @@
               "type": 0,
               "logic": {
                 "type": 1,
+                "sourceFunctionId": "sample-dialogue-action-function",
+                "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score /= 3;",
                 "action": {
                   "parameters": [
@@ -3830,6 +3865,7 @@
     "dialogue-ts-compiled-assign-modulo": {
       "id": "dialogue-ts-compiled-assign-modulo",
       "projectId": "test-project",
+      "sourceName": "Dialogue_dialogue_ts_compiled_assign_modulo",
       "name": "dialogue-ts-compiled-assign-modulo",
       "description": "Synthetic TypeScript-compiled action dialogue.",
       "primaryLinkedValueId": null,
@@ -3840,6 +3876,7 @@
       "triggerNode": {
         "id": "dialogue-ts-compiled-assign-modulo-trigger",
         "type": 0,
+        "sourceName": "Trigger_dialogue_ts_compiled_assign_modulo",
         "layout": {
           "x": 0,
           "y": 0,
@@ -3858,6 +3895,7 @@
         "dialogue-ts-compiled-assign-modulo-actions": {
           "id": "dialogue-ts-compiled-assign-modulo-actions",
           "type": 2,
+          "sourceName": "Actions_dialogue_ts_compiled_assign_modulo",
           "name": "Compiled action",
           "layout": {
             "x": 240,
@@ -3874,6 +3912,8 @@
               "type": 0,
               "logic": {
                 "type": 1,
+                "sourceFunctionId": "sample-dialogue-action-function",
+                "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score %= 3;",
                 "action": {
                   "parameters": [
@@ -4032,6 +4072,7 @@
     "dialogue-ts-compiled-assign-increment": {
       "id": "dialogue-ts-compiled-assign-increment",
       "projectId": "test-project",
+      "sourceName": "Dialogue_dialogue_ts_compiled_assign_increment",
       "name": "dialogue-ts-compiled-assign-increment",
       "description": "Synthetic TypeScript-compiled action dialogue.",
       "primaryLinkedValueId": null,
@@ -4042,6 +4083,7 @@
       "triggerNode": {
         "id": "dialogue-ts-compiled-assign-increment-trigger",
         "type": 0,
+        "sourceName": "Trigger_dialogue_ts_compiled_assign_increment",
         "layout": {
           "x": 0,
           "y": 0,
@@ -4060,6 +4102,7 @@
         "dialogue-ts-compiled-assign-increment-actions": {
           "id": "dialogue-ts-compiled-assign-increment-actions",
           "type": 2,
+          "sourceName": "Actions_dialogue_ts_compiled_assign_increment",
           "name": "Compiled action",
           "layout": {
             "x": 240,
@@ -4076,6 +4119,8 @@
               "type": 0,
               "logic": {
                 "type": 1,
+                "sourceFunctionId": "sample-dialogue-action-function",
+                "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score++;",
                 "action": {
                   "parameters": [
@@ -4234,6 +4279,7 @@
     "dialogue-ts-compiled-assign-decrement": {
       "id": "dialogue-ts-compiled-assign-decrement",
       "projectId": "test-project",
+      "sourceName": "Dialogue_dialogue_ts_compiled_assign_decrement",
       "name": "dialogue-ts-compiled-assign-decrement",
       "description": "Synthetic TypeScript-compiled action dialogue.",
       "primaryLinkedValueId": null,
@@ -4244,6 +4290,7 @@
       "triggerNode": {
         "id": "dialogue-ts-compiled-assign-decrement-trigger",
         "type": 0,
+        "sourceName": "Trigger_dialogue_ts_compiled_assign_decrement",
         "layout": {
           "x": 0,
           "y": 0,
@@ -4262,6 +4309,7 @@
         "dialogue-ts-compiled-assign-decrement-actions": {
           "id": "dialogue-ts-compiled-assign-decrement-actions",
           "type": 2,
+          "sourceName": "Actions_dialogue_ts_compiled_assign_decrement",
           "name": "Compiled action",
           "layout": {
             "x": 240,
@@ -4278,6 +4326,8 @@
               "type": 0,
               "logic": {
                 "type": 1,
+                "sourceFunctionId": "sample-dialogue-action-function",
+                "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score--;",
                 "action": {
                   "parameters": [
