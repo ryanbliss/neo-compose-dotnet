@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NUnit.Framework;
@@ -567,6 +568,584 @@ namespace NeoCompose.Tests
             {
                 UnityEngine.Object.DestroyImmediate(go);
             }
+        }
+
+        [Test]
+        public void Render_DefaultTargetProviderHooksBracketInitialPaintingAndLegacyLifecycle()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+            {
+                [TileClassId] = (resolvedClient, node) => new TestTile(resolvedClient, node),
+            };
+            var tile = (TestTile)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "floor-tile",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
+            var sprite = CreateTestSprite("provider-default-target");
+            tile.Sprite = sprite;
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>());
+            var phases = new List<string>();
+            var layer = new RecordingProviderTileLayerRuntime(
+                "background-layer",
+                "Background",
+                TileClassId,
+                null,
+                null,
+                new[]
+                {
+                    new NeoResolvedTileInstance(
+                        "tile-1",
+                        "background-layer",
+                        Vector2Int.zero,
+                        tile,
+                        0),
+                },
+                phases);
+            layer.CreatedCallback = context =>
+                Assert.IsNull(context.Target.Tilemap.GetTile(Vector3Int.zero));
+            layer.InitiallyRenderedCallback = context =>
+                Assert.IsNotNull(context.Target.Tilemap.GetTile(Vector3Int.zero));
+            var go = new GameObject("NeoTileGridRenderer default provider target test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Lifecycle = new TileLayerCreatedCallbackLifecycle(
+                    () => phases.Add("legacy-created"));
+
+                renderer.Render(primitive, new[] { layer });
+
+                CollectionAssert.AreEqual(
+                    new[]
+                    {
+                        "create",
+                        "provider-created",
+                        "legacy-created",
+                        "initially-rendered",
+                    },
+                    phases);
+                var target = layer.CreatedTargets.Single();
+                Assert.AreSame(target.Root, target.Tilemap.gameObject);
+                Assert.AreEqual("Tile Layer - Background", target.Root.name);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(sprite);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator RenderAsync_ProviderAndLegacyLifecycleMatchSynchronousPhaseOrder()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
+            var syncPhases = new List<string>();
+            var asyncPhases = new List<string>();
+            var syncLayer = new RecordingProviderTileLayerRuntime(
+                "sync-layer",
+                "Sync",
+                TileClassId,
+                null,
+                null,
+                Array.Empty<NeoResolvedTileInstance>(),
+                syncPhases);
+            var asyncLayer = new RecordingProviderTileLayerRuntime(
+                "async-layer",
+                "Async",
+                TileClassId,
+                null,
+                null,
+                Array.Empty<NeoResolvedTileInstance>(),
+                asyncPhases);
+            var syncGo = new GameObject("NeoTileGridRenderer provider sync timing test");
+            var asyncGo = new GameObject("NeoTileGridRenderer provider async timing test");
+            Exception? error = null;
+            var complete = false;
+
+            try
+            {
+                var syncRenderer = syncGo.AddComponent<NeoTileGridRenderer>();
+                syncRenderer.Lifecycle = new TileLayerCreatedCallbackLifecycle(
+                    () => syncPhases.Add("legacy-created"));
+                syncRenderer.Render(primitive, new[] { syncLayer });
+
+                var asyncRenderer = asyncGo.AddComponent<NeoTileGridRenderer>();
+                asyncRenderer.Lifecycle = new TileLayerCreatedCallbackLifecycle(
+                    () => asyncPhases.Add("legacy-created"));
+                RenderAsync();
+
+                for (int frame = 0; frame < 120 && !complete; frame += 1)
+                {
+                    yield return null;
+                }
+
+                if (error != null) throw error;
+                Assert.IsTrue(complete, "Async provider timing render did not complete.");
+                CollectionAssert.AreEqual(syncPhases, asyncPhases);
+                CollectionAssert.AreEqual(
+                    new[]
+                    {
+                        "create",
+                        "provider-created",
+                        "legacy-created",
+                        "initially-rendered",
+                    },
+                    asyncPhases);
+
+                async void RenderAsync()
+                {
+                    try
+                    {
+                        await asyncRenderer.RenderAsync(
+                            primitive,
+                            new[] { asyncLayer },
+                            options: new NeoTileGridRenderOptions
+                            {
+                                YieldBeforeRender = false,
+                            });
+                    }
+                    catch (Exception exception)
+                    {
+                        error = exception;
+                    }
+                    finally
+                    {
+                        complete = true;
+                    }
+                }
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(syncGo);
+                UnityEngine.Object.DestroyImmediate(asyncGo);
+            }
+        }
+
+        [Test]
+        public void Render_CustomNestedTargetReceivesInitialAndLiveTilesAndSorting()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+            {
+                [TileClassId] = (resolvedClient, node) => new TestTile(resolvedClient, node),
+            };
+            var tile = (TestTile)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "floor-tile",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
+            var sprite = CreateTestSprite("provider-custom-target");
+            tile.Sprite = sprite;
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>());
+            var layer = new RecordingProviderTileLayerRuntime(
+                "background-layer",
+                "Background",
+                TileClassId,
+                "Default",
+                73,
+                new[]
+                {
+                    new NeoResolvedTileInstance(
+                        "tile-1",
+                        "background-layer",
+                        Vector2Int.zero,
+                        tile,
+                        0),
+                });
+            layer.TargetFactory = CreateNestedTarget;
+            var content = new TestTileGridContent(primitive, new[] { layer });
+            var go = new GameObject("NeoTileGridRenderer custom provider target test");
+            var changedAfterPainting = false;
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(content);
+
+                var target = layer.CreatedTargets.Single();
+                Assert.AreNotSame(target.Root, target.Tilemap.gameObject);
+                Assert.AreSame(target.Root.transform, target.Tilemap.transform.parent);
+                Assert.IsNotNull(target.Tilemap.GetTile(Vector3Int.zero));
+                var tilemapRenderer = target.Tilemap.GetComponent<TilemapRenderer>();
+                Assert.AreEqual("Default", tilemapRenderer.sortingLayerName);
+                Assert.AreEqual(73, tilemapRenderer.sortingOrder);
+
+                layer.ChangedCallback = context =>
+                {
+                    changedAfterPainting =
+                        context.Target.Tilemap.GetTile(Vector3Int.zero) == null &&
+                        context.Target.Tilemap.GetTile(Vector3Int.right) != null;
+                };
+                layer.SetTiles(new[]
+                {
+                    new NeoResolvedTileInstance(
+                        "tile-2",
+                        "background-layer",
+                        Vector2Int.right,
+                        tile,
+                        0),
+                });
+                primitive.NotifyTileLayerChanged(
+                    "background-layer",
+                    new[] { Vector2Int.zero },
+                    new[] { Vector2Int.right },
+                    NeoTileGridChangeSourceKind.Direct,
+                    null);
+
+                Assert.IsTrue(changedAfterPainting);
+                Assert.AreEqual(1, layer.ChangedContexts.Count);
+                Assert.AreSame(target, layer.ChangedContexts[0].Target);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(sprite);
+            }
+        }
+
+        [Test]
+        public void Render_InvalidCustomTargetsHaveDistinctDiagnosticsAndDoNotPoisonRetry()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
+
+            AssertInvalid(
+                context =>
+                {
+                    var root = new GameObject("Unparented Root");
+                    var tilemap = root.AddComponent<Tilemap>();
+                    root.AddComponent<TilemapRenderer>();
+                    return new NeoTileLayerRenderTarget(root, tilemap);
+                },
+                "must be parented directly beneath");
+            AssertInvalid(
+                context =>
+                {
+                    var root = new GameObject("Missing Renderer Root");
+                    root.transform.SetParent(context.Parent, false);
+                    var tilemap = root.AddComponent<Tilemap>();
+                    return new NeoTileLayerRenderTarget(root, tilemap);
+                },
+                "must have a TilemapRenderer");
+            AssertInvalid(
+                context =>
+                {
+                    var root = new GameObject("Target Root");
+                    root.transform.SetParent(context.Parent, false);
+                    var outside = new GameObject("Outside Tilemap");
+                    outside.transform.SetParent(context.Parent, false);
+                    var tilemap = outside.AddComponent<Tilemap>();
+                    outside.AddComponent<TilemapRenderer>();
+                    return new NeoTileLayerRenderTarget(root, tilemap);
+                },
+                "must be on the target root or one of its descendants");
+
+            void AssertInvalid(
+                Func<NeoTileLayerCreateContext, NeoTileLayerRenderTarget?> factory,
+                string expectedCondition)
+            {
+                var go = new GameObject("NeoTileGridRenderer invalid provider target test");
+                try
+                {
+                    var renderer = go.AddComponent<NeoTileGridRenderer>();
+                    var layer = new RecordingProviderTileLayerRuntime(
+                        "diagnostic-layer",
+                        "Diagnostic",
+                        TileClassId);
+                    layer.TargetFactory = factory;
+
+                    var error = Assert.Throws<InvalidOperationException>(
+                        () => renderer.Render(primitive, new[] { layer }));
+
+                    StringAssert.Contains(nameof(RecordingProviderTileLayerRuntime), error!.Message);
+                    StringAssert.Contains("diagnostic-layer", error.Message);
+                    StringAssert.Contains(expectedCondition, error.Message);
+
+                    layer.TargetFactory = null;
+                    renderer.Render(primitive, new[] { layer });
+                    Assert.AreEqual(1, layer.CreatedTargets.Count);
+                }
+                finally
+                {
+                    UnityEngine.Object.DestroyImmediate(go);
+                }
+            }
+        }
+
+        [Test]
+        public void Render_ReusedCustomRootReportsOwningLayer()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
+            var go = new GameObject("NeoTileGridRenderer duplicate provider root test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                var first = new RecordingProviderTileLayerRuntime(
+                    "first-layer",
+                    "First",
+                    TileClassId);
+                var second = new RecordingProviderTileLayerRuntime(
+                    "second-layer",
+                    "Second",
+                    TileClassId);
+                GameObject? sharedRoot = null;
+                first.TargetFactory = context =>
+                {
+                    sharedRoot = new GameObject("Shared Target Root");
+                    sharedRoot.transform.SetParent(context.Parent, false);
+                    var firstTilemap = NewTilemap("First Tilemap", sharedRoot.transform);
+                    return new NeoTileLayerRenderTarget(sharedRoot, firstTilemap);
+                };
+                second.TargetFactory = _ =>
+                {
+                    var secondTilemap = NewTilemap("Second Tilemap", sharedRoot!.transform);
+                    return new NeoTileLayerRenderTarget(sharedRoot, secondTilemap);
+                };
+
+                var error = Assert.Throws<InvalidOperationException>(
+                    () => renderer.Render(primitive, new[] { first, second }));
+
+                StringAssert.Contains("second-layer", error!.Message);
+                StringAssert.Contains("already registered to tile layer", error.Message);
+                StringAssert.Contains("first-layer", error.Message);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+
+            static Tilemap NewTilemap(string name, Transform parent)
+            {
+                var tilemapObject = new GameObject(name);
+                tilemapObject.transform.SetParent(parent, false);
+                var tilemap = tilemapObject.AddComponent<Tilemap>();
+                tilemapObject.AddComponent<TilemapRenderer>();
+                return tilemap;
+            }
+        }
+
+        [Test]
+        public void Render_ReusedCustomTilemapReportsOwningLayer()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
+            var go = new GameObject("NeoTileGridRenderer duplicate provider tilemap test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                var first = new RecordingProviderTileLayerRuntime(
+                    "first-layer",
+                    "First",
+                    TileClassId);
+                var second = new RecordingProviderTileLayerRuntime(
+                    "second-layer",
+                    "Second",
+                    TileClassId);
+                NeoTileLayerRenderTarget? sharedTarget = null;
+                first.TargetFactory = context =>
+                {
+                    sharedTarget = CreateNestedTarget(context);
+                    return sharedTarget;
+                };
+                second.TargetFactory = _ => new NeoTileLayerRenderTarget(
+                    sharedTarget!.Root,
+                    sharedTarget.Tilemap);
+
+                var error = Assert.Throws<InvalidOperationException>(
+                    () => renderer.Render(primitive, new[] { first, second }));
+
+                StringAssert.Contains("second-layer", error!.Message);
+                StringAssert.Contains("Render target Tilemap", error.Message);
+                StringAssert.Contains("already registered to tile layer", error.Message);
+                StringAssert.Contains("first-layer", error.Message);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void RenderTargetDestruction_ReplacementAndClearNotifyExactlyOnce()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
+            var layer = new RecordingProviderTileLayerRuntime(
+                "background-layer",
+                "Background",
+                TileClassId)
+            {
+                TargetFactory = CreateNestedTarget,
+            };
+            var go = new GameObject("NeoTileGridRenderer provider replacement test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(primitive, new[] { layer });
+                var replacedId = layer.CreatedTargets.Single().Id;
+
+                renderer.Render(primitive, new[] { layer });
+
+                AssertDestroyPair(
+                    layer,
+                    replacedId,
+                    NeoTileLayerRenderTargetDestroyReason.Replaced);
+                var clearedId = layer.CreatedTargets.Last().Id;
+                Assert.AreNotEqual(replacedId, clearedId);
+
+                renderer.Clear();
+
+                AssertDestroyPair(
+                    layer,
+                    clearedId,
+                    NeoTileLayerRenderTargetDestroyReason.RendererCleared);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void RenderTargetDestruction_ExternalDestroyNotifiesExactlyOnce()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
+            var layer = new RecordingProviderTileLayerRuntime(
+                "background-layer",
+                "Background",
+                TileClassId)
+            {
+                TargetFactory = CreateNestedTarget,
+            };
+            var go = new GameObject("NeoTileGridRenderer provider external destroy test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(primitive, new[] { layer });
+                var target = layer.CreatedTargets.Single();
+
+                UnityEngine.Object.DestroyImmediate(target.Root);
+                renderer.Clear();
+
+                AssertDestroyPair(
+                    layer,
+                    target.Id,
+                    NeoTileLayerRenderTargetDestroyReason.ExternallyDestroyed);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void RenderTargetDestruction_CancelledAsyncRenderNotifiesExactlyOnce()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
+            using var cancellation = new CancellationTokenSource();
+            var layer = new RecordingProviderTileLayerRuntime(
+                "background-layer",
+                "Background",
+                TileClassId)
+            {
+                TargetFactory = CreateNestedTarget,
+                CreatedCallback = _ => cancellation.Cancel(),
+            };
+            var go = new GameObject("NeoTileGridRenderer provider cancellation test");
+            Exception? error = null;
+            var complete = false;
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                RenderAsync();
+
+                Assert.IsTrue(complete, "Cancellation after target creation should be observed immediately.");
+                Assert.IsInstanceOf<OperationCanceledException>(error);
+                var targetId = layer.CreatedTargets.Single().Id;
+                AssertDestroyPair(
+                    layer,
+                    targetId,
+                    NeoTileLayerRenderTargetDestroyReason.RenderCancelled);
+
+                async void RenderAsync()
+                {
+                    try
+                    {
+                        await renderer.RenderAsync(
+                            primitive,
+                            new[] { layer },
+                            options: new NeoTileGridRenderOptions
+                            {
+                                CancellationToken = cancellation.Token,
+                                YieldBeforeRender = false,
+                            });
+                    }
+                    catch (Exception exception)
+                    {
+                        error = exception;
+                    }
+                    finally
+                    {
+                        complete = true;
+                    }
+                }
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        private static NeoTileLayerRenderTarget CreateNestedTarget(
+            NeoTileLayerCreateContext context)
+        {
+            var root = new GameObject("Custom Target Root");
+            root.transform.SetParent(context.Parent, false);
+            var tilemapObject = new GameObject("Nested Tilemap");
+            tilemapObject.transform.SetParent(root.transform, false);
+            var tilemap = tilemapObject.AddComponent<Tilemap>();
+            tilemapObject.AddComponent<TilemapRenderer>();
+            return new NeoTileLayerRenderTarget(root, tilemap);
+        }
+
+        private static void AssertDestroyPair(
+            RecordingProviderTileLayerRuntime layer,
+            string targetId,
+            NeoTileLayerRenderTargetDestroyReason reason)
+        {
+            Assert.AreEqual(
+                1,
+                layer.DestroyingContexts.Count(context =>
+                    context.Target.Id == targetId && context.Reason == reason));
+            Assert.AreEqual(
+                1,
+                layer.DestroyedContexts.Count(context =>
+                    context.Target.Id == targetId && context.Reason == reason));
+            Assert.AreEqual(
+                1,
+                layer.DestroyingContexts.Count(context => context.Target.Id == targetId));
+            Assert.AreEqual(
+                1,
+                layer.DestroyedContexts.Count(context => context.Target.Id == targetId));
         }
 
         [Test]
@@ -1731,6 +2310,98 @@ namespace NeoCompose.Tests
             }
 
             public override IReadOnlyList<NeoResolvedTileInstance> GetTiles() => tiles;
+        }
+
+        private sealed class RecordingProviderTileLayerRuntime
+            : ReadOnlyNeoTileLayerRuntime, INeoTileLayerRenderTargetProvider
+        {
+            private IReadOnlyList<NeoResolvedTileInstance> tiles;
+            private readonly List<string>? phases;
+
+            public RecordingProviderTileLayerRuntime(
+                string layerId,
+                string displayName,
+                string expectedClassId,
+                string? sortingLayerName = null,
+                int? sortingOrder = null,
+                IReadOnlyList<NeoResolvedTileInstance>? tiles = null,
+                List<string>? phases = null)
+                : base(
+                    layerId,
+                    displayName,
+                    expectedClassId,
+                    sortingLayerName,
+                    sortingOrder)
+            {
+                this.tiles = tiles ?? Array.Empty<NeoResolvedTileInstance>();
+                this.phases = phases;
+            }
+
+            public Func<NeoTileLayerCreateContext, NeoTileLayerRenderTarget?>?
+                TargetFactory { get; set; }
+
+            public Action<NeoTileLayerRenderTargetContext>? CreatedCallback { get; set; }
+
+            public Action<NeoTileLayerRenderTargetContext>?
+                InitiallyRenderedCallback { get; set; }
+
+            public Action<NeoTileLayerRenderTargetChangedContext>? ChangedCallback { get; set; }
+
+            public List<NeoTileLayerRenderTarget> CreatedTargets { get; } = new();
+
+            public List<NeoTileLayerRenderTargetChangedContext> ChangedContexts { get; } = new();
+
+            public List<NeoTileLayerRenderTargetDestroyContext> DestroyingContexts { get; } = new();
+
+            public List<NeoTileLayerRenderTargetDestroyedContext> DestroyedContexts { get; } = new();
+
+            public override IReadOnlyList<NeoResolvedTileInstance> GetTiles() => tiles;
+
+            public override NeoResolvedTileInstance? GetTile(Vector2Int cell) =>
+                tiles.FirstOrDefault(tile => tile.Cell == cell);
+
+            public void SetTiles(IReadOnlyList<NeoResolvedTileInstance> nextTiles)
+            {
+                tiles = nextTiles;
+            }
+
+            public NeoTileLayerRenderTarget? CreateRenderTarget(
+                NeoTileLayerCreateContext context)
+            {
+                phases?.Add("create");
+                return TargetFactory?.Invoke(context);
+            }
+
+            public void OnRenderTargetCreated(NeoTileLayerRenderTargetContext context)
+            {
+                phases?.Add("provider-created");
+                CreatedTargets.Add(context.Target);
+                CreatedCallback?.Invoke(context);
+            }
+
+            public void OnInitiallyRendered(NeoTileLayerRenderTargetContext context)
+            {
+                phases?.Add("initially-rendered");
+                InitiallyRenderedCallback?.Invoke(context);
+            }
+
+            public void OnRenderTargetChanged(NeoTileLayerRenderTargetChangedContext context)
+            {
+                ChangedContexts.Add(context);
+                ChangedCallback?.Invoke(context);
+            }
+
+            public void OnRenderTargetDestroying(
+                NeoTileLayerRenderTargetDestroyContext context)
+            {
+                DestroyingContexts.Add(context);
+            }
+
+            public void OnRenderTargetDestroyed(
+                NeoTileLayerRenderTargetDestroyedContext context)
+            {
+                DestroyedContexts.Add(context);
+            }
         }
 
         private sealed class TestObjectLayerRuntime : ReadOnlyNeoObjectLayerRuntime

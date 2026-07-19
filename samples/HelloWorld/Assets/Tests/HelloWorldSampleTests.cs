@@ -564,6 +564,8 @@ namespace HelloWorld.Assets.Tests
                 var collisionTilemap = tilemaps.Single(tilemap =>
                     tilemap.gameObject.name == "Tile Layer - Collisions");
                 Assert.IsNotNull(collisionTilemap.GetTile(new Vector3Int(0, 1, 0)));
+                Assert.IsNull(backgroundTilemap.GetComponent<TilemapCollider2D>());
+                Assert.IsNotNull(collisionTilemap.GetComponent<TilemapCollider2D>());
 
                 var objectLayer = go.transform.Find("Object Layer - Objects");
                 Assert.IsNotNull(
