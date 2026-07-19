@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 9,
+    "schemaVersion": 10,
     "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
     "versionId": "version-1",
     "semver": {
@@ -30,6 +30,7 @@
       "locked": true,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -47,6 +48,7 @@
       "locked": true,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -64,6 +66,7 @@
       "locked": true,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -79,6 +82,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": ""
       },
@@ -95,6 +99,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": ""
       },
@@ -111,6 +116,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": 0
       },
@@ -127,6 +133,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": true
       },
@@ -143,6 +150,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -160,6 +168,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": []
       },
@@ -177,6 +186,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": ""
       },
@@ -193,6 +203,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": 18
       },
@@ -209,6 +220,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": false
       },
@@ -225,6 +237,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": ""
       },
@@ -241,6 +254,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": ""
       },
@@ -257,6 +271,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -274,6 +289,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": [
           "A"
@@ -295,6 +311,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": []
       },
@@ -313,6 +330,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -330,6 +348,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": []
       },
@@ -347,6 +366,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": false
       },
@@ -363,6 +383,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": 10
       },
@@ -380,6 +401,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -397,6 +419,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -415,6 +438,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": []
       },
@@ -433,6 +457,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": []
       },
@@ -451,6 +476,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": ""
       },
@@ -467,6 +493,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": []
       },
@@ -484,6 +511,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": ""
       },
@@ -500,6 +528,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
+      "accessModifierKind": "public",
       "kind": 10,
       "code": "    string itemName = this.ItemGetOptional?.Name ?? \"Unknown\";\n    string label = $\"Hello world!!! NPC: {this.NPCs.First().Name}, item: {itemName}\";\n    return label;",
       "returnTypeInfo": {
@@ -703,6 +732,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
+      "accessModifierKind": "public",
       "kind": 10,
       "code": "    NPC npc = this.NPCs[\"James\"];\n    if (npc.Age >= 18) {\n        return npc.CanRomance;\n    }\n    return false;",
       "returnTypeInfo": {
@@ -917,6 +947,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
+      "accessModifierKind": "public",
       "kind": 10,
       "code": "    return root.Assets.InventoryItems.Where((item) => { return item is ToolItem; })\n        .Select((item) => {\n            return item.Name;\n        });",
       "returnTypeInfo": {
@@ -1118,6 +1149,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
+      "accessModifierKind": "public",
       "kind": 10,
       "code": "    InventoryItem? item = this.ItemGetOptional;\n    if (!item) {\n        throw $\"item is unexpectedly null!\";\n    }\n    return item;",
       "returnTypeInfo": {
@@ -1284,6 +1316,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
+      "accessModifierKind": "public",
       "kind": 10,
       "code": "\treturn this.Combo;",
       "returnTypeInfo": {
@@ -1375,6 +1408,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
+      "accessModifierKind": "public",
       "kind": 10,
       "code": "\tstring query = this.Name;\n    return root.Assets.InventoryItems.Find((check) => {\n        return check.Name == query;\n    });",
       "returnTypeInfo": {
@@ -1570,6 +1604,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
+      "accessModifierKind": "public",
       "kind": 10,
       "code": "\treturn this.Age >= 18;",
       "returnTypeInfo": {
@@ -1681,6 +1716,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -1698,6 +1734,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": 1
       },
@@ -1716,6 +1753,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": [
           "Spring"
@@ -1736,6 +1774,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -1753,6 +1792,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
+      "accessModifierKind": "public",
       "kind": 10,
       "code": "\treturn this.Birthday.Day == root.Save.GameTime.Day\n\t\t&& this.Birthday.Season == root.Save.GameTime.Season;",
       "returnTypeInfo": {
@@ -2053,6 +2093,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": "[Tool]"
       },
@@ -2070,6 +2111,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
+      "accessModifierKind": "public",
       "kind": 10,
       "code": "\tthrow \"Not implemented exception\";",
       "returnTypeInfo": {
@@ -2146,6 +2188,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
+      "accessModifierKind": "public",
       "kind": 10,
       "code": "\treturn $\"{this.Material} {this.ToolName}\";",
       "returnTypeInfo": {
@@ -2283,6 +2326,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": [
           "wood"
@@ -2303,6 +2347,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": "Pickaxe"
       },
@@ -2320,6 +2365,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": "Hoe"
       },
@@ -2337,6 +2383,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": "[Plant] Seed"
       },
@@ -2353,6 +2400,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
+      "accessModifierKind": "public",
       "kind": 10,
       "code": "\treturn this.SeedName;",
       "returnTypeInfo": {
@@ -2442,6 +2490,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": 0
       },
@@ -2459,6 +2508,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": 0
       },
@@ -2475,6 +2525,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -2494,6 +2545,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": 0
       },
@@ -2510,6 +2562,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -2529,6 +2582,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": [
           "water"
@@ -2549,6 +2603,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": 0
       },
@@ -2565,6 +2620,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -2584,6 +2640,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -2601,6 +2658,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -2620,6 +2678,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
+      "accessModifierKind": "public",
       "kind": 10,
       "code": "\treturn this.ElementDamage[Element.fire] + root.Save.ElementStats[Element.fire];",
       "returnTypeInfo": {
@@ -2782,6 +2841,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
+      "accessModifierKind": "public",
       "kind": 10,
       "code": "\treturn this.ElementDamage[this.SelectedElement];",
       "returnTypeInfo": {

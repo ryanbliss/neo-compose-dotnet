@@ -189,6 +189,9 @@ namespace NeoCompose.Tests
                         kind = MemberKind.Generic,
                         genericParamId = ParamT,
                         locked = true,
+                        // Deliberately differs from the binding's modifier so
+                        // the partition test can prove slot ownership.
+                        accessModifierKind = "protected",
                         isVirtual = false,
                         isAbstract = true,
                     },
@@ -224,6 +227,7 @@ namespace NeoCompose.Tests
                         kind = MemberKind.Float,
                         required = true,
                         minValue = 0f,
+                        accessModifierKind = "public",
                         isVirtual = true,
                         isAbstract = false,
                         // The binding's storage must NOT leak into the slot
@@ -402,7 +406,7 @@ namespace NeoCompose.Tests
         [Test]
         public void Json_GenericMember_ReadsOrdinal21()
         {
-            const string json = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Slot"", ""kind"": 21, ""isStatic"": false, ""genericParamId"": ""p1""}";
+            const string json = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Slot"", ""kind"": 21, ""isStatic"": false, ""accessModifierKind"": ""public"", ""genericParamId"": ""p1""}";
             var member = JsonConvert.DeserializeObject<Member>(json);
             Assert.IsInstanceOf<GenericMember>(member);
             Assert.AreEqual("p1", ((GenericMember)member!).genericParamId);
@@ -411,9 +415,9 @@ namespace NeoCompose.Tests
         [Test]
         public void Json_MemberVirtualAndAbstractFlagsPreserveAbsenceAndValues()
         {
-            const string absentJson = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false}";
-            const string trueJson = @"{""id"": ""a2"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false, ""isVirtual"": true, ""isAbstract"": true}";
-            const string falseJson = @"{""id"": ""a3"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false, ""isVirtual"": false, ""isAbstract"": false}";
+            const string absentJson = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false, ""accessModifierKind"": ""public""}";
+            const string trueJson = @"{""id"": ""a2"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false, ""accessModifierKind"": ""public"", ""isVirtual"": true, ""isAbstract"": true}";
+            const string falseJson = @"{""id"": ""a3"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false, ""accessModifierKind"": ""public"", ""isVirtual"": false, ""isAbstract"": false}";
 
             var absent = JsonConvert.DeserializeObject<Member>(absentJson)!;
             var trueValues = JsonConvert.DeserializeObject<Member>(trueJson)!;
@@ -431,7 +435,7 @@ namespace NeoCompose.Tests
         public void Json_ClassMember_ReadsClassArguments()
         {
             const string json = @"{
-                ""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Slot"", ""kind"": 7, ""isStatic"": false,
+                ""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Slot"", ""kind"": 7, ""isStatic"": false, ""accessModifierKind"": ""public"",
                 ""classId"": ""t1"",
                 ""classArguments"": {
                     ""p1"": { ""kind"": ""member"", ""memberId"": ""a2"" }
@@ -597,6 +601,8 @@ namespace NeoCompose.Tests
             Assert.AreEqual("member-speed", substituted.id);
             Assert.AreEqual("Speed", substituted.name);
             Assert.IsTrue(substituted.locked);
+            Assert.AreEqual("protected", substituted.accessModifierKind,
+                "the slot's accessibility must not come from its binding");
             Assert.AreEqual(false, substituted.isVirtual,
                 "the slot's virtual declaration must not come from its binding");
             Assert.AreEqual(true, substituted.isAbstract,

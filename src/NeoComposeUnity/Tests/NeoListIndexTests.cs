@@ -173,7 +173,7 @@ namespace NeoCompose.Tests
         {
             var indexed = JsonConvert.DeserializeObject<JsonMember>(
                 "{\"id\":\"items\",\"projectId\":\"p\",\"name\":\"Items\","
-                + "\"kind\":6,\"isStatic\":false,\"entryMemberId\":\"entry\","
+                + "\"kind\":6,\"isStatic\":false,\"accessModifierKind\":\"public\",\"entryMemberId\":\"entry\","
                 + "\"indexes\":[{\"schemaKey\":\"Slug\",\"unique\":true}]}"
             ) as ListMember;
             Assert.IsNotNull(indexed);
@@ -182,7 +182,7 @@ namespace NeoCompose.Tests
 
             var withoutIndexes = JsonConvert.DeserializeObject<JsonMember>(
                 "{\"id\":\"items\",\"projectId\":\"p\",\"name\":\"Items\","
-                + "\"kind\":6,\"isStatic\":false,\"entryMemberId\":\"entry\"}"
+                + "\"kind\":6,\"isStatic\":false,\"accessModifierKind\":\"public\",\"entryMemberId\":\"entry\"}"
             ) as ListMember;
             Assert.IsNotNull(withoutIndexes);
             Assert.IsNull(withoutIndexes!.indexes);

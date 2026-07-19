@@ -882,7 +882,7 @@ namespace NeoCompose.Runtime
 
         private static void ValidateExportSchemaVersion(ProjectExportMetadata? metadata)
         {
-            const int currentVersion = 9;
+            const int currentVersion = 10;
             if (metadata is null)
             {
                 throw new System.InvalidOperationException(
@@ -903,7 +903,7 @@ namespace NeoCompose.Runtime
             if (data.internalRecordRelations is null)
             {
                 throw new System.InvalidOperationException(
-                    "Project export schema version 9 is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
+                    "Project export schema version 10 is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
             }
 
             var knownKinds = new HashSet<string>(System.StringComparer.Ordinal)

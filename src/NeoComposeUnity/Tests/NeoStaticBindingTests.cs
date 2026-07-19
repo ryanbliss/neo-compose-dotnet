@@ -142,6 +142,7 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Partitioned",
                 kind = MemberKind.List,
+                accessModifierKind = "public",
                 entryMemberId = "name-entry",
                 storageKey = "values:$parentClass",
             };
