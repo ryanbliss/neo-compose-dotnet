@@ -7,4 +7,3 @@ enum NeoSmartTileCollider {
   @id("5e0f42af-fff5-5a65-9844-f11f36ae55a8")
   Grid,
 }
-

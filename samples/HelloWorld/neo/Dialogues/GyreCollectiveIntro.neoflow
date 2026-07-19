@@ -1,0 +1,195 @@
+@id("48facca3-4126-4ec2-be86-02ce9b67293a")
+@settings(
+  name: "Gyre Collective intro",
+  description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  saveOptionChoices: true
+)
+sealed class GyreCollectiveIntro : Dialogue {
+  @primary
+  Outpost outpost = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
+
+  @id("13ab8b1c-41a5-5309-8f12-fcbb67167284")
+  void NeoFunction_248918b15b1052d094c37165f26aafce() {
+    outpost.Save.Reputation -= 1;
+  }
+
+  @id("7ec86f3f-5002-50f4-95b7-cf752dcd2275")
+  void NeoFunction_ee1a9061766a51fea49301b5c20f9cee() {
+    outpost.Save.Reputation += 1;
+  }
+
+  @id("29ea2df0-5c02-53aa-9766-e9b2cecea47d")
+  void NeoFunction_35dbc724d06c549797e4dd44538b5eac() {
+    outpost.Save.Unlocked = true;
+  }
+
+  @id("4a422d1b-44ee-4df7-99f2-242b1bb5577a")
+  override Trigger Trigger = new(
+    group: Introductions.Urgent,
+    order: 0,
+    limit: 1,
+  ) => G1;
+
+  @id("99d9c42d-d1a7-4a9b-8bfa-591b5929d4a3")
+  Text G1 = new(
+    name: "g1",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
+  
+    """
+    State your business or be recycled. ...Ah. The investigator. The Collective has expected this conversation for some time.
+    """
+  
+    @id("e7cea4c0-32c8-4098-89df-300b56d076c0")
+    Option Accuse = new(
+      name: "Accuse",
+    ) {
+      """
+      You're draining the sun. The inner worlds will burn, then freeze.
+      """
+    
+      return G2;
+    }
+  
+    @id("53315ca2-d6c7-4165-818c-6af941ba66da")
+    Option Curious = new(
+      name: "Curious",
+    ) {
+      """
+      What could possibly be worth a star?
+      """
+    
+      return G3;
+    }
+  }
+
+  @id("811ddce4-7507-4559-8494-0ed4150dccfb")
+  Text G2 = new(
+    name: "g2",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
+  
+    """
+    Incorrect. Millions freeze NOW — out here, where your precious sun is a cold coin in a black sky. We merely... redistribute the estate.
+    """
+  
+    return G3;
+  }
+
+  @id("36dc6553-e40a-4f33-8ad5-ba73e842140d")
+  Text G3 = new(
+    name: "g3",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
+  
+    """
+    We are kindling the Second Sun: a star for the outer worlds, ignited from the corona of the first. The mathematics are sound. The funding is... Plutonian.
+    """
+  
+    @id("eb9fdb95-384d-4e51-884d-f20835c1b246")
+    Option Sympathize = new(
+      name: "Sympathize",
+    ) {
+      """
+      You deserve daylight. But not like this.
+      """
+    
+      return G4s;
+    }
+  
+    @id("da9a3f3d-b56c-4d4c-a008-80dbc4f8a33f")
+    Option Condemn = new(
+      name: "Condemn",
+    ) {
+      """
+      You'll destabilize both suns and freeze everyone.
+      """
+    
+      return G4c;
+    }
+  }
+
+  @id("87b16072-26f6-4df2-84d0-2fd13a881c4a")
+  Text G4s = new(
+    name: "g4s",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
+  
+    """
+    Then bring us a better way, and the Collective will listen — we are engineers, not zealots. The Plutocracy, however... they want more than daylight. Ask them what their new sun ORBITS.
+    """
+  
+    return Gr1;
+  }
+
+  @id("b2bbe609-2b88-4295-9412-abeac679104c")
+  Text G4c = new(
+    name: "g4c",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
+  
+    """
+    Spoken like someone who has never wintered on Triton. Take your outrage to the ones who pay us — and ask them what their new sun orbits.
+    """
+  
+    return Gr2;
+  }
+
+  @id("76e0cfc7-cf77-4f2a-acfe-0b0780101069")
+  Actions Gr1 = new(
+    name: "gr1",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
+  
+    @id("4edc6349-88f4-4c9b-9438-d00b5f078f3c")
+    NeoFunction_ee1a9061766a51fea49301b5c20f9cee();
+  
+    return G5;
+  }
+
+  @id("6fd72478-ddf4-4171-a92b-c8908a1a1ad4")
+  Actions Gr2 = new(
+    name: "gr2",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
+  
+    @id("3ef76487-fd19-45ac-9ad3-346482e29dae")
+    NeoFunction_248918b15b1052d094c37165f26aafce();
+  
+    return G5;
+  }
+
+  @id("b4f543af-ccd8-4163-b724-94ee6fc7424d")
+  Actions G5 = new(
+    name: "g5",
+  ) {
+    @primary
+    Outpost outpost_2 = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
+  
+    Outpost outpost = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
+  
+    @id("6736f285-f610-4b3c-b3dd-279235fa32c5")
+    NeoFunction_35dbc724d06c549797e4dd44538b5eac();
+  
+    return G6;
+  }
+
+  @id("23471a45-90cd-41c4-a78d-298059eecc33")
+  Text G6 = new(
+    name: "g6",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
+  
+    """
+    Go to Pluto, investigator. The Plutocracy signs our invoices and writes our orbit. When their dawn comes... ask who it rises FOR.
+    """
+  }
+}

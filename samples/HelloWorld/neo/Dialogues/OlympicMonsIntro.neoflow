@@ -1,0 +1,131 @@
+@id("24b1d5ba-a08b-4935-b535-b053ac79ca40")
+@settings(
+  name: "Olympic Mons intro",
+  description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  saveOptionChoices: true
+)
+sealed class OlympicMonsIntro : Dialogue {
+  @primary
+  Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
+
+  @id("a5564a94-77d7-5fe9-90fd-bbe5d1ddd4c9")
+  void NeoFunction_d01156a57b825f3ca5d3b3f47b4cd9fa() {
+    outpost.Save.Unlocked = true;
+  }
+
+  @id("ca107d1d-c9eb-5295-a84a-bf9cea42f1cb")
+  void NeoFunction_fe74eebae49f5c308bad7f43f3aea50f() {
+    root.Save.Inventory.Add(outpost);
+  }
+
+  @id("3d3ec0f5-9fa7-43d4-8c78-d80af7fb9cc1")
+  override Trigger Trigger = new(
+    group: Introductions.Urgent,
+    order: 0,
+    limit: 1,
+  ) => M1;
+
+  @id("7c9d7435-dbad-4c3a-bb18-94ac122e2ae1")
+  Text M1 = new(
+    name: "m1",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
+  
+    """
+    Halt! State your business at Olympic Mons Garrison. ...Oh. You're the flare investigator the Capitol wired about. At ease, everyone.
+    """
+  
+    @id("da4f120f-dd7a-4f27-b5dc-ff51336b63cd")
+    Option Scopes = new(
+      name: "Scopes",
+    ) {
+      """
+      What do your watchtowers show?
+      """
+    
+      return M2;
+    }
+  
+    @id("03a3b9bc-b921-4210-acb4-b778e37e943c")
+    Option Casual = new(
+      name: "Casual",
+    ) {
+      """
+      Just passing through. Big mountain you've got.
+      """
+    
+      return M3;
+    }
+  }
+
+  @id("71282c34-b9f3-4a2a-8ffe-fa8eb5c2f2d7")
+  Text M3 = new(
+    name: "m3",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
+  
+    """
+    PASSING THROUGH? This is the tallest peak humans have ever stood on. Show some respect. ...Though between us, it's the sky that worries me now, not the summit.
+    """
+  
+    return M2;
+  }
+
+  @id("05b3ed1e-fce4-4a56-9ee7-6e6fd3701d0d")
+  Text M2 = new(
+    name: "m2",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
+  
+    """
+    Every flare wake bends the same direction — out past the belt. Heavy freighter convoys running dark, all vectored at Jupiter. Somebody out there is drinking sunlight by the tanker-load.
+    """
+  
+    return M4;
+  }
+
+  @id("7f0da1c3-a753-40ee-9839-e012fd1161ce")
+  Actions M4 = new(
+    name: "m4",
+  ) {
+    @primary
+    Outpost outpost_2 = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
+  
+    Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
+  
+    @id("74756349-5b68-4eee-b324-f15cd9bbcc91")
+    NeoFunction_d01156a57b825f3ca5d3b3f47b4cd9fa();
+  
+    return GrantLowGPitons;
+  }
+
+  @id("e56cceb4-cef1-4ebd-8c0b-3d9284ad412d")
+  Text M5 = new(
+    name: "m5",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
+  
+    """
+    Take these pitons, Low-G rated. If you're climbing into Jupiter's mess, you'll want grip. Garrison's honor: come back with answers.
+    """
+  }
+
+  @id("cd470f86-1371-4b30-bf82-d55039bb3e4e")
+  Actions GrantLowGPitons = new(
+    name: "grant Low-G Pitons",
+  ) {
+    @primary
+    Item item = Reference<Item>(id: "c8eb381b-9c3f-4120-b8c3-3872cdde5148");
+  
+    Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
+  
+    @id("40f15f9c-6a11-4afc-ba2d-420aa8e1adf3")
+    NeoFunction_fe74eebae49f5c308bad7f43f3aea50f();
+  
+    return M5;
+  }
+}

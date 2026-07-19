@@ -7,4 +7,3 @@ enum NeoSmartTileOutput {
   @id("649f99d0-c726-5f20-aeea-786a0776f53f")
   Animation,
 }
-

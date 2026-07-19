@@ -5,4 +5,3 @@ enum SaturnMoon {
   @id("8875803f-5d33-582a-bb56-1389f7746d34")
   enceladus,
 }
-

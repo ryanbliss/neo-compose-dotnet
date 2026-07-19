@@ -1,0 +1,149 @@
+@id("95921c6a-8f61-4c48-9e1b-50c05bdef8cf")
+@settings(
+  name: "Titan intro",
+  description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  saveOptionChoices: true
+)
+sealed class TitanIntro : Dialogue {
+  @primary
+  Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
+
+  @id("eb39eb32-e477-5f0f-99ec-45522e535d19")
+  void NeoFunction_503fe05df4c3500b9da9cd514b44e261() {
+    root.Save.Bits -= 200;
+  }
+
+  @id("1d99fca7-b6b9-5bcf-97a4-e99a0864bd69")
+  void NeoFunction_29e8f9d2034c5da3a608553787edb393() {
+    root.Save.Inventory.Add(outpost);
+  }
+
+  @id("2bf31893-3df0-5033-9ba3-24cec7f99e28")
+  void NeoFunction_5302814e7dc95f819ecfbb8afb644e9a() {
+    outpost.Save.Unlocked = true;
+  }
+
+  @id("b2a516bb-49c9-4c8e-af84-70c978606398")
+  override Trigger Trigger = new(
+    group: Introductions.Urgent,
+    order: 0,
+    limit: 1,
+  ) => T1;
+
+  @id("9bc9e24f-11de-4d8f-8a39-e7372c986def")
+  Text T1 = new(
+    name: "t1",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
+  
+    """
+    No names on Titan. You buying, selling, or asking? Fair warning: asking costs the most.
+    """
+  
+    @id("7e971881-1703-4f72-b358-ef64039db72f")
+    Option Pay = new(
+      name: "Pay",
+    ) {
+      """
+      Here's 200 bits. The solar condensate manifests — who signs them?
+      """
+    
+      return T2;
+    }
+  
+    @id("381efc72-1cfe-407c-bb2f-7f3f0da48418")
+    Option Lean = new(
+      name: "Lean",
+    ) {
+      """
+      The Pour Lords sent me. They're unhappy with the rate.
+      """
+    
+      return T2l;
+    }
+  }
+
+  @id("ad0ab661-45e9-48cb-ba54-2e97dd875115")
+  Text T2l = new(
+    name: "t2l",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
+  
+    """
+    The Lords? UNHAPPY? ...Fine. No charge. But you didn't hear this from me:
+    """
+  
+    return T3;
+  }
+
+  @id("39e37e55-00f3-49e2-b99b-eac005e3dbc1")
+  Actions T2 = new(
+    name: "t2",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
+  
+    @id("d2188e44-7be9-44ad-873f-c7dd7c901697")
+    NeoFunction_503fe05df4c3500b9da9cd514b44e261();
+  
+    return T3;
+  }
+
+  @id("25b252be-a0e1-4713-b82c-e946c30cbe6d")
+  Text T3 = new(
+    name: "t3",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
+  
+    """
+    The manifests route through a shell company on Triton — 'Gyre Collective Logistics.' Neptune crowd. Cold people, colder money. Plutonian money, mark me.
+    """
+  
+    return T4;
+  }
+
+  @id("e244cdf0-1408-4452-bc50-e495e05176b0")
+  Actions T4 = new(
+    name: "t4",
+  ) {
+    @primary
+    Outpost outpost_2 = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  
+    Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
+  
+    @id("0e6ddbee-d12a-4edf-b391-ba11f2741d49")
+    NeoFunction_5302814e7dc95f819ecfbb8afb644e9a();
+  
+    return GrantSmugglersManifest;
+  }
+
+  @id("f7d3a23b-13fa-4513-a8fc-fadc5a13c7b1")
+  Text T5 = new(
+    name: "t5",
+  ) {
+    @primary
+    Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
+  
+    """
+    A copy of the manifest, since you've been civil. Route through the Caelus Anchorpoint at Uranus — their relays log every command burst headed to Neptune.
+    """
+  }
+
+  @id("6ae136d9-8d2b-44f1-9fed-f5f7b1578305")
+  Actions GrantSmugglersManifest = new(
+    name: "grant Smuggler's Manifest",
+  ) {
+    @primary
+    Item item = Reference<Item>(id: "0c962c81-359a-4f8b-9263-7b6bb33b42b7");
+  
+    Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
+  
+    @id("84c58cc0-446b-4e86-847c-2c486c869e92")
+    NeoFunction_29e8f9d2034c5da3a608553787edb393();
+  
+    return T5;
+  }
+}

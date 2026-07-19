@@ -13,4 +13,3 @@ enum NeoSmartTileTransform {
   @id("9da42749-b317-5558-8f76-0a9fcb69229d")
   RotatedMirror,
 }
-

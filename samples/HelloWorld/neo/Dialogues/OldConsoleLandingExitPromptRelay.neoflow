@@ -1,0 +1,57 @@
+@id("d5a8097d-f02b-41c7-8356-9442a4a29412")
+@settings(
+  name: "Old Console Landing: exit prompt relay",
+  description: "Player returns to the ship carrying the boot trace while the seal is still up; the launch console relays it on maintenance authority.",
+  saveOptionChoices: true
+)
+sealed class OldConsoleLandingExitPromptRelay : Dialogue {
+  @primary
+  BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+
+  @id("8f96da3c-b8ca-59e4-a038-fe33836ca33e")
+  void NeoFunction_c690ab71b6905870b800453cf51d34d5() {
+    blockedPath.ClearPath();
+  }
+
+  @id("6daa1368-33b1-4ddf-9d90-d09b221bdab4")
+  override Trigger Trigger = new() => Start;
+
+  @id("64a6d372-690a-4cd2-9e17-51288f2628f5")
+  Text Start = new(
+    name: "start",
+  ) {
+    @primary
+    BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+  
+    """
+    The launch console perks up the moment you step aboard. "That's a live boot trace you're carrying. I still hold maintenance authority on this deck — no need to walk it back to the seal. Relaying now."
+    """
+  
+    return Clear;
+  }
+
+  @id("91c62189-d3fc-4703-b10c-a47aa8506ab3")
+  Actions Clear = new(
+    name: "clear",
+  ) {
+    @primary
+    BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+  
+    @id("7fc0dbae-47f9-40f8-9ae9-6424a759a3b8")
+    NeoFunction_c690ab71b6905870b800453cf51d34d5();
+  
+    return Done;
+  }
+
+  @id("c1bc5398-a282-4162-95d6-617256ea215f")
+  Text Done = new(
+    name: "done",
+  ) {
+    @primary
+    BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+  
+    """
+    Across the bay, the teal field sighs out of existence and the vault corridor stands open. "The recovery cache is inside," the console adds, filing the whole exchange with what can only be described as pride in its paperwork.
+    """
+  }
+}

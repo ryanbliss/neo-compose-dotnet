@@ -9,4 +9,3 @@ enum JupiterMoon {
   @id("5bf07e46-2cd8-5277-8910-e66fd3ddef3c")
   callisto,
 }
-

@@ -9,4 +9,3 @@ enum NeoSmartTileCondition {
   @id("bc62a20a-a386-5224-b54b-12c00e7c576b")
   NotInheritsFromClass,
 }
-
