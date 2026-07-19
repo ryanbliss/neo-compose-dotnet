@@ -7,92 +7,16 @@ sealed class CapitolOGIntro : Dialogue {
   @primary
   Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
 
-  @id("9e728dda-a27a-5c36-ae80-fc899e6a912c")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native string TextValue1();
-
-  @id("7e85f950-5d21-5d20-ab6a-9e04fac29ddb")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native string TextValue2();
-
   @id("69423da3-5f79-546a-a341-144bed9e99f2")
   void Action1() {
     root.Save.Bits -= outpost.Value;
     	root.Save.Inventory.Add(outpost);
   }
 
-  @id("legacy-function:cc2ffd9e-c4e7-4cbe-b2cf-53ed2777510f")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native void Action2();
-
-  @id("b63dbe3c-0a77-5fc9-a5d5-f6c0001d2f33")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native string TextValue3();
-
-  @id("legacy-function:acf5e41c-755e-4dd6-9307-fbefd33f019e")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native void Action4();
-
-  @id("legacy-function:0207d58c-639e-4634-932c-45e12dbe790e")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native void Action5();
-
-  @id("92af2c36-ce4d-5a72-88e2-b1ce0a4d1e0e")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native string TextValue4();
-
-  @id("1b721d4d-cd04-5040-a131-8b1f0121bc80")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native string TextValue5();
-
-  @id("1b402846-aa11-5024-bfee-02c13942e5d1")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native string TextValue6();
-
-  @id("184c00b7-4ec9-5bea-b6a6-f38c04a2e336")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native string TextValue7();
-
-  @id("08a26b40-fb34-50d6-bd5b-d1f31f20ff37")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native string TextValue8();
-
   @id("637aae58-34b4-5e7d-a2a5-9bb8926306e2")
   bool Condition1() {
     return root.Save.Bits >= outpost.Value;
   }
-
-  @id("legacy-function:eec3e59e-8492-4fcc-aa7f-bc7c5df841a7")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native void Action6();
-
-  @id("7302f173-a206-56aa-8c97-ae6666d32e85")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native string TextValue9();
-
-  @id("1330a804-8602-5058-ae0d-b4aff4751b8c")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native string TextValue10();
-
-  @id("287cd394-421b-548a-8d5c-a4cef60f200f")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native string TextValue11();
-
-  @id("2eaf56a2-ff01-5402-b815-a161271f4a5d")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native string TextValue12();
-
-  @id("6527d737-f33a-5e4f-872f-49963334cc96")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native string TextValue13();
-
-  @id("fc1f8d6d-7922-52a8-97e4-784597dcb68e")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native string TextValue14();
-
-  @id("c9e20901-680c-5e79-9c56-c6a3862c2a9a")
-  @incomplete("UI-authored logic has no tracked NeoScript source")
-  native string TextValue15();
 
   @id("17d6690c-5649-4e6c-b252-bb237c884b5b")
   override Trigger Trigger = new(
@@ -321,7 +245,7 @@ sealed class CapitolOGIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
     @id("eec3e59e-8492-4fcc-aa7f-bc7c5df841a7")
-    Action6();
+    outpost.Save.Reputation -= 1;
   
     return Jerk;
   }
@@ -339,7 +263,7 @@ sealed class CapitolOGIntro : Dialogue {
     Action1();
   
     @id("cc2ffd9e-c4e7-4cbe-b2cf-53ed2777510f")
-    Action2();
+    outpost.Save.Reputation++;
   
     return ThankYou;
   }
@@ -366,10 +290,10 @@ sealed class CapitolOGIntro : Dialogue {
     Session session = root.Session;
   
     @id("acf5e41c-755e-4dd6-9307-fbefd33f019e")
-    Action4();
+    outpost_2.Save.Unlocked = true;
   
     @id("0207d58c-639e-4634-932c-45e12dbe790e")
-    Action5();
+    outpost_2.DebugLog("Unlocked set to true");
   }
 
   @id("87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8")
