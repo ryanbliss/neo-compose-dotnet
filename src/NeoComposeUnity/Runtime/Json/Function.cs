@@ -36,7 +36,7 @@ namespace NeoCompose.Runtime.Json
     public class FunctionClassCloneInfo
     {
         public Pointer receiverPointer = null!;
-        public ClassTypeInfo classTypeInfo = null!;
+        public ClassTypeInfo schemaClassInfo = null!;
     }
 
     /// <summary>One explicitly supplied field of a Class constructor.</summary>
@@ -55,7 +55,7 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class FunctionClassConstructorInfo
     {
-        public ClassTypeInfo classTypeInfo = null!;
+        public ClassTypeInfo schemaClassInfo = null!;
         public FunctionClassConstructorField[] fields = null!;
     }
 

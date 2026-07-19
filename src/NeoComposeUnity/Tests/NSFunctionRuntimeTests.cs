@@ -22,7 +22,7 @@ namespace NeoCompose.Tests
         public void MemberDto_UsesOrdinal23AndGeneralFunctionCallIr()
         {
             const string json = @"{
-                'id':'fn','projectId':'project-function','name':'Compute','kind':23,'isStatic':false,
+                'id':'fn','projectId':'project-function','name':'Compute','kind':23,'isStatic':false,'accessModifierKind':'public',
                 'code':'return RequiredLevel;','returnTypeInfo':{'type':2,'required':true},
                 'argumentTypes':[{'name':'RequiredLevel','type':2,'required':true}],
                 'deferred':false,'createdAt':'x','updatedAt':'x',
@@ -335,7 +335,7 @@ namespace NeoCompose.Tests
 
             FunctionMember deserialized =
                 JsonConvert.DeserializeObject<FunctionMember>(
-                    "{'kind':13,'isStatic':false,'returnTypeInfo':{'type':18,'required':true}}")!;
+                    "{'kind':13,'isStatic':false,'accessModifierKind':'public','returnTypeInfo':{'type':18,'required':true}}")!;
             Assert.AreEqual(
                 MemberKind.DialogueLookup,
                 deserialized.returnTypeInfo.type);

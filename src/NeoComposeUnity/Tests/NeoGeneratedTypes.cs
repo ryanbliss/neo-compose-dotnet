@@ -99,6 +99,39 @@ namespace Assets.Scripts.Neo
         internal static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableClassFactory> NeoWritableValueFactories =>
             DialogueWritableValueFactories;
 
+        internal static readonly IReadOnlyDictionary<Type, string> NeoClassIdsByType =
+            new Dictionary<Type, string>
+            {
+                [typeof(global::Assets.Scripts.Neo.Base)] = "class-base",
+                [typeof(global::Assets.Scripts.Neo.NeoChoiceLog)] = "class-choice-log",
+                [typeof(global::Assets.Scripts.Neo.ContractChild)] = "class-contract-child",
+                [typeof(global::Assets.Scripts.Neo.ContractDeepChild)] = "class-contract-deep-child",
+                [typeof(global::Assets.Scripts.Neo.ContractExplicitChild)] = "class-contract-explicit-child",
+                [typeof(global::Assets.Scripts.Neo.ContractNullChild)] = "class-contract-null-child",
+                [typeof(global::Assets.Scripts.Neo.ContractNullDeepChild)] = "class-contract-null-deep-child",
+                [typeof(global::Assets.Scripts.Neo.Derived)] = "class-derived",
+                [typeof(global::Assets.Scripts.Neo.NeoDialogueMemory)] = "class-dialogue-memory",
+                [typeof(global::Assets.Scripts.Neo.GenericFloatContract)] = "class-generic-float-contract",
+                [typeof(global::Assets.Scripts.Neo.GenericFloatPayload)] = "class-generic-float-payload",
+                [typeof(global::Assets.Scripts.Neo.GenericFunctionHeroContract)] = "class-generic-function-hero-contract",
+                [typeof(global::Assets.Scripts.Neo.GenericStringContract)] = "class-generic-string-contract",
+                [typeof(global::Assets.Scripts.Neo.GenericStringPayload)] = "class-generic-string-payload",
+                [typeof(global::Assets.Scripts.Neo.Hero)] = "class-hero",
+                [typeof(global::Assets.Scripts.Neo.NeoMemory)] = "class-neo-memory",
+                [typeof(global::Assets.Scripts.Neo.Override)] = "class-override",
+                [typeof(global::Assets.Scripts.Neo.Root)] = "class-root",
+                [typeof(global::Assets.Scripts.Neo.SampleBlockedPath)] = "class-sample-blocked-path",
+                [typeof(global::Assets.Scripts.Neo.SampleTileInstance)] = "class-sample-tile-instance",
+                [typeof(global::Assets.Scripts.Neo.StorageA)] = "class-storage-a",
+                [typeof(global::Assets.Scripts.Neo.StorageB)] = "class-storage-b",
+                [typeof(global::Assets.Scripts.Neo.StorageC)] = "class-storage-c",
+                [typeof(global::Assets.Scripts.Neo.StorageD)] = "class-storage-d",
+                [typeof(global::Assets.Scripts.Neo.StorageE)] = "class-storage-e",
+                [typeof(global::Assets.Scripts.Neo.StorageF)] = "class-storage-f",
+                [typeof(global::Assets.Scripts.Neo.StorageG)] = "class-storage-g",
+                [typeof(global::Assets.Scripts.Neo.NeoTextNodeMemory)] = "class-text-node-memory",
+            };
+
         internal object? ResolveDialogueValue(string valueId) =>
             NeoGeneratedTypesSupport.ResolveClassValue(
                 Client,
@@ -254,6 +287,7 @@ namespace Assets.Scripts.Neo
         public TestProjectNeo(NeoClient client, NeoDialogueRuntimeOptions? dialogueOptions = null)
         {
             Client = client;
+            Client.RegisterGeneratedClassFactories(DialogueReadOnlyValueFactories, DialogueWritableValueFactories);
             Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(DeferredNativeFunctionInvokers);
             Instance = this;

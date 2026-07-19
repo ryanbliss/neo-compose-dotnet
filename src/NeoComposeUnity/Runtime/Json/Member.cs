@@ -40,6 +40,15 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public bool isStatic;
         /// <summary>
+        /// C#-style member accessibility: "public", "protected", or
+        /// "private" (specs/member-access-modifiers.md). Schema-10 exports
+        /// carry this explicitly on every member; override chains always
+        /// match their root declaration's value. Runtime persistence resolves
+        /// by schema key and value id, so this is codegen/contract metadata
+        /// only — the SDK never gates value access on it.
+        /// </summary>
+        public string accessModifierKind = null!;
+        /// <summary>
         /// Whether declarations in extending classes may override this
         /// schema member. Optional on override rows; <c>null</c> resolves
         /// through the inherited declaration.
@@ -530,6 +539,24 @@ namespace NeoCompose.Runtime.Json
             {
                 throw new JsonSerializationException(
                     $"Field 'isStatic' on {concrete.Name} must be a boolean.");
+            }
+            if (!obj.TryGetValue("accessModifierKind", out var accessModifierKind))
+            {
+                throw new JsonSerializationException(
+                    $"Missing required field 'accessModifierKind' on {concrete.Name}.");
+            }
+            if (accessModifierKind.Type != JTokenType.String)
+            {
+                throw new JsonSerializationException(
+                    $"Field 'accessModifierKind' on {concrete.Name} must be a string.");
+            }
+            var accessModifierValue = accessModifierKind.Value<string>();
+            if (accessModifierValue != "public"
+                && accessModifierValue != "protected"
+                && accessModifierValue != "private")
+            {
+                throw new JsonSerializationException(
+                    $"Field 'accessModifierKind' on {concrete.Name} has unknown value '{accessModifierValue}'; expected \"public\", \"protected\", or \"private\".");
             }
         }
 

@@ -494,8 +494,9 @@ namespace NeoCompose.Runtime
         ///   per-kind config, <c>defaultValue</c>, and <c>required</c>
         ///   (nullability is part of the type — one <c>T</c> is one type).
         ///   The slot keeps its identity/placement fields: <c>id</c>,
-        ///   <c>name</c>, <c>locked</c>, <c>isVirtual</c>,
-        ///   <c>isAbstract</c>, <c>storage</c>, <c>storageKey</c>.
+        ///   <c>name</c>, <c>locked</c>, <c>accessModifierKind</c>,
+        ///   <c>isVirtual</c>, <c>isAbstract</c>, <c>storage</c>,
+        ///   <c>storageKey</c>.
         ///   Preserving <c>id</c> is what keeps parent-value records, child
         ///   node resolution, and NeoScript pointer IR working with zero
         ///   wire changes. <c>extendsMemberId</c> is stripped.</description></item>
@@ -525,6 +526,10 @@ namespace NeoCompose.Runtime
                 substituted.id = generic.id;
                 substituted.name = generic.name;
                 substituted.locked = generic.locked;
+                // Accessibility is slot-owned (specs/member-access-modifiers.md
+                // §2) — a binding member's modifier must not change the
+                // declaring slot's visibility.
+                substituted.accessModifierKind = generic.accessModifierKind;
                 substituted.isVirtual = generic.isVirtual;
                 substituted.isAbstract = generic.isAbstract;
                 // Placement fields are slot-owned. A null declaration means

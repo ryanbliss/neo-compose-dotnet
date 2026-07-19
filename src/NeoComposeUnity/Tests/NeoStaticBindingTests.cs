@@ -142,6 +142,7 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Partitioned",
                 kind = MemberKind.List,
+                accessModifierKind = "public",
                 entryMemberId = "name-entry",
                 storageKey = "values:$parentClass",
             };
@@ -771,7 +772,7 @@ namespace NeoCompose.Tests
                     type = FunctionKind.ClassConstructor,
                     info = new FunctionClassConstructorInfo
                     {
-                        classTypeInfo = ProfileType(),
+                        schemaClassInfo = ProfileType(),
                         fields = new[]
                         {
                             new FunctionClassConstructorField
@@ -919,7 +920,7 @@ namespace NeoCompose.Tests
                     type = FunctionKind.ClassConstructor,
                     info = new FunctionClassConstructorInfo
                     {
-                        classTypeInfo = ProfileType(),
+                        schemaClassInfo = ProfileType(),
                         fields = Array.Empty<FunctionClassConstructorField>(),
                     },
                 },
@@ -946,7 +947,7 @@ namespace NeoCompose.Tests
                     type = FunctionKind.ClassConstructor,
                     info = new FunctionClassConstructorInfo
                     {
-                        classTypeInfo = ProfileType(),
+                        schemaClassInfo = ProfileType(),
                         fields = new[]
                         {
                             new FunctionClassConstructorField
@@ -997,7 +998,7 @@ namespace NeoCompose.Tests
                     type = FunctionKind.ClassConstructor,
                     info = new FunctionClassConstructorInfo
                     {
-                        classTypeInfo = ProfileType(),
+                        schemaClassInfo = ProfileType(),
                         fields = new[]
                         {
                             new FunctionClassConstructorField
@@ -1139,7 +1140,7 @@ namespace NeoCompose.Tests
                     type = FunctionKind.ClassConstructor,
                     info = new FunctionClassConstructorInfo
                     {
-                        classTypeInfo = OwnedParentClass(),
+                        schemaClassInfo = OwnedParentClass(),
                         fields = new[]
                         {
                             new FunctionClassConstructorField
@@ -1694,7 +1695,7 @@ namespace NeoCompose.Tests
                     type = FunctionKind.ClassConstructor,
                     info = new FunctionClassConstructorInfo
                     {
-                        classTypeInfo = resultType,
+                        schemaClassInfo = resultType,
                         fields = new[]
                         {
                             new FunctionClassConstructorField
@@ -1776,7 +1777,7 @@ namespace NeoCompose.Tests
                     type = FunctionKind.ClassConstructor,
                     info = new FunctionClassConstructorInfo
                     {
-                        classTypeInfo = openType,
+                        schemaClassInfo = openType,
                         fields = Array.Empty<FunctionClassConstructorField>(),
                     },
                 },
@@ -2990,7 +2991,7 @@ namespace NeoCompose.Tests
                     type = FunctionKind.ClassConstructor,
                     info = new FunctionClassConstructorInfo
                     {
-                        classTypeInfo = ProfileType(),
+                        schemaClassInfo = ProfileType(),
                         fields = fields.ToArray(),
                     },
                 },
@@ -3037,7 +3038,7 @@ namespace NeoCompose.Tests
                     type = FunctionKind.ClassConstructor,
                     info = new FunctionClassConstructorInfo
                     {
-                        classTypeInfo = OwnedChildType(),
+                        schemaClassInfo = OwnedChildType(),
                         fields = new[]
                         {
                             new FunctionClassConstructorField
@@ -3062,7 +3063,7 @@ namespace NeoCompose.Tests
                     type = FunctionKind.ClassConstructor,
                     info = new FunctionClassConstructorInfo
                     {
-                        classTypeInfo = OwnedParentClass(),
+                        schemaClassInfo = OwnedParentClass(),
                         fields = new[]
                         {
                             new FunctionClassConstructorField

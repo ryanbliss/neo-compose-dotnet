@@ -155,7 +155,7 @@ namespace NeoCompose.Tests
         public void ColorMember_DeserializesByKindOrdinal()
         {
             var member = JsonConvert.DeserializeObject<NeoCompose.Runtime.Json.Member>(
-                "{\"id\":\"a1\",\"projectId\":\"p\",\"name\":\"Tint\",\"kind\":19,\"isStatic\":false," +
+                "{\"id\":\"a1\",\"projectId\":\"p\",\"name\":\"Tint\",\"kind\":19,\"isStatic\":false,\"accessModifierKind\":\"public\"," +
                 "\"defaultValue\":{\"value\":{\"r\":0.25,\"g\":0.5,\"b\":0.75,\"a\":1}}}");
             Assert.IsInstanceOf<ColorMember>(member);
             var color = (ColorMember)member!;

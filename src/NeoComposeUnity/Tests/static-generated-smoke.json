@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 9,
+    "schemaVersion": 10,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -66,6 +66,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "classId": "static-smoke-root-class",
       "createdAt": 0,
       "updatedAt": 0
@@ -78,6 +79,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "classId": "static-smoke-root-class",
       "createdAt": 0,
       "updatedAt": 0
@@ -90,6 +92,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "classId": "static-smoke-root-class",
       "createdAt": 0,
       "updatedAt": 0
@@ -102,6 +105,7 @@
       "locked": false,
       "required": true,
       "isStatic": true,
+      "accessModifierKind": "public",
       "isVirtual": false,
       "storage": "session",
       "valueId": "static-smoke-count-value",
@@ -116,6 +120,7 @@
       "locked": false,
       "required": true,
       "isStatic": true,
+      "accessModifierKind": "public",
       "isVirtual": false,
       "localizable": false,
       "storage": "immutable",
@@ -131,6 +136,7 @@
       "locked": false,
       "required": true,
       "isStatic": false,
+      "accessModifierKind": "public",
       "localizable": false,
       "createdAt": 0,
       "updatedAt": 0
@@ -143,6 +149,7 @@
       "locked": false,
       "required": false,
       "isStatic": true,
+      "accessModifierKind": "public",
       "isVirtual": false,
       "storage": "save",
       "entryMemberId": "static-smoke-entry",
@@ -158,6 +165,7 @@
       "locked": false,
       "required": false,
       "isStatic": true,
+      "accessModifierKind": "public",
       "isVirtual": false,
       "storage": "session",
       "classId": "static-smoke-item-class",
@@ -172,6 +180,7 @@
       "locked": false,
       "required": false,
       "isStatic": true,
+      "accessModifierKind": "public",
       "isVirtual": false,
       "deferred": false,
       "argumentTypes": [
@@ -196,6 +205,7 @@
       "locked": false,
       "required": false,
       "isStatic": true,
+      "accessModifierKind": "public",
       "isVirtual": false,
       "deferred": true,
       "argumentTypes": [],
@@ -214,6 +224,7 @@
       "locked": false,
       "required": false,
       "isStatic": true,
+      "accessModifierKind": "public",
       "isVirtual": false,
       "deferred": false,
       "code": "return amount + 1;",

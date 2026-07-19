@@ -20,6 +20,13 @@ namespace NeoCompose.Runtime.Json
     {
         public string kind = null!;
 
+        /// <summary>
+        /// Contract accessibility (specs/member-access-modifiers.md Decision
+        /// 3): the accessibility the implementing class member must declare.
+        /// Schema-10 exports carry this explicitly on every interface member.
+        /// </summary>
+        public string accessModifierKind = null!;
+
         // Property signature.
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public TypeInfo? typeInfo;
@@ -72,6 +79,24 @@ namespace NeoCompose.Runtime.Json
             var json = JObject.Load(reader);
             var kind = json.Value<string>("kind") ?? throw new JsonSerializationException(
                 "Interface member is missing 'kind'.");
+            if (!json.TryGetValue("accessModifierKind", out var accessModifierKind))
+            {
+                throw new JsonSerializationException(
+                    "Interface member is missing required field 'accessModifierKind'.");
+            }
+            if (accessModifierKind.Type != JTokenType.String)
+            {
+                throw new JsonSerializationException(
+                    "Interface member field 'accessModifierKind' must be a string.");
+            }
+            var accessModifierValue = accessModifierKind.Value<string>();
+            if (accessModifierValue != "public"
+                && accessModifierValue != "protected"
+                && accessModifierValue != "private")
+            {
+                throw new JsonSerializationException(
+                    $"Interface member field 'accessModifierKind' has unknown value '{accessModifierValue}'; expected \"public\", \"protected\", or \"private\".");
+            }
             switch (kind)
             {
                 case "property":

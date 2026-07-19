@@ -588,7 +588,7 @@ namespace NeoCompose.Tests
         {
             var projectJson = $@"{{
   ""metadata"": {{
-    ""schemaVersion"": 9,
+    ""schemaVersion"": 10,
     ""projectId"": ""project-1"",
     ""versionId"": ""version-1""
   }},
@@ -605,7 +605,7 @@ namespace NeoCompose.Tests
       ""projectId"": ""project-1"",
       ""name"": ""Assets"",
       ""kind"": 7,
-      ""isStatic"": false,
+      ""isStatic"": false, ""accessModifierKind"": ""public"",
       ""classId"": ""class-root"",
       ""valueId"": ""assets-value""
     }},
@@ -614,7 +614,7 @@ namespace NeoCompose.Tests
       ""projectId"": ""project-1"",
       ""name"": ""Save"",
       ""kind"": 7,
-      ""isStatic"": false,
+      ""isStatic"": false, ""accessModifierKind"": ""public"",
       ""classId"": ""class-root""
     }},
     ""root-session"": {{
@@ -622,7 +622,7 @@ namespace NeoCompose.Tests
       ""projectId"": ""project-1"",
       ""name"": ""Session"",
       ""kind"": 7,
-      ""isStatic"": false,
+      ""isStatic"": false, ""accessModifierKind"": ""public"",
       ""classId"": ""class-root""
     }},
     ""member-title"": {{
@@ -630,7 +630,7 @@ namespace NeoCompose.Tests
       ""projectId"": ""project-1"",
       ""name"": ""Title"",
       ""kind"": 3,
-      ""isStatic"": false,
+      ""isStatic"": false, ""accessModifierKind"": ""public"",
       ""valueId"": ""title-value"",
       ""localizable"": {localizable.ToString().ToLowerInvariant()}
     }}

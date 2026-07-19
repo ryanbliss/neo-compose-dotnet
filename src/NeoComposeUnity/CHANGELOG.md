@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.5.0] - 2026-07-19
+
+### Breaking
+
+- Advanced the required Unity export contract to schema 10. Schema-9 exports
+  are rejected; re-export projects and regenerate their C# types and
+  synchronized values.
+
+### Added
+
+- Member access modifiers. Member and interface-member DTOs require an
+  `accessModifierKind` (`public` / `protected` / `private`) and fail fast on a
+  missing, non-string, or unknown literal. Generic slot substitution keeps the
+  slot's own declared modifier. Generated C# emits the declared keyword and
+  omits non-public members from read-only and user interfaces; their
+  `NeoField` descriptors are `internal`.
+- Adopted the `schemaClassInfo` wire name for constructor/clone class info
+  (was `classTypeInfo`); the legacy-field guard rejects the removed key with a
+  clear migration error instead of silently deserializing null.
+
 ## [0.4.0] - 2026-07-17
 
 ### Breaking

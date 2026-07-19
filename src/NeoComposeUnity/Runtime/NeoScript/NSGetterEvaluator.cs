@@ -1647,7 +1647,7 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         NeoGeneratedTypesSupport.ValidateRuntimeClassConstructorMetadata(
                             ctx.client,
-                            constructor.info.classTypeInfo,
+                            constructor.info.schemaClassInfo,
                             fields);
                     }
                     catch (Exception error)
@@ -1669,13 +1669,13 @@ namespace NeoCompose.Runtime.NeoScript
                         NeoMemberClassWritable node =
                             NeoGeneratedTypesSupport.CreateRuntimeClassValue(
                                 ctx.client,
-                                constructor.info.classTypeInfo,
+                                constructor.info.schemaClassInfo,
                                 fields,
                                 value => ConstructorReferenceOf(value, ctx));
                         if (node.value is null)
                         {
                             throw new NSGetterRuntimeError(
-                                $"Class constructor for '{constructor.info.classTypeInfo.classId}' produced no root row.");
+                                $"Class constructor for '{constructor.info.schemaClassInfo.classId}' produced no root row.");
                         }
                         ctx.allocationTracker.RegisterSessionRoot(node.value.id);
                         return UnwrapCached(

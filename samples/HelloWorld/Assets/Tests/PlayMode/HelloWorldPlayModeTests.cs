@@ -33,7 +33,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
             var schema = synchronizer.Schema;
 
             Assert.IsNotNull(schema.metadata);
-            Assert.AreEqual(9, schema.metadata!.schemaVersion);
+            Assert.AreEqual(10, schema.metadata!.schemaVersion);
             Assert.IsNotEmpty(schema.classes);
             Assert.IsNotEmpty(schema.members);
 

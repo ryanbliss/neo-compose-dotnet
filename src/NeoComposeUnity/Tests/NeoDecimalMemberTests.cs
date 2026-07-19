@@ -39,7 +39,7 @@ namespace NeoCompose.Tests
         public void DecimalMember_DeserializesByKindOrdinal()
         {
             var member = JsonConvert.DeserializeObject<NeoCompose.Runtime.Json.Member>(
-                "{\"id\":\"a1\",\"projectId\":\"p\",\"name\":\"Speed\",\"kind\":20,\"isStatic\":false," +
+                "{\"id\":\"a1\",\"projectId\":\"p\",\"name\":\"Speed\",\"kind\":20,\"isStatic\":false,\"accessModifierKind\":\"public\"," +
                 "\"minValue\":\"0\",\"maxValue\":\"100.5\",\"decimalPoints\":4," +
                 "\"defaultValue\":{\"value\":\"1.25\"}}");
             Assert.IsInstanceOf<DecimalMember>(member);

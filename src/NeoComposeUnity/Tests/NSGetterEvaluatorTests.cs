@@ -78,7 +78,7 @@ namespace NeoCompose.Tests
                     ""kind"": 13,
                     ""locked"": false,
                     ""required"": false,
-                    ""isStatic"": false,
+                    ""isStatic"": false, ""accessModifierKind"": ""public"",
                     ""createdAt"": ""2024-01-01T00:00:00.000Z"",
                     ""updatedAt"": ""2024-01-01T00:00:00.000Z"",
                     ""returnTypeInfo"": { ""type"": ""Void"", ""required"": true },
@@ -196,7 +196,7 @@ namespace NeoCompose.Tests
                                 ""type"": ""variable"",
                                 ""variableId"": ""__this__""
                             },
-                            ""classTypeInfo"": {
+                            ""schemaClassInfo"": {
                                 ""type"": 7,
                                 ""required"": true,
                                 ""classId"": ""class-hero""
@@ -208,8 +208,8 @@ namespace NeoCompose.Tests
             Assert.IsInstanceOf<FunctionPointer>(pointer);
             var clone = ((FunctionPointer)pointer!).function as ClassCloneFunction;
             Assert.IsNotNull(clone);
-            Assert.AreEqual("class-hero", clone!.info.classTypeInfo.classId);
-            Assert.IsTrue(clone.info.classTypeInfo.required);
+            Assert.AreEqual("class-hero", clone!.info.schemaClassInfo.classId);
+            Assert.IsTrue(clone.info.schemaClassInfo.required);
         }
 
         [Test]
@@ -261,7 +261,7 @@ namespace NeoCompose.Tests
                                         type = PointerKind.Variable,
                                         variableId = "__this__",
                                     },
-                                    classTypeInfo = new ClassTypeInfo
+                                    schemaClassInfo = new ClassTypeInfo
                                     {
                                         type = MemberKind.Class,
                                         required = true,

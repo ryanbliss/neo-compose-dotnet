@@ -62,6 +62,7 @@ namespace NeoCompose.Tests
                 name = "Score",
                 kind = MemberKind.NSProperty,
                 isStatic = true,
+                accessModifierKind = "public",
                 code = "return root.Save.Score;",
                 returnTypeInfo = typeInfo,
                 getter = new FunctionWithReturnType
@@ -155,6 +156,7 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = "Count",
                 kind = MemberKind.Int,
+                accessModifierKind = "public",
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -177,7 +179,7 @@ namespace NeoCompose.Tests
   ""projectId"": ""project"",
   ""name"": ""Count"",
   ""type"": 2,
-  ""isStatic"": false,
+  ""isStatic"": false, ""accessModifierKind"": ""public"",
   ""createdAt"": ""1970-01-01T00:00:00.000Z"",
   ""updatedAt"": ""1970-01-01T00:00:00.000Z""
 }";
@@ -219,7 +221,7 @@ namespace NeoCompose.Tests
   ""name"": ""Profile"",
   ""kind"": 7,
   ""customTypeId"": ""class-profile"",
-  ""isStatic"": false,
+  ""isStatic"": false, ""accessModifierKind"": ""public"",
   ""createdAt"": ""1970-01-01T00:00:00.000Z"",
   ""updatedAt"": ""1970-01-01T00:00:00.000Z""
 }";
@@ -277,7 +279,7 @@ namespace NeoCompose.Tests
       ""name"": ""Count"",
       ""kind"": 2,
       ""type"": 2,
-      ""isStatic"": false
+      ""isStatic"": false, ""accessModifierKind"": ""public""
     }
   },
   ""values"": {},
@@ -428,6 +430,7 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = "Count",
                 kind = MemberKind.Int,
+                accessModifierKind = "public",
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -440,6 +443,137 @@ namespace NeoCompose.Tests
             Assert.That(
                 error!.Message,
                 Does.Contain("Field 'isStatic' on IntMember must be a boolean."));
+        }
+
+        [Test]
+        public void Member_MissingAccessModifierKindIsRejected()
+        {
+            var source = new IntMember
+            {
+                id = "member-missing-access",
+                projectId = "project",
+                name = "Count",
+                kind = MemberKind.Int,
+                accessModifierKind = "public",
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var json = JObject.FromObject(source);
+            json.Remove("accessModifierKind");
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Member>(json.ToString()));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain(
+                    "Missing required field 'accessModifierKind' on IntMember."));
+        }
+
+        [Test]
+        public void Member_NonStringAccessModifierKindIsRejected()
+        {
+            var source = new IntMember
+            {
+                id = "member-non-string-access",
+                projectId = "project",
+                name = "Count",
+                kind = MemberKind.Int,
+                accessModifierKind = "public",
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var json = JObject.FromObject(source);
+            json["accessModifierKind"] = true;
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Member>(json.ToString()));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain(
+                    "Field 'accessModifierKind' on IntMember must be a string."));
+        }
+
+        [Test]
+        public void Member_UnknownAccessModifierKindIsRejected()
+        {
+            var source = new IntMember
+            {
+                id = "member-unknown-access",
+                projectId = "project",
+                name = "Count",
+                kind = MemberKind.Int,
+                accessModifierKind = "public",
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var json = JObject.FromObject(source);
+            json["accessModifierKind"] = "internal";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Member>(json.ToString()));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain(
+                    "Field 'accessModifierKind' on IntMember has unknown value 'internal'"));
+        }
+
+        [Test]
+        public void Member_AccessModifierKindRoundTripsAllLiterals()
+        {
+            foreach (string literal in new[] { "public", "protected", "private" })
+            {
+                var source = new IntMember
+                {
+                    id = $"member-access-{literal}",
+                    projectId = "project",
+                    name = "Count",
+                    kind = MemberKind.Int,
+                    accessModifierKind = literal,
+                    createdAt = "x",
+                    updatedAt = "x",
+                };
+
+                var roundTripped = JsonConvert.DeserializeObject<Member>(
+                    JsonConvert.SerializeObject(source))!;
+
+                Assert.AreEqual(literal, roundTripped.accessModifierKind);
+            }
+        }
+
+        [Test]
+        public void InterfaceMember_MissingAccessModifierKindIsRejected()
+        {
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<InterfaceMember>(@"{
+  ""kind"": ""property"",
+  ""typeInfo"": { ""type"": 2, ""required"": true },
+  ""settable"": false
+}"));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain(
+                    "Interface member is missing required field 'accessModifierKind'."));
+        }
+
+        [Test]
+        public void InterfaceMember_UnknownAccessModifierKindIsRejected()
+        {
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<InterfaceMember>(@"{
+  ""kind"": ""property"",
+  ""accessModifierKind"": ""internal"",
+  ""typeInfo"": { ""type"": 2, ""required"": true },
+  ""settable"": false
+}"));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain(
+                    "Interface member field 'accessModifierKind' has unknown value 'internal'"));
         }
 
         [Test]
@@ -509,6 +643,7 @@ namespace NeoCompose.Tests
                             ["Health"] = new InterfaceMember
                             {
                                 kind = "property",
+                                accessModifierKind = "public",
                                 typeInfo = new PrimitiveTypeInfo
                                 {
                                     type = MemberKind.Int,
@@ -519,6 +654,7 @@ namespace NeoCompose.Tests
                             ["FindTarget"] = new InterfaceMember
                             {
                                 kind = "function",
+                                accessModifierKind = "public",
                                 returnTypeInfo = new InterfaceTypeInfo
                                 {
                                     type = MemberKind.Interface,
@@ -602,6 +738,7 @@ namespace NeoCompose.Tests
             Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<InterfaceMember>(@"{
   ""kind"": ""function"",
+  ""accessModifierKind"": ""public"",
   ""returnTypeInfo"": { ""type"": 2, ""required"": true },
   ""argumentTypes"": []
 }"));
@@ -609,6 +746,7 @@ namespace NeoCompose.Tests
             Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<InterfaceMember>(@"{
   ""kind"": ""function"",
+  ""accessModifierKind"": ""public"",
   ""returnTypeInfo"": { ""type"": 2, ""required"": true },
   ""argumentTypes"": [
     {
@@ -796,7 +934,7 @@ namespace NeoCompose.Tests
       ""kind"": 4,
       ""locked"": false,
       ""required"": true,
-      ""isStatic"": false,
+      ""isStatic"": false, ""accessModifierKind"": ""public"",
       ""valueId"": ""value-a"",
       ""createdAt"": ""1970-01-01T00:00:00.000Z"",
       ""updatedAt"": ""1970-01-01T00:00:00.000Z""
@@ -844,7 +982,7 @@ namespace NeoCompose.Tests
       ""kind"": 11,
       ""locked"": false,
       ""required"": true,
-      ""isStatic"": false,
+      ""isStatic"": false, ""accessModifierKind"": ""public"",
       ""templateId"": ""texture-template-1"",
       ""valueId"": ""sprite-value"",
       ""defaultValue"": { ""value"": { ""fileId"": ""file-1"", ""sliceIndex"": 2 } },
@@ -859,7 +997,7 @@ namespace NeoCompose.Tests
       ""kind"": 12,
       ""locked"": false,
       ""required"": false,
-      ""isStatic"": false,
+      ""isStatic"": false, ""accessModifierKind"": ""public"",
       ""templateId"": ""audio-template-1"",
       ""valueId"": ""audio-value"",
       ""defaultValue"": { ""value"": { ""fileId"": ""file-2"" } },
@@ -1673,7 +1811,7 @@ namespace NeoCompose.Tests
                 ""kind"": 3,
                 ""locked"": false,
                 ""required"": false,
-                ""isStatic"": false,
+                ""isStatic"": false, ""accessModifierKind"": ""public"",
                 ""defaultValue"": { ""value"": null, ""classId"": ""carrier-class"" },
                 ""createdAt"": ""1970-01-01T00:00:00.000Z"",
                 ""updatedAt"": ""1970-01-01T00:00:00.000Z""
