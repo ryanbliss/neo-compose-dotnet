@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0] - 2026-07-19
+
+### Breaking
+
+- Requires `com.ryanbliss.neocompose` 0.5.0 and schema-10 project exports with
+  required member access modifiers.
+
 ## [0.4.0] - 2026-07-17
 
 ### Breaking
