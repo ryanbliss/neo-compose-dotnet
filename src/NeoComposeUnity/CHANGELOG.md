@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.5.1] - 2026-07-19
+
+### Added
+
+- Generated tile-layer types can provide custom Unity render targets while Neo
+  continues to own initial and incremental tile painting.
+- Added per-layer callbacks for target creation, initial rendering, live
+  changes, and exactly-once teardown, including target identities and destroy
+  reasons.
+
+### Changed
+
+- The Hello World collision layer now attaches its `TilemapCollider2D` through
+  its generated layer hook instead of a grid-wide lifecycle display-name check.
+
 ## [0.5.0] - 2026-07-19
 
 ### Breaking
