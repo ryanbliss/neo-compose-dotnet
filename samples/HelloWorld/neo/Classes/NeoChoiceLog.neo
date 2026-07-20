@@ -5,5 +5,5 @@ class NeoChoiceLog {
   @locked
   @settings(localizable: true)
   @system(disallow: [.EditRecord, .DeleteRecord], reason: "Generated dialogue memory schema required by the Neo Compose dialogue runtime.")
-  virtual string ChoiceId = "48020dd6-3fb9-4b73-98be-fba38e00285b";
+  public virtual string ChoiceId = "48020dd6-3fb9-4b73-98be-fba38e00285b";
 }

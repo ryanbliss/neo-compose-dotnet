@@ -11,15 +11,608 @@
 class HullPlatingTile : ConsoleTile {
   @id("neo-tile-grid-record-relations-v1-member-9a08564ac837f8674e2e13c1f9937ccd")
   @settings(localizable: false)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override string Name = "Hull Plating";
+  public override string Name = "Hull Plating";
 
   @id("neo-tile-grid-record-relations-v1-member-ff2fa3d156f0a3df6b066f1599049c70")
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override SpriteInfo Sprite = Reference<NeoImage>(id: "ad8b2628-2e12-4c8a-90e5-b4334b430b6e").Slice(0);
+  public override SpriteInfo Sprite = Images.HullWallTile.Slice(0);
 
   @id("neo-tile-grid-record-relations-v1-member-636b8784cd42599650e36ab6b0999e6c")
   @locked
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override NeoSmartTile? SmartTile = new NeoSmartTile { DefaultCollider = "e6fc9ff8-59fe-4a0e-80b4-9145159f6309", Rules = Reference<List<NeoSmartTileRule>>(id: "b80dbc98-b8dc-45ba-8fef-dc275607ea6b") };
+  public override NeoSmartTile? SmartTile = new NeoSmartTile {
+    DefaultCollider = .Sprite,
+    Rules = [
+      @id("53d387b0-05da-4356-9f0f-8048061c0737")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [
+          @id("95e1bd88-141c-4078-b65c-50c3904848dd")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, 1),
+            Condition = .This
+          },
+
+          @id("57bd5cef-2739-43f2-b09c-bc6361f29ac6")
+          new NeoSmartTileNeighbor {
+            Cell = new(1, 0),
+            Condition = .This
+          },
+
+          @id("2206d49b-cbe9-4ecb-9118-e634f0cfce25")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, -1),
+            Condition = .This
+          },
+
+          @id("2dba9345-1425-4ea1-8576-debbc1627ce6")
+          new NeoSmartTileNeighbor {
+            Cell = new(-1, 0),
+            Condition = .This
+          }
+        ],
+        Output = .Single,
+        Sprites = [
+          @id("5147895c-666f-4e67-b77e-9575fde4d9d3")
+          Images.HullPlatingAutotile.Slice(0)
+        ]
+      },
+
+      @id("d2680317-e5b9-400a-a964-6cef7e90d60a")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [
+          @id("ff5dc4e9-2129-4cf5-b454-c7741514e813")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, 1),
+            Condition = .NotThis
+          },
+
+          @id("fa1784a2-24a0-43e7-b826-f98164468c03")
+          new NeoSmartTileNeighbor {
+            Cell = new(1, 0),
+            Condition = .This
+          },
+
+          @id("aed899b0-8e62-4337-934b-7d3f24d61aef")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, -1),
+            Condition = .This
+          },
+
+          @id("e827cedd-7506-4600-9367-dd5ec8b94d00")
+          new NeoSmartTileNeighbor {
+            Cell = new(-1, 0),
+            Condition = .This
+          }
+        ],
+        Output = .Single,
+        Sprites = [
+          @id("e4800f9d-f199-499b-9720-299db99afa1c")
+          Images.HullPlatingAutotile.Slice(1)
+        ]
+      },
+
+      @id("fe9b97ad-be47-46fb-8fc9-dadad1f4e6aa")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [
+          @id("467310a3-0e88-45c8-aecc-c1eaf6ac27be")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, 1),
+            Condition = .This
+          },
+
+          @id("6e5f99f2-673e-458f-9bb0-9671a0fef704")
+          new NeoSmartTileNeighbor {
+            Cell = new(1, 0),
+            Condition = .NotThis
+          },
+
+          @id("dda30912-83bf-48e1-a71d-4add437b97e4")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, -1),
+            Condition = .This
+          },
+
+          @id("8b8bf3a0-635c-47de-88db-59a4bd61ef0b")
+          new NeoSmartTileNeighbor {
+            Cell = new(-1, 0),
+            Condition = .This
+          }
+        ],
+        Output = .Single,
+        Sprites = [
+          @id("0b17f75d-d2df-481c-8520-f0a04df5ea58")
+          Images.HullPlatingAutotile.Slice(2)
+        ]
+      },
+
+      @id("5b63f5a1-9102-4345-8796-02d29a15485f")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [
+          @id("d0532385-df68-40a6-9720-9f38cc881c5a")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, 1),
+            Condition = .NotThis
+          },
+
+          @id("24bdceff-7c9e-4308-8415-7cb0bb43e88f")
+          new NeoSmartTileNeighbor {
+            Cell = new(1, 0),
+            Condition = .NotThis
+          },
+
+          @id("10037318-9e43-4ed3-811c-787396c19d1d")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, -1),
+            Condition = .This
+          },
+
+          @id("887584dc-5ca5-4f19-827f-0931e226a8d3")
+          new NeoSmartTileNeighbor {
+            Cell = new(-1, 0),
+            Condition = .This
+          }
+        ],
+        Output = .Single,
+        Sprites = [
+          @id("912f12ed-3b64-4312-85ce-b6e60f8a8ac6")
+          Images.HullPlatingAutotile.Slice(3)
+        ]
+      },
+
+      @id("2852fc54-8c03-492d-8b03-a0b74085846b")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [
+          @id("386fc7f5-e225-442f-9a89-58312be5a344")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, 1),
+            Condition = .This
+          },
+
+          @id("50d3b4fe-d33f-4872-94da-d98c1fcec5e0")
+          new NeoSmartTileNeighbor {
+            Cell = new(1, 0),
+            Condition = .This
+          },
+
+          @id("674f76e4-723b-4a75-a9e0-b98df7529529")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, -1),
+            Condition = .NotThis
+          },
+
+          @id("7d7a09cf-150e-4dff-aaf1-051d0bb06a2f")
+          new NeoSmartTileNeighbor {
+            Cell = new(-1, 0),
+            Condition = .This
+          }
+        ],
+        Output = .Single,
+        Sprites = [
+          @id("4760dc36-0e7f-4c01-ade5-19e78e25d4d3")
+          Images.HullPlatingAutotile.Slice(4)
+        ]
+      },
+
+      @id("5d7ee67a-0d5d-42db-960d-0a92ba5b48df")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [
+          @id("5e75f6d8-6f5e-468d-a553-1ef3943738f9")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, 1),
+            Condition = .NotThis
+          },
+
+          @id("1da0b475-da7b-44f9-b267-f4e3d6559552")
+          new NeoSmartTileNeighbor {
+            Cell = new(1, 0),
+            Condition = .This
+          },
+
+          @id("34e2fef2-e941-4dea-b720-c670696f717a")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, -1),
+            Condition = .NotThis
+          },
+
+          @id("b523f555-a218-4f86-a653-8ee5eadf82a9")
+          new NeoSmartTileNeighbor {
+            Cell = new(-1, 0),
+            Condition = .This
+          }
+        ],
+        Output = .Single,
+        Sprites = [
+          @id("66018d6b-3931-488d-97ec-f685d1cadbe7")
+          Images.HullPlatingAutotile.Slice(5)
+        ]
+      },
+
+      @id("778c624a-7add-4dcf-ba26-fdf1582e925f")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [
+          @id("a0c92376-1a03-4663-b49f-32ea370ebc1a")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, 1),
+            Condition = .This
+          },
+
+          @id("3c7eec35-ca6a-4a25-b5af-80054a695df5")
+          new NeoSmartTileNeighbor {
+            Cell = new(1, 0),
+            Condition = .NotThis
+          },
+
+          @id("3e5eebf9-1cd4-4c04-8cf9-23f58f644ce7")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, -1),
+            Condition = .NotThis
+          },
+
+          @id("93d12edc-1cf6-4316-8bd6-06ff19800509")
+          new NeoSmartTileNeighbor {
+            Cell = new(-1, 0),
+            Condition = .This
+          }
+        ],
+        Output = .Single,
+        Sprites = [
+          @id("c03276b0-0853-4596-8d9d-a6ac618c2042")
+          Images.HullPlatingAutotile.Slice(6)
+        ]
+      },
+
+      @id("acd8515f-e85f-44f7-8c3e-eceed211d7fd")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [
+          @id("afc486a0-f529-4379-aeb4-860e3ab6e633")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, 1),
+            Condition = .NotThis
+          },
+
+          @id("241d8436-c1d5-4f9a-92c9-0c1c698d928a")
+          new NeoSmartTileNeighbor {
+            Cell = new(1, 0),
+            Condition = .NotThis
+          },
+
+          @id("b6cc08e6-c8c9-466b-949b-07845b7ef670")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, -1),
+            Condition = .NotThis
+          },
+
+          @id("c5ed4be7-5061-40a8-8845-fc2d740a018a")
+          new NeoSmartTileNeighbor {
+            Cell = new(-1, 0),
+            Condition = .This
+          }
+        ],
+        Output = .Single,
+        Sprites = [
+          @id("a5bf46cc-1aab-40d6-9e49-6fea330fc9e1")
+          Images.HullPlatingAutotile.Slice(7)
+        ]
+      },
+
+      @id("58076c88-a18e-44ab-9400-5186efb417ed")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [
+          @id("58620d92-0ae3-4fa7-bca4-7543b139c38c")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, 1),
+            Condition = .This
+          },
+
+          @id("751d6f26-d315-465a-9712-6f1b94db8b01")
+          new NeoSmartTileNeighbor {
+            Cell = new(1, 0),
+            Condition = .This
+          },
+
+          @id("1644ee95-edcb-4cf9-ae40-40fc4379b861")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, -1),
+            Condition = .This
+          },
+
+          @id("e5761d5b-e5f7-495c-9e52-912a377f3629")
+          new NeoSmartTileNeighbor {
+            Cell = new(-1, 0),
+            Condition = .NotThis
+          }
+        ],
+        Output = .Single,
+        Sprites = [
+          @id("7cc0ee9b-2be6-4a36-b39b-33d435f8c6f1")
+          Images.HullPlatingAutotile.Slice(8)
+        ]
+      },
+
+      @id("ed1a74e8-f948-4b02-9c88-f0337897d9ff")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [
+          @id("a233053d-ed54-4093-8bd1-a7a0fc8dbf07")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, 1),
+            Condition = .NotThis
+          },
+
+          @id("8b0f01a3-a38a-4f25-84f4-0ba968021b57")
+          new NeoSmartTileNeighbor {
+            Cell = new(1, 0),
+            Condition = .This
+          },
+
+          @id("7de72fba-38b5-41f8-9f88-a65227488e0c")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, -1),
+            Condition = .This
+          },
+
+          @id("531a08aa-e26e-4caf-aede-a9279151bdb1")
+          new NeoSmartTileNeighbor {
+            Cell = new(-1, 0),
+            Condition = .NotThis
+          }
+        ],
+        Output = .Single,
+        Sprites = [
+          @id("30d0e080-0caa-47de-960e-cc53deebf787")
+          Images.HullPlatingAutotile.Slice(9)
+        ]
+      },
+
+      @id("69ffb699-0a33-4776-964f-5c39d15dc6e1")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [
+          @id("237423c9-11bc-4515-bec2-3d65c7cde0aa")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, 1),
+            Condition = .This
+          },
+
+          @id("64e72c98-5b1b-4358-ab7f-8c3cff152fc8")
+          new NeoSmartTileNeighbor {
+            Cell = new(1, 0),
+            Condition = .NotThis
+          },
+
+          @id("bccc369e-6778-45ba-9e16-a611a205f439")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, -1),
+            Condition = .This
+          },
+
+          @id("db9a710a-5049-422d-9f5a-323002a87bbc")
+          new NeoSmartTileNeighbor {
+            Cell = new(-1, 0),
+            Condition = .NotThis
+          }
+        ],
+        Output = .Single,
+        Sprites = [
+          @id("a541eae1-c23f-49c1-9903-0bf861b8e8a0")
+          Images.HullPlatingAutotile.Slice(10)
+        ]
+      },
+
+      @id("98373e62-3a1f-443c-9d60-b9f47734eb0a")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [
+          @id("7db701aa-6ca1-47ff-90f6-cb1a024967cc")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, 1),
+            Condition = .NotThis
+          },
+
+          @id("ee023a40-b956-4d95-8b8d-92d33dc2f861")
+          new NeoSmartTileNeighbor {
+            Cell = new(1, 0),
+            Condition = .NotThis
+          },
+
+          @id("058027fd-8f02-48bf-bfc4-3188820a41fc")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, -1),
+            Condition = .This
+          },
+
+          @id("4928425c-d4b0-45ae-8c16-791b21196439")
+          new NeoSmartTileNeighbor {
+            Cell = new(-1, 0),
+            Condition = .NotThis
+          }
+        ],
+        Output = .Single,
+        Sprites = [
+          @id("ccd4ad32-be66-4d5c-9dfb-4cb383c5910b")
+          Images.HullPlatingAutotile.Slice(11)
+        ]
+      },
+
+      @id("5893342c-4222-4702-9d94-90c009e333e3")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [
+          @id("f9c7b19e-54e9-40af-adcd-5f7f41ded1cb")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, 1),
+            Condition = .This
+          },
+
+          @id("30e4be06-fb53-4896-af3e-f1b736b09fed")
+          new NeoSmartTileNeighbor {
+            Cell = new(1, 0),
+            Condition = .This
+          },
+
+          @id("fd419efe-c66b-45d8-bf05-b98192b7665f")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, -1),
+            Condition = .NotThis
+          },
+
+          @id("a6b4bf91-af29-4f6f-8193-df63c4ee9526")
+          new NeoSmartTileNeighbor {
+            Cell = new(-1, 0),
+            Condition = .NotThis
+          }
+        ],
+        Output = .Single,
+        Sprites = [
+          @id("e88f9130-f327-48f4-a0eb-df3fa1e0c9a9")
+          Images.HullPlatingAutotile.Slice(12)
+        ]
+      },
+
+      @id("614ba275-6d1f-4095-b6b0-1a339cccfc47")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [
+          @id("32db58fe-0718-4371-9fe7-ecb1b915c54b")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, 1),
+            Condition = .NotThis
+          },
+
+          @id("9ccd9ff7-6795-4759-babf-40adb4ed1613")
+          new NeoSmartTileNeighbor {
+            Cell = new(1, 0),
+            Condition = .This
+          },
+
+          @id("9d04c0a3-c8b8-402b-ad9d-c98458caf1da")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, -1),
+            Condition = .NotThis
+          },
+
+          @id("49bbe538-9827-42b1-a262-8705a63130ca")
+          new NeoSmartTileNeighbor {
+            Cell = new(-1, 0),
+            Condition = .NotThis
+          }
+        ],
+        Output = .Single,
+        Sprites = [
+          @id("ff32a222-f3e9-422d-b0bb-574131754276")
+          Images.HullPlatingAutotile.Slice(13)
+        ]
+      },
+
+      @id("1d23f3da-17a3-42a2-8a8d-2c33807a4026")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [
+          @id("3d6b9141-20c0-4f7b-992e-c6467c5a8f9a")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, 1),
+            Condition = .This
+          },
+
+          @id("c7132ff2-6855-4e0c-9a22-8dc78b29e195")
+          new NeoSmartTileNeighbor {
+            Cell = new(1, 0),
+            Condition = .NotThis
+          },
+
+          @id("5854cdba-b476-4548-afe2-24193fe9fc4c")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, -1),
+            Condition = .NotThis
+          },
+
+          @id("bf144588-e3f0-4b33-abf5-00071022ec3a")
+          new NeoSmartTileNeighbor {
+            Cell = new(-1, 0),
+            Condition = .NotThis
+          }
+        ],
+        Output = .Single,
+        Sprites = [
+          @id("4430bcd1-846e-476d-a38d-2706828123bc")
+          Images.HullPlatingAutotile.Slice(14)
+        ]
+      },
+
+      @id("3c50a4d8-96a9-4148-9e1d-7902976cab19")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [
+          @id("da2de11c-758d-4611-ab6b-799decd1945f")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, 1),
+            Condition = .NotThis
+          },
+
+          @id("8fa7e6a2-b941-4c4a-82bb-ecb148ed7478")
+          new NeoSmartTileNeighbor {
+            Cell = new(1, 0),
+            Condition = .NotThis
+          },
+
+          @id("568ec498-fc8b-4659-88c2-294dd8c97b59")
+          new NeoSmartTileNeighbor {
+            Cell = new(0, -1),
+            Condition = .NotThis
+          },
+
+          @id("84ba28e3-f6e3-4cea-aba0-847abd0faa73")
+          new NeoSmartTileNeighbor {
+            Cell = new(-1, 0),
+            Condition = .NotThis
+          }
+        ],
+        Output = .Single,
+        Sprites = [
+          @id("a4cd67a6-5abd-4502-831e-e7af6003edae")
+          Images.HullPlatingAutotile.Slice(15)
+        ]
+      }
+    ]
+  };
 }

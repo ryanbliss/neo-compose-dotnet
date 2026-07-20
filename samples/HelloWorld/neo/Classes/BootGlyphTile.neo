@@ -10,14 +10,12 @@
 )
 class BootGlyphTile : ConsoleTile {
   @id("e2a98ca7-1317-4743-9be1-19cd5ec47bf1")
-  virtual Dialogue BootGlyphAttuned = Reference<Dialogue>(id: "12729fbc-56a7-4d8f-b04a-ac039604dfe9");
+  public virtual Dialogue BootGlyphAttuned = Reference<Dialogue>(id: "12729fbc-56a7-4d8f-b04a-ac039604dfe9");
 
   @id("neo-tile-grid-record-relations-v1-member-42874cf84cd0db8078b37c70958fb7db")
   @settings(localizable: false)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override string Name = "Boot Glyph";
+  public override string Name = "Boot Glyph";
 
   @id("neo-tile-grid-record-relations-v1-member-a9e397cae19a42785454dd9fa0b0b47a")
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override SpriteInfo Sprite = Reference<NeoImage>(id: "2c68221a-2a3c-45d4-8565-c5c23c0654d3").Slice(0);
+  public override SpriteInfo Sprite = Images.BootGlyphTile.Slice(0);
 }

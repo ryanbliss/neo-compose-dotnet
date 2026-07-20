@@ -5,15 +5,15 @@ abstract class NeoTile {
   @locked
   @settings(localizable: false)
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  virtual string Name = "";
+  public virtual string Name = "";
 
   @id("cbd6db9a-f473-44b5-b913-7cdc06452f35")
   @locked
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  virtual SpriteInfo Sprite;
+  public virtual SpriteInfo Sprite;
 
   @id("96cda8f5-3100-45b5-adcb-0552d21504dd")
   @locked
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  virtual NeoSmartTile? SmartTile = null;
+  public virtual NeoSmartTile? SmartTile = null;
 }

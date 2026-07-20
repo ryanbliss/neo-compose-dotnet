@@ -2,23 +2,23 @@
 class CollisionTileLayer : ConsoleTileLayer {
   @id("neo-tile-grid-record-relations-v1-member-81f50da320aa6188edf76b137ec3a649")
   @settings(localizable: false)
-  override string DisplayName = "Collisions";
+  public override string DisplayName = "Collisions";
 
   @id("neo-tile-grid-record-relations-v1-member-9a2f7ee37900c05eac312a1ee165a3ac")
   @locked
   @settings(localizable: false)
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override string Name = "Collisions";
+  public override string Name = "Collisions";
 
   @id("neo-tile-grid-record-relations-v1-member-b2410feb9b3bad4b60991f9934f0722d")
   @locked
   @settings(collection: Assets.SortingLayers, collectionValue: Reference(id: "e82662a0-10be-45cb-8c4a-a5d8b6b5bb0c"))
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override NeoSortingLayer SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
+  public override NeoSortingLayer SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
 
   @id("neo-tile-grid-record-relations-v1-member-c31187a5f4ace1a4f43213bb0dc7fe8d")
   @locked
   @settings(min: -32768, max: 32767)
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override int SortingOrder = 1;
+  public override int SortingOrder = 1;
 }

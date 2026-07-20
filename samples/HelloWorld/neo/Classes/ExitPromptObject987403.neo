@@ -12,32 +12,66 @@ class ExitPromptObject987403 : ExitPromptObject {
   @id("neo-tile-grid-record-relations-v1-member-f5cbad50312ebc69397239b2f2035a87")
   @locked
   @settings(kind: .Ordered)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override List<NeoObjectBase> Children = [Reference<NeoObjectBase>(id: "b9de5fe2-8ddc-4b79-bfb2-bd802d8a4fa4"), Reference<NeoObjectBase>(id: "03665dc8-a346-46aa-89c8-f04e5f4e643b")];
+  public override List<NeoObjectBase> Children = [
+    @id("b9de5fe2-8ddc-4b79-bfb2-bd802d8a4fa4")
+    new NeoSpriteObject {
+      Name = "",
+      Sprite = Images.ExitPromptObject.Slice(0),
+      Position = new(0, 0, 0),
+      Size = new(1, 1, 0)
+    },
+
+    @id("03665dc8-a346-46aa-89c8-f04e5f4e643b")
+    new BackgroundTileLayerLink {
+      Name = "Background",
+      Position = new(0, 0, 0),
+      Size = new(1, 1, 0),
+      Tiles = @id("88696e5c-6143-4fba-9d59-03fcdad8dbdb")
+      [
+        @id("49d79dcd-cfe8-4f6d-aa0e-f3fef0359828")
+        new NeoTileInstance {
+          Cell = new(1, 0)
+        }
+      ]
+    }
+  ];
 
   @id("neo-tile-grid-record-relations-v1-member-ff953f886996cd9b7f725ce578fe90cc")
   @locked
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override NeoCollider? Collider = new NeoCollider { isTrigger = Reference<bool>(id: "6779d5af-238f-41ab-a4eb-fa7c8e610411"), offset = Reference<Vector2>(id: "7d1cbc2c-39db-4b62-b83d-b79f2f7350f9"), size = Reference<Vector2>(id: "097a905d-7b18-4d34-b9e0-85f57c1e4b32") };
+  public override NeoCollider? Collider = new NeoCollider {
+    size = new(1, 1),
+    offset = new(0, 0),
+    isTrigger = false
+  };
 
   @id("neo-tile-grid-record-relations-v1-member-b4b64e2fc5bb9ca854c58419e63e8409")
   @settings(localizable: false)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override string Name = "Exit Prompt";
+  public override string Name = "Exit Prompt";
 
   @id("neo-tile-grid-record-relations-v1-member-8b86fa92f77a420dc3e61fca997644f5")
   @locked
   @settings(kind: .Ordered)
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override List<NeoObjectPlacementTile> PlacementTiles = [Reference<NeoObjectPlacementTile>(id: "67dfd2a6-d845-4311-9f72-433501e54347"), Reference<NeoObjectPlacementTile>(id: "93b59706-7fa4-4ec0-bf43-41a48b51b632")];
+  public override List<NeoObjectPlacementTile> PlacementTiles = [
+    @id("67dfd2a6-d845-4311-9f72-433501e54347")
+    new NeoObjectPlacementTile {
+      Cell = new(0, 0)
+    },
+
+    @id("93b59706-7fa4-4ec0-bf43-41a48b51b632")
+    new NeoObjectPlacementTile {
+      Cell = new(1, 0)
+    }
+  ];
 
   @id("neo-tile-grid-record-relations-v1-member-df3924f038bd73f8515d31f77f04683d")
   @locked
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override Vector3 Position = new(6, -1, 0);
+  public override Vector3 Position = new(6, -1, 0);
 
   @id("neo-tile-grid-record-relations-v1-member-f87a1ce82507a55782cd5f947b46b5f5")
   @locked
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override Vector3 Size = new(2, 1, 0);
+  public override Vector3 Size = new(2, 1, 0);
 }

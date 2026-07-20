@@ -4,5 +4,5 @@ class NeoObjectPlacementTile {
   @id("b0b3c45c-a87d-4218-b056-7418ef46aac5")
   @locked
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  virtual Vector2Int Cell = new(0, 0);
+  public virtual Vector2Int Cell = new(0, 0);
 }

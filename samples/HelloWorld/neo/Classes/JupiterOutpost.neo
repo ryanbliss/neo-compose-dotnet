@@ -1,19 +1,19 @@
 @id("a50efb7e-58f6-4342-906e-0b01f98b15af")
 class JupiterOutpost : Outpost {
   @id("48c7bc64-fc1a-41bc-becb-4d24da7df9aa")
-  override string FullDisplayText {
+  public override string FullDisplayText {
     get {
       return $"{this.Name}, {this.Moon}, {this.Planet}";
     }
   }
 
   @id("6133e24a-bf87-4d3a-a71e-3933eebcab25")
-  @settings(template: Reference<Type>(id: "66504747-cbd5-4026-9d4c-89a0644f8192"))
-  override SpriteInfo? Image = Reference<NeoImage>(id: "6e1643e2-5b91-45a6-a4b1-435f36c1a0f9").Slice(0);
+  @settings(template: PivotCenter16x16)
+  public override SpriteInfo? Image = Images.Jupiter.Slice(0);
 
   @id("c91791ff-8b41-47b2-ba12-81a84e595f42")
-  virtual JupiterMoon Moon;
+  public virtual JupiterMoon Moon;
 
   @id("54c74f99-f949-44f6-bc1c-37a80888e32f")
-  override Planet Planet = .jupiter;
+  public override Planet Planet = .jupiter;
 }

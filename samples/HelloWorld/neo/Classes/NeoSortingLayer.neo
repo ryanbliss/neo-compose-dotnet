@@ -5,5 +5,5 @@ class NeoSortingLayer {
   @locked
   @settings(localizable: false)
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  virtual string Name = "";
+  public virtual string Name = "";
 }

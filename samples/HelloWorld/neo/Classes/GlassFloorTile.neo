@@ -11,15 +11,35 @@
 class GlassFloorTile : ConsoleTile {
   @id("neo-tile-grid-record-relations-v1-member-17f945091605acd5df2df0b9bafc73ae")
   @settings(localizable: false)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override string Name = "Glass Floor";
+  public override string Name = "Glass Floor";
 
   @id("neo-tile-grid-record-relations-v1-member-f6d6fd3678ac2f76de89f885dd9d22d6")
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override SpriteInfo Sprite = Reference<NeoImage>(id: "acf20f9d-cd05-4205-a449-a0c21dcd4e12").Slice(0);
+  public override SpriteInfo Sprite = Images.GlassFloorTile.Slice(0);
 
   @id("neo-tile-grid-record-relations-v1-member-49e10224390d0b64abdf608051b2fcd5")
   @locked
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override NeoSmartTile? SmartTile = new NeoSmartTile { DefaultCollider = "ce4209dc-7471-4a06-a81d-7771e5173a78", Rules = Reference<List<NeoSmartTileRule>>(id: "a9b3907c-7d4c-422b-92d7-e20cc6757422") };
+  public override NeoSmartTile? SmartTile = new NeoSmartTile {
+    DefaultCollider = .Sprite,
+    Rules = [
+      @id("39dc4d5d-cb3e-47b5-a316-e0db8a049c1d")
+      new NeoSmartTileRule {
+        Collider = .Sprite,
+        MaxAnimationSpeed = 1,
+        MinAnimationSpeed = 1,
+        Neighbors = [],
+        Output = .Random,
+        Sprites = [
+          @id("4dc8d972-ecdd-4efd-b0bf-4958058db185")
+          Images.GlassFloorVariants.Slice(0),
+
+          @id("f6b09536-af4d-43c0-bb77-6ec7afb90531")
+          Images.GlassFloorVariants.Slice(1),
+
+          @id("8786bcac-d953-4cfd-8e45-56be2a0f9e2a")
+          Images.GlassFloorVariants.Slice(2)
+        ]
+      }
+    ]
+  };
 }

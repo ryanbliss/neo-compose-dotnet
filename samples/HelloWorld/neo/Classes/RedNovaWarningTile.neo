@@ -11,10 +11,8 @@
 class RedNovaWarningTile : ConsoleTile {
   @id("neo-tile-grid-record-relations-v1-member-a66bf1dee22709e5f2c1554b0cd68958")
   @settings(localizable: false)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override string Name = "Red Nova Warning";
+  public override string Name = "Red Nova Warning";
 
   @id("neo-tile-grid-record-relations-v1-member-799d3d5310a3b19d7395302039f97847")
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override SpriteInfo Sprite = Reference<NeoImage>(id: "666675d5-8a39-41c1-ba2c-18f014bf03f5").Slice(0);
+  public override SpriteInfo Sprite = Images.RedNovaWarningTile.Slice(0);
 }

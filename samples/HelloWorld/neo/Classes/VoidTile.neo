@@ -11,10 +11,8 @@
 class VoidTile : ConsoleTile {
   @id("neo-tile-grid-record-relations-v1-member-228d0ac0a4b310f0fcc6ca4c1e7f748a")
   @settings(localizable: false)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override string Name = "Void";
+  public override string Name = "Void";
 
   @id("neo-tile-grid-record-relations-v1-member-8f91e55864defb558c3e4327b8c47251")
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override SpriteInfo Sprite = Reference<NeoImage>(id: "355390cf-4ce9-410d-af90-25273ae4bd3b").Slice(0);
+  public override SpriteInfo Sprite = Images.VoidTile.Slice(0);
 }

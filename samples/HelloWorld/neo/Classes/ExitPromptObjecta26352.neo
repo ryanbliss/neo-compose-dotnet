@@ -11,6 +11,5 @@
 class ExitPromptObjecta26352 : ExitPromptObject {
   @id("neo-tile-grid-record-relations-v1-member-a37d02ed0f786fb3f0974b9ec52ff75f")
   @settings(localizable: false)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override string Name = "Exit Prompt";
+  public override string Name = "Exit Prompt";
 }

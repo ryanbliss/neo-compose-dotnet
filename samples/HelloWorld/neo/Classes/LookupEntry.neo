@@ -2,5 +2,5 @@
 class LookupEntry {
   @id("29563228-5f16-44e1-bb3e-89f2097fd3cb")
   @settings(localizable: true)
-  virtual string Name = "ede61345-580d-4c04-a061-3c789175566d";
+  public virtual string Name = "ede61345-580d-4c04-a061-3c789175566d";
 }

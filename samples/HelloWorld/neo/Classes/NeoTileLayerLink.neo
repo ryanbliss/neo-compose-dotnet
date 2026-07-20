@@ -5,5 +5,5 @@ abstract class NeoTileLayerLink : NeoLayerGroupBase {
   @locked
   @settings(kind: .Unordered)
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  virtual List<NeoTileInstance> Tiles = [];
+  public virtual List<NeoTileInstance> Tiles = [];
 }

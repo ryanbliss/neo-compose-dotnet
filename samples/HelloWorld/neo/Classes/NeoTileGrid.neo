@@ -4,17 +4,17 @@ abstract class NeoTileGrid {
   @id("3b523230-a851-4ab5-a6f2-c2d0745c116f")
   @locked
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  virtual Vector3 CellSize = new(1, 1, 0);
+  public virtual Vector3 CellSize = new(1, 1, 0);
 
   @id("98578ba3-a70e-4397-9283-996a898d44c8")
   @locked
   @storage(key: "world:$parentClass")
   @settings(kind: .Ordered)
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  virtual List<NeoLayerGroupBase> Children = [];
+  public virtual List<NeoLayerGroupBase> Children = [];
 
   @id("8ece74e4-e17e-4e56-9ef6-8dc2bc9f59f0")
   @locked
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  virtual int PixelsPerUnit = 100;
+  public virtual int PixelsPerUnit = 100;
 }

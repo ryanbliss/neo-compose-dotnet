@@ -2,5 +2,5 @@
 abstract class ConsoleTileLayer : NeoTileLayer {
   @id("679e3c47-e6eb-4808-bcc5-2f8440612626")
   @settings(localizable: false)
-  virtual string DisplayName;
+  public virtual string DisplayName;
 }

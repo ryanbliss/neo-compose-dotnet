@@ -4,7 +4,7 @@ class NeoDialogueMemory {
   @id("cd79c978-da95-4da3-8aa5-eea57f9e4f2c")
   @locked
   @system(disallow: [.EditRecord, .DeleteRecord], reason: "Generated dialogue memory schema required by the Neo Compose dialogue runtime.")
-  virtual bool HasVisited {
+  public virtual bool HasVisited {
     get {
       return this.VisitCount > 0;
     }
@@ -14,15 +14,15 @@ class NeoDialogueMemory {
   @locked
   @settings(localizable: true)
   @system(disallow: [.EditRecord, .DeleteRecord], reason: "Generated dialogue memory schema required by the Neo Compose dialogue runtime.")
-  virtual string? LastVisitedAt = null;
+  public virtual string? LastVisitedAt = null;
 
   @id("84960eeb-60ea-4241-a074-99a47a0d8dc1")
   @locked
   @system(disallow: [.EditRecord, .DeleteRecord, .ReplaceValue], reason: "Generated dialogue memory schema required by the Neo Compose dialogue runtime.")
-  virtual Dictionary<string, NeoTextNodeMemory> TextNodeMemories;
+  public virtual Dictionary<string, NeoTextNodeMemory> TextNodeMemories;
 
   @id("504778e6-972f-4b04-8d64-ec038ff2414f")
   @locked
   @system(disallow: [.EditRecord, .DeleteRecord], reason: "Generated dialogue memory schema required by the Neo Compose dialogue runtime.")
-  virtual int VisitCount = 0;
+  public virtual int VisitCount = 0;
 }

@@ -1,5 +1,5 @@
 @id("22a62498-61f8-4b6f-8d4c-bc05743a5c2e")
 class Worlds {
   @id("f5252031-8220-49be-bfc3-b717d5679ca8")
-  virtual OldConsoleLandingGrid OldConsoleLanding;
+  public virtual OldConsoleLandingGrid OldConsoleLanding;
 }

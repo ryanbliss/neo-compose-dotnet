@@ -5,17 +5,17 @@ abstract class NeoTileLayer {
   @locked
   @settings(localizable: false)
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  virtual string Name = "";
+  public virtual string Name = "";
 
   @id("89dbb12e-1d7c-42ad-b872-63fc7fe8bd5b")
   @locked
   @settings(collection: Assets.SortingLayers, collectionValue: Reference(id: "e82662a0-10be-45cb-8c4a-a5d8b6b5bb0c"))
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  virtual NeoSortingLayer SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
+  public virtual NeoSortingLayer SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
 
   @id("472dfd84-59cb-4516-8763-90d0af6d039f")
   @locked
   @settings(min: -32768, max: 32767)
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  virtual int SortingOrder = 0;
+  public virtual int SortingOrder = 0;
 }

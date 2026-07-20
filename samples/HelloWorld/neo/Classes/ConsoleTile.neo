@@ -2,6 +2,5 @@
 abstract class ConsoleTile : NeoTile {
   @id("d611cb73-fc9b-44e8-a3d9-5784253cae6f")
   @settings(localizable: false)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  override string Name = "ConsoleTile";
+  public override string Name = "ConsoleTile";
 }

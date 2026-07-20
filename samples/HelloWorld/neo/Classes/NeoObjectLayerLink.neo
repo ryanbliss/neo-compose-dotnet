@@ -10,5 +10,5 @@ class NeoObjectLayerLink : NeoLayerGroupBase {
   @locked
   @settings(kind: .Unordered)
   @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-  virtual List<NeoObjectBase> Objects = [];
+  public virtual List<NeoObjectBase> Objects = [];
 }
