@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Generated partial classes can request durable, reload-safe editor artifact
+  work during `OnDidSynchronize`, with registered handlers, cancellation,
+  deterministic dispatch, and synchronization diagnostics.
+- `NeoTileGridAuthoringBinding` now exposes an awaitable, cancellable preview
+  refresh result and completion event.
+
+### Changed
+
+- Unity synchronization now waits for generated-artifact handlers and matching
+  TileGrid authoring previews before publishing final post-sync success.
+
 ## [0.5.1] - 2026-07-19
 
 ### Added

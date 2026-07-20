@@ -12,3 +12,5 @@ using System.Runtime.CompilerServices;
 //     Rider when the monorepo is opened outside Unity
 [assembly: InternalsVisibleTo("NeoCompose.Unity.Tests")]
 [assembly: InternalsVisibleTo("NeoComposeUnity.Tests")]
+[assembly: InternalsVisibleTo("NeoCompose.Unity.Editor")]
+[assembly: InternalsVisibleTo("NeoComposeUnityEditor")]
