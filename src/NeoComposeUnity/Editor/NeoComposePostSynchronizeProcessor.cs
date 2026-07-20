@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
@@ -21,18 +22,28 @@ namespace NeoCompose.Unity.Editor
     [InitializeOnLoad]
     internal static class NeoComposePostSynchronizeProcessor
     {
-        private const string PendingKey = "NeoCompose.PostSynchronize.Pending";
-        private const string ProjectJsonPathKey = "NeoCompose.PostSynchronize.ProjectJsonPath";
-        private const string GeneratedTypesPathKey = "NeoCompose.PostSynchronize.GeneratedTypesPath";
-        private const string AssetDatabasePathKey = "NeoCompose.PostSynchronize.AssetDatabasePath";
-        private const string NamespaceKey = "NeoCompose.PostSynchronize.Namespace";
-        private const string AttemptsKey = "NeoCompose.PostSynchronize.Attempts";
         private const string GeneratedTileAssetDirectory = "Assets/Neo/Generated/Tiles";
         private const string GeneratedRuleTileAssetDirectory = "Assets/Neo/Generated/RuleTiles";
         private const int MaxAttempts = 20;
 
+        private static readonly INeoPostSynchronizeTaskPersistence Persistence =
+            new NeoSessionStatePostSynchronizeTaskPersistence();
+        private static readonly NeoPostSynchronizeTaskCoordinator TaskCoordinator =
+            new(Persistence);
+        private static readonly NeoPostSynchronizeCompletionPipeline CompletionPipeline =
+            new(
+                Persistence,
+                TaskCoordinator,
+                NeoTileGridAuthoringPreviewRefresher.RefreshBindingsAsync);
+
+        private static CancellationTokenSource? activeCancellation;
+        private static string? activeGenerationId;
+        private static bool isRunning;
+
         static NeoComposePostSynchronizeProcessor()
         {
+            var interrupted = Persistence.Load();
+            if (interrupted != null) TaskCoordinator.RecoverInterrupted(interrupted);
             EditorApplication.delayCall += TryRunPending;
         }
 
@@ -45,12 +56,19 @@ namespace NeoCompose.Unity.Editor
                 config.projectJsonDirectory,
                 NeoComposeEditorDefaults.AssetDatabaseFileName);
 
-            SessionState.SetString(PendingKey, "1");
-            SessionState.SetString(ProjectJsonPathKey, projectJsonPath);
-            SessionState.SetString(GeneratedTypesPathKey, generatedTypesPath);
-            SessionState.SetString(AssetDatabasePathKey, assetDatabasePath);
-            SessionState.SetString(NamespaceKey, config.namespaceForGeneratedTypes);
-            SessionState.SetString(AttemptsKey, "0");
+            activeCancellation?.Cancel();
+            var generation = new NeoPostSynchronizeGenerationState
+            {
+                GenerationId = Guid.NewGuid().ToString("N"),
+                ProjectId = config.projectId,
+                VersionId = config.versionId,
+                ProjectJsonPath = projectJsonPath,
+                GeneratedTypesPath = generatedTypesPath,
+                AssetDatabasePath = assetDatabasePath,
+                GeneratedNamespace = config.namespaceForGeneratedTypes,
+                Status = NeoPostSynchronizeGenerationStatus.Pending,
+            };
+            Persistence.Save(generation);
 
             AssetDatabase.ImportAsset(projectJsonPath);
             AssetDatabase.ImportAsset(generatedTypesPath);
@@ -58,49 +76,129 @@ namespace NeoCompose.Unity.Editor
             EditorApplication.delayCall += TryRunPending;
         }
 
-        private static void TryRunPending()
+        private static async void TryRunPending()
         {
-            if (SessionState.GetString(PendingKey, "") != "1") return;
+            if (isRunning) return;
+            var generation = Persistence.Load();
+            if (generation == null ||
+                generation.Status == NeoPostSynchronizeGenerationStatus.Failed)
+            {
+                return;
+            }
             if (EditorApplication.isCompiling || EditorApplication.isUpdating)
             {
                 EditorApplication.delayCall += TryRunPending;
                 return;
             }
 
-            string projectJsonPath = SessionState.GetString(ProjectJsonPathKey, "");
-            string assetDatabasePath = SessionState.GetString(AssetDatabasePathKey, "");
-            string generatedNamespace = SessionState.GetString(NamespaceKey, "");
-            int attempts = int.TryParse(SessionState.GetString(AttemptsKey, "0"), out int parsedAttempts)
-                ? parsedAttempts
-                : 0;
+            isRunning = true;
+            CancellationTokenSource? cancellation = null;
 
             try
             {
-                if (!File.Exists(projectJsonPath))
+                if (!IsAuthoritative(generation.GenerationId)) return;
+                if (!File.Exists(generation.ProjectJsonPath))
                 {
-                    ClearPending();
-                    return;
+                    throw new FileNotFoundException(
+                        "The synchronized Neo Compose project export could not be found.",
+                        generation.ProjectJsonPath);
                 }
 
-                string projectJson = File.ReadAllText(projectJsonPath);
+                string projectJson = File.ReadAllText(generation.ProjectJsonPath);
                 ProjectData projectData = JsonConvert.DeserializeObject<ProjectData>(projectJson)
                     ?? throw new InvalidOperationException("Neo Compose project JSON could not be deserialized after synchronization.");
-                Type? generatedProjectType = FindGeneratedProjectType(generatedNamespace);
+                Type? generatedProjectType = FindGeneratedProjectType(
+                    generation.GeneratedNamespace);
                 if (generatedProjectType == null)
                 {
-                    RetryOrFail(attempts, generatedNamespace);
+                    RetryOrFail(generation);
                     return;
                 }
 
-                Run(projectJson, projectData, assetDatabasePath, generatedProjectType);
-                ClearPending();
-                SetStatus("Neo Compose files synchronized.");
+                generation.Status = NeoPostSynchronizeGenerationStatus.Running;
+                generation.Error = null;
+                Persistence.Save(generation);
+
+                cancellation = new CancellationTokenSource();
+                activeCancellation = cancellation;
+                activeGenerationId = generation.GenerationId;
+
+                using (TaskCoordinator.BeginCollection(generation))
+                {
+                    Run(
+                        projectJson,
+                        projectData,
+                        generation.AssetDatabasePath,
+                        generatedProjectType);
+                }
+
+                await CompletionPipeline.RunAsync(
+                    generation,
+                    cancellation.Token,
+                    descriptor => SetStatus(
+                        $"Completing synchronized artifact '{descriptor.Name}' " +
+                        $"(generation '{descriptor.GenerationId}', kind " +
+                        $"'{descriptor.Kind}', owner value " +
+                        $"'{descriptor.OwnerValueId}', attempt " +
+                        $"{descriptor.Attempt}).",
+                        MessageType.Info),
+                    () => SetStatus(
+                        $"Generated artifacts succeeded for generation " +
+                        $"'{generation.GenerationId}'. Refreshing matching " +
+                        "TileGrid authoring previews...",
+                        MessageType.Info));
+
+                cancellation.Token.ThrowIfCancellationRequested();
+                if (!IsAuthoritative(generation.GenerationId)) return;
+                Persistence.Clear();
+                SetStatus("Neo Compose files synchronized.", MessageType.Info);
+            }
+            catch (OperationCanceledException)
+            {
+                if (IsAuthoritative(generation.GenerationId))
+                {
+                    generation.Status = NeoPostSynchronizeGenerationStatus.Pending;
+                    generation.Error = null;
+                    Persistence.Save(generation);
+                }
             }
             catch (Exception exception)
             {
-                ClearPending();
-                SetStatus("Synchronized, but post-sync validation failed: " + exception.Message);
+                // Reflection wraps lifecycle callback failures, while task and
+                // preview failures already add the identifiers needed for a
+                // useful terminal diagnostic. Preserve those coordinator
+                // wrappers instead of unconditionally stripping their context.
+                Exception diagnostic = exception is TargetInvocationException
+                    ? exception.GetBaseException()
+                    : exception;
+                if (IsAuthoritative(generation.GenerationId))
+                {
+                    generation.Status = NeoPostSynchronizeGenerationStatus.Failed;
+                    generation.Error = diagnostic.Message;
+                    Persistence.Save(generation);
+                    SetStatus(
+                        "Synchronized, but post-sync validation failed: " +
+                        diagnostic.Message,
+                        MessageType.Error);
+                }
                 Debug.LogError(exception);
+            }
+            finally
+            {
+                if (activeGenerationId == generation.GenerationId)
+                {
+                    activeGenerationId = null;
+                    activeCancellation = null;
+                }
+                cancellation?.Dispose();
+                isRunning = false;
+
+                var next = Persistence.Load();
+                if (next != null &&
+                    next.Status != NeoPostSynchronizeGenerationStatus.Failed)
+                {
+                    EditorApplication.delayCall += TryRunPending;
+                }
             }
         }
 
@@ -109,14 +207,12 @@ namespace NeoCompose.Unity.Editor
         /// window so the message replaces the last mid-sync progress line (which a
         /// domain reload can otherwise leave stuck).
         /// </summary>
-        private static void SetStatus(string message)
+        private static void SetStatus(string message, MessageType severity)
         {
             SessionState.SetString(NeoComposeEditorWindow.StatusSessionKey, message);
-            // The post-reload message is informational; without this a stale
-            // error severity from an earlier failed attempt would colour it.
             SessionState.SetInt(
                 NeoComposeEditorWindow.StatusSeveritySessionKey,
-                (int)MessageType.Info);
+                (int)severity);
             foreach (var window in Resources.FindObjectsOfTypeAll<NeoComposeEditorWindow>())
             {
                 window.Repaint();
@@ -555,29 +651,29 @@ namespace NeoCompose.Unity.Editor
             return null;
         }
 
-        private static void RetryOrFail(int attempts, string generatedNamespace)
+        private static void RetryOrFail(
+            NeoPostSynchronizeGenerationState generation)
         {
-            if (attempts >= MaxAttempts)
+            generation.ProcessorAttempts += 1;
+            if (generation.ProcessorAttempts >= MaxAttempts)
             {
-                ClearPending();
-                Debug.LogError(
+                string message =
                     "Neo Compose post-synchronize hooks could not run because no generated project type " +
-                    $"implementing {nameof(INeoClient)} was found in namespace '{generatedNamespace}'.");
+                    $"implementing {nameof(INeoClient)} was found in namespace " +
+                    $"'{generation.GeneratedNamespace}'.";
+                generation.Status = NeoPostSynchronizeGenerationStatus.Failed;
+                generation.Error = message;
+                Persistence.Save(generation);
+                SetStatus(message, MessageType.Error);
+                Debug.LogError(message);
                 return;
             }
 
-            SessionState.SetString(AttemptsKey, (attempts + 1).ToString());
-            EditorApplication.delayCall += TryRunPending;
+            generation.Status = NeoPostSynchronizeGenerationStatus.Pending;
+            Persistence.Save(generation);
         }
 
-        private static void ClearPending()
-        {
-            SessionState.EraseString(PendingKey);
-            SessionState.EraseString(ProjectJsonPathKey);
-            SessionState.EraseString(GeneratedTypesPathKey);
-            SessionState.EraseString(AssetDatabasePathKey);
-            SessionState.EraseString(NamespaceKey);
-            SessionState.EraseString(AttemptsKey);
-        }
+        private static bool IsAuthoritative(string generationId) =>
+            Persistence.Load()?.GenerationId == generationId;
     }
 }

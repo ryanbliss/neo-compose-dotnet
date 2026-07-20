@@ -220,7 +220,9 @@ namespace NeoCompose.Unity.Editor
                         string.Join("\n", syncErrors));
                 }
 
-                return NeoComposeSyncResult.Success("Neo Compose files synchronized.", exportResponse);
+                return NeoComposeSyncResult.Success(
+                    "Neo Compose files written. Unity post-sync work is still finishing...",
+                    exportResponse);
             }
             catch (Exception exception)
             {
