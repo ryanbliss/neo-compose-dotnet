@@ -6,11 +6,11 @@
 )
 sealed class OldConsoleLandingExitPromptRelay : Dialogue {
   @primary
-  BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+  BlockedPath BlockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
 
   @id("8f96da3c-b8ca-59e4-a038-fe33836ca33e")
   void Action1() {
-    blockedPath.ClearPath();
+    BlockedPath.ClearPath();
   }
 
   @id("6daa1368-33b1-4ddf-9d90-d09b221bdab4")

@@ -5,11 +5,11 @@
 )
 sealed class CaelusTheRelayKey : Dialogue {
   @primary
-  Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  Outpost CaelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
 
   @id("2d28ad1e-f4e2-5885-b325-b2d888d0fb1a")
   void Action1() {
-    root.Save.Inventory.Remove(outpost);
+    root.Save.Inventory.Remove(CaelusAnchorpoint);
   }
 
   @id("787ad654-fd22-5f34-bbe2-a77b681ac11a")
@@ -38,7 +38,7 @@ sealed class CaelusTheRelayKey : Dialogue {
     name: "c3",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+    Outpost caelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
   
     @id("ad04c7d3-cde9-49a2-bb3a-2a6d4ea63b4b")
     Action2();
@@ -51,7 +51,7 @@ sealed class CaelusTheRelayKey : Dialogue {
     name: "c4",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+    Outpost caelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
   
     """
     Ledger closed. Whatever you're unlocking with this — when it opens, the Anchorpoint wants a copy of the minutes. We're the only honest router left; act like it matters.
@@ -63,7 +63,7 @@ sealed class CaelusTheRelayKey : Dialogue {
     name: "c2",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+    Outpost caelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
   
     """
     ...That's not a shipping manifest. It's a CHANGELOG. Entry one, oldest stamp in existence: 'v0.1.0 — removed `pluto` from the Planet enum.' The Plutocracy isn't avenging an insult, traveler. They were DELETED. And somebody kept the receipt.
@@ -97,7 +97,7 @@ sealed class CaelusTheRelayKey : Dialogue {
     name: "c1",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+    Outpost caelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
   
     """
     You still have the manifest? Feed it to the relay. Our key decodes anything that ever passed through this system — and EVERYTHING passes through us.
@@ -120,7 +120,7 @@ sealed class CaelusTheRelayKey : Dialogue {
     name: "c2b",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+    Outpost caelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
   
     """
     The kind that gets CHANGED, friend. The kind somebody maintains. ...I need to sit down sideways for a minute.
@@ -133,10 +133,10 @@ sealed class CaelusTheRelayKey : Dialogue {
   Actions GiveManifest = new(
     name: "give manifest",
   ) {
-    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+    Outpost caelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
   
     @primary
-    Item item = Reference<Item>(id: "0c962c81-359a-4f8b-9263-7b6bb33b42b7");
+    Item smugglersManifest = Reference<Item>(id: "0c962c81-359a-4f8b-9263-7b6bb33b42b7");
   
     @id("01e3c472-26db-4f57-b606-b1fdf821044b")
     Action1();

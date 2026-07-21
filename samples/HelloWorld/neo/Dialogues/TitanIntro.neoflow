@@ -6,7 +6,7 @@
 )
 sealed class TitanIntro : Dialogue {
   @primary
-  Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
+  Outpost Outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
 
   @id("eb39eb32-e477-5f0f-99ec-45522e535d19")
   void Action1() {
@@ -15,12 +15,12 @@ sealed class TitanIntro : Dialogue {
 
   @id("1d99fca7-b6b9-5bcf-97a4-e99a0864bd69")
   void Action2() {
-    root.Save.Inventory.Add(outpost);
+    root.Save.Inventory.Add(Outpost);
   }
 
   @id("2bf31893-3df0-5033-9ba3-24cec7f99e28")
   void Action3() {
-    outpost.Save.Unlocked = true;
+    Outpost.Save.Unlocked = true;
   }
 
   @id("b2a516bb-49c9-4c8e-af84-70c978606398")
@@ -110,7 +110,7 @@ sealed class TitanIntro : Dialogue {
     name: "t4",
   ) {
     @primary
-    Outpost outpost_2 = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+    Outpost caelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
   
     Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
   
@@ -137,7 +137,7 @@ sealed class TitanIntro : Dialogue {
     name: "grant Smuggler's Manifest",
   ) {
     @primary
-    Item item = Reference<Item>(id: "0c962c81-359a-4f8b-9263-7b6bb33b42b7");
+    Item smugglersManifest = Reference<Item>(id: "0c962c81-359a-4f8b-9263-7b6bb33b42b7");
   
     Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
   

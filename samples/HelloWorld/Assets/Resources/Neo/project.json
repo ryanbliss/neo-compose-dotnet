@@ -19,9 +19,9 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "bd0292dcc0e658514efb2595c6c3e7b05bfad3f729653744eb59942f395e6125",
-        "codegenContractHash": "63b2c44492f304df4eeb8759e04f7b6bca228b689fe9cc1990b886daeb30c6e2",
-        "runtimeDataContractHash": "87cfc3b9fba862b11a64f28a34cc9d4d0661ec7586c71159dd1d6caa2df35f09"
+        "projectDocumentContentHash": "1056d87e999b3547042825a8b768328041b5a89303f9cd9b60199f3ca283c628",
+        "codegenContractHash": "46742f3d7759aa6303e0e2d2c09f8bd9e194ab32b345c46bf398212927fc99d4",
+        "runtimeDataContractHash": "bb04a308d2eea4cce3f16a37a10be9d36cbb6e36db1f387e93928c30ab37f43c"
     },
     "localization": {
         "schemaVersion": 1,
@@ -389,11 +389,11 @@
     },
     "members": {
         "01225bc0-9381-4c01-946c-488dd3c89bce": {
+            "accessModifierKind": "public",
             "classId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
             "createdAt": 1782014212397,
             "id": "01225bc0-9381-4c01-946c-488dd3c89bce",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "Children Entry",
@@ -402,6 +402,7 @@
             "updatedAt": 1782014212397
         },
         "04383910-20a1-4c7f-ad90-f87e165083ba": {
+            "accessModifierKind": "public",
             "classId": "3ab13327-ccaa-4dbe-8ec7-24b9592ddf15",
             "createdAt": 1782012571783,
             "defaultValue": {
@@ -409,7 +410,6 @@
             },
             "id": "04383910-20a1-4c7f-ad90-f87e165083ba",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "Tile",
@@ -426,12 +426,12 @@
             "updatedAt": 1782539843163
         },
         "04d5e145-412b-4499-a253-b03496a065f0": {
+            "accessModifierKind": "public",
             "createdAt": 1777766819815,
             "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23",
             "extendsMemberId": null,
             "id": "04d5e145-412b-4499-a253-b03496a065f0",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 8,
             "locked": false,
             "multiselect": false,
@@ -441,6 +441,7 @@
             "updatedAt": 1777857748919
         },
         "0659d085-0267-4d6e-8e18-b726f393f740": {
+            "accessModifierKind": "public",
             "createdAt": 1783293573229,
             "defaultValue": {
                 "value": [
@@ -450,7 +451,6 @@
             "dialogueGroupId": null,
             "id": "0659d085-0267-4d6e-8e18-b726f393f740",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 18,
             "locked": false,
             "multiselect": false,
@@ -460,13 +460,13 @@
             "updatedAt": 1783293573229
         },
         "0794a73f-60b2-4ce0-b191-83d0829fe7bb": {
+            "accessModifierKind": "public",
             "createdAt": 1781246186689,
             "defaultValue": {
                 "value": false
             },
             "id": "0794a73f-60b2-4ce0-b191-83d0829fe7bb",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 1,
             "locked": false,
             "name": "EvidenceLedger",
@@ -475,6 +475,7 @@
             "updatedAt": 1781246186689
         },
         "08cc78f5-3f90-43cc-89d7-9ec8d58e8dd0": {
+            "accessModifierKind": "public",
             "createdAt": 1778179728106,
             "defaultValue": {
                 "value": [
@@ -485,7 +486,6 @@
             "extendsMemberId": "3166fd08-4bdb-4df9-b100-ecccec859443",
             "id": "08cc78f5-3f90-43cc-89d7-9ec8d58e8dd0",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 8,
             "locked": false,
             "multiselect": false,
@@ -497,6 +497,7 @@
             "valueId": "2b63dd9f-df25-460d-84c3-67b8fdefcd07"
         },
         "0a51bdef-4b3e-49d6-913b-11cbea98bced": {
+            "accessModifierKind": "public",
             "createdAt": 1782971224672,
             "defaultValue": {
                 "value": [
@@ -506,7 +507,6 @@
             "enumId": "6ff1b376-1b30-449d-8439-d822be95cec1",
             "id": "0a51bdef-4b3e-49d6-913b-11cbea98bced",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 8,
             "locked": true,
             "multiselect": false,
@@ -524,6 +524,7 @@
             "updatedAt": 1782971224672
         },
         "0c02e45d-bb5b-44c3-8b48-91fa75171ff2": {
+            "accessModifierKind": "public",
             "code": "\t\treturn this.VisitCount > 0;",
             "createdAt": 1778182157702,
             "getter": {
@@ -620,7 +621,6 @@
             "id": "0c02e45d-bb5b-44c3-8b48-91fa75171ff2",
             "isAbstract": false,
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 10,
             "locked": false,
@@ -634,6 +634,7 @@
             "updatedAt": 1784026083511
         },
         "0c160a97-ff40-4433-ad66-6e649866bffd": {
+            "accessModifierKind": "public",
             "createdAt": 1778275239885,
             "defaultValue": {
                 "value": 1
@@ -641,7 +642,6 @@
             "extendsMemberId": null,
             "id": "0c160a97-ff40-4433-ad66-6e649866bffd",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 2,
             "locked": false,
             "maxValue": 91,
@@ -654,6 +654,7 @@
             "valueId": "79e87314-be65-4a95-b4a6-ee28cffa1347"
         },
         "0d4e7b75-97f6-44f2-b42b-925dc3983341": {
+            "accessModifierKind": "public",
             "classId": "4cdf4a5b-b299-4253-854b-d25c0a4c7c20",
             "createdAt": 1778021393940,
             "defaultValue": {
@@ -662,7 +663,6 @@
             "extendsMemberId": null,
             "id": "0d4e7b75-97f6-44f2-b42b-925dc3983341",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "NeoTextNodeMemory",
@@ -679,13 +679,13 @@
             "valueId": "30cee785-a3ee-4bc4-8e11-50bf0d27af96"
         },
         "0fa12fa0-9e74-4e85-9ce3-df0efe78d2dd": {
+            "accessModifierKind": "public",
             "argumentTypes": [],
             "createdAt": 1782708997676,
             "deferred": false,
             "extendsMemberId": null,
             "id": "0fa12fa0-9e74-4e85-9ce3-df0efe78d2dd",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 13,
             "locked": false,
             "name": "ClearPath",
@@ -699,6 +699,7 @@
             "updatedAt": 1782708997676
         },
         "10be115c-1d1f-49f2-ae26-ab4b52657fda": {
+            "accessModifierKind": "public",
             "classId": "fb219343-34db-4e82-baf0-09df9a2b5210",
             "createdAt": 1781855034923,
             "defaultValue": {
@@ -706,7 +707,6 @@
             },
             "id": "10be115c-1d1f-49f2-ae26-ab4b52657fda",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "SortingLayer",
@@ -723,6 +723,7 @@
             "updatedAt": 1781855034923
         },
         "11873fad-7426-46cf-97d6-47b45bd1c091": {
+            "accessModifierKind": "public",
             "classId": "628e0cce-5472-4bec-addd-71230b8e64a6",
             "createdAt": 1782971224672,
             "defaultValue": {
@@ -730,7 +731,6 @@
             },
             "id": "11873fad-7426-46cf-97d6-47b45bd1c091",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "Neighbor",
@@ -747,10 +747,10 @@
             "updatedAt": 1782971224672
         },
         "13e587b4-f143-419e-b2f1-a5fb2fef92fd": {
+            "accessModifierKind": "public",
             "createdAt": 1781251248136,
             "id": "13e587b4-f143-419e-b2f1-a5fb2fef92fd",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 11,
             "locked": false,
             "name": "FlareStaticSprite",
@@ -759,11 +759,11 @@
             "updatedAt": 1781251248136
         },
         "14d38a73-5732-4348-8fde-e81554a1a497": {
+            "accessModifierKind": "public",
             "createdAt": 1777766965200,
             "extendsMemberId": null,
             "id": "14d38a73-5732-4348-8fde-e81554a1a497",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 2,
             "locked": false,
             "name": "DateUnix",
@@ -772,6 +772,7 @@
             "updatedAt": 1777857616029
         },
         "14ec578e-0aa7-4d12-8d02-47463e03a1f3": {
+            "accessModifierKind": "public",
             "createdAt": 1781993040926,
             "defaultValue": {
                 "value": "Exit Prompt"
@@ -779,7 +780,6 @@
             "extendsMemberId": "3b02422f-1ef2-4a50-8386-155d5001082b",
             "id": "14ec578e-0aa7-4d12-8d02-47463e03a1f3",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "localizable": false,
             "locked": false,
@@ -789,6 +789,7 @@
             "updatedAt": 1781993040926
         },
         "1c7de3b5-6474-483c-aef5-fc48265199b0": {
+            "accessModifierKind": "public",
             "createdAt": 1781648899405,
             "defaultValue": {
                 "value": {
@@ -800,7 +801,6 @@
             "extendsMemberId": null,
             "id": "1c7de3b5-6474-483c-aef5-fc48265199b0",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 16,
             "locked": false,
             "name": "Position",
@@ -812,6 +812,7 @@
             "valueId": "155a3ca9-1d94-416a-84b7-c9eecbf4cc94"
         },
         "1d1d14bc-987e-4079-a8f8-09998d5954fc": {
+            "accessModifierKind": "public",
             "createdAt": 1778531148051,
             "defaultValue": {
                 "value": 0
@@ -819,7 +820,6 @@
             "extendsMemberId": null,
             "id": "1d1d14bc-987e-4079-a8f8-09998d5954fc",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 2,
             "locked": false,
             "name": "Reputation",
@@ -830,6 +830,7 @@
             "valueId": "df13b560-3af3-45e3-811f-2299eacf7903"
         },
         "1f76e191-faaf-4840-9bb0-29785a1c8ed6": {
+            "accessModifierKind": "public",
             "createdAt": 1778275186476,
             "defaultValue": {
                 "value": 1000
@@ -837,7 +838,6 @@
             "extendsMemberId": null,
             "id": "1f76e191-faaf-4840-9bb0-29785a1c8ed6",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 2,
             "locked": false,
             "minValue": 0,
@@ -849,10 +849,10 @@
             "valueId": "3c5388f9-7faf-4a70-af10-0ec09384b822"
         },
         "20d4dfe4-935c-441d-b2c2-ca8052c5a96e": {
+            "accessModifierKind": "public",
             "createdAt": 1781251248136,
             "id": "20d4dfe4-935c-441d-b2c2-ca8052c5a96e",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 11,
             "locked": false,
             "name": "VaultPlaqueSprite",
@@ -861,6 +861,7 @@
             "updatedAt": 1781251248136
         },
         "214c9215-b01d-463a-b5fb-cb21e14b1961": {
+            "accessModifierKind": "public",
             "createdAt": 1778021392982,
             "defaultValue": {
                 "value": []
@@ -869,7 +870,6 @@
             "extendsMemberId": null,
             "id": "214c9215-b01d-463a-b5fb-cb21e14b1961",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": true,
             "name": "ChoiceHistory",
@@ -887,6 +887,7 @@
             "valueId": "6624f779-20b7-4728-a313-4e4ac8929963"
         },
         "214df1a1-abca-4141-987b-380a5417c70a": {
+            "accessModifierKind": "public",
             "createdAt": 1778274659326,
             "defaultValue": {
                 "value": []
@@ -895,7 +896,6 @@
             "extendsMemberId": null,
             "id": "214df1a1-abca-4141-987b-380a5417c70a",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": false,
             "name": "Items",
@@ -906,10 +906,10 @@
             "valueId": "96c9128e-b3b5-484b-b206-704721d40b8d"
         },
         "248753df-f9b6-445a-b3c6-b12957f99ee2": {
+            "accessModifierKind": "public",
             "createdAt": 1781759873079,
             "id": "248753df-f9b6-445a-b3c6-b12957f99ee2",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "localizable": false,
             "locked": false,
@@ -919,13 +919,13 @@
             "updatedAt": 1781759873079
         },
         "26df3938-e800-4801-b897-602d50db7ec9": {
+            "accessModifierKind": "public",
             "createdAt": 1781246186689,
             "defaultValue": {
                 "value": 0
             },
             "id": "26df3938-e800-4801-b897-602d50db7ec9",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 2,
             "locked": false,
             "minValue": 0,
@@ -935,6 +935,7 @@
             "updatedAt": 1781246186689
         },
         "2827aefd-7f57-48ea-994c-c5c39ec659e3": {
+            "accessModifierKind": "public",
             "columnSettings": [
                 {
                     "frozen": true,
@@ -1015,7 +1016,6 @@
             "extendsMemberId": null,
             "id": "2827aefd-7f57-48ea-994c-c5c39ec659e3",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": false,
             "name": "Outposts",
@@ -1026,6 +1026,7 @@
             "valueId": "0e0cdfcc-86c6-43a5-bcbd-aa8c325e1a25"
         },
         "28beaf7f-a3d3-4e9c-9f31-325d6708bd66": {
+            "accessModifierKind": "public",
             "createdAt": 1778021392633,
             "defaultValue": {
                 "value": null
@@ -1033,7 +1034,6 @@
             "extendsMemberId": null,
             "id": "28beaf7f-a3d3-4e9c-9f31-325d6708bd66",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "locked": true,
             "name": "MostRecentChoiceId",
@@ -1050,6 +1050,7 @@
             "valueId": "5683bd1f-2afd-4b3d-805d-7abb06e1db67"
         },
         "29563228-5f16-44e1-bb3e-89f2097fd3cb": {
+            "accessModifierKind": "public",
             "createdAt": 1777846649700,
             "defaultValue": {
                 "value": "ede61345-580d-4c04-a061-3c789175566d"
@@ -1057,7 +1058,6 @@
             "extendsMemberId": null,
             "id": "29563228-5f16-44e1-bb3e-89f2097fd3cb",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "locked": false,
             "name": "Name",
@@ -1067,6 +1067,7 @@
             "valueId": "cda24cc3-6bd1-448b-8ff5-3358113a3d86"
         },
         "29659610-fc70-4b9c-833e-a6185f745c04": {
+            "accessModifierKind": "public",
             "createdAt": 1777766989047,
             "defaultValue": {
                 "value": "5ed5d8c1-a01d-47ff-b2ca-d663be283d79"
@@ -1074,7 +1075,6 @@
             "extendsMemberId": null,
             "id": "29659610-fc70-4b9c-833e-a6185f745c04",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "locked": false,
             "name": "baseText",
@@ -1084,6 +1084,7 @@
             "valueId": "a6d9f87b-91d2-4203-92bb-c3e0ebf5d521"
         },
         "29a3d2a7-ce2e-4d40-bcdf-ee6c314023fe": {
+            "accessModifierKind": "public",
             "createdAt": 1782980021067,
             "defaultValue": {
                 "value": [
@@ -1093,7 +1094,6 @@
             "enumId": "d97f73bc-656f-489f-86de-6cb874ca8181",
             "id": "29a3d2a7-ce2e-4d40-bcdf-ee6c314023fe",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 8,
             "locked": true,
             "multiselect": false,
@@ -1111,11 +1111,11 @@
             "updatedAt": 1782980021067
         },
         "2b10e854-d60a-40a7-bc4c-8aede3e5049e": {
+            "accessModifierKind": "public",
             "createdAt": 1783401474118,
             "extendsMemberId": "7fc41bde-418a-4507-8c4b-9b75d7012125",
             "id": "2b10e854-d60a-40a7-bc4c-8aede3e5049e",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 16,
             "locked": true,
             "name": "Position",
@@ -1125,6 +1125,7 @@
             "updatedAt": 1783401474118
         },
         "2bcf2b63-87aa-4c4a-99ea-590e2b555fa6": {
+            "accessModifierKind": "public",
             "createdAt": 1778021392433,
             "defaultValue": {
                 "value": 0
@@ -1132,7 +1133,6 @@
             "extendsMemberId": null,
             "id": "2bcf2b63-87aa-4c4a-99ea-590e2b555fa6",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 2,
             "locked": true,
             "name": "VisitCount",
@@ -1149,6 +1149,7 @@
             "valueId": "9e6cbe6d-14f2-4d85-bd11-d99c0259b166"
         },
         "2c57948b-7479-47e0-b97c-242f6d543ae0": {
+            "accessModifierKind": "public",
             "classId": "77558d64-4fcc-46ac-8351-893093ee0002",
             "createdAt": 1777846554409,
             "defaultValue": {
@@ -1157,7 +1158,6 @@
             "extendsMemberId": null,
             "id": "2c57948b-7479-47e0-b97c-242f6d543ae0",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "LookupContainer",
@@ -1167,11 +1167,11 @@
             "valueId": "9d559f55-d80f-442a-a964-766b3d45780d"
         },
         "2cd93779-d755-4368-b064-2361463526ea": {
+            "accessModifierKind": "public",
             "createdAt": 1782971224672,
             "defaultValue": null,
             "id": "2cd93779-d755-4368-b064-2361463526ea",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 11,
             "locked": true,
             "name": "Sprite",
@@ -1189,13 +1189,13 @@
             "updatedAt": 1782971224672
         },
         "3111ed6f-d441-40b9-97f0-25fff2fb9838": {
+            "accessModifierKind": "public",
             "createdAt": 1782971224672,
             "defaultValue": {
                 "value": 1
             },
             "id": "3111ed6f-d441-40b9-97f0-25fff2fb9838",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 4,
             "locked": true,
             "minValue": 0,
@@ -1213,13 +1213,13 @@
             "updatedAt": 1782971224672
         },
         "3166fd08-4bdb-4df9-b100-ecccec859443": {
+            "accessModifierKind": "public",
             "createdAt": 1778176361843,
             "defaultValue": null,
             "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23",
             "extendsMemberId": null,
             "id": "3166fd08-4bdb-4df9-b100-ecccec859443",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 8,
             "locked": false,
             "multiselect": false,
@@ -1230,6 +1230,7 @@
             "updatedAt": 1778176361843
         },
         "32be897f-be96-4ab7-a586-a9a6fdfff8b7": {
+            "accessModifierKind": "public",
             "createdAt": 1782957267819,
             "defaultValue": {
                 "value": [
@@ -1240,7 +1241,6 @@
             "extendsMemberId": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
             "id": "32be897f-be96-4ab7-a586-a9a6fdfff8b7",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": true,
             "name": "Children",
@@ -1249,6 +1249,7 @@
             "updatedAt": 1782957267819
         },
         "33e86f10-7989-4d82-9156-631a19e3bf06": {
+            "accessModifierKind": "public",
             "code": "\t\treturn $\"{this.Name}, {this.Moon}, {this.Planet}\";",
             "createdAt": 1778735343252,
             "extendsMemberId": "514a79c5-dd23-4ede-9fc8-b07b3c866fe5",
@@ -1409,7 +1410,6 @@
             },
             "id": "33e86f10-7989-4d82-9156-631a19e3bf06",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 10,
             "locked": false,
             "name": "FullDisplayText",
@@ -1422,6 +1422,7 @@
             "updatedAt": 1784026083511
         },
         "35275ba0-4a3f-4b83-8b09-fccb7bd7a515": {
+            "accessModifierKind": "public",
             "createdAt": 1782014212397,
             "defaultValue": {
                 "value": [
@@ -1432,7 +1433,6 @@
             "extendsMemberId": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
             "id": "35275ba0-4a3f-4b83-8b09-fccb7bd7a515",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": true,
             "name": "Children",
@@ -1441,13 +1441,13 @@
             "updatedAt": 1782174037995
         },
         "35ac06e1-119c-4d1f-81e9-f119610e3865": {
+            "accessModifierKind": "public",
             "createdAt": 1781246186689,
             "defaultValue": {
                 "value": false
             },
             "id": "35ac06e1-119c-4d1f-81e9-f119610e3865",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 1,
             "locked": false,
             "name": "EvidenceFaith",
@@ -1456,6 +1456,7 @@
             "updatedAt": 1781246186689
         },
         "3611d8af-6bfe-4015-93c4-2b611b33f2b6": {
+            "accessModifierKind": "public",
             "classId": "48f37cd8-69d2-4cd3-ae44-7cfed7912415",
             "createdAt": 1778021394752,
             "defaultValue": {
@@ -1464,7 +1465,6 @@
             "extendsMemberId": null,
             "id": "3611d8af-6bfe-4015-93c4-2b611b33f2b6",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "NeoDialogueMemory",
@@ -1481,11 +1481,11 @@
             "valueId": "583ff4fa-2d0f-451e-8e37-fb47eee09a85"
         },
         "3898975b-c6cc-4f35-a82e-89ba3ff240c6": {
+            "accessModifierKind": "public",
             "classId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
             "createdAt": 1782014212397,
             "id": "3898975b-c6cc-4f35-a82e-89ba3ff240c6",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "Children Entry",
@@ -1494,13 +1494,13 @@
             "updatedAt": 1782014212397
         },
         "3b02422f-1ef2-4a50-8386-155d5001082b": {
+            "accessModifierKind": "public",
             "createdAt": 1781985413733,
             "defaultValue": {
                 "value": ""
             },
             "id": "3b02422f-1ef2-4a50-8386-155d5001082b",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "localizable": false,
             "locked": true,
@@ -1518,6 +1518,7 @@
             "updatedAt": 1781985413733
         },
         "3b523230-a851-4ab5-a6f2-c2d0745c116f": {
+            "accessModifierKind": "public",
             "createdAt": 1781855034923,
             "defaultValue": {
                 "value": {
@@ -1528,7 +1529,6 @@
             },
             "id": "3b523230-a851-4ab5-a6f2-c2d0745c116f",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 16,
             "locked": true,
             "name": "CellSize",
@@ -1545,6 +1545,7 @@
             "updatedAt": 1781855034923
         },
         "3b73b328-9a9d-4ee3-955c-9cc573170346": {
+            "accessModifierKind": "public",
             "classId": "9a6019b6-680f-4300-8cea-bde6fce47fc1",
             "createdAt": 1781255794887,
             "defaultValue": {
@@ -1552,7 +1553,6 @@
             },
             "id": "3b73b328-9a9d-4ee3-955c-9cc573170346",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "Art",
@@ -1561,6 +1561,7 @@
             "updatedAt": 1781255794887
         },
         "3c947ad4-3033-4121-b3b0-3b5177ab30b7": {
+            "accessModifierKind": "public",
             "code": "\t\tint found = 0;\n\t\tif (this.EvidenceArchive) { found = found + 1; }\n\t\tif (this.EvidenceLedger) { found = found + 1; }\n\t\tif (this.EvidenceFaith) { found = found + 1; }\n\t\tstring urgency = \"\";\n\t\tif (this.FlareClock >= 6) { urgency = \"The storms are stacking — hurry. \"; }\n\t\tif (this.FlareClock >= 9) { urgency = \"THE SKY IS TEARING. Finish it. \"; }\n\t\tif (this.Stage == QuestStage.arrival) {\n\t\t\treturn $\"{urgency}Rumors ride the flare-wakes. Start with the greeter at Capitol OG.\";\n\t\t}\n\t\tif (this.Stage == QuestStage.followTheWakes) {\n\t\t\treturn $\"{urgency}Hear the prophecy at Mercurial, and ask the corn farmer on Iowan what the freighters saw.\";\n\t\t}\n\t\tif (this.Stage == QuestStage.threePaths) {\n\t\t\tif (found >= 2) {\n\t\t\t\treturn $\"{urgency}Go BACK to Capitol OG — the greeter's script is fraying. Two proofs are enough.\";\n\t\t\t}\n\t\t\tif (!this.EvidenceArchive) {\n\t\t\t\treturn $\"{urgency}Proof of the frozen sky: revisit Ursa Major's observatory, then offer Storm Corn at Etna Diadem. Outposts you've met have new things to say.\";\n\t\t\t}\n\t\t\tif (!this.EvidenceLedger) {\n\t\t\t\treturn $\"{urgency}Proof in old money: go back to the Pour Lords, then feed their manifest to the relay at Caelus.\";\n\t\t\t}\n\t\t\treturn $\"{urgency}Proof from the verses: sit with the Patriarch at Mercurial again, then buy the Oldest Pattern from the Venusians.\";\n\t\t}\n\t\tif (this.Stage == QuestStage.vaultOpen) {\n\t\t\treturn $\"{urgency}Descend beneath Capitol OG. Bring the Abyssal Lantern from Europapas.\";\n\t\t}\n\t\tif (this.Stage == QuestStage.endgame) {\n\t\t\treturn $\"{urgency}The Old Console at Capitol OG awaits your final output. The Regent's Signet may open one more door.\";\n\t\t}\n\t\treturn \"The run has ended. Thank you for playing.\";",
             "createdAt": 1781246186689,
             "getter": {
@@ -2633,7 +2634,6 @@
             "id": "3c947ad4-3033-4121-b3b0-3b5177ab30b7",
             "isAbstract": false,
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 10,
             "locked": false,
@@ -2647,6 +2647,7 @@
             "updatedAt": 1784026083511
         },
         "3ed7f33a-67fe-4671-8af9-c8339751894b": {
+            "accessModifierKind": "public",
             "createdAt": 1781246186689,
             "defaultValue": {
                 "value": [
@@ -2656,7 +2657,6 @@
             "enumId": "a5c2a3f4-f91a-4878-bec0-a38b432ad762",
             "id": "3ed7f33a-67fe-4671-8af9-c8339751894b",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 8,
             "locked": false,
             "multiselect": false,
@@ -2666,6 +2666,7 @@
             "updatedAt": 1781246186689
         },
         "4042fd7d-88d4-4acf-81de-13052c70673e": {
+            "accessModifierKind": "public",
             "code": "return this.VisitCount > 0;",
             "createdAt": 1778021393139,
             "getter": {
@@ -2762,7 +2763,6 @@
             "id": "4042fd7d-88d4-4acf-81de-13052c70673e",
             "isAbstract": false,
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 10,
             "locked": true,
@@ -2783,10 +2783,10 @@
             "updatedAt": 1784026083511
         },
         "421de440-ad72-4f9f-aef0-e3def8cd0582": {
+            "accessModifierKind": "public",
             "createdAt": 1781255546299,
             "id": "421de440-ad72-4f9f-aef0-e3def8cd0582",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 12,
             "locked": false,
             "name": "BitsGainSfx",
@@ -2795,13 +2795,13 @@
             "updatedAt": 1781255546299
         },
         "42487172-af8c-49ff-b88a-2397894542fe": {
+            "accessModifierKind": "public",
             "createdAt": 1781246186689,
             "defaultValue": {
                 "value": false
             },
             "id": "42487172-af8c-49ff-b88a-2397894542fe",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 1,
             "locked": false,
             "name": "EvidenceArchive",
@@ -2810,6 +2810,7 @@
             "updatedAt": 1781246186689
         },
         "42d3d49d-3ba8-4672-ad54-53dc109697fc": {
+            "accessModifierKind": "public",
             "classId": "8ccfe860-309f-428b-b74c-76a873bdea8a",
             "createdAt": 1778176777884,
             "defaultValue": {
@@ -2818,7 +2819,6 @@
             "extendsMemberId": null,
             "id": "42d3d49d-3ba8-4672-ad54-53dc109697fc",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "OutpostSaveData",
@@ -2829,6 +2829,7 @@
             "valueId": "e621365a-edd1-43a7-b36a-18c35b515057"
         },
         "430fca56-b45a-4896-9ab2-795a3faf57f6": {
+            "accessModifierKind": "public",
             "createdAt": 1782071674504,
             "defaultValue": {
                 "value": [
@@ -2839,7 +2840,6 @@
             "extendsMemberId": "5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
             "id": "430fca56-b45a-4896-9ab2-795a3faf57f6",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": true,
             "name": "PlacementTiles",
@@ -2856,13 +2856,13 @@
             "updatedAt": 1782071674504
         },
         "441cb790-a45f-4488-a5a9-6f375af6c369": {
+            "accessModifierKind": "public",
             "createdAt": 1782012571783,
             "defaultValue": {
                 "value": ""
             },
             "id": "441cb790-a45f-4488-a5a9-6f375af6c369",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "localizable": false,
             "locked": true,
@@ -2880,10 +2880,10 @@
             "updatedAt": 1782012571783
         },
         "46284af1-9326-40f3-94c5-491484099f70": {
+            "accessModifierKind": "public",
             "createdAt": 1781255546299,
             "id": "46284af1-9326-40f3-94c5-491484099f70",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 12,
             "locked": false,
             "name": "RocketThrustSfx",
@@ -2892,13 +2892,13 @@
             "updatedAt": 1781255546299
         },
         "472dfd84-59cb-4516-8763-90d0af6d039f": {
+            "accessModifierKind": "public",
             "createdAt": 1781855034923,
             "defaultValue": {
                 "value": 0
             },
             "id": "472dfd84-59cb-4516-8763-90d0af6d039f",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 2,
             "locked": true,
             "maxValue": 32767,
@@ -2917,6 +2917,7 @@
             "updatedAt": 1781855034923
         },
         "47466be3-368c-4ac1-8c0e-7a825af6b538": {
+            "accessModifierKind": "public",
             "createdAt": 1783293573229,
             "defaultValue": {
                 "value": [
@@ -2926,7 +2927,6 @@
             "dialogueGroupId": null,
             "id": "47466be3-368c-4ac1-8c0e-7a825af6b538",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 18,
             "locked": false,
             "multiselect": false,
@@ -2936,6 +2936,7 @@
             "updatedAt": 1783293573229
         },
         "47c21aa5-e852-41d2-882c-b4f555aee9dd": {
+            "accessModifierKind": "public",
             "createdAt": 1782071674504,
             "defaultValue": {
                 "value": [
@@ -2946,7 +2947,6 @@
             "extendsMemberId": "5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
             "id": "47c21aa5-e852-41d2-882c-b4f555aee9dd",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": true,
             "name": "PlacementTiles",
@@ -2963,6 +2963,7 @@
             "updatedAt": 1782071674504
         },
         "4868ab84-027a-405d-bfca-d04d4d4917fa": {
+            "accessModifierKind": "public",
             "classId": "daf72c99-ad09-47d6-a863-f1ab31acf750",
             "createdAt": 1781246186689,
             "defaultValue": {
@@ -2970,7 +2971,6 @@
             },
             "id": "4868ab84-027a-405d-bfca-d04d4d4917fa",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "Quest",
@@ -2979,6 +2979,7 @@
             "updatedAt": 1781246186689
         },
         "48c7bc64-fc1a-41bc-becb-4d24da7df9aa": {
+            "accessModifierKind": "public",
             "code": "\t\treturn $\"{this.Name}, {this.Moon}, {this.Planet}\";",
             "createdAt": 1778735294772,
             "extendsMemberId": "514a79c5-dd23-4ede-9fc8-b07b3c866fe5",
@@ -3139,7 +3140,6 @@
             },
             "id": "48c7bc64-fc1a-41bc-becb-4d24da7df9aa",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 10,
             "locked": false,
             "name": "FullDisplayText",
@@ -3152,6 +3152,7 @@
             "updatedAt": 1784026083511
         },
         "496b0bb9-0375-4ca8-b768-0a1bdf88a158": {
+            "accessModifierKind": "public",
             "createdAt": 1782971224672,
             "defaultValue": {
                 "value": [
@@ -3161,7 +3162,6 @@
             "enumId": "ba63d042-51c1-4bce-be70-d9848e6bb240",
             "id": "496b0bb9-0375-4ca8-b768-0a1bdf88a158",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 8,
             "locked": true,
             "multiselect": false,
@@ -3179,6 +3179,7 @@
             "updatedAt": 1782971224672
         },
         "4a1a7058-e5ba-4479-9f2f-7686a649a6b5": {
+            "accessModifierKind": "public",
             "classId": "96e8284d-ae43-4e91-919d-86c25ce098e0",
             "createdAt": 1777766565536,
             "defaultValue": {
@@ -3187,7 +3188,6 @@
             "extendsMemberId": null,
             "id": "4a1a7058-e5ba-4479-9f2f-7686a649a6b5",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "Save",
@@ -3208,6 +3208,7 @@
             "valueId": "299b23d6-4ea0-4475-94f5-f59c4d18d9cd"
         },
         "4cf934a0-531f-4513-8c22-27a688669eec": {
+            "accessModifierKind": "public",
             "classId": "9296e4be-bd27-44e3-9823-77fbeaa60665",
             "createdAt": 1777846623890,
             "defaultValue": {
@@ -3216,7 +3217,6 @@
             "extendsMemberId": null,
             "id": "4cf934a0-531f-4513-8c22-27a688669eec",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "LookupEntry",
@@ -3226,6 +3226,7 @@
             "valueId": "c76972cb-5d92-4d1b-865f-b919615e51aa"
         },
         "502c9308-974b-446d-935b-c22adde5a9d2": {
+            "accessModifierKind": "public",
             "createdAt": 1783293573229,
             "defaultValue": {
                 "value": [
@@ -3235,7 +3236,6 @@
             "dialogueGroupId": null,
             "id": "502c9308-974b-446d-935b-c22adde5a9d2",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 18,
             "locked": false,
             "multiselect": false,
@@ -3245,6 +3245,7 @@
             "updatedAt": 1783293573229
         },
         "504778e6-972f-4b04-8d64-ec038ff2414f": {
+            "accessModifierKind": "public",
             "createdAt": 1778021393339,
             "defaultValue": {
                 "value": 0
@@ -3252,7 +3253,6 @@
             "extendsMemberId": null,
             "id": "504778e6-972f-4b04-8d64-ec038ff2414f",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 2,
             "locked": true,
             "name": "VisitCount",
@@ -3269,6 +3269,7 @@
             "valueId": "fbb8c422-6dd5-4c4e-90b1-be262caeee79"
         },
         "514a79c5-dd23-4ede-9fc8-b07b3c866fe5": {
+            "accessModifierKind": "public",
             "code": "\t\treturn $\"{this.Name}, {this.Planet}\";",
             "createdAt": 1778534706100,
             "getter": {
@@ -3392,7 +3393,6 @@
             "id": "514a79c5-dd23-4ede-9fc8-b07b3c866fe5",
             "isAbstract": false,
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 10,
             "locked": false,
@@ -3406,6 +3406,7 @@
             "updatedAt": 1784026083511
         },
         "5155954d-ca1d-441e-b9ee-1837b0a08e05": {
+            "accessModifierKind": "public",
             "createdAt": 1778154441360,
             "defaultValue": {
                 "value": false
@@ -3413,7 +3414,6 @@
             "extendsMemberId": null,
             "id": "5155954d-ca1d-441e-b9ee-1837b0a08e05",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 1,
             "locked": false,
             "name": "Dead",
@@ -3424,6 +3424,7 @@
             "valueId": "188eb9c2-7619-4564-a5f6-7124baf8cc15"
         },
         "54c74f99-f949-44f6-bc1c-37a80888e32f": {
+            "accessModifierKind": "public",
             "createdAt": 1778178994613,
             "defaultValue": {
                 "value": [
@@ -3434,7 +3435,6 @@
             "extendsMemberId": "3166fd08-4bdb-4df9-b100-ecccec859443",
             "id": "54c74f99-f949-44f6-bc1c-37a80888e32f",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 8,
             "locked": false,
             "multiselect": false,
@@ -3446,6 +3446,7 @@
             "valueId": "0eb04da7-480b-4bdb-a04e-eba6f58ffcc8"
         },
         "5676cb8a-be0f-4f1b-adc6-7241c09f8cf5": {
+            "accessModifierKind": "public",
             "createdAt": 1783293573229,
             "defaultValue": {
                 "value": [
@@ -3455,7 +3456,6 @@
             "dialogueGroupId": null,
             "id": "5676cb8a-be0f-4f1b-adc6-7241c09f8cf5",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 18,
             "locked": false,
             "multiselect": false,
@@ -3465,6 +3465,7 @@
             "updatedAt": 1783293573229
         },
         "571a0e0b-b36c-45f3-ae9a-5fde39045c11": {
+            "accessModifierKind": "public",
             "createdAt": 1782071674504,
             "defaultValue": {
                 "value": [
@@ -3476,7 +3477,6 @@
             "extendsMemberId": "5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
             "id": "571a0e0b-b36c-45f3-ae9a-5fde39045c11",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": true,
             "name": "PlacementTiles",
@@ -3493,6 +3493,7 @@
             "updatedAt": 1782071674504
         },
         "5a4d8d10-9fef-4197-a7a1-1dc1b112677b": {
+            "accessModifierKind": "public",
             "createdAt": 1778181136287,
             "defaultValue": {
                 "value": false
@@ -3500,7 +3501,6 @@
             "extendsMemberId": null,
             "id": "5a4d8d10-9fef-4197-a7a1-1dc1b112677b",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 1,
             "locked": false,
             "name": "Unlocked",
@@ -3511,6 +3511,7 @@
             "valueId": "41864bd4-c129-4353-b868-3e9a7cca257f"
         },
         "5a9ca1f5-a21b-4d4e-8c55-00341af594b4": {
+            "accessModifierKind": "public",
             "createdAt": 1782012571783,
             "defaultValue": {
                 "value": []
@@ -3518,7 +3519,6 @@
             "entryMemberId": "c2bf0c92-1d24-4950-bea3-37d5f195728d",
             "id": "5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": true,
             "name": "PlacementTiles",
@@ -3535,6 +3535,7 @@
             "updatedAt": 1782012571783
         },
         "6133e24a-bf87-4d3a-a71e-3933eebcab25": {
+            "accessModifierKind": "public",
             "createdAt": 1778705339968,
             "defaultValue": {
                 "value": {
@@ -3545,7 +3546,6 @@
             "extendsMemberId": "7ce8a389-265c-4ad4-90f4-42c3e91e7648",
             "id": "6133e24a-bf87-4d3a-a71e-3933eebcab25",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 11,
             "locked": false,
             "name": "Image",
@@ -3557,6 +3557,7 @@
             "valueId": "4b4ff858-9c56-4df8-8f3a-46e06d53a7e0"
         },
         "6223e7c9-a37a-480d-820b-c70f53c6eb0d": {
+            "accessModifierKind": "public",
             "createdAt": 1778021394854,
             "defaultValue": {
                 "value": {}
@@ -3565,7 +3566,6 @@
             "extendsMemberId": null,
             "id": "6223e7c9-a37a-480d-820b-c70f53c6eb0d",
             "isStatic": false,
-            "accessModifierKind": "public",
             "keyKind": "string",
             "kind": 5,
             "locked": true,
@@ -3584,6 +3584,7 @@
             "valueId": "2831fdaa-9090-4bfc-aae3-c70c16a67151"
         },
         "659589fe-95b2-472f-a53b-e305db97450f": {
+            "accessModifierKind": "public",
             "classId": "7755a905-f2a1-4e5d-8b60-78cbdd2b2042",
             "createdAt": 1777767446642,
             "defaultValue": {
@@ -3592,7 +3593,6 @@
             "extendsMemberId": null,
             "id": "659589fe-95b2-472f-a53b-e305db97450f",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "visits",
@@ -3602,6 +3602,7 @@
             "valueId": "77561c95-0c3f-4291-a79b-7e5562d8ee30"
         },
         "663d7511-cfc3-427c-8431-90cfc87a9813": {
+            "accessModifierKind": "public",
             "createdAt": 1783293573229,
             "defaultValue": {
                 "value": [
@@ -3611,7 +3612,6 @@
             "dialogueGroupId": null,
             "id": "663d7511-cfc3-427c-8431-90cfc87a9813",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 18,
             "locked": false,
             "multiselect": false,
@@ -3621,6 +3621,7 @@
             "updatedAt": 1783293573229
         },
         "66e49f29-58cb-4ac7-b128-93febd0f0fb1": {
+            "accessModifierKind": "public",
             "createdAt": 1778274529518,
             "defaultValue": {
                 "value": "b3867593-d854-402b-a1a7-5517bec1b9eb"
@@ -3628,7 +3629,6 @@
             "extendsMemberId": null,
             "id": "66e49f29-58cb-4ac7-b128-93febd0f0fb1",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "locked": false,
             "name": "Name",
@@ -3639,10 +3639,10 @@
             "valueId": "0705a0e0-7f9c-4a5b-953e-55f982e2b381"
         },
         "679e3c47-e6eb-4808-bcc5-2f8440612626": {
+            "accessModifierKind": "public",
             "createdAt": 1781759873079,
             "id": "679e3c47-e6eb-4808-bcc5-2f8440612626",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "localizable": false,
             "locked": false,
@@ -3652,6 +3652,7 @@
             "updatedAt": 1781759873079
         },
         "68cd6fe1-7683-4c67-8030-acd6334f77a2": {
+            "accessModifierKind": "public",
             "createdAt": 1778182130537,
             "defaultValue": {
                 "value": 0
@@ -3659,7 +3660,6 @@
             "extendsMemberId": null,
             "id": "68cd6fe1-7683-4c67-8030-acd6334f77a2",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 2,
             "locked": false,
             "minValue": 0,
@@ -3671,6 +3671,7 @@
             "valueId": "88ce44e7-34c5-4dea-a2a2-ed0fd450a934"
         },
         "6cc17e87-3907-4f96-84a2-b0b5a32bac25": {
+            "accessModifierKind": "public",
             "classId": "44d6324f-6507-4420-a919-3496681c3b21",
             "createdAt": 1781255794887,
             "defaultValue": {
@@ -3678,7 +3679,6 @@
             },
             "id": "6cc17e87-3907-4f96-84a2-b0b5a32bac25",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "Audio",
@@ -3687,13 +3687,13 @@
             "updatedAt": 1781255794887
         },
         "6ed1890b-0ae6-4979-bf5b-6f216d69f432": {
+            "accessModifierKind": "public",
             "createdAt": 1781855034923,
             "defaultValue": {
                 "value": false
             },
             "id": "6ed1890b-0ae6-4979-bf5b-6f216d69f432",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 1,
             "locked": true,
             "name": "isTrigger",
@@ -3710,6 +3710,7 @@
             "updatedAt": 1781855034923
         },
         "7202cfb6-9cc4-49d3-b3fb-e44a23915b40": {
+            "accessModifierKind": "public",
             "createdAt": 1782971224672,
             "defaultValue": {
                 "value": {
@@ -3719,7 +3720,6 @@
             },
             "id": "7202cfb6-9cc4-49d3-b3fb-e44a23915b40",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 15,
             "locked": true,
             "name": "Cell",
@@ -3736,12 +3736,12 @@
             "updatedAt": 1782971224672
         },
         "736ca2ec-5f56-4f93-8cc5-c8b2ae8f76a1": {
+            "accessModifierKind": "public",
             "argumentTypes": [],
             "createdAt": 1781260632312,
             "deferred": false,
             "id": "736ca2ec-5f56-4f93-8cc5-c8b2ae8f76a1",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 13,
             "locked": false,
             "name": "ShowRelic",
@@ -3754,13 +3754,13 @@
             "updatedAt": 1781260632312
         },
         "788a3dbc-6167-4320-83aa-1e884924f776": {
+            "accessModifierKind": "public",
             "createdAt": 1781855034923,
             "defaultValue": {
                 "value": ""
             },
             "id": "788a3dbc-6167-4320-83aa-1e884924f776",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "localizable": false,
             "locked": true,
@@ -3778,12 +3778,12 @@
             "updatedAt": 1781855034923
         },
         "7a3f6a94-a649-4b75-8776-eb623f55fe1b": {
+            "accessModifierKind": "public",
             "classId": "11177bd5-0678-4bff-86b8-46718ff1827b",
             "createdAt": 1781252823343,
             "defaultValue": null,
             "id": "7a3f6a94-a649-4b75-8776-eb623f55fe1b",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "ShipAnimation",
@@ -3792,11 +3792,11 @@
             "updatedAt": 1781252823343
         },
         "7ce8a389-265c-4ad4-90f4-42c3e91e7648": {
+            "accessModifierKind": "public",
             "createdAt": 1778661108520,
             "extendsMemberId": null,
             "id": "7ce8a389-265c-4ad4-90f4-42c3e91e7648",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 11,
             "locked": false,
             "name": "Image",
@@ -3807,10 +3807,10 @@
             "updatedAt": 1778730024855
         },
         "7d53ed57-05e7-47f9-a805-f7917b77dc55": {
+            "accessModifierKind": "public",
             "createdAt": 1781251248136,
             "id": "7d53ed57-05e7-47f9-a805-f7917b77dc55",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 11,
             "locked": false,
             "name": "ShipSprite",
@@ -3819,6 +3819,7 @@
             "updatedAt": 1781251248136
         },
         "7ec79ef8-a216-407f-8886-9f770bc9895b": {
+            "accessModifierKind": "public",
             "createdAt": 1781855034923,
             "defaultValue": {
                 "value": [
@@ -3828,7 +3829,6 @@
             "entryMemberId": "10be115c-1d1f-49f2-ae26-ab4b52657fda",
             "id": "7ec79ef8-a216-407f-8886-9f770bc9895b",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": true,
             "name": "SortingLayers",
@@ -3846,6 +3846,7 @@
             "valueId": "e82662a0-10be-45cb-8c4a-a5d8b6b5bb0c"
         },
         "7fc41bde-418a-4507-8c4b-9b75d7012125": {
+            "accessModifierKind": "public",
             "createdAt": 1782012571783,
             "defaultValue": {
                 "value": {
@@ -3856,7 +3857,6 @@
             },
             "id": "7fc41bde-418a-4507-8c4b-9b75d7012125",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 16,
             "locked": true,
             "name": "Position",
@@ -3873,10 +3873,10 @@
             "updatedAt": 1782012571783
         },
         "8042556b-586e-4f79-b358-80924968a7b8": {
+            "accessModifierKind": "public",
             "createdAt": 1781270849822,
             "id": "8042556b-586e-4f79-b358-80924968a7b8",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 11,
             "locked": false,
             "name": "SaturnSprite",
@@ -3885,11 +3885,11 @@
             "updatedAt": 1781270849822
         },
         "80d05ad2-08ff-4e17-8b29-8b185562b2c6": {
+            "accessModifierKind": "public",
             "classId": "22a62498-61f8-4b6f-8d4c-bc05743a5c2e",
             "createdAt": 1781759873079,
             "id": "80d05ad2-08ff-4e17-8b29-8b185562b2c6",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "Worlds",
@@ -3898,6 +3898,7 @@
             "updatedAt": 1781759873079
         },
         "82a12a52-95ac-453a-9353-24c11a63c530": {
+            "accessModifierKind": "public",
             "collectionMemberId": "2827aefd-7f57-48ea-994c-c5c39ec659e3",
             "createdAt": 1778181415652,
             "defaultValue": {
@@ -3908,7 +3909,6 @@
             "extendsMemberId": null,
             "id": "82a12a52-95ac-453a-9353-24c11a63c530",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 9,
             "locked": false,
             "multiselect": false,
@@ -3920,6 +3920,7 @@
             "valueId": "3918da79-ae6d-4da7-a61f-e39d559f2faf"
         },
         "84960eeb-60ea-4241-a074-99a47a0d8dc1": {
+            "accessModifierKind": "public",
             "createdAt": 1778021394040,
             "defaultValue": {
                 "value": {}
@@ -3928,7 +3929,6 @@
             "extendsMemberId": null,
             "id": "84960eeb-60ea-4241-a074-99a47a0d8dc1",
             "isStatic": false,
-            "accessModifierKind": "public",
             "keyKind": "string",
             "kind": 5,
             "locked": true,
@@ -3947,6 +3947,7 @@
             "valueId": "cb814b03-88c8-482b-9fb2-d839b1f529ae"
         },
         "87ec59c5-a157-4670-9cb9-794487cc79d3": {
+            "accessModifierKind": "public",
             "createdAt": 1779226040699,
             "defaultValue": {
                 "value": 30
@@ -3954,7 +3955,6 @@
             "extendsMemberId": null,
             "id": "87ec59c5-a157-4670-9cb9-794487cc79d3",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 2,
             "locked": false,
             "minValue": 1,
@@ -3966,6 +3966,7 @@
             "valueId": "e780e4d7-17e8-49db-8fa9-bd641a322110"
         },
         "89dbb12e-1d7c-42ad-b872-63fc7fe8bd5b": {
+            "accessModifierKind": "public",
             "collectionMemberId": "7ec79ef8-a216-407f-8886-9f770bc9895b",
             "collectionValueId": "e82662a0-10be-45cb-8c4a-a5d8b6b5bb0c",
             "createdAt": 1781855034923,
@@ -3976,7 +3977,6 @@
             },
             "id": "89dbb12e-1d7c-42ad-b872-63fc7fe8bd5b",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 9,
             "locked": true,
             "multiselect": false,
@@ -3994,6 +3994,7 @@
             "updatedAt": 1781855034923
         },
         "8b8ac389-c9a7-4a0c-8335-2352865ee1b4": {
+            "accessModifierKind": "public",
             "createdAt": 1779225043431,
             "defaultValue": {
                 "value": "5c90af78-a25e-462a-b5c3-8082e5080037"
@@ -4001,7 +4002,6 @@
             "extendsMemberId": null,
             "id": "8b8ac389-c9a7-4a0c-8335-2352865ee1b4",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "locked": false,
             "name": "Name",
@@ -4012,6 +4012,7 @@
             "valueId": "49449402-1124-4f63-a9b3-cdde0ba4641b"
         },
         "8bfadaa8-14e9-4488-a103-ee688c1cc9c4": {
+            "accessModifierKind": "public",
             "createdAt": 1782971224672,
             "defaultValue": {
                 "value": []
@@ -4019,7 +4020,6 @@
             "entryMemberId": "11873fad-7426-46cf-97d6-47b45bd1c091",
             "id": "8bfadaa8-14e9-4488-a103-ee688c1cc9c4",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": true,
             "name": "Neighbors",
@@ -4036,10 +4036,10 @@
             "updatedAt": 1782971224672
         },
         "8d27045c-c3a0-44ae-9095-499e2f9779a7": {
+            "accessModifierKind": "public",
             "createdAt": 1781251248136,
             "id": "8d27045c-c3a0-44ae-9095-499e2f9779a7",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 11,
             "locked": false,
             "name": "FirstWorldIconSprite",
@@ -4048,6 +4048,7 @@
             "updatedAt": 1781251248136
         },
         "8e8c5ddf-6273-4440-869e-f1f9ca5dc51b": {
+            "accessModifierKind": "public",
             "createdAt": 1782070492285,
             "defaultValue": {
                 "value": {
@@ -4059,7 +4060,6 @@
             "extendsMemberId": "e1d820d8-56b1-43ac-aa10-0a019f0dc38f",
             "id": "8e8c5ddf-6273-4440-869e-f1f9ca5dc51b",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 16,
             "locked": true,
             "name": "Size",
@@ -4078,13 +4078,13 @@
             "valueId": "6b9330df-6838-4f7b-9725-52f81b120a8a"
         },
         "8ece74e4-e17e-4e56-9ef6-8dc2bc9f59f0": {
+            "accessModifierKind": "public",
             "createdAt": 1781855034923,
             "defaultValue": {
                 "value": 100
             },
             "id": "8ece74e4-e17e-4e56-9ef6-8dc2bc9f59f0",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 2,
             "locked": true,
             "name": "PixelsPerUnit",
@@ -4101,6 +4101,7 @@
             "updatedAt": 1781855034923
         },
         "8f1dbf20-8d7c-49e0-9e0f-5e172da6f684": {
+            "accessModifierKind": "public",
             "classId": "dd0bbe5a-47ef-4164-9421-caea07f6f56f",
             "createdAt": 1777766565287,
             "defaultValue": {
@@ -4109,7 +4110,6 @@
             "extendsMemberId": null,
             "id": "8f1dbf20-8d7c-49e0-9e0f-5e172da6f684",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "Assets",
@@ -4126,6 +4126,7 @@
             "valueId": "393c69b8-ceb2-4405-9a0f-28516913f7b6"
         },
         "8f20c7ca-a552-4418-a355-6e35ee96639e": {
+            "accessModifierKind": "public",
             "createdAt": 1778021392533,
             "defaultValue": {
                 "value": null
@@ -4133,7 +4134,6 @@
             "extendsMemberId": null,
             "id": "8f20c7ca-a552-4418-a355-6e35ee96639e",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "locked": true,
             "name": "LastVisitedAt",
@@ -4150,6 +4150,7 @@
             "valueId": "0ccfb843-f35e-4afb-a5c9-01565c6f7edf"
         },
         "92fe2bbb-e542-40a7-9d5e-7a7ad5b9abca": {
+            "accessModifierKind": "public",
             "classId": "2ab1bc07-da0b-47fc-b77b-54cc511575bb",
             "createdAt": 1777767332524,
             "defaultValue": {
@@ -4158,7 +4159,6 @@
             "extendsMemberId": null,
             "id": "92fe2bbb-e542-40a7-9d5e-7a7ad5b9abca",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "Computed",
@@ -4168,6 +4168,7 @@
             "valueId": "f048262e-5a44-4a7d-b548-5aa24158fde3"
         },
         "934a2525-f95d-4c09-9504-b71da30b9186": {
+            "accessModifierKind": "public",
             "classId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
             "createdAt": 1782514300374,
             "defaultValue": {
@@ -4175,7 +4176,6 @@
             },
             "id": "934a2525-f95d-4c09-9504-b71da30b9186",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "Object",
@@ -4192,6 +4192,7 @@
             "updatedAt": 1782514300374
         },
         "94472662-a3a9-4c02-8abb-6229442e1e49": {
+            "accessModifierKind": "public",
             "classId": "7ed188f9-484b-4692-840d-436acf1635aa",
             "createdAt": 1783367074921,
             "defaultValue": {
@@ -4204,7 +4205,6 @@
             "extendsMemberId": "a0083c92-72f7-405f-8863-ff86f995d36d",
             "id": "94472662-a3a9-4c02-8abb-6229442e1e49",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "Collider",
@@ -4223,6 +4223,7 @@
             "valueId": "cd559dee-a2c9-4ca9-a4b9-0ef2fd8651ec"
         },
         "9619809a-f7f0-4605-8f79-d1617b339819": {
+            "accessModifierKind": "public",
             "classId": "4c196697-4e08-4aeb-823f-322b353071ac",
             "createdAt": 1778178223515,
             "defaultValue": {
@@ -4231,7 +4232,6 @@
             "extendsMemberId": null,
             "id": "9619809a-f7f0-4605-8f79-d1617b339819",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "Outpost",
@@ -4242,6 +4242,7 @@
             "valueId": "0a5924c6-5603-49d5-9c2d-a83cdb68b790"
         },
         "96cda8f5-3100-45b5-adcb-0552d21504dd": {
+            "accessModifierKind": "public",
             "classId": "89b38b34-c040-4e69-8707-487f1484a056",
             "createdAt": 1782971224672,
             "defaultValue": {
@@ -4249,7 +4250,6 @@
             },
             "id": "96cda8f5-3100-45b5-adcb-0552d21504dd",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "SmartTile",
@@ -4266,6 +4266,7 @@
             "updatedAt": 1782971224672
         },
         "97cb9d95-2d54-4809-ae88-0b0ba7859248": {
+            "accessModifierKind": "public",
             "createdAt": 1782971224672,
             "defaultValue": {
                 "value": []
@@ -4273,7 +4274,6 @@
             "entryMemberId": "fa146cb3-b0d5-4a87-a781-918b78307b20",
             "id": "97cb9d95-2d54-4809-ae88-0b0ba7859248",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": true,
             "name": "Rules",
@@ -4290,6 +4290,7 @@
             "updatedAt": 1782971224672
         },
         "98578ba3-a70e-4397-9283-996a898d44c8": {
+            "accessModifierKind": "public",
             "createdAt": 1782348579677,
             "defaultValue": {
                 "value": []
@@ -4297,7 +4298,6 @@
             "entryMemberId": "f1d89b43-7de6-4d50-9614-342bcdf85531",
             "id": "98578ba3-a70e-4397-9283-996a898d44c8",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "listKind": null,
             "locked": true,
@@ -4316,10 +4316,10 @@
             "updatedAt": 1783208181138
         },
         "9862c2d2-92ad-48d6-8ed3-a1e4e3e8c35e": {
+            "accessModifierKind": "public",
             "createdAt": 1781255546299,
             "id": "9862c2d2-92ad-48d6-8ed3-a1e4e3e8c35e",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 12,
             "locked": false,
             "name": "DialogNextSfx",
@@ -4328,6 +4328,7 @@
             "updatedAt": 1781255546299
         },
         "98655d2b-ad0b-45e2-a901-62600b4d3a22": {
+            "accessModifierKind": "public",
             "createdAt": 1782012571783,
             "defaultValue": {
                 "value": []
@@ -4335,7 +4336,6 @@
             "entryMemberId": "04383910-20a1-4c7f-ad90-f87e165083ba",
             "id": "98655d2b-ad0b-45e2-a901-62600b4d3a22",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "listKind": "unordered",
             "locked": true,
@@ -4353,11 +4353,11 @@
             "updatedAt": 1783191296652
         },
         "99a98018-cf3f-40b0-8405-7b0e1e0020e0": {
+            "accessModifierKind": "public",
             "classId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
             "createdAt": 1782014212397,
             "id": "99a98018-cf3f-40b0-8405-7b0e1e0020e0",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "Children Entry",
@@ -4366,6 +4366,7 @@
             "updatedAt": 1782014212397
         },
         "99b07db1-f732-437e-a903-98183edca96b": {
+            "accessModifierKind": "public",
             "classId": "6c6f3bb8-30a0-4132-b0d4-cce75943aedd",
             "createdAt": 1778021395169,
             "defaultValue": {
@@ -4374,7 +4375,6 @@
             "extendsMemberId": null,
             "id": "99b07db1-f732-437e-a903-98183edca96b",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "NeoMemory",
@@ -4392,13 +4392,13 @@
             "valueId": "214298ea-871a-4597-87c6-6cae03eab504"
         },
         "9ae9cf8b-4ea1-413e-8c7a-dcabe1a5cc98": {
+            "accessModifierKind": "public",
             "createdAt": 1782971224672,
             "defaultValue": {
                 "value": 1
             },
             "id": "9ae9cf8b-4ea1-413e-8c7a-dcabe1a5cc98",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 4,
             "locked": true,
             "minValue": 0,
@@ -4416,6 +4416,7 @@
             "updatedAt": 1782971224672
         },
         "9b22d8df-ea41-4c76-9d2e-a6c64c95a64a": {
+            "accessModifierKind": "public",
             "createdAt": 1782971224672,
             "defaultValue": {
                 "value": [
@@ -4425,7 +4426,6 @@
             "enumId": "551025ad-e441-4d43-90b0-2821c6235786",
             "id": "9b22d8df-ea41-4c76-9d2e-a6c64c95a64a",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 8,
             "locked": true,
             "multiselect": false,
@@ -4443,6 +4443,7 @@
             "updatedAt": 1782971224672
         },
         "a0083c92-72f7-405f-8863-ff86f995d36d": {
+            "accessModifierKind": "public",
             "classId": "7ed188f9-484b-4692-840d-436acf1635aa",
             "createdAt": 1782012571783,
             "defaultValue": {
@@ -4450,7 +4451,6 @@
             },
             "id": "a0083c92-72f7-405f-8863-ff86f995d36d",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "Collider",
@@ -4467,10 +4467,10 @@
             "updatedAt": 1782012571783
         },
         "a44ed1c2-3296-40e1-b9ef-7924ec97cb21": {
+            "accessModifierKind": "public",
             "createdAt": 1781255546299,
             "id": "a44ed1c2-3296-40e1-b9ef-7924ec97cb21",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 12,
             "locked": false,
             "name": "ItemGetSfx",
@@ -4479,6 +4479,7 @@
             "updatedAt": 1781255546299
         },
         "a65d4782-28cb-401f-8577-128dccca3d46": {
+            "accessModifierKind": "public",
             "createdAt": 1777846624003,
             "defaultValue": {
                 "value": {}
@@ -4487,7 +4488,6 @@
             "extendsMemberId": null,
             "id": "a65d4782-28cb-401f-8577-128dccca3d46",
             "isStatic": false,
-            "accessModifierKind": "public",
             "keyKind": "string",
             "kind": 5,
             "locked": false,
@@ -4498,13 +4498,13 @@
             "valueId": "ad543d1b-ed0a-45c3-b528-e55e9c41a288"
         },
         "a804bead-3d5b-4c68-a733-94e85e1e79b6": {
+            "accessModifierKind": "public",
             "createdAt": 1778179749948,
             "defaultValue": null,
             "enumId": "9d3ef3f4-0823-412b-a2b6-97874739072d",
             "extendsMemberId": null,
             "id": "a804bead-3d5b-4c68-a733-94e85e1e79b6",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 8,
             "locked": false,
             "multiselect": false,
@@ -4515,6 +4515,7 @@
             "updatedAt": 1778179749948
         },
         "a8a1eee9-5662-4b22-9b55-10ebfc8438c4": {
+            "accessModifierKind": "public",
             "createdAt": 1781246186689,
             "defaultValue": {
                 "value": [
@@ -4524,7 +4525,6 @@
             "enumId": "d0b44688-28ab-44ba-b2a1-5cdad0f51e50",
             "id": "a8a1eee9-5662-4b22-9b55-10ebfc8438c4",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 8,
             "locked": false,
             "multiselect": false,
@@ -4534,6 +4534,7 @@
             "updatedAt": 1781246186689
         },
         "acf7a92c-9ede-4a0d-a00c-c8c64e7a9b80": {
+            "accessModifierKind": "public",
             "code": "\t\tPlanet planet = root.Save.World;\n\t\tstring suffix = this.optionalSuffix ?? \"\";\n\t\treturn $\"{this.baseText} {planet}{suffix}\";",
             "createdAt": 1777767024481,
             "getter": {
@@ -4733,7 +4734,6 @@
             "id": "acf7a92c-9ede-4a0d-a00c-c8c64e7a9b80",
             "isAbstract": false,
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 10,
             "locked": false,
@@ -4746,7 +4746,26 @@
             },
             "updatedAt": 1784026083511
         },
+        "adb76be1-a78d-4736-8375-1c579455c396": {
+            "accessModifierKind": "public",
+            "classId": "b44d80a9-7760-4919-8844-0cb71d08b788",
+            "createdAt": 1784531210276,
+            "defaultValue": {
+                "value": {}
+            },
+            "id": "adb76be1-a78d-4736-8375-1c579455c396",
+            "isStatic": false,
+            "isVirtual": true,
+            "kind": 7,
+            "locked": false,
+            "name": "ScreenshotEmptyGrid",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "updatedAt": 1784531210276,
+            "valueId": "3089c4cc-1238-48af-a379-2d0212d0bf31"
+        },
         "b0b3c45c-a87d-4218-b056-7418ef46aac5": {
+            "accessModifierKind": "public",
             "createdAt": 1782012571783,
             "defaultValue": {
                 "value": {
@@ -4756,7 +4775,6 @@
             },
             "id": "b0b3c45c-a87d-4218-b056-7418ef46aac5",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 15,
             "locked": true,
             "name": "Cell",
@@ -4773,11 +4791,11 @@
             "updatedAt": 1782012571783
         },
         "b21bfd01-1234-4f49-ab6b-889f829cb148": {
+            "accessModifierKind": "public",
             "createdAt": 1782012571783,
             "defaultValue": null,
             "id": "b21bfd01-1234-4f49-ab6b-889f829cb148",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "localizable": false,
             "locked": true,
@@ -4795,6 +4813,7 @@
             "updatedAt": 1782012571783
         },
         "b3280478-f039-47a2-aa18-918175818bcb": {
+            "accessModifierKind": "public",
             "classId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
             "createdAt": 1782012571783,
             "defaultValue": {
@@ -4802,7 +4821,6 @@
             },
             "id": "b3280478-f039-47a2-aa18-918175818bcb",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "Child",
@@ -4819,12 +4837,12 @@
             "updatedAt": 1782012571783
         },
         "b56410b3-b2da-4681-897f-a25ce0a0ceb1": {
+            "accessModifierKind": "public",
             "createdAt": 1778176440439,
             "defaultValue": null,
             "extendsMemberId": null,
             "id": "b56410b3-b2da-4681-897f-a25ce0a0ceb1",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "locked": false,
             "name": "Name",
@@ -4835,6 +4853,7 @@
             "updatedAt": 1783907241906
         },
         "b8f18264-dfdc-4ae7-ada7-77e1db50f70a": {
+            "accessModifierKind": "public",
             "collectionMemberId": "a65d4782-28cb-401f-8577-128dccca3d46",
             "createdAt": 1777846744892,
             "defaultValue": {
@@ -4843,7 +4862,6 @@
             "extendsMemberId": null,
             "id": "b8f18264-dfdc-4ae7-ada7-77e1db50f70a",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 9,
             "locked": false,
             "multiselect": false,
@@ -4855,6 +4873,7 @@
             "valueId": "41ea31b5-730c-4371-9bed-509978052ad9"
         },
         "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071": {
+            "accessModifierKind": "public",
             "createdAt": 1782012571783,
             "defaultValue": {
                 "value": []
@@ -4862,7 +4881,6 @@
             "entryMemberId": "b3280478-f039-47a2-aa18-918175818bcb",
             "id": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": true,
             "name": "Children",
@@ -4879,6 +4897,7 @@
             "updatedAt": 1782012571783
         },
         "bf4a75b5-acf9-4ff8-8511-57f871749db3": {
+            "accessModifierKind": "public",
             "collectionMemberId": "214df1a1-abca-4141-987b-380a5417c70a",
             "createdAt": 1778274805984,
             "defaultValue": {
@@ -4887,7 +4906,6 @@
             "extendsMemberId": null,
             "id": "bf4a75b5-acf9-4ff8-8511-57f871749db3",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 9,
             "locked": false,
             "multiselect": true,
@@ -4899,6 +4917,7 @@
             "valueId": "fcd6fe32-3a31-4ed0-a9bf-b2aa8fb2e727"
         },
         "c151eda4-ecce-4edf-988d-25a97c657146": {
+            "accessModifierKind": "public",
             "createdAt": 1777767446748,
             "defaultValue": {
                 "value": []
@@ -4907,7 +4926,6 @@
             "extendsMemberId": null,
             "id": "c151eda4-ecce-4edf-988d-25a97c657146",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": false,
             "name": "Visited",
@@ -4917,6 +4935,7 @@
             "valueId": "8ed8c9f9-ea7a-4aa4-9b58-8454cb4db68e"
         },
         "c2bf0c92-1d24-4950-bea3-37d5f195728d": {
+            "accessModifierKind": "public",
             "classId": "38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6",
             "createdAt": 1782012571783,
             "defaultValue": {
@@ -4924,7 +4943,6 @@
             },
             "id": "c2bf0c92-1d24-4950-bea3-37d5f195728d",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "PlacementTile",
@@ -4941,6 +4959,7 @@
             "updatedAt": 1782012571783
         },
         "c481dc1e-b5fd-4352-a76b-536cc3e17f71": {
+            "accessModifierKind": "public",
             "createdAt": 1782014212397,
             "defaultValue": {
                 "value": [
@@ -4951,7 +4970,6 @@
             "extendsMemberId": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
             "id": "c481dc1e-b5fd-4352-a76b-536cc3e17f71",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": true,
             "name": "Children",
@@ -4960,6 +4978,7 @@
             "updatedAt": 1782174037995
         },
         "c66c17e3-ecfc-4f41-96de-6a53bb2acd4f": {
+            "accessModifierKind": "public",
             "createdAt": 1781855034923,
             "defaultValue": {
                 "value": {
@@ -4969,7 +4988,6 @@
             },
             "id": "c66c17e3-ecfc-4f41-96de-6a53bb2acd4f",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 14,
             "locked": true,
             "name": "size",
@@ -4986,13 +5004,13 @@
             "updatedAt": 1781855034923
         },
         "c91791ff-8b41-47b2-ba12-81a84e595f42": {
+            "accessModifierKind": "public",
             "createdAt": 1778178892946,
             "defaultValue": null,
             "enumId": "a2d44a04-35a6-4529-8fd2-f54a55cf518b",
             "extendsMemberId": null,
             "id": "c91791ff-8b41-47b2-ba12-81a84e595f42",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 8,
             "locked": false,
             "multiselect": false,
@@ -5003,13 +5021,13 @@
             "updatedAt": 1778178892946
         },
         "cab850e3-cf8c-42b3-a70b-f0066089e6fb": {
+            "accessModifierKind": "public",
             "argumentTypes": [],
             "createdAt": 1779222410830,
             "deferred": true,
             "extendsMemberId": null,
             "id": "cab850e3-cf8c-42b3-a70b-f0066089e6fb",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 13,
             "locked": false,
             "name": "PlayAnimation",
@@ -5023,13 +5041,13 @@
             "updatedAt": 1779237891832
         },
         "cb9bb845-466c-46ac-aee0-345163dcfbf3": {
+            "accessModifierKind": "public",
             "createdAt": 1781263318274,
             "defaultValue": {
                 "value": 0
             },
             "id": "cb9bb845-466c-46ac-aee0-345163dcfbf3",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 2,
             "locked": false,
             "minValue": 0,
@@ -5039,10 +5057,10 @@
             "updatedAt": 1781263318274
         },
         "cbd6db9a-f473-44b5-b913-7cdc06452f35": {
+            "accessModifierKind": "public",
             "createdAt": 1781999981286,
             "id": "cbd6db9a-f473-44b5-b913-7cdc06452f35",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 11,
             "locked": true,
             "name": "Sprite",
@@ -5059,13 +5077,13 @@
             "updatedAt": 1781999981286
         },
         "cc7fec3f-593b-4888-bf93-b9bb6bcb5e44": {
+            "accessModifierKind": "public",
             "createdAt": 1779225087356,
             "defaultValue": null,
             "entryMemberId": "d17d421c-b2e8-4956-baf5-ab174d1f4cb0",
             "extendsMemberId": null,
             "id": "cc7fec3f-593b-4888-bf93-b9bb6bcb5e44",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": false,
             "name": "Frames",
@@ -5075,6 +5093,7 @@
             "updatedAt": 1779225087356
         },
         "cccadaa5-0623-4a0f-9197-7175726c0e8b": {
+            "accessModifierKind": "public",
             "code": "\t\treturn this.SaveUnsafe!;",
             "createdAt": 1778184221229,
             "getter": {
@@ -5146,7 +5165,6 @@
             "id": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
             "isAbstract": false,
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 10,
             "locked": false,
@@ -5161,6 +5179,7 @@
             "updatedAt": 1784026083511
         },
         "cd315e41-810f-4be5-8537-5e5cc6218976": {
+            "accessModifierKind": "public",
             "createdAt": 1781994690524,
             "defaultValue": {
                 "value": "ConsoleObject"
@@ -5168,7 +5187,6 @@
             "extendsMemberId": "3b02422f-1ef2-4a50-8386-155d5001082b",
             "id": "cd315e41-810f-4be5-8537-5e5cc6218976",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "localizable": false,
             "locked": false,
@@ -5178,6 +5196,7 @@
             "updatedAt": 1781994690524
         },
         "cd79c978-da95-4da3-8aa5-eea57f9e4f2c": {
+            "accessModifierKind": "public",
             "code": "return this.VisitCount > 0;",
             "createdAt": 1778021394195,
             "getter": {
@@ -5274,7 +5293,6 @@
             "id": "cd79c978-da95-4da3-8aa5-eea57f9e4f2c",
             "isAbstract": false,
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 10,
             "locked": true,
@@ -5295,10 +5313,10 @@
             "updatedAt": 1784026083511
         },
         "d12785e9-fd6f-4591-81a0-4dabd2b95526": {
+            "accessModifierKind": "public",
             "createdAt": 1781219796025,
             "id": "d12785e9-fd6f-4591-81a0-4dabd2b95526",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 4,
             "locked": false,
             "maxValue": 1000,
@@ -5309,12 +5327,12 @@
             "updatedAt": 1781221776244
         },
         "d17d421c-b2e8-4956-baf5-ab174d1f4cb0": {
+            "accessModifierKind": "public",
             "createdAt": 1779225087309,
             "defaultValue": null,
             "extendsMemberId": null,
             "id": "d17d421c-b2e8-4956-baf5-ab174d1f4cb0",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 11,
             "locked": false,
             "name": "List",
@@ -5326,10 +5344,10 @@
             "valueId": "3d7dd2b8-d157-4ebd-832c-334806cd6b1c"
         },
         "d30300c6-4fca-4fa4-be07-65ccc5ebc427": {
+            "accessModifierKind": "public",
             "createdAt": 1781255546299,
             "id": "d30300c6-4fca-4fa4-be07-65ccc5ebc427",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 12,
             "locked": false,
             "name": "BitsSpendSfx",
@@ -5338,6 +5356,7 @@
             "updatedAt": 1781255546299
         },
         "d4a33b58-95a5-4874-8236-05ec38df8f82": {
+            "accessModifierKind": "public",
             "createdAt": 1783293573229,
             "defaultValue": {
                 "value": [
@@ -5347,7 +5366,6 @@
             "dialogueGroupId": null,
             "id": "d4a33b58-95a5-4874-8236-05ec38df8f82",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 18,
             "locked": false,
             "multiselect": false,
@@ -5357,11 +5375,11 @@
             "updatedAt": 1783293573229
         },
         "d56d641e-4f15-4da6-8c1f-114016c9166d": {
+            "accessModifierKind": "public",
             "createdAt": 1777767008066,
             "extendsMemberId": null,
             "id": "d56d641e-4f15-4da6-8c1f-114016c9166d",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "locked": false,
             "name": "optionalSuffix",
@@ -5370,6 +5388,7 @@
             "updatedAt": 1784013205429
         },
         "d611cb73-fc9b-44e8-a3d9-5784253cae6f": {
+            "accessModifierKind": "public",
             "createdAt": 1781994690524,
             "defaultValue": {
                 "value": "ConsoleTile"
@@ -5377,7 +5396,6 @@
             "extendsMemberId": "3b02422f-1ef2-4a50-8386-155d5001082b",
             "id": "d611cb73-fc9b-44e8-a3d9-5784253cae6f",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "localizable": false,
             "locked": false,
@@ -5387,13 +5405,13 @@
             "updatedAt": 1781994690524
         },
         "d7607422-7e33-402f-9fe6-8e9ac85a7019": {
+            "accessModifierKind": "public",
             "classId": "11177bd5-0678-4bff-86b8-46718ff1827b",
             "createdAt": 1779225145699,
             "defaultValue": null,
             "extendsMemberId": null,
             "id": "d7607422-7e33-402f-9fe6-8e9ac85a7019",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "AnimatedImage",
@@ -5408,6 +5426,7 @@
             "updatedAt": 1781251989245
         },
         "d8e9ad0e-157f-4709-96a7-8775efa3dd11": {
+            "accessModifierKind": "public",
             "createdAt": 1782957267819,
             "defaultValue": {
                 "value": [
@@ -5418,7 +5437,6 @@
             "extendsMemberId": "5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
             "id": "d8e9ad0e-157f-4709-96a7-8775efa3dd11",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": true,
             "name": "PlacementTiles",
@@ -5435,10 +5453,10 @@
             "updatedAt": 1782957267819
         },
         "dca14d32-7e42-4db4-8174-de9f3798a5be": {
+            "accessModifierKind": "public",
             "createdAt": 1781270849822,
             "id": "dca14d32-7e42-4db4-8174-de9f3798a5be",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 11,
             "locked": false,
             "name": "JupiterSprite",
@@ -5447,6 +5465,7 @@
             "updatedAt": 1781270849822
         },
         "dd65f671-aedb-4c17-8849-1a3290b5c4d0": {
+            "accessModifierKind": "public",
             "createdAt": 1778021392285,
             "defaultValue": {
                 "value": "48020dd6-3fb9-4b73-98be-fba38e00285b"
@@ -5454,7 +5473,6 @@
             "extendsMemberId": null,
             "id": "dd65f671-aedb-4c17-8849-1a3290b5c4d0",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "locked": true,
             "name": "ChoiceId",
@@ -5471,6 +5489,7 @@
             "valueId": "555389b1-1a61-416e-9ba8-4f1b4b9a9acf"
         },
         "dd6686e3-6435-47a3-b455-4cfbadad14ff": {
+            "accessModifierKind": "public",
             "classId": "60c25a92-cb01-46f7-b5cf-c9d950586116",
             "createdAt": 1778274659218,
             "defaultValue": {
@@ -5479,7 +5498,6 @@
             "extendsMemberId": null,
             "id": "dd6686e3-6435-47a3-b455-4cfbadad14ff",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "Item",
@@ -5490,6 +5508,7 @@
             "valueId": "45e98d35-3ff0-46d2-a115-533466acd814"
         },
         "de93c887-ea29-49bd-bfea-a6255b8b9a54": {
+            "accessModifierKind": "public",
             "createdAt": 1782014212397,
             "defaultValue": {
                 "value": [
@@ -5501,7 +5520,6 @@
             "extendsMemberId": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
             "id": "de93c887-ea29-49bd-bfea-a6255b8b9a54",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": true,
             "name": "Children",
@@ -5510,6 +5528,7 @@
             "updatedAt": 1782174037995
         },
         "defd7f67-7f35-4907-a75d-8da3b24b96f4": {
+            "accessModifierKind": "public",
             "createdAt": 1778021393443,
             "defaultValue": {
                 "value": null
@@ -5517,7 +5536,6 @@
             "extendsMemberId": null,
             "id": "defd7f67-7f35-4907-a75d-8da3b24b96f4",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "locked": true,
             "name": "LastVisitedAt",
@@ -5534,10 +5552,10 @@
             "valueId": "77d598df-148c-437e-bbb8-4a88ea916278"
         },
         "dfa0872f-9f3e-4083-8244-9f6d0fa88f8b": {
+            "accessModifierKind": "public",
             "createdAt": 1781263318274,
             "id": "dfa0872f-9f3e-4083-8244-9f6d0fa88f8b",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 11,
             "locked": false,
             "name": "SunSprite",
@@ -5546,6 +5564,7 @@
             "updatedAt": 1781263318274
         },
         "e0316e12-b70d-4d4a-9c16-1861ce394849": {
+            "accessModifierKind": "public",
             "createdAt": 1783293573229,
             "defaultValue": {
                 "value": [
@@ -5555,7 +5574,6 @@
             "dialogueGroupId": null,
             "id": "e0316e12-b70d-4d4a-9c16-1861ce394849",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 18,
             "locked": false,
             "multiselect": false,
@@ -5565,6 +5583,7 @@
             "updatedAt": 1783293573229
         },
         "e1d820d8-56b1-43ac-aa10-0a019f0dc38f": {
+            "accessModifierKind": "public",
             "createdAt": 1782068826806,
             "defaultValue": {
                 "value": {
@@ -5575,7 +5594,6 @@
             },
             "id": "e1d820d8-56b1-43ac-aa10-0a019f0dc38f",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 16,
             "locked": true,
             "name": "Size",
@@ -5592,10 +5610,10 @@
             "updatedAt": 1782068826806
         },
         "e1f13e5c-3d16-476e-9fa4-c120959a4d32": {
+            "accessModifierKind": "public",
             "createdAt": 1781255546299,
             "id": "e1f13e5c-3d16-476e-9fa4-c120959a4d32",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 12,
             "locked": false,
             "name": "DialogOpenSfx",
@@ -5604,6 +5622,7 @@
             "updatedAt": 1781255546299
         },
         "e2a98ca7-1317-4743-9be1-19cd5ec47bf1": {
+            "accessModifierKind": "public",
             "createdAt": 1783293573229,
             "defaultValue": {
                 "value": [
@@ -5613,7 +5632,6 @@
             "dialogueGroupId": null,
             "id": "e2a98ca7-1317-4743-9be1-19cd5ec47bf1",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 18,
             "locked": false,
             "multiselect": false,
@@ -5623,6 +5641,7 @@
             "updatedAt": 1783293573229
         },
         "e549555b-9276-48d8-be33-156972520d31": {
+            "accessModifierKind": "public",
             "argumentTypes": [
                 {
                     "name": "text",
@@ -5635,7 +5654,6 @@
             "extendsMemberId": null,
             "id": "e549555b-9276-48d8-be33-156972520d31",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 13,
             "locked": false,
             "name": "DebugLog",
@@ -5649,6 +5667,7 @@
             "updatedAt": 1779220551113
         },
         "e5f5125c-fe5c-46b4-9589-9c6ae6fcba19": {
+            "accessModifierKind": "public",
             "classId": "7ed188f9-484b-4692-840d-436acf1635aa",
             "createdAt": 1783397352725,
             "defaultValue": {
@@ -5662,7 +5681,6 @@
             "extendsMemberId": "a0083c92-72f7-405f-8863-ff86f995d36d",
             "id": "e5f5125c-fe5c-46b4-9589-9c6ae6fcba19",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "Collider",
@@ -5674,10 +5692,10 @@
             "valueId": "5795c620-5095-4ac8-829d-bdeaa63a7a68"
         },
         "e6bdf8bd-bb3c-4827-b14c-24173d6b75d1": {
+            "accessModifierKind": "public",
             "createdAt": 1781255546299,
             "id": "e6bdf8bd-bb3c-4827-b14c-24173d6b75d1",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 12,
             "locked": false,
             "name": "DialogCloseSfx",
@@ -5686,11 +5704,11 @@
             "updatedAt": 1781255546299
         },
         "e9288ba9-f5a2-4485-8443-6afb155b31e0": {
+            "accessModifierKind": "public",
             "createdAt": 1782012571783,
             "defaultValue": null,
             "id": "e9288ba9-f5a2-4485-8443-6afb155b31e0",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 11,
             "locked": true,
             "name": "Sprite",
@@ -5708,13 +5726,13 @@
             "updatedAt": 1782012571783
         },
         "e963862e-6228-4594-8220-8ef06098c253": {
+            "accessModifierKind": "public",
             "createdAt": 1781855034923,
             "defaultValue": {
                 "value": ""
             },
             "id": "e963862e-6228-4594-8220-8ef06098c253",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "localizable": false,
             "locked": true,
@@ -5732,6 +5750,7 @@
             "updatedAt": 1781855034923
         },
         "ebab06a2-98e9-4a30-bb13-cfea8f910462": {
+            "accessModifierKind": "public",
             "createdAt": 1777767225733,
             "defaultValue": {
                 "value": [
@@ -5742,7 +5761,6 @@
             "extendsMemberId": null,
             "id": "ebab06a2-98e9-4a30-bb13-cfea8f910462",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 8,
             "locked": false,
             "multiselect": false,
@@ -5753,6 +5771,7 @@
             "valueId": "aefec66f-44bb-4c8e-931c-54897d4918ec"
         },
         "ec5b5d5e-7053-4378-87d1-9cceec30ff1a": {
+            "accessModifierKind": "public",
             "createdAt": 1781855034923,
             "defaultValue": {
                 "value": {
@@ -5762,7 +5781,6 @@
             },
             "id": "ec5b5d5e-7053-4378-87d1-9cceec30ff1a",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 14,
             "locked": true,
             "name": "offset",
@@ -5779,6 +5797,7 @@
             "updatedAt": 1783403829047
         },
         "f0ce0706-def6-41ff-b8e9-baa2a7a84de6": {
+            "accessModifierKind": "public",
             "classId": "63b261c9-46f2-4d37-84e9-06f16af04e58",
             "createdAt": 1778922605772,
             "defaultValue": {
@@ -5787,7 +5806,6 @@
             "extendsMemberId": null,
             "id": "f0ce0706-def6-41ff-b8e9-baa2a7a84de6",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "Session",
@@ -5799,6 +5817,7 @@
             "valueId": "ead7222b-86b4-48ac-bf9a-f9162689a8f2"
         },
         "f1d89b43-7de6-4d50-9614-342bcdf85531": {
+            "accessModifierKind": "public",
             "classId": "6d069010-c47c-4744-89af-243f4448f537",
             "createdAt": 1782348579677,
             "defaultValue": {
@@ -5806,7 +5825,6 @@
             },
             "id": "f1d89b43-7de6-4d50-9614-342bcdf85531",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "LayerGroup",
@@ -5823,6 +5841,7 @@
             "updatedAt": 1782348579677
         },
         "f4be2707-74f5-4833-9784-e81bb2474330": {
+            "accessModifierKind": "public",
             "createdAt": 1782539843163,
             "defaultValue": {
                 "value": {
@@ -5832,7 +5851,6 @@
             },
             "id": "f4be2707-74f5-4833-9784-e81bb2474330",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 15,
             "locked": true,
             "name": "Cell",
@@ -5849,11 +5867,11 @@
             "updatedAt": 1782539843163
         },
         "f5252031-8220-49be-bfc3-b717d5679ca8": {
+            "accessModifierKind": "public",
             "classId": "b44d80a9-7760-4919-8844-0cb71d08b788",
             "createdAt": 1781759873079,
             "id": "f5252031-8220-49be-bfc3-b717d5679ca8",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "OldConsoleLanding",
@@ -5862,6 +5880,7 @@
             "updatedAt": 1781759873079
         },
         "f66fba24-44d4-467c-98ac-4db1539910df": {
+            "accessModifierKind": "public",
             "code": "\t\treturn root.Save.OutpostSaveMap.FirstOrDefault((key, value) => { return key == this.Id; });",
             "createdAt": 1778184192413,
             "getter": {
@@ -6044,7 +6063,6 @@
             "id": "f66fba24-44d4-467c-98ac-4db1539910df",
             "isAbstract": false,
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 10,
             "locked": false,
@@ -6059,12 +6077,12 @@
             "updatedAt": 1784026083511
         },
         "f6c2157b-c0f2-4d6d-b16c-412675070862": {
+            "accessModifierKind": "public",
             "classId": "11177bd5-0678-4bff-86b8-46718ff1827b",
             "createdAt": 1781252823343,
             "defaultValue": null,
             "id": "f6c2157b-c0f2-4d6d-b16c-412675070862",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": false,
             "name": "FlareAnimation",
@@ -6073,10 +6091,10 @@
             "updatedAt": 1781252823343
         },
         "f7493cd5-3da1-44ef-a275-5997d765b640": {
+            "accessModifierKind": "public",
             "createdAt": 1781759873079,
             "id": "f7493cd5-3da1-44ef-a275-5997d765b640",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 3,
             "localizable": false,
             "locked": false,
@@ -6086,6 +6104,7 @@
             "updatedAt": 1781759873079
         },
         "f8106137-0cde-4be0-bce7-3db5cf40257a": {
+            "accessModifierKind": "public",
             "createdAt": 1782971224672,
             "defaultValue": {
                 "value": [
@@ -6095,7 +6114,6 @@
             "enumId": "6ff1b376-1b30-449d-8439-d822be95cec1",
             "id": "f8106137-0cde-4be0-bce7-3db5cf40257a",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 8,
             "locked": true,
             "multiselect": false,
@@ -6113,6 +6131,7 @@
             "updatedAt": 1782971224672
         },
         "f81b06c0-9dde-4674-b419-918f7cf23a4f": {
+            "accessModifierKind": "public",
             "classId": "af5795d0-e019-4776-8b7c-d0206f90d59f",
             "createdAt": 1778021392883,
             "defaultValue": {
@@ -6121,7 +6140,6 @@
             "extendsMemberId": null,
             "id": "f81b06c0-9dde-4674-b419-918f7cf23a4f",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "NeoChoiceLog",
@@ -6138,6 +6156,7 @@
             "valueId": "11cd55b5-6d41-43be-9897-93ac91dd4777"
         },
         "f8e217b1-da89-4819-9c8d-e9c9da2bdfb2": {
+            "accessModifierKind": "public",
             "createdAt": 1782514300374,
             "defaultValue": {
                 "value": []
@@ -6145,7 +6164,6 @@
             "entryMemberId": "934a2525-f95d-4c09-9504-b71da30b9186",
             "id": "f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "listKind": "unordered",
             "locked": true,
@@ -6163,6 +6181,7 @@
             "updatedAt": 1783191296652
         },
         "f977a94e-aa40-414c-9812-dacdd50110a8": {
+            "accessModifierKind": "public",
             "createdAt": 1778176777998,
             "defaultValue": {
                 "value": {}
@@ -6171,7 +6190,6 @@
             "extendsMemberId": null,
             "id": "f977a94e-aa40-414c-9812-dacdd50110a8",
             "isStatic": false,
-            "accessModifierKind": "public",
             "keyKind": "string",
             "kind": 5,
             "locked": false,
@@ -6183,6 +6201,7 @@
             "valueId": "439c4651-7e63-47b8-923e-6969781a2551"
         },
         "fa146cb3-b0d5-4a87-a781-918b78307b20": {
+            "accessModifierKind": "public",
             "classId": "d500e920-87d9-4804-affa-1bd8fc5e91ae",
             "createdAt": 1782971224672,
             "defaultValue": {
@@ -6190,7 +6209,6 @@
             },
             "id": "fa146cb3-b0d5-4a87-a781-918b78307b20",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 7,
             "locked": true,
             "name": "Rule",
@@ -6207,6 +6225,7 @@
             "updatedAt": 1782971224672
         },
         "fd3a7f0f-cff8-4069-9b19-004015a6aca1": {
+            "accessModifierKind": "public",
             "createdAt": 1782971224672,
             "defaultValue": {
                 "value": []
@@ -6214,7 +6233,6 @@
             "entryMemberId": "2cd93779-d755-4368-b064-2361463526ea",
             "id": "fd3a7f0f-cff8-4069-9b19-004015a6aca1",
             "isStatic": false,
-            "accessModifierKind": "public",
             "kind": 6,
             "locked": true,
             "name": "Sprites",
@@ -6231,6 +6249,7 @@
             "updatedAt": 1782971224672
         },
         "neo-tile-grid-record-relations-v1-member-05518aaa5d34a1a6a242fe8e0f6b6134": {
+            "accessModifierKind": "public",
             "collectionMemberId": "7ec79ef8-a216-407f-8886-9f770bc9895b",
             "collectionValueId": "e82662a0-10be-45cb-8c4a-a5d8b6b5bb0c",
             "createdAt": 1784268756788,
@@ -6242,7 +6261,6 @@
             "extendsMemberId": "89dbb12e-1d7c-42ad-b872-63fc7fe8bd5b",
             "id": "neo-tile-grid-record-relations-v1-member-05518aaa5d34a1a6a242fe8e0f6b6134",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 9,
             "locked": true,
@@ -6261,6 +6279,7 @@
             "updatedAt": 1784268756788
         },
         "neo-tile-grid-record-relations-v1-member-1475dfc0d04c6432645b0e36230db041": {
+            "accessModifierKind": "public",
             "createdAt": 1784268756788,
             "defaultValue": {
                 "value": 5
@@ -6268,7 +6287,6 @@
             "extendsMemberId": "472dfd84-59cb-4516-8763-90d0af6d039f",
             "id": "neo-tile-grid-record-relations-v1-member-1475dfc0d04c6432645b0e36230db041",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 2,
             "locked": true,
@@ -6288,6 +6306,7 @@
             "updatedAt": 1784268756788
         },
         "neo-tile-grid-record-relations-v1-member-17f945091605acd5df2df0b9bafc73ae": {
+            "accessModifierKind": "public",
             "createdAt": 1784268756788,
             "defaultValue": {
                 "value": "Glass Floor"
@@ -6295,7 +6314,6 @@
             "extendsMemberId": "3b02422f-1ef2-4a50-8386-155d5001082b",
             "id": "neo-tile-grid-record-relations-v1-member-17f945091605acd5df2df0b9bafc73ae",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6306,6 +6324,7 @@
             "updatedAt": 1784282875149
         },
         "neo-tile-grid-record-relations-v1-member-19bb46903f92e702276a608d54e9ac49": {
+            "accessModifierKind": "public",
             "createdAt": 1784268756788,
             "defaultValue": {
                 "value": "Background"
@@ -6313,7 +6332,6 @@
             "extendsMemberId": "679e3c47-e6eb-4808-bcc5-2f8440612626",
             "id": "neo-tile-grid-record-relations-v1-member-19bb46903f92e702276a608d54e9ac49",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6324,6 +6342,7 @@
             "updatedAt": 1784268756788
         },
         "neo-tile-grid-record-relations-v1-member-228d0ac0a4b310f0fcc6ca4c1e7f748a": {
+            "accessModifierKind": "public",
             "createdAt": 1784268756788,
             "defaultValue": {
                 "value": "Void"
@@ -6331,7 +6350,6 @@
             "extendsMemberId": "3b02422f-1ef2-4a50-8386-155d5001082b",
             "id": "neo-tile-grid-record-relations-v1-member-228d0ac0a4b310f0fcc6ca4c1e7f748a",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6342,6 +6360,7 @@
             "updatedAt": 1784282875149
         },
         "neo-tile-grid-record-relations-v1-member-22d2189b7b892371aa4bd2142e7a8832": {
+            "accessModifierKind": "public",
             "createdAt": 1784268756788,
             "defaultValue": {
                 "value": {
@@ -6352,7 +6371,6 @@
             "extendsMemberId": "cbd6db9a-f473-44b5-b913-7cdc06452f35",
             "id": "neo-tile-grid-record-relations-v1-member-22d2189b7b892371aa4bd2142e7a8832",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 11,
             "locked": false,
@@ -6362,6 +6380,7 @@
             "updatedAt": 1784282875149
         },
         "neo-tile-grid-record-relations-v1-member-31465119e4c7dde8767888fe5d0bf854": {
+            "accessModifierKind": "public",
             "createdAt": 1784268756788,
             "defaultValue": {
                 "value": {
@@ -6373,7 +6392,6 @@
             "extendsMemberId": "7fc41bde-418a-4507-8c4b-9b75d7012125",
             "id": "neo-tile-grid-record-relations-v1-member-31465119e4c7dde8767888fe5d0bf854",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 16,
             "locked": true,
@@ -6391,6 +6409,7 @@
             "updatedAt": 1784268756788
         },
         "neo-tile-grid-record-relations-v1-member-42874cf84cd0db8078b37c70958fb7db": {
+            "accessModifierKind": "public",
             "createdAt": 1784268756788,
             "defaultValue": {
                 "value": "Boot Glyph"
@@ -6398,7 +6417,6 @@
             "extendsMemberId": "3b02422f-1ef2-4a50-8386-155d5001082b",
             "id": "neo-tile-grid-record-relations-v1-member-42874cf84cd0db8078b37c70958fb7db",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6409,6 +6427,7 @@
             "updatedAt": 1784282875149
         },
         "neo-tile-grid-record-relations-v1-member-4392efaf0b72696ac7f7145b13f4c808": {
+            "accessModifierKind": "public",
             "createdAt": 1784268756788,
             "defaultValue": {
                 "value": "Seal Barrier"
@@ -6416,7 +6435,6 @@
             "extendsMemberId": "3b02422f-1ef2-4a50-8386-155d5001082b",
             "id": "neo-tile-grid-record-relations-v1-member-4392efaf0b72696ac7f7145b13f4c808",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6427,6 +6445,7 @@
             "updatedAt": 1784282875149
         },
         "neo-tile-grid-record-relations-v1-member-442255d20f462313816617f1d53f0df5": {
+            "accessModifierKind": "public",
             "createdAt": 1784270657712,
             "defaultValue": {
                 "value": {
@@ -6438,7 +6457,6 @@
             "extendsMemberId": "8e8c5ddf-6273-4440-869e-f1f9ca5dc51b",
             "id": "neo-tile-grid-record-relations-v1-member-442255d20f462313816617f1d53f0df5",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 16,
             "locked": true,
@@ -6457,6 +6475,7 @@
             "updatedAt": 1784270657712
         },
         "neo-tile-grid-record-relations-v1-member-49e10224390d0b64abdf608051b2fcd5": {
+            "accessModifierKind": "public",
             "classId": "89b38b34-c040-4e69-8707-487f1484a056",
             "createdAt": 1784270657712,
             "defaultValue": {
@@ -6468,7 +6487,6 @@
             "extendsMemberId": "96cda8f5-3100-45b5-adcb-0552d21504dd",
             "id": "neo-tile-grid-record-relations-v1-member-49e10224390d0b64abdf608051b2fcd5",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 7,
             "locked": true,
@@ -6486,6 +6504,7 @@
             "updatedAt": 1784270657712
         },
         "neo-tile-grid-record-relations-v1-member-4e1f492f44046a1fb287ccd311801c1a": {
+            "accessModifierKind": "public",
             "createdAt": 1784270657712,
             "defaultValue": {
                 "value": "Objects"
@@ -6493,7 +6512,6 @@
             "extendsMemberId": "788a3dbc-6167-4320-83aa-1e884924f776",
             "id": "neo-tile-grid-record-relations-v1-member-4e1f492f44046a1fb287ccd311801c1a",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6512,6 +6530,7 @@
             "updatedAt": 1784270657712
         },
         "neo-tile-grid-record-relations-v1-member-5544b0deacdcfd845f211f1bb0cf21da": {
+            "accessModifierKind": "public",
             "createdAt": 1784270657712,
             "defaultValue": {
                 "value": "Player Spawn"
@@ -6519,7 +6538,6 @@
             "extendsMemberId": "3b02422f-1ef2-4a50-8386-155d5001082b",
             "id": "neo-tile-grid-record-relations-v1-member-5544b0deacdcfd845f211f1bb0cf21da",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6530,6 +6548,7 @@
             "updatedAt": 1784282875149
         },
         "neo-tile-grid-record-relations-v1-member-636b8784cd42599650e36ab6b0999e6c": {
+            "accessModifierKind": "public",
             "classId": "89b38b34-c040-4e69-8707-487f1484a056",
             "createdAt": 1784270657712,
             "defaultValue": {
@@ -6541,7 +6560,6 @@
             "extendsMemberId": "96cda8f5-3100-45b5-adcb-0552d21504dd",
             "id": "neo-tile-grid-record-relations-v1-member-636b8784cd42599650e36ab6b0999e6c",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 7,
             "locked": true,
@@ -6559,6 +6577,7 @@
             "updatedAt": 1784270657712
         },
         "neo-tile-grid-record-relations-v1-member-6600a0b0a8a2c976fd3b76e3199a91f7": {
+            "accessModifierKind": "public",
             "createdAt": 1784270657712,
             "defaultValue": {
                 "value": "Vault Plaque"
@@ -6566,7 +6585,6 @@
             "extendsMemberId": "3b02422f-1ef2-4a50-8386-155d5001082b",
             "id": "neo-tile-grid-record-relations-v1-member-6600a0b0a8a2c976fd3b76e3199a91f7",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6577,6 +6595,7 @@
             "updatedAt": 1784282875149
         },
         "neo-tile-grid-record-relations-v1-member-799d3d5310a3b19d7395302039f97847": {
+            "accessModifierKind": "public",
             "createdAt": 1784270657712,
             "defaultValue": {
                 "value": {
@@ -6587,7 +6606,6 @@
             "extendsMemberId": "cbd6db9a-f473-44b5-b913-7cdc06452f35",
             "id": "neo-tile-grid-record-relations-v1-member-799d3d5310a3b19d7395302039f97847",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 11,
             "locked": false,
@@ -6597,6 +6615,7 @@
             "updatedAt": 1784282875149
         },
         "neo-tile-grid-record-relations-v1-member-81f50da320aa6188edf76b137ec3a649": {
+            "accessModifierKind": "public",
             "createdAt": 1784270657712,
             "defaultValue": {
                 "value": "Collisions"
@@ -6604,7 +6623,6 @@
             "extendsMemberId": "679e3c47-e6eb-4808-bcc5-2f8440612626",
             "id": "neo-tile-grid-record-relations-v1-member-81f50da320aa6188edf76b137ec3a649",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6615,6 +6633,7 @@
             "updatedAt": 1784270657712
         },
         "neo-tile-grid-record-relations-v1-member-8b86fa92f77a420dc3e61fca997644f5": {
+            "accessModifierKind": "public",
             "createdAt": 1784270657712,
             "defaultValue": {
                 "value": [
@@ -6626,7 +6645,6 @@
             "extendsMemberId": "571a0e0b-b36c-45f3-ae9a-5fde39045c11",
             "id": "neo-tile-grid-record-relations-v1-member-8b86fa92f77a420dc3e61fca997644f5",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 6,
             "locked": true,
@@ -6644,6 +6662,7 @@
             "updatedAt": 1784270657712
         },
         "neo-tile-grid-record-relations-v1-member-8e3b5316e8176abbb06cef17f9781068": {
+            "accessModifierKind": "public",
             "createdAt": 1784270657712,
             "defaultValue": {
                 "value": "Objects"
@@ -6651,7 +6670,6 @@
             "extendsMemberId": "248753df-f9b6-445a-b3c6-b12957f99ee2",
             "id": "neo-tile-grid-record-relations-v1-member-8e3b5316e8176abbb06cef17f9781068",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6662,6 +6680,7 @@
             "updatedAt": 1784270657712
         },
         "neo-tile-grid-record-relations-v1-member-8f91e55864defb558c3e4327b8c47251": {
+            "accessModifierKind": "public",
             "createdAt": 1784270657712,
             "defaultValue": {
                 "value": {
@@ -6672,7 +6691,6 @@
             "extendsMemberId": "cbd6db9a-f473-44b5-b913-7cdc06452f35",
             "id": "neo-tile-grid-record-relations-v1-member-8f91e55864defb558c3e4327b8c47251",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 11,
             "locked": false,
@@ -6682,6 +6700,7 @@
             "updatedAt": 1784282875149
         },
         "neo-tile-grid-record-relations-v1-member-9a08564ac837f8674e2e13c1f9937ccd": {
+            "accessModifierKind": "public",
             "createdAt": 1784270657712,
             "defaultValue": {
                 "value": "Hull Plating"
@@ -6689,7 +6708,6 @@
             "extendsMemberId": "3b02422f-1ef2-4a50-8386-155d5001082b",
             "id": "neo-tile-grid-record-relations-v1-member-9a08564ac837f8674e2e13c1f9937ccd",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6700,6 +6718,7 @@
             "updatedAt": 1784282875149
         },
         "neo-tile-grid-record-relations-v1-member-9a2f7ee37900c05eac312a1ee165a3ac": {
+            "accessModifierKind": "public",
             "createdAt": 1784270657712,
             "defaultValue": {
                 "value": "Collisions"
@@ -6707,7 +6726,6 @@
             "extendsMemberId": "788a3dbc-6167-4320-83aa-1e884924f776",
             "id": "neo-tile-grid-record-relations-v1-member-9a2f7ee37900c05eac312a1ee165a3ac",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6726,6 +6744,7 @@
             "updatedAt": 1784270657712
         },
         "neo-tile-grid-record-relations-v1-member-9d115a86ad7705f950cc44e5fb6f3946": {
+            "accessModifierKind": "public",
             "collectionMemberId": "7ec79ef8-a216-407f-8886-9f770bc9895b",
             "collectionValueId": "e82662a0-10be-45cb-8c4a-a5d8b6b5bb0c",
             "createdAt": 1784270658214,
@@ -6737,7 +6756,6 @@
             "extendsMemberId": "89dbb12e-1d7c-42ad-b872-63fc7fe8bd5b",
             "id": "neo-tile-grid-record-relations-v1-member-9d115a86ad7705f950cc44e5fb6f3946",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 9,
             "locked": true,
@@ -6756,6 +6774,7 @@
             "updatedAt": 1784270658214
         },
         "neo-tile-grid-record-relations-v1-member-a37891a546e2e1bfb8365f499e4d0b27": {
+            "accessModifierKind": "public",
             "createdAt": 1784270658214,
             "defaultValue": {
                 "value": "Background"
@@ -6763,7 +6782,6 @@
             "extendsMemberId": "788a3dbc-6167-4320-83aa-1e884924f776",
             "id": "neo-tile-grid-record-relations-v1-member-a37891a546e2e1bfb8365f499e4d0b27",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6782,6 +6800,7 @@
             "updatedAt": 1784270658214
         },
         "neo-tile-grid-record-relations-v1-member-a37d02ed0f786fb3f0974b9ec52ff75f": {
+            "accessModifierKind": "public",
             "createdAt": 1784270658214,
             "defaultValue": {
                 "value": "Exit Prompt"
@@ -6789,7 +6808,6 @@
             "extendsMemberId": "14ec578e-0aa7-4d12-8d02-47463e03a1f3",
             "id": "neo-tile-grid-record-relations-v1-member-a37d02ed0f786fb3f0974b9ec52ff75f",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6800,6 +6818,7 @@
             "updatedAt": 1784270658214
         },
         "neo-tile-grid-record-relations-v1-member-a66bf1dee22709e5f2c1554b0cd68958": {
+            "accessModifierKind": "public",
             "createdAt": 1784270658214,
             "defaultValue": {
                 "value": "Red Nova Warning"
@@ -6807,7 +6826,6 @@
             "extendsMemberId": "3b02422f-1ef2-4a50-8386-155d5001082b",
             "id": "neo-tile-grid-record-relations-v1-member-a66bf1dee22709e5f2c1554b0cd68958",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6818,6 +6836,7 @@
             "updatedAt": 1784282875149
         },
         "neo-tile-grid-record-relations-v1-member-a9e397cae19a42785454dd9fa0b0b47a": {
+            "accessModifierKind": "public",
             "createdAt": 1784270658214,
             "defaultValue": {
                 "value": {
@@ -6828,7 +6847,6 @@
             "extendsMemberId": "cbd6db9a-f473-44b5-b913-7cdc06452f35",
             "id": "neo-tile-grid-record-relations-v1-member-a9e397cae19a42785454dd9fa0b0b47a",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 11,
             "locked": false,
@@ -6838,6 +6856,7 @@
             "updatedAt": 1784282875149
         },
         "neo-tile-grid-record-relations-v1-member-aca47cf88b746e63e89984552bb68261": {
+            "accessModifierKind": "public",
             "createdAt": 1784270658214,
             "defaultValue": {
                 "value": "ExitPromptObject"
@@ -6845,7 +6864,6 @@
             "extendsMemberId": "14ec578e-0aa7-4d12-8d02-47463e03a1f3",
             "id": "neo-tile-grid-record-relations-v1-member-aca47cf88b746e63e89984552bb68261",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6856,6 +6874,7 @@
             "updatedAt": 1784270658214
         },
         "neo-tile-grid-record-relations-v1-member-b2410feb9b3bad4b60991f9934f0722d": {
+            "accessModifierKind": "public",
             "collectionMemberId": "7ec79ef8-a216-407f-8886-9f770bc9895b",
             "collectionValueId": "e82662a0-10be-45cb-8c4a-a5d8b6b5bb0c",
             "createdAt": 1784270658214,
@@ -6867,7 +6886,6 @@
             "extendsMemberId": "89dbb12e-1d7c-42ad-b872-63fc7fe8bd5b",
             "id": "neo-tile-grid-record-relations-v1-member-b2410feb9b3bad4b60991f9934f0722d",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 9,
             "locked": true,
@@ -6886,6 +6904,7 @@
             "updatedAt": 1784270658214
         },
         "neo-tile-grid-record-relations-v1-member-b4b64e2fc5bb9ca854c58419e63e8409": {
+            "accessModifierKind": "public",
             "createdAt": 1784270658214,
             "defaultValue": {
                 "value": "Exit Prompt"
@@ -6893,7 +6912,6 @@
             "extendsMemberId": "14ec578e-0aa7-4d12-8d02-47463e03a1f3",
             "id": "neo-tile-grid-record-relations-v1-member-b4b64e2fc5bb9ca854c58419e63e8409",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -6904,6 +6922,7 @@
             "updatedAt": 1784270658214
         },
         "neo-tile-grid-record-relations-v1-member-bfb14c8f7f3c5d6ceaec91328dd7d46c": {
+            "accessModifierKind": "public",
             "createdAt": 1784270658214,
             "defaultValue": {
                 "value": 0
@@ -6911,7 +6930,6 @@
             "extendsMemberId": "472dfd84-59cb-4516-8763-90d0af6d039f",
             "id": "neo-tile-grid-record-relations-v1-member-bfb14c8f7f3c5d6ceaec91328dd7d46c",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 2,
             "locked": true,
@@ -6931,6 +6949,7 @@
             "updatedAt": 1784270658214
         },
         "neo-tile-grid-record-relations-v1-member-c31187a5f4ace1a4f43213bb0dc7fe8d": {
+            "accessModifierKind": "public",
             "createdAt": 1784270658214,
             "defaultValue": {
                 "value": 1
@@ -6938,7 +6957,6 @@
             "extendsMemberId": "472dfd84-59cb-4516-8763-90d0af6d039f",
             "id": "neo-tile-grid-record-relations-v1-member-c31187a5f4ace1a4f43213bb0dc7fe8d",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 2,
             "locked": true,
@@ -6958,6 +6976,7 @@
             "updatedAt": 1784270658214
         },
         "neo-tile-grid-record-relations-v1-member-df3924f038bd73f8515d31f77f04683d": {
+            "accessModifierKind": "public",
             "createdAt": 1784270658214,
             "defaultValue": {
                 "value": {
@@ -6969,7 +6988,6 @@
             "extendsMemberId": "7fc41bde-418a-4507-8c4b-9b75d7012125",
             "id": "neo-tile-grid-record-relations-v1-member-df3924f038bd73f8515d31f77f04683d",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 16,
             "locked": true,
@@ -6987,6 +7005,7 @@
             "updatedAt": 1784270658214
         },
         "neo-tile-grid-record-relations-v1-member-e9f83abf0ea87a6d842d7287a5337c54": {
+            "accessModifierKind": "public",
             "createdAt": 1784270658214,
             "defaultValue": {
                 "value": "Recovery Cache"
@@ -6994,7 +7013,6 @@
             "extendsMemberId": "3b02422f-1ef2-4a50-8386-155d5001082b",
             "id": "neo-tile-grid-record-relations-v1-member-e9f83abf0ea87a6d842d7287a5337c54",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 3,
             "localizable": false,
@@ -7005,6 +7023,7 @@
             "updatedAt": 1784282875149
         },
         "neo-tile-grid-record-relations-v1-member-f5cbad50312ebc69397239b2f2035a87": {
+            "accessModifierKind": "public",
             "createdAt": 1784270658214,
             "defaultValue": {
                 "value": [
@@ -7016,7 +7035,6 @@
             "extendsMemberId": "de93c887-ea29-49bd-bfea-a6255b8b9a54",
             "id": "neo-tile-grid-record-relations-v1-member-f5cbad50312ebc69397239b2f2035a87",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 6,
             "locked": true,
@@ -7026,6 +7044,7 @@
             "updatedAt": 1784270658214
         },
         "neo-tile-grid-record-relations-v1-member-f6d6fd3678ac2f76de89f885dd9d22d6": {
+            "accessModifierKind": "public",
             "createdAt": 1784270658214,
             "defaultValue": {
                 "value": {
@@ -7036,7 +7055,6 @@
             "extendsMemberId": "cbd6db9a-f473-44b5-b913-7cdc06452f35",
             "id": "neo-tile-grid-record-relations-v1-member-f6d6fd3678ac2f76de89f885dd9d22d6",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 11,
             "locked": false,
@@ -7046,6 +7064,7 @@
             "updatedAt": 1784282875149
         },
         "neo-tile-grid-record-relations-v1-member-f7282b53bd3722c4d54307079bf7e242": {
+            "accessModifierKind": "public",
             "createdAt": 1784270658672,
             "defaultValue": {
                 "value": {
@@ -7057,7 +7076,6 @@
             "extendsMemberId": "7fc41bde-418a-4507-8c4b-9b75d7012125",
             "id": "neo-tile-grid-record-relations-v1-member-f7282b53bd3722c4d54307079bf7e242",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 16,
             "locked": true,
@@ -7075,6 +7093,7 @@
             "updatedAt": 1784270658672
         },
         "neo-tile-grid-record-relations-v1-member-f87a1ce82507a55782cd5f947b46b5f5": {
+            "accessModifierKind": "public",
             "createdAt": 1784270658672,
             "defaultValue": {
                 "value": {
@@ -7086,7 +7105,6 @@
             "extendsMemberId": "8e8c5ddf-6273-4440-869e-f1f9ca5dc51b",
             "id": "neo-tile-grid-record-relations-v1-member-f87a1ce82507a55782cd5f947b46b5f5",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 16,
             "locked": true,
@@ -7105,6 +7123,7 @@
             "updatedAt": 1784270658672
         },
         "neo-tile-grid-record-relations-v1-member-ff2fa3d156f0a3df6b066f1599049c70": {
+            "accessModifierKind": "public",
             "createdAt": 1784270658672,
             "defaultValue": {
                 "value": {
@@ -7115,7 +7134,6 @@
             "extendsMemberId": "cbd6db9a-f473-44b5-b913-7cdc06452f35",
             "id": "neo-tile-grid-record-relations-v1-member-ff2fa3d156f0a3df6b066f1599049c70",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 11,
             "locked": false,
@@ -7125,6 +7143,7 @@
             "updatedAt": 1784282875149
         },
         "neo-tile-grid-record-relations-v1-member-ff953f886996cd9b7f725ce578fe90cc": {
+            "accessModifierKind": "public",
             "classId": "7ed188f9-484b-4692-840d-436acf1635aa",
             "createdAt": 1784270658672,
             "defaultValue": {
@@ -7137,7 +7156,6 @@
             "extendsMemberId": "a0083c92-72f7-405f-8863-ff86f995d36d",
             "id": "neo-tile-grid-record-relations-v1-member-ff953f886996cd9b7f725ce578fe90cc",
             "isStatic": false,
-            "accessModifierKind": "public",
             "isVirtual": true,
             "kind": 7,
             "locked": true,
@@ -7549,9 +7567,9 @@
             ],
             "members": {
                 "Name": {
+                    "accessModifierKind": "public",
                     "id": "26aa1820-9569-5f18-ae80-d3f0543c5914",
                     "kind": "property",
-                    "accessModifierKind": "public",
                     "settable": false,
                     "typeInfo": {
                         "required": true,
@@ -8517,11 +8535,12 @@
                 "Items": "214df1a1-abca-4141-987b-380a5417c70a",
                 "LookupContainer": "2c57948b-7479-47e0-b97c-242f6d543ae0",
                 "Outposts": "2827aefd-7f57-48ea-994c-c5c39ec659e3",
+                "ScreenshotEmptyGrid": "adb76be1-a78d-4736-8375-1c579455c396",
                 "SortingLayers": "7ec79ef8-a216-407f-8886-9f770bc9895b",
                 "Worlds": "80d05ad2-08ff-4e17-8b29-8b185562b2c6"
             },
             "system": null,
-            "updatedAt": 1784282874548
+            "updatedAt": 1784531210276
         },
         "e78cfcd2-78ae-4656-9f04-6429bb0efe20": {
             "createdAt": 1781759686435,
@@ -10063,6 +10082,19 @@
                 "Value": "327b3d70-dfa1-4c59-be69-274e1be781af"
             }
         },
+        "1973438e-a5ee-4150-9598-9a7bde65b702": {
+            "classId": "b44d80a9-7760-4919-8844-0cb71d08b788",
+            "createdAt": 1784531210276,
+            "id": "1973438e-a5ee-4150-9598-9a7bde65b702",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784531210276,
+            "value": {
+                "CellSize": "58cff63e-6dbd-4c0e-a3e9-e3a5ea0eb0b4",
+                "Children": "db8e1d56-984f-4472-983f-d0ef9c16529e",
+                "DisplayName": "1c2680f0-74a3-4d3a-895a-323cffad978b",
+                "PixelsPerUnit": "e7f175eb-0b76-4a2f-b036-a71851354460"
+            }
+        },
         "1998c98a-084d-477a-af71-5752b3eb0c22": {
             "classId": null,
             "createdAt": 1779225744814,
@@ -10116,6 +10148,13 @@
                 "y": 0,
                 "z": 0
             }
+        },
+        "1c2680f0-74a3-4d3a-895a-323cffad978b": {
+            "createdAt": 1784531210276,
+            "id": "1c2680f0-74a3-4d3a-895a-323cffad978b",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784531210276,
+            "value": ""
         },
         "1c78411e-4d5d-4f11-8306-420758f89046": {
             "classId": null,
@@ -10859,6 +10898,13 @@
                 "Name": "0cf08f75-1fba-413f-9747-86f94cec7c36"
             }
         },
+        "3089c4cc-1238-48af-a379-2d0212d0bf31": {
+            "createdAt": 1784531210276,
+            "id": "3089c4cc-1238-48af-a379-2d0212d0bf31",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784531210276,
+            "value": {}
+        },
         "30cee785-a3ee-4bc4-8e11-50bf0d27af96": {
             "classId": null,
             "createdAt": 1778021393889,
@@ -11168,7 +11214,7 @@
             "createdAt": 1777766565230,
             "id": "393c69b8-ceb2-4405-9a0f-28516913f7b6",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1784282165854,
+            "updatedAt": 1784531210276,
             "value": {
                 "Art": "069cdab9-581a-4d6a-9f21-9becf687452c",
                 "Audio": "dc160391-39d0-4bba-951d-62fcf6ab9c62",
@@ -11176,6 +11222,7 @@
                 "Items": "1e9b7003-e8e0-4bbd-991b-21e0271b0cec",
                 "LookupContainer": "52e8e972-60f5-44ed-80e6-eb0f5a472ca0",
                 "Outposts": "75c7623a-dcdb-4ca1-b5e5-a809da678766",
+                "ScreenshotEmptyGrid": "1973438e-a5ee-4150-9598-9a7bde65b702",
                 "SortingLayers": "e82662a0-10be-45cb-8c4a-a5d8b6b5bb0c",
                 "Worlds": "8f96912d-5bbb-428c-84eb-8932ef588162"
             }
@@ -12472,6 +12519,17 @@
                 "Neighbors": "9ef70932-1145-44f4-a7ad-d0fd71ca94f7",
                 "Output": "4e40a419-b683-4210-958b-ff19bd0c306e",
                 "Sprites": "ee67e815-74ce-4c56-97d8-be97a4b387c9"
+            }
+        },
+        "58cff63e-6dbd-4c0e-a3e9-e3a5ea0eb0b4": {
+            "createdAt": 1784531210276,
+            "id": "58cff63e-6dbd-4c0e-a3e9-e3a5ea0eb0b4",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784531210276,
+            "value": {
+                "x": 1,
+                "y": 1,
+                "z": 0
             }
         },
         "58f7a7ae-93b1-4660-8a5f-bf28de1719cc": {
@@ -17165,6 +17223,13 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1779226040651,
             "value": 30
+        },
+        "e7f175eb-0b76-4a2f-b036-a71851354460": {
+            "createdAt": 1784531210276,
+            "id": "e7f175eb-0b76-4a2f-b036-a71851354460",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784531210276,
+            "value": 100
         },
         "e7f915b7-1db4-4f01-a8f1-f6bc54f0a827": {
             "classId": null,
@@ -31717,6 +31782,14 @@
                     "x": 8,
                     "y": 8
                 }
+            },
+            "db8e1d56-984f-4472-983f-d0ef9c16529e": {
+                "createdAt": 1784531210276,
+                "id": "db8e1d56-984f-4472-983f-d0ef9c16529e",
+                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
+                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+                "updatedAt": 1784531210276,
+                "value": []
             },
             "db92473c-3298-49d5-a2f1-7b56ad535ef6": {
                 "classId": "3ab13327-ccaa-4dbe-8ec7-24b9592ddf15",

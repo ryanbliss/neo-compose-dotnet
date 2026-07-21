@@ -10348,6 +10348,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         NeoReadOnlyList<IReadOnlyOutpost> Outposts { get; }
 
+        IReadOnlyOldConsoleLandingGrid ScreenshotEmptyGrid { get; }
+
         NeoReadOnlyList<IReadOnlyNeoSortingLayer> SortingLayers { get; }
 
         IReadOnlyWorlds Worlds { get; }
@@ -10360,12 +10362,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public Assets(Worlds Worlds, Art? Art = null, Audio? Audio = null, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, IEnumerable<NeoSortingLayer>? SortingLayers = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Worlds, Art, Audio, Computed, Items, LookupContainer, Outposts, SortingLayers), false, NeoValueOwnership.Session)
+        public Assets(Worlds Worlds, Art? Art = null, Audio? Audio = null, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, OldConsoleLandingGrid? ScreenshotEmptyGrid = null, IEnumerable<NeoSortingLayer>? SortingLayers = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Worlds, Art, Audio, Computed, Items, LookupContainer, Outposts, ScreenshotEmptyGrid, SortingLayers), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(Worlds Worlds, Art? Art = null, Audio? Audio = null, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, IEnumerable<NeoSortingLayer>? SortingLayers = null)
+        private static NeoMemberClassWritable CreateFactoryNode(Worlds Worlds, Art? Art = null, Audio? Audio = null, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, OldConsoleLandingGrid? ScreenshotEmptyGrid = null, IEnumerable<NeoSortingLayer>? SortingLayers = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -10378,6 +10380,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "214df1a1-abca-4141-987b-380a5417c70a", Items),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("LookupContainer", "2c57948b-7479-47e0-b97c-242f6d543ae0", LookupContainer),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Outposts", "2827aefd-7f57-48ea-994c-c5c39ec659e3", Outposts),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ScreenshotEmptyGrid", "adb76be1-a78d-4736-8375-1c579455c396", ScreenshotEmptyGrid),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingLayers", "7ec79ef8-a216-407f-8886-9f770bc9895b", SortingLayers)
             );
         }
@@ -10474,6 +10477,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public virtual IReadOnlyOldConsoleLandingGrid ScreenshotEmptyGrid
+        {
+            get
+            {
+                return global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.Create(client, node.Get<NeoMemberClass>("ScreenshotEmptyGrid"));
+            }
+        }
+
         public virtual NeoReadOnlyList<IReadOnlyNeoSortingLayer> SortingLayers
         {
             get
@@ -10506,6 +10517,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoList<Outpost>> Outposts = new("Outposts");
 
+            public static readonly NeoField<OldConsoleLandingGrid> ScreenshotEmptyGrid = new("ScreenshotEmptyGrid");
+
             public static readonly NeoField<NeoList<NeoSortingLayer>> SortingLayers = new("SortingLayers");
 
             public static readonly NeoField<Worlds> Worlds = new("Worlds");
@@ -10521,6 +10534,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Items] = () => null,
                 [Fields.LookupContainer] = () => null,
                 [Fields.Outposts] = () => null,
+                [Fields.ScreenshotEmptyGrid] = () => null,
                 [Fields.SortingLayers] = () => null,
                 [Fields.Worlds] = () => null,
             };
@@ -10546,6 +10560,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Items] = () => Items,
                 [Fields.LookupContainer] = () => LookupContainer,
                 [Fields.Outposts] = () => Outposts,
+                [Fields.ScreenshotEmptyGrid] = () => ScreenshotEmptyGrid,
                 [Fields.SortingLayers] = () => SortingLayers,
                 [Fields.Worlds] = () => Worlds,
             };

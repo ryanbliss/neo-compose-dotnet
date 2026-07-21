@@ -6,7 +6,7 @@
 )
 sealed class OldConsoleLandingExitPromptQuiet : Dialogue {
   @primary
-  BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+  BlockedPath BlockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
 
   @id("0cc54f9b-9e85-4e75-a066-225bf720ad6e")
   override Trigger Trigger = new() => Start;

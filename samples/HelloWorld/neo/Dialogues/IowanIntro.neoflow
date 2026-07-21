@@ -6,21 +6,21 @@
 )
 sealed class IowanIntro : Dialogue {
   @primary
-  Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
+  Outpost Outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
 
   @id("9bcdaa37-98b5-5429-8021-9f946a620427")
   void Action1() {
-    outpost.Save.Unlocked = true;
+    Outpost.Save.Unlocked = true;
   }
 
   @id("0e52a5a0-8826-558f-a0b6-9da05297b85f")
   void Action2() {
-    root.Save.Inventory.Add(outpost);
+    root.Save.Inventory.Add(Outpost);
   }
 
   @id("074637ca-a908-5a53-900b-270a185d809f")
   void Action3() {
-    outpost.Save.Unlocked = true;
+    Outpost.Save.Unlocked = true;
   }
 
   @id("232b260b-432e-5a0c-8a43-2cdffcb2b9b8")
@@ -30,7 +30,7 @@ sealed class IowanIntro : Dialogue {
 
   @id("9f45e2dc-f8ff-541b-bb48-4be8eb2b89a0")
   void Action5() {
-    outpost.Save.Unlocked = true;
+    Outpost.Save.Unlocked = true;
   }
 
   @id("5abe2f7d-637b-4d10-872f-0777235f2a04")
@@ -47,7 +47,7 @@ sealed class IowanIntro : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
   
     @primary
-    Item item = Reference<Item>(id: "0e9655ec-dc98-477c-b0ff-90d8f203040a");
+    Item stormCorn = Reference<Item>(id: "0e9655ec-dc98-477c-b0ff-90d8f203040a");
   
     @id("d8e4dfcf-4c19-4973-a020-06358c1bbac4")
     Action2();

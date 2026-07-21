@@ -6,11 +6,11 @@
 )
 sealed class EtnaDiademIntro : Dialogue {
   @primary
-  Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  Outpost Outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
 
   @id("d6f163cb-e9ff-50b9-95bd-3aff33dcb2a9")
   void Action1() {
-    root.Save.Inventory.Add(outpost);
+    root.Save.Inventory.Add(Outpost);
   }
 
   @id("0cf0dcad-45e9-4d95-9584-ebb62fe735b8")
@@ -87,7 +87,7 @@ sealed class EtnaDiademIntro : Dialogue {
     name: "d3",
   ) {
     @primary
-    Item item = Reference<Item>(id: "a840747f-9d6b-4d71-af3a-16b294ec436d");
+    Item cryoSalve = Reference<Item>(id: "a840747f-9d6b-4d71-af3a-16b294ec436d");
   
     Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
   

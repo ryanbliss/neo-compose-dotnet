@@ -6,7 +6,7 @@
 )
 sealed class OldConsoleLandingRecoveryCache : Dialogue {
   @primary
-  BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+  BlockedPath BlockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
 
   @id("d2f84eb0-2e86-4875-b0d3-1d70e2529f8e")
   override Trigger Trigger = new() => Start;

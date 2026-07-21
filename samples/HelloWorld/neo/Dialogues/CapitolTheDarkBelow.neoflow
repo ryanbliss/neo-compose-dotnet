@@ -5,7 +5,7 @@
 )
 sealed class CapitolTheDarkBelow : Dialogue {
   @primary
-  Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  Outpost CapitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
 
   @id("78eae1a1-7292-5679-b097-9848073fc471")
   bool Condition1() {
@@ -27,7 +27,7 @@ sealed class CapitolTheDarkBelow : Dialogue {
     name: "d1",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
     """
     The door's open, but ten steps down the dark just... eats the torch. It's not the absence of light down there, it's the absence of the IDEA of light. The Europapas fishers carry lanterns that work under ice. Under anything.

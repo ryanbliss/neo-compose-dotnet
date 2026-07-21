@@ -5,7 +5,7 @@
 )
 sealed class EtnaTheHymnsWereLogs : Dialogue {
   @primary
-  Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
+  Outpost Outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
 
   @id("a50310d3-59ea-5f50-83c2-d7ffbd1daa88")
   void Action1() {
@@ -14,12 +14,12 @@ sealed class EtnaTheHymnsWereLogs : Dialogue {
 
   @id("5afaf79f-f1cd-59f2-a6eb-6b53708d286b")
   void Action2() {
-    root.Save.Inventory.Remove(outpost);
+    root.Save.Inventory.Remove(Outpost);
   }
 
   @id("af2d9978-6576-56d7-99fa-615aa4d77892")
   void Action3() {
-    outpost.Save.Reputation -= 1;
+    Outpost.Save.Reputation -= 1;
   }
 
   @id("1c86e5d0-a2af-5845-9bd9-108d4c5f97c6")
@@ -29,7 +29,7 @@ sealed class EtnaTheHymnsWereLogs : Dialogue {
 
   @id("a083eec7-1abc-58a8-ad9a-0e9e8a9f13a6")
   void Action4() {
-    outpost.Save.Reputation += 1;
+    Outpost.Save.Reputation += 1;
   }
 
   @id("a928b8df-ace6-4b69-97a9-3c190a9bb948")
@@ -206,7 +206,7 @@ sealed class EtnaTheHymnsWereLogs : Dialogue {
     Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
   
     @primary
-    Item item = Reference<Item>(id: "0e9655ec-dc98-477c-b0ff-90d8f203040a");
+    Item stormCorn = Reference<Item>(id: "0e9655ec-dc98-477c-b0ff-90d8f203040a");
   
     @id("f260b8ef-c819-4408-bf87-a716c9c33f45")
     Action2();

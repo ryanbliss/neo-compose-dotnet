@@ -5,17 +5,17 @@
 )
 sealed class CapitolOGIntro : Dialogue {
   @primary
-  Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+  Outpost CapitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
 
   @id("69423da3-5f79-546a-a341-144bed9e99f2")
   void Action1() {
-    root.Save.Bits -= outpost.Value;
-    	root.Save.Inventory.Add(outpost);
+    root.Save.Bits -= CapitolOG.Value;
+    	root.Save.Inventory.Add(CapitolOG);
   }
 
   @id("637aae58-34b4-5e7d-a2a5-9bb8926306e2")
   bool Condition1() {
-    return root.Save.Bits >= outpost.Value;
+    return root.Save.Bits >= CapitolOG.Value;
   }
 
   @id("17d6690c-5649-4e6c-b252-bb237c884b5b")
@@ -30,12 +30,12 @@ sealed class CapitolOGIntro : Dialogue {
     name: "Welcome!",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
-    Item item = Reference<Item>(id: "18b9a621-ea41-4ac7-8a46-9cc443f2b480");
+    Item helium3Flask = Reference<Item>(id: "18b9a621-ea41-4ac7-8a46-9cc443f2b480");
   
     """
-    Hello, traveler! Welcome to the best planet of the best solar system in the <b>ENTIRE</b> galaxy! {item.Name} 
+    Hello, traveler! Welcome to the best planet of the best solar system in the <b>ENTIRE</b> galaxy! {helium3Flask.Name} 
     """
   
     return Intro;
@@ -44,10 +44,10 @@ sealed class CapitolOGIntro : Dialogue {
   @id("32014fbd-2fa1-40e9-840c-567f4d421952")
   Actions Actions1 = new() {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
     @id("bb43d0ca-ef12-4805-b0ea-f42b11adeadc")
-    outpost.PlayAnimation();
+    capitolOG.PlayAnimation();
   
     return Welcome;
   }
@@ -57,10 +57,10 @@ sealed class CapitolOGIntro : Dialogue {
     name: "Intro",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
     """
-    As the OGs of the system, you probably won't want to leave {outpost.Planet} during your stay, but you're <i>mostly</i> welcome to leave whenever you want!
+    As the OGs of the system, you probably won't want to leave {capitolOG.Planet} during your stay, but you're <i>mostly</i> welcome to leave whenever you want!
     """
   
     return WhatBringsYouHere;
@@ -71,10 +71,10 @@ sealed class CapitolOGIntro : Dialogue {
     name: "What brings you here?",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
     """
-    So, what brings you to {outpost.Planet}?
+    So, what brings you to {capitolOG.Planet}?
     """
   
     @id("73b12994-15b0-407a-84c1-64337cdcaf27")
@@ -93,7 +93,7 @@ sealed class CapitolOGIntro : Dialogue {
       name: "Tourist",
     ) {
       """
-      To visit {outpost.Planet}, of course! <i>(lie)</i>
+      To visit {capitolOG.Planet}, of course! <i>(lie)</i>
       """
     
       return BuySouvenir;
@@ -105,7 +105,7 @@ sealed class CapitolOGIntro : Dialogue {
     name: "Shock",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
     """
     What, here? You might as well turn around right now!
@@ -140,12 +140,12 @@ sealed class CapitolOGIntro : Dialogue {
     saveChoice: false,
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
-    Item item = Reference<Item>(id: "ca105d9d-2885-4f33-80d4-206d5e207173");
+    Item earthOGSouvenirHat = Reference<Item>(id: "ca105d9d-2885-4f33-80d4-206d5e207173");
   
     """
-    I knew it! Before you continue, would you like to purchase this very special {item.Name}? It is truly the PINNACLE of human craftsmanship!
+    I knew it! Before you continue, would you like to purchase this very special {earthOGSouvenirHat.Name}? It is truly the PINNACLE of human craftsmanship!
     """
   
     @id("e1fd78a9-c6e7-48a9-b9d8-26cdb8fd3608")
@@ -153,7 +153,7 @@ sealed class CapitolOGIntro : Dialogue {
       name: "Yes",
     ) {
       """
-      Buy the hat <b>(</b>{item.Value}<b> bits)</b>
+      Buy the hat <b>(</b>{earthOGSouvenirHat.Value}<b> bits)</b>
       """
     
       return IfCanAfford;
@@ -176,7 +176,7 @@ sealed class CapitolOGIntro : Dialogue {
     name: "Not fashionable",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
     """
     That makes sense, not everyone can pull off such fashion.
@@ -190,7 +190,7 @@ sealed class CapitolOGIntro : Dialogue {
     name: "If can afford",
   ) {
     @primary
-    Item item = Reference<Item>(id: "ca105d9d-2885-4f33-80d4-206d5e207173");
+    Item earthOGSouvenirHat = Reference<Item>(id: "ca105d9d-2885-4f33-80d4-206d5e207173");
   
     @id("abbbe4c1-7df8-436b-ba52-d004e5246be2")
     Outcome CanAfford = new(
@@ -212,7 +212,7 @@ sealed class CapitolOGIntro : Dialogue {
     name: "Jerk",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
     """
     Wow. You're a real jerk, you know that?
@@ -226,12 +226,12 @@ sealed class CapitolOGIntro : Dialogue {
     name: "Strange cult",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
-    Outpost outpost_2 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     """
-    Strange? Hmm...the {outpost_2.Name}s are a strange bunch, constantly staring into the sun. Even with all the solar flares we've been having lately! Blind as a bat, yep.
+    Strange? Hmm...the {mercurial.Name}s are a strange bunch, constantly staring into the sun. Even with all the solar flares we've been having lately! Blind as a bat, yep.
     """
   
     return UNLOCKMERCIAL;
@@ -242,10 +242,10 @@ sealed class CapitolOGIntro : Dialogue {
     name: "Lose reputation action",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
     @id("eec3e59e-8492-4fcc-aa7f-bc7c5df841a7")
-    outpost.Save.Reputation -= 1;
+    capitolOG.Save.Reputation -= 1;
   
     return Jerk;
   }
@@ -255,15 +255,15 @@ sealed class CapitolOGIntro : Dialogue {
     name: "Add item action",
   ) {
     @primary
-    Item item = Reference<Item>(id: "ca105d9d-2885-4f33-80d4-206d5e207173");
+    Item earthOGSouvenirHat = Reference<Item>(id: "ca105d9d-2885-4f33-80d4-206d5e207173");
   
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
     @id("feaa216b-31aa-4250-be85-4447ee79cde2")
     Action1();
   
     @id("cc2ffd9e-c4e7-4cbe-b2cf-53ed2777510f")
-    outpost.Save.Reputation++;
+    capitolOG.Save.Reputation++;
   
     return ThankYou;
   }
@@ -273,7 +273,7 @@ sealed class CapitolOGIntro : Dialogue {
     name: "Impossible to reach",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
     """
     How are you so poor?! You managed to lose the game in a way that should never happen, congratulations!
@@ -285,15 +285,15 @@ sealed class CapitolOGIntro : Dialogue {
     name: "UNLOCK MERCIAL",
   ) {
     @primary
-    Outpost outpost_2 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     Session session = root.Session;
   
     @id("acf5e41c-755e-4dd6-9307-fbefd33f019e")
-    outpost_2.Save.Unlocked = true;
+    mercurial.Save.Unlocked = true;
   
     @id("0207d58c-639e-4634-932c-45e12dbe790e")
-    outpost_2.DebugLog("Unlocked set to true");
+    mercurial.DebugLog("Unlocked set to true");
   }
 
   @id("87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8")
@@ -301,12 +301,12 @@ sealed class CapitolOGIntro : Dialogue {
     name: "Guilt trip mercurial warning",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
-    Outpost outpost_2 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     """
-    Well, hope you brought another hat then. The sun has been flaring up lately. Something to do with the {outpost_2.Name}s.
+    Well, hope you brought another hat then. The sun has been flaring up lately. Something to do with the {mercurial.Name}s.
     """
   
     @id("f60e18fa-7180-4873-80ea-71132f191bfe")
@@ -325,7 +325,7 @@ sealed class CapitolOGIntro : Dialogue {
       name: "Who?",
     ) {
       """
-      Who are the {outpost_2.Name}s?
+      Who are the {mercurial.Name}s?
       """
     
       return OptionalMercurialLore;
@@ -337,12 +337,12 @@ sealed class CapitolOGIntro : Dialogue {
     name: "Thank you!",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
-    Outpost outpost_2 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     """
-    Fabulous! Hey, I'd recommend staying away from the {outpost_2.Name}s. Rumor has it they are causing an uptick in solar flares, but don't worry! That's what the hat is for!
+    Fabulous! Hey, I'd recommend staying away from the {mercurial.Name}s. Rumor has it they are causing an uptick in solar flares, but don't worry! That's what the hat is for!
     """
   
     @id("2019213b-8f57-41ec-8089-13c3023eee94")
@@ -361,7 +361,7 @@ sealed class CapitolOGIntro : Dialogue {
       name: "Who?",
     ) {
       """
-      Who are the {outpost_2.Name}s?
+      Who are the {mercurial.Name}s?
       """
     
       return OptionalMercurialLore_2;
@@ -373,12 +373,12 @@ sealed class CapitolOGIntro : Dialogue {
     name: "Blame the mercurials",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
-    Outpost outpost_2 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     """
-    All I know is that there have been an increase in solar flares. Rumor has it the {outpost_2.Name}s know more. Now get out of here.
+    All I know is that there have been an increase in solar flares. Rumor has it the {mercurial.Name}s know more. Now get out of here.
     """
   
     return UNLOCKMERCIAL;
@@ -389,12 +389,12 @@ sealed class CapitolOGIntro : Dialogue {
     name: "Optional Mercurial lore",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
-    Outpost outpost_2 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     """
-    Strange bunch, those ones. They are a cult who moved to {outpost_2.Planet} — the planet closest to the sun — so they could stare at it all the time. Super blind, yep.
+    Strange bunch, those ones. They are a cult who moved to {mercurial.Planet} — the planet closest to the sun — so they could stare at it all the time. Super blind, yep.
     """
   
     return GuiltTripMercurialWarning;
@@ -405,10 +405,10 @@ sealed class CapitolOGIntro : Dialogue {
     name: "Enjoy your visit!",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
     """
-    Of course, enjoy your visit to {outpost.Planet}!
+    Of course, enjoy your visit to {capitolOG.Planet}!
     """
   
     return UNLOCKMERCIAL;
@@ -419,12 +419,12 @@ sealed class CapitolOGIntro : Dialogue {
     name: "Optional Mercurial lore",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
+    Outpost capitolOG = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b");
   
-    Outpost outpost_2 = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     """
-    Strange bunch, those ones. They are a cult who moved to {outpost_2.Planet} — the planet closest to the sun — so they could stare at it all the time. Super blind, yep.
+    Strange bunch, those ones. They are a cult who moved to {mercurial.Planet} — the planet closest to the sun — so they could stare at it all the time. Super blind, yep.
     """
   
     return ThankYou;

@@ -6,11 +6,11 @@
 )
 sealed class OldConsoleLandingBarrierReady : Dialogue {
   @primary
-  BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+  BlockedPath BlockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
 
   @id("915d736e-80cd-5830-afb5-d3c1373aca14")
   void Action1() {
-    blockedPath.ClearPath();
+    BlockedPath.ClearPath();
   }
 
   @id("27bba0a1-d9f4-46bd-9cc1-424c5c19e85a")

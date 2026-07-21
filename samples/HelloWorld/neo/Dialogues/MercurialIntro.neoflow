@@ -5,11 +5,11 @@
 )
 sealed class MercurialIntro : Dialogue {
   @primary
-  Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+  Outpost Mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
 
   @id("d8c2fc74-0464-55c1-8a24-7651c453037a")
   void Action1() {
-    outpost.Save.Unlocked = true;
+    Mercurial.Save.Unlocked = true;
   }
 
   @id("80bcec65-816e-524d-9e4c-2e4a5f092602")
@@ -19,7 +19,7 @@ sealed class MercurialIntro : Dialogue {
 
   @id("87461e6d-5b4b-51ec-b1fa-e7baf8a1373c")
   void Action3() {
-    outpost.Save.Unlocked = true;
+    Mercurial.Save.Unlocked = true;
   }
 
   @id("c75306da-5ca6-4301-83e0-e472b2f065ce")
@@ -34,7 +34,7 @@ sealed class MercurialIntro : Dialogue {
     name: "mx1",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     """
     A Hand not of Light draweth from the corona. It rideth the flare-wakes outward, past the Wanderers, into the Deep Current. Follow the wakes, seeker, and thou shalt find the Spender.
@@ -48,10 +48,10 @@ sealed class MercurialIntro : Dialogue {
     name: "Increase rep",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     @id("82701398-39e0-4178-9315-ec1ee8f2d129")
-    outpost.Save.Reputation++;
+    mercurial.Save.Reputation++;
   
     return Asketh;
   }
@@ -61,7 +61,7 @@ sealed class MercurialIntro : Dialogue {
     name: "Hello",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     """
     Light graces you, brave traveler. We've been expecting you.
@@ -95,7 +95,7 @@ sealed class MercurialIntro : Dialogue {
     name: "Asketh",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     """
     Light Shines its abundance on Mercurial. Ask that which hath evadeth you in Darker realms.
@@ -129,7 +129,7 @@ sealed class MercurialIntro : Dialogue {
     name: "mx4",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     """
     Begin where vanity shineth — Venus. And where stone remembereth — Mars. The Light goeth with thee, seeker. Spend it well.
@@ -141,7 +141,7 @@ sealed class MercurialIntro : Dialogue {
     name: "mx2",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     """
     When Sun hath given all it may, it giveth all at once. Red Nova is the last gift, the bright goodbye. It was not yet Time — unless the Spender maketh it so.
@@ -155,7 +155,7 @@ sealed class MercurialIntro : Dialogue {
     name: "Cosmos crieth",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     """
     Aye, Cosmos crieth out through the Light. It was not Time for Red Nova, yet Time disturbeth all until Nova come.
@@ -189,7 +189,7 @@ sealed class MercurialIntro : Dialogue {
     name: "Sun offers light",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     """
     The Sun offereth its Light freely, but it cannot reach those inclined to Darkness.
@@ -223,7 +223,7 @@ sealed class MercurialIntro : Dialogue {
     name: "Sun shineth",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     """
     Sun shineth for those that seeketh.
@@ -257,10 +257,10 @@ sealed class MercurialIntro : Dialogue {
     name: "Decrease rep",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     @id("640bc771-6f2c-46b0-9b9f-4d8eababb6b2")
-    outpost.SaveUnsafe.Reputation--;
+    mercurial.SaveUnsafe.Reputation--;
   
     return LightToDark;
   }
@@ -270,7 +270,7 @@ sealed class MercurialIntro : Dialogue {
     name: "Light to dark",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     """
     Ah, so the Light has chosen Darkness as its vessel. Alas, all Light goes Dark in time. 
@@ -292,10 +292,10 @@ sealed class MercurialIntro : Dialogue {
   Actions Mx3b = new(
     name: "mx3b",
   ) {
-    Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     @primary
-    Outpost outpost_2 = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
+    Outpost olympicMons = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
   
     @id("9387357d-21f5-4b29-87fe-9b28d081573d")
     Action1();
@@ -310,10 +310,10 @@ sealed class MercurialIntro : Dialogue {
   Actions Mx3a = new(
     name: "mx3a",
   ) {
-    Outpost outpost = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
+    Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
     @primary
-    Outpost outpost_2 = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
+    Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     @id("c303f726-41d9-4ee8-9c65-0397c902b7a6")
     Action3();

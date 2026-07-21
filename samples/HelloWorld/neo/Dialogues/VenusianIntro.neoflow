@@ -6,16 +6,16 @@
 )
 sealed class VenusianIntro : Dialogue {
   @primary
-  Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
+  Outpost Venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
 
   @id("586db42e-af9c-5453-8895-ae859ff2629e")
   void Action1() {
-    outpost.Save.Unlocked = true;
+    Venusian.Save.Unlocked = true;
   }
 
   @id("fe7817ec-0dc1-5093-b12f-a61038e1894f")
   void Action2() {
-    root.Save.Inventory.Add(outpost);
+    root.Save.Inventory.Add(Venusian);
   }
 
   @id("3cc8a43f-1701-4988-86e6-199a06111f7d")
@@ -30,7 +30,7 @@ sealed class VenusianIntro : Dialogue {
     name: "v1",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
+    Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     """
     Welcome, gorgeous, to the Cloud Court of Venus. Mind the acid rain — it's couture, not weather.
@@ -64,7 +64,7 @@ sealed class VenusianIntro : Dialogue {
     name: "v2",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
+    Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     """
     Flares! Dreadful for the complexion. You know, the tankers that skim our cloud-tops have been riding sunward lately. Gyre Collective hulls, if you ask me — not that anyone asks Venus anything but skincare.
@@ -78,7 +78,7 @@ sealed class VenusianIntro : Dialogue {
     name: "v3",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
+    Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     """
     Rude AND sunburnt, tragic. Fine: ask the farm boys around Jupiter. Every freighter in the system refuels out there — fuel is gossip you can weigh.
@@ -92,9 +92,9 @@ sealed class VenusianIntro : Dialogue {
     name: "v4",
   ) {
     @primary
-    Outpost outpost_2 = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
+    Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
   
-    Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
+    Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     @id("c9369ac2-54cc-449a-af76-160933d4c375")
     Action1();
@@ -107,7 +107,7 @@ sealed class VenusianIntro : Dialogue {
     name: "v5",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
+    Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     """
     Take this parasol, darling — genuine cloudsilk. It repels flare-light AND judgment. Now go bother Jupiter; tell the Iowan outpost Venus misses their corn.
@@ -119,9 +119,9 @@ sealed class VenusianIntro : Dialogue {
     name: "grant Cloudsilk Parasol",
   ) {
     @primary
-    Item item = Reference<Item>(id: "c263523c-352c-4273-885c-934bb35f5d16");
+    Item cloudsilkParasol = Reference<Item>(id: "c263523c-352c-4273-885c-934bb35f5d16");
   
-    Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
+    Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     @id("efbc6f53-5351-4788-bc16-524e756d4a40")
     Action2();

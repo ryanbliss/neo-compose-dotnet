@@ -6,11 +6,11 @@
 )
 sealed class UrsaMajorIntro : Dialogue {
   @primary
-  Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
+  Outpost Outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
 
   @id("08700746-d38b-5735-8421-6e825e1d6668")
   void Action1() {
-    outpost.Save.Unlocked = true;
+    Outpost.Save.Unlocked = true;
   }
 
   @id("46674347-a533-48a8-9a4c-096a30c25e1a")

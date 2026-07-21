@@ -419,6 +419,12 @@ Root root = new() {
           Planet = .pluto
         }
       ],
+      ScreenshotEmptyGrid = new OldConsoleLandingGrid {
+        DisplayName = "",
+        CellSize = new(1, 1, 0),
+        Children = [],
+        PixelsPerUnit = 100
+      },
       SortingLayers = @id("e82662a0-10be-45cb-8c4a-a5d8b6b5bb0c")
       [
         @id("88c0d53b-94ee-4f48-839b-9148d07828fb")

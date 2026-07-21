@@ -6,7 +6,7 @@
 )
 sealed class OldConsoleLandingVaultPlaqueReward : Dialogue {
   @primary
-  BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+  BlockedPath BlockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
 
   @id("1b871ef2-5140-4e48-a6e6-d64524e1566b")
   override Trigger Trigger = new() => Start;

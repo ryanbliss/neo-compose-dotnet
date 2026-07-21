@@ -6,16 +6,16 @@
 )
 sealed class OlympicMonsIntro : Dialogue {
   @primary
-  Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
+  Outpost OlympicMons = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
 
   @id("a5564a94-77d7-5fe9-90fd-bbe5d1ddd4c9")
   void Action1() {
-    outpost.Save.Unlocked = true;
+    OlympicMons.Save.Unlocked = true;
   }
 
   @id("ca107d1d-c9eb-5295-a84a-bf9cea42f1cb")
   void Action2() {
-    root.Save.Inventory.Add(outpost);
+    root.Save.Inventory.Add(OlympicMons);
   }
 
   @id("3d3ec0f5-9fa7-43d4-8c78-d80af7fb9cc1")
@@ -30,7 +30,7 @@ sealed class OlympicMonsIntro : Dialogue {
     name: "m1",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
+    Outpost olympicMons = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
   
     """
     Halt! State your business at Olympic Mons Garrison. ...Oh. You're the flare investigator the Capitol wired about. At ease, everyone.
@@ -64,7 +64,7 @@ sealed class OlympicMonsIntro : Dialogue {
     name: "m3",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
+    Outpost olympicMons = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
   
     """
     PASSING THROUGH? This is the tallest peak humans have ever stood on. Show some respect. ...Though between us, it's the sky that worries me now, not the summit.
@@ -78,7 +78,7 @@ sealed class OlympicMonsIntro : Dialogue {
     name: "m2",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
+    Outpost olympicMons = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
   
     """
     Every flare wake bends the same direction — out past the belt. Heavy freighter convoys running dark, all vectored at Jupiter. Somebody out there is drinking sunlight by the tanker-load.
@@ -92,9 +92,9 @@ sealed class OlympicMonsIntro : Dialogue {
     name: "m4",
   ) {
     @primary
-    Outpost outpost_2 = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
+    Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
   
-    Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
+    Outpost olympicMons = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
   
     @id("74756349-5b68-4eee-b324-f15cd9bbcc91")
     Action1();
@@ -107,7 +107,7 @@ sealed class OlympicMonsIntro : Dialogue {
     name: "m5",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
+    Outpost olympicMons = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
   
     """
     Take these pitons, Low-G rated. If you're climbing into Jupiter's mess, you'll want grip. Garrison's honor: come back with answers.
@@ -119,9 +119,9 @@ sealed class OlympicMonsIntro : Dialogue {
     name: "grant Low-G Pitons",
   ) {
     @primary
-    Item item = Reference<Item>(id: "c8eb381b-9c3f-4120-b8c3-3872cdde5148");
+    Item lowGPitons = Reference<Item>(id: "c8eb381b-9c3f-4120-b8c3-3872cdde5148");
   
-    Outpost outpost = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
+    Outpost olympicMons = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
   
     @id("40f15f9c-6a11-4afc-ba2d-420aa8e1adf3")
     Action2();

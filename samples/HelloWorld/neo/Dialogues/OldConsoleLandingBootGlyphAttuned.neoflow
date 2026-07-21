@@ -6,7 +6,7 @@
 )
 sealed class OldConsoleLandingBootGlyphAttuned : Dialogue {
   @primary
-  BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
+  BlockedPath BlockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
 
   @id("6fed1e3d-ecf5-43a2-b66c-c7d59b348770")
   override Trigger Trigger = new() => Start;

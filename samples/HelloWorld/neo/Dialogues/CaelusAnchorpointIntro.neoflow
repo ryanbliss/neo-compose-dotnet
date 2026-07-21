@@ -6,16 +6,16 @@
 )
 sealed class CaelusAnchorpointIntro : Dialogue {
   @primary
-  Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+  Outpost CaelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
 
   @id("8028c6aa-5f4e-55c2-91d8-29a320b7058b")
   void Action1() {
-    root.Save.Inventory.Add(outpost);
+    root.Save.Inventory.Add(CaelusAnchorpoint);
   }
 
   @id("d4903d53-600a-5d4a-a092-3fec63f7a93e")
   void Action2() {
-    outpost.Save.Unlocked = true;
+    CaelusAnchorpoint.Save.Unlocked = true;
   }
 
   @id("3e2cb735-460d-4893-a1ff-de3dc0e21d14")
@@ -30,7 +30,7 @@ sealed class CaelusAnchorpointIntro : Dialogue {
     name: "c1",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+    Outpost caelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
   
     """
     Welcome to Caelus Anchorpoint. Yes, the station is sideways. No, we will not fix it. How can we help?
@@ -64,7 +64,7 @@ sealed class CaelusAnchorpointIntro : Dialogue {
     name: "c2j",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+    Outpost caelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
   
     """
     Carefully. ...You want the relay logs. They all do, eventually. You'd think we were the only honest router in the outer system. We are.
@@ -78,7 +78,7 @@ sealed class CaelusAnchorpointIntro : Dialogue {
     name: "c2",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+    Outpost caelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
   
     """
     Command bursts to the Gyre Collective every six hours, origin masked. But the BILLING ledger isn't masked, and every account roots back to one rock: Pluto.
@@ -92,9 +92,9 @@ sealed class CaelusAnchorpointIntro : Dialogue {
     name: "c3",
   ) {
     @primary
-    Outpost outpost_2 = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
+    Outpost gyreCollective = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
   
-    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+    Outpost caelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
   
     @id("05dbfa2e-e7f1-466f-9541-353970a844b1")
     Action2();
@@ -107,7 +107,7 @@ sealed class CaelusAnchorpointIntro : Dialogue {
     name: "c4",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+    Outpost caelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
   
     """
     Take a gyro stabilizer — Neptune's storms chew up dirtsider ships for breakfast. And traveler? Whatever the Gyre is building out there, the invoices say it's nearly finished.
@@ -119,9 +119,9 @@ sealed class CaelusAnchorpointIntro : Dialogue {
     name: "grant Gyro Stabilizer",
   ) {
     @primary
-    Item item = Reference<Item>(id: "73a11098-70fa-4608-bfb6-0ab25571e576");
+    Item gyroStabilizer = Reference<Item>(id: "73a11098-70fa-4608-bfb6-0ab25571e576");
   
-    Outpost outpost = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
+    Outpost caelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
   
     @id("afd16a0e-16f3-4317-914b-eb83acdbcd44")
     Action1();

@@ -5,7 +5,7 @@
 )
 sealed class VenusianTheOldestPattern : Dialogue {
   @primary
-  Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
+  Outpost Venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
 
   @id("4eede4c6-17c9-5de2-8365-e992e11b56df")
   bool Condition1() {
@@ -38,7 +38,7 @@ sealed class VenusianTheOldestPattern : Dialogue {
     name: "v1",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
+    Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     """
     Darling, you're back! And looking absolutely radioactive. Listen — the House archive found our OLDEST couture pattern. Pre-classical. Pre-EVERYTHING. It's yours for 150 bits, because you're you.
@@ -72,7 +72,7 @@ sealed class VenusianTheOldestPattern : Dialogue {
     name: "v1b",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
+    Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     """
     A piece of— it's a sixteen-by-sixteen GRID, darling, every square numbered, colors by code. Ancient couture is PIXEL ART and we simply called it embroidery. 150. Final.
@@ -86,7 +86,7 @@ sealed class VenusianTheOldestPattern : Dialogue {
     name: "v2",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
+    Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     @id("9f4f993d-c685-4620-9bc0-c9b57226887d")
     Action2();
@@ -99,7 +99,7 @@ sealed class VenusianTheOldestPattern : Dialogue {
     name: "v3",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
+    Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     """
     There. Sixteen by sixteen, and when you fill the squares... it's a little blue circle. A world, darling. The FIRST world. Some seamstress copied the icon of everything and vanity preserved what faith couldn't parse.
@@ -113,7 +113,7 @@ sealed class VenusianTheOldestPattern : Dialogue {
     name: "v4",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
+    Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     @id("199efa5f-5349-444f-b5a7-569560c694d1")
     Action1();
@@ -126,7 +126,7 @@ sealed class VenusianTheOldestPattern : Dialogue {
     name: "v5",
   ) {
     @primary
-    Outpost outpost = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
+    Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
   
     """
     Wear it where the monks can see, won't you? They'll weep. It'll be DIVINE.
