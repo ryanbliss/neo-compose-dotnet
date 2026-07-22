@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-07-22
+
 ### Added
 
 - Generated partial classes can request durable, reload-safe editor artifact
@@ -14,6 +16,11 @@
 
 - Unity synchronization now waits for generated-artifact handlers and matching
   TileGrid authoring previews before publishing final post-sync success.
+- Tile and object layer links now resolve their target layer from class-level
+  internal-record relations, including inherited targets, instead of the
+  removed per-value `layerClassId` sidecar.
+- Generated `NeoTileLayerLink` and `NeoObjectLayerLink` system bases are
+  abstract; project-authored concrete link classes provide the target relation.
 
 ## [0.5.1] - 2026-07-19
 
