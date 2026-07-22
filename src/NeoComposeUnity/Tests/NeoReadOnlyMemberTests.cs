@@ -10,6 +10,7 @@ using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using System.Threading.Tasks;
 
 namespace NeoCompose.Tests
 {
@@ -57,6 +58,12 @@ namespace NeoCompose.Tests
         public void RuntimeNodes_ResolveOneSyntheticPrimitiveAndCompositeDefault()
         {
             NeoClient client = LoadClient();
+            Assert.AreSame(
+                client.ResolveClassInheritanceChain("class-weapon"),
+                client.ResolveClassInheritanceChain("class-weapon"));
+            Assert.AreSame(
+                client.ResolveInstanceSurfaceSchema("class-weapon"),
+                client.ResolveInstanceSurfaceSchema("class-weapon"));
             var assetWeapon = client.AssetsRoot.Get<NeoMemberClass>("Weapon");
             var saveWeapon = client.SaveRoot.Get<NeoMemberClassWritable>("Weapon");
 
@@ -80,6 +87,72 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void RuntimeNodes_ResolveSharedListDictionaryAndLookupDefaults()
+        {
+            ProjectData data = BuildProjectData();
+            AddReadOnlyCollectionMembers(data);
+            NeoClient client = LoadClient(data);
+            var assetWeapon = client.AssetsRoot.Get<NeoMemberClass>("Weapon");
+            var saveWeapon = client.SaveRoot.Get<NeoMemberClassWritable>("Weapon");
+
+            var assetBonuses = assetWeapon.Get<NeoMemberList>("Bonuses");
+            var saveBonuses = saveWeapon.Get<NeoMemberList>("Bonuses");
+            Assert.AreSame(assetBonuses, saveBonuses);
+            Assert.AreEqual(2, assetBonuses.Count);
+            Assert.AreEqual(3, ((NeoMemberInt)assetBonuses[0]).value!.value);
+            Assert.IsFalse(assetBonuses is NeoMemberListWritable);
+
+            var assetLabels = assetWeapon.Get<NeoMemberDictionary>("Labels");
+            var saveLabels = saveWeapon.Get<NeoMemberDictionary>("Labels");
+            Assert.AreSame(assetLabels, saveLabels);
+            Assert.AreEqual("primary", ((NeoMemberString)assetLabels["main"]).value!.value);
+            Assert.IsFalse(assetLabels is NeoMemberDictionaryWritable);
+
+            var assetFavorite = assetWeapon.Get<NeoMemberLookup>("Favorite");
+            var saveFavorite = saveWeapon.Get<NeoMemberLookup>("Favorite");
+            Assert.AreSame(assetFavorite, saveFavorite);
+            Assert.IsFalse(assetFavorite is NeoMemberLookupWritable);
+            var selected = assetFavorite.GetSelected();
+            Assert.AreEqual(1, selected.Count);
+            Assert.AreEqual(
+                "lookup target",
+                ((NeoMemberClass)selected[0]).Get<NeoMemberString>("Name").value!.value);
+        }
+
+        [Test]
+        public void RegularOverrideWithoutDefault_DoesNotInheritBaseDefault()
+        {
+            ProjectData data = BuildProjectData();
+            var baseMember = new IntMember
+            {
+                id = "member-regular-base",
+                projectId = ProjectId,
+                name = "RegularBase",
+                kind = MemberKind.Int,
+                defaultValue = new NumberMemberValueBase { value = 5 },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var overrideMember = new IntMember
+            {
+                id = "member-regular-override",
+                projectId = ProjectId,
+                name = "RegularOverride",
+                kind = MemberKind.Int,
+                extendsMemberId = baseMember.id,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.members[baseMember.id] = baseMember;
+            data.members[overrideMember.id] = overrideMember;
+
+            NeoClient client = LoadClient(data);
+            var node = new NeoMemberInt(client, overrideMember, overrideValueId: null);
+
+            Assert.IsNull(node.value);
+        }
+
+        [Test]
         public void RuntimeWritesAndFactories_RejectReadOnlyInstanceEdges()
         {
             NeoClient client = LoadClient();
@@ -99,6 +172,12 @@ namespace NeoCompose.Tests
             var unsetError = Assert.Throws<System.InvalidOperationException>(() =>
                 saveWeapon.Unset("BaseDamage"));
             StringAssert.Contains("read-only declaration member", unsetError!.Message);
+
+            var bindError = Assert.Throws<System.InvalidOperationException>(() =>
+                saveWeapon.BindChildValueId(
+                    saveWeapon.Get<NeoMemberInt>("BaseDamage"),
+                    "value-illegal-binding"));
+            StringAssert.Contains("read-only declaration member", bindError!.Message);
 
             NeoMemberClassWritable created =
                 NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -171,6 +250,187 @@ namespace NeoCompose.Tests
             };
 
             Assert.AreEqual(12d, NSGetterEvaluator.Evaluate(getter, context));
+        }
+
+        [Test]
+        public void NeoScriptRead_DeclarationDefaultWinsStaleInstanceKey()
+        {
+            ProjectData data = BuildProjectData();
+            NeoClient client = LoadClient(data);
+            ((ObjectMemberValue)data.values["value-weapon-save"]).value!["BaseDamage"] =
+                "value-stale-base-damage";
+            data.values["value-stale-base-damage"] = new NumberMemberValue
+            {
+                id = "value-stale-base-damage",
+                createdAt = "x",
+                updatedAt = "x",
+                value = 99,
+            };
+
+            Assert.AreEqual(
+                12d,
+                EvaluateMemberAccess(
+                    client,
+                    "value-weapon-save",
+                    "BaseDamage",
+                    "member-base-damage",
+                    MemberKind.Int));
+        }
+
+        [Test]
+        public void NeoScriptRead_UsesRuntimeReadonlyMemberForInheritedAndInterfacePointers()
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["class-derived-weapon"] = new NeoSchemaClass
+            {
+                id = "class-derived-weapon",
+                projectId = ProjectId,
+                name = "DerivedWeapon",
+                schema = new Dictionary<string, string>(),
+                extendsClassId = "class-weapon",
+                implementsInterfaceIds = new List<string> { "interface-damage" },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            ((ObjectMemberValue)data.values["value-weapon-save"]).classId =
+                "class-derived-weapon";
+            NeoClient client = LoadClient(data);
+
+            Assert.AreEqual(
+                12d,
+                EvaluateMemberAccess(
+                    client,
+                    "value-weapon-save",
+                    "BaseDamage",
+                    "member-base-damage",
+                    MemberKind.Int));
+            Assert.AreEqual(
+                12d,
+                EvaluateMemberAccess(
+                    client,
+                    "value-weapon-save",
+                    "BaseDamage",
+                    "interface-member-damage",
+                    MemberKind.Int));
+
+            ProjectData overrideData = BuildProjectData();
+            var regularOverride = new IntMember
+            {
+                id = "member-derived-damage",
+                projectId = ProjectId,
+                name = "BaseDamage",
+                kind = MemberKind.Int,
+                required = true,
+                storage = "immutable",
+                extendsMemberId = "member-base-damage",
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            overrideData.members[regularOverride.id] = regularOverride;
+            overrideData.classes["class-derived-weapon"] = new NeoSchemaClass
+            {
+                id = "class-derived-weapon",
+                projectId = ProjectId,
+                name = "DerivedWeapon",
+                schema = new Dictionary<string, string>
+                {
+                    ["BaseDamage"] = regularOverride.id,
+                },
+                extendsClassId = "class-weapon",
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var overrideRow = (ObjectMemberValue)overrideData.values["value-weapon-save"];
+            overrideRow.classId = "class-derived-weapon";
+            overrideRow.value!["BaseDamage"] = "value-derived-damage";
+            overrideData.values["value-derived-damage"] = new NumberMemberValue
+            {
+                id = "value-derived-damage",
+                createdAt = "x",
+                updatedAt = "x",
+                value = 33,
+            };
+            NeoClient overrideClient = LoadClient(overrideData);
+
+            Assert.AreEqual(
+                33d,
+                EvaluateMemberAccess(
+                    overrideClient,
+                    "value-weapon-save",
+                    "BaseDamage",
+                    "member-base-damage",
+                    MemberKind.Int));
+        }
+
+        [Test]
+        public void NeoScriptRead_LocalizesReadonlyStringAndDereferencesSingleLookup()
+        {
+            ProjectData localizedData = BuildProjectData();
+            var title = new StringMember
+            {
+                id = "member-readonly-title",
+                projectId = ProjectId,
+                name = "Title",
+                kind = MemberKind.String,
+                required = true,
+                storage = "immutable",
+                isReadOnly = true,
+                localizable = true,
+                defaultValue = new StringMemberValueBase
+                {
+                    value = "text-readonly-title",
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            localizedData.members[title.id] = title;
+            localizedData.classes["class-weapon"].schema["Title"] = title.id;
+            localizedData.localization = new ProjectLocalizationExport
+            {
+                schemaVersion = 1,
+                mainLocale = "en-US",
+                supportedLocales = new[]
+                {
+                    new ProjectLocalizationLocale { locale = "en-US" },
+                },
+                textIds = new[] { "text-readonly-title" },
+                mainLocaleFileName = "en-US.json",
+            };
+            NeoLocalization localization = NeoLocalization.LoadMain(
+                localizedData.localization,
+                new ReadOnlyLocalizationSource());
+            NeoClient localizedClient = NeoTestSaveStack.ClientFromSchema(
+                localizedData,
+                localization: localization);
+
+            Assert.AreEqual(
+                "Localized declaration title",
+                EvaluateMemberAccess(
+                    localizedClient,
+                    "value-weapon-save",
+                    "Title",
+                    title.id,
+                    MemberKind.String));
+
+            ProjectData lookupData = BuildProjectData();
+            AddReadOnlyCollectionMembers(lookupData);
+            NeoClient lookupClient = LoadClient(lookupData);
+            Pointer favorite = MemberAccessPointer(
+                new ReferencePointer
+                {
+                    type = PointerKind.Reference,
+                    valueId = "value-weapon-save",
+                },
+                "Favorite",
+                "member-readonly-favorite");
+            Pointer name = MemberAccessPointer(
+                favorite,
+                "Name",
+                "member-detail-name");
+
+            Assert.AreEqual(
+                "lookup target",
+                EvaluatePointer(lookupClient, name, MemberKind.String));
         }
 
         [Test]
@@ -295,6 +555,74 @@ namespace NeoCompose.Tests
             var keyError = Assert.Throws<System.InvalidOperationException>(() =>
                 NeoTestSaveStack.ClientFromSchema(instanceKey));
             StringAssert.Contains("cannot have instance values", keyError!.Message);
+        }
+
+        [Test]
+        public void SchemaValidation_RejectsHandcraftedReadonlyLookupSelectionClearly()
+        {
+            ProjectData data = BuildProjectData();
+            AddReadOnlyCollectionMembers(data);
+            var favorite = (LookupMember)data.members["member-readonly-favorite"];
+            favorite.defaultValue = new ArrayMemberValueBase
+            {
+                value = new[] { "value-not-in-target-collection" },
+            };
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                LoadClient(data));
+
+            StringAssert.Contains("Read-only member 'Favorite'", error!.Message);
+            StringAssert.Contains("value-not-in-target-collection", error.Message);
+            StringAssert.Contains("not present in collection 'value-target-list'", error.Message);
+        }
+
+        [Test]
+        public void ExistingSave_RecoversStaleReadonlyKeyAndOrphanedValue()
+        {
+            ProjectData data = BuildProjectData();
+            var staleSave = new ProjectSaveData
+            {
+                name = "pre-conversion",
+                projectId = ProjectId,
+                version = new VersionData
+                {
+                    id = "unit-test-version",
+                    label = "unit-test-version",
+                },
+                createdAt = "x",
+                updatedAt = "x",
+                values = new Dictionary<string, MemberValue>
+                {
+                    ["value-weapon-save"] = RecordValue(
+                        "value-weapon-save",
+                        "class-weapon",
+                        new Dictionary<string, string>
+                        {
+                            ["BaseDamage"] = "value-stale-save-damage",
+                        }),
+                    ["value-stale-save-damage"] = new NumberMemberValue
+                    {
+                        id = "value-stale-save-damage",
+                        createdAt = "x",
+                        updatedAt = "x",
+                        value = 88,
+                    },
+                },
+            };
+
+            NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                data,
+                loadedSaveContent: JsonConvert.SerializeObject(staleSave));
+
+            Assert.AreEqual(
+                12,
+                client.SaveRoot
+                    .Get<NeoMemberClassWritable>("Weapon")
+                    .Get<NeoMemberInt>("BaseDamage")
+                    .value!.value);
+            StringAssert.DoesNotContain("BaseDamage", client.SerializeSaveData());
+            StringAssert.DoesNotContain("value-stale-save-damage", client.SerializeSaveData());
+            CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
         }
 
         [Test]
@@ -585,8 +913,270 @@ namespace NeoCompose.Tests
                 new NSGetterEvaluator.Context(client, null, null));
         }
 
+        private static object? EvaluateMemberAccess(
+            NeoClient client,
+            string valueId,
+            string schemaKey,
+            string memberId,
+            MemberKind returnKind)
+        {
+            return EvaluatePointer(
+                client,
+                MemberAccessPointer(
+                    new ReferencePointer
+                    {
+                        type = PointerKind.Reference,
+                        valueId = valueId,
+                    },
+                    schemaKey,
+                    memberId),
+                returnKind);
+        }
+
+        private static KeyOfPointer MemberAccessPointer(
+            Pointer receiver,
+            string schemaKey,
+            string memberId) => new()
+        {
+            type = PointerKind.KeyOf,
+            memberId = memberId,
+            keyOf = new KeyOf
+            {
+                pointer = receiver,
+                key = new ValuePointer
+                {
+                    type = PointerKind.Value,
+                    value = new Value
+                    {
+                        typeInfo = new PrimitiveTypeInfo
+                        {
+                            type = MemberKind.String,
+                            required = true,
+                        },
+                        value = JToken.FromObject(schemaKey),
+                    },
+                },
+            },
+        };
+
+        private static object? EvaluatePointer(
+            NeoClient client,
+            Pointer pointer,
+            MemberKind returnKind)
+        {
+            var getter = new FunctionWithReturnType
+            {
+                parameters = System.Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = returnKind,
+                    required = true,
+                },
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = pointer,
+                    },
+                },
+            };
+            return NSGetterEvaluator.Evaluate(
+                getter,
+                new NSGetterEvaluator.Context(client, null, null));
+        }
+
+        private static void AddReadOnlyCollectionMembers(ProjectData data)
+        {
+            var bonusEntry = new IntMember
+            {
+                id = "member-bonus-entry",
+                projectId = ProjectId,
+                name = "BonusEntry",
+                kind = MemberKind.Int,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var bonuses = new ListMember
+            {
+                id = "member-readonly-bonuses",
+                projectId = ProjectId,
+                name = "Bonuses",
+                kind = MemberKind.List,
+                required = true,
+                storage = "immutable",
+                isReadOnly = true,
+                listKind = NeoListKinds.Ordered,
+                entryMemberId = bonusEntry.id,
+                defaultValue = new ArrayMemberValueBase
+                {
+                    value = new[] { "value-bonus-1", "value-bonus-2" },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var labelEntry = new StringMember
+            {
+                id = "member-label-entry",
+                projectId = ProjectId,
+                name = "LabelEntry",
+                kind = MemberKind.String,
+                localizable = false,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var labels = new DictionaryMember
+            {
+                id = "member-readonly-labels",
+                projectId = ProjectId,
+                name = "Labels",
+                kind = MemberKind.Dictionary,
+                required = true,
+                storage = "immutable",
+                isReadOnly = true,
+                entryMemberId = labelEntry.id,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    value = new Dictionary<string, string>
+                    {
+                        ["main"] = "value-label-main",
+                    },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var targetEntry = new ClassMember
+            {
+                id = "member-target-entry",
+                projectId = ProjectId,
+                name = "TargetEntry",
+                kind = MemberKind.Class,
+                classId = "class-details",
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var targets = new ListMember
+            {
+                id = "member-targets",
+                projectId = ProjectId,
+                name = "Targets",
+                kind = MemberKind.List,
+                required = true,
+                listKind = NeoListKinds.Ordered,
+                entryMemberId = targetEntry.id,
+                valueId = "value-target-list",
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var favorite = new LookupMember
+            {
+                id = "member-readonly-favorite",
+                projectId = ProjectId,
+                name = "Favorite",
+                kind = MemberKind.Lookup,
+                required = true,
+                storage = "immutable",
+                isReadOnly = true,
+                collectionMemberId = targets.id,
+                collectionValueId = "value-target-list",
+                multiselect = false,
+                defaultValue = new ArrayMemberValueBase
+                {
+                    value = new[] { "value-target-details" },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+
+            data.members[bonusEntry.id] = bonusEntry;
+            data.members[bonuses.id] = bonuses;
+            data.members[labelEntry.id] = labelEntry;
+            data.members[labels.id] = labels;
+            data.members[targetEntry.id] = targetEntry;
+            data.members[targets.id] = targets;
+            data.members[favorite.id] = favorite;
+            data.classes["class-weapon"].schema["Bonuses"] = bonuses.id;
+            data.classes["class-weapon"].schema["Labels"] = labels.id;
+            data.classes["class-weapon"].schema["Favorite"] = favorite.id;
+            data.classes["class-root-assets"].schema["Targets"] = targets.id;
+            ((ObjectMemberValue)data.values["value-root-assets"]).value!["Targets"] =
+                "value-target-list";
+
+            data.values["value-bonus-1"] = new NumberMemberValue
+            {
+                id = "value-bonus-1",
+                createdAt = "x",
+                updatedAt = "x",
+                value = 3,
+            };
+            data.values["value-bonus-2"] = new NumberMemberValue
+            {
+                id = "value-bonus-2",
+                createdAt = "x",
+                updatedAt = "x",
+                value = 7,
+            };
+            data.values["value-label-main"] = new StringMemberValue
+            {
+                id = "value-label-main",
+                createdAt = "x",
+                updatedAt = "x",
+                value = "primary",
+            };
+            data.values["value-target-list"] = new ArrayMemberValue
+            {
+                id = "value-target-list",
+                createdAt = "x",
+                updatedAt = "x",
+                value = new[] { "value-target-details" },
+            };
+            data.values["value-target-details"] = RecordValue(
+                "value-target-details",
+                "class-details",
+                new Dictionary<string, string>
+                {
+                    ["Name"] = "value-target-name",
+                });
+            data.values["value-target-name"] = new StringMemberValue
+            {
+                id = "value-target-name",
+                createdAt = "x",
+                updatedAt = "x",
+                value = "lookup target",
+            };
+        }
+
         private static NeoClient LoadClient(ProjectData? data = null) =>
             NeoTestSaveStack.ClientFromSchema(data ?? BuildProjectData());
+
+        private sealed class ReadOnlyLocalizationSource
+            : INeoLocalizationLocaleFileSource
+        {
+            public bool TryLoadResourcesLocale(
+                ProjectLocalizationExport localization,
+                string locale,
+                out ProjectLocalizationLocaleFile? file)
+            {
+                file = new ProjectLocalizationLocaleFile
+                {
+                    schemaVersion = 1,
+                    projectId = ProjectId,
+                    versionId = "unit-test-version",
+                    locale = locale,
+                    values = new Dictionary<string, string?>
+                    {
+                        ["text-readonly-title"] = "Localized declaration title",
+                    },
+                };
+                return true;
+            }
+
+            public Task<ProjectLocalizationLocaleFile?> LoadStreamingAssetsLocaleAsync(
+                ProjectLocalizationExport localization,
+                string locale,
+                string streamingAssetsRelativePath) =>
+                Task.FromResult<ProjectLocalizationLocaleFile?>(null);
+        }
 
         private static ProjectData BuildProjectData()
         {

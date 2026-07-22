@@ -407,14 +407,8 @@ namespace NeoCompose.Runtime
         {
             try
             {
-                inheritanceChain = NeoSchemaClassInheritance.ResolveChain(
-                    schemaClass.id,
-                    id => client.TryGetClass(id, out var t) ? t : null);
-                mergedSchema = NeoSchemaClassInheritance.MergeInstanceSchema(
-                    inheritanceChain,
-                    id => client.TryGetMember(id, out Member? member)
-                        ? member
-                        : null);
+                inheritanceChain = client.ResolveClassInheritanceChain(schemaClass.id);
+                mergedSchema = client.ResolveInstanceSurfaceSchema(schemaClass.id);
                 // The chain env alone misses constructed slots: an instance
                 // of the DECLARED open class (`classId: null` rows under a
                 // `GenericTest<Color>` slot) binds its params through the

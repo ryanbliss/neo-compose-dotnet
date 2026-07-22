@@ -77,6 +77,11 @@ namespace NeoCompose.Runtime
         private readonly object activeDirectDeferredFunctionsLock = new();
         private readonly Dictionary<string, NeoResolvedNSFunction> resolvedNSFunctions = new();
         private readonly object resolvedNSFunctionsLock = new();
+        private readonly Dictionary<string, IList<NeoSchemaClass>> classInheritanceChains = new();
+        private readonly Dictionary<string, IList<MergedSchemaEntry>> instanceSurfaceSchemas = new();
+        private readonly Dictionary<string, IList<MergedSchemaEntry>> storedInstanceSchemas = new();
+        private readonly Dictionary<string, IList<MergedSchemaEntry>> readOnlyMemberSchemas = new();
+        private readonly List<(string valueId, Member member)> recoveredReadOnlySaveValues = new();
         private bool isDisposed;
 
         internal bool TryGetResolvedNSFunction(
@@ -317,6 +322,7 @@ namespace NeoCompose.Runtime
             this.data = loader.Schema;
             ValidateExportSchemaVersion(data.metadata);
             ValidateClassMemberPayload(data);
+            NormalizeClassSchemas();
             ValidateReadOnlyMembers();
             ValidateInternalRecordRelations(data);
             InternalRecordRelations = new NeoInternalRecordRelationGraph(data);
@@ -333,6 +339,7 @@ namespace NeoCompose.Runtime
             sessionData = BuildDefaultSessionData();
             BuildMembershipIndex();
             BuildAuthoredOwnershipMap();
+            RemoveRecoveredReadOnlySaveValues();
             InitializeSaveDefaults();
             InitializeSessionDefaults();
             assets = new(this, data.project.rootAssetsMemberId, null);
@@ -589,10 +596,8 @@ namespace NeoCompose.Runtime
             string classId,
             out NeoValueOwnership ownership)
         {
-            string? cursor = classId;
-            for (int hops = 0; cursor is not null && hops < 16; hops++)
+            foreach (NeoSchemaClass schemaClass in ResolveClassInheritanceChain(classId))
             {
-                if (!data.classes.TryGetValue(cursor, out NeoSchemaClass schemaClass)) break;
                 NeoValueOwnership? declared = NeoMemberStorageResolution.ToOwnership(
                     NeoMemberStorageResolution.Parse(schemaClass.allowedStorage));
                 if (declared is not null)
@@ -600,7 +605,6 @@ namespace NeoCompose.Runtime
                     ownership = declared.Value;
                     return true;
                 }
-                cursor = schemaClass.extendsClassId;
             }
             ownership = NeoValueOwnership.Asset;
             return false;
@@ -613,15 +617,14 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal NeoMemberStorage DeclaredStorage(Member member)
         {
-            Member? cursor = member;
-            for (int hops = 0; cursor is not null && hops < 16; hops++)
-            {
-                var declared = NeoMemberStorageResolution.Parse(cursor.storage);
-                if (declared != NeoMemberStorage.Inherit) return declared;
-                if (cursor.extendsMemberId is null) return NeoMemberStorage.Inherit;
-                data.members.TryGetValue(cursor.extendsMemberId, out cursor);
-            }
-            return NeoMemberStorage.Inherit;
+            string? storage = NeoSchemaClassInheritance.WalkExtendsMemberChain(
+                member,
+                id => data.members.TryGetValue(id, out Member? value) ? value : null,
+                current => NeoMemberStorageResolution.Parse(current.storage)
+                    == NeoMemberStorage.Inherit
+                        ? null
+                        : current.storage);
+            return NeoMemberStorageResolution.Parse(storage);
         }
 
         /// <summary>
@@ -641,17 +644,11 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal string DeclaredStorageKey(Member member)
         {
-            Member? cursor = member;
-            for (int hops = 0; cursor is not null && hops < 16; hops++)
-            {
-                if (cursor.storageKey is not null)
-                {
-                    return NormalizeStorageKey(cursor.storageKey);
-                }
-                if (cursor.extendsMemberId is null) break;
-                data.members.TryGetValue(cursor.extendsMemberId, out cursor);
-            }
-            return "inherit";
+            string? storageKey = NeoSchemaClassInheritance.WalkExtendsMemberChain(
+                member,
+                id => data.members.TryGetValue(id, out Member? value) ? value : null,
+                current => current.storageKey);
+            return storageKey is null ? "inherit" : NormalizeStorageKey(storageKey);
         }
 
         /// <summary>
@@ -1016,17 +1013,81 @@ namespace NeoCompose.Runtime
             }
         }
 
+        internal IList<NeoSchemaClass> ResolveClassInheritanceChain(string classId)
+        {
+            if (!classInheritanceChains.TryGetValue(classId, out var chain))
+            {
+                chain = NeoSchemaClassInheritance.ResolveChain(
+                    classId,
+                    id => data.classes.TryGetValue(id, out NeoSchemaClass match)
+                        ? match
+                        : null);
+                classInheritanceChains[classId] = chain;
+            }
+            return chain;
+        }
+
+        internal IList<MergedSchemaEntry> ResolveInstanceSurfaceSchema(string classId)
+        {
+            if (!instanceSurfaceSchemas.TryGetValue(classId, out var schema))
+            {
+                schema = NeoSchemaClassInheritance.MergeInstanceSurfaceSchema(
+                    ResolveClassInheritanceChain(classId),
+                    id => data.members.TryGetValue(id, out Member match)
+                        ? match
+                        : null);
+                instanceSurfaceSchemas[classId] = schema;
+            }
+            return schema;
+        }
+
+        internal IList<MergedSchemaEntry> ResolveStoredInstanceSchema(string classId)
+        {
+            if (!storedInstanceSchemas.TryGetValue(classId, out var schema))
+            {
+                schema = NeoSchemaClassInheritance.MergeStoredInstanceSchema(
+                    ResolveClassInheritanceChain(classId),
+                    id => data.members.TryGetValue(id, out Member match)
+                        ? match
+                        : null);
+                storedInstanceSchemas[classId] = schema;
+            }
+            return schema;
+        }
+
+        internal IList<MergedSchemaEntry> ResolveReadOnlyMemberSchema(string classId)
+        {
+            if (!readOnlyMemberSchemas.TryGetValue(classId, out var schema))
+            {
+                schema = NeoSchemaClassInheritance.MergeReadOnlyMembers(
+                    ResolveClassInheritanceChain(classId),
+                    id => data.members.TryGetValue(id, out Member match)
+                        ? match
+                        : null);
+                readOnlyMemberSchemas[classId] = schema;
+            }
+            return schema;
+        }
+
+        private void NormalizeClassSchemas()
+        {
+            foreach (NeoSchemaClass schemaClass in data.classes.Values)
+            {
+                // Minimal legacy fixtures treat an omitted schema as empty.
+                schemaClass.schema ??= new Dictionary<string, string>();
+            }
+        }
+
         private void ValidateReadOnlyMembers()
         {
+            if (!data.members.Values.Any(member => member.isReadOnly == true))
+            {
+                return;
+            }
+
             var placements = new Dictionary<string, List<(NeoSchemaClass owner, string key)>>();
             foreach (NeoSchemaClass schemaClass in data.classes.Values)
             {
-                // Older/minimal test and hand-authored documents can omit a
-                // Class schema entirely. Preserve the established behavior:
-                // absent is the same as an empty schema. Normalizing once at
-                // the load boundary also keeps every later schema projection
-                // null-safe.
-                schemaClass.schema ??= new Dictionary<string, string>();
                 foreach (var entry in schemaClass.schema)
                 {
                     if (!placements.TryGetValue(entry.Value, out var memberPlacements))
@@ -1042,17 +1103,7 @@ namespace NeoCompose.Runtime
                 new Dictionary<string, List<(NeoSchemaClass owner, string key)>>();
             foreach (NeoSchemaClass schemaClass in data.classes.Values)
             {
-                IList<NeoSchemaClass> chain = NeoSchemaClassInheritance.ResolveChain(
-                    schemaClass.id,
-                    id => data.classes.TryGetValue(id, out NeoSchemaClass match)
-                        ? match
-                        : null);
-                foreach (MergedSchemaEntry entry in
-                    NeoSchemaClassInheritance.MergeInstanceSurfaceSchema(
-                        chain,
-                        id => data.members.TryGetValue(id, out Member match)
-                            ? match
-                            : null))
+                foreach (MergedSchemaEntry entry in ResolveInstanceSurfaceSchema(schemaClass.id))
                 {
                     if (!effectivePlacements.TryGetValue(entry.memberId, out var memberPlacements))
                     {
@@ -1163,11 +1214,7 @@ namespace NeoCompose.Runtime
                     if (declaration is GenericMember genericDeclaration)
                     {
                         var env = NeoGenericResolution.ResolveEnv(
-                            NeoSchemaClassInheritance.ResolveChain(
-                                placement.owner.id,
-                                id => data.classes.TryGetValue(id, out NeoSchemaClass match)
-                                    ? match
-                                    : null));
+                            ResolveClassInheritanceChain(placement.owner.id));
                         if (env.TryGetValue(
                                 genericDeclaration.genericParamId,
                                 out NeoGenericEnvEntry entry)
@@ -1194,6 +1241,7 @@ namespace NeoCompose.Runtime
                             $"{subject} at Class '{placement.owner.name}' key '{placement.key}' requires an explicit defaultValue.");
                     }
                     ValidateReadOnlyOwnedSchema(resolved, subject, new HashSet<string>());
+                    ValidateReadOnlyLookupDefault(resolved, subject);
                 }
             }
 
@@ -1232,17 +1280,7 @@ namespace NeoCompose.Runtime
         }
 
         private NeoMemberStorage ResolveDeclaredStorage(Member member)
-        {
-            Member? cursor = member;
-            for (int hops = 0; cursor is not null && hops < 16; hops++)
-            {
-                NeoMemberStorage storage = NeoMemberStorageResolution.Parse(cursor.storage);
-                if (storage != NeoMemberStorage.Inherit) return storage;
-                if (cursor.extendsMemberId is null) break;
-                data.members.TryGetValue(cursor.extendsMemberId, out cursor);
-            }
-            return NeoMemberStorage.Inherit;
-        }
+            => DeclaredStorage(member);
 
         private static bool IsReadOnlyValueBearing(Member member) =>
             member is not NSPropertyMember
@@ -1276,33 +1314,106 @@ namespace NeoCompose.Runtime
 
         private bool HasResolvedExplicitDefaultValue(Member member)
         {
-            Member? cursor = member;
-            for (int hops = 0; cursor is not null && hops < 16; hops++)
-            {
-                if (HasExplicitDefaultValue(cursor)) return true;
-                if (cursor.extendsMemberId is null) break;
-                data.members.TryGetValue(cursor.extendsMemberId, out cursor);
-            }
-            return false;
+            return NeoSchemaClassInheritance.WalkExtendsMemberChain(
+                member,
+                id => data.members.TryGetValue(id, out Member? value) ? value : null,
+                current => HasExplicitDefaultValue(current) ? current : null)
+                is not null;
         }
 
         internal MemberValue? CreateDeclarationDefaultValue(
             Member member,
             string syntheticId)
         {
-            Member? cursor = member;
-            for (int hops = 0; cursor is not null && hops < 16; hops++)
-            {
-                MemberValue? created = MemberValueFactory.CreateFromDefault(
-                    cursor,
+            return NeoSchemaClassInheritance.WalkExtendsMemberChain(
+                member,
+                id => data.members.TryGetValue(id, out Member? value) ? value : null,
+                current => MemberValueFactory.CreateFromDefault(
+                    current,
                     syntheticId,
                     member.createdAt,
-                    member.updatedAt);
-                if (created is not null) return created;
-                if (cursor.extendsMemberId is null) break;
-                data.members.TryGetValue(cursor.extendsMemberId, out cursor);
+                    member.updatedAt));
+        }
+
+        private void ValidateReadOnlyLookupDefault(Member member, string subject)
+        {
+            if (member is not LookupMember lookup) return;
+            ArrayMemberValue? defaultValue = CreateDeclarationDefaultValue(
+                lookup,
+                $"__neo_readonly_default_validation:{lookup.RuntimeDeclarationIdentity}")
+                as ArrayMemberValue;
+            string[] selections = defaultValue?.value ?? System.Array.Empty<string>();
+            if (!lookup.multiselect && selections.Length > 1)
+            {
+                throw new InvalidOperationException(
+                    $"{subject} defaultValue selects {selections.Length} Lookup entries, but the Lookup is single-select.");
             }
-            return null;
+            if (selections.Length == 0) return;
+
+            if (!data.members.TryGetValue(lookup.collectionMemberId, out Member? collectionMember))
+            {
+                throw new InvalidOperationException(
+                    $"{subject} defaultValue references missing Lookup collection member '{lookup.collectionMemberId}'.");
+            }
+            if (collectionMember is not ListMember && collectionMember is not DictionaryMember)
+            {
+                throw new InvalidOperationException(
+                    $"{subject} defaultValue Lookup target '{lookup.collectionMemberId}' is not a List or Dictionary.");
+            }
+
+            string? collectionValueId = lookup.collectionValueId
+                ?? ResolveAuthoredLookupCollectionValueId(collectionMember);
+            if (string.IsNullOrEmpty(collectionValueId)
+                || !data.values.TryGetValue(collectionValueId!, out MemberValue? collectionValue))
+            {
+                throw new InvalidOperationException(
+                    $"{subject} defaultValue cannot resolve Lookup collection value '{collectionValueId ?? "<unbound>"}'.");
+            }
+
+            foreach (string selection in selections)
+            {
+                bool selectable = collectionValue switch
+                {
+                    ArrayMemberValue array when array.value is not null =>
+                        System.Array.IndexOf(array.value, selection) >= 0,
+                    ObjectMemberValue obj when obj.value is not null =>
+                        obj.value.ContainsValue(selection),
+                    _ => false,
+                };
+                if (!selectable)
+                {
+                    throw new InvalidOperationException(
+                        $"{subject} defaultValue selects Lookup value '{selection}', which is not present in collection '{collectionValueId}'.");
+                }
+            }
+        }
+
+        private string? ResolveAuthoredLookupCollectionValueId(Member collectionMember)
+        {
+            if (!string.IsNullOrEmpty(collectionMember.valueId))
+            {
+                return collectionMember.valueId;
+            }
+            var schemaKeys = new HashSet<string>();
+            foreach (NeoSchemaClass schemaClass in data.classes.Values)
+            {
+                foreach (var entry in schemaClass.schema)
+                {
+                    if (entry.Value == collectionMember.id) schemaKeys.Add(entry.Key);
+                }
+            }
+            string? resolved = null;
+            foreach (MemberValue row in data.values.Values)
+            {
+                if (row is not ObjectMemberValue obj || obj.value is null) continue;
+                foreach (string schemaKey in schemaKeys)
+                {
+                    if (!obj.value.TryGetValue(schemaKey, out string candidate)) continue;
+                    if (resolved is null) resolved = candidate;
+                    else if (resolved != candidate) return null;
+                }
+            }
+            return resolved;
         }
 
         private void ValidateReadOnlyOwnedSchema(
@@ -1326,17 +1437,8 @@ namespace NeoCompose.Runtime
                     return;
                 }
                 if (member is not ClassMember classMember) return;
-                IList<NeoSchemaClass> chain = NeoSchemaClassInheritance.ResolveChain(
-                    classMember.classId,
-                    id => data.classes.TryGetValue(id, out NeoSchemaClass match)
-                        ? match
-                        : null);
                 foreach (MergedSchemaEntry schemaEntry in
-                    NeoSchemaClassInheritance.MergeInstanceSurfaceSchema(
-                        chain,
-                        id => data.members.TryGetValue(id, out Member child)
-                            ? child
-                            : null))
+                    ResolveInstanceSurfaceSchema(classMember.classId))
                 {
                     if (!data.members.TryGetValue(schemaEntry.memberId, out Member child)) continue;
                     ValidateReadOnlyOwnedMember(child, rootSubject, visiting);
@@ -1387,16 +1489,7 @@ namespace NeoCompose.Runtime
         {
             if (string.IsNullOrEmpty(classId) || keys is null) return;
             if (!data.classes.ContainsKey(classId!)) return;
-            IList<MergedSchemaEntry> readOnly =
-                NeoSchemaClassInheritance.MergeReadOnlyMembers(
-                    NeoSchemaClassInheritance.ResolveChain(
-                        classId!,
-                        id => data.classes.TryGetValue(id, out NeoSchemaClass match)
-                            ? match
-                            : null),
-                    id => data.members.TryGetValue(id, out Member child)
-                        ? child
-                        : null);
+            IList<MergedSchemaEntry> readOnly = ResolveReadOnlyMemberSchema(classId!);
             var presentKeys = new HashSet<string>(keys);
             foreach (MergedSchemaEntry entry in readOnly)
             {
@@ -1404,6 +1497,46 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Class value '{rowId}' in {source} contains read-only declaration member key '{entry.schemaKey}' ({entry.memberId}); read-only declaration members cannot have instance values.");
             }
+        }
+
+        private void RecoverReadOnlySaveInstanceKeys()
+        {
+            foreach (var pair in saveData.values)
+            {
+                if (pair.Value is not ObjectMemberValue row
+                    || string.IsNullOrEmpty(row.classId)
+                    || row.value is null
+                    || !data.classes.ContainsKey(row.classId!))
+                {
+                    continue;
+                }
+                foreach (MergedSchemaEntry entry in ResolveReadOnlyMemberSchema(row.classId!))
+                {
+                    if (!row.value.TryGetValue(entry.schemaKey, out string staleValueId))
+                    {
+                        continue;
+                    }
+                    row.value.Remove(entry.schemaKey);
+                    if (data.members.TryGetValue(entry.memberId, out Member? member))
+                    {
+                        recoveredReadOnlySaveValues.Add((staleValueId, member));
+                    }
+                    Debug.LogWarning(
+                        $"Removed stale read-only declaration member key '{entry.schemaKey}' ({entry.memberId}) from save Class value '{pair.Key}'. The declaration default is now authoritative.");
+                }
+            }
+        }
+
+        private void RemoveRecoveredReadOnlySaveValues()
+        {
+            foreach (var recovered in recoveredReadOnlySaveValues)
+            {
+                RemoveWritableValueAndDescendantsIfUnlinked(
+                    NeoValueOwnership.Save,
+                    recovered.valueId,
+                    recovered.member);
+            }
+            recoveredReadOnlySaveValues.Clear();
         }
 
         /// <summary>
@@ -2569,13 +2702,7 @@ namespace NeoCompose.Runtime
             [NotNullWhen(true)] out Member? member)
         {
             member = null;
-            var merged = NeoSchemaClassInheritance.MergeStoredInstanceSchema(
-                NeoSchemaClassInheritance.ResolveChain(
-                    classId,
-                    id => TryGetClass(id, out NeoSchemaClass? match) ? match : null),
-                id => TryGetMember(id, out Member? child)
-                    ? child
-                    : null);
+            var merged = ResolveStoredInstanceSchema(classId);
             foreach (var entry in merged)
             {
                 if (entry.schemaKey == key
@@ -3633,17 +3760,15 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal bool IsUnorderedList(ListMember member)
         {
-            Member? cursor = member;
-            for (int hops = 0; cursor is not null && hops < 16; hops++)
-            {
-                if (cursor is ListMember list && !string.IsNullOrEmpty(list.listKind))
-                {
-                    return list.listKind == NeoListKinds.Unordered;
-                }
-                if (cursor.extendsMemberId is null) return false;
-                data.members.TryGetValue(cursor.extendsMemberId, out cursor);
-            }
-            return false;
+            string? listKind = NeoSchemaClassInheritance.WalkExtendsMemberChain(
+                member,
+                id => data.members.TryGetValue(id, out Member? value) ? value : null,
+                current => current is ListMember list
+                    && !string.IsNullOrEmpty(list.listKind)
+                        ? list.listKind
+                        : null,
+                requireKind: MemberKind.List);
+            return listKind == NeoListKinds.Unordered;
         }
 
         internal bool TryResolveLookupCollectionValueId(
@@ -5533,7 +5658,7 @@ namespace NeoCompose.Runtime
             saveData = parsed ?? BuildDefaultSaveData();
             saveData.values ??= new();
             saveData.staticBindings ??= new();
-            ValidateReadOnlyInstanceKeys(saveData.values, "save overlay");
+            RecoverReadOnlySaveInstanceKeys();
             return parsed is not null;
         }
     }

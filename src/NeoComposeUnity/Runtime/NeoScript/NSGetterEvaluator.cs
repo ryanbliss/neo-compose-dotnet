@@ -960,25 +960,17 @@ namespace NeoCompose.Runtime.NeoScript
                 return cachedMemberId;
             }
 
-            IList<NeoSchemaClass> chain;
             try
             {
-                chain = NeoSchemaClassInheritance.ResolveChain(
-                    runtimeClassId!,
-                    id => ctx.client.TryGetClass(id, out NeoSchemaClass? schemaClass)
-                        ? schemaClass
-                        : null);
+                ctx.client.ResolveClassInheritanceChain(runtimeClassId!);
             }
             catch (CircularInheritanceError)
             {
                 throw new NSGetterRuntimeError(
                     $"Cannot resolve Function member '{schemaKey}' because runtime class '{runtimeClassId}' has circular inheritance.");
             }
-            foreach (MergedSchemaEntry entry in NeoSchemaClassInheritance.MergeInstanceSchema(
-                chain,
-                id => ctx.client.TryGetMember(id, out JsonMember? member)
-                    ? member
-                    : null))
+            foreach (MergedSchemaEntry entry in
+                ctx.client.ResolveInstanceSurfaceSchema(runtimeClassId!))
             {
                 if (entry.schemaKey != schemaKey) continue;
                 if (!TryResolveCallableKind(ctx.client, entry.memberId))
@@ -1175,9 +1167,24 @@ namespace NeoCompose.Runtime.NeoScript
                 var dispatched = DispatchSchemaMember(
                     receiver,
                     k,
-                    ctx,
-                    pinnedMemberId);
+                    ctx);
                 if (dispatched.kind == DispatchKind.Ok) return dispatched.value;
+                // Interface/static-type pointers retain the compile-time
+                // declaration id. Use it only when the concrete runtime Class
+                // had no member at this key; a concrete stored override must
+                // remain authoritative over a read-only base declaration.
+                if (!dispatched.matchedMember
+                    && !string.IsNullOrEmpty(pinnedMemberId)
+                    && ctx.client.TryGetMember(pinnedMemberId!, out JsonMember? pinnedMember))
+                {
+                    DispatchResult pinnedDefault = ReadOnlyDeclarationDefault(
+                        pinnedMember,
+                        ctx);
+                    if (pinnedDefault.kind == DispatchKind.Ok)
+                    {
+                        return pinnedDefault.value;
+                    }
+                }
                 if (record!.TryGetValue(k, out var at))
                 {
                     return ResolveValueIfId(at, ctx, FindRowOwnershipByReference(receiver, ctx));
@@ -1213,13 +1220,16 @@ namespace NeoCompose.Runtime.NeoScript
         {
             public DispatchKind kind { get; }
             public object? value { get; }
-            public DispatchResult(DispatchKind kind, object? value)
+            public bool matchedMember { get; }
+            public DispatchResult(DispatchKind kind, object? value, bool matchedMember)
             {
                 this.kind = kind;
                 this.value = value;
+                this.matchedMember = matchedMember;
             }
-            public static DispatchResult Ok(object? v) => new(DispatchKind.Ok, v);
-            public static DispatchResult NoInfo() => new(DispatchKind.NoInfo, null);
+            public static DispatchResult Ok(object? v) => new(DispatchKind.Ok, v, true);
+            public static DispatchResult NoInfo(bool matchedMember = false) =>
+                new(DispatchKind.NoInfo, null, matchedMember);
         }
 
         /// <summary>
@@ -1234,8 +1244,7 @@ namespace NeoCompose.Runtime.NeoScript
         private static DispatchResult DispatchSchemaMember(
             object? receiver,
             string schemaKey,
-            Context ctx,
-            string? pinnedMemberId = null)
+            Context ctx)
         {
             if (!TryAsObjectRecord(receiver, out IDictionary<string, object?>? record))
             {
@@ -1244,32 +1253,17 @@ namespace NeoCompose.Runtime.NeoScript
 
             // Recover the row by reference equality on `.value`.
             string? runtimeClassId = FindRowClassIdByReference(receiver, ctx);
-            if (string.IsNullOrEmpty(runtimeClassId)
-                && string.IsNullOrEmpty(pinnedMemberId))
+            if (string.IsNullOrEmpty(runtimeClassId))
             {
                 return DispatchResult.NoInfo();
             }
 
             MergedSchemaEntry? entry = null;
             IList<NeoSchemaClass>? runtimeChain = null;
-            if (!string.IsNullOrEmpty(runtimeClassId))
+            try
             {
-                try
-                {
-                    runtimeChain = NeoSchemaClassInheritance.ResolveChain(
-                        runtimeClassId!,
-                        id => ctx.client.TryGetClass(id, out var t) ? t : null);
-                }
-                catch (CircularInheritanceError)
-                {
-                    return DispatchResult.NoInfo();
-                }
-                var merged = NeoSchemaClassInheritance.MergeInstanceSurfaceSchema(
-                    runtimeChain,
-                    id => ctx.client.TryGetMember(id, out JsonMember? member)
-                        ? member
-                        : null);
-                foreach (var candidate in merged)
+                runtimeChain = ctx.client.ResolveClassInheritanceChain(runtimeClassId!);
+                foreach (var candidate in ctx.client.ResolveInstanceSurfaceSchema(runtimeClassId!))
                 {
                     if (candidate.schemaKey == schemaKey)
                     {
@@ -1278,10 +1272,13 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                 }
             }
+            catch (CircularInheritanceError)
+            {
+                return DispatchResult.NoInfo();
+            }
 
-            string? resolvedMemberId = entry?.memberId ?? pinnedMemberId;
-            if (string.IsNullOrEmpty(resolvedMemberId)
-                || !ctx.client.TryGetMember(resolvedMemberId!, out JsonMember? member))
+            if (entry is null
+                || !ctx.client.TryGetMember(entry.memberId, out JsonMember? member))
             {
                 return DispatchResult.NoInfo();
             }
@@ -1294,13 +1291,19 @@ namespace NeoCompose.Runtime.NeoScript
                     NeoGenericResolution.ResolveEnv(runtimeChain));
             }
 
+            DispatchResult declarationDefault = ReadOnlyDeclarationDefault(member, ctx);
+            if (declarationDefault.kind == DispatchKind.Ok)
+            {
+                return declarationDefault;
+            }
+
             if (member.kind == MemberKind.NSProperty)
             {
-                if (ResolveCompiledGetter(resolvedMemberId!, ctx.client) is null)
+                if (ResolveCompiledGetter(entry.memberId, ctx.client) is null)
                 {
-                    return DispatchResult.NoInfo();
+                    return DispatchResult.NoInfo(matchedMember: true);
                 }
-                return DispatchResult.Ok(DispatchNSGetterById(resolvedMemberId!, receiver, ctx));
+                return DispatchResult.Ok(DispatchNSGetterById(entry.memberId, receiver, ctx));
             }
 
             if (record!.TryGetValue(schemaKey, out var at))
@@ -1308,32 +1311,39 @@ namespace NeoCompose.Runtime.NeoScript
                 return DispatchResult.Ok(
                     ResolveValueIfId(at, ctx, FindRowOwnershipByReference(receiver, ctx), member));
             }
-            if (member.isReadOnly == true)
+            return DispatchResult.NoInfo(matchedMember: true);
+        }
+
+        private static DispatchResult ReadOnlyDeclarationDefault(
+            JsonMember member,
+            Context ctx)
+        {
+            if (member.isReadOnly != true)
             {
-                MemberValue? synthetic = ctx.client.CreateDeclarationDefaultValue(
-                    member,
-                    $"__neo_readonly_default:{member.RuntimeDeclarationIdentity}");
-                if (synthetic is null)
-                {
-                    throw new NSGetterRuntimeError(
-                        $"Read-only member '{member.name}' ({member.id}) has no declaration default.");
-                }
-                object? unwrapped = UnwrapCached(
-                    synthetic,
-                    ctx,
-                    NeoValueOwnership.Asset,
-                    member);
-                if (member is LookupMember
-                    && unwrapped is object?[] selections
-                    && selections.Length == 1
-                    && selections[0] is string selectedId)
-                {
-                    return DispatchResult.Ok(
-                        ResolveValueIfId(selectedId, ctx, member: member));
-                }
-                return DispatchResult.Ok(unwrapped);
+                return DispatchResult.NoInfo(matchedMember: true);
             }
-            return DispatchResult.NoInfo();
+            MemberValue? synthetic = ctx.client.CreateDeclarationDefaultValue(
+                member,
+                $"__neo_readonly_default:{member.RuntimeDeclarationIdentity}");
+            if (synthetic is null)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Read-only member '{member.name}' ({member.id}) has no declaration default.");
+            }
+            object? unwrapped = UnwrapCached(
+                synthetic,
+                ctx,
+                NeoValueOwnership.Asset,
+                member);
+            if (member is LookupMember lookup
+                && !lookup.multiselect
+                && unwrapped is object?[] selections
+                && selections.Length == 1
+                && selections[0] is string selectedId)
+            {
+                return DispatchResult.Ok(ResolveValueIfId(selectedId, ctx));
+            }
+            return DispatchResult.Ok(unwrapped);
         }
 
         /// <summary>
@@ -2498,9 +2508,7 @@ namespace NeoCompose.Runtime.NeoScript
                     if (runtimeClassId == checkClassId) return true;
                     try
                     {
-                        var chain = NeoSchemaClassInheritance.ResolveChain(
-                            runtimeClassId!,
-                            id => ctx.client.TryGetClass(id, out var t) ? t : null);
+                        var chain = ctx.client.ResolveClassInheritanceChain(runtimeClassId!);
                         foreach (var t in chain) if (t.id == checkClassId) return true;
                     }
                     catch (CircularInheritanceError)

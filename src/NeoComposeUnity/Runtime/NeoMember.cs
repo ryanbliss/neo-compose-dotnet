@@ -395,11 +395,17 @@ namespace NeoCompose.Runtime
                 var resolvedValueId = valueId;
                 if (resolvedValueId is null)
                 {
-                    return client.CreateDeclarationDefaultValue(
+                    if (member.isReadOnly == true)
+                    {
+                        return client.CreateDeclarationDefaultValue(
+                            member,
+                            $"__neo_readonly_default:{member.RuntimeDeclarationIdentity}") as TValue;
+                    }
+                    return MemberValueFactory.CreateFromDefault(
                         member,
-                        member.isReadOnly == true
-                            ? $"__neo_readonly_default:{member.RuntimeDeclarationIdentity}"
-                            : $"__neo_default:{member.id}") as TValue;
+                        $"__neo_default:{member.id}",
+                        member.createdAt,
+                        member.updatedAt) as TValue;
                 }
 
                 if (!client.TryGetOverlaidValue(ownership, resolvedValueId, out TValue? match)) return null;

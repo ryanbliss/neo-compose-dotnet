@@ -301,7 +301,28 @@ namespace NeoCompose.Runtime.Json
             int maxHops = 16)
             where T : class
         {
-            var cursor = memberLookup(startId);
+            return WalkExtendsMemberChain(
+                memberLookup(startId),
+                memberLookup,
+                picker,
+                requireKind,
+                maxHops);
+        }
+
+        /// <summary>
+        /// Member-instance overload for runtime-substituted Generic slots whose
+        /// concrete kind/default metadata is not stored under their declaration
+        /// id in the authored member map.
+        /// </summary>
+        public static T? WalkExtendsMemberChain<T>(
+            Member? start,
+            Func<string, Member?> memberLookup,
+            Func<Member, T?> picker,
+            MemberKind? requireKind = null,
+            int maxHops = 16)
+            where T : class
+        {
+            var cursor = start;
             for (int i = 0; cursor is not null && i < maxHops; i++)
             {
                 if (requireKind.HasValue && cursor.kind != requireKind.Value)
