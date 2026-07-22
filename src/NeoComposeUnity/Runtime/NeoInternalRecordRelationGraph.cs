@@ -155,6 +155,24 @@ namespace NeoCompose.Runtime
                         ? depth
                         : string.CompareOrdinal(left.id, right.id);
                 });
+                if (declarations.Count > 1)
+                {
+                    int nearestDepth = sourceDepth[declarations[0].sourceRecordId];
+                    string nearestTargetId = declarations[0].targetRecordId;
+                    for (int i = 1; i < declarations.Count; i++)
+                    {
+                        InternalRecordRelation declaration = declarations[i];
+                        if (sourceDepth[declaration.sourceRecordId] != nearestDepth) break;
+                        if (!string.Equals(
+                            declaration.targetRecordId,
+                            nearestTargetId,
+                            StringComparison.Ordinal))
+                        {
+                            throw new InvalidOperationException(
+                                $"Internal record relation kind '{relationKind}' has ambiguous nearest declarations for source class '{sourceClassId}' at ancestry depth {nearestDepth}: targets '{nearestTargetId}' and '{declaration.targetRecordId}'.");
+                        }
+                    }
+                }
                 result = declarations.Count == 0
                     ? Array.Empty<NeoEffectiveInternalRecordRelation>()
                     : new[]

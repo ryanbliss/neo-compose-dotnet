@@ -23,6 +23,10 @@ namespace NeoCompose.Tests
         private const string TileClassId = "tile-class";
         private const string ObjectClassId = "object-class";
         private const string TileLayerLinkClassId = "tile-layer-link-class";
+        private const string TileLayerLinkSystemBaseClassId =
+            "tile-layer-link-system-base-class";
+        private const string ObjectLayerLinkSystemBaseClassId =
+            "object-layer-link-system-base-class";
         private const string TileInstanceClassId = "tile-instance-class";
         private const string BaseTileClassId = "base-tile-class";
         private const string SubTileClassId = "sub-tile-class";
@@ -82,6 +86,375 @@ namespace NeoCompose.Tests
             Assert.IsNull(layer.valueId);
             Assert.AreEqual("Default Background", layer.Name);
             Assert.AreEqual("Default layer description", layer.Description);
+        }
+
+        [Test]
+        public void SchemaTenConcreteLayerLinkInheritsTargetRelationWithoutLayerClassIdSidecar()
+        {
+            const string abstractLinkClassId = "abstract-tile-layer-link-class";
+            var data = BuildClassBackedTileGridProjectData();
+            data.classes[abstractLinkClassId] = new NeoSchemaClass
+            {
+                id = abstractLinkClassId,
+                projectId = "project-a",
+                name = "Abstract Tile Layer Link",
+                schema = new Dictionary<string, string>(),
+                extendsClassId = TileLayerLinkSystemBaseClassId,
+                isAbstract = true,
+            };
+            data.classes[TileLayerLinkClassId].extendsClassId = abstractLinkClassId;
+            data.internalRecordRelations!["relation-link-target"].sourceRecordId =
+                abstractLinkClassId;
+            var backgroundLink = (ObjectMemberValue)data.values["background-link"];
+            backgroundLink.value!.Remove("layerClassId");
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+
+            var layer = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+
+            Assert.AreEqual(BackgroundLayerClassId, layer.LayerClassId);
+            Assert.AreEqual("background-layer-override", layer.LayerOverrideValueId);
+            Assert.NotNull(layer.GetTile(new Vector2Int(2, 3)));
+        }
+
+        [Test]
+        public void SchemaTenMatchingLayerClassIdSidecarAgreesWithTargetRelation()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            var backgroundLink = (ObjectMemberValue)data.values["background-link"];
+            Assert.AreEqual(
+                BackgroundLayerClassId,
+                backgroundLink.value!["layerClassId"]);
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var layer = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+
+            Assert.AreEqual(BackgroundLayerClassId, layer.LayerClassId);
+        }
+
+        [Test]
+        public void SchemaTenTargetLayerInheritsExpectedWorldKind()
+        {
+            const string tileLayerBaseClassId = "tile-layer-base-class";
+            var data = BuildClassBackedTileGridProjectData();
+            data.classes[tileLayerBaseClassId] = new NeoSchemaClass
+            {
+                id = tileLayerBaseClassId,
+                projectId = "project-a",
+                name = "Tile Layer Base",
+                schema = new Dictionary<string, string>(),
+                isAbstract = true,
+                system = JObject.FromObject(new { worldKind = "tileLayer" }),
+            };
+            data.classes[BackgroundLayerClassId].extendsClassId = tileLayerBaseClassId;
+            data.classes[BackgroundLayerClassId].system = null;
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var layer = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+
+            Assert.AreEqual(BackgroundLayerClassId, layer.LayerClassId);
+        }
+
+        [Test]
+        public void SchemaTenMismatchedLayerClassIdSidecarFailsClearly()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            var backgroundLink = (ObjectMemberValue)data.values["background-link"];
+            backgroundLink.value!["layerClassId"] = ObjectsLayerClassId;
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                    BackgroundLayerClassId,
+                    new[] { TileClassId }));
+
+            StringAssert.Contains("Tile layer link 'background-link'", error!.Message);
+            StringAssert.Contains(
+                $"stores layerClassId '{ObjectsLayerClassId}'",
+                error.Message);
+            StringAssert.Contains(
+                $"effective class relation targets '{BackgroundLayerClassId}'",
+                error.Message);
+        }
+
+        [Test]
+        public void SchemaTenObjectGridLinkUsesRelationWithoutLayerClassIdSidecar()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            ((ObjectMemberValue)data.values["objects-link"]).value!
+                .Remove("layerClassId");
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var layer = primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(
+                ObjectsLayerClassId,
+                new[] { ObjectClassId });
+
+            Assert.AreEqual(ObjectsLayerClassId, layer.LayerClassId);
+            Assert.AreEqual(1, layer.GetObjects().Count);
+        }
+
+        [Test]
+        public void SchemaTenObjectCarriedTileLinkUsesRelationWithoutLayerClassIdSidecar()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            ((ObjectMemberValue)data.values["shop-floor-link"]).value!
+                .Remove("layerClassId");
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var layer = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+
+            var tile = layer.GetTile(new Vector2Int(9, 22));
+            Assert.IsNotNull(tile);
+            Assert.AreEqual("shop-floor-link", tile!.SourceTileLayerLinkId);
+            Assert.AreEqual(BackgroundLayerClassId, tile.LayerId);
+        }
+
+        [Test]
+        public void SchemaTenGridLinkWithoutRelationOrSidecarFailsClearly()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.internalRecordRelations!.Remove("relation-link-target");
+            ((ObjectMemberValue)data.values["background-link"]).value!
+                .Remove("layerClassId");
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                    BackgroundLayerClassId,
+                    new[] { TileClassId }));
+
+            StringAssert.Contains("neither an effective", error!.Message);
+            StringAssert.Contains("nor a legacy layerClassId sidecar", error.Message);
+        }
+
+        [Test]
+        public void SchemaTenGridLinkRejectsAbstractTargetLayer()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.classes[BackgroundLayerClassId].isAbstract = true;
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                    BackgroundLayerClassId,
+                    new[] { TileClassId }));
+
+            StringAssert.Contains("targets abstract layer class", error!.Message);
+        }
+
+        [Test]
+        public void SchemaTenGridLinkRejectsMissingLegacyTargetLayer()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.internalRecordRelations!.Remove("relation-link-target");
+            ((ObjectMemberValue)data.values["background-link"]).value!["layerClassId"] =
+                "missing-layer-class";
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                    BackgroundLayerClassId,
+                    new[] { TileClassId }));
+
+            StringAssert.Contains("targets missing layer class 'missing-layer-class'", error!.Message);
+        }
+
+        [Test]
+        public void SchemaTenGridLinkRejectsSameDepthTargetAmbiguity()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.internalRecordRelations!["relation-link-target-conflict"] = Relation(
+                "relation-link-target-conflict",
+                InternalRecordRelationKinds.WorldTileLayerLinkTarget,
+                TileLayerLinkClassId,
+                ObjectsLayerClassId);
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                    BackgroundLayerClassId,
+                    new[] { TileClassId }));
+
+            StringAssert.Contains("ambiguous nearest declarations", error!.Message);
+        }
+
+        [Test]
+        public void SchemaTenGridLinkRejectsWrongLayerKind()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.classes[BackgroundLayerClassId].system =
+                JObject.FromObject(new { worldKind = "objectLayer" });
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                    BackgroundLayerClassId,
+                    new[] { TileClassId }));
+
+            StringAssert.Contains("inherited world kind is 'objectLayer'", error!.Message);
+            StringAssert.Contains("instead of 'tileLayer'", error.Message);
+        }
+
+        [Test]
+        public void SchemaTenGridLinkRejectsDirectAbstractSystemBaseLegacySidecar()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            var backgroundLink = (ObjectMemberValue)data.values["background-link"];
+            backgroundLink.classId = TileLayerLinkSystemBaseClassId;
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                    BackgroundLayerClassId,
+                    new[] { TileClassId }));
+
+            StringAssert.Contains("Tile layer link 'background-link'", error!.Message);
+            StringAssert.Contains(
+                $"uses abstract link class '{TileLayerLinkSystemBaseClassId}'",
+                error.Message);
+        }
+
+        [Test]
+        public void SchemaTenGridLinkRejectsWrongLinkClassWorldKind()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.classes[TileLayerLinkSystemBaseClassId].system =
+                JObject.FromObject(new { worldKind = "objectLayerLink" });
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                    BackgroundLayerClassId,
+                    new[] { TileClassId }));
+
+            StringAssert.Contains("Tile layer link 'background-link'", error!.Message);
+            StringAssert.Contains("inherited world kind is 'objectLayerLink'", error.Message);
+            StringAssert.Contains("instead of 'tileLayerLink'", error.Message);
+        }
+
+        [Test]
+        public void SchemaTenGridLinkRejectsDirectConcreteLinkWorldKind()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.classes[TileLayerLinkClassId].extendsClassId = null;
+            data.classes[TileLayerLinkClassId].schema["Tiles"] =
+                "tile-layer-link-tiles-member";
+            data.classes[TileLayerLinkClassId].system =
+                JObject.FromObject(new { worldKind = "tileLayerLink" });
+            data.internalRecordRelations!.Remove("relation-link-target");
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                    BackgroundLayerClassId,
+                    new[] { TileClassId }));
+
+            StringAssert.Contains("Tile layer link 'background-link'", error!.Message);
+            StringAssert.Contains(
+                "must inherit 'tileLayerLink' from an abstract layer-link system base",
+                error.Message);
+        }
+
+        [Test]
+        public void SchemaTenGridLinkRejectsTargetRelationDeclaredOnSystemBase()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.internalRecordRelations!["relation-link-target"].sourceRecordId =
+                TileLayerLinkSystemBaseClassId;
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                    BackgroundLayerClassId,
+                    new[] { TileClassId }));
+
+            StringAssert.Contains(
+                $"Tile layer-link system base '{TileLayerLinkSystemBaseClassId}' must not declare",
+                error!.Message);
+            StringAssert.Contains("relation 'relation-link-target'", error.Message);
         }
 
         [Test]
@@ -731,7 +1104,8 @@ namespace NeoCompose.Tests
         [Test]
         public void Render_CustomNestedTargetReceivesInitialAndLiveTilesAndSorting()
         {
-            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var client = NeoTestSaveStack.ClientFromSchema(
+                BuildClassBackedTileGridProjectData());
             var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
             {
                 [TileClassId] = (resolvedClient, node) => new TestTile(resolvedClient, node),
@@ -1540,6 +1914,88 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void TileLayerLinkQueries_AcceptLegacySidecarWhenRelationIsAbsent()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.internalRecordRelations!.Remove("relation-link-target");
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            client.RegisterGeneratedClassFactories(factories, writableFactories);
+            var link = (TestTileLayerLink)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "background-link",
+                factories,
+                writableFactories)!;
+
+            Assert.AreEqual(BackgroundLayerClassId, link.GetTiles()[0].LayerId);
+        }
+
+        [Test]
+        public void ObjectLayerLinkQueries_UseRelationWithoutLayerClassIdSidecar()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            ((ObjectMemberValue)data.values["objects-link"]).value!
+                .Remove("layerClassId");
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            client.RegisterGeneratedClassFactories(factories, writableFactories);
+            var link = (TestObjectLayerLink)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "objects-link",
+                factories,
+                writableFactories)!;
+
+            Assert.AreEqual(ObjectsLayerClassId, link.GetObjects()[0].LayerId);
+        }
+
+        [Test]
+        public void ObjectLayerLinkQueries_RejectMismatchedLegacySidecar()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            ((ObjectMemberValue)data.values["objects-link"]).value!["layerClassId"] =
+                BackgroundLayerClassId;
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            client.RegisterGeneratedClassFactories(factories, writableFactories);
+            var link = (TestObjectLayerLink)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "objects-link",
+                factories,
+                writableFactories)!;
+
+            var error = Assert.Throws<InvalidOperationException>(() => link.GetObjects());
+
+            StringAssert.Contains("Object layer link 'objects-link'", error!.Message);
+            StringAssert.Contains($"stores layerClassId '{BackgroundLayerClassId}'", error.Message);
+            StringAssert.Contains($"targets '{ObjectsLayerClassId}'", error.Message);
+        }
+
+        [Test]
+        public void ObjectLayerLinkQueries_RejectWrongLayerKind()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.classes[ObjectsLayerClassId].system =
+                JObject.FromObject(new { worldKind = "tileLayer" });
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            client.RegisterGeneratedClassFactories(factories, writableFactories);
+            var link = (TestObjectLayerLink)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "objects-link",
+                factories,
+                writableFactories)!;
+
+            var error = Assert.Throws<InvalidOperationException>(() => link.GetObjects());
+
+            StringAssert.Contains("inherited world kind is 'tileLayer'", error!.Message);
+            StringAssert.Contains("instead of 'objectLayer'", error.Message);
+        }
+
+        [Test]
         public void AssetDatabase_ResolvesGeneratedTileAssets()
         {
             var database = ScriptableObject.CreateInstance<NeoAssetDatabase>();
@@ -1777,7 +2233,8 @@ namespace NeoCompose.Tests
         [Test]
         public void Render_PaintingNeighborRefreshesSmartTileAndMatchesSubtype()
         {
-            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var client = NeoTestSaveStack.ClientFromSchema(
+                BuildClassBackedTileGridProjectData());
             var factories = BuildInheritanceTileFactories();
             var smartTileValue = (TestTile)NeoGeneratedTypesSupport.ResolveClassValue(
                 client,
@@ -1854,7 +2311,8 @@ namespace NeoCompose.Tests
         [Test]
         public void Render_InheritsFromClassRuleRejectsUnrelatedNeighbor()
         {
-            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var client = NeoTestSaveStack.ClientFromSchema(
+                BuildClassBackedTileGridProjectData());
             var factories = BuildInheritanceTileFactories();
             var smartTileValue = (TestTile)NeoGeneratedTypesSupport.ResolveClassValue(
                 client,
@@ -2662,8 +3120,38 @@ namespace NeoCompose.Tests
                 versionId = "version-relations",
             };
             data.classes[TileInstanceClassId].schema.Remove("Tile");
+            data.classes[TileLayerLinkSystemBaseClassId] = new NeoSchemaClass
+            {
+                id = TileLayerLinkSystemBaseClassId,
+                projectId = "project-a",
+                name = "Neo Tile Layer Link",
+                schema = new Dictionary<string, string>
+                {
+                    ["Tiles"] = "tile-layer-link-tiles-member",
+                },
+                isAbstract = true,
+                system = JObject.FromObject(new { worldKind = "tileLayerLink" }),
+            };
+            data.classes[ObjectLayerLinkSystemBaseClassId] = new NeoSchemaClass
+            {
+                id = ObjectLayerLinkSystemBaseClassId,
+                projectId = "project-a",
+                name = "Neo Object Layer Link",
+                schema = new Dictionary<string, string>
+                {
+                    ["Objects"] = "object-layer-link-objects-member",
+                },
+                isAbstract = true,
+                system = JObject.FromObject(new { worldKind = "objectLayerLink" }),
+            };
+            data.classes[TileLayerLinkClassId].extendsClassId =
+                TileLayerLinkSystemBaseClassId;
             data.classes[TileLayerLinkClassId].schema.Remove("TileLayer");
+            data.classes[TileLayerLinkClassId].schema.Remove("Tiles");
+            data.classes[ObjectLayerLinkClassId].extendsClassId =
+                ObjectLayerLinkSystemBaseClassId;
             data.classes[ObjectLayerLinkClassId].schema.Remove("ObjectLayer");
+            data.classes[ObjectLayerLinkClassId].schema.Remove("Objects");
             data.classes[BackgroundLayerClassId] = new NeoSchemaClass
             {
                 id = BackgroundLayerClassId,
@@ -2674,6 +3162,7 @@ namespace NeoCompose.Tests
                     ["Name"] = "background-layer-name-member",
                     ["Description"] = "background-layer-description-member",
                 },
+                system = JObject.FromObject(new { worldKind = "tileLayer" }),
             };
             data.classes[ObjectsLayerClassId] = new NeoSchemaClass
             {
@@ -2681,6 +3170,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Objects Layer",
                 schema = new Dictionary<string, string>(),
+                system = JObject.FromObject(new { worldKind = "objectLayer" }),
             };
             data.members["background-layer-name-member"] = new StringMember
             {

@@ -1,0 +1,8 @@
+@id("f1b08825-2ad0-4666-acf1-3df7ffbda64e")
+@relations(
+  targetLayer:
+    @id("neo-tile-grid-record-relations-v1-relation-62fe5d6862a5acb378441d9ba0d0745a")
+    DefaultObjectLayer
+)
+class ObjectLayerLink : NeoObjectLayerLink {
+}

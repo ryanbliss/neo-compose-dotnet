@@ -3566,7 +3566,7 @@ Root root = new() {
             },
     
             @id("0e638a67-3d86-45c3-a13b-e0888a46d538")
-            new NeoObjectLayerLink {
+            new ObjectLayerLink {
               Objects = @id("1d57ae36-0e0a-4558-a03b-27b5eb0a733d")
               [
                 @id("4406f40a-2a75-4773-bb54-93507bd9f83a")

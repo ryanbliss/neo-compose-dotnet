@@ -28,8 +28,10 @@ namespace NeoCompose.Tests
     {
         private const string GridClassId = "grid-class";
         private const string TileClassId = "tile-class";
+        private const string TileLayerBaseClassId = "tile-layer-base-class";
         private const string TileLayerClassId = "background-layer";
         private const string TileInstanceClassId = "tile-instance-class";
+        private const string TileLayerLinkBaseClassId = "tile-layer-link-base-class";
         private const string TileLayerLinkClassId = "tile-layer-link-class";
         private const string WorldPartitionKey = "world:" + GridClassId;
         private const string TilesListValueId = "background-link-tiles";
@@ -403,7 +405,17 @@ namespace NeoCompose.Tests
                 id = TileLayerClassId,
                 projectId = "project-a",
                 name = "Background",
+                extendsClassId = TileLayerBaseClassId,
                 schema = new Dictionary<string, string>(),
+            };
+            var tileLayerBaseClass = new NeoSchemaClass
+            {
+                id = TileLayerBaseClassId,
+                projectId = "project-a",
+                name = "Neo Tile Layer",
+                schema = new Dictionary<string, string>(),
+                isAbstract = true,
+                system = JObject.FromObject(new { worldKind = "tileLayer" }),
             };
             var tileInstanceClass = new NeoSchemaClass
             {
@@ -415,15 +427,25 @@ namespace NeoCompose.Tests
                     ["Cell"] = "tile-instance-cell-member",
                 },
             };
+            var tileLayerLinkBaseClass = new NeoSchemaClass
+            {
+                id = TileLayerLinkBaseClassId,
+                projectId = "project-a",
+                name = "Neo Tile Layer Link",
+                isAbstract = true,
+                schema = new Dictionary<string, string>
+                {
+                    ["Tiles"] = "tile-layer-link-tiles-member",
+                },
+                system = JObject.FromObject(new { worldKind = "tileLayerLink" }),
+            };
             var tileLayerLinkClass = new NeoSchemaClass
             {
                 id = TileLayerLinkClassId,
                 projectId = "project-a",
                 name = "Tile Layer Link",
-                schema = new Dictionary<string, string>
-                {
-                    ["Tiles"] = "tile-layer-link-tiles-member",
-                },
+                extendsClassId = TileLayerLinkBaseClassId,
+                schema = new Dictionary<string, string>(),
             };
 
             var partition = new JObject
@@ -538,8 +560,10 @@ namespace NeoCompose.Tests
                     [rootClass.id] = rootClass,
                     [GridClassId] = gridClass,
                     [TileClassId] = tileClass,
+                    [TileLayerBaseClassId] = tileLayerBaseClass,
                     [TileLayerClassId] = tileLayerClass,
                     [TileInstanceClassId] = tileInstanceClass,
+                    [TileLayerLinkBaseClassId] = tileLayerLinkBaseClass,
                     [TileLayerLinkClassId] = tileLayerLinkClass,
                 },
                 internalRecordRelations = new Dictionary<string, InternalRecordRelation>

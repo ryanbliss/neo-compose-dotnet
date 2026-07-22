@@ -1715,22 +1715,12 @@ namespace NeoCompose.Runtime
             if (tilesKey is not null
                 && linkRow.value!.TryGetValue(tilesKey, out string tilesListId))
             {
-                string? layerId = ResolveRelatedLayerClassId(
+                string layerId = NeoWorldLayerLinkResolver.ResolveTargetLayerClassId(
+                    client,
+                    linkValueId,
                     classId,
-                    InternalRecordRelationKinds.WorldTileLayerLinkTarget);
-                string? storedLayerClassId = ReadDirectReference(
                     linkRow.value,
-                    "layerClassId");
-                if (storedLayerClassId is not null)
-                {
-                    if (layerId is not null && layerId != storedLayerClassId)
-                    {
-                        throw new InvalidOperationException(
-                            $"Tile layer link '{linkValueId}' stores layerClassId '{storedLayerClassId}', but its effective class relation targets '{layerId}'.");
-                    }
-                    layerId = storedLayerClassId;
-                }
-                if (layerId is null) return null;
+                    isTileLink: true);
                 string? layerOverrideValueId = ResolveLayerOverrideValueId(
                     linkValueId,
                     linkRow,
@@ -1750,22 +1740,12 @@ namespace NeoCompose.Runtime
             if (objectsKey is not null
                 && linkRow.value!.TryGetValue(objectsKey, out string objectsListId))
             {
-                string? layerId = ResolveRelatedLayerClassId(
+                string layerId = NeoWorldLayerLinkResolver.ResolveTargetLayerClassId(
+                    client,
+                    linkValueId,
                     classId,
-                    InternalRecordRelationKinds.WorldObjectLayerLinkTarget);
-                string? storedLayerClassId = ReadDirectReference(
                     linkRow.value,
-                    "layerClassId");
-                if (storedLayerClassId is not null)
-                {
-                    if (layerId is not null && layerId != storedLayerClassId)
-                    {
-                        throw new InvalidOperationException(
-                            $"Object layer link '{linkValueId}' stores layerClassId '{storedLayerClassId}', but its effective class relation targets '{layerId}'.");
-                    }
-                    layerId = storedLayerClassId;
-                }
-                if (layerId is null) return null;
+                    isTileLink: false);
                 string? layerOverrideValueId = ResolveLayerOverrideValueId(
                     linkValueId,
                     linkRow,
@@ -1816,12 +1796,6 @@ namespace NeoCompose.Runtime
                     $"Layer override value '{overrideValueId}' must be owned by layer link '{linkValueId}', but its container is '{overrideRow.containerId ?? "<missing>"}'.");
             }
             return overrideValueId;
-        }
-
-        private string? ResolveRelatedLayerClassId(string linkClassId, string relationKind)
-        {
-            var effective = client.InternalRecordRelations.Resolve(relationKind, linkClassId);
-            return effective.Count == 0 ? null : effective[0].TargetRecordId;
         }
 
         /// <summary>
@@ -1984,10 +1958,12 @@ namespace NeoCompose.Runtime
                 string? tilesKey = FindSchemaKey(childRow.classId!, TilesKeyCandidates);
                 if (tilesKey is null) continue;
                 if (!childRow.value.TryGetValue(tilesKey, out string tilesListId)) continue;
-                string? targetLayerId = ResolveRelatedLayerClassId(
+                string targetLayerId = NeoWorldLayerLinkResolver.ResolveTargetLayerClassId(
+                    client,
+                    childValueId,
                     childRow.classId!,
-                    InternalRecordRelationKinds.WorldTileLayerLinkTarget);
-                if (targetLayerId is null) continue;
+                    childRow.value,
+                    isTileLink: true);
                 dependencyIds?.Add(tilesListId);
                 yield return new ObjectCarriedLink(childValueId, targetLayerId, tilesListId, childIndex);
             }
