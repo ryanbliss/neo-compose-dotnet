@@ -69,7 +69,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["d931c907-19cd-4f3d-b04a-e6f1945fb216"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.RedNovaWarningTile.Create(client, node),
                 ["daf72c99-ad09-47d6-a863-f1ab31acf750"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.QuestState.Create(client, node),
                 ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Assets.Create(client, node),
-                ["f1b08825-2ad0-4666-acf1-3df7ffbda64e"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayerLink.Create(client, node),
+                ["f1b08825-2ad0-4666-acf1-3df7ffbda64e"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ObjectLayerLink.Create(client, node),
                 ["fb219343-34db-4e82-baf0-09df9a2b5210"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, node),
                 ["neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ExitPromptObject37f67d.Create(client, node),
                 ["neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ExitPromptObjecta26352.Create(client, node),
@@ -126,7 +126,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["d931c907-19cd-4f3d-b04a-e6f1945fb216"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.RedNovaWarningTile.CreateWritable(client, node),
                 ["daf72c99-ad09-47d6-a863-f1ab31acf750"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateWritable(client, node),
                 ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Assets.CreateWritable(client, node),
-                ["f1b08825-2ad0-4666-acf1-3df7ffbda64e"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayerLink.CreateWritable(client, node),
+                ["f1b08825-2ad0-4666-acf1-3df7ffbda64e"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ObjectLayerLink.CreateWritable(client, node),
                 ["fb219343-34db-4e82-baf0-09df9a2b5210"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.CreateWritable(client, node),
                 ["neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ExitPromptObject37f67d.CreateWritable(client, node),
                 ["neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ExitPromptObjecta26352.CreateWritable(client, node),
@@ -183,7 +183,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.RedNovaWarningTile)] = "d931c907-19cd-4f3d-b04a-e6f1945fb216",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.QuestState)] = "daf72c99-ad09-47d6-a863-f1ab31acf750",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.Assets)] = "dd0bbe5a-47ef-4164-9421-caea07f6f56f",
-                [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayerLink)] = "f1b08825-2ad0-4666-acf1-3df7ffbda64e",
+                [typeof(global::HelloWorld.Assets.Scripts.Neo.ObjectLayerLink)] = "f1b08825-2ad0-4666-acf1-3df7ffbda64e",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer)] = "fb219343-34db-4e82-baf0-09df9a2b5210",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.ExitPromptObject37f67d)] = "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.ExitPromptObjecta26352)] = "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352",
@@ -1984,6 +1984,148 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
+    public interface IReadOnlyNeoObjectLayerLink : IReadOnlyNeoLayerGroupBase, INeoObjectLayerLinkValue
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoObjectLayerLink Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoObjectLayerLink writable);
+
+        NeoReadOnlyList<IReadOnlyNeoObjectBase> Objects { get; }
+    }
+
+    public abstract partial class NeoObjectLayerLink : NeoLayerGroupBase, IReadOnlyNeoObjectLayerLink, INeoObjectLayerLinkValue
+    {
+        internal NeoObjectLayerLink(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal new static NeoObjectLayerLink Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectLayerLink>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectLayerLink' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal new static NeoObjectLayerLink CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectLayerLink>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectLayerLink' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new NeoObjectLayerLink Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoObjectLayerLink IReadOnlyNeoObjectLayerLink.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoObjectLayerLink writable)
+        {
+            return TryWritable<NeoObjectLayerLink>(out writable);
+        }
+
+        public virtual NeoList<NeoObjectBase> Objects
+        {
+            get
+            {
+                return new NeoList<NeoObjectBase>(client, writableNode.Get<NeoMemberListWritable>("Objects"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Objects"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoObjectLayerLink.Objects"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyNeoObjectLayerLink.Objects
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, node.Get<NeoMemberList>("Objects"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+
+            public static readonly NeoField<NeoList<NeoObjectBase>> Objects = new("Objects");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
+                [Fields.Objects] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
+                [Fields.Objects] = () => Objects,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
     public interface IReadOnlyWorlds : INeoValueReference
     {
         bool IsReadOnly { get; }
@@ -3207,7 +3349,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                ThrowIfReadOnly("BlockedPath.BootGlyphSealLocked");
                 writableNode.GetOrCreateDialogueLookup("BootGlyphSealLocked").Set(new[] { value.Id });
             }
         }
@@ -3221,7 +3362,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                ThrowIfReadOnly("BlockedPath.BootGlyphSealReady");
                 writableNode.GetOrCreateDialogueLookup("BootGlyphSealReady").Set(new[] { value.Id });
             }
         }
@@ -5365,7 +5505,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 return clientClassId switch
                 {
                     "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(client, node, false, NeoValueOwnership.Save),
-                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new NeoObjectLayerLink(client, node, true, NeoValueOwnership.Asset),
+                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(client, node, true, NeoValueOwnership.Asset),
                     "neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152" => new BackgroundTileLayerLink(client, node, true, NeoValueOwnership.Asset),
                     "neo-tile-grid-record-relations-v1-class-c0ae01529031e2de38dc078687d59140" => new CollisionsTileLayerLink(client, node, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoLayerGroupBase' without a concrete client type id."),
@@ -5381,7 +5521,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 return clientClassId switch
                 {
                     "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(client, node, false, node.ownership),
-                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new NeoObjectLayerLink(client, node, false, node.ownership),
+                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(client, node, false, node.ownership),
                     "neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152" => new BackgroundTileLayerLink(client, node, false, node.ownership),
                     "neo-tile-grid-record-relations-v1-class-c0ae01529031e2de38dc078687d59140" => new CollisionsTileLayerLink(client, node, false, node.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoLayerGroupBase' without a concrete client type id."),
@@ -7181,7 +7321,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<SaturnOutpost>(out writable);
         }
 
-        public new virtual string FullDisplayText
+        public override string FullDisplayText
         {
             get
             {
@@ -8140,7 +8280,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<JupiterOutpost>(out writable);
         }
 
-        public new virtual string FullDisplayText
+        public override string FullDisplayText
         {
             get
             {
@@ -10941,7 +11081,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                     "7cb1b706-95d2-4465-8e75-c82a6b7d8830" => new NeoSpriteObject(client, node, true, NeoValueOwnership.Asset),
                     "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, true, NeoValueOwnership.Asset),
                     "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, true, NeoValueOwnership.Asset),
-                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new NeoObjectLayerLink(client, node, true, NeoValueOwnership.Asset),
+                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(client, node, true, NeoValueOwnership.Asset),
                     "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(client, node, true, NeoValueOwnership.Asset),
                     "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(client, node, true, NeoValueOwnership.Asset),
                     "neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152" => new BackgroundTileLayerLink(client, node, true, NeoValueOwnership.Asset),
@@ -10964,7 +11104,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                     "7cb1b706-95d2-4465-8e75-c82a6b7d8830" => new NeoSpriteObject(client, node, false, node.ownership),
                     "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, false, node.ownership),
                     "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, false, node.ownership),
-                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new NeoObjectLayerLink(client, node, false, node.ownership),
+                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(client, node, false, node.ownership),
                     "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(client, node, false, node.ownership),
                     "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(client, node, false, node.ownership),
                     "neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152" => new BackgroundTileLayerLink(client, node, false, node.ownership),
@@ -11075,27 +11215,25 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public interface IReadOnlyNeoObjectLayerLink : IReadOnlyNeoLayerGroupBase, INeoObjectLayerLinkValue
+    public interface IReadOnlyObjectLayerLink : IReadOnlyNeoObjectLayerLink
     {
         new bool IsReadOnly { get; }
 
-        new IReadOnlyNeoObjectLayerLink Clone();
+        new IReadOnlyObjectLayerLink Clone();
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
-        bool TryWritable(out NeoObjectLayerLink writable);
-
-        NeoReadOnlyList<IReadOnlyNeoObjectBase> Objects { get; }
+        bool TryWritable(out ObjectLayerLink writable);
     }
 
-    public partial class NeoObjectLayerLink : NeoLayerGroupBase, IReadOnlyNeoObjectLayerLink, INeoObjectLayerLinkValue
+    public partial class ObjectLayerLink : NeoObjectLayerLink, IReadOnlyObjectLayerLink
     {
-        internal NeoObjectLayerLink(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal ObjectLayerLink(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        public NeoObjectLayerLink(string Name, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Objects = null)
+        public ObjectLayerLink(string Name, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Objects = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Position, Size, Objects), false, NeoValueOwnership.Session)
         {
         }
@@ -11113,36 +11251,36 @@ namespace HelloWorld.Assets.Scripts.Neo
             );
         }
 
-        internal new static NeoObjectLayerLink Create(NeoClient client, NeoMemberClass node)
+        internal new static ObjectLayerLink Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectLayerLink>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ObjectLayerLink>(client, node, () =>
             {
                 var clientClassId = node.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new NeoObjectLayerLink(client, node, true, NeoValueOwnership.Asset),
+                    _ => new ObjectLayerLink(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal new static NeoObjectLayerLink CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        internal new static ObjectLayerLink CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectLayerLink>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ObjectLayerLink>(client, node, () =>
             {
                 var clientClassId = node.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new NeoObjectLayerLink(client, node, false, node.ownership),
+                    _ => new ObjectLayerLink(client, node, false, node.ownership),
                 };
             });
         }
 
-        public new NeoObjectLayerLink Clone()
+        public new ObjectLayerLink Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
-        IReadOnlyNeoObjectLayerLink IReadOnlyNeoObjectLayerLink.Clone()
+        IReadOnlyObjectLayerLink IReadOnlyObjectLayerLink.Clone()
         {
             return Clone();
         }
@@ -11152,24 +11290,16 @@ namespace HelloWorld.Assets.Scripts.Neo
             return base.TryWritable(out writable);
         }
 
-        public bool TryWritable(out NeoObjectLayerLink writable)
+        public bool TryWritable(out ObjectLayerLink writable)
         {
-            return TryWritable<NeoObjectLayerLink>(out writable);
-        }
-
-        public virtual NeoList<NeoObjectBase> Objects
-        {
-            get
-            {
-                return new NeoList<NeoObjectBase>(client, writableNode.Get<NeoMemberListWritable>("Objects"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Objects"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoObjectLayerLink.Objects"), () => IsReadOnly);
-            }
+            return TryWritable<ObjectLayerLink>(out writable);
         }
 
         NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyNeoObjectLayerLink.Objects
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, node.Get<NeoMemberList>("Objects"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child));
+                return (NeoReadOnlyList<IReadOnlyNeoObjectBase>)(object)((NeoObjectLayerLink)this).Objects!;
             }
         }
 

@@ -1,11 +1,6 @@
-@id("f1b08825-2ad0-4666-acf1-3df7ffbda64e")
-@system(worldKind: .ObjectLayerLink, disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
-@relations(
-  targetLayer:
-    @id("neo-tile-grid-record-relations-v1-relation-62fe5d6862a5acb378441d9ba0d0745a")
-    DefaultObjectLayer
-)
-class NeoObjectLayerLink : NeoLayerGroupBase {
+@id("1e408179-cf71-5b9d-a4fb-f60a5f6fe705")
+@system(worldKind: .ObjectLayerLink, disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system class required by the Neo Compose Tile Grid Builder.")
+abstract class NeoObjectLayerLink : NeoLayerGroupBase {
   @id("f8e217b1-da89-4819-9c8d-e9c9da2bdfb2")
   @locked
   @settings(kind: .Unordered)

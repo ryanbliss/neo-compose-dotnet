@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using NeoCompose.Runtime;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -47,6 +48,14 @@ namespace HelloWorld.Assets.Tests
             ownedResources.Clear();
         }
         private const string BlockedPathValueId = "432f5226-99d8-4d59-8cf0-4d86ca64462f";
+        private const string NeoTileLayerLinkClassId = "e78cfcd2-78ae-4656-9f04-6429bb0efe20";
+        private const string NeoObjectLayerLinkClassId = "1e408179-cf71-5b9d-a4fb-f60a5f6fe705";
+        private const string ObjectLayerLinkClassId = "f1b08825-2ad0-4666-acf1-3df7ffbda64e";
+        private const string ObjectLayerLinkRelationId = "neo-tile-grid-record-relations-v1-relation-62fe5d6862a5acb378441d9ba0d0745a";
+        private const string ObjectLayerLinkValueId = "0e638a67-3d86-45c3-a13b-e0888a46d538";
+        private const string ObjectLayerLinkObjectsValueId = "1d57ae36-0e0a-4558-a03b-27b5eb0a733d";
+        private const string ObjectLayerLinkTargetClassId = "neo-tile-grid-record-relations-v1-class-d1b21a408630eedaf664ccf5720d874f";
+        private const string OldConsoleWorldPartitionKey = "world:b44d80a9-7760-4919-8844-0cb71d08b788";
         private static readonly string[] OldConsoleLandingDialogueIds =
         {
             "2a49e84a-ab1f-4468-a9a3-f29796cbf086",
@@ -122,6 +131,78 @@ namespace HelloWorld.Assets.Tests
             Assert.AreEqual("Hello", client.Assets.Computed.baseText);
 
             Assert.AreEqual("Hello Earth!", client.Assets.Computed.fullText);
+        }
+
+        [Test]
+        public void ObjectLayerLinkSplit_PreservesAuthoredIdentitiesAndUsesAbstractSystemBase()
+        {
+            Assert.IsTrue(typeof(NeoTileLayerLink).IsAbstract);
+            Assert.IsTrue(typeof(NeoObjectLayerLink).IsAbstract);
+            Assert.AreEqual(typeof(NeoObjectLayerLink), typeof(ObjectLayerLink).BaseType);
+
+            var project = JObject.Parse(SampleProjectJson);
+            var classes = (JObject)project["classes"]!;
+            var tileSystemBase = (JObject)classes[NeoTileLayerLinkClassId]!;
+            var systemBase = (JObject)classes[NeoObjectLayerLinkClassId]!;
+            var authoredLink = (JObject)classes[ObjectLayerLinkClassId]!;
+
+            Assert.IsTrue(tileSystemBase["isAbstract"]!.Value<bool>());
+            Assert.AreEqual("NeoTileLayerLink", tileSystemBase["name"]!.Value<string>());
+            Assert.AreEqual("tileLayerLink", tileSystemBase["system"]!["worldKind"]!.Value<string>());
+            Assert.AreEqual(
+                "98655d2b-ad0b-45e2-a901-62600b4d3a22",
+                tileSystemBase["schema"]!["Tiles"]!.Value<string>());
+
+            Assert.IsTrue(systemBase["isAbstract"]!.Value<bool>());
+            Assert.AreEqual("NeoObjectLayerLink", systemBase["name"]!.Value<string>());
+            Assert.AreEqual("objectLayerLink", systemBase["system"]!["worldKind"]!.Value<string>());
+            Assert.AreEqual(
+                "Locked world authoring system class required by the Neo Compose Tile Grid Builder.",
+                systemBase["system"]!["reason"]!.Value<string>());
+            Assert.AreEqual(
+                "f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
+                systemBase["schema"]!["Objects"]!.Value<string>());
+
+            Assert.AreEqual("ObjectLayerLink", authoredLink["name"]!.Value<string>());
+            Assert.AreEqual(NeoObjectLayerLinkClassId, authoredLink["extendsClassId"]!.Value<string>());
+            Assert.AreEqual(0, ((JObject)authoredLink["schema"]!).Count);
+            Assert.IsNull(authoredLink["system"]);
+
+            var relation = project["internalRecordRelations"]![ObjectLayerLinkRelationId]!;
+            Assert.AreEqual(ObjectLayerLinkClassId, relation["sourceRecordId"]!.Value<string>());
+            Assert.AreEqual(
+                "world.object-layer-link.target",
+                relation["relationKind"]!.Value<string>());
+            Assert.AreEqual(
+                ObjectLayerLinkTargetClassId,
+                relation["targetRecordId"]!.Value<string>());
+
+            var relations = ((JObject)project["internalRecordRelations"]!)
+                .Properties()
+                .Select(property => property.Value);
+            Assert.IsFalse(relations.Any(candidate =>
+                candidate["sourceRecordId"]!.Value<string>() == NeoTileLayerLinkClassId));
+            Assert.IsFalse(relations.Any(candidate =>
+                candidate["sourceRecordId"]!.Value<string>() == NeoObjectLayerLinkClassId));
+
+            var allValues = ((JObject)project["values"]!).Properties()
+                .Select(property => property.Value)
+                .Concat(((JObject)project["valuePartitions"]!).Properties()
+                    .SelectMany(partition => ((JObject)partition.Value).Properties())
+                    .Select(property => property.Value));
+            Assert.IsFalse(allValues.Any(value =>
+                value["classId"]?.Value<string>() == NeoTileLayerLinkClassId));
+            Assert.IsFalse(allValues.Any(value =>
+                value["classId"]?.Value<string>() == NeoObjectLayerLinkClassId));
+
+            var linkValue = project["valuePartitions"]![OldConsoleWorldPartitionKey]![ObjectLayerLinkValueId]!;
+            Assert.AreEqual(ObjectLayerLinkClassId, linkValue["classId"]!.Value<string>());
+            Assert.AreEqual(
+                ObjectLayerLinkObjectsValueId,
+                linkValue["value"]!["Objects"]!.Value<string>());
+            Assert.AreEqual(
+                ObjectLayerLinkTargetClassId,
+                linkValue["value"]!["layerClassId"]!.Value<string>());
         }
 
         [Test]

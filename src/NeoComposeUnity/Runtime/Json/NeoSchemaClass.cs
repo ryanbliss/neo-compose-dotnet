@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Runtime.Json
 {
@@ -32,6 +33,12 @@ namespace NeoCompose.Runtime.Json
         public List<string>? implementsInterfaceIds;
         public bool hiddenInMemberSelector;
         public bool isAbstract;
+        /// <summary>
+        /// Optional system metadata emitted for locked authoring classes. World
+        /// runtime validation reads <c>worldKind</c> from this object, including
+        /// through class ancestry.
+        /// </summary>
+        public JObject? system;
         /// <summary>
         /// Storage placement constraint (specs/member-storage.md §4.3):
         /// "immutable", "save", or "session". Absent/null means the class may be

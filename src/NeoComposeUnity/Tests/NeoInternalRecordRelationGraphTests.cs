@@ -92,6 +92,36 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Resolve_NearestSingletonRejectsDifferentTargetsAtSameDepth()
+        {
+            ProjectData data = Data(
+                Classes(
+                    Class("link"),
+                    Class("layer-a"),
+                    Class("layer-b")),
+                Relations(
+                    Relation(
+                        "target-a",
+                        InternalRecordRelationKinds.WorldTileLayerLinkTarget,
+                        "link",
+                        "layer-a"),
+                    Relation(
+                        "target-b",
+                        InternalRecordRelationKinds.WorldTileLayerLinkTarget,
+                        "link",
+                        "layer-b")));
+            var graph = new NeoInternalRecordRelationGraph(data);
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                graph.ResolveTargetIds(
+                    InternalRecordRelationKinds.WorldTileLayerLinkTarget,
+                    "link"));
+
+            StringAssert.Contains("ambiguous nearest declarations", error!.Message);
+            StringAssert.Contains("targets 'layer-a' and 'layer-b'", error.Message);
+        }
+
+        [Test]
         public void Resolve_ChildLayerRedeclarationOverridesInheritedOrderAndKeepsProvenance()
         {
             ProjectData data = Data(

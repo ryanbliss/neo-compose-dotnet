@@ -296,7 +296,8 @@ namespace NeoCompose.Runtime
             }
             string layerId = ReadTargetLayerClassId(
                 (NeoGeneratedClassValue)link,
-                InternalRecordRelationKinds.WorldTileLayerLinkTarget);
+                linkRow!,
+                isTileLink: true);
             var order = 0;
             var origin = ReadRowOrigin(client!, linkRow!);
             foreach (var instanceValueId in ReadRowListIds(client!, linkRow!, "Tiles"))
@@ -356,7 +357,8 @@ namespace NeoCompose.Runtime
             }
             string layerId = ReadTargetLayerClassId(
                 (NeoGeneratedClassValue)link,
-                InternalRecordRelationKinds.WorldObjectLayerLinkTarget);
+                linkRow!,
+                isTileLink: false);
             var origin = ReadRowOrigin(client!, linkRow!);
             var order = 0;
 
@@ -531,14 +533,208 @@ namespace NeoCompose.Runtime
 
         private static string ReadTargetLayerClassId(
             NeoGeneratedClassValue link,
-            string relationKind)
+            ObjectMemberValue linkRow,
+            bool isTileLink)
         {
-            if (string.IsNullOrWhiteSpace(link.classId)) return string.Empty;
-            var targets = link.Client.InternalRecordRelations.Resolve(
-                relationKind,
-                link.classId!);
-            return targets.Count == 0 ? string.Empty : targets[0].TargetRecordId;
+            return NeoWorldLayerLinkResolver.ResolveTargetLayerClassId(
+                link.Client,
+                link.valueId ?? linkRow.id,
+                link.classId,
+                linkRow.value,
+                isTileLink);
         }
 
+    }
+
+    /// <summary>
+    /// Release-1 compatibility resolver for layer-link targets. Relations are
+    /// authoritative; the duplicated payload sidecar is accepted only as a
+    /// legacy fallback and, while present beside a relation, must agree.
+    /// </summary>
+    internal static class NeoWorldLayerLinkResolver
+    {
+        internal static string ResolveTargetLayerClassId(
+            NeoClient client,
+            string linkValueId,
+            string? linkClassId,
+            IReadOnlyDictionary<string, string>? payload,
+            bool isTileLink)
+        {
+            string label = isTileLink ? "Tile" : "Object";
+            if (string.IsNullOrWhiteSpace(linkClassId))
+            {
+                throw new InvalidOperationException(
+                    $"{label} layer link '{linkValueId}' is missing its class id.");
+            }
+
+            NeoSchemaClass systemBase = ValidateLinkClass(
+                client,
+                linkValueId,
+                linkClassId!,
+                isTileLink);
+
+            string relationKind = isTileLink
+                ? InternalRecordRelationKinds.WorldTileLayerLinkTarget
+                : InternalRecordRelationKinds.WorldObjectLayerLinkTarget;
+            var systemBaseTargets = client.InternalRecordRelations.Resolve(
+                relationKind,
+                systemBase.id);
+            foreach (var target in systemBaseTargets)
+            {
+                if (!string.Equals(
+                    target.DeclaredSourceRecordId,
+                    systemBase.id,
+                    StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                throw new InvalidOperationException(
+                    $"{label} layer-link system base '{systemBase.id}' must not declare a '{relationKind}' target relation (relation '{target.RelationIds[0]}'). Declare the target on a project-authored descendant instead.");
+            }
+            var targets = client.InternalRecordRelations.Resolve(
+                relationKind,
+                linkClassId!);
+            string? relationTargetId = targets.Count == 0
+                ? null
+                : targets[0].TargetRecordId;
+            string? sidecarTargetId = payload is null
+                ? null
+                : ReadDirectReference(payload, "layerClassId");
+
+            if (relationTargetId is not null
+                && sidecarTargetId is not null
+                && !string.Equals(
+                    relationTargetId,
+                    sidecarTargetId,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"{label} layer link '{linkValueId}' stores layerClassId '{sidecarTargetId}', but its effective class relation targets '{relationTargetId}'.");
+            }
+
+            string? targetId = relationTargetId ?? sidecarTargetId;
+            if (targetId is null)
+            {
+                throw new InvalidOperationException(
+                    $"{label} layer link '{linkValueId}' has neither an effective '{relationKind}' relation nor a legacy layerClassId sidecar.");
+            }
+            ValidateTargetClass(client, linkValueId, targetId, isTileLink);
+            return targetId;
+        }
+
+        private static NeoSchemaClass ValidateLinkClass(
+            NeoClient client,
+            string linkValueId,
+            string linkClassId,
+            bool isTileLink)
+        {
+            string label = isTileLink ? "Tile" : "Object";
+            string expectedWorldKind = isTileLink ? "tileLayerLink" : "objectLayerLink";
+            if (!client.TryGetClass(linkClassId, out NeoSchemaClass? linkClass))
+            {
+                throw new InvalidOperationException(
+                    $"{label} layer link '{linkValueId}' references missing link class '{linkClassId}'.");
+            }
+            if (linkClass.isAbstract)
+            {
+                throw new InvalidOperationException(
+                    $"{label} layer link '{linkValueId}' uses abstract link class '{linkClassId}'. Layer-link values require a concrete project-authored class.");
+            }
+
+            NeoSchemaClass systemBase = ResolveWorldKindOwner(
+                client,
+                linkClass,
+                linkValueId,
+                $"{label} layer link");
+            string? actualWorldKind = systemBase.system?["worldKind"]?.ToString();
+            if (!string.Equals(actualWorldKind, expectedWorldKind, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"{label} layer link '{linkValueId}' uses class '{linkClassId}', whose inherited world kind is '{actualWorldKind ?? "<missing>"}' instead of '{expectedWorldKind}'.");
+            }
+            if (!systemBase.isAbstract
+                || string.Equals(systemBase.id, linkClassId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"{label} layer link '{linkValueId}' uses class '{linkClassId}', which must inherit '{expectedWorldKind}' from an abstract layer-link system base.");
+            }
+            return systemBase;
+        }
+
+        private static void ValidateTargetClass(
+            NeoClient client,
+            string linkValueId,
+            string targetClassId,
+            bool isTileLink)
+        {
+            string label = isTileLink ? "Tile" : "Object";
+            string expectedWorldKind = isTileLink ? "tileLayer" : "objectLayer";
+            if (!client.TryGetClass(targetClassId, out NeoSchemaClass? targetClass))
+            {
+                throw new InvalidOperationException(
+                    $"{label} layer link '{linkValueId}' targets missing layer class '{targetClassId}'.");
+            }
+            if (targetClass.isAbstract)
+            {
+                throw new InvalidOperationException(
+                    $"{label} layer link '{linkValueId}' targets abstract layer class '{targetClassId}'.");
+            }
+
+            NeoSchemaClass worldKindOwner = ResolveWorldKindOwner(
+                client,
+                targetClass,
+                linkValueId,
+                $"{label} layer link target");
+            string? actualWorldKind = worldKindOwner.system?["worldKind"]?.ToString();
+            if (!string.Equals(actualWorldKind, expectedWorldKind, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"{label} layer link '{linkValueId}' targets class '{targetClassId}', whose inherited world kind is '{actualWorldKind ?? "<missing>"}' instead of '{expectedWorldKind}'.");
+            }
+        }
+
+        private static NeoSchemaClass ResolveWorldKindOwner(
+            NeoClient client,
+            NeoSchemaClass schemaClass,
+            string linkValueId,
+            string context)
+        {
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            NeoSchemaClass? cursor = schemaClass;
+            NeoSchemaClass? worldKindOwner = null;
+            while (cursor is not null)
+            {
+                if (!visited.Add(cursor.id))
+                {
+                    throw new InvalidOperationException(
+                        $"{context} '{linkValueId}' has a class inheritance cycle at '{cursor.id}'.");
+                }
+                string? worldKind = cursor.system?["worldKind"]?.ToString();
+                if (worldKindOwner is null && !string.IsNullOrWhiteSpace(worldKind))
+                {
+                    worldKindOwner = cursor;
+                }
+                if (string.IsNullOrWhiteSpace(cursor.extendsClassId)) break;
+                cursor = client.TryGetClass(cursor.extendsClassId!, out NeoSchemaClass? parent)
+                    ? parent
+                    : null;
+            }
+            return worldKindOwner ?? schemaClass;
+        }
+
+        private static string? ReadDirectReference(
+            IReadOnlyDictionary<string, string> value,
+            string key)
+        {
+            foreach (var pair in value)
+            {
+                if (!string.Equals(pair.Key, key, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                return string.IsNullOrWhiteSpace(pair.Value) ? null : pair.Value;
+            }
+            return null;
+        }
     }
 }
