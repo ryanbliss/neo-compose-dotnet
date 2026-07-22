@@ -60,6 +60,14 @@ namespace NeoCompose.Runtime
             Func<NeoScriptExecutionResult, NeoScriptExecutionResult>?
                 normalizeTerminal = null)
         {
+            int compilerRevision = body.compilerRevision ?? 1;
+            if (compilerRevision < 1
+                || compilerRevision > FunctionWithReturnType.CurrentCompilerRevision)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Unsupported NeoScript compiler revision {compilerRevision}; this runtime supports revisions 1 through {FunctionWithReturnType.CurrentCompilerRevision}.");
+            }
+
             bool allocationScopeClosed = false;
             ctx.allocationTracker.EnterExecution();
             try

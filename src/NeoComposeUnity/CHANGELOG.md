@@ -19,6 +19,9 @@
 - Added explicit instance-surface, stored-instance, and read-only Class schema
   projections plus schema-11 validation for invalid declarations and malformed
   instance data.
+- Added NeoScript compiler-revision 2 support for declaration-pinned member
+  pointers while retaining legacy revision-1 compatibility and rejecting
+  unsupported future IR.
 
 ## [0.5.2] - 2026-07-22
 

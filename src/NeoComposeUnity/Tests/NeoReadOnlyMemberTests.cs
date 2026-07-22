@@ -128,6 +128,7 @@ namespace NeoCompose.Tests
             var context = new NSGetterEvaluator.Context(client, null, null);
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = 2,
                 parameters = System.Array.Empty<Variable>(),
                 typeInfo = new PrimitiveTypeInfo
                 {
@@ -170,6 +171,57 @@ namespace NeoCompose.Tests
             };
 
             Assert.AreEqual(12d, NSGetterEvaluator.Evaluate(getter, context));
+        }
+
+        [Test]
+        public void NeoScriptCompilerRevision_AcceptsLegacyAndCurrentAndRejectsFuture()
+        {
+            NeoClient client = LoadClient();
+            var context = new NSGetterEvaluator.Context(client, null, null);
+
+            var legacy = new FunctionWithReturnType
+            {
+                parameters = System.Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = MemberKind.Int,
+                    required = true,
+                },
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new ValuePointer
+                        {
+                            type = PointerKind.Value,
+                            value = new Value
+                            {
+                                typeInfo = new PrimitiveTypeInfo
+                                {
+                                    type = MemberKind.Int,
+                                    required = true,
+                                },
+                                value = JToken.FromObject(7),
+                            },
+                        },
+                    },
+                },
+            };
+
+            Assert.AreEqual(7d, NSGetterEvaluator.Evaluate(legacy, context));
+
+            legacy.compilerRevision = FunctionWithReturnType.CurrentCompilerRevision;
+            Assert.AreEqual(7d, NSGetterEvaluator.Evaluate(legacy, context));
+
+            legacy.compilerRevision = FunctionWithReturnType.CurrentCompilerRevision + 1;
+            var futureError = Assert.Throws<NSGetterRuntimeError>(() =>
+                NSGetterEvaluator.Evaluate(legacy, context));
+            StringAssert.Contains("Unsupported NeoScript compiler revision", futureError!.Message);
+
+            legacy.compilerRevision = 0;
+            Assert.Throws<NSGetterRuntimeError>(() =>
+                NSGetterEvaluator.Evaluate(legacy, context));
         }
 
         [Test]

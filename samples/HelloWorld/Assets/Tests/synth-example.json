@@ -1045,6 +1045,7 @@
       },
       "argumentTypes": [],
       "action": {
+        "compilerRevision": 2,
         "parameters": [
           {
             "id": "__this__",
@@ -3107,6 +3108,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score += 3;",
                 "action": {
+                  "compilerRevision": 2,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -3318,6 +3320,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score -= 3;",
                 "action": {
+                  "compilerRevision": 2,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -3529,6 +3532,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score *= 3;",
                 "action": {
+                  "compilerRevision": 2,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -3740,6 +3744,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score /= 3;",
                 "action": {
+                  "compilerRevision": 2,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -3951,6 +3956,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score %= 3;",
                 "action": {
+                  "compilerRevision": 2,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -4162,6 +4168,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score++;",
                 "action": {
+                  "compilerRevision": 2,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -4373,6 +4380,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score--;",
                 "action": {
+                  "compilerRevision": 2,
                   "parameters": [
                     {
                       "id": "__this__",

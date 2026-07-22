@@ -304,6 +304,18 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class FunctionWithReturnType
     {
+        /// <summary>
+        /// Latest NeoScript compiler revision understood by this runtime.
+        /// Revision 1 is the legacy unstamped wire shape; revision 2 pins
+        /// declaration member ids on member pointers.
+        /// </summary>
+        public const int CurrentCompilerRevision = 2;
+
+        /// <summary>
+        /// Optional for backward compatibility. Absence means legacy
+        /// compiler revision 1.
+        /// </summary>
+        public int? compilerRevision;
         public Variable[] parameters = null!;
         public Instruction[] instructions = null!;
         public TypeInfo typeInfo = null!;
