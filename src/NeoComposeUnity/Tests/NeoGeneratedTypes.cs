@@ -736,8 +736,6 @@ namespace Assets.Scripts.Neo
 
             public static readonly NeoField<int?> Health = new("Health");
 
-            public static readonly NeoField<int> BaseDamage = new("BaseDamage");
-
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3Int?> GridCell = new("GridCell");
@@ -753,7 +751,6 @@ namespace Assets.Scripts.Neo
             {
                 [Fields.Name] = () => node.Get<NeoMemberString>("Name").TextId,
                 [Fields.Health] = () => null,
-                [Fields.BaseDamage] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.GridCell] = () => null,
                 [Fields.Path] = () => null,
@@ -777,7 +774,6 @@ namespace Assets.Scripts.Neo
             {
                 [Fields.Name] = () => Name,
                 [Fields.Health] = () => Health,
-                [Fields.BaseDamage] = () => BaseDamage,
                 [Fields.Position] = () => Position,
                 [Fields.GridCell] = () => GridCell,
                 [Fields.Path] = () => Path,
