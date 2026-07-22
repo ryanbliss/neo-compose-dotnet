@@ -61,6 +61,7 @@ namespace NeoCompose.Runtime
         /// further updates.
         /// </summary>
         public bool isDisposed { get; private set; }
+        private int declarationReferenceCount;
 
         protected NeoMember(
             NeoClient client,
@@ -100,6 +101,18 @@ namespace NeoCompose.Runtime
             isDisposed = true;
             OnDisposed?.Invoke(this);
             client.UnregisterNode(this);
+        }
+
+        internal void RetainDeclarationReference()
+        {
+            declarationReferenceCount++;
+        }
+
+        internal void ReleaseDeclarationReference()
+        {
+            if (declarationReferenceCount <= 0) return;
+            declarationReferenceCount--;
+            if (declarationReferenceCount == 0) Dispose();
         }
 
         protected void NotifyChanged()
@@ -374,11 +387,11 @@ namespace NeoCompose.Runtime
                 var resolvedValueId = valueId;
                 if (resolvedValueId is null)
                 {
-                    return MemberValueFactory.CreateFromDefault(
+                    return client.CreateDeclarationDefaultValue(
                         member,
-                        $"__neo_default:{member.id}",
-                        member.createdAt,
-                        member.updatedAt) as TValue;
+                        member.isReadOnly == true
+                            ? $"__neo_readonly_default:{member.id}"
+                            : $"__neo_default:{member.id}") as TValue;
                 }
 
                 if (!client.TryGetOverlaidValue(ownership, resolvedValueId, out TValue? match)) return null;

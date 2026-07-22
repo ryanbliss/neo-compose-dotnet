@@ -797,7 +797,7 @@ namespace NeoCompose.Runtime
                     }
 
                     MergedSchemaEntry? matchedEntry = null;
-                    foreach (MergedSchemaEntry entry in NeoSchemaClassInheritance.MergeInstanceSchema(
+                    foreach (MergedSchemaEntry entry in NeoSchemaClassInheritance.MergeStoredInstanceSchema(
                         NeoSchemaClassInheritance.ResolveChain(
                             parentClass.id,
                             id => client.TryGetClass(id, out NeoSchemaClass? candidate)
@@ -1529,6 +1529,11 @@ namespace NeoCompose.Runtime
                     {
                         if (row.value.ContainsKey(entry.schemaKey))
                         {
+                            if (member.isReadOnly == true)
+                            {
+                                throw new InvalidOperationException(
+                                    $"Constructed Class row '{path}' contains read-only declaration member '{entry.schemaKey}'; read-only declaration members cannot have instance values.");
+                            }
                             throw new InvalidOperationException(
                                 $"Constructed Class row '{path}' contains non-stored member '{entry.schemaKey}'.");
                         }
@@ -2240,6 +2245,11 @@ namespace NeoCompose.Runtime
                 Member member = membersBySchemaKey[field.schemaKey];
                 if (!IsStoredConstructorMember(member))
                 {
+                    if (member.isReadOnly == true)
+                    {
+                        throw new InvalidOperationException(
+                            $"Class constructor field '{field.schemaKey}' references read-only declaration member '{entry.memberId}'. Regenerate the NeoScript IR; readonly fields are never constructor parameters.");
+                    }
                     throw new InvalidOperationException(
                         $"Class constructor field '{field.schemaKey}' references non-stored member '{entry.memberId}'.");
                 }
@@ -2336,6 +2346,7 @@ namespace NeoCompose.Runtime
         private static bool IsStoredConstructorMember(Member member)
         {
             return !member.isStatic
+                && member.isReadOnly != true
                 && member is not NSPropertyMember
                 && member is not FunctionMember
                 && member is not NSFunctionMember;

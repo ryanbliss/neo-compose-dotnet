@@ -89,6 +89,13 @@ namespace NeoCompose.Runtime
             Member childMember,
             string? overrideValueId)
         {
+            if (childMember.isReadOnly == true)
+            {
+                // Declaration-backed nodes are shared by member id across all
+                // containing instances. They deliberately have no containing
+                // parent and always use the non-writable Asset family.
+                return Create(client, childMember, overrideValueId: null);
+            }
             NeoValueOwnership? declared = client.DeclaredOwnership(childMember);
             NeoMember child =
                 declared == NeoValueOwnership.Save || declared == NeoValueOwnership.Session
@@ -270,7 +277,14 @@ namespace NeoCompose.Runtime
             foreach (var child in childMembers.Values)
             {
                 child.OnChanged -= HandleChildChanged;
-                child.Dispose();
+                if (child.member.isReadOnly == true)
+                {
+                    child.ReleaseDeclarationReference();
+                }
+                else
+                {
+                    child.Dispose();
+                }
             }
             childMembers.Clear();
             base.Dispose();
@@ -291,7 +305,9 @@ namespace NeoCompose.Runtime
             {
                 if (!client.TryGetMember(entry.memberId, out Member? childMember)) continue;
                 childMember = SubstituteChildMember(childMember);
-                string? childValueId = value?.value is not null
+                string? childValueId = childMember.isReadOnly == true
+                    ? null
+                    : value?.value is not null
                     && value.value.TryGetValue(entry.schemaKey, out string valueIdForKey)
                         ? valueIdForKey
                         : null;
@@ -305,13 +321,24 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 var child = CreateChild(client, childMember, childValueId);
+                if (childMember.isReadOnly == true)
+                {
+                    child.RetainDeclarationReference();
+                }
                 child.OnChanged += HandleChildChanged;
                 childMembers[entry.schemaKey] = child;
             }
             foreach (var child in previousChildren.Values)
             {
                 child.OnChanged -= HandleChildChanged;
-                child.Dispose();
+                if (child.member.isReadOnly == true)
+                {
+                    child.ReleaseDeclarationReference();
+                }
+                else
+                {
+                    child.Dispose();
+                }
             }
         }
 
@@ -428,6 +455,10 @@ namespace NeoCompose.Runtime
             Member childMember,
             string? overrideValueId)
         {
+            if (childMember.isReadOnly == true)
+            {
+                return Create(client, childMember, overrideValueId: null);
+            }
             // An explicit declared storage fixes the child's shape in both
             // families (specs/member-storage.md §8.3): Immutable-stamped
             // children stay read-only even under a writable parent;
@@ -629,6 +660,7 @@ namespace NeoCompose.Runtime
             // dispatch below (required travels with the binding —
             // specs/class-generics.md Decision 10).
             childMember = SubstituteChildMember(childMember);
+            RejectReadOnlyInstanceMutation(key, childMember);
             if (childMember.required && (setValue is null || setValue.isNull))
             {
                 throw new System.ArgumentNullException(
@@ -824,6 +856,12 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Cannot bind a child value on Class '{member.id}': child is not a registered schema field.");
             }
+            string? memberId = LookupMergedMemberId(key);
+            if (memberId is not null
+                && client.TryGetMember(memberId, out Member? rawMember))
+            {
+                RejectReadOnlyInstanceMutation(key, SubstituteChildMember(rawMember));
+            }
             string nowIso = System.DateTime.UtcNow.ToString("o");
             ObjectMemberValue record = EnsureWritableObject(nowIso);
             record.value![key] = childValueId;
@@ -876,6 +914,12 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Remove(string key)
         {
+            string? memberId = LookupMergedMemberId(key);
+            if (memberId is not null
+                && client.TryGetMember(memberId, out Member? rawMember))
+            {
+                RejectReadOnlyInstanceMutation(key, SubstituteChildMember(rawMember));
+            }
             if (value?.value is null) return;
             if (!value.value.ContainsKey(key)) return;
             string? schemaKeyedMemberId = LookupMergedMemberId(key);
@@ -907,6 +951,15 @@ namespace NeoCompose.Runtime
             client.RemoveWritableValueAndDescendantsIfUnlinked(
                 removedOwnership, removedValueId, removedMember);
             NotifyChanged();
+        }
+
+        private static void RejectReadOnlyInstanceMutation(
+            string key,
+            Member childMember)
+        {
+            if (childMember.isReadOnly != true) return;
+            throw new System.InvalidOperationException(
+                $"Cannot write '{key}': read-only declaration member '{childMember.name}' ({childMember.id}) cannot have an instance value. Change its class default instead.");
         }
 
         /// <summary>

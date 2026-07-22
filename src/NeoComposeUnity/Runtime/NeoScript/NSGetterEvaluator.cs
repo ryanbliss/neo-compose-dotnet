@@ -1166,7 +1166,11 @@ namespace NeoCompose.Runtime.NeoScript
             if (TryAsObjectRecord(receiver, out IDictionary<string, object?>? record))
             {
                 // Schema-dispatch if the receiver is a tracked Class row.
-                var dispatched = DispatchSchemaMember(receiver, k, ctx);
+                var dispatched = DispatchSchemaMember(
+                    receiver,
+                    k,
+                    ctx,
+                    keyOf.memberId);
                 if (dispatched.kind == DispatchKind.Ok) return dispatched.value;
                 if (record!.TryGetValue(k, out var at))
                 {
@@ -1224,7 +1228,8 @@ namespace NeoCompose.Runtime.NeoScript
         private static DispatchResult DispatchSchemaMember(
             object? receiver,
             string schemaKey,
-            Context ctx)
+            Context ctx,
+            string? pinnedMemberId = null)
         {
             if (!TryAsObjectRecord(receiver, out IDictionary<string, object?>? record))
             {
@@ -1233,49 +1238,86 @@ namespace NeoCompose.Runtime.NeoScript
 
             // Recover the row by reference equality on `.value`.
             string? runtimeClassId = FindRowClassIdByReference(receiver, ctx);
-            if (string.IsNullOrEmpty(runtimeClassId)) return DispatchResult.NoInfo();
-
-            IList<NeoSchemaClass> chain;
-            try
-            {
-                chain = NeoSchemaClassInheritance.ResolveChain(
-                    runtimeClassId!,
-                    id => ctx.client.TryGetClass(id, out var t) ? t : null);
-            }
-            catch (CircularInheritanceError)
+            if (string.IsNullOrEmpty(runtimeClassId)
+                && string.IsNullOrEmpty(pinnedMemberId))
             {
                 return DispatchResult.NoInfo();
             }
-            var merged = NeoSchemaClassInheritance.MergeInstanceSchema(
-                chain,
-                id => ctx.client.TryGetMember(id, out JsonMember? member)
-                    ? member
-                    : null);
-            MergedSchemaEntry? entry = null;
-            foreach (var e in merged)
-            {
-                if (e.schemaKey == schemaKey) { entry = e; break; }
-            }
-            if (entry is null) return DispatchResult.NoInfo();
 
-            if (!ctx.client.TryGetMember(entry.memberId, out JsonMember? member))
+            MergedSchemaEntry? entry = null;
+            if (!string.IsNullOrEmpty(runtimeClassId))
+            {
+                IList<NeoSchemaClass> chain;
+                try
+                {
+                    chain = NeoSchemaClassInheritance.ResolveChain(
+                        runtimeClassId!,
+                        id => ctx.client.TryGetClass(id, out var t) ? t : null);
+                }
+                catch (CircularInheritanceError)
+                {
+                    return DispatchResult.NoInfo();
+                }
+                var merged = NeoSchemaClassInheritance.MergeInstanceSurfaceSchema(
+                    chain,
+                    id => ctx.client.TryGetMember(id, out JsonMember? member)
+                        ? member
+                        : null);
+                foreach (var candidate in merged)
+                {
+                    if (candidate.schemaKey == schemaKey)
+                    {
+                        entry = candidate;
+                        break;
+                    }
+                }
+            }
+
+            string? resolvedMemberId = entry?.memberId ?? pinnedMemberId;
+            if (string.IsNullOrEmpty(resolvedMemberId)
+                || !ctx.client.TryGetMember(resolvedMemberId!, out JsonMember? member))
             {
                 return DispatchResult.NoInfo();
             }
 
             if (member.kind == MemberKind.NSProperty)
             {
-                if (ResolveCompiledGetter(entry.memberId, ctx.client) is null)
+                if (ResolveCompiledGetter(resolvedMemberId!, ctx.client) is null)
                 {
                     return DispatchResult.NoInfo();
                 }
-                return DispatchResult.Ok(DispatchNSGetterById(entry.memberId, receiver, ctx));
+                return DispatchResult.Ok(DispatchNSGetterById(resolvedMemberId!, receiver, ctx));
             }
 
             if (record!.TryGetValue(schemaKey, out var at))
             {
                 return DispatchResult.Ok(
                     ResolveValueIfId(at, ctx, FindRowOwnershipByReference(receiver, ctx), member));
+            }
+            if (member.isReadOnly == true)
+            {
+                MemberValue? synthetic = ctx.client.CreateDeclarationDefaultValue(
+                    member,
+                    $"__neo_readonly_default:{member.id}");
+                if (synthetic is null)
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Read-only member '{member.name}' ({member.id}) has no declaration default.");
+                }
+                object? unwrapped = UnwrapCached(
+                    synthetic,
+                    ctx,
+                    NeoValueOwnership.Asset,
+                    member);
+                if (member is LookupMember
+                    && unwrapped is object?[] selections
+                    && selections.Length == 1
+                    && selections[0] is string selectedId)
+                {
+                    return DispatchResult.Ok(
+                        ResolveValueIfId(selectedId, ctx, member: member));
+                }
+                return DispatchResult.Ok(unwrapped);
             }
             return DispatchResult.NoInfo();
         }

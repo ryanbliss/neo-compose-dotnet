@@ -194,6 +194,13 @@ namespace NeoCompose.Runtime.Json
     {
         public Pointer pointer = null!;
         public Pointer key = null!;
+        /// <summary>
+        /// Optional stable schema-member identity for a statically resolved
+        /// Class/interface field read. Schema 11 emitters include this so a
+        /// declaration-backed read can inspect current member metadata
+        /// without inferring it from an absent receiver child edge.
+        /// </summary>
+        public string? memberId;
     }
 
     /// <summary>
