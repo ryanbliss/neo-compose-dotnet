@@ -260,6 +260,73 @@ namespace NeoCompose.Tests
             Assert.AreEqual(7, ((IntMember)substituted).defaultValue!.value);
         }
 
+        [Test]
+        public void SchemaValidation_ValidatesReadOnlyGenericSlotsInClosedDescendants()
+        {
+            ProjectData data = BuildProjectData();
+            var slot = new GenericMember
+            {
+                id = "member-readonly-slot",
+                projectId = ProjectId,
+                name = "Value",
+                kind = MemberKind.Generic,
+                genericParamId = "param-t",
+                storage = "immutable",
+                isReadOnly = true,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var binding = new IntMember
+            {
+                id = "member-readonly-binding",
+                projectId = ProjectId,
+                name = "Binding",
+                kind = MemberKind.Int,
+                required = true,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.members[slot.id] = slot;
+            data.members[binding.id] = binding;
+            data.classes["class-generic-base"] = new NeoSchemaClass
+            {
+                id = "class-generic-base",
+                projectId = ProjectId,
+                name = "GenericBase",
+                schema = new Dictionary<string, string> { ["Value"] = slot.id },
+                genericParams = new List<GenericParamDeclaration>
+                {
+                    new() { id = "param-t", name = "T" },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.classes["class-generic-closed"] = new NeoSchemaClass
+            {
+                id = "class-generic-closed",
+                projectId = ProjectId,
+                name = "GenericClosed",
+                schema = new Dictionary<string, string>(),
+                extendsClassId = "class-generic-base",
+                extendsGenericBindings = new Dictionary<string, GenericBinding>
+                {
+                    ["param-t"] = new()
+                    {
+                        kind = NeoGenericBindingKinds.Member,
+                        memberId = binding.id,
+                    },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                NeoTestSaveStack.ClientFromSchema(data));
+
+            StringAssert.Contains("GenericClosed", error!.Message);
+            StringAssert.Contains("explicit defaultValue", error.Message);
+        }
+
         private static string[] SchemaKeys(IList<MergedSchemaEntry> entries)
         {
             var result = new string[entries.Count];

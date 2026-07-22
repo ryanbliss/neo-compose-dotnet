@@ -1032,6 +1032,31 @@ namespace NeoCompose.Runtime
                 }
             }
 
+            var effectivePlacements =
+                new Dictionary<string, List<(NeoSchemaClass owner, string key)>>();
+            foreach (NeoSchemaClass schemaClass in data.classes.Values)
+            {
+                IList<NeoSchemaClass> chain = NeoSchemaClassInheritance.ResolveChain(
+                    schemaClass.id,
+                    id => data.classes.TryGetValue(id, out NeoSchemaClass match)
+                        ? match
+                        : null);
+                foreach (MergedSchemaEntry entry in
+                    NeoSchemaClassInheritance.MergeInstanceSurfaceSchema(
+                        chain,
+                        id => data.members.TryGetValue(id, out Member match)
+                            ? match
+                            : null))
+                {
+                    if (!effectivePlacements.TryGetValue(entry.memberId, out var memberPlacements))
+                    {
+                        memberPlacements = new List<(NeoSchemaClass, string)>();
+                        effectivePlacements[entry.memberId] = memberPlacements;
+                    }
+                    memberPlacements.Add((schemaClass, entry.schemaKey));
+                }
+            }
+
             var entryTemplateIds = new HashSet<string>();
             var genericBindingIds = new HashSet<string>();
             foreach (Member candidate in data.members.Values)
@@ -1119,7 +1144,14 @@ namespace NeoCompose.Runtime
                         $"{subject} cannot opt into the per-instance String search index.");
                 }
 
-                foreach (var placement in memberPlacements)
+                if (!effectivePlacements.TryGetValue(
+                    declaration.id,
+                    out var declarationPlacements))
+                {
+                    declarationPlacements = memberPlacements;
+                }
+
+                foreach (var placement in declarationPlacements)
                 {
                     Member resolved = declaration;
                     if (declaration is GenericMember)
