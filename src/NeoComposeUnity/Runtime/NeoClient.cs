@@ -1021,6 +1021,12 @@ namespace NeoCompose.Runtime
             var placements = new Dictionary<string, List<(NeoSchemaClass owner, string key)>>();
             foreach (NeoSchemaClass schemaClass in data.classes.Values)
             {
+                // Older/minimal test and hand-authored documents can omit a
+                // Class schema entirely. Preserve the established behavior:
+                // absent is the same as an empty schema. Normalizing once at
+                // the load boundary also keeps every later schema projection
+                // null-safe.
+                schemaClass.schema ??= new Dictionary<string, string>();
                 foreach (var entry in schemaClass.schema)
                 {
                     if (!placements.TryGetValue(entry.Value, out var memberPlacements))

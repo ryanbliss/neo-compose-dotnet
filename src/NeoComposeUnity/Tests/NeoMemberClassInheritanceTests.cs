@@ -67,8 +67,9 @@ namespace NeoCompose.Tests
                 "Class with no extendsClassId has a single-link chain");
             Assert.AreEqual("class-hero", hero.inheritanceChain[0].id);
 
-            // Name, Health, Position, GridCell, Path, MoveTo, ElementAffinity.
-            Assert.AreEqual(7, hero.mergedSchema.Count);
+            // Name, Health, BaseDamage, Position, GridCell, Path, MoveTo,
+            // ElementAffinity.
+            Assert.AreEqual(8, hero.mergedSchema.Count);
             // Owner is the declared class for every entry — no inheritance.
             foreach (var entry in hero.mergedSchema)
             {
