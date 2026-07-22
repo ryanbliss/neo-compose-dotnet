@@ -102,6 +102,19 @@ namespace NeoCompose.Runtime.Json
         public NeoTimestamp updatedAt;
 
         /// <summary>
+        /// Runtime-only identity of a substituted generic slot. Wire member
+        /// ids remain anchored to the slot declaration, but two closed
+        /// bindings can carry different kinds/defaults and therefore cannot
+        /// share a declaration-default node or synthetic value row.
+        /// </summary>
+        [JsonIgnore]
+        internal string? substitutedDeclarationIdentity;
+
+        [JsonIgnore]
+        internal string RuntimeDeclarationIdentity =>
+            substitutedDeclarationIdentity ?? id;
+
+        /// <summary>
         /// Shallow member-wise copy preserving the concrete subclass.
         /// Used by <c>NeoGenericResolution.SubstituteMember</c> to build
         /// the substituted record (binding's type + config with the generic

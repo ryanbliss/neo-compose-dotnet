@@ -719,7 +719,12 @@ namespace NeoCompose.Runtime.NeoScript
                         staticMember);
                 }
                 case KeyOfPointer kop:
-                    return EvalKeyOf(kop.keyOf, scope, ctx, kop.optional == true);
+                    return EvalKeyOf(
+                        kop.keyOf,
+                        scope,
+                        ctx,
+                        kop.optional == true,
+                        kop.memberId);
                 case OperationPointer op:
                     return EvalOperation(op.operation, scope, ctx);
                 case FunctionPointer fp:
@@ -1102,7 +1107,8 @@ namespace NeoCompose.Runtime.NeoScript
             KeyOf keyOf,
             Dictionary<string, object?> scope,
             Context ctx,
-            bool optional)
+            bool optional,
+            string? pinnedMemberId)
         {
             var receiver = EvalPointer(keyOf.pointer, scope, ctx);
             if (optional && receiver is null) return null;
@@ -1170,7 +1176,7 @@ namespace NeoCompose.Runtime.NeoScript
                     receiver,
                     k,
                     ctx,
-                    keyOf.memberId);
+                    pinnedMemberId);
                 if (dispatched.kind == DispatchKind.Ok) return dispatched.value;
                 if (record!.TryGetValue(k, out var at))
                 {
@@ -1245,12 +1251,12 @@ namespace NeoCompose.Runtime.NeoScript
             }
 
             MergedSchemaEntry? entry = null;
+            IList<NeoSchemaClass>? runtimeChain = null;
             if (!string.IsNullOrEmpty(runtimeClassId))
             {
-                IList<NeoSchemaClass> chain;
                 try
                 {
-                    chain = NeoSchemaClassInheritance.ResolveChain(
+                    runtimeChain = NeoSchemaClassInheritance.ResolveChain(
                         runtimeClassId!,
                         id => ctx.client.TryGetClass(id, out var t) ? t : null);
                 }
@@ -1259,7 +1265,7 @@ namespace NeoCompose.Runtime.NeoScript
                     return DispatchResult.NoInfo();
                 }
                 var merged = NeoSchemaClassInheritance.MergeInstanceSurfaceSchema(
-                    chain,
+                    runtimeChain,
                     id => ctx.client.TryGetMember(id, out JsonMember? member)
                         ? member
                         : null);
@@ -1280,6 +1286,14 @@ namespace NeoCompose.Runtime.NeoScript
                 return DispatchResult.NoInfo();
             }
 
+            if (member is GenericMember && runtimeChain is not null)
+            {
+                member = NeoGenericResolution.SubstituteMember(
+                    ctx.client,
+                    member,
+                    NeoGenericResolution.ResolveEnv(runtimeChain));
+            }
+
             if (member.kind == MemberKind.NSProperty)
             {
                 if (ResolveCompiledGetter(resolvedMemberId!, ctx.client) is null)
@@ -1298,7 +1312,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 MemberValue? synthetic = ctx.client.CreateDeclarationDefaultValue(
                     member,
-                    $"__neo_readonly_default:{member.id}");
+                    $"__neo_readonly_default:{member.RuntimeDeclarationIdentity}");
                 if (synthetic is null)
                 {
                     throw new NSGetterRuntimeError(

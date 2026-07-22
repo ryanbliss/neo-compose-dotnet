@@ -96,6 +96,10 @@ namespace NeoCompose.Tests
                 saveWeapon.Remove("BaseDamage"));
             StringAssert.Contains("read-only declaration member", removeError!.Message);
 
+            var unsetError = Assert.Throws<System.InvalidOperationException>(() =>
+                saveWeapon.Unset("BaseDamage"));
+            StringAssert.Contains("read-only declaration member", unsetError!.Message);
+
             NeoMemberClassWritable created =
                 NeoGeneratedTypesSupport.CreateWritableClassValue(
                     client,
@@ -138,9 +142,9 @@ namespace NeoCompose.Tests
                         pointer = new KeyOfPointer
                         {
                             type = PointerKind.KeyOf,
+                            memberId = "member-base-damage",
                             keyOf = new KeyOf
                             {
-                                memberId = "member-base-damage",
                                 pointer = new ReferencePointer
                                 {
                                     type = PointerKind.Reference,
@@ -166,6 +170,32 @@ namespace NeoCompose.Tests
             };
 
             Assert.AreEqual(12d, NSGetterEvaluator.Evaluate(getter, context));
+        }
+
+        [Test]
+        public void KeyOfPointer_RoundTripsPinnedMemberIdAtWireTopLevel()
+        {
+            const string json = @"{
+  ""type"": ""keyOf"",
+  ""memberId"": ""member-base-damage"",
+  ""keyOf"": {
+    ""pointer"": { ""type"": ""reference"", ""valueId"": ""value-weapon-asset"" },
+    ""key"": {
+      ""type"": ""value"",
+      ""value"": {
+        ""typeInfo"": { ""type"": 1, ""required"": true },
+        ""value"": ""BaseDamage""
+      }
+    }
+  }
+}";
+
+            var pointer = (KeyOfPointer)JsonConvert.DeserializeObject<Pointer>(json)!;
+            Assert.AreEqual("member-base-damage", pointer.memberId);
+
+            JObject roundTripped = JObject.Parse(JsonConvert.SerializeObject(pointer));
+            Assert.AreEqual("member-base-damage", roundTripped["memberId"]!.Value<string>());
+            Assert.IsNull(roundTripped["keyOf"]!["memberId"]);
         }
 
         [TestCase("save", null, false, false, "Immutable storage")]
@@ -327,6 +357,98 @@ namespace NeoCompose.Tests
             StringAssert.Contains("explicit defaultValue", error.Message);
         }
 
+        [Test]
+        public void ClosedGenericReadOnlySlots_KeepDistinctDefaultsForNodesAndNeoScript()
+        {
+            ProjectData data = BuildProjectData();
+            var slot = new GenericMember
+            {
+                id = "member-readonly-slot",
+                projectId = ProjectId,
+                name = "Value",
+                kind = MemberKind.Generic,
+                genericParamId = "param-t",
+                storage = "immutable",
+                isReadOnly = true,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var bindingA = new IntMember
+            {
+                id = "member-binding-a",
+                projectId = ProjectId,
+                name = "Binding A",
+                kind = MemberKind.Int,
+                required = true,
+                defaultValue = new NumberMemberValueBase { value = 7 },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var bindingB = new IntMember
+            {
+                id = "member-binding-b",
+                projectId = ProjectId,
+                name = "Binding B",
+                kind = MemberKind.Int,
+                required = true,
+                defaultValue = new NumberMemberValueBase { value = 9 },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var closedA = ClassMemberOf(
+                "member-closed-a", "ClosedA", "class-closed-a", "value-closed-a");
+            var closedB = ClassMemberOf(
+                "member-closed-b", "ClosedB", "class-closed-b", "value-closed-b");
+            data.members[slot.id] = slot;
+            data.members[bindingA.id] = bindingA;
+            data.members[bindingB.id] = bindingB;
+            data.members[closedA.id] = closedA;
+            data.members[closedB.id] = closedB;
+            data.classes["class-generic-base"] = new NeoSchemaClass
+            {
+                id = "class-generic-base",
+                projectId = ProjectId,
+                name = "GenericBase",
+                schema = new Dictionary<string, string> { ["Value"] = slot.id },
+                genericParams = new List<GenericParamDeclaration>
+                {
+                    new() { id = "param-t", name = "T" },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.classes["class-closed-a"] = ClosedGenericClass(
+                "class-closed-a", "ClosedA", bindingA.id);
+            data.classes["class-closed-b"] = ClosedGenericClass(
+                "class-closed-b", "ClosedB", bindingB.id);
+            data.classes["class-root-save"].schema["ClosedA"] = closedA.id;
+            data.classes["class-root-save"].schema["ClosedB"] = closedB.id;
+            ((ObjectMemberValue)data.values["value-root-save"]).value!["ClosedA"] =
+                "value-closed-a";
+            ((ObjectMemberValue)data.values["value-root-save"]).value!["ClosedB"] =
+                "value-closed-b";
+            data.values["value-closed-a"] = RecordValue(
+                "value-closed-a", "class-closed-a", new Dictionary<string, string>());
+            data.values["value-closed-b"] = RecordValue(
+                "value-closed-b", "class-closed-b", new Dictionary<string, string>());
+
+            NeoClient client = LoadClient(data);
+            NeoMemberInt nodeA = client.SaveRoot
+                .Get<NeoMemberClassWritable>("ClosedA")
+                .Get<NeoMemberInt>("Value");
+            NeoMemberInt nodeB = client.SaveRoot
+                .Get<NeoMemberClassWritable>("ClosedB")
+                .Get<NeoMemberInt>("Value");
+
+            Assert.AreNotSame(nodeA, nodeB);
+            Assert.AreEqual(7, nodeA.value!.value);
+            Assert.AreEqual(9, nodeB.value!.value);
+            Assert.AreNotEqual(nodeA.value.id, nodeB.value.id);
+
+            Assert.AreEqual(7d, EvaluatePinnedReadOnlySlot(client, "value-closed-a", slot.id));
+            Assert.AreEqual(9d, EvaluatePinnedReadOnlySlot(client, "value-closed-b", slot.id));
+        }
+
         private static string[] SchemaKeys(IList<MergedSchemaEntry> entries)
         {
             var result = new string[entries.Count];
@@ -335,6 +457,80 @@ namespace NeoCompose.Tests
                 result[index] = entries[index].schemaKey;
             }
             return result;
+        }
+
+        private static NeoSchemaClass ClosedGenericClass(
+            string id,
+            string name,
+            string bindingMemberId) => new()
+        {
+            id = id,
+            projectId = ProjectId,
+            name = name,
+            schema = new Dictionary<string, string>(),
+            extendsClassId = "class-generic-base",
+            extendsGenericBindings = new Dictionary<string, GenericBinding>
+            {
+                ["param-t"] = new()
+                {
+                    kind = NeoGenericBindingKinds.Member,
+                    memberId = bindingMemberId,
+                },
+            },
+            createdAt = "x",
+            updatedAt = "x",
+        };
+
+        private static object? EvaluatePinnedReadOnlySlot(
+            NeoClient client,
+            string valueId,
+            string memberId)
+        {
+            var getter = new FunctionWithReturnType
+            {
+                parameters = System.Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = MemberKind.Int,
+                    required = true,
+                },
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new KeyOfPointer
+                        {
+                            type = PointerKind.KeyOf,
+                            memberId = memberId,
+                            keyOf = new KeyOf
+                            {
+                                pointer = new ReferencePointer
+                                {
+                                    type = PointerKind.Reference,
+                                    valueId = valueId,
+                                },
+                                key = new ValuePointer
+                                {
+                                    type = PointerKind.Value,
+                                    value = new Value
+                                    {
+                                        typeInfo = new PrimitiveTypeInfo
+                                        {
+                                            type = MemberKind.String,
+                                            required = true,
+                                        },
+                                        value = JToken.FromObject("Value"),
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+            return NSGetterEvaluator.Evaluate(
+                getter,
+                new NSGetterEvaluator.Context(client, null, null));
         }
 
         private static NeoClient LoadClient(ProjectData? data = null) =>

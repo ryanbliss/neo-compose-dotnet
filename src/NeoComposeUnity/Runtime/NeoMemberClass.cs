@@ -979,11 +979,15 @@ namespace NeoCompose.Runtime
                 throw new System.Collections.Generic.KeyNotFoundException(
                     $"Merged schema for class {schemaClass.id} (chain depth {inheritanceChain.Count}) does not contain key '{key}'");
             }
-            if (client.TryGetMember(memberId, out Member? childMember)
-                && SubstituteChildMember(childMember).required)
+            if (client.TryGetMember(memberId, out Member? childMember))
             {
-                throw new System.InvalidOperationException(
-                    $"Cannot unset required field '{key}'.");
+                childMember = SubstituteChildMember(childMember);
+                RejectReadOnlyInstanceMutation(key, childMember);
+                if (childMember.required)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Cannot unset required field '{key}'.");
+                }
             }
             if (value?.value is null || !value.value.TryGetValue(key, out string childValueId))
             {

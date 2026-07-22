@@ -1154,25 +1154,28 @@ namespace NeoCompose.Runtime
                 foreach (var placement in declarationPlacements)
                 {
                     Member resolved = declaration;
-                    if (declaration is GenericMember)
+                    if (declaration is GenericMember genericDeclaration)
                     {
-                        try
-                        {
-                            var env = NeoGenericResolution.ResolveEnv(
-                                NeoSchemaClassInheritance.ResolveChain(
-                                    placement.owner.id,
-                                    id => data.classes.TryGetValue(id, out NeoSchemaClass match)
-                                        ? match
-                                        : null));
-                            resolved = NeoGenericResolution.SubstituteMember(this, declaration, env);
-                        }
-                        catch (InvalidOperationException)
+                        var env = NeoGenericResolution.ResolveEnv(
+                            NeoSchemaClassInheritance.ResolveChain(
+                                placement.owner.id,
+                                id => data.classes.TryGetValue(id, out NeoSchemaClass match)
+                                    ? match
+                                    : null));
+                        if (env.TryGetValue(
+                                genericDeclaration.genericParamId,
+                                out NeoGenericEnvEntry entry)
+                            && !entry.IsBound)
                         {
                             // Open generic classes are not constructible. Their
-                            // closed descendants are checked when their own
-                            // effective schemas are validated by the exporter.
+                            // closed descendants appear separately in the
+                            // effective-placement map and are checked there.
                             continue;
                         }
+                        resolved = NeoGenericResolution.SubstituteMember(
+                            this,
+                            declaration,
+                            env);
                     }
                     if (!IsReadOnlyValueBearing(resolved))
                     {
@@ -3773,7 +3776,10 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void RegisterNode(NeoMember node)
         {
-            string key = MakeNodeKey(node.member.id, node.overrideValueId, node.ownership);
+            string key = MakeNodeKey(
+                node.member.RuntimeDeclarationIdentity,
+                node.overrideValueId,
+                node.ownership);
             nodesInternal[key] = node;
         }
 
@@ -3785,7 +3791,10 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void UnregisterNode(NeoMember node)
         {
-            string key = MakeNodeKey(node.member.id, node.overrideValueId, node.ownership);
+            string key = MakeNodeKey(
+                node.member.RuntimeDeclarationIdentity,
+                node.overrideValueId,
+                node.ownership);
             // Only remove if the registered instance is the one we're
             // unregistering — guards against the "I disposed an
             // instance that was already replaced in the registry by a
@@ -3801,7 +3810,10 @@ namespace NeoCompose.Runtime
             System.Func<TGenerated> create)
             where TGenerated : NeoGeneratedClassValue
         {
-            string key = MakeNodeKey(node.member.id, node.overrideValueId, node.ownership);
+            string key = MakeNodeKey(
+                node.member.RuntimeDeclarationIdentity,
+                node.overrideValueId,
+                node.ownership);
             if (generatedValuesInternal.TryGetValue(key, out NeoGeneratedClassValue existing))
             {
                 if (existing is TGenerated match) return match;
@@ -3817,7 +3829,10 @@ namespace NeoCompose.Runtime
             NeoGeneratedClassValue generated,
             NeoMemberClass node)
         {
-            string key = MakeNodeKey(node.member.id, node.overrideValueId, node.ownership);
+            string key = MakeNodeKey(
+                node.member.RuntimeDeclarationIdentity,
+                node.overrideValueId,
+                node.ownership);
             if (generatedValuesInternal.TryGetValue(key, out NeoGeneratedClassValue existing)
                 && !ReferenceEquals(existing, generated))
             {
@@ -3828,7 +3843,10 @@ namespace NeoCompose.Runtime
 
         internal void UnregisterGeneratedClassValue(NeoGeneratedClassValue generated, NeoMemberClass node)
         {
-            string key = MakeNodeKey(node.member.id, node.overrideValueId, node.ownership);
+            string key = MakeNodeKey(
+                node.member.RuntimeDeclarationIdentity,
+                node.overrideValueId,
+                node.ownership);
             if (generatedValuesInternal.TryGetValue(key, out NeoGeneratedClassValue existing)
                 && ReferenceEquals(existing, generated))
             {

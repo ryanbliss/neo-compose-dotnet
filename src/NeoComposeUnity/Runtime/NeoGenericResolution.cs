@@ -544,6 +544,8 @@ namespace NeoCompose.Runtime
                 substituted.storage = generic.storage;
                 substituted.storageKey = generic.storageKey;
                 substituted.extendsMemberId = null;
+                substituted.substitutedDeclarationIdentity =
+                    $"{generic.id}@{binding.id}";
                 return substituted;
             }
             if (member is ClassMember classMember)

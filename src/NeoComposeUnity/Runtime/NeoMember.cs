@@ -166,7 +166,11 @@ namespace NeoCompose.Runtime
             Member member,
             string? overrideValueId)
         {
-            if (client.TryGetNode(member.id, overrideValueId, NeoValueOwnership.Asset, out NeoMember? existing))
+            if (client.TryGetNode(
+                    member.RuntimeDeclarationIdentity,
+                    overrideValueId,
+                    NeoValueOwnership.Asset,
+                    out NeoMember? existing))
             {
                 return existing;
             }
@@ -219,7 +223,11 @@ namespace NeoCompose.Runtime
             string? overrideValueId,
             NeoValueOwnership ownership = NeoValueOwnership.Session)
         {
-            if (client.TryGetNode(member.id, overrideValueId, ownership, out NeoMember? existing)
+            if (client.TryGetNode(
+                    member.RuntimeDeclarationIdentity,
+                    overrideValueId,
+                    ownership,
+                    out NeoMember? existing)
                 && IsWritableCompatible(member, existing))
             {
                 return existing;
@@ -390,7 +398,7 @@ namespace NeoCompose.Runtime
                     return client.CreateDeclarationDefaultValue(
                         member,
                         member.isReadOnly == true
-                            ? $"__neo_readonly_default:{member.id}"
+                            ? $"__neo_readonly_default:{member.RuntimeDeclarationIdentity}"
                             : $"__neo_default:{member.id}") as TValue;
                 }
 

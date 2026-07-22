@@ -9,6 +9,7 @@ using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Assets.Scripts.Neo;
@@ -109,12 +110,33 @@ namespace NeoCompose.Tests
         // ------------------------------------------------------------------
 
         [Test]
+        public void ReadOnlyClassField_UsesDeclarationDefaultWithoutInstanceEdge()
+        {
+            ProjectData export = JsonConvert.DeserializeObject<ProjectData>(
+                LoadFixture("synth-example.json"))!;
+            var heroRow = (ObjectMemberValue)export.values["v-dict"];
+            Assert.IsFalse(heroRow.value!.ContainsKey("BaseDamage"));
+
+            NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                export,
+                assumeCurrentSchema: false);
+            var node = new NeoMemberClass(client, "member-hero", "v-dict");
+            Hero hero = Hero.Create(client, node);
+
+            Assert.AreEqual(12, hero.BaseDamage);
+            Assert.AreEqual(
+                "__neo_readonly_default:member-base-damage",
+                node.Get<NeoMemberInt>("BaseDamage").value!.id);
+        }
+
+        [Test]
         public void ClassValuedEntries_ReadAuthoredChampionAndNestedAffinity()
         {
             var app = LoadGeneratedClient(out _);
 
             var champion = app.Save.ElementChampions[Element.fire];
             Assert.AreEqual("Ignis", champion.Name);
+            Assert.AreEqual(12, champion.BaseDamage);
             // The dictionary nested inside the Hero class.
             Assert.AreEqual("scorch", champion.ElementAffinity[Element.fire]);
             Assert.IsFalse(champion.ElementAffinity.ContainsKey(Element.ice));
@@ -128,8 +150,10 @@ namespace NeoCompose.Tests
             app.Save.ElementChampions[Element.ice] = new Hero(Name: "Frost");
 
             Assert.AreEqual("Frost", app.Save.ElementChampions[Element.ice].Name);
+            Assert.AreEqual(12, app.Save.ElementChampions[Element.ice].BaseDamage);
             Assert.AreEqual(2, app.Save.ElementChampions.Count);
             StringAssert.Contains("Frost", app.SerializeSaveData());
+            StringAssert.DoesNotContain("BaseDamage", app.SerializeSaveData());
         }
 
         // ------------------------------------------------------------------

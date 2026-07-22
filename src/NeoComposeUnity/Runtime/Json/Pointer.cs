@@ -69,6 +69,14 @@ namespace NeoCompose.Runtime.Json
     {
         public KeyOf keyOf = null!;
         /// <summary>
+        /// Optional stable schema-member identity for a statically resolved
+        /// Class/interface field read. Schema 11 emitters place this beside
+        /// <see cref="keyOf"/> on the pointer variant, not inside the keyOf
+        /// operand payload.
+        /// </summary>
+        public string? memberId;
+
+        /// <summary>
         /// `true` when the source used optional chaining (`?.` /
         /// `?.[i]`). TS field is <c>optional?: boolean</c> — absent on
         /// the wire when not authored. Nullable here so callers can
