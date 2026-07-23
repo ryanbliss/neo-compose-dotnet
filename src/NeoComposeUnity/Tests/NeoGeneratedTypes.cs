@@ -32,6 +32,7 @@ namespace Assets.Scripts.Neo
             {
                 ["class-base"] = (client, node) => global::Assets.Scripts.Neo.Base.Create(client, node),
                 ["class-choice-log"] = (client, node) => global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, node),
+                ["class-concrete-readonly-stats"] = (client, node) => global::Assets.Scripts.Neo.ConcreteReadonlyStats.Create(client, node),
                 ["class-contract-child"] = (client, node) => global::Assets.Scripts.Neo.ContractChild.Create(client, node),
                 ["class-contract-deep-child"] = (client, node) => global::Assets.Scripts.Neo.ContractDeepChild.Create(client, node),
                 ["class-contract-explicit-child"] = (client, node) => global::Assets.Scripts.Neo.ContractExplicitChild.Create(client, node),
@@ -68,6 +69,7 @@ namespace Assets.Scripts.Neo
             {
                 ["class-base"] = (client, node) => global::Assets.Scripts.Neo.Base.CreateWritable(client, node),
                 ["class-choice-log"] = (client, node) => global::Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, node),
+                ["class-concrete-readonly-stats"] = (client, node) => global::Assets.Scripts.Neo.ConcreteReadonlyStats.CreateWritable(client, node),
                 ["class-contract-child"] = (client, node) => global::Assets.Scripts.Neo.ContractChild.CreateWritable(client, node),
                 ["class-contract-deep-child"] = (client, node) => global::Assets.Scripts.Neo.ContractDeepChild.CreateWritable(client, node),
                 ["class-contract-explicit-child"] = (client, node) => global::Assets.Scripts.Neo.ContractExplicitChild.CreateWritable(client, node),
@@ -104,6 +106,7 @@ namespace Assets.Scripts.Neo
             {
                 [typeof(global::Assets.Scripts.Neo.Base)] = "class-base",
                 [typeof(global::Assets.Scripts.Neo.NeoChoiceLog)] = "class-choice-log",
+                [typeof(global::Assets.Scripts.Neo.ConcreteReadonlyStats)] = "class-concrete-readonly-stats",
                 [typeof(global::Assets.Scripts.Neo.ContractChild)] = "class-contract-child",
                 [typeof(global::Assets.Scripts.Neo.ContractDeepChild)] = "class-contract-deep-child",
                 [typeof(global::Assets.Scripts.Neo.ContractExplicitChild)] = "class-contract-explicit-child",
@@ -3177,6 +3180,245 @@ namespace Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Name] = () => Name,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyAbstractReadonlyStats : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        IReadOnlyAbstractReadonlyStats Clone();
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out AbstractReadonlyStats writable);
+
+        int Damage { get; }
+    }
+
+    public abstract partial class AbstractReadonlyStats : NeoGeneratedClassValue, IReadOnlyAbstractReadonlyStats
+    {
+        internal AbstractReadonlyStats(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-abstract-readonly-stats", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal static AbstractReadonlyStats Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AbstractReadonlyStats>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    "class-concrete-readonly-stats" => new ConcreteReadonlyStats(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'AbstractReadonlyStats' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal static AbstractReadonlyStats CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AbstractReadonlyStats>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    "class-concrete-readonly-stats" => new ConcreteReadonlyStats(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'AbstractReadonlyStats' without a concrete client type id."),
+                };
+            });
+        }
+
+        public AbstractReadonlyStats Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyAbstractReadonlyStats IReadOnlyAbstractReadonlyStats.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out AbstractReadonlyStats writable)
+        {
+            return TryWritable<AbstractReadonlyStats>(out writable);
+        }
+
+        public abstract int Damage { get; }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyConcreteReadonlyStats : IReadOnlyAbstractReadonlyStats
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyConcreteReadonlyStats Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out ConcreteReadonlyStats writable);
+
+        new int Damage { get; }
+    }
+
+    public partial class ConcreteReadonlyStats : AbstractReadonlyStats, IReadOnlyConcreteReadonlyStats
+    {
+        internal ConcreteReadonlyStats(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public ConcreteReadonlyStats()
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoMemberClassWritable CreateFactoryNode()
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "class-concrete-readonly-stats");
+        }
+
+        internal new static ConcreteReadonlyStats Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ConcreteReadonlyStats>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => new ConcreteReadonlyStats(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static ConcreteReadonlyStats CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ConcreteReadonlyStats>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => new ConcreteReadonlyStats(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new ConcreteReadonlyStats Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyConcreteReadonlyStats IReadOnlyConcreteReadonlyStats.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out ConcreteReadonlyStats writable)
+        {
+            return TryWritable<ConcreteReadonlyStats>(out writable);
+        }
+
+        public override int Damage
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Damage")) ?? throw new InvalidOperationException("Required int 'Damage' has no value.");
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
             };
         }
 

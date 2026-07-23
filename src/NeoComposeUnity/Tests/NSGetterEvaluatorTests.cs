@@ -831,6 +831,33 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Evaluate_ReadonlyClassDefaultDispatchesConcreteOverrideOfAbstractMember()
+        {
+            NeoClient client = LoadAbstractReadonlyClassDefaultClient(
+                out ObjectMemberValue rootRow,
+                out ClassMember statsMember,
+                out IntMember abstractDamage);
+            var context = new NSGetterEvaluator.Context(
+                client,
+                thisValue: null,
+                rootValue: null);
+            object? root = NSGetterEvaluator.UnwrapRow(
+                rootRow,
+                context,
+                NeoValueOwnership.Asset);
+            KeyOfPointer stats = KeyOf(ThisPointer(), "Stats");
+            stats.memberId = statsMember.id;
+            KeyOfPointer damage = KeyOf(stats, "Damage");
+            damage.memberId = abstractDamage.id;
+
+            object? result = NSGetterEvaluator.Evaluate(
+                ReturnFunction(damage, MemberKind.Int),
+                context.WithThis(root));
+
+            Assert.AreEqual(42.0, result);
+        }
+
+        [Test]
         public void Evaluate_GeneratedClassThis_AllKnownMemberKinds_ReadOnlyAndWritable()
         {
             var client = LoadGeneratedValueSurfaceClient(
@@ -1585,6 +1612,109 @@ namespace NeoCompose.Tests
             });
             client.SetSaveValue(savedRow);
             return client;
+        }
+
+        private static NeoClient LoadAbstractReadonlyClassDefaultClient(
+            out ObjectMemberValue rootRow,
+            out ClassMember statsMember,
+            out IntMember abstractDamage)
+        {
+            abstractDamage = IntMember("member-abstract-damage", "Damage");
+            abstractDamage.required = true;
+            abstractDamage.storage = "immutable";
+            abstractDamage.isVirtual = true;
+            abstractDamage.isAbstract = true;
+            abstractDamage.isReadOnly = true;
+
+            var concreteDamage = IntMember("member-concrete-damage", "Damage");
+            concreteDamage.required = true;
+            concreteDamage.storage = "immutable";
+            concreteDamage.isVirtual = true;
+            concreteDamage.isReadOnly = true;
+            concreteDamage.extendsMemberId = abstractDamage.id;
+            concreteDamage.defaultValue = new NumberMemberValueBase { value = 42 };
+
+            statsMember = ClassMember(
+                "member-readonly-stats",
+                "Stats",
+                "class-abstract-stats");
+            statsMember.required = true;
+            statsMember.storage = "immutable";
+            statsMember.isReadOnly = true;
+            statsMember.defaultValue = new ObjectMemberValueBase
+            {
+                classId = "class-concrete-stats",
+                value = new Dictionary<string, string>(),
+            };
+
+            var rootAssetsMember = ClassMember(
+                "member-abstract-readonly-root-assets",
+                "Assets",
+                "class-abstract-readonly-root");
+            rootAssetsMember.valueId = "value-abstract-readonly-root";
+            var rootSaveMember = ClassMember(
+                "member-abstract-readonly-root-save",
+                "Save",
+                "class-abstract-readonly-root");
+            rootSaveMember.storage = "save";
+            var rootSessionMember = ClassMember(
+                "member-abstract-readonly-root-session",
+                "Session",
+                "class-abstract-readonly-root");
+            rootSessionMember.storage = "session";
+
+            var rootClass = NeoSchemaClass(
+                "class-abstract-readonly-root",
+                "AbstractReadonlyRoot",
+                new Dictionary<string, string> { ["Stats"] = statsMember.id });
+            var abstractStatsClass = NeoSchemaClass(
+                "class-abstract-stats",
+                "AbstractStats",
+                new Dictionary<string, string> { ["Damage"] = abstractDamage.id });
+            abstractStatsClass.isAbstract = true;
+            var concreteStatsClass = NeoSchemaClass(
+                "class-concrete-stats",
+                "ConcreteStats",
+                new Dictionary<string, string> { ["Damage"] = concreteDamage.id });
+            concreteStatsClass.extendsClassId = abstractStatsClass.id;
+
+            rootRow = ObjectValue(
+                "value-abstract-readonly-root",
+                rootClass.id,
+                new Dictionary<string, string>());
+            var data = new ProjectData
+            {
+                project = new Project
+                {
+                    id = "project-abstract-readonly-evaluator",
+                    name = "Abstract Readonly Evaluator",
+                    rootAssetsMemberId = rootAssetsMember.id,
+                    rootSaveFileMemberId = rootSaveMember.id,
+                    rootSessionMemberId = rootSessionMember.id,
+                    createdAt = "x",
+                    updatedAt = "x",
+                },
+                members = new Dictionary<string, NeoCompose.Runtime.Json.Member>
+                {
+                    [rootAssetsMember.id] = rootAssetsMember,
+                    [rootSaveMember.id] = rootSaveMember,
+                    [rootSessionMember.id] = rootSessionMember,
+                    [statsMember.id] = statsMember,
+                    [abstractDamage.id] = abstractDamage,
+                    [concreteDamage.id] = concreteDamage,
+                },
+                values = new Dictionary<string, MemberValue>
+                {
+                    [rootRow.id] = rootRow,
+                },
+                classes = new Dictionary<string, NeoSchemaClass>
+                {
+                    [rootClass.id] = rootClass,
+                    [abstractStatsClass.id] = abstractStatsClass,
+                    [concreteStatsClass.id] = concreteStatsClass,
+                },
+            };
+            return NeoTestSaveStack.ClientFromSchema(data);
         }
 
         private static Dictionary<string, string> GeneratedValueSurfaceMap()

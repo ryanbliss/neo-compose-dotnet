@@ -155,6 +155,41 @@
         "value": 12
       }
     },
+    "member-abstract-readonly-damage": {
+      "id": "member-abstract-readonly-damage",
+      "name": "Damage",
+      "kind": 2,
+      "locked": false,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "storage": "immutable",
+      "isAbstract": true,
+      "isVirtual": true,
+      "isReadOnly": true
+    },
+    "member-concrete-readonly-damage": {
+      "id": "member-concrete-readonly-damage",
+      "name": "Damage",
+      "kind": 2,
+      "locked": false,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "extendsMemberId": "member-abstract-readonly-damage",
+      "storage": "immutable",
+      "isVirtual": true,
+      "isReadOnly": true,
+      "defaultValue": {
+        "value": 42
+      }
+    },
     "member-root-score": {
       "id": "member-root-score",
       "name": "Score",
@@ -2318,6 +2353,31 @@
       "hiddenInMemberSelector": false,
       "isAbstract": false,
       "extendsClassId": "class-base",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-abstract-readonly-stats": {
+      "id": "class-abstract-readonly-stats",
+      "name": "AbstractReadonlyStats",
+      "schema": {
+        "Damage": "member-abstract-readonly-damage"
+      },
+      "hiddenInMemberSelector": false,
+      "isAbstract": true,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-concrete-readonly-stats": {
+      "id": "class-concrete-readonly-stats",
+      "name": "ConcreteReadonlyStats",
+      "schema": {
+        "Damage": "member-concrete-readonly-damage"
+      },
+      "hiddenInMemberSelector": false,
+      "isAbstract": false,
+      "extendsClassId": "class-abstract-readonly-stats",
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
