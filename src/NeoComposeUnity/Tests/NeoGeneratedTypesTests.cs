@@ -1056,6 +1056,7 @@ namespace NeoCompose.Tests
             };
             var classes = (Dictionary<string, NeoSchemaClass>)app.Client.classes;
             classes["class-hero"].schema!["CloneLookup"] = lookupMemberId;
+            app.Client.InvalidateSchemaResolutionCaches();
             Assert.IsTrue(app.Client.TryGetValue(source.valueId!, out ObjectMemberValue? writableSourceRoot));
             writableSourceRoot!.value!["CloneLookup"] = lookupValueId;
             app.Client.SetWritableValue(NeoValueOwnership.Session, writableSourceRoot);

@@ -81,6 +81,10 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, IList<MergedSchemaEntry>> instanceSurfaceSchemas = new();
         private readonly Dictionary<string, IList<MergedSchemaEntry>> storedInstanceSchemas = new();
         private readonly Dictionary<string, IList<MergedSchemaEntry>> readOnlyMemberSchemas = new();
+        private IReadOnlyDictionary<string, MemberValue> readOnlyAuthoredRows =
+            new Dictionary<string, MemberValue>();
+        private IReadOnlyDictionary<string, string> readOnlyAuthoredClassIds =
+            new Dictionary<string, string>();
         private readonly List<(string valueId, Member member)> recoveredReadOnlySaveValues = new();
         private bool isDisposed;
 
@@ -1069,6 +1073,19 @@ namespace NeoCompose.Runtime
             return schema;
         }
 
+        /// <summary>
+        /// Invalidates memoized inheritance/schema projections after an
+        /// internal test or tooling seam mutates the otherwise read-mostly
+        /// exported schema dictionaries in place.
+        /// </summary>
+        internal void InvalidateSchemaResolutionCaches()
+        {
+            classInheritanceChains.Clear();
+            instanceSurfaceSchemas.Clear();
+            storedInstanceSchemas.Clear();
+            readOnlyMemberSchemas.Clear();
+        }
+
         private void NormalizeClassSchemas()
         {
             foreach (NeoSchemaClass schemaClass in data.classes.Values)
@@ -1084,6 +1101,8 @@ namespace NeoCompose.Runtime
             {
                 return;
             }
+
+            BuildReadOnlyAuthoredValueContext();
 
             var placements = new Dictionary<string, List<(NeoSchemaClass owner, string key)>>();
             foreach (NeoSchemaClass schemaClass in data.classes.Values)
@@ -1235,7 +1254,7 @@ namespace NeoCompose.Runtime
                         throw new InvalidOperationException(
                             $"{subject} at Class '{placement.owner.name}' key '{placement.key}' is not value-bearing.");
                     }
-                    if (!HasResolvedExplicitDefaultValue(resolved))
+                    if (!HasExplicitDefaultValue(resolved))
                     {
                         throw new InvalidOperationException(
                             $"{subject} at Class '{placement.owner.name}' key '{placement.key}' requires an explicit defaultValue.");
@@ -1259,24 +1278,10 @@ namespace NeoCompose.Runtime
                     "declaration default");
             }
 
-            ValidateReadOnlyInstanceKeys(data.values, "project export");
-            if (data.valuePartitions is not null)
-            {
-                foreach (var partition in data.valuePartitions)
-                {
-                    if (partition.Value is not JObject rows) continue;
-                    foreach (var row in rows.Properties())
-                    {
-                        if (row.Value is not JObject valueRow) continue;
-                        ValidateReadOnlyInstanceObject(
-                            valueRow.Value<string>("classId"),
-                            (valueRow["value"] as JObject)?.Properties()
-                                .Select(property => property.Name),
-                            row.Name,
-                            $"project export partition '{partition.Key}'");
-                    }
-                }
-            }
+            ValidateReadOnlyInstanceKeys(
+                readOnlyAuthoredRows,
+                readOnlyAuthoredClassIds,
+                "project export");
         }
 
         private NeoMemberStorage ResolveDeclaredStorage(Member member)
@@ -1312,27 +1317,15 @@ namespace NeoCompose.Runtime
             _ => false,
         };
 
-        private bool HasResolvedExplicitDefaultValue(Member member)
-        {
-            return NeoSchemaClassInheritance.WalkExtendsMemberChain(
-                member,
-                id => data.members.TryGetValue(id, out Member? value) ? value : null,
-                current => HasExplicitDefaultValue(current) ? current : null)
-                is not null;
-        }
-
         internal MemberValue? CreateDeclarationDefaultValue(
             Member member,
             string syntheticId)
         {
-            return NeoSchemaClassInheritance.WalkExtendsMemberChain(
+            return MemberValueFactory.CreateFromDefault(
                 member,
-                id => data.members.TryGetValue(id, out Member? value) ? value : null,
-                current => MemberValueFactory.CreateFromDefault(
-                    current,
-                    syntheticId,
-                    member.createdAt,
-                    member.updatedAt));
+                syntheticId,
+                member.createdAt,
+                member.updatedAt);
         }
 
         private void ValidateReadOnlyLookupDefault(Member member, string subject)
@@ -1347,6 +1340,13 @@ namespace NeoCompose.Runtime
             {
                 throw new InvalidOperationException(
                     $"{subject} defaultValue selects {selections.Length} Lookup entries, but the Lookup is single-select.");
+            }
+            if (lookup.collectionValueId?.StartsWith(
+                    "__neo_readonly_default:",
+                    System.StringComparison.Ordinal) == true)
+            {
+                throw new InvalidOperationException(
+                    $"{subject} defaultValue references runtime-only synthetic Lookup collection value '{lookup.collectionValueId}'. Persisted project data must target an authored collection value.");
             }
             if (selections.Length == 0) return;
 
@@ -1363,8 +1363,17 @@ namespace NeoCompose.Runtime
 
             string? collectionValueId = lookup.collectionValueId
                 ?? ResolveAuthoredLookupCollectionValueId(collectionMember);
+            if (collectionValueId?.StartsWith(
+                    "__neo_readonly_default:",
+                    System.StringComparison.Ordinal) == true)
+            {
+                throw new InvalidOperationException(
+                    $"{subject} defaultValue references runtime-only synthetic Lookup collection value '{collectionValueId}'. Persisted project data must target an authored collection value.");
+            }
             if (string.IsNullOrEmpty(collectionValueId)
-                || !data.values.TryGetValue(collectionValueId!, out MemberValue? collectionValue))
+                || !readOnlyAuthoredRows.TryGetValue(
+                    collectionValueId!,
+                    out MemberValue? collectionValue))
             {
                 throw new InvalidOperationException(
                     $"{subject} defaultValue cannot resolve Lookup collection value '{collectionValueId ?? "<unbound>"}'.");
@@ -1372,6 +1381,13 @@ namespace NeoCompose.Runtime
 
             foreach (string selection in selections)
             {
+                if (selection.StartsWith(
+                        "__neo_readonly_default:",
+                        System.StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"{subject} defaultValue selects runtime-only synthetic Lookup value '{selection}'. Persisted project data must select an authored value row.");
+                }
                 bool selectable = collectionValue switch
                 {
                     ArrayMemberValue array when array.value is not null =>
@@ -1385,6 +1401,11 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"{subject} defaultValue selects Lookup value '{selection}', which is not present in collection '{collectionValueId}'.");
                 }
+                if (!readOnlyAuthoredRows.ContainsKey(selection))
+                {
+                    throw new InvalidOperationException(
+                        $"{subject} defaultValue selects Lookup value '{selection}', but no persisted authored value row exists for that selection.");
+                }
             }
         }
 
@@ -1394,21 +1415,28 @@ namespace NeoCompose.Runtime
             {
                 return collectionMember.valueId;
             }
-            var schemaKeys = new HashSet<string>();
-            foreach (NeoSchemaClass schemaClass in data.classes.Values)
-            {
-                foreach (var entry in schemaClass.schema)
-                {
-                    if (entry.Value == collectionMember.id) schemaKeys.Add(entry.Key);
-                }
-            }
             string? resolved = null;
-            foreach (MemberValue row in data.values.Values)
+            foreach (MemberValue row in readOnlyAuthoredRows.Values)
             {
-                if (row is not ObjectMemberValue obj || obj.value is null) continue;
-                foreach (string schemaKey in schemaKeys)
+                if (row is not ObjectMemberValue obj
+                    || obj.value is null
+                    || !readOnlyAuthoredClassIds.TryGetValue(
+                        row.id,
+                        out string? effectiveClassId))
                 {
-                    if (!obj.value.TryGetValue(schemaKey, out string candidate)) continue;
+                    continue;
+                }
+                foreach (MergedSchemaEntry entry in ResolveInstanceSurfaceSchema(effectiveClassId))
+                {
+                    // A schema key is meaningful only within the row's
+                    // effective runtime Class. Unrelated Classes may reuse
+                    // the same key for a different member and must not make
+                    // an otherwise unambiguous authored binding conflict.
+                    if (entry.memberId != collectionMember.id
+                        || !obj.value.TryGetValue(entry.schemaKey, out string candidate))
+                    {
+                        continue;
+                    }
                     if (resolved is null) resolved = candidate;
                     else if (resolved != candidate) return null;
                 }
@@ -1468,17 +1496,163 @@ namespace NeoCompose.Runtime
 
         private void ValidateReadOnlyInstanceKeys(
             IReadOnlyDictionary<string, MemberValue> rows,
+            IReadOnlyDictionary<string, string> effectiveClassIds,
             string source)
         {
             foreach (var pair in rows)
             {
                 if (pair.Value is not ObjectMemberValue row) continue;
+                string? effectiveClassId = row.classId;
+                if (string.IsNullOrEmpty(effectiveClassId)
+                    && effectiveClassIds.TryGetValue(pair.Key, out string? inferred))
+                {
+                    effectiveClassId = inferred;
+                }
                 ValidateReadOnlyInstanceObject(
-                    row.classId,
+                    effectiveClassId,
                     row.value?.Keys,
                     pair.Key,
                     source);
             }
+        }
+
+        private void BuildReadOnlyAuthoredValueContext()
+        {
+            var rows = new Dictionary<string, MemberValue>(data.values);
+            if (data.valuePartitions is not null)
+            {
+                foreach (var partition in data.valuePartitions)
+                {
+                    if (partition.Value is not JObject partitionObject) continue;
+                    Dictionary<string, MemberValue>? partitionRows =
+                        partitionObject.ToObject<Dictionary<string, MemberValue>>();
+                    if (partitionRows is null) continue;
+                    foreach (var pair in partitionRows)
+                    {
+                        // LoadValuePartition owns the precise collision
+                        // diagnostic. Validation needs one deterministic graph.
+                        if (!rows.ContainsKey(pair.Key)) rows[pair.Key] = pair.Value;
+                    }
+                }
+            }
+            readOnlyAuthoredRows = rows;
+            readOnlyAuthoredClassIds = BuildTrustedEffectiveClassIds(rows);
+        }
+
+        private Dictionary<string, string> BuildTrustedEffectiveClassIds(
+            IReadOnlyDictionary<string, MemberValue> rows,
+            IReadOnlyDictionary<string, string?>? staticBindings = null)
+        {
+            var effectiveClassIds = new Dictionary<string, string>();
+            var visited = new HashSet<string>();
+            var rowsByContainer = new Dictionary<string, List<MemberValue>>();
+            foreach (MemberValue row in rows.Values)
+            {
+                if (string.IsNullOrEmpty(row.containerId)) continue;
+                if (!rowsByContainer.TryGetValue(
+                        row.containerId!,
+                        out List<MemberValue>? members))
+                {
+                    members = new List<MemberValue>();
+                    rowsByContainer[row.containerId!] = members;
+                }
+                members.Add(row);
+            }
+
+            void RecordClass(string valueId, string classId)
+            {
+                if (effectiveClassIds.TryGetValue(valueId, out string? existing)
+                    && existing != classId)
+                {
+                    throw new InvalidOperationException(
+                        $"Class value '{valueId}' is reached through incompatible trusted Class placements '{existing}' and '{classId}'.");
+                }
+                effectiveClassIds[valueId] = classId;
+            }
+
+            void Visit(string valueId, Member? governingMember)
+            {
+                if (!rows.TryGetValue(valueId, out MemberValue? row)) return;
+                string? classId = row.classId
+                    ?? (governingMember as ClassMember)?.classId;
+                string visitKey =
+                    $"{valueId}:{governingMember?.RuntimeDeclarationIdentity ?? "<none>"}:{classId ?? "<none>"}";
+                if (!visited.Add(visitKey)) return;
+
+                if (row is ObjectMemberValue
+                    && !string.IsNullOrEmpty(classId)
+                    && data.classes.ContainsKey(classId!))
+                {
+                    RecordClass(valueId, classId!);
+                }
+
+                foreach (var child in EnumerateOwnedChildLinks(row, governingMember))
+                {
+                    Visit(child.valueId, child.member);
+                }
+
+                if (governingMember is ListMember list
+                    && IsUnorderedList(list)
+                    && TryResolveCollectionEntryMember(list) is Member entryMember
+                    && rowsByContainer.TryGetValue(
+                        valueId,
+                        out List<MemberValue>? containedRows))
+                {
+                    foreach (MemberValue candidate in containedRows)
+                    {
+                        Visit(candidate.id, entryMember);
+                    }
+                }
+            }
+
+            // Keep the previous protection for explicitly typed rows even if
+            // malformed data leaves them unreachable from a project root.
+            foreach (MemberValue row in rows.Values)
+            {
+                if (row is ObjectMemberValue && !string.IsNullOrEmpty(row.classId))
+                {
+                    Visit(row.id, null);
+                }
+            }
+
+            // Member value bindings (including all roots) and declaration
+            // defaults provide trusted type context for classId-less rows.
+            foreach (Member member in data.members.Values)
+            {
+                if (!string.IsNullOrEmpty(member.valueId))
+                {
+                    Visit(member.valueId!, member);
+                }
+
+                if (member is not ClassMember
+                    && member is not ListMember
+                    && member is not DictionaryMember)
+                {
+                    continue;
+                }
+                MemberValue? declarationDefault = CreateDeclarationDefaultValue(
+                    member,
+                    $"__neo_readonly_default_projection:{member.RuntimeDeclarationIdentity}");
+                if (declarationDefault is null) continue;
+                foreach (var child in EnumerateOwnedChildLinks(declarationDefault, member))
+                {
+                    Visit(child.valueId, child.member);
+                }
+            }
+
+            if (staticBindings is not null)
+            {
+                foreach (var binding in staticBindings)
+                {
+                    if (!string.IsNullOrEmpty(binding.Value)
+                        && data.members.TryGetValue(binding.Key, out Member? member))
+                    {
+                        Visit(binding.Value!, member);
+                    }
+                }
+            }
+
+            return effectiveClassIds;
         }
 
         private void ValidateReadOnlyInstanceObject(
@@ -1501,16 +1675,30 @@ namespace NeoCompose.Runtime
 
         private void RecoverReadOnlySaveInstanceKeys()
         {
+            if (!data.members.Values.Any(member => member.isReadOnly == true)) return;
+            var overlaidRows = new Dictionary<string, MemberValue>(readOnlyAuthoredRows);
+            foreach (var pair in saveData.values) overlaidRows[pair.Key] = pair.Value;
+            IReadOnlyDictionary<string, string> effectiveClassIds =
+                BuildTrustedEffectiveClassIds(overlaidRows, saveData.staticBindings);
             foreach (var pair in saveData.values)
             {
                 if (pair.Value is not ObjectMemberValue row
-                    || string.IsNullOrEmpty(row.classId)
-                    || row.value is null
-                    || !data.classes.ContainsKey(row.classId!))
+                    || row.value is null)
                 {
                     continue;
                 }
-                foreach (MergedSchemaEntry entry in ResolveReadOnlyMemberSchema(row.classId!))
+                string? effectiveClassId = row.classId;
+                if (string.IsNullOrEmpty(effectiveClassId)
+                    && effectiveClassIds.TryGetValue(pair.Key, out string? inferred))
+                {
+                    effectiveClassId = inferred;
+                }
+                if (string.IsNullOrEmpty(effectiveClassId)
+                    || !data.classes.ContainsKey(effectiveClassId!))
+                {
+                    continue;
+                }
+                foreach (MergedSchemaEntry entry in ResolveReadOnlyMemberSchema(effectiveClassId!))
                 {
                     if (!row.value.TryGetValue(entry.schemaKey, out string staleValueId))
                     {

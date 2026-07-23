@@ -363,6 +363,82 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoScriptRead_InterfacePinnedFallbackUsesRegisteredReadonlyDeclaration()
+        {
+            ProjectData data = BuildProjectData();
+            var interfaceDeclaration = new IntMember
+            {
+                id = "interface-member-damage",
+                projectId = ProjectId,
+                name = "InterfaceDamage",
+                kind = MemberKind.Int,
+                required = true,
+                storage = "immutable",
+                isReadOnly = true,
+                defaultValue = new NumberMemberValueBase { value = 44 },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.members[interfaceDeclaration.id] = interfaceDeclaration;
+            data.classes["class-interface-declarations"] = ClassOf(
+                "class-interface-declarations",
+                "InterfaceDeclarations",
+                new Dictionary<string, string>
+                {
+                    ["InterfaceDamage"] = interfaceDeclaration.id,
+                });
+            data.interfaces["interface-damage"] = new Interface
+            {
+                id = "interface-damage",
+                projectId = ProjectId,
+                name = "Damage",
+                members = new Dictionary<string, InterfaceMember>
+                {
+                    ["InterfaceDamage"] = new InterfaceMember
+                    {
+                        kind = "property",
+                        accessModifierKind = "public",
+                        typeInfo = new PrimitiveTypeInfo
+                        {
+                            type = MemberKind.Int,
+                            required = true,
+                        },
+                        settable = false,
+                    },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.classes["class-weapon"].implementsInterfaceIds =
+                new List<string> { "interface-damage" };
+
+            // A raw legacy key proves the result came from the pinned
+            // declaration fallback rather than ordinary record lookup.
+            ((ObjectMemberValue)data.values["value-weapon-save"]).value!["InterfaceDamage"] =
+                "value-stale-interface-damage";
+            data.values["value-stale-interface-damage"] = new NumberMemberValue
+            {
+                id = "value-stale-interface-damage",
+                createdAt = "x",
+                updatedAt = "x",
+                value = 99,
+            };
+
+            NeoClient client = LoadClient(data);
+
+            Assert.IsTrue(client.TryGetMember(interfaceDeclaration.id, out Member? registered));
+            Assert.AreSame(interfaceDeclaration, registered);
+            Assert.AreEqual(
+                44d,
+                EvaluateMemberAccess(
+                    client,
+                    "value-weapon-save",
+                    "InterfaceDamage",
+                    interfaceDeclaration.id,
+                    MemberKind.Int));
+        }
+
+        [Test]
         public void NeoScriptRead_LocalizesReadonlyStringAndDereferencesSingleLookup()
         {
             ProjectData localizedData = BuildProjectData();
@@ -558,6 +634,76 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SchemaValidation_RejectsReadOnlyOverrideWithInheritedOnlyDefault()
+        {
+            ProjectData data = BuildProjectData();
+            var inheritedDefault = new IntMember
+            {
+                id = "member-inherited-default",
+                projectId = ProjectId,
+                name = "InheritedDefault",
+                kind = MemberKind.Int,
+                defaultValue = new NumberMemberValueBase { value = 5 },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var readOnlyOverride = new IntMember
+            {
+                id = "member-readonly-inherited-only",
+                projectId = ProjectId,
+                name = "InheritedOnly",
+                kind = MemberKind.Int,
+                required = true,
+                storage = "immutable",
+                isReadOnly = true,
+                extendsMemberId = inheritedDefault.id,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.members[inheritedDefault.id] = inheritedDefault;
+            data.members[readOnlyOverride.id] = readOnlyOverride;
+            data.classes["class-weapon"].schema["InheritedOnly"] = readOnlyOverride.id;
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                LoadClient(data));
+
+            StringAssert.Contains("Read-only member 'InheritedOnly'", error!.Message);
+            StringAssert.Contains("explicit defaultValue", error.Message);
+        }
+
+        [Test]
+        public void SchemaValidation_RejectsReadonlyKeyInClassIdLessNestedPartitionRow()
+        {
+            ProjectData data = BuildProjectData();
+            AddNestedReadOnlyClass(data);
+            ((ObjectMemberValue)data.values["value-weapon-asset"]).value!["Nested"] =
+                "value-nested-partition";
+            var nested = RecordValue(
+                "value-nested-partition",
+                "class-nested-readonly",
+                new Dictionary<string, string>
+                {
+                    ["Secret"] = "value-illegal-nested-secret",
+                });
+            nested.classId = null;
+            nested.mapKey = "test:readonly";
+            data.valuePartitions = new Dictionary<string, JToken>
+            {
+                ["test:readonly"] = JObject.FromObject(
+                    new Dictionary<string, MemberValue>
+                    {
+                        [nested.id] = nested,
+                    }),
+            };
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                LoadClient(data));
+
+            StringAssert.Contains("value-nested-partition", error!.Message);
+            StringAssert.Contains("read-only declaration member key 'Secret'", error.Message);
+        }
+
+        [Test]
         public void SchemaValidation_RejectsHandcraftedReadonlyLookupSelectionClearly()
         {
             ProjectData data = BuildProjectData();
@@ -574,6 +720,199 @@ namespace NeoCompose.Tests
             StringAssert.Contains("Read-only member 'Favorite'", error!.Message);
             StringAssert.Contains("value-not-in-target-collection", error.Message);
             StringAssert.Contains("not present in collection 'value-target-list'", error.Message);
+        }
+
+        [Test]
+        public void SchemaValidation_UnboundLookupIgnoresSameKeyOnUnrelatedClass()
+        {
+            ProjectData data = BuildProjectData();
+            AddReadOnlyCollectionMembers(data);
+            var targets = (ListMember)data.members["member-targets"];
+            var favorite = (LookupMember)data.members["member-readonly-favorite"];
+            targets.valueId = null;
+            favorite.collectionValueId = null;
+            ((ObjectMemberValue)data.values["value-root-assets"]).classId = null;
+
+            var unrelatedEntry = new IntMember
+            {
+                id = "member-unrelated-entry",
+                projectId = ProjectId,
+                name = "UnrelatedEntry",
+                kind = MemberKind.Int,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var unrelatedTargets = new ListMember
+            {
+                id = "member-unrelated-targets",
+                projectId = ProjectId,
+                name = "Targets",
+                kind = MemberKind.List,
+                entryMemberId = unrelatedEntry.id,
+                listKind = NeoListKinds.Ordered,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.members[unrelatedEntry.id] = unrelatedEntry;
+            data.members[unrelatedTargets.id] = unrelatedTargets;
+            data.classes["class-unrelated"] = ClassOf(
+                "class-unrelated",
+                "Unrelated",
+                new Dictionary<string, string>
+                {
+                    ["Targets"] = unrelatedTargets.id,
+                });
+            data.values["value-unrelated"] = RecordValue(
+                "value-unrelated",
+                "class-unrelated",
+                new Dictionary<string, string>
+                {
+                    ["Targets"] = "value-unrelated-target-list",
+                });
+            data.values["value-unrelated-target-list"] = new ArrayMemberValue
+            {
+                id = "value-unrelated-target-list",
+                createdAt = "x",
+                updatedAt = "x",
+                value = System.Array.Empty<string>(),
+            };
+
+            NeoClient client = LoadClient(data);
+
+            Assert.IsNotNull(client);
+        }
+
+        [Test]
+        public void SchemaValidation_RejectsPersistedSyntheticLookupTargetPrecisely()
+        {
+            ProjectData data = BuildProjectData();
+            AddReadOnlyCollectionMembers(data);
+            var favorite = (LookupMember)data.members["member-readonly-favorite"];
+            favorite.collectionValueId = "__neo_readonly_default:member-targets";
+            data.values[favorite.collectionValueId] = new ArrayMemberValue
+            {
+                id = favorite.collectionValueId,
+                createdAt = "x",
+                updatedAt = "x",
+                value = new[] { "value-target-details" },
+            };
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                LoadClient(data));
+
+            StringAssert.Contains("runtime-only synthetic Lookup collection value", error!.Message);
+            StringAssert.Contains(favorite.collectionValueId, error.Message);
+        }
+
+        [Test]
+        public void SchemaValidation_RejectsSyntheticAndMissingPersistedLookupSelections()
+        {
+            ProjectData syntheticData = BuildProjectData();
+            AddReadOnlyCollectionMembers(syntheticData);
+            var syntheticFavorite =
+                (LookupMember)syntheticData.members["member-readonly-favorite"];
+            const string syntheticSelection =
+                "__neo_readonly_default:member-target-entry";
+            syntheticFavorite.defaultValue = new ArrayMemberValueBase
+            {
+                value = new[] { syntheticSelection },
+            };
+            ((ArrayMemberValue)syntheticData.values["value-target-list"]).value =
+                new[] { syntheticSelection };
+
+            var syntheticError = Assert.Throws<System.InvalidOperationException>(() =>
+                LoadClient(syntheticData));
+            StringAssert.Contains("runtime-only synthetic Lookup value", syntheticError!.Message);
+            StringAssert.Contains(syntheticSelection, syntheticError.Message);
+
+            ProjectData missingData = BuildProjectData();
+            AddReadOnlyCollectionMembers(missingData);
+            var missingFavorite =
+                (LookupMember)missingData.members["member-readonly-favorite"];
+            const string missingSelection = "value-missing-persisted-selection";
+            missingFavorite.defaultValue = new ArrayMemberValueBase
+            {
+                value = new[] { missingSelection },
+            };
+            ((ArrayMemberValue)missingData.values["value-target-list"]).value =
+                new[] { missingSelection };
+
+            var missingError = Assert.Throws<System.InvalidOperationException>(() =>
+                LoadClient(missingData));
+            StringAssert.Contains("no persisted authored value row", missingError!.Message);
+            StringAssert.Contains(missingSelection, missingError.Message);
+        }
+
+        [Test]
+        public void DialogueActionAssignment_RejectsReadOnlyClassMember()
+        {
+            NeoClient client = LoadClient();
+            var action = new FunctionWithReturnType
+            {
+                compilerRevision = 2,
+                parameters = System.Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = MemberKind.Null,
+                    required = true,
+                },
+                instructions = new Instruction[]
+                {
+                    new AssignInstruction
+                    {
+                        type = InstructionKind.Assign,
+                        target = new WriteTarget
+                        {
+                            pointer = MemberAccessPointer(
+                                new ReferencePointer
+                                {
+                                    type = PointerKind.Reference,
+                                    valueId = "value-weapon-save",
+                                },
+                                "BaseDamage",
+                                "member-base-damage"),
+                            typeInfo = new PrimitiveTypeInfo
+                            {
+                                type = MemberKind.Int,
+                                required = true,
+                            },
+                            writability = WritabilityKind.Save,
+                        },
+                        operatorValue = "=",
+                        pointer = new ValuePointer
+                        {
+                            type = PointerKind.Value,
+                            value = new Value
+                            {
+                                typeInfo = new PrimitiveTypeInfo
+                                {
+                                    type = MemberKind.Int,
+                                    required = true,
+                                },
+                                value = JToken.FromObject(99),
+                            },
+                        },
+                    },
+                },
+            };
+            var context = new NeoDialogueContext(
+                "dialogue-readonly-write",
+                null,
+                null,
+                null,
+                new Dictionary<string, object?>());
+
+            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+                NeoDialogueActionEvaluator.Execute(client, action, context));
+
+            StringAssert.Contains("readonly", error!.Message);
+            Assert.AreEqual(
+                12,
+                client.SaveRoot
+                    .Get<NeoMemberClassWritable>("Weapon")
+                    .Get<NeoMemberInt>("BaseDamage")
+                    .value!.value);
+            StringAssert.DoesNotContain("\"BaseDamage\"", client.SerializeSaveData());
         }
 
         [Test]
@@ -622,6 +961,68 @@ namespace NeoCompose.Tests
                     .value!.value);
             StringAssert.DoesNotContain("BaseDamage", client.SerializeSaveData());
             StringAssert.DoesNotContain("value-stale-save-damage", client.SerializeSaveData());
+            CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
+        }
+
+        [Test]
+        public void ExistingSave_RecoversReadonlyKeyFromClassIdLessNestedRow()
+        {
+            ProjectData data = BuildProjectData();
+            AddNestedReadOnlyClass(data);
+            var staleSave = new ProjectSaveData
+            {
+                name = "classless-nested",
+                projectId = ProjectId,
+                version = new VersionData
+                {
+                    id = "unit-test-version",
+                    label = "unit-test-version",
+                },
+                createdAt = "x",
+                updatedAt = "x",
+                values = new Dictionary<string, MemberValue>
+                {
+                    ["value-weapon-save"] = RecordValue(
+                        "value-weapon-save",
+                        "class-weapon",
+                        new Dictionary<string, string>
+                        {
+                            ["Nested"] = "value-nested-save",
+                        }),
+                    ["value-nested-save"] = new ObjectMemberValue
+                    {
+                        id = "value-nested-save",
+                        createdAt = "x",
+                        updatedAt = "x",
+                        value = new Dictionary<string, string>
+                        {
+                            ["Secret"] = "value-stale-nested-secret",
+                        },
+                    },
+                    ["value-stale-nested-secret"] = new NumberMemberValue
+                    {
+                        id = "value-stale-nested-secret",
+                        createdAt = "x",
+                        updatedAt = "x",
+                        value = 91,
+                    },
+                },
+            };
+
+            NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                data,
+                loadedSaveContent: JsonConvert.SerializeObject(staleSave));
+            string serialized = client.SerializeSaveData();
+
+            StringAssert.DoesNotContain("\"Secret\"", serialized);
+            StringAssert.DoesNotContain("value-stale-nested-secret", serialized);
+            Assert.AreEqual(
+                7,
+                client.SaveRoot
+                    .Get<NeoMemberClassWritable>("Weapon")
+                    .Get<NeoMemberClassWritable>("Nested")
+                    .Get<NeoMemberInt>("Secret")
+                    .value!.value);
             CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
         }
 
@@ -984,6 +1385,44 @@ namespace NeoCompose.Tests
             return NSGetterEvaluator.Evaluate(
                 getter,
                 new NSGetterEvaluator.Context(client, null, null));
+        }
+
+        private static void AddNestedReadOnlyClass(ProjectData data)
+        {
+            var secret = new IntMember
+            {
+                id = "member-nested-secret",
+                projectId = ProjectId,
+                name = "Secret",
+                kind = MemberKind.Int,
+                required = true,
+                storage = "immutable",
+                isReadOnly = true,
+                defaultValue = new NumberMemberValueBase { value = 7 },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var nested = new ClassMember
+            {
+                id = "member-nested",
+                projectId = ProjectId,
+                name = "Nested",
+                kind = MemberKind.Class,
+                classId = "class-nested-readonly",
+                required = true,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.members[secret.id] = secret;
+            data.members[nested.id] = nested;
+            data.classes["class-nested-readonly"] = ClassOf(
+                "class-nested-readonly",
+                "NestedReadonly",
+                new Dictionary<string, string>
+                {
+                    ["Secret"] = secret.id,
+                });
+            data.classes["class-weapon"].schema["Nested"] = nested.id;
         }
 
         private static void AddReadOnlyCollectionMembers(ProjectData data)
