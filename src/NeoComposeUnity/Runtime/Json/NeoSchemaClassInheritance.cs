@@ -205,7 +205,7 @@ namespace NeoCompose.Runtime.Json
             foreach (MergedSchemaEntry entry in surface)
             {
                 Member? member = memberLookup(entry.memberId);
-                if (member?.isReadOnly != true) continue;
+                if (member?.isReadOnly != true || member.isAbstract == true) continue;
                 result.Add(entry);
             }
             return result;

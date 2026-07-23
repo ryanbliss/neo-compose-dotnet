@@ -577,11 +577,16 @@ namespace NeoCompose.Runtime.NeoScript
         {
             public string valueId { get; }
             public NeoValueOwnership ownership { get; }
+            public string? classId { get; }
 
-            public RowReference(string valueId, NeoValueOwnership ownership)
+            public RowReference(
+                string valueId,
+                NeoValueOwnership ownership,
+                string? classId = null)
             {
                 this.valueId = valueId;
                 this.ownership = ownership;
+                this.classId = classId;
             }
         }
 
@@ -2703,7 +2708,12 @@ namespace NeoCompose.Runtime.NeoScript
             // values where this is a non-issue.
             if (unwrapped is IDictionary<string, object?> || unwrapped is object?[])
             {
-                ctx.rowReverseIndex[unwrapped!] = new RowReference(row.id, ownership);
+                string? effectiveClassId = row.classId
+                    ?? (member as ClassMember)?.classId;
+                ctx.rowReverseIndex[unwrapped!] = new RowReference(
+                    row.id,
+                    ownership,
+                    effectiveClassId);
             }
             return unwrapped;
         }
@@ -2847,7 +2857,8 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 ctx.rowReverseIndex[pair.Key] = new RowReference(
                     row.valueId,
-                    targetOwnership);
+                    targetOwnership,
+                    row.classId);
                 movedRowIds.Add(row.valueId);
             }
 
@@ -3240,7 +3251,13 @@ namespace NeoCompose.Runtime.NeoScript
                         rowRef.valueId,
                         out MemberValue? indexedRow))
                 {
-                    return null;
+                    // Declaration-default rows are synthetic and
+                    // intentionally do not live in the client's persisted
+                    // value maps. Preserve the effective Class provenance
+                    // captured while unwrapping so a readonly Class default
+                    // typed as an abstract base can still dispatch through its
+                    // concrete runtime override surface.
+                    return rowRef.classId;
                 }
                 if (!string.IsNullOrEmpty(indexedRow.classId))
                 {

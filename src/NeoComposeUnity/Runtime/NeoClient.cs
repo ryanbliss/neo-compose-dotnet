@@ -1194,11 +1194,6 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"{subject} cannot be static.");
                 }
-                if (declaration.isAbstract == true)
-                {
-                    throw new InvalidOperationException(
-                        $"{subject} cannot be abstract.");
-                }
                 if (ResolveDeclaredStorage(declaration) != NeoMemberStorage.Immutable)
                 {
                     throw new InvalidOperationException(
@@ -1229,6 +1224,13 @@ namespace NeoCompose.Runtime
                     declarationPlacements = memberPlacements;
                 }
 
+                bool isAbstract = declaration.isAbstract == true;
+                if (isAbstract && HasExplicitDefaultValue(declaration))
+                {
+                    throw new InvalidOperationException(
+                        $"{subject} is an abstract getter contract and cannot declare a defaultValue.");
+                }
+
                 foreach (var placement in declarationPlacements)
                 {
                     Member resolved = declaration;
@@ -1256,6 +1258,14 @@ namespace NeoCompose.Runtime
                         throw new InvalidOperationException(
                             $"{subject} at Class '{placement.owner.name}' key '{placement.key}' is not value-bearing.");
                     }
+                    if (isAbstract)
+                    {
+                        // Abstract read-only members are getter contracts. A
+                        // Generic slot still must close to a value-bearing kind,
+                        // but neither the slot nor its binding supplies this
+                        // declaration's concrete default graph.
+                        continue;
+                    }
                     if (!HasExplicitDefaultValue(resolved))
                     {
                         throw new InvalidOperationException(
@@ -1265,6 +1275,8 @@ namespace NeoCompose.Runtime
                     ValidateReadOnlyLookupDefault(resolved, subject);
                 }
             }
+
+            ValidateReadOnlyAbstractContracts();
 
             foreach (Member declaration in data.members.Values)
             {
@@ -1284,6 +1296,143 @@ namespace NeoCompose.Runtime
                 readOnlyAuthoredRows,
                 readOnlyAuthoredClassIds,
                 "project export");
+        }
+
+        private void ValidateReadOnlyAbstractContracts()
+        {
+            foreach (Member member in data.members.Values)
+            {
+                if (string.IsNullOrEmpty(member.extendsMemberId)) continue;
+
+                Member? abstractContract = null;
+                NeoSchemaClassInheritance.WalkExtendsMemberChain(
+                    member,
+                    id => data.members.TryGetValue(id, out Member? value) ? value : null,
+                    current =>
+                    {
+                        if (current.id == member.id || current.isAbstract != true)
+                        {
+                            return null;
+                        }
+                        abstractContract = current;
+                        return current.id;
+                    });
+                if (abstractContract is null) continue;
+
+                if (abstractContract.isReadOnly == true
+                    && member.isReadOnly != true)
+                {
+                    throw new InvalidOperationException(
+                        $"Member '{member.name}' ({member.id}) cannot implement abstract read-only member '{abstractContract.name}' ({abstractContract.id}) with a non-read-only, instance-backed override.");
+                }
+
+                if (member.isReadOnly == true
+                    && abstractContract.isReadOnly != true
+                    && !IsGetterOnlyAbstractContract(abstractContract))
+                {
+                    throw new InvalidOperationException(
+                        $"Read-only member '{member.name}' ({member.id}) cannot implement setter-required abstract member '{abstractContract.name}' ({abstractContract.id}).");
+                }
+            }
+
+            foreach (NeoSchemaClass schemaClass in data.classes.Values)
+            {
+                IList<MergedSchemaEntry> surface =
+                    ResolveInstanceSurfaceSchema(schemaClass.id);
+                if (!schemaClass.isAbstract)
+                {
+                    foreach (MergedSchemaEntry entry in surface)
+                    {
+                        if (!data.members.TryGetValue(entry.memberId, out Member? member)
+                            || member.isAbstract != true
+                            || member.isReadOnly != true)
+                        {
+                            continue;
+                        }
+                        throw new InvalidOperationException(
+                            $"Concrete Class '{schemaClass.name}' ({schemaClass.id}) does not implement abstract read-only member '{member.name}' ({member.id}). Add a concrete read-only override with a defaultValue.");
+                    }
+                }
+
+                ValidateReadOnlyInterfaceSetters(schemaClass, surface);
+            }
+        }
+
+        private bool IsGetterOnlyAbstractContract(Member member)
+        {
+            if (ResolveDeclaredStorage(member) == NeoMemberStorage.Immutable)
+            {
+                return true;
+            }
+            return member is NSPropertyMember property
+                && property.setterCode is null
+                && property.setter is null;
+        }
+
+        private void ValidateReadOnlyInterfaceSetters(
+            NeoSchemaClass schemaClass,
+            IList<MergedSchemaEntry> surface)
+        {
+            var readOnlyKeys = new Dictionary<string, Member>();
+            foreach (MergedSchemaEntry entry in surface)
+            {
+                if (data.members.TryGetValue(entry.memberId, out Member? member)
+                    && member.isReadOnly == true)
+                {
+                    readOnlyKeys[entry.schemaKey] = member;
+                }
+            }
+            if (readOnlyKeys.Count == 0) return;
+
+            var visited = new HashSet<string>();
+            foreach (NeoSchemaClass ancestor in ResolveClassInheritanceChain(schemaClass.id))
+            {
+                if (ancestor.implementsInterfaceIds is null) continue;
+                foreach (string interfaceId in ancestor.implementsInterfaceIds)
+                {
+                    ValidateReadOnlyInterfaceSetters(
+                        schemaClass,
+                        interfaceId,
+                        readOnlyKeys,
+                        visited);
+                }
+            }
+        }
+
+        private void ValidateReadOnlyInterfaceSetters(
+            NeoSchemaClass schemaClass,
+            string interfaceId,
+            IReadOnlyDictionary<string, Member> readOnlyKeys,
+            HashSet<string> visited)
+        {
+            if (!visited.Add(interfaceId)
+                || !data.interfaces.TryGetValue(interfaceId, out Interface? contract))
+            {
+                return;
+            }
+            if (contract.members is not null)
+            {
+                foreach (var pair in contract.members)
+                {
+                    if (pair.Value.kind != "property"
+                        || pair.Value.settable != true
+                        || !readOnlyKeys.TryGetValue(pair.Key, out Member? member))
+                    {
+                        continue;
+                    }
+                    throw new InvalidOperationException(
+                        $"Read-only member '{member.name}' ({member.id}) on Class '{schemaClass.name}' cannot fulfill settable interface property '{pair.Key}' from Interface '{contract.name}' ({contract.id}).");
+                }
+            }
+            if (contract.extendsInterfaceIds is null) return;
+            foreach (string parentId in contract.extendsInterfaceIds)
+            {
+                ValidateReadOnlyInterfaceSetters(
+                    schemaClass,
+                    parentId,
+                    readOnlyKeys,
+                    visited);
+            }
         }
 
         private NeoMemberStorage ResolveDeclaredStorage(Member member)

@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-07-22
+
+### Added
+
+- Abstract read-only members now model getter-only C# contracts, and concrete
+  read-only overrides can fulfill compatible abstract Immutable/getter-only
+  declarations without a NeoScript getter or per-instance value edge.
+
+### Changed
+
+- Schema validation rejects unimplemented abstract read-only members,
+  non-read-only instance-backed overrides, setter-required abstract/interface
+  contracts, and defaults on abstract read-only declarations.
+
 ## [0.6.0] - 2026-07-22
 
 ### Breaking
