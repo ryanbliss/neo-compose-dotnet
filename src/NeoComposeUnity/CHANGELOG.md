@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-07-23
+
+### Changed
+
+- Removed the redundant `contentHashAlgorithm` field from game-save record
+  descriptors; content hashes continue to use the canonical SHA-256 contract.
+
 ## [0.6.1] - 2026-07-22
 
 ### Added
