@@ -119,7 +119,9 @@ namespace NeoCompose.Tests
         public static NeoClient ClientFromSchema(
             ProjectData schema,
             NeoSaveOptions? options = null,
-            bool assumeCurrentSchema = true)
+            bool assumeCurrentSchema = true,
+            string? loadedSaveContent = null,
+            NeoLocalization? localization = null)
         {
             // Programmatically-built unit-test schemas predate export metadata
             // and are intentionally treated as current unless a schema-gate
@@ -129,7 +131,7 @@ namespace NeoCompose.Tests
             {
                 schema.metadata = new ProjectExportMetadata
                 {
-                    schemaVersion = 10,
+                    schemaVersion = 11,
                     projectId = schema.project.id,
                     versionId = "unit-test-version",
                 };
@@ -138,7 +140,11 @@ namespace NeoCompose.Tests
                         string,
                         InternalRecordRelation>();
             }
-            return new NeoClient(new SchemaOnlyLoader(schema), null, saveOptions: options);
+            return new NeoClient(
+                new SchemaOnlyLoader(schema),
+                loadedSaveContent,
+                localization: localization,
+                saveOptions: options);
         }
 
         /// <summary>

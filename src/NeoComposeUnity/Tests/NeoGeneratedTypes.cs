@@ -516,6 +516,8 @@ namespace Assets.Scripts.Neo
 
         int? Health { get; }
 
+        int BaseDamage { get; }
+
         NeoReadOnlyVector3 Position { get; }
 
         NeoReadOnlyVector3Int? GridCell { get; }
@@ -627,6 +629,14 @@ namespace Assets.Scripts.Neo
             {
                 ThrowIfReadOnly("Hero.Health");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Health", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public virtual int BaseDamage
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("BaseDamage")) ?? throw new InvalidOperationException("Required int 'BaseDamage' has no value.");
             }
         }
 

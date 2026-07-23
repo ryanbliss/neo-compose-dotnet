@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 10,
+    "schemaVersion": 11,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -136,6 +136,23 @@
       "updatedAt": 0,
       "defaultValue": {
         "value": 100
+      }
+    },
+    "member-base-damage": {
+      "id": "member-base-damage",
+      "name": "BaseDamage",
+      "kind": 2,
+      "locked": false,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "storage": "immutable",
+      "isReadOnly": true,
+      "defaultValue": {
+        "value": 12
       }
     },
     "member-root-score": {
@@ -1028,6 +1045,7 @@
       },
       "argumentTypes": [],
       "action": {
+        "compilerRevision": 2,
         "parameters": [
           {
             "id": "__this__",
@@ -1074,6 +1092,7 @@
             "target": {
               "pointer": {
                 "type": "keyOf",
+                "memberId": "member-sample-tile-value",
                 "keyOf": {
                   "pointer": {
                     "type": "variable",
@@ -2095,6 +2114,7 @@
       "schema": {
         "Name": "member-name",
         "Health": "member-health",
+        "BaseDamage": "member-base-damage",
         "Position": "member-position",
         "GridCell": "member-grid-cell",
         "Path": "member-path",
@@ -3088,6 +3108,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score += 3;",
                 "action": {
+                  "compilerRevision": 2,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -3132,9 +3153,11 @@
                       "target": {
                         "pointer": {
                           "type": "keyOf",
+                          "memberId": "member-root-score",
                           "keyOf": {
                             "pointer": {
                               "type": "keyOf",
+                              "memberId": "root-save",
                               "keyOf": {
                                 "pointer": {
                                   "type": "variable",
@@ -3180,9 +3203,11 @@
                             "pointers": [
                               {
                                 "type": "keyOf",
+                                "memberId": "member-root-score",
                                 "keyOf": {
                                   "pointer": {
                                     "type": "keyOf",
+                                    "memberId": "root-save",
                                     "keyOf": {
                                       "pointer": {
                                         "type": "variable",
@@ -3295,6 +3320,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score -= 3;",
                 "action": {
+                  "compilerRevision": 2,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -3339,9 +3365,11 @@
                       "target": {
                         "pointer": {
                           "type": "keyOf",
+                          "memberId": "member-root-score",
                           "keyOf": {
                             "pointer": {
                               "type": "keyOf",
+                              "memberId": "root-save",
                               "keyOf": {
                                 "pointer": {
                                   "type": "variable",
@@ -3387,9 +3415,11 @@
                             "pointers": [
                               {
                                 "type": "keyOf",
+                                "memberId": "member-root-score",
                                 "keyOf": {
                                   "pointer": {
                                     "type": "keyOf",
+                                    "memberId": "root-save",
                                     "keyOf": {
                                       "pointer": {
                                         "type": "variable",
@@ -3502,6 +3532,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score *= 3;",
                 "action": {
+                  "compilerRevision": 2,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -3546,9 +3577,11 @@
                       "target": {
                         "pointer": {
                           "type": "keyOf",
+                          "memberId": "member-root-score",
                           "keyOf": {
                             "pointer": {
                               "type": "keyOf",
+                              "memberId": "root-save",
                               "keyOf": {
                                 "pointer": {
                                   "type": "variable",
@@ -3594,9 +3627,11 @@
                             "pointers": [
                               {
                                 "type": "keyOf",
+                                "memberId": "member-root-score",
                                 "keyOf": {
                                   "pointer": {
                                     "type": "keyOf",
+                                    "memberId": "root-save",
                                     "keyOf": {
                                       "pointer": {
                                         "type": "variable",
@@ -3709,6 +3744,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score /= 3;",
                 "action": {
+                  "compilerRevision": 2,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -3753,9 +3789,11 @@
                       "target": {
                         "pointer": {
                           "type": "keyOf",
+                          "memberId": "member-root-score",
                           "keyOf": {
                             "pointer": {
                               "type": "keyOf",
+                              "memberId": "root-save",
                               "keyOf": {
                                 "pointer": {
                                   "type": "variable",
@@ -3801,9 +3839,11 @@
                             "pointers": [
                               {
                                 "type": "keyOf",
+                                "memberId": "member-root-score",
                                 "keyOf": {
                                   "pointer": {
                                     "type": "keyOf",
+                                    "memberId": "root-save",
                                     "keyOf": {
                                       "pointer": {
                                         "type": "variable",
@@ -3916,6 +3956,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score %= 3;",
                 "action": {
+                  "compilerRevision": 2,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -3960,9 +4001,11 @@
                       "target": {
                         "pointer": {
                           "type": "keyOf",
+                          "memberId": "member-root-score",
                           "keyOf": {
                             "pointer": {
                               "type": "keyOf",
+                              "memberId": "root-save",
                               "keyOf": {
                                 "pointer": {
                                   "type": "variable",
@@ -4008,9 +4051,11 @@
                             "pointers": [
                               {
                                 "type": "keyOf",
+                                "memberId": "member-root-score",
                                 "keyOf": {
                                   "pointer": {
                                     "type": "keyOf",
+                                    "memberId": "root-save",
                                     "keyOf": {
                                       "pointer": {
                                         "type": "variable",
@@ -4123,6 +4168,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score++;",
                 "action": {
+                  "compilerRevision": 2,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -4167,9 +4213,11 @@
                       "target": {
                         "pointer": {
                           "type": "keyOf",
+                          "memberId": "member-root-score",
                           "keyOf": {
                             "pointer": {
                               "type": "keyOf",
+                              "memberId": "root-save",
                               "keyOf": {
                                 "pointer": {
                                   "type": "variable",
@@ -4215,9 +4263,11 @@
                             "pointers": [
                               {
                                 "type": "keyOf",
+                                "memberId": "member-root-score",
                                 "keyOf": {
                                   "pointer": {
                                     "type": "keyOf",
+                                    "memberId": "root-save",
                                     "keyOf": {
                                       "pointer": {
                                         "type": "variable",
@@ -4330,6 +4380,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score--;",
                 "action": {
+                  "compilerRevision": 2,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -4374,9 +4425,11 @@
                       "target": {
                         "pointer": {
                           "type": "keyOf",
+                          "memberId": "member-root-score",
                           "keyOf": {
                             "pointer": {
                               "type": "keyOf",
+                              "memberId": "root-save",
                               "keyOf": {
                                 "pointer": {
                                   "type": "variable",
@@ -4422,9 +4475,11 @@
                             "pointers": [
                               {
                                 "type": "keyOf",
+                                "memberId": "member-root-score",
                                 "keyOf": {
                                   "pointer": {
                                     "type": "keyOf",
+                                    "memberId": "root-save",
                                     "keyOf": {
                                       "pointer": {
                                         "type": "variable",

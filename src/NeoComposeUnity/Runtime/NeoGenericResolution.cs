@@ -495,7 +495,7 @@ namespace NeoCompose.Runtime
         ///   (nullability is part of the type — one <c>T</c> is one type).
         ///   The slot keeps its identity/placement fields: <c>id</c>,
         ///   <c>name</c>, <c>locked</c>, <c>accessModifierKind</c>,
-        ///   <c>isVirtual</c>, <c>isAbstract</c>, <c>storage</c>,
+        ///   <c>isVirtual</c>, <c>isAbstract</c>, <c>isReadOnly</c>, <c>storage</c>,
         ///   <c>storageKey</c>.
         ///   Preserving <c>id</c> is what keeps parent-value records, child
         ///   node resolution, and NeoScript pointer IR working with zero
@@ -532,6 +532,11 @@ namespace NeoCompose.Runtime
                 substituted.accessModifierKind = generic.accessModifierKind;
                 substituted.isVirtual = generic.isVirtual;
                 substituted.isAbstract = generic.isAbstract;
+                // Read-only changes the containing Class slot's stored shape,
+                // so it is declaration metadata rather than type-argument
+                // metadata. The binding must never add or remove an instance
+                // value edge.
+                substituted.isReadOnly = generic.isReadOnly;
                 // Placement fields are slot-owned. A null declaration means
                 // "inherit from placement parent" and must not fall back to
                 // the binding's own declaration (bindings are type
@@ -539,6 +544,8 @@ namespace NeoCompose.Runtime
                 substituted.storage = generic.storage;
                 substituted.storageKey = generic.storageKey;
                 substituted.extendsMemberId = null;
+                substituted.substitutedDeclarationIdentity =
+                    $"{generic.id}@{binding.id}";
                 return substituted;
             }
             if (member is ClassMember classMember)

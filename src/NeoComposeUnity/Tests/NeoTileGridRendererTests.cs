@@ -3115,7 +3115,7 @@ namespace NeoCompose.Tests
             var data = BuildTileGridProjectData();
             data.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 10,
+                schemaVersion = 11,
                 projectId = "project-a",
                 versionId = "version-relations",
             };

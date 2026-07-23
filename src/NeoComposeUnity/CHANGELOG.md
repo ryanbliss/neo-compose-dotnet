@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-22
+
+### Breaking
+
+- Advanced the required Unity export contract to schema 11. Schema-10 exports
+  are rejected; re-export projects and regenerate their C# types before
+  upgrading.
+
+### Added
+
+- Declaration-backed read-only Immutable Class members now resolve one shared
+  primitive or composite default through typed runtime and NeoScript getters,
+  while omitting per-instance, constructor, clone, save, and session value
+  edges.
+- Added explicit instance-surface, stored-instance, and read-only Class schema
+  projections plus schema-11 validation for invalid declarations and malformed
+  instance data.
+- Added NeoScript compiler-revision 2 support for declaration-pinned member
+  pointers while retaining legacy revision-1 compatibility and rejecting
+  unsupported future IR.
+
 ## [0.5.2] - 2026-07-22
 
 ### Added

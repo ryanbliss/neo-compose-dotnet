@@ -60,6 +60,14 @@ namespace NeoCompose.Runtime
             Func<NeoScriptExecutionResult, NeoScriptExecutionResult>?
                 normalizeTerminal = null)
         {
+            int compilerRevision = body.compilerRevision ?? 1;
+            if (compilerRevision < 1
+                || compilerRevision > FunctionWithReturnType.CurrentCompilerRevision)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Unsupported NeoScript compiler revision {compilerRevision}; this runtime supports revisions 1 through {FunctionWithReturnType.CurrentCompilerRevision}.");
+            }
+
             bool allocationScopeClosed = false;
             ctx.allocationTracker.EnterExecution();
             try
@@ -941,6 +949,11 @@ namespace NeoCompose.Runtime
                 if (!string.IsNullOrEmpty(objectRow.classId)
                     && TryResolveClassMemberMember(client, objectRow.classId!, keyString, out JsonMember? memberMember))
                 {
+                    if (memberMember!.isReadOnly == true)
+                    {
+                        throw new NSGetterRuntimeError(
+                            $"Member '{memberMember.name}' is readonly and can only be changed through its class default.");
+                    }
                     return new NeoClassMemberWriteTarget(receiverRowId, keyString, memberMember!, ownership);
                 }
                 return new NeoDictionaryEntryWriteTarget(receiverRowId, keyString, targetType, ownership);

@@ -145,7 +145,7 @@ namespace NeoCompose.Runtime.Json
         /// declarations are separate roots and must never be materialized or
         /// traversed through an instance record.
         /// </summary>
-        public static IList<MergedSchemaEntry> MergeInstanceSchema(
+        public static IList<MergedSchemaEntry> MergeInstanceSurfaceSchema(
             IList<NeoSchemaClass> chain,
             Func<string, Member?> memberLookup)
         {
@@ -155,6 +155,57 @@ namespace NeoCompose.Runtime.Json
             {
                 Member? member = memberLookup(entry.memberId);
                 if (member?.isStatic == true) continue;
+                result.Add(entry);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Backward-compatible name for the complete typed instance surface.
+        /// Prefer <see cref="MergeInstanceSurfaceSchema"/> at new call sites.
+        /// </summary>
+        public static IList<MergedSchemaEntry> MergeInstanceSchema(
+            IList<NeoSchemaClass> chain,
+            Func<string, Member?> memberLookup) =>
+            MergeInstanceSurfaceSchema(chain, memberLookup);
+
+        /// <summary>
+        /// Projects the instance surface to fields that own a key/value edge
+        /// on every Class row. Declaration-backed read-only fields stay on the
+        /// typed surface but are absent from this stored-data projection.
+        /// </summary>
+        public static IList<MergedSchemaEntry> MergeStoredInstanceSchema(
+            IList<NeoSchemaClass> chain,
+            Func<string, Member?> memberLookup)
+        {
+            IList<MergedSchemaEntry> surface =
+                MergeInstanceSurfaceSchema(chain, memberLookup);
+            List<MergedSchemaEntry> result = new(surface.Count);
+            foreach (MergedSchemaEntry entry in surface)
+            {
+                Member? member = memberLookup(entry.memberId);
+                if (member?.isReadOnly == true) continue;
+                result.Add(entry);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Projects the instance surface to declaration-backed read-only
+        /// fields. These are visible instance properties but never stored on
+        /// an individual Class row.
+        /// </summary>
+        public static IList<MergedSchemaEntry> MergeReadOnlyMembers(
+            IList<NeoSchemaClass> chain,
+            Func<string, Member?> memberLookup)
+        {
+            IList<MergedSchemaEntry> surface =
+                MergeInstanceSurfaceSchema(chain, memberLookup);
+            List<MergedSchemaEntry> result = new(surface.Count);
+            foreach (MergedSchemaEntry entry in surface)
+            {
+                Member? member = memberLookup(entry.memberId);
+                if (member?.isReadOnly != true) continue;
                 result.Add(entry);
             }
             return result;
@@ -250,7 +301,28 @@ namespace NeoCompose.Runtime.Json
             int maxHops = 16)
             where T : class
         {
-            var cursor = memberLookup(startId);
+            return WalkExtendsMemberChain(
+                memberLookup(startId),
+                memberLookup,
+                picker,
+                requireKind,
+                maxHops);
+        }
+
+        /// <summary>
+        /// Member-instance overload for runtime-substituted Generic slots whose
+        /// concrete kind/default metadata is not stored under their declaration
+        /// id in the authored member map.
+        /// </summary>
+        public static T? WalkExtendsMemberChain<T>(
+            Member? start,
+            Func<string, Member?> memberLookup,
+            Func<Member, T?> picker,
+            MemberKind? requireKind = null,
+            int maxHops = 16)
+            where T : class
+        {
+            var cursor = start;
             for (int i = 0; cursor is not null && i < maxHops; i++)
             {
                 if (requireKind.HasValue && cursor.kind != requireKind.Value)

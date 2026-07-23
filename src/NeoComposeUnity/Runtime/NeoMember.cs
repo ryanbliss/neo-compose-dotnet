@@ -61,6 +61,7 @@ namespace NeoCompose.Runtime
         /// further updates.
         /// </summary>
         public bool isDisposed { get; private set; }
+        private int declarationReferenceCount;
 
         protected NeoMember(
             NeoClient client,
@@ -100,6 +101,18 @@ namespace NeoCompose.Runtime
             isDisposed = true;
             OnDisposed?.Invoke(this);
             client.UnregisterNode(this);
+        }
+
+        internal void RetainDeclarationReference()
+        {
+            declarationReferenceCount++;
+        }
+
+        internal void ReleaseDeclarationReference()
+        {
+            if (declarationReferenceCount <= 0) return;
+            declarationReferenceCount--;
+            if (declarationReferenceCount == 0) Dispose();
         }
 
         protected void NotifyChanged()
@@ -153,7 +166,11 @@ namespace NeoCompose.Runtime
             Member member,
             string? overrideValueId)
         {
-            if (client.TryGetNode(member.id, overrideValueId, NeoValueOwnership.Asset, out NeoMember? existing))
+            if (client.TryGetNode(
+                    member.RuntimeDeclarationIdentity,
+                    overrideValueId,
+                    NeoValueOwnership.Asset,
+                    out NeoMember? existing))
             {
                 return existing;
             }
@@ -206,7 +223,11 @@ namespace NeoCompose.Runtime
             string? overrideValueId,
             NeoValueOwnership ownership = NeoValueOwnership.Session)
         {
-            if (client.TryGetNode(member.id, overrideValueId, ownership, out NeoMember? existing)
+            if (client.TryGetNode(
+                    member.RuntimeDeclarationIdentity,
+                    overrideValueId,
+                    ownership,
+                    out NeoMember? existing)
                 && IsWritableCompatible(member, existing))
             {
                 return existing;
@@ -374,6 +395,12 @@ namespace NeoCompose.Runtime
                 var resolvedValueId = valueId;
                 if (resolvedValueId is null)
                 {
+                    if (member.isReadOnly == true)
+                    {
+                        return client.CreateDeclarationDefaultValue(
+                            member,
+                            $"__neo_readonly_default:{member.RuntimeDeclarationIdentity}") as TValue;
+                    }
                     return MemberValueFactory.CreateFromDefault(
                         member,
                         $"__neo_default:{member.id}",

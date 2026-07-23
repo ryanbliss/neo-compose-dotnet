@@ -61,6 +61,13 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public bool? isAbstract;
         /// <summary>
+        /// True when this concrete instance field is backed directly by its
+        /// declaration <c>defaultValue</c>. Read-only declaration fields have
+        /// no key/value edge on individual Class rows. Optional on the wire;
+        /// only an explicit <c>true</c> enables the behavior.
+        /// </summary>
+        public bool? isReadOnly;
+        /// <summary>
         /// When set, this member is an *override* of the referenced
         /// member. Most other fields may be absent on overrides;
         /// missing fields resolve from the inherited member via the
@@ -93,6 +100,19 @@ namespace NeoCompose.Runtime.Json
         public string? storageKey;
         public NeoTimestamp createdAt;
         public NeoTimestamp updatedAt;
+
+        /// <summary>
+        /// Runtime-only identity of a substituted generic slot. Wire member
+        /// ids remain anchored to the slot declaration, but two closed
+        /// bindings can carry different kinds/defaults and therefore cannot
+        /// share a declaration-default node or synthetic value row.
+        /// </summary>
+        [JsonIgnore]
+        internal string? substitutedDeclarationIdentity;
+
+        [JsonIgnore]
+        internal string RuntimeDeclarationIdentity =>
+            substitutedDeclarationIdentity ?? id;
 
         /// <summary>
         /// Shallow member-wise copy preserving the concrete subclass.
@@ -171,6 +191,12 @@ namespace NeoCompose.Runtime.Json
     public class StringMember : Member<string?>
     {
         public bool localizable = true;
+        /// <summary>
+        /// Opts this String into the per-instance search projection. A
+        /// declaration-backed read-only field cannot enable it because no
+        /// per-instance row exists to index.
+        /// </summary>
+        public bool? searchKey;
     }
 
     /// <summary>Mirror of TS-side <c>TMemberDictionary</c>.</summary>
