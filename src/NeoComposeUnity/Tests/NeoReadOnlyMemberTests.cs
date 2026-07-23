@@ -10,7 +10,9 @@ using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using UnityEngine.TestTools;
 
 namespace NeoCompose.Tests
 {
@@ -704,6 +706,92 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SchemaValidation_RejectsUnrelatedClassIdLessPlacementConflict()
+        {
+            ProjectData data = BuildProjectData();
+            AddConflictingNestedPlacements(data);
+            var weapon = (ObjectMemberValue)data.values["value-weapon-asset"];
+            weapon.value!["NestedA"] = "value-shared-conflict";
+            weapon.value["NestedB"] = "value-shared-conflict";
+            data.values["value-shared-conflict"] = new ObjectMemberValue
+            {
+                id = "value-shared-conflict",
+                createdAt = "x",
+                updatedAt = "x",
+                value = new Dictionary<string, string>(),
+            };
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                LoadClient(data));
+
+            StringAssert.Contains("value-shared-conflict", error!.Message);
+            StringAssert.Contains("incompatible trusted Class placements", error.Message);
+        }
+
+        [Test]
+        public void SchemaValidation_AllowsCompatibleBaseAndDerivedClassIdLessPlacements()
+        {
+            ProjectData data = BuildProjectData();
+            var secret = new IntMember
+            {
+                id = "member-compatible-secret",
+                projectId = ProjectId,
+                name = "Secret",
+                kind = MemberKind.Int,
+                required = true,
+                storage = "immutable",
+                isReadOnly = true,
+                defaultValue = new NumberMemberValueBase { value = 3 },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var baseView = ClassMemberOf(
+                "member-compatible-base-view",
+                "BaseView",
+                "class-compatible-base",
+                valueId: null);
+            var derivedView = ClassMemberOf(
+                "member-compatible-derived-view",
+                "DerivedView",
+                "class-compatible-derived",
+                valueId: null);
+            data.members[secret.id] = secret;
+            data.members[baseView.id] = baseView;
+            data.members[derivedView.id] = derivedView;
+            data.classes["class-compatible-base"] = ClassOf(
+                "class-compatible-base",
+                "CompatibleBase",
+                new Dictionary<string, string> { ["Secret"] = secret.id });
+            data.classes["class-compatible-derived"] = new NeoSchemaClass
+            {
+                id = "class-compatible-derived",
+                projectId = ProjectId,
+                name = "CompatibleDerived",
+                schema = new Dictionary<string, string>(),
+                extendsClassId = "class-compatible-base",
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.classes["class-weapon"].schema["BaseView"] = baseView.id;
+            data.classes["class-weapon"].schema["DerivedView"] = derivedView.id;
+            var weapon = (ObjectMemberValue)data.values["value-weapon-asset"];
+            weapon.value!["BaseView"] = "value-compatible-shared";
+            weapon.value["DerivedView"] = "value-compatible-shared";
+            data.values["value-compatible-shared"] = new ObjectMemberValue
+            {
+                id = "value-compatible-shared",
+                createdAt = "x",
+                updatedAt = "x",
+                value = new Dictionary<string, string>(),
+            };
+
+            NeoClient client = LoadClient(data);
+
+            Assert.IsNotNull(client);
+            Assert.IsFalse(client.RetainsReadOnlyValidationProjection);
+        }
+
+        [Test]
         public void SchemaValidation_RejectsHandcraftedReadonlyLookupSelectionClearly()
         {
             ProjectData data = BuildProjectData();
@@ -780,6 +868,52 @@ namespace NeoCompose.Tests
             NeoClient client = LoadClient(data);
 
             Assert.IsNotNull(client);
+        }
+
+        [Test]
+        public void SchemaValidation_UnboundLookupMatchesCollectionMemberOverrideChain()
+        {
+            ProjectData data = BuildProjectData();
+            AddReadOnlyCollectionMembers(data);
+            var targets = (ListMember)data.members["member-targets"];
+            var favorite = (LookupMember)data.members["member-readonly-favorite"];
+            targets.valueId = null;
+            favorite.collectionValueId = null;
+            var targetsOverride = new ListMember
+            {
+                id = "member-targets-override",
+                projectId = ProjectId,
+                name = "Targets",
+                kind = MemberKind.List,
+                required = true,
+                extendsMemberId = targets.id,
+                entryMemberId = targets.entryMemberId,
+                listKind = targets.listKind,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.members[targetsOverride.id] = targetsOverride;
+            data.classes["class-derived-assets"] = new NeoSchemaClass
+            {
+                id = "class-derived-assets",
+                projectId = ProjectId,
+                name = "DerivedAssets",
+                schema = new Dictionary<string, string>
+                {
+                    ["Targets"] = targetsOverride.id,
+                },
+                extendsClassId = "class-root-assets",
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            ((ClassMember)data.members[data.project.rootAssetsMemberId]).classId =
+                "class-derived-assets";
+            ((ObjectMemberValue)data.values["value-root-assets"]).classId = null;
+
+            NeoClient client = LoadClient(data);
+
+            Assert.IsNotNull(client);
+            Assert.IsFalse(client.RetainsReadOnlyValidationProjection);
         }
 
         [Test]
@@ -1024,6 +1158,87 @@ namespace NeoCompose.Tests
                     .Get<NeoMemberInt>("Secret")
                     .value!.value);
             CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
+        }
+
+        [Test]
+        public void ExistingSave_SkipsAndWarnsForConflictingClassIdLessPlacement()
+        {
+            ProjectData data = BuildProjectData();
+            AddConflictingNestedPlacements(data);
+            var staleSave = new ProjectSaveData
+            {
+                name = "conflicting-classless",
+                projectId = ProjectId,
+                version = new VersionData
+                {
+                    id = "unit-test-version",
+                    label = "unit-test-version",
+                },
+                createdAt = "x",
+                updatedAt = "x",
+                values = new Dictionary<string, MemberValue>
+                {
+                    ["value-weapon-save"] = RecordValue(
+                        "value-weapon-save",
+                        "class-weapon",
+                        new Dictionary<string, string>
+                        {
+                            ["NestedA"] = "value-conflicting-save-row",
+                            ["NestedB"] = "value-conflicting-save-row",
+                        }),
+                    ["value-conflicting-save-row"] = new ObjectMemberValue
+                    {
+                        id = "value-conflicting-save-row",
+                        createdAt = "x",
+                        updatedAt = "x",
+                        value = new Dictionary<string, string>
+                        {
+                            ["Secret"] = "value-conflicting-stale-secret",
+                        },
+                    },
+                    ["value-conflicting-stale-secret"] = new NumberMemberValue
+                    {
+                        id = "value-conflicting-stale-secret",
+                        createdAt = "x",
+                        updatedAt = "x",
+                        value = 92,
+                    },
+                },
+            };
+            LogAssert.Expect(
+                UnityEngine.LogType.Warning,
+                new Regex(
+                    "Skipped read-only save recovery for classId-less Class value 'value-conflicting-save-row'.*incompatible Class placements"));
+
+            NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                data,
+                loadedSaveContent: JsonConvert.SerializeObject(staleSave));
+            string serialized = client.SerializeSaveData();
+
+            StringAssert.Contains("\"Secret\"", serialized);
+            StringAssert.Contains("value-conflicting-stale-secret", serialized);
+            Assert.IsFalse(client.RetainsReadOnlyValidationProjection);
+        }
+
+        [Test]
+        public void Constructor_ReleasesPartitionValidationProjection()
+        {
+            ProjectData data = BuildProjectData();
+            data.valuePartitions = new Dictionary<string, JToken>
+            {
+                ["test:retained"] = JObject.FromObject(
+                    new Dictionary<string, MemberValue>
+                    {
+                        ["value-partition-validation-only"] = RecordValue(
+                            "value-partition-validation-only",
+                            "class-details",
+                            new Dictionary<string, string>()),
+                    }),
+            };
+
+            NeoClient client = LoadClient(data);
+
+            Assert.IsFalse(client.RetainsReadOnlyValidationProjection);
         }
 
         [Test]
@@ -1425,6 +1640,58 @@ namespace NeoCompose.Tests
             data.classes["class-weapon"].schema["Nested"] = nested.id;
         }
 
+        private static void AddConflictingNestedPlacements(ProjectData data)
+        {
+            var secret = new IntMember
+            {
+                id = "member-conflict-secret",
+                projectId = ProjectId,
+                name = "Secret",
+                kind = MemberKind.Int,
+                required = true,
+                storage = "immutable",
+                isReadOnly = true,
+                defaultValue = new NumberMemberValueBase { value = 8 },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var nestedA = new ClassMember
+            {
+                id = "member-conflict-nested-a",
+                projectId = ProjectId,
+                name = "NestedA",
+                kind = MemberKind.Class,
+                classId = "class-conflict-a",
+                required = true,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var nestedB = new ClassMember
+            {
+                id = "member-conflict-nested-b",
+                projectId = ProjectId,
+                name = "NestedB",
+                kind = MemberKind.Class,
+                classId = "class-conflict-b",
+                required = true,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.members[secret.id] = secret;
+            data.members[nestedA.id] = nestedA;
+            data.members[nestedB.id] = nestedB;
+            data.classes["class-conflict-a"] = ClassOf(
+                "class-conflict-a",
+                "ConflictA",
+                new Dictionary<string, string> { ["Secret"] = secret.id });
+            data.classes["class-conflict-b"] = ClassOf(
+                "class-conflict-b",
+                "ConflictB",
+                new Dictionary<string, string>());
+            data.classes["class-weapon"].schema["NestedA"] = nestedA.id;
+            data.classes["class-weapon"].schema["NestedB"] = nestedB.id;
+        }
+
         private static void AddReadOnlyCollectionMembers(ProjectData data)
         {
             var bonusEntry = new IntMember
@@ -1766,7 +2033,7 @@ namespace NeoCompose.Tests
             string id,
             string name,
             string classId,
-            string valueId) => new()
+            string? valueId) => new()
         {
             id = id,
             projectId = ProjectId,

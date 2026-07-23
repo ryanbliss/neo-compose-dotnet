@@ -85,6 +85,8 @@ namespace NeoCompose.Runtime
             new Dictionary<string, MemberValue>();
         private IReadOnlyDictionary<string, string> readOnlyAuthoredClassIds =
             new Dictionary<string, string>();
+        internal bool RetainsReadOnlyValidationProjection =>
+            readOnlyAuthoredRows.Count != 0 || readOnlyAuthoredClassIds.Count != 0;
         private readonly List<(string valueId, Member member)> recoveredReadOnlySaveValues = new();
         private bool isDisposed;
 
@@ -1416,6 +1418,21 @@ namespace NeoCompose.Runtime
                 return collectionMember.valueId;
             }
             string? resolved = null;
+            var matchCache = new Dictionary<string, bool>();
+            bool MatchesCollectionDeclaration(string candidateMemberId)
+            {
+                if (matchCache.TryGetValue(candidateMemberId, out bool cached))
+                {
+                    return cached;
+                }
+                bool matches = NeoSchemaClassInheritance.WalkExtendsMemberChain(
+                    candidateMemberId,
+                    id => data.members.TryGetValue(id, out Member? value) ? value : null,
+                    current => current.id == collectionMember.id ? current : null)
+                    is not null;
+                matchCache[candidateMemberId] = matches;
+                return matches;
+            }
             foreach (MemberValue row in readOnlyAuthoredRows.Values)
             {
                 if (row is not ObjectMemberValue obj
@@ -1432,7 +1449,7 @@ namespace NeoCompose.Runtime
                     // effective runtime Class. Unrelated Classes may reuse
                     // the same key for a different member and must not make
                     // an otherwise unambiguous authored binding conflict.
-                    if (entry.memberId != collectionMember.id
+                    if (!MatchesCollectionDeclaration(entry.memberId)
                         || !obj.value.TryGetValue(entry.schemaKey, out string candidate))
                     {
                         continue;
@@ -1539,11 +1556,19 @@ namespace NeoCompose.Runtime
             readOnlyAuthoredClassIds = BuildTrustedEffectiveClassIds(rows);
         }
 
+        private void ReleaseReadOnlyAuthoredValueContext()
+        {
+            readOnlyAuthoredRows = new Dictionary<string, MemberValue>();
+            readOnlyAuthoredClassIds = new Dictionary<string, string>();
+        }
+
         private Dictionary<string, string> BuildTrustedEffectiveClassIds(
             IReadOnlyDictionary<string, MemberValue> rows,
-            IReadOnlyDictionary<string, string?>? staticBindings = null)
+            IReadOnlyDictionary<string, string?>? staticBindings = null,
+            bool skipIncompatiblePlacements = false)
         {
             var effectiveClassIds = new Dictionary<string, string>();
+            var incompatibleValueIds = new HashSet<string>();
             var visited = new HashSet<string>();
             var rowsByContainer = new Dictionary<string, List<MemberValue>>();
             foreach (MemberValue row in rows.Values)
@@ -1561,11 +1586,29 @@ namespace NeoCompose.Runtime
 
             void RecordClass(string valueId, string classId)
             {
+                if (incompatibleValueIds.Contains(valueId)) return;
                 if (effectiveClassIds.TryGetValue(valueId, out string? existing)
                     && existing != classId)
                 {
-                    throw new InvalidOperationException(
-                        $"Class value '{valueId}' is reached through incompatible trusted Class placements '{existing}' and '{classId}'.");
+                    if (ClassExtendsClass(classId, existing))
+                    {
+                        // The same classId-less row may be exposed through a
+                        // Base and Derived placement. Validate/recover against
+                        // the most-derived surface, which includes both.
+                        effectiveClassIds[valueId] = classId;
+                        return;
+                    }
+                    if (ClassExtendsClass(existing, classId)) return;
+                    if (!skipIncompatiblePlacements)
+                    {
+                        throw new InvalidOperationException(
+                            $"Class value '{valueId}' is reached through incompatible trusted Class placements '{existing}' and '{classId}'.");
+                    }
+                    effectiveClassIds.Remove(valueId);
+                    incompatibleValueIds.Add(valueId);
+                    Debug.LogWarning(
+                        $"Skipped read-only save recovery for classId-less Class value '{valueId}' because it is reached through incompatible Class placements '{existing}' and '{classId}'. Add an explicit classId or repair the conflicting save links.");
+                    return;
                 }
                 effectiveClassIds[valueId] = classId;
             }
@@ -1679,7 +1722,10 @@ namespace NeoCompose.Runtime
             var overlaidRows = new Dictionary<string, MemberValue>(readOnlyAuthoredRows);
             foreach (var pair in saveData.values) overlaidRows[pair.Key] = pair.Value;
             IReadOnlyDictionary<string, string> effectiveClassIds =
-                BuildTrustedEffectiveClassIds(overlaidRows, saveData.staticBindings);
+                BuildTrustedEffectiveClassIds(
+                    overlaidRows,
+                    saveData.staticBindings,
+                    skipIncompatiblePlacements: true);
             foreach (var pair in saveData.values)
             {
                 if (pair.Value is not ObjectMemberValue row
@@ -5846,7 +5892,17 @@ namespace NeoCompose.Runtime
             saveData = parsed ?? BuildDefaultSaveData();
             saveData.values ??= new();
             saveData.staticBindings ??= new();
-            RecoverReadOnlySaveInstanceKeys();
+            try
+            {
+                RecoverReadOnlySaveInstanceKeys();
+            }
+            finally
+            {
+                // Partition rows are materialized solely for constructor-time
+                // readonly validation/recovery. Do not retain that merged
+                // projection for the client's lifetime.
+                ReleaseReadOnlyAuthoredValueContext();
+            }
             return parsed is not null;
         }
     }
