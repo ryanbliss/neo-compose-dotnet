@@ -416,12 +416,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782539843163
         },
@@ -514,12 +509,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
         },
@@ -669,11 +659,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemorySchema"
             },
             "updatedAt": 1778021393940,
             "valueId": "30cee785-a3ee-4bc4-8e11-50bf0d27af96"
@@ -713,12 +699,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1781855034923
         },
@@ -737,12 +718,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
         },
@@ -876,12 +852,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "replaceValue"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemoryContainer"
             },
             "updatedAt": 1778021392982,
             "valueId": "6624f779-20b7-4728-a313-4e4ac8929963"
@@ -1040,11 +1011,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": false,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemorySchema"
             },
             "updatedAt": 1778021392633,
             "valueId": "5683bd1f-2afd-4b3d-805d-7abb06e1db67"
@@ -1101,12 +1068,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782980021067
         },
@@ -1139,11 +1101,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemorySchema"
             },
             "updatedAt": 1778021392433,
             "valueId": "9e6cbe6d-14f2-4d85-bd11-d99c0259b166"
@@ -1178,12 +1136,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "templateId": null,
             "updatedAt": 1782971224672
@@ -1203,12 +1156,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
         },
@@ -1471,11 +1419,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemorySchema"
             },
             "updatedAt": 1778021394752,
             "valueId": "583ff4fa-2d0f-451e-8e37-fb47eee09a85"
@@ -1508,12 +1452,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1781985413733
         },
@@ -1535,12 +1474,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1781855034923
         },
@@ -2774,11 +2708,7 @@
                 "type": 1
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemorySchema"
             },
             "updatedAt": 1784026083511
         },
@@ -2846,12 +2776,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782071674504
         },
@@ -2870,12 +2795,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782012571783
         },
@@ -2907,12 +2827,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1781855034923
         },
@@ -2953,12 +2868,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782071674504
         },
@@ -3169,12 +3079,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
         },
@@ -3259,11 +3164,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemorySchema"
             },
             "updatedAt": 1778021393339,
             "valueId": "fbb8c422-6dd5-4c4e-90b1-be262caeee79"
@@ -3483,12 +3384,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782071674504
         },
@@ -3525,12 +3421,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782012571783
         },
@@ -3573,12 +3464,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "replaceValue"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemoryContainer"
             },
             "updatedAt": 1778021394854,
             "valueId": "2831fdaa-9090-4bfc-aae3-c70c16a67151"
@@ -3700,12 +3586,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": false,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1781855034923
         },
@@ -3726,12 +3607,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
         },
@@ -3768,12 +3644,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1781855034923
         },
@@ -3835,12 +3706,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1781855034923,
             "valueId": "e82662a0-10be-45cb-8c4a-a5d8b6b5bb0c"
@@ -3863,12 +3729,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782012571783
         },
@@ -3936,12 +3797,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "replaceValue"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemoryContainer"
             },
             "updatedAt": 1778021394040,
             "valueId": "cb814b03-88c8-482b-9fb2-d839b1f529ae"
@@ -3984,12 +3840,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1781855034923
         },
@@ -4026,12 +3877,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
         },
@@ -4067,12 +3913,7 @@
             "required": true,
             "storage": null,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782339965369,
             "valueId": "6b9330df-6838-4f7b-9725-52f81b120a8a"
@@ -4091,12 +3932,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1781855034923
         },
@@ -4140,11 +3976,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": false,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemorySchema"
             },
             "updatedAt": 1778021392533,
             "valueId": "0ccfb843-f35e-4afb-a5c9-01565c6f7edf"
@@ -4182,12 +4014,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782514300374
         },
@@ -4212,12 +4039,7 @@
             "required": false,
             "storage": null,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1783396444235,
             "valueId": "cd559dee-a2c9-4ca9-a4b9-0ef2fd8651ec"
@@ -4256,12 +4078,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": false,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
         },
@@ -4280,12 +4097,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
         },
@@ -4306,12 +4118,7 @@
             "required": true,
             "storageKey": "world:$parentClass",
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1783208181138
         },
@@ -4343,12 +4150,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1783191296652
         },
@@ -4381,12 +4183,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "replaceValue"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemoryContainer"
             },
             "updatedAt": 1778021395169,
             "valueId": "214298ea-871a-4597-87c6-6cae03eab504"
@@ -4406,12 +4203,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
         },
@@ -4433,12 +4225,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
         },
@@ -4457,12 +4244,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": false,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782012571783
         },
@@ -4781,12 +4563,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782012571783
         },
@@ -4803,12 +4580,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782012571783
         },
@@ -4827,12 +4599,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782012571783
         },
@@ -4887,12 +4654,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782012571783
         },
@@ -4949,12 +4711,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782012571783
         },
@@ -4994,12 +4751,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1781855034923
         },
@@ -5067,12 +4819,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1781999981286
         },
@@ -5304,11 +5051,7 @@
                 "type": 1
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemorySchema"
             },
             "updatedAt": 1784026083511
         },
@@ -5443,12 +5186,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782957267819
         },
@@ -5479,11 +5217,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemorySchema"
             },
             "updatedAt": 1778021392285,
             "valueId": "555389b1-1a61-416e-9ba8-4f1b4b9a9acf"
@@ -5542,11 +5276,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": false,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemorySchema"
             },
             "updatedAt": 1778021393443,
             "valueId": "77d598df-148c-437e-bbb8-4a88ea916278"
@@ -5600,12 +5330,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782068826806
         },
@@ -5715,12 +5440,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "templateId": null,
             "updatedAt": 1782012571783
@@ -5740,12 +5460,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1781855034923
         },
@@ -5787,12 +5502,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": false,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1783403829047
         },
@@ -5831,12 +5541,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782348579677
         },
@@ -5857,12 +5562,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782539843163
         },
@@ -6121,12 +5821,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
         },
@@ -6146,11 +5841,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemorySchema"
             },
             "updatedAt": 1778021392883,
             "valueId": "11cd55b5-6d41-43be-9897-93ac91dd4777"
@@ -6171,12 +5862,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1783191296652
         },
@@ -6215,12 +5901,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
         },
@@ -6239,12 +5920,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
         },
@@ -6269,12 +5945,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784268756788
         },
@@ -6296,12 +5967,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784268756788
         },
@@ -6399,12 +6065,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784268756788
         },
@@ -6465,12 +6126,7 @@
             "required": true,
             "storage": null,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784270657712
         },
@@ -6494,12 +6150,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": false,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784270657712
         },
@@ -6520,12 +6171,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784270657712
         },
@@ -6567,12 +6213,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": false,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784270657712
         },
@@ -6652,12 +6293,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784270657712
         },
@@ -6734,12 +6370,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784270657712
         },
@@ -6764,12 +6395,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784270658214
         },
@@ -6790,12 +6416,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784270658214
         },
@@ -6894,12 +6515,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784270658214
         },
@@ -6939,12 +6555,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784270658214
         },
@@ -6966,12 +6577,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784270658214
         },
@@ -6995,12 +6601,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784270658214
         },
@@ -7083,12 +6684,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784270658672
         },
@@ -7113,12 +6709,7 @@
             "required": true,
             "storage": null,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784270658672
         },
@@ -7163,12 +6754,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": false,
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1784270658672
         }
@@ -7202,12 +6788,7 @@
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
         },
@@ -7304,12 +6885,7 @@
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
         },
@@ -7452,12 +7028,7 @@
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
         },
@@ -7548,12 +7119,7 @@
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+                "kind": "worldAuthoring"
             },
             "updatedAt": 1782980021067
         }
@@ -7650,12 +7216,7 @@
                 "SmartTile"
             ],
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "tile"
             },
             "updatedAt": 1784282874548
@@ -7685,12 +7246,7 @@
                 "Objects": "f8e217b1-da89-4819-9c8d-e9c9da2bdfb2"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system class required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "objectLayerLink"
             },
             "updatedAt": 1784693473163
@@ -7757,12 +7313,7 @@
                 "Cell": "b0b3c45c-a87d-4218-b056-7418ef46aac5"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "objectPlacementTile"
             },
             "updatedAt": 1782539843163
@@ -7778,12 +7329,7 @@
                 "Cell": "f4be2707-74f5-4833-9784-e81bb2474330"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "tileInstance"
             },
             "updatedAt": 1784282874548
@@ -7856,11 +7402,7 @@
                 "VisitCount": "504778e6-972f-4b04-8d64-ec038ff2414f"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemorySchema"
             },
             "updatedAt": 1778022449234
         },
@@ -7905,12 +7447,7 @@
                 "PlacementTiles": "5a9ca1f5-a21b-4d4e-8c55-00341af594b4"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "object"
             },
             "updatedAt": 1784282874548
@@ -7931,11 +7468,7 @@
                 "VisitCount": "2bcf2b63-87aa-4c4a-99ea-590e2b555fa6"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemorySchema"
             },
             "updatedAt": 1778022449181
         },
@@ -7994,12 +7527,7 @@
                 "Condition": "496b0bb9-0375-4ca8-b768-0a1bdf88a158"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "smartTileNeighbor"
             },
             "updatedAt": 1784282874548
@@ -8030,11 +7558,7 @@
                 "DialogueMemories": "6223e7c9-a37a-480d-820b-c70f53c6eb0d"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemorySchema"
             },
             "updatedAt": 1778022449287
         },
@@ -8048,12 +7572,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "schema": {},
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "layerGroupBase"
             },
             "updatedAt": 1782348579677
@@ -8123,12 +7642,7 @@
                 "Sprite": "e9288ba9-f5a2-4485-8443-6afb155b31e0"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "spriteObject"
             },
             "updatedAt": 1782174037995
@@ -8175,12 +7689,7 @@
                 "isTrigger"
             ],
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "objectCollider"
             },
             "updatedAt": 1782174037995
@@ -8198,12 +7707,7 @@
                 "Rules": "97cb9d95-2d54-4809-ae88-0b0ba7859248"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "smartTile"
             },
             "updatedAt": 1783208181138
@@ -8315,12 +7819,7 @@
                 "SortingOrder": "472dfd84-59cb-4516-8763-90d0af6d039f"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "tileLayer"
             },
             "updatedAt": 1782174037995
@@ -8374,11 +7873,7 @@
                 "ChoiceId": "dd65f671-aedb-4c17-8849-1a3290b5c4d0"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord"
-                ],
-                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+                "kind": "dialogueMemorySchema"
             },
             "updatedAt": 1778022449128
         },
@@ -8441,12 +7936,7 @@
                 "SortingOrder": "472dfd84-59cb-4516-8763-90d0af6d039f"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "objectLayer"
             },
             "updatedAt": 1782174037995
@@ -8495,12 +7985,7 @@
                 "Sprites": "fd3a7f0f-cff8-4069-9b19-004015a6aca1"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "smartTileRule"
             },
             "updatedAt": 1783208181138
@@ -8576,12 +8061,7 @@
                 "Tiles": "98655d2b-ad0b-45e2-a901-62600b4d3a22"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "tileLayerLink"
             },
             "updatedAt": 1784282874548
@@ -8599,12 +8079,7 @@
                 "PixelsPerUnit": "8ece74e4-e17e-4e56-9ef6-8dc2bc9f59f0"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "tileGrid"
             },
             "updatedAt": 1784282874548
@@ -8623,12 +8098,7 @@
                 "Size": "e1d820d8-56b1-43ac-aa10-0a019f0dc38f"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "objectBase"
             },
             "updatedAt": 1783208181138
@@ -8655,12 +8125,7 @@
                 "Name": "e963862e-6228-4594-8220-8ef06098c253"
             },
             "system": {
-                "disallow": [
-                    "editRecord",
-                    "deleteRecord",
-                    "selectRecord"
-                ],
-                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "kind": "worldAuthoring",
                 "worldKind": "sortingLayer"
             },
             "updatedAt": 1782174037995
@@ -60118,10 +59583,7 @@
             ],
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "system": {
-                "disallow": [
-                    "deleteRecord"
-                ],
-                "reason": "Every project needs a default dialogue priority group."
+                "kind": "dialoguePriorityDefault"
             },
             "updatedAt": 1778024957316
         }

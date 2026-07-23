@@ -18,7 +18,7 @@ class HullPlatingTile : ConsoleTile {
 
   @id("neo-tile-grid-record-relations-v1-member-636b8784cd42599650e36ab6b0999e6c")
   @locked
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public override NeoSmartTile? SmartTile = new NeoSmartTile {
     DefaultCollider = .Sprite,
     Rules = [

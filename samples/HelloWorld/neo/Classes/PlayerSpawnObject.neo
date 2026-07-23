@@ -29,7 +29,7 @@ class PlayerSpawnObject : ConsoleObject {
   @id("47c21aa5-e852-41d2-882c-b4f555aee9dd")
   @locked
   @settings(kind: .Ordered)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public override List<NeoObjectPlacementTile> PlacementTiles = [
     @id("6de63821-b102-4b62-aac6-c99c8aabecc9")
     new NeoObjectPlacementTile {

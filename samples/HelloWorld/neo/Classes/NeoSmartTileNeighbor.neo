@@ -1,13 +1,13 @@
 @id("628e0cce-5472-4bec-addd-71230b8e64a6")
-@system(worldKind: .SmartTileNeighbor, disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+@system(kind: .WorldAuthoring, worldKind: .SmartTileNeighbor)
 class NeoSmartTileNeighbor {
   @id("7202cfb6-9cc4-49d3-b3fb-e44a23915b40")
   @locked
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public virtual Vector2Int Cell = new(0, 0);
 
   @id("496b0bb9-0375-4ca8-b768-0a1bdf88a158")
   @locked
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public virtual NeoSmartTileCondition Condition = .This;
 }

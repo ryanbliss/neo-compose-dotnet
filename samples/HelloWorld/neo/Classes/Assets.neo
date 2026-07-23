@@ -26,7 +26,7 @@ class Assets {
   @id("7ec79ef8-a216-407f-8886-9f770bc9895b")
   @locked
   @settings(kind: .Ordered)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public virtual List<NeoSortingLayer> SortingLayers = [
     @id("88c0d53b-94ee-4f48-839b-9148d07828fb")
     new NeoSortingLayer {

@@ -38,7 +38,7 @@ class ExitPromptObject987403 : ExitPromptObject {
 
   @id("neo-tile-grid-record-relations-v1-member-ff953f886996cd9b7f725ce578fe90cc")
   @locked
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public override NeoCollider? Collider = new NeoCollider {
     size = new(1, 1),
     offset = new(0, 0),
@@ -52,7 +52,7 @@ class ExitPromptObject987403 : ExitPromptObject {
   @id("neo-tile-grid-record-relations-v1-member-8b86fa92f77a420dc3e61fca997644f5")
   @locked
   @settings(kind: .Ordered)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public override List<NeoObjectPlacementTile> PlacementTiles = [
     @id("67dfd2a6-d845-4311-9f72-433501e54347")
     new NeoObjectPlacementTile {
@@ -67,11 +67,11 @@ class ExitPromptObject987403 : ExitPromptObject {
 
   @id("neo-tile-grid-record-relations-v1-member-df3924f038bd73f8515d31f77f04683d")
   @locked
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public override Vector3 Position = new(6, -1, 0);
 
   @id("neo-tile-grid-record-relations-v1-member-f87a1ce82507a55782cd5f947b46b5f5")
   @locked
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public override Vector3 Size = new(2, 1, 0);
 }

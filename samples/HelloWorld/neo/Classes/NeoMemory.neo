@@ -1,8 +1,8 @@
 @id("6c6f3bb8-30a0-4132-b0d4-cce75943aedd")
-@system(disallow: [.EditRecord, .DeleteRecord], reason: "Generated dialogue memory schema required by the Neo Compose dialogue runtime.")
+@system(kind: .DialogueMemorySchema)
 class NeoMemory {
   @id("6223e7c9-a37a-480d-820b-c70f53c6eb0d")
   @locked
-  @system(disallow: [.EditRecord, .DeleteRecord, .ReplaceValue], reason: "Generated dialogue memory schema required by the Neo Compose dialogue runtime.")
+  @system(kind: .DialogueMemoryContainer)
   public virtual Dictionary<string, NeoDialogueMemory> DialogueMemories;
 }

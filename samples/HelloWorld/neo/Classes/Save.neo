@@ -17,7 +17,7 @@ class Save {
 
   @id("99b07db1-f732-437e-a903-98183edca96b")
   @locked
-  @system(disallow: [.EditRecord, .DeleteRecord, .ReplaceValue], reason: "Generated dialogue memory schema required by the Neo Compose dialogue runtime.")
+  @system(kind: .DialogueMemoryContainer)
   public virtual NeoMemory NeoMemory;
 
   @id("f977a94e-aa40-414c-9812-dacdd50110a8")
