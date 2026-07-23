@@ -136,7 +136,6 @@ namespace NeoCompose.Tests
                     mapKey = (property.Value as JObject)?["mapKey"]?.Value<string>(),
                     recordStateId = stateId,
                     recordRevisionToken = $"token:{revision}:{property.Name}",
-                    contentHashAlgorithm = "sha256-canonical-json-v1",
                     contentHash = $"content:{revision}:{property.Name}",
                     lastChangedRevision = revision,
                 };
@@ -178,7 +177,6 @@ namespace NeoCompose.Tests
                     mapKey = (property.Value as JObject)?["mapKey"]?.Value<string>(),
                     recordStateId = stateId,
                     recordRevisionToken = $"token:{revision}:{property.Name}",
-                    contentHashAlgorithm = "sha256-canonical-json-v1",
                     contentHash = $"content:{revision}:{property.Name}",
                     lastChangedRevision = revision,
                 });

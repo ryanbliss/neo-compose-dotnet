@@ -95,7 +95,6 @@ namespace NeoCompose.Tests
                     recordId = property.Name,
                     recordStateId = $"{snapshotId}:{property.Name}:{snapshotRevision}",
                     recordRevisionToken = $"token:{snapshotRevision}:{property.Name}",
-                    contentHashAlgorithm = "sha256-canonical-json-v1",
                     contentHash = $"content:{snapshotRevision}:{property.Name}",
                 };
                 remote.recordCache.descriptors[descriptor.LogicalKey] = descriptor;

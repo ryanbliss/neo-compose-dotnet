@@ -115,7 +115,6 @@ namespace NeoCompose.Runtime.Json
         public string? mapKey;
         public string? recordStateId;
         public string? recordRevisionToken;
-        public string? contentHashAlgorithm;
         public string? contentHash;
         public bool deleted;
         public long lastChangedRevision;

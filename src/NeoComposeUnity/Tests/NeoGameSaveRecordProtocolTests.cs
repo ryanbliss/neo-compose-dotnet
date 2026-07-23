@@ -185,7 +185,6 @@ namespace NeoCompose.Tests
             mapKey = "world:grid",
             recordStateId = "state-1",
             recordRevisionToken = token,
-            contentHashAlgorithm = "sha256-canonical-json-v1",
             contentHash = hash,
         };
     }
