@@ -590,7 +590,6 @@ namespace NeoCompose.Tests
 
         [TestCase("save", null, false, false, "Immutable storage")]
         [TestCase("immutable", null, true, false, "cannot be static")]
-        [TestCase("immutable", null, false, true, "cannot be abstract")]
         [TestCase("immutable", "value-illegal", false, false, "valueId")]
         public void SchemaValidation_RejectsInvalidReadOnlyDeclaration(
             string storage,
@@ -671,6 +670,161 @@ namespace NeoCompose.Tests
 
             StringAssert.Contains("Read-only member 'InheritedOnly'", error!.Message);
             StringAssert.Contains("explicit defaultValue", error.Message);
+        }
+
+        [Test]
+        public void AbstractReadonly_ConcreteReadonlyOverrideUsesDeclarationDefault()
+        {
+            ProjectData data = BuildProjectData();
+            ConfigureAbstractDamageContract(data);
+
+            NeoClient client = LoadClient(data);
+
+            CollectionAssert.AreEqual(
+                new[] { "Details" },
+                SchemaKeys(client.ResolveReadOnlyMemberSchema("class-weapon")));
+            CollectionAssert.AreEqual(
+                new[] { "BaseDamage", "Details" },
+                SchemaKeys(client.ResolveReadOnlyMemberSchema("class-concrete-weapon")));
+            Assert.AreEqual(
+                27,
+                client.AssetsRoot
+                    .Get<NeoMemberClass>("Weapon")
+                    .Get<NeoMemberInt>("BaseDamage")
+                    .value!.value);
+        }
+
+        [Test]
+        public void AbstractReadonly_RejectsDeclarationDefault()
+        {
+            ProjectData data = BuildProjectData();
+            ConfigureAbstractDamageContract(data);
+            ((IntMember)data.members["member-base-damage"]).defaultValue =
+                new NumberMemberValueBase { value = 12 };
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                LoadClient(data));
+
+            StringAssert.Contains("abstract getter contract", error!.Message);
+            StringAssert.Contains("cannot declare a defaultValue", error.Message);
+        }
+
+        [Test]
+        public void AbstractReadonly_RejectsValueLessNeoScriptPropertyKind()
+        {
+            ProjectData data = BuildProjectData();
+            var computed = new NSPropertyMember
+            {
+                id = "member-abstract-readonly-computed",
+                projectId = ProjectId,
+                name = "Computed",
+                kind = MemberKind.NSProperty,
+                storage = "immutable",
+                isAbstract = true,
+                isReadOnly = true,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.members[computed.id] = computed;
+            data.classes["class-weapon"].schema["Computed"] = computed.id;
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                LoadClient(data));
+
+            StringAssert.Contains("is not value-bearing", error!.Message);
+        }
+
+        [Test]
+        public void AbstractReadonly_ConcreteClassMustProvideReadonlyOverride()
+        {
+            ProjectData data = BuildProjectData();
+            ConfigureAbstractDamageContract(data, addOverride: false);
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                LoadClient(data));
+
+            StringAssert.Contains("does not implement abstract read-only member", error!.Message);
+        }
+
+        [Test]
+        public void AbstractReadonly_RejectsInstanceBackedOverride()
+        {
+            ProjectData data = BuildProjectData();
+            ConfigureAbstractDamageContract(
+                data,
+                overrideReadOnly: false);
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                LoadClient(data));
+
+            StringAssert.Contains("cannot implement abstract read-only member", error!.Message);
+            StringAssert.Contains("non-read-only, instance-backed override", error.Message);
+        }
+
+        [Test]
+        public void OverrideReadonly_ImplementsGetterOnlyImmutableAbstractMember()
+        {
+            ProjectData data = BuildProjectData();
+            ConfigureAbstractDamageContract(data, baseReadOnly: false);
+
+            NeoClient client = LoadClient(data);
+
+            Assert.AreEqual(
+                27,
+                client.AssetsRoot
+                    .Get<NeoMemberClass>("Weapon")
+                    .Get<NeoMemberInt>("BaseDamage")
+                    .value!.value);
+        }
+
+        [Test]
+        public void OverrideReadonly_RejectsSetterRequiredAbstractMember()
+        {
+            ProjectData data = BuildProjectData();
+            ConfigureAbstractDamageContract(
+                data,
+                baseReadOnly: false,
+                baseStorage: "save");
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                LoadClient(data));
+
+            StringAssert.Contains("setter-required abstract member", error!.Message);
+        }
+
+        [Test]
+        public void OverrideReadonly_RejectsSettableInterfaceProperty()
+        {
+            ProjectData data = BuildProjectData();
+            data.interfaces["interface-settable-damage"] = new Interface
+            {
+                id = "interface-settable-damage",
+                projectId = ProjectId,
+                name = "SettableDamage",
+                members = new Dictionary<string, InterfaceMember>
+                {
+                    ["BaseDamage"] = new InterfaceMember
+                    {
+                        kind = "property",
+                        accessModifierKind = "public",
+                        typeInfo = new PrimitiveTypeInfo
+                        {
+                            type = MemberKind.Int,
+                            required = true,
+                        },
+                        settable = true,
+                    },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.classes["class-weapon"].implementsInterfaceIds =
+                new List<string> { "interface-settable-damage" };
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                LoadClient(data));
+
+            StringAssert.Contains("cannot fulfill settable interface property", error!.Message);
         }
 
         [Test]
@@ -1290,18 +1444,6 @@ namespace NeoCompose.Tests
         public void SchemaValidation_ValidatesReadOnlyGenericSlotsInClosedDescendants()
         {
             ProjectData data = BuildProjectData();
-            var slot = new GenericMember
-            {
-                id = "member-readonly-slot",
-                projectId = ProjectId,
-                name = "Value",
-                kind = MemberKind.Generic,
-                genericParamId = "param-t",
-                storage = "immutable",
-                isReadOnly = true,
-                createdAt = "x",
-                updatedAt = "x",
-            };
             var binding = new IntMember
             {
                 id = "member-readonly-binding",
@@ -1312,45 +1454,40 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
             };
-            data.members[slot.id] = slot;
-            data.members[binding.id] = binding;
-            data.classes["class-generic-base"] = new NeoSchemaClass
-            {
-                id = "class-generic-base",
-                projectId = ProjectId,
-                name = "GenericBase",
-                schema = new Dictionary<string, string> { ["Value"] = slot.id },
-                genericParams = new List<GenericParamDeclaration>
-                {
-                    new() { id = "param-t", name = "T" },
-                },
-                createdAt = "x",
-                updatedAt = "x",
-            };
-            data.classes["class-generic-closed"] = new NeoSchemaClass
-            {
-                id = "class-generic-closed",
-                projectId = ProjectId,
-                name = "GenericClosed",
-                schema = new Dictionary<string, string>(),
-                extendsClassId = "class-generic-base",
-                extendsGenericBindings = new Dictionary<string, GenericBinding>
-                {
-                    ["param-t"] = new()
-                    {
-                        kind = NeoGenericBindingKinds.Member,
-                        memberId = binding.id,
-                    },
-                },
-                createdAt = "x",
-                updatedAt = "x",
-            };
+            AddReadOnlyGenericSlot(data, binding);
 
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 NeoTestSaveStack.ClientFromSchema(data));
 
             StringAssert.Contains("GenericClosed", error!.Message);
             StringAssert.Contains("explicit defaultValue", error.Message);
+        }
+
+        [Test]
+        public void AbstractReadonlyGenericSlot_ValidatesClosedKindWithoutDefault()
+        {
+            ProjectData data = BuildProjectData();
+            var binding = new IntMember
+            {
+                id = "member-abstract-readonly-binding",
+                projectId = ProjectId,
+                name = "Binding",
+                kind = MemberKind.Int,
+                required = true,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            AddReadOnlyGenericSlot(
+                data,
+                binding,
+                isAbstract: true,
+                closedClassIsAbstract: true);
+
+            NeoClient client = LoadClient(data);
+
+            Assert.IsNotNull(client);
+            CollectionAssert.IsEmpty(
+                SchemaKeys(client.ResolveReadOnlyMemberSchema("class-generic-closed")));
         }
 
         [Test]
@@ -1638,6 +1775,116 @@ namespace NeoCompose.Tests
                     ["Secret"] = secret.id,
                 });
             data.classes["class-weapon"].schema["Nested"] = nested.id;
+        }
+
+        private static void ConfigureAbstractDamageContract(
+            ProjectData data,
+            bool addOverride = true,
+            bool overrideReadOnly = true,
+            bool baseReadOnly = true,
+            string baseStorage = "immutable")
+        {
+            var abstractDamage = (IntMember)data.members["member-base-damage"];
+            abstractDamage.isAbstract = true;
+            abstractDamage.isReadOnly = baseReadOnly ? true : null;
+            abstractDamage.storage = baseStorage;
+            abstractDamage.defaultValue = null;
+            data.classes["class-weapon"].isAbstract = true;
+
+            var concrete = new NeoSchemaClass
+            {
+                id = "class-concrete-weapon",
+                projectId = ProjectId,
+                name = "ConcreteWeapon",
+                schema = new Dictionary<string, string>(),
+                extendsClassId = "class-weapon",
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.classes[concrete.id] = concrete;
+
+            if (addOverride)
+            {
+                var implementation = new IntMember
+                {
+                    id = "member-concrete-damage",
+                    projectId = ProjectId,
+                    name = "BaseDamage",
+                    kind = MemberKind.Int,
+                    required = true,
+                    storage = "immutable",
+                    isReadOnly = overrideReadOnly ? true : null,
+                    extendsMemberId = abstractDamage.id,
+                    defaultValue = overrideReadOnly
+                        ? new NumberMemberValueBase { value = 27 }
+                        : null,
+                    createdAt = "x",
+                    updatedAt = "x",
+                };
+                data.members[implementation.id] = implementation;
+                concrete.schema["BaseDamage"] = implementation.id;
+            }
+
+            ((ClassMember)data.members["member-asset-weapon"]).classId = concrete.id;
+            ((ClassMember)data.members["member-save-weapon"]).classId = concrete.id;
+            ((ObjectMemberValue)data.values["value-weapon-asset"]).classId = concrete.id;
+            ((ObjectMemberValue)data.values["value-weapon-save"]).classId = concrete.id;
+        }
+
+        private static void AddReadOnlyGenericSlot(
+            ProjectData data,
+            Member binding,
+            bool isAbstract = false,
+            bool closedClassIsAbstract = false)
+        {
+            var slot = new GenericMember
+            {
+                id = "member-readonly-slot",
+                projectId = ProjectId,
+                name = "Value",
+                kind = MemberKind.Generic,
+                genericParamId = "param-t",
+                storage = "immutable",
+                isAbstract = isAbstract ? true : null,
+                isReadOnly = true,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.members[slot.id] = slot;
+            data.members[binding.id] = binding;
+            data.classes["class-generic-base"] = new NeoSchemaClass
+            {
+                id = "class-generic-base",
+                projectId = ProjectId,
+                name = "GenericBase",
+                schema = new Dictionary<string, string> { ["Value"] = slot.id },
+                genericParams = new List<GenericParamDeclaration>
+                {
+                    new() { id = "param-t", name = "T" },
+                },
+                isAbstract = isAbstract,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.classes["class-generic-closed"] = new NeoSchemaClass
+            {
+                id = "class-generic-closed",
+                projectId = ProjectId,
+                name = "GenericClosed",
+                schema = new Dictionary<string, string>(),
+                extendsClassId = "class-generic-base",
+                extendsGenericBindings = new Dictionary<string, GenericBinding>
+                {
+                    ["param-t"] = new()
+                    {
+                        kind = NeoGenericBindingKinds.Member,
+                        memberId = binding.id,
+                    },
+                },
+                isAbstract = closedClassIsAbstract,
+                createdAt = "x",
+                updatedAt = "x",
+            };
         }
 
         private static void AddConflictingNestedPlacements(ProjectData data)

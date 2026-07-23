@@ -61,10 +61,12 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public bool? isAbstract;
         /// <summary>
-        /// True when this concrete instance field is backed directly by its
-        /// declaration <c>defaultValue</c>. Read-only declaration fields have
-        /// no key/value edge on individual Class rows. Optional on the wire;
-        /// only an explicit <c>true</c> enables the behavior.
+        /// True when this instance property is getter-only. Concrete read-only
+        /// declarations are backed directly by their <c>defaultValue</c> and
+        /// have no key/value edge on individual Class rows. Abstract read-only
+        /// declarations are value-less getter contracts which a concrete class
+        /// must implement with a concrete read-only override. Optional on the
+        /// wire; only an explicit <c>true</c> enables the behavior.
         /// </summary>
         public bool? isReadOnly;
         /// <summary>
