@@ -13,6 +13,7 @@ namespace NeoCompose.Runtime
     {
         private readonly Dictionary<string, INeoAnimationPlayer> playersByInstance = new();
         private readonly HashSet<INeoAnimationPlayer> activePlayers = new();
+        private readonly List<INeoAnimationPlayer> playerSnapshot = new();
         private NeoAnimationRunner? runner;
         private bool isDisposed;
 
@@ -46,7 +47,9 @@ namespace NeoCompose.Runtime
         internal void Tick(float scaledDeltaTime)
         {
             if (isDisposed) return;
-            foreach (INeoAnimationPlayer player in new List<INeoAnimationPlayer>(activePlayers))
+            playerSnapshot.Clear();
+            playerSnapshot.AddRange(activePlayers);
+            foreach (INeoAnimationPlayer player in playerSnapshot)
             {
                 if (!player.IsPlaying)
                 {
@@ -79,10 +82,13 @@ namespace NeoCompose.Runtime
         {
             if (isDisposed) return;
             isDisposed = true;
-            foreach (INeoAnimationPlayer player in new List<INeoAnimationPlayer>(activePlayers))
+            playerSnapshot.Clear();
+            playerSnapshot.AddRange(activePlayers);
+            foreach (INeoAnimationPlayer player in playerSnapshot)
             {
                 player.StopFromCoordinator();
             }
+            playerSnapshot.Clear();
             activePlayers.Clear();
             playersByInstance.Clear();
             if (runner != null)

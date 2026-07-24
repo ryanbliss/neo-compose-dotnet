@@ -22,6 +22,8 @@ namespace NeoCompose.Runtime
     /// </summary>
     public class NeoClient : INeoClient
     {
+        private static readonly HashSet<NeoClient> activeClients = new();
+
         public delegate string BuildSaveName();
         public delegate object? NeoNativeFunctionInvoker(
             NeoClient client,
@@ -182,6 +184,7 @@ namespace NeoCompose.Runtime
                 definition.FPS,
                 definition.Duration,
                 animationCoordinator,
+                definition.PreparePlayback,
                 definition.ApplyFrame);
             animationClips.Add(cacheKey, clip);
             return clip;
@@ -201,6 +204,26 @@ namespace NeoCompose.Runtime
                 remove.Add(pair.Key);
             }
             foreach (string key in remove) animationClips.Remove(key);
+        }
+
+        internal void InvalidateAnimationClips()
+        {
+            foreach (object cached in new List<object>(animationClips.Values))
+            {
+                if (cached is INeoAnimationPlayer player)
+                {
+                    player.StopFromCoordinator();
+                }
+            }
+            animationClips.Clear();
+        }
+
+        internal static void InvalidateAllAnimationClips()
+        {
+            foreach (NeoClient client in new List<NeoClient>(activeClients))
+            {
+                if (!client.isDisposed) client.InvalidateAnimationClips();
+            }
         }
 
         /// <summary>
@@ -402,6 +425,7 @@ namespace NeoCompose.Runtime
             assets = new(this, data.project.rootAssetsMemberId, null);
             save = new(this, data.project.rootSaveFileMemberId, null, NeoValueOwnership.Save);
             session = new(this, data.project.rootSessionMemberId, null, NeoValueOwnership.Session);
+            NeoAnimationCompiler.ValidateProject(this);
             if (loadedExistingSave)
             {
                 CaptureCommittedSaveState();
@@ -411,12 +435,14 @@ namespace NeoCompose.Runtime
                 liveContentSource = liveSource;
                 liveSource.OnLiveContentChanged += HandleLiveContentChanged;
             }
+            activeClients.Add(this);
         }
 
         public void Dispose()
         {
             if (isDisposed) return;
             isDisposed = true;
+            activeClients.Remove(this);
             if (liveContentSource != null)
             {
                 liveContentSource.OnLiveContentChanged -= HandleLiveContentChanged;
@@ -5173,7 +5199,12 @@ namespace NeoCompose.Runtime
             }
             bool hasLocalCodeField = member.code is not null;
             bool hasLocalAction = member.action is not null;
-            if (hasLocalCodeField != hasLocalAction)
+            if (member.bodyMode == "ui" && !hasLocalAction)
+            {
+                throw new System.InvalidOperationException(
+                    $"UI-mode NSFunction member '{member.id}' is missing its compiled action.");
+            }
+            if (member.bodyMode is null && hasLocalCodeField != hasLocalAction)
             {
                 throw new System.InvalidOperationException(
                     $"NSFunction member '{member.id}' must export its local code and compiled action together.");
@@ -5186,10 +5217,10 @@ namespace NeoCompose.Runtime
             if (member.isAbstract == true) return;
 
             if (string.IsNullOrEmpty(member.extendsMemberId)
-                && !hasLocalCodeField)
+                && !hasLocalAction)
             {
                 throw new System.InvalidOperationException(
-                    $"Concrete NSFunction declaration '{member.id}' is missing code and compiled action.");
+                    $"Concrete NSFunction declaration '{member.id}' is missing its compiled action.");
             }
 
             NSFunctionMember? signature = ResolveNSFunctionSignature(member.id);

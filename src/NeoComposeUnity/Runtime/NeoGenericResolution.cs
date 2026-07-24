@@ -537,6 +537,13 @@ namespace NeoCompose.Runtime
                 // metadata. The binding must never add or remove an instance
                 // value edge.
                 substituted.isReadOnly = generic.isReadOnly;
+                // Partial changes how a closed Class slot is materialized,
+                // so it belongs to the Generic declaration rather than the
+                // binding member (Partial<TTarget> must stay sparse).
+                if (substituted is ClassMember substitutedClassMember)
+                {
+                    substitutedClassMember.partial = generic.partial;
+                }
                 // Placement fields are slot-owned. A null declaration means
                 // "inherit from placement parent" and must not fall back to
                 // the binding's own declaration (bindings are type

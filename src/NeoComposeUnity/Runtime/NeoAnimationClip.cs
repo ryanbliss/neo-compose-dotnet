@@ -41,8 +41,9 @@ namespace NeoCompose.Runtime
         private const int MaxFrameStepsPerTick = 10000;
 
         private readonly NeoAnimationCoordinator coordinator;
+        private readonly Action preparePlayback;
         private readonly Action<int, bool> applyFrame;
-        private readonly Dictionary<int, List<Action>> frameEvents = new();
+        private readonly Dictionary<int, Action[]> frameEvents = new();
         private readonly float secondsPerFrame;
         private readonly int duration;
         private float elapsed;
@@ -68,6 +69,7 @@ namespace NeoCompose.Runtime
                 fps,
                 duration,
                 coordinator,
+                preparePlayback: null,
                 applyFrame is null ? null : (frame, _) => applyFrame(frame))
         {
         }
@@ -78,6 +80,25 @@ namespace NeoCompose.Runtime
             int fps,
             int duration,
             NeoAnimationCoordinator coordinator,
+            Action<int, bool>? applyFrame)
+            : this(
+                target,
+                instanceIdentity,
+                fps,
+                duration,
+                coordinator,
+                preparePlayback: null,
+                applyFrame)
+        {
+        }
+
+        internal NeoAnimationClip(
+            T target,
+            string instanceIdentity,
+            int fps,
+            int duration,
+            NeoAnimationCoordinator coordinator,
+            Action? preparePlayback,
             Action<int, bool>? applyFrame)
         {
             Target = target ?? throw new ArgumentNullException(nameof(target));
@@ -91,6 +112,7 @@ namespace NeoCompose.Runtime
             if (duration < 1) throw new ArgumentOutOfRangeException(nameof(duration));
             this.coordinator = coordinator
                 ?? throw new ArgumentNullException(nameof(coordinator));
+            this.preparePlayback = preparePlayback ?? (() => { });
             this.applyFrame = applyFrame ?? ((_, _) => { });
             InstanceIdentity = instanceIdentity;
             this.duration = duration;
@@ -116,7 +138,7 @@ namespace NeoCompose.Runtime
             NeoPlayMode mode = NeoPlayMode.Repeat,
             NeoPlayDirection direction = NeoPlayDirection.Forward)
         {
-            Start(mode, direction, loops: -1, once: false, asynchronous: false);
+            Start(mode, direction, loops: -1, once: false, pendingCompletion: null);
         }
 
         public void PlayOnce(
@@ -127,7 +149,7 @@ namespace NeoCompose.Runtime
                 direction,
                 loops: 1,
                 once: true,
-                asynchronous: false);
+                pendingCompletion: null);
         }
 
         public Task PlayOnceAsync(
@@ -152,7 +174,7 @@ namespace NeoCompose.Runtime
             NeoPlayDirection direction = NeoPlayDirection.Forward)
         {
             ValidateLoopCount(loopCount);
-            Start(mode, direction, loopCount, once: false, asynchronous: false);
+            Start(mode, direction, loopCount, once: false, pendingCompletion: null);
         }
 
         public Task PlayFixedLoopAsync(
@@ -200,17 +222,39 @@ namespace NeoCompose.Runtime
                 throw new ArgumentOutOfRangeException(nameof(frameIndex));
             }
             if (handler is null) throw new ArgumentNullException(nameof(handler));
-            if (!frameEvents.TryGetValue(frameIndex, out List<Action>? handlers))
+            if (!frameEvents.TryGetValue(frameIndex, out Action[]? handlers))
             {
-                handlers = new List<Action>();
-                frameEvents.Add(frameIndex, handlers);
+                handlers = Array.Empty<Action>();
             }
-            handlers.Add(handler);
+            var added = new Action[handlers.Length + 1];
+            Array.Copy(handlers, added, handlers.Length);
+            added[handlers.Length] = handler;
+            frameEvents[frameIndex] = added;
             return new NeoDisposableAction(() =>
             {
-                if (!frameEvents.TryGetValue(frameIndex, out List<Action>? current)) return;
-                current.Remove(handler);
-                if (current.Count == 0) frameEvents.Remove(frameIndex);
+                if (!frameEvents.TryGetValue(frameIndex, out Action[]? current)) return;
+                int removeIndex = Array.IndexOf(current, handler);
+                if (removeIndex < 0) return;
+                if (current.Length == 1)
+                {
+                    frameEvents.Remove(frameIndex);
+                    return;
+                }
+                var removed = new Action[current.Length - 1];
+                if (removeIndex > 0)
+                {
+                    Array.Copy(current, 0, removed, 0, removeIndex);
+                }
+                if (removeIndex < current.Length - 1)
+                {
+                    Array.Copy(
+                        current,
+                        removeIndex + 1,
+                        removed,
+                        removeIndex,
+                        current.Length - removeIndex - 1);
+                }
+                frameEvents[frameIndex] = removed;
             });
         }
 
@@ -244,8 +288,10 @@ namespace NeoCompose.Runtime
             bool once,
             CancellationToken cancellationToken)
         {
-            Start(mode, direction, loops, once, asynchronous: true);
-            Task task = completion!.Task;
+            var pending = new TaskCompletionSource<object?>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            Start(mode, direction, loops, once, pending);
+            Task task = pending.Task;
             if (cancellationToken.CanBeCanceled)
             {
                 CancellationTokenRegistration registration = cancellationToken.Register(
@@ -264,7 +310,7 @@ namespace NeoCompose.Runtime
             NeoPlayDirection direction,
             int loops,
             bool once,
-            bool asynchronous)
+            TaskCompletionSource<object?>? pendingCompletion)
         {
             if (!Enum.IsDefined(typeof(NeoPlayMode), mode))
             {
@@ -276,6 +322,7 @@ namespace NeoCompose.Runtime
             }
 
             StopInternal(cancelTask: true);
+            preparePlayback();
             coordinator.Activate(this);
             elapsed = 0f;
             isOnce = once;
@@ -287,11 +334,11 @@ namespace NeoCompose.Runtime
             CurrentFrame = direction == NeoPlayDirection.Forward ? 0 : duration - 1;
             IsPaused = false;
             IsPlaying = true;
-            completion = asynchronous
-                ? new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously)
-                : null;
+            completion = pendingCompletion;
             OnPlay?.Invoke();
-            EnterFrame(CurrentFrame, useResolvedState: CurrentFrame != 0);
+            EnterFrame(
+                CurrentFrame,
+                useResolvedState: direction == NeoPlayDirection.Backward);
         }
 
         private void AdvanceOneFrame()
@@ -363,8 +410,8 @@ namespace NeoCompose.Runtime
         {
             CurrentFrame = frameIndex;
             applyFrame(frameIndex, useResolvedState);
-            if (!frameEvents.TryGetValue(frameIndex, out List<Action>? handlers)) return;
-            foreach (Action handler in handlers.ToArray()) handler();
+            if (!frameEvents.TryGetValue(frameIndex, out Action[]? handlers)) return;
+            foreach (Action handler in handlers) handler();
         }
 
         private void CompleteNaturally()

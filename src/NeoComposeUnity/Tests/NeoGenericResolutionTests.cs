@@ -638,6 +638,45 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SubstituteMember_GenericPartialFlagSurvivesClassBinding()
+        {
+            ProjectData data = NeoGenericTestFixture.BuildProjectData();
+            data.members["member-binding-class"] = new ClassMember
+            {
+                id = "member-binding-class",
+                projectId = "project-a",
+                name = "TargetBinding",
+                kind = MemberKind.Class,
+                classId = "class-card-base",
+                partial = false,
+            };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var slot = new GenericMember
+            {
+                id = "member-partial-slot",
+                projectId = "project-a",
+                name = "Overrides",
+                kind = MemberKind.Generic,
+                genericParamId = NeoGenericTestFixture.ParamT,
+                partial = true,
+            };
+            var env = new Dictionary<string, NeoGenericEnvEntry>
+            {
+                [NeoGenericTestFixture.ParamT] =
+                    NeoGenericEnvEntry.Bound("member-binding-class"),
+            };
+
+            var substituted = (ClassMember)NeoGenericResolution.SubstituteMember(
+                client,
+                slot,
+                env);
+
+            Assert.AreEqual(true, substituted.partial);
+            Assert.AreEqual("class-card-base", substituted.classId);
+            Assert.AreEqual(slot.id, substituted.id);
+        }
+
+        [Test]
         public void SubstituteMember_NonGenericRecord_IsIdentity()
         {
             var client = LoadClient();

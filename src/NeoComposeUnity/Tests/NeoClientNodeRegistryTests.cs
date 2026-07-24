@@ -188,6 +188,32 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ClassChild_ReadsCompositeDefault_WhenConcreteParentRowOmitsKey()
+        {
+            ProjectData data = BuildDefaultBackedProjectData();
+            var cardMember = (ClassMember)data.members["member-card"];
+            cardMember.valueId = "v-card";
+            cardMember.defaultValue = new ObjectMemberValueBase
+            {
+                value = new Dictionary<string, string>
+                {
+                    ["Name"] = "v-card-default-name",
+                },
+            };
+            data.values["v-card-default-name"] = StringValue(
+                "v-card-default-name",
+                "Composite Default Name");
+
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var card = NeoMember.Create(client, cardMember, null) as NeoMemberClass;
+
+            Assert.IsNotNull(card);
+            Assert.AreEqual(
+                "Composite Default Name",
+                card!.Get<NeoMemberString>("Name").value?.value);
+        }
+
+        [Test]
         public void List_ReadsDefaultEntryIds_WhenListHasNoStoredValueRow()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildDefaultBackedProjectData());

@@ -98,7 +98,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator GeneratedObjectAnimationClip_PlaysAuthoredFramesInPlayMode()
+        public IEnumerator GeneratedRecoveryCacheAnimationClip_ExecutesExportedFrameActionInPlayMode()
         {
             Assert.IsTrue(Application.isPlaying, "This gate must run through the PlayMode test runner.");
 
@@ -109,28 +109,30 @@ namespace HelloWorld.Assets.Tests.PlayMode
                     localizationOptions: EnglishLocalizationOptions())
                 .GetAwaiter()
                 .GetResult();
-            NeoResolvedObjectInstance<PlayerSpawnObject> placement = client
+            IReadOnlyList<NeoResolvedObjectInstance<RecoveryCacheObject>> placements = client
                 .Assets
                 .Worlds
                 .OldConsoleLanding
                 .Content
                 .Objects
-                .GetObject<PlayerSpawnObject>(new Vector2Int(-7, 2));
-            Assert.IsNotNull(placement);
+                .GetObjects<RecoveryCacheObject>();
+            Assert.AreEqual(1, placements.Count);
 
-            PlayerSpawnObject playerSpawn = placement.Info;
-            NeoAnimationClip<PlayerSpawnObject> clip = playerSpawn.IdleAnimation;
+            RecoveryCacheObject recoveryCache = placements[0].Info;
+            NeoAnimationClip<RecoveryCacheObject> clip = recoveryCache.Pulse;
             var enteredFrames = new List<int>();
-            using var frameZero = clip.AddFrameEvent(0, () => enteredFrames.Add(0));
-            using var frameOne = clip.AddFrameEvent(1, () => enteredFrames.Add(1));
+            using var frameTwo = clip.AddFrameEvent(2, () => enteredFrames.Add(2));
+            client.Save.Bits = 0;
 
             clip.PlayOnce();
-            Assert.AreEqual(new Vector3(-7, 2, 0), playerSpawn.Position.Value);
+            float deadline = Time.realtimeSinceStartup + 2f;
+            while (clip.IsPlaying && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
 
-            yield return new WaitForSeconds(0.25f);
-
-            Assert.AreEqual(new Vector3(-6, 2, 0), playerSpawn.Position.Value);
-            CollectionAssert.AreEqual(new[] { 0, 1 }, enteredFrames);
+            Assert.AreEqual(1, client.Save.Bits);
+            CollectionAssert.AreEqual(new[] { 2 }, enteredFrames);
             Assert.IsFalse(clip.IsPlaying);
         }
 

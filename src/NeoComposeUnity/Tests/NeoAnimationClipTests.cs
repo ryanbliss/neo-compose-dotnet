@@ -9,6 +9,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace NeoCompose.Tests
@@ -176,6 +177,117 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void PlayOnceAsync_OnPlayStops_ReturnsCanceledTaskWithoutNullReference()
+        {
+            using NeoClient client = CreateClient();
+            TestTarget target = new(client);
+            var clip = CreateClip(target, "object-a", 2, new List<int>());
+            clip.OnPlay += clip.Stop;
+
+            Task completion = null!;
+            Assert.DoesNotThrow(() => completion = clip.PlayOnceAsync());
+
+            Assert.IsTrue(completion.IsCanceled);
+            Assert.IsFalse(clip.IsPlaying);
+        }
+
+        [Test]
+        public void Playback_RefreshesRootFallbackBeforeEveryStart()
+        {
+            using NeoClient client = CreateClient();
+            TestTarget target = new(client);
+            int refreshes = 0;
+            var entered = new List<(int frame, bool resolved)>();
+            var clip = new NeoAnimationClip<TestTarget>(
+                target,
+                "object-a",
+                fps: 10,
+                duration: 2,
+                target.Client.AnimationCoordinator,
+                preparePlayback: () => refreshes += 1,
+                applyFrame: (frame, resolved) => entered.Add((frame, resolved)));
+
+            clip.PlayOnce();
+            clip.Stop();
+            clip.PlayOnce(NeoPlayDirection.Backward);
+
+            Assert.AreEqual(2, refreshes);
+            CollectionAssert.AreEqual(
+                new[] { (0, false), (1, true) },
+                entered);
+        }
+
+        [Test]
+        public void BackwardSingleFrame_UsesResolvedState()
+        {
+            using NeoClient client = CreateClient();
+            TestTarget target = new(client);
+            var entered = new List<(int frame, bool resolved)>();
+            var clip = new NeoAnimationClip<TestTarget>(
+                target,
+                "object-a",
+                fps: 10,
+                duration: 1,
+                target.Client.AnimationCoordinator,
+                (frame, resolved) => entered.Add((frame, resolved)));
+
+            clip.PlayOnce(NeoPlayDirection.Backward);
+
+            CollectionAssert.AreEqual(new[] { (0, true) }, entered);
+        }
+
+        [Test]
+        public void Boomerang_UsesResolvedFramesOnlyWhileTraversingBackward()
+        {
+            using NeoClient client = CreateClient();
+            TestTarget target = new(client);
+            var entered = new List<(int frame, bool resolved)>();
+            var clip = new NeoAnimationClip<TestTarget>(
+                target,
+                "object-a",
+                fps: 10,
+                duration: 3,
+                target.Client.AnimationCoordinator,
+                (frame, resolved) => entered.Add((frame, resolved)));
+
+            clip.PlayLoop(NeoPlayMode.Boomerang);
+            Tick(clip, 5);
+
+            CollectionAssert.AreEqual(
+                new[]
+                {
+                    (0, false),
+                    (1, false),
+                    (2, false),
+                    (1, true),
+                    (0, true),
+                    (1, false),
+                },
+                entered);
+        }
+
+        [Test]
+        public void Playback_MatchesCrossRuntimeParityTraversalVectors()
+        {
+            JObject fixture = JObject.Parse(
+                NeoAnimationFrameResolutionParityFixture.Json);
+            JObject traversals = (JObject)fixture["traversals"]!;
+
+            AssertTraversalVector(traversals, "onceForward", clip =>
+                clip.PlayOnce(NeoPlayDirection.Forward));
+            AssertTraversalVector(traversals, "onceBackward", clip =>
+                clip.PlayOnce(NeoPlayDirection.Backward));
+            AssertTraversalVector(traversals, "repeatForwardWrap", clip =>
+                clip.PlayLoop(NeoPlayMode.Repeat, NeoPlayDirection.Forward));
+            AssertTraversalVector(traversals, "repeatBackwardWrap", clip =>
+                clip.PlayLoop(NeoPlayMode.Repeat, NeoPlayDirection.Backward));
+            AssertTraversalVector(traversals, "boomerangForward", clip =>
+                clip.PlayLoop(NeoPlayMode.Boomerang, NeoPlayDirection.Forward));
+            AssertTraversalVector(traversals, "boomerangBackward", clip =>
+                clip.PlayLoop(NeoPlayMode.Boomerang, NeoPlayDirection.Backward));
+        }
+
+        [Test]
         public void Coordinator_SupersedesOnlyTheSameInstanceIdentity()
         {
             using NeoClient client = CreateClient();
@@ -212,6 +324,27 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void FrameEvent_DisposalDuringDispatchUsesStableAllocationFreeSnapshot()
+        {
+            using NeoClient client = CreateClient();
+            TestTarget target = new(client);
+            var clip = CreateClip(target, "object-a", 2, new List<int>());
+            var calls = new List<string>();
+            IDisposable? second = null;
+            using IDisposable first = clip.AddFrameEvent(0, () =>
+            {
+                calls.Add("first");
+                second!.Dispose();
+            });
+            second = clip.AddFrameEvent(0, () => calls.Add("second"));
+
+            clip.PlayOnce();
+
+            CollectionAssert.AreEqual(new[] { "first", "second" }, calls);
+            second.Dispose();
+        }
+
+        [Test]
         public void InvalidLoopCountAndFrameEventIndexThrow()
         {
             using NeoClient client = CreateClient();
@@ -236,6 +369,23 @@ namespace NeoCompose.Tests
                 duration,
                 target.Client.AnimationCoordinator,
                 entered.Add);
+        }
+
+        private static void AssertTraversalVector(
+            JObject traversals,
+            string key,
+            Action<NeoAnimationClip<TestTarget>> play)
+        {
+            int[] expected = traversals[key]!.ToObject<int[]>()!;
+            using NeoClient client = CreateClient();
+            TestTarget target = new(client);
+            var entered = new List<int>();
+            var clip = CreateClip(target, key, duration: 4, entered);
+
+            play(clip);
+            Tick(clip, expected.Length - 1);
+
+            CollectionAssert.AreEqual(expected, entered, key);
         }
 
         private static void Tick(NeoAnimationClip<TestTarget> clip, int count)

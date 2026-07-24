@@ -311,12 +311,30 @@ namespace NeoCompose.Runtime
                 }
                 if (!client.TryGetMember(entry.memberId, out Member? childMember)) continue;
                 childMember = SubstituteChildMember(childMember);
-                string? childValueId = childMember.isReadOnly == true
-                    ? null
-                    : value?.value is not null
-                    && value.value.TryGetValue(entry.schemaKey, out string valueIdForKey)
-                        ? valueIdForKey
-                        : null;
+                string? childValueId = null;
+                if (childMember.isReadOnly != true)
+                {
+                    if (value?.value is not null
+                        && value.value.TryGetValue(entry.schemaKey, out string valueIdForKey))
+                    {
+                        childValueId = valueIdForKey;
+                    }
+                    else if (overrideValueId is null
+                        && member.defaultValue?.value is not null
+                        && member.defaultValue.value.TryGetValue(
+                            entry.schemaKey,
+                            out string defaultValueIdForKey))
+                    {
+                        // A member's own authored row may be sparse even when
+                        // its declaration carries a composite default. Missing
+                        // keys inherit that default child row; authored row
+                        // keys still win above. Externally-bound instance rows
+                        // keep absence meaningful (for example an omitted
+                        // optional tile-grid assetValueId). Partial Class
+                        // members never reach this branch for missing keys.
+                        childValueId = defaultValueIdForKey;
+                    }
+                }
                 if (previousChildren.TryGetValue(entry.schemaKey, out NeoMember? existing)
                     && existing.member.id == childMember.id
                     && (existing.overrideValueId == childValueId

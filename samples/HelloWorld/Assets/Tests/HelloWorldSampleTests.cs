@@ -200,9 +200,9 @@ namespace HelloWorld.Assets.Tests
             Assert.AreEqual(
                 ObjectLayerLinkObjectsValueId,
                 linkValue["value"]!["Objects"]!.Value<string>());
-            Assert.AreEqual(
-                ObjectLayerLinkTargetClassId,
-                linkValue["value"]!["layerClassId"]!.Value<string>());
+            // The relation above is the canonical target. Current exports no
+            // longer duplicate it as a legacy layerClassId child value.
+            Assert.IsNull(linkValue["value"]!["layerClassId"]);
         }
 
         [Test]
@@ -965,7 +965,7 @@ namespace HelloWorld.Assets.Tests
             var placed = client.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObjects()
                 .Single(obj => obj.Cell == cell);
             Assert.IsInstanceOf<PlayerSpawnObject>(placed.Info);
-            Assert.IsNull(placed.Info.valueId);
+            Assert.AreEqual(placed.InstanceId.Value, placed.Info.valueId);
 
             var duplicate = saveContent.Objects.TrySpawn<VaultPlaqueObject>(cell);
             Assert.IsFalse(duplicate.Ok);

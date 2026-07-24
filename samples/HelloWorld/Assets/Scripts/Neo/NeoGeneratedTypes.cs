@@ -2275,11 +2275,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new IReadOnlyNeoCollider? Collider { get; }
 
+        void FlashPulse();
+
+        NeoAnimationClip<RecoveryCacheObject> Idle { get; }
+
         new string Name { get; }
 
         new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
 
+        NeoAnimationClip<RecoveryCacheObject> Pulse { get; }
+
         NeoDialogueReference RecoveryCache { get; }
+
+        void SetPulseBits();
     }
 
     public partial class RecoveryCacheObject : ConsoleObject, IReadOnlyRecoveryCacheObject
@@ -2408,6 +2416,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+
+        public virtual NeoAnimationClip<RecoveryCacheObject> Idle
+        {
+            get
+            {
+                return client.GetOrCreateAnimationClip(this, "Idle");
+            }
+        }
+
         public override string Name
         {
             get
@@ -2437,6 +2454,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public virtual NeoAnimationClip<RecoveryCacheObject> Pulse
+        {
+            get
+            {
+                return client.GetOrCreateAnimationClip(this, "Pulse");
+            }
+        }
+
         public virtual NeoDialogueReference RecoveryCache
         {
             get
@@ -2449,6 +2474,19 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ThrowIfReadOnly("RecoveryCacheObject.RecoveryCache");
                 writableNode.GetOrCreateDialogueLookup("RecoveryCache").Set(new[] { value.Id });
             }
+        }
+
+
+        public virtual void FlashPulse()
+        {
+            if (valueId is null) throw new InvalidOperationException("Cannot invoke NSFunction 'FlashPulse' without a backing receiver value id.");
+            writableNode.Get<NeoMemberNSFunction>("FlashPulse").Invoke(valueId!, new object?[] { });
+        }
+
+        public virtual void SetPulseBits()
+        {
+            if (valueId is null) throw new InvalidOperationException("Cannot invoke NSFunction 'SetPulseBits' without a backing receiver value id.");
+            writableNode.Get<NeoMemberNSFunction>("SetPulseBits").Invoke(valueId!, new object?[] { });
         }
 
         NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyNeoObject.Children
@@ -2792,7 +2830,20 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoObjectPlacementTile>(out writable);
         }
 
-        public virtual NeoReadOnlyVector2Int Cell
+        public virtual NeoVector2Int Cell
+        {
+            get
+            {
+                return new NeoVector2Int(writableNode.Get<NeoMemberVector2IntWritable>("Cell"));
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoObjectPlacementTile.Cell");
+                NeoGeneratedTypesSupport.SetVector2Int(writableNode, "Cell", value);
+            }
+        }
+
+        NeoReadOnlyVector2Int IReadOnlyNeoObjectPlacementTile.Cell
         {
             get
             {
@@ -6263,11 +6314,11 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new IReadOnlyNeoCollider? Collider { get; }
 
-        NeoAnimationClip<PlayerSpawnObject> IdleAnimation { get; }
-
         new string Name { get; }
 
         new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
+
+        NeoAnimationClip<PlayerSpawnObject> PlayerIdle { get; }
 
         new NeoVector3 Position { get; }
     }
@@ -6345,7 +6396,15 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         public static NeoClassRef<PlayerSpawnObject> Definition { get; } = new NeoClassRef<PlayerSpawnObject>("7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f");
 
-        public new virtual NeoReadOnlyList<IReadOnlyNeoObjectBase> Children
+        public override NeoList<NeoObjectBase> Children
+        {
+            get
+            {
+                return new NeoList<NeoObjectBase>(client, writableNode.Get<NeoMemberListWritable>("Children"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Children"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("PlayerSpawnObject.Children"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyPlayerSpawnObject.Children
         {
             get
             {
@@ -6353,7 +6412,34 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new virtual IReadOnlyNeoCollider? Collider
+        public override NeoCollider? Collider
+        {
+            get
+            {
+                if (IsReadOnly)
+                {
+                    var child = node.Get<NeoMemberClass>("Collider");
+                    return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, child);
+                }
+                else
+                {
+                    var child = writableNode.Get<NeoMemberClassWritable>("Collider");
+                    return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.CreateWritable(client, child);
+                }
+            }
+            set
+            {
+                ThrowIfReadOnly("PlayerSpawnObject.Collider");
+                if (value is null)
+                {
+                    writableNode.Unset("Collider");
+                    return;
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Collider", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        IReadOnlyNeoCollider? IReadOnlyPlayerSpawnObject.Collider
         {
             get
             {
@@ -6362,27 +6448,40 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public virtual NeoAnimationClip<PlayerSpawnObject> IdleAnimation
-        {
-            get
-            {
-                return client.GetOrCreateAnimationClip(this, "IdleAnimation");
-            }
-        }
-
-        public new virtual string Name
+        public override string Name
         {
             get
             {
                 return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
             }
+            set
+            {
+                ThrowIfReadOnly("PlayerSpawnObject.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
         }
 
-        public new virtual NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles
+        public override NeoList<NeoObjectPlacementTile> PlacementTiles
+        {
+            get
+            {
+                return new NeoList<NeoObjectPlacementTile>(client, writableNode.Get<NeoMemberListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("PlayerSpawnObject.PlacementTiles"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyPlayerSpawnObject.PlacementTiles
         {
             get
             {
                 return new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>(client, node.Get<NeoMemberList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoMemberClass)child));
+            }
+        }
+
+        public virtual NeoAnimationClip<PlayerSpawnObject> PlayerIdle
+        {
+            get
+            {
+                return client.GetOrCreateAnimationClip(this, "PlayerIdle");
             }
         }
 
@@ -6581,9 +6680,28 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 return node.Get<NeoMemberBool>("isTrigger").value?.value;
             }
+            set
+            {
+                ThrowIfReadOnly("NeoCollider.isTrigger");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "isTrigger", NeoGeneratedTypesSupport.Value(value));
+            }
         }
 
-        public virtual NeoReadOnlyVector2? offset
+        public virtual NeoVector2? offset
+        {
+            get
+            {
+                var child = writableNode.Get<NeoMemberVector2Writable>("offset");
+                return child.value is null ? null : new NeoVector2(child);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoCollider.offset");
+                NeoGeneratedTypesSupport.SetVector2OrClear(writableNode, "offset", value);
+            }
+        }
+
+        NeoReadOnlyVector2? IReadOnlyNeoCollider.offset
         {
             get
             {
@@ -6592,7 +6710,20 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public virtual NeoReadOnlyVector2 size
+        public virtual NeoVector2 size
+        {
+            get
+            {
+                return new NeoVector2(writableNode.Get<NeoMemberVector2Writable>("size"));
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoCollider.size");
+                NeoGeneratedTypesSupport.SetVector2(writableNode, "size", value);
+            }
+        }
+
+        NeoReadOnlyVector2 IReadOnlyNeoCollider.size
         {
             get
             {
