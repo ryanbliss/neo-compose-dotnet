@@ -1,6 +1,6 @@
 {
     "metadata": {
-        "schemaVersion": 11,
+        "schemaVersion": 12,
         "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
         "versionId": "56fbaae9-6c07-4260-a250-65a1ab0689cf",
         "semver": {
@@ -5924,6 +5924,206 @@
             },
             "updatedAt": 1782971224672
         },
+        "e1a1ba86-2599-43dc-a19a-46d08a2e4256": {
+            "accessModifierKind": "public",
+            "createdAt": 1784694000000,
+            "id": "e1a1ba86-2599-43dc-a19a-46d08a2e4256",
+            "isStatic": false,
+            "kind": 2,
+            "locked": true,
+            "name": "Duration",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": { "kind": "worldAuthoring" },
+            "updatedAt": 1784694000000
+        },
+        "af2d8db8-817b-46f0-adbe-cf9113b77155": {
+            "accessModifierKind": "public",
+            "createdAt": 1784694000000,
+            "id": "af2d8db8-817b-46f0-adbe-cf9113b77155",
+            "isStatic": false,
+            "kind": 2,
+            "locked": true,
+            "name": "FPS",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": { "kind": "worldAuthoring" },
+            "updatedAt": 1784694000000
+        },
+        "9a08b7e8-9d75-4945-8648-b2ce916cea1a": {
+            "accessModifierKind": "public",
+            "classId": "p29-animation-frame-class",
+            "createdAt": 1784694000000,
+            "id": "9a08b7e8-9d75-4945-8648-b2ce916cea1a",
+            "isStatic": false,
+            "kind": 7,
+            "locked": true,
+            "name": "Frame",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": { "kind": "worldAuthoring" },
+            "updatedAt": 1784694000000
+        },
+        "0dbdd0f9-9dd2-4b4b-9403-50180c1500dd": {
+            "accessModifierKind": "public",
+            "createdAt": 1784694000000,
+            "id": "0dbdd0f9-9dd2-4b4b-9403-50180c1500dd",
+            "isStatic": false,
+            "kind": 2,
+            "locked": true,
+            "name": "Index",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": { "kind": "worldAuthoring" },
+            "updatedAt": 1784694000000
+        },
+        "8ab7bb00-a475-43f0-8579-1b08f133d658": {
+            "accessModifierKind": "public",
+            "classId": "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f",
+            "createdAt": 1784694000000,
+            "id": "8ab7bb00-a475-43f0-8579-1b08f133d658",
+            "isStatic": false,
+            "kind": 7,
+            "locked": true,
+            "name": "Overrides",
+            "partial": true,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": false,
+            "system": { "kind": "worldAuthoring" },
+            "updatedAt": 1784694000000
+        },
+        "485b0f05-ec7b-4e61-ba80-9a5d7d262b39": {
+            "accessModifierKind": "public",
+            "createdAt": 1784694000000,
+            "entryMemberId": "9a08b7e8-9d75-4945-8648-b2ce916cea1a",
+            "id": "485b0f05-ec7b-4e61-ba80-9a5d7d262b39",
+            "isStatic": false,
+            "kind": 6,
+            "locked": true,
+            "name": "Frames",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": { "kind": "worldAuthoring" },
+            "updatedAt": 1784694000000
+        },
+        "eb602654-04a9-4766-860f-300b443be86e": {
+            "accessModifierKind": "public",
+            "createdAt": 1784694000000,
+            "entryMemberId": "cb7b2bbc-3c66-458f-9ed5-362715c09ece",
+            "id": "eb602654-04a9-4766-860f-300b443be86e",
+            "isStatic": false,
+            "kind": 6,
+            "locked": true,
+            "name": "Tracks",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": { "kind": "worldAuthoring" },
+            "updatedAt": 1784694000000
+        },
+        "cb7b2bbc-3c66-458f-9ed5-362715c09ece": {
+            "accessModifierKind": "public",
+            "classId": "p29-animation-child-track-class",
+            "createdAt": 1784694000000,
+            "id": "cb7b2bbc-3c66-458f-9ed5-362715c09ece",
+            "isStatic": false,
+            "kind": 7,
+            "locked": true,
+            "name": "Track",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": { "kind": "worldAuthoring" },
+            "updatedAt": 1784694000000
+        },
+        "a5905750-c472-46a8-89e9-f04f0bf66696": {
+            "accessModifierKind": "public",
+            "createdAt": 1784694000000,
+            "entryMemberId": "bf62d243-5184-4b09-98e0-8682827cb66d",
+            "id": "a5905750-c472-46a8-89e9-f04f0bf66696",
+            "isStatic": false,
+            "kind": 6,
+            "locked": true,
+            "name": "ChildOverrides",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": { "kind": "worldAuthoring" },
+            "updatedAt": 1784694000000
+        },
+        "bf62d243-5184-4b09-98e0-8682827cb66d": {
+            "accessModifierKind": "public",
+            "classId": "p29-animation-child-override-class",
+            "createdAt": 1784694000000,
+            "id": "bf62d243-5184-4b09-98e0-8682827cb66d",
+            "isStatic": false,
+            "kind": 7,
+            "locked": true,
+            "name": "ChildOverride",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": { "kind": "worldAuthoring" },
+            "updatedAt": 1784694000000
+        },
+        "23e05410-6428-4bd1-b085-c0390ed7fcb7": {
+            "accessModifierKind": "public",
+            "createdAt": 1784694000000,
+            "entryMemberId": "4c195860-4fb3-4e09-b33c-fb5a37601c25",
+            "id": "23e05410-6428-4bd1-b085-c0390ed7fcb7",
+            "isStatic": false,
+            "kind": 6,
+            "locked": true,
+            "name": "Actions",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": { "kind": "worldAuthoring" },
+            "updatedAt": 1784694000000
+        },
+        "4c195860-4fb3-4e09-b33c-fb5a37601c25": {
+            "accessModifierKind": "public",
+            "createdAt": 1784694000000,
+            "id": "4c195860-4fb3-4e09-b33c-fb5a37601c25",
+            "isStatic": false,
+            "kind": 24,
+            "locked": true,
+            "name": "Action",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": { "kind": "worldAuthoring" },
+            "updatedAt": 1784694000000
+        },
+        "p29-animation-target-binding-member": {
+            "accessModifierKind": "public",
+            "classId": "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f",
+            "createdAt": 1784694000000,
+            "id": "p29-animation-target-binding-member",
+            "isStatic": false,
+            "kind": 7,
+            "locked": true,
+            "name": "PlayerSpawnAnimationTarget",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": { "kind": "worldAuthoring" },
+            "updatedAt": 1784694000000
+        },
+        "p29-player-idle-animation-member": {
+            "accessModifierKind": "public",
+            "classArguments": {
+                "268e9d23-347b-4eb6-8bec-cf0edf326aa2": {
+                    "kind": "member",
+                    "memberId": "p29-animation-target-binding-member"
+                }
+            },
+            "classId": "p29-animation-clip-class",
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-animation-member",
+            "isStatic": false,
+            "kind": 7,
+            "locked": true,
+            "name": "IdleAnimation",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "storage": "immutable",
+            "updatedAt": 1784694000000,
+            "valueId": "p29-player-idle-clip"
+        },
         "neo-tile-grid-record-relations-v1-member-05518aaa5d34a1a6a242fe8e0f6b6134": {
             "accessModifierKind": "public",
             "collectionMemberId": "7ec79ef8-a216-407f-8886-9f770bc9895b",
@@ -7658,6 +7858,7 @@
             "schema": {
                 "Children": "35275ba0-4a3f-4b83-8b09-fccb7bd7a515",
                 "Collider": "e5f5125c-fe5c-46b4-9589-9c6ae6fcba19",
+                "IdleAnimation": "p29-player-idle-animation-member",
                 "Name": "neo-tile-grid-record-relations-v1-member-5544b0deacdcfd845f211f1bb0cf21da",
                 "PlacementTiles": "47c21aa5-e852-41d2-882c-b4f555aee9dd",
                 "Position": "2b10e854-d60a-40a7-bc4c-8aede3e5049e"
@@ -7667,7 +7868,8 @@
                 "Children",
                 "PlacementTiles",
                 "Collider",
-                "Position"
+                "Position",
+                "IdleAnimation"
             ],
             "updatedAt": 1784282874548
         },
@@ -8142,6 +8344,94 @@
                 "DisplayName": "679e3c47-e6eb-4808-bcc5-2f8440612626"
             },
             "updatedAt": 1784270681023
+        },
+        "p29-animation-clip-class": {
+            "allowedStorage": "immutable",
+            "createdAt": 1784694000000,
+            "genericParams": [
+                {
+                    "id": "268e9d23-347b-4eb6-8bec-cf0edf326aa2",
+                    "name": "TTarget"
+                }
+            ],
+            "hiddenInMemberSelector": true,
+            "id": "p29-animation-clip-class",
+            "isAbstract": false,
+            "name": "NeoAnimationClip",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "schema": {
+                "Duration": "e1a1ba86-2599-43dc-a19a-46d08a2e4256",
+                "FPS": "af2d8db8-817b-46f0-adbe-cf9113b77155",
+                "Frames": "485b0f05-ec7b-4e61-ba80-9a5d7d262b39",
+                "Tracks": "eb602654-04a9-4766-860f-300b443be86e"
+            },
+            "schemaKeyOrder": [
+                "FPS",
+                "Duration",
+                "Frames",
+                "Tracks"
+            ],
+            "system": {
+                "kind": "worldAuthoring",
+                "worldKind": "animationClip"
+            },
+            "updatedAt": 1784694000000
+        },
+        "p29-animation-frame-class": {
+            "allowedStorage": "immutable",
+            "createdAt": 1784694000000,
+            "hiddenInMemberSelector": true,
+            "id": "p29-animation-frame-class",
+            "isAbstract": false,
+            "name": "NeoAnimationFrame",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "schema": {
+                "Actions": "23e05410-6428-4bd1-b085-c0390ed7fcb7",
+                "ChildOverrides": "a5905750-c472-46a8-89e9-f04f0bf66696",
+                "Index": "0dbdd0f9-9dd2-4b4b-9403-50180c1500dd",
+                "Overrides": "8ab7bb00-a475-43f0-8579-1b08f133d658"
+            },
+            "schemaKeyOrder": [
+                "Index",
+                "Overrides",
+                "ChildOverrides",
+                "Actions"
+            ],
+            "system": {
+                "kind": "worldAuthoring",
+                "worldKind": "animationFrame"
+            },
+            "updatedAt": 1784694000000
+        },
+        "p29-animation-child-override-class": {
+            "allowedStorage": "immutable",
+            "createdAt": 1784694000000,
+            "hiddenInMemberSelector": true,
+            "id": "p29-animation-child-override-class",
+            "isAbstract": false,
+            "name": "NeoAnimationChildOverride",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "schema": {},
+            "system": {
+                "kind": "worldAuthoring",
+                "worldKind": "animationChildOverride"
+            },
+            "updatedAt": 1784694000000
+        },
+        "p29-animation-child-track-class": {
+            "allowedStorage": "immutable",
+            "createdAt": 1784694000000,
+            "hiddenInMemberSelector": true,
+            "id": "p29-animation-child-track-class",
+            "isAbstract": false,
+            "name": "NeoAnimationChildTrack",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "schema": {},
+            "system": {
+                "kind": "worldAuthoring",
+                "worldKind": "animationChildTrack"
+            },
+            "updatedAt": 1784694000000
         },
         "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d": {
             "createdAt": 1784270658869,
@@ -17572,6 +17862,152 @@
                 "Condition": "187b905d-c6aa-44e0-8ee9-9b4c8d06bbe4"
             }
         },
+        "p29-player-idle-clip": {
+            "classId": "p29-animation-clip-class",
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-clip",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": {
+                "Duration": "p29-player-idle-duration",
+                "FPS": "p29-player-idle-fps",
+                "Frames": "p29-player-idle-frames",
+                "Tracks": "p29-player-idle-tracks"
+            }
+        },
+        "p29-player-idle-duration": {
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-duration",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": 2
+        },
+        "p29-player-idle-fps": {
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-fps",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": 10
+        },
+        "p29-player-idle-frame-0": {
+            "classId": "p29-animation-frame-class",
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-frame-0",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": {
+                "Actions": "p29-player-idle-frame-0-actions",
+                "ChildOverrides": "p29-player-idle-frame-0-child-overrides",
+                "Index": "p29-player-idle-frame-0-index",
+                "Overrides": "p29-player-idle-frame-0-overrides"
+            }
+        },
+        "p29-player-idle-frame-0-index": {
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-frame-0-index",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": 0
+        },
+        "p29-player-idle-frame-0-overrides": {
+            "classId": "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f",
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-frame-0-overrides",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": {
+                "Position": "p29-player-idle-frame-0-position"
+            }
+        },
+        "p29-player-idle-frame-0-position": {
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-frame-0-position",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": { "x": -7, "y": 2, "z": 0 }
+        },
+        "p29-player-idle-frame-1": {
+            "classId": "p29-animation-frame-class",
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-frame-1",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": {
+                "Actions": "p29-player-idle-frame-1-actions",
+                "ChildOverrides": "p29-player-idle-frame-1-child-overrides",
+                "Index": "p29-player-idle-frame-1-index",
+                "Overrides": "p29-player-idle-frame-1-overrides"
+            }
+        },
+        "p29-player-idle-frame-1-index": {
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-frame-1-index",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": 1
+        },
+        "p29-player-idle-frame-1-overrides": {
+            "classId": "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f",
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-frame-1-overrides",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": {
+                "Position": "p29-player-idle-frame-1-position"
+            }
+        },
+        "p29-player-idle-frame-1-position": {
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-frame-1-position",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": { "x": -6, "y": 2, "z": 0 }
+        },
+        "p29-player-idle-frames": {
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-frames",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": [
+                "p29-player-idle-frame-0",
+                "p29-player-idle-frame-1"
+            ]
+        },
+        "p29-player-idle-tracks": {
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-tracks",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": []
+        },
+        "p29-player-idle-frame-0-actions": {
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-frame-0-actions",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": []
+        },
+        "p29-player-idle-frame-0-child-overrides": {
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-frame-0-child-overrides",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": []
+        },
+        "p29-player-idle-frame-1-actions": {
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-frame-1-actions",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": []
+        },
+        "p29-player-idle-frame-1-child-overrides": {
+            "createdAt": 1784694000000,
+            "id": "p29-player-idle-frame-1-child-overrides",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784694000000,
+            "value": []
+        },
         "ff679a0a-d1e8-4277-991b-112e8de18b08": {
             "classId": null,
             "createdAt": 1779225700319,
@@ -25224,6 +25660,7 @@
                 "value": {
                     "Children": "931547ec-4134-4251-8321-a5b1fe80fd1a",
                     "Collider": "cdbd5c10-d3c9-43dc-9ae4-0192ba8fd3a5",
+                    "IdleAnimation": "p29-player-idle-clip",
                     "Name": "d5d0217e-0692-416a-91d0-6f3827d4b431",
                     "PlacementTiles": "66dc34ba-e3c4-4fae-8c12-bed09659d5bf",
                     "Position": "8a8fe14e-0a58-4881-bb7a-3303c6deedb5",

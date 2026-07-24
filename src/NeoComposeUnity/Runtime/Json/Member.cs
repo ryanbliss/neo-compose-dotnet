@@ -282,6 +282,12 @@ namespace NeoCompose.Runtime.Json
         public string classId = null!;
 
         /// <summary>
+        /// True when this Class reference stores a recursive sparse override
+        /// graph rather than a complete Class value.
+        /// </summary>
+        public bool? partial;
+
+        /// <summary>
         /// Present iff <see cref="classId"/> references a class with
         /// unbound generics in scope: the constructed class's arguments,
         /// keyed by target param id (specs/class-generics.md
@@ -306,6 +312,12 @@ namespace NeoCompose.Runtime.Json
     {
         /// <summary>Id of a generic param in this member's placement scope.</summary>
         public string genericParamId = null!;
+
+        /// <summary>
+        /// True when the generic slot is a recursive sparse Partial value.
+        /// Animation system definitions use this for Partial&lt;TTarget&gt;.
+        /// </summary>
+        public bool? partial;
     }
 
     /// <summary>Mirror of TS-side <c>TMemberEnum</c>.</summary>
@@ -403,6 +415,7 @@ namespace NeoCompose.Runtime.Json
             var type = ReadArgumentType(typeToken);
             if (type == MemberKind.Function
                 || type == MemberKind.NSFunction
+                || type == MemberKind.FunctionRef
                 || type == MemberKind.Unknown
                 || type == MemberKind.Void)
             {
@@ -475,6 +488,18 @@ namespace NeoCompose.Runtime.Json
     {
         public string code = null!;
 
+        /// <summary>
+        /// Optional authored body mode. Absent means custom NeoScript;
+        /// <c>ui</c> means <see cref="uiAction"/> is the logic-builder IR.
+        /// </summary>
+        public string? bodyMode;
+
+        /// <summary>
+        /// Single-instruction UI action retained for round trip. The compiled
+        /// executable body remains <see cref="action"/>.
+        /// </summary>
+        public FunctionWithReturnType? uiAction;
+
         [JsonConverter(typeof(FunctionReturnTypeInfoConverter))]
         public TypeInfo returnTypeInfo = null!;
 
@@ -482,6 +507,12 @@ namespace NeoCompose.Runtime.Json
         public bool? deferred;
         public FunctionWithReturnType action = null!;
     }
+
+    /// <summary>
+    /// Reference to a callable member. Only locked system declarations may
+    /// use this value-bearing kind in schema 12.
+    /// </summary>
+    public sealed class FunctionRefMember : Member<Dictionary<string, string>?> { }
 
     /// <summary>
     /// File reference payload shared by file-backed members.
@@ -612,6 +643,7 @@ namespace NeoCompose.Runtime.Json
                 case MemberKind.Audio: return typeof(AudioMember);
                 case MemberKind.Function: return typeof(FunctionMember);
                 case MemberKind.NSFunction: return typeof(NSFunctionMember);
+                case MemberKind.FunctionRef: return typeof(FunctionRefMember);
                 case MemberKind.Vector2: return typeof(Vector2Member);
                 case MemberKind.Vector2Int: return typeof(Vector2IntMember);
                 case MemberKind.Vector3: return typeof(Vector3Member);

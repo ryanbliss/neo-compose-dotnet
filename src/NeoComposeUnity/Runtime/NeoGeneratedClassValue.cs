@@ -18,6 +18,8 @@ namespace NeoCompose.Runtime
         private readonly List<IDisposable> subscriptions = new();
         private NeoMemberClassWritable? writableNodeCache;
         private bool isClassDefaultReference;
+        private readonly string animationWrapperIdentity =
+            System.Guid.NewGuid().ToString("N");
         protected object? FunctionHandlerObject { get; set; }
         protected NeoValueOwnership InheritedStorageOwnership { get; private set; }
         protected NeoMemberClassWritable writableNode =>
@@ -49,6 +51,10 @@ namespace NeoCompose.Runtime
         public bool IsReadOnly { get; }
         internal NeoClient Client => client;
         internal NeoValueOwnership ValueOwnership => node.ownership;
+        internal NeoMemberClass BackingNode => node;
+        internal NeoMemberClassWritable WritableBackingNode => writableNode;
+        internal string AnimationInstanceIdentity =>
+            valueId ?? $"wrapper:{animationWrapperIdentity}";
         internal NeoRenderBindingStore RenderBindings { get; } = new();
 
         internal void MarkClassDefaultReference()
@@ -97,6 +103,7 @@ namespace NeoCompose.Runtime
         {
             if (isDisposed) return;
             isDisposed = true;
+            client.ReleaseAnimationClips(this);
             foreach (var subscription in subscriptions.ToArray())
             {
                 subscription.Dispose();

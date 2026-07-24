@@ -602,6 +602,17 @@ namespace NeoCompose.Runtime.Json
         public string? mapKey { get; set; }
 
         /// <summary>
+        /// Stable identity of the authored value row from which this
+        /// instance-owned row was materialized. Object placements use this
+        /// provenance to address authored Children entries exactly after
+        /// each placement receives fresh value ids. It is immutable across
+        /// Save/Session shadows and is never inferred from a name or list
+        /// position.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? sourceValueId { get; set; }
+
+        /// <summary>
         /// Generic-bindings stamp (specs/class-generics.md
         /// Decision 9): present on List/Dictionary value rows whose entry
         /// member subtree references generic params — the resolved

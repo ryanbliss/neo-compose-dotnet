@@ -72,6 +72,8 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, NeoMember> nodes => nodesInternal;
         private readonly Dictionary<string, NeoMember> nodesInternal = new();
         private readonly Dictionary<string, NeoGeneratedClassValue> generatedValuesInternal = new();
+        private readonly Dictionary<string, object> animationClips = new();
+        private readonly NeoAnimationCoordinator animationCoordinator = new();
         private readonly HashSet<NeoDialogue> activeDialogues = new();
         private readonly HashSet<NeoDeferredFunctionBase> activeDirectDeferredFunctions = new();
         private readonly object activeDirectDeferredFunctionsLock = new();
@@ -151,6 +153,55 @@ namespace NeoCompose.Runtime
         internal ProjectData ProjectDataForRuntime => data;
         internal bool IsDisposed => isDisposed;
         internal int ActiveDialogueCount => activeDialogues.Count;
+        internal NeoAnimationCoordinator AnimationCoordinator => animationCoordinator;
+
+        /// <summary>
+        /// Generated-code support for resolving the per-instance cached
+        /// animation handle for one clip schema key. Application code should
+        /// normally use the generated clip property instead.
+        /// </summary>
+        [System.ComponentModel.EditorBrowsable(
+            System.ComponentModel.EditorBrowsableState.Never)]
+        public NeoAnimationClip<T> GetOrCreateAnimationClip<T>(
+            T target,
+            string schemaKey)
+            where T : NeoGeneratedClassValue
+        {
+            EnsureNotDisposed();
+            string cacheKey = $"{target.AnimationInstanceIdentity}\u001f{schemaKey}";
+            if (animationClips.TryGetValue(cacheKey, out object existing))
+            {
+                if (existing is NeoAnimationClip<T> match) return match;
+                throw new InvalidOperationException(
+                    $"Animation clip cache key '{schemaKey}' changed target type; regenerate the project's C# types.");
+            }
+            NeoAnimationDefinition definition = NeoAnimationCompiler.Compile(target, schemaKey);
+            var clip = new NeoAnimationClip<T>(
+                target,
+                target.AnimationInstanceIdentity,
+                definition.FPS,
+                definition.Duration,
+                animationCoordinator,
+                definition.ApplyFrame);
+            animationClips.Add(cacheKey, clip);
+            return clip;
+        }
+
+        internal void ReleaseAnimationClips(NeoGeneratedClassValue target)
+        {
+            string prefix = $"{target.AnimationInstanceIdentity}\u001f";
+            var remove = new List<string>();
+            foreach (var pair in animationClips)
+            {
+                if (!pair.Key.StartsWith(prefix, System.StringComparison.Ordinal)) continue;
+                if (pair.Value is INeoAnimationPlayer player)
+                {
+                    player.StopFromCoordinator();
+                }
+                remove.Add(pair.Key);
+            }
+            foreach (string key in remove) animationClips.Remove(key);
+        }
 
         /// <summary>
         /// Fired whenever a save-side value row is added, replaced, or
@@ -391,6 +442,8 @@ namespace NeoCompose.Runtime
             {
                 resolvedNSFunctions.Clear();
             }
+            animationCoordinator.Dispose();
+            animationClips.Clear();
             assets.Dispose();
             save.Dispose();
             session.Dispose();
@@ -888,7 +941,7 @@ namespace NeoCompose.Runtime
 
         private static void ValidateExportSchemaVersion(ProjectExportMetadata? metadata)
         {
-            const int currentVersion = 11;
+            const int currentVersion = 12;
             if (metadata is null)
             {
                 throw new System.InvalidOperationException(
@@ -909,7 +962,7 @@ namespace NeoCompose.Runtime
             if (data.internalRecordRelations is null)
             {
                 throw new System.InvalidOperationException(
-                    "Project export schema version 11 is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
+                    "Project export schema version 12 is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
             }
 
             var knownKinds = new HashSet<string>(System.StringComparer.Ordinal)
@@ -3336,6 +3389,9 @@ namespace NeoCompose.Runtime
             // mapKey is immutable partition identity: a shadow of a
             // partition-stamped row stays in the same storage partition.
             clone.mapKey = row.mapKey;
+            // Authored-child provenance is immutable placement identity and
+            // must survive every Save/Session clone-on-write shadow.
+            clone.sourceValueId = row.sourceValueId;
             // genericBindings is immutable creation-time context
             // (specs/class-generics.md Decision 9): a shadow of a
             // stamped collection row keeps its entry-substitution stamp.
@@ -5092,6 +5148,21 @@ namespace NeoCompose.Runtime
 
         private void ValidateNSFunctionMember(NSFunctionMember member)
         {
+            if (member.bodyMode is not null && member.bodyMode != "ui")
+            {
+                throw new System.InvalidOperationException(
+                    $"NSFunction member '{member.id}' has unsupported bodyMode '{member.bodyMode}'.");
+            }
+            if (member.bodyMode == "ui" && member.uiAction is null)
+            {
+                throw new System.InvalidOperationException(
+                    $"UI-mode NSFunction member '{member.id}' is missing uiAction.");
+            }
+            if (member.bodyMode is null && member.uiAction is not null)
+            {
+                throw new System.InvalidOperationException(
+                    $"Custom-code NSFunction member '{member.id}' cannot declare uiAction.");
+            }
             if (member.required
                 || member.defaultValue is not null
                 || !string.IsNullOrEmpty(member.valueId)

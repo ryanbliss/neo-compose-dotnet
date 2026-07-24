@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 11,
+    "schemaVersion": 12,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {

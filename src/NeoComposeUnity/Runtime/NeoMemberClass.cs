@@ -303,6 +303,12 @@ namespace NeoCompose.Runtime
             childMembers = new();
             foreach (var entry in mergedSchema)
             {
+                if (member.partial == true
+                    && (value?.value is null
+                        || !value.value.ContainsKey(entry.schemaKey)))
+                {
+                    continue;
+                }
                 if (!client.TryGetMember(entry.memberId, out Member? childMember)) continue;
                 childMember = SubstituteChildMember(childMember);
                 string? childValueId = childMember.isReadOnly == true

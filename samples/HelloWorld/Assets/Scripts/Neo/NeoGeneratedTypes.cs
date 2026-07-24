@@ -2792,20 +2792,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoObjectPlacementTile>(out writable);
         }
 
-        public virtual NeoVector2Int Cell
-        {
-            get
-            {
-                return new NeoVector2Int(writableNode.Get<NeoMemberVector2IntWritable>("Cell"));
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoObjectPlacementTile.Cell");
-                NeoGeneratedTypesSupport.SetVector2Int(writableNode, "Cell", value);
-            }
-        }
-
-        NeoReadOnlyVector2Int IReadOnlyNeoObjectPlacementTile.Cell
+        public virtual NeoReadOnlyVector2Int Cell
         {
             get
             {
@@ -6276,6 +6263,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new IReadOnlyNeoCollider? Collider { get; }
 
+        NeoAnimationClip<PlayerSpawnObject> IdleAnimation { get; }
+
         new string Name { get; }
 
         new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
@@ -6356,15 +6345,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         public static NeoClassRef<PlayerSpawnObject> Definition { get; } = new NeoClassRef<PlayerSpawnObject>("7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f");
 
-        public override NeoList<NeoObjectBase> Children
-        {
-            get
-            {
-                return new NeoList<NeoObjectBase>(client, writableNode.Get<NeoMemberListWritable>("Children"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Children"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("PlayerSpawnObject.Children"), () => IsReadOnly);
-            }
-        }
-
-        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyPlayerSpawnObject.Children
+        public new virtual NeoReadOnlyList<IReadOnlyNeoObjectBase> Children
         {
             get
             {
@@ -6372,34 +6353,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public override NeoCollider? Collider
-        {
-            get
-            {
-                if (IsReadOnly)
-                {
-                    var child = node.Get<NeoMemberClass>("Collider");
-                    return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, child);
-                }
-                else
-                {
-                    var child = writableNode.Get<NeoMemberClassWritable>("Collider");
-                    return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.CreateWritable(client, child);
-                }
-            }
-            set
-            {
-                ThrowIfReadOnly("PlayerSpawnObject.Collider");
-                if (value is null)
-                {
-                    writableNode.Unset("Collider");
-                    return;
-                }
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Collider", NeoGeneratedTypesSupport.ValueReference(value));
-            }
-        }
-
-        IReadOnlyNeoCollider? IReadOnlyPlayerSpawnObject.Collider
+        public new virtual IReadOnlyNeoCollider? Collider
         {
             get
             {
@@ -6408,28 +6362,23 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public override string Name
+        public virtual NeoAnimationClip<PlayerSpawnObject> IdleAnimation
+        {
+            get
+            {
+                return client.GetOrCreateAnimationClip(this, "IdleAnimation");
+            }
+        }
+
+        public new virtual string Name
         {
             get
             {
                 return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
             }
-            set
-            {
-                ThrowIfReadOnly("PlayerSpawnObject.Name");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
-            }
         }
 
-        public override NeoList<NeoObjectPlacementTile> PlacementTiles
-        {
-            get
-            {
-                return new NeoList<NeoObjectPlacementTile>(client, writableNode.Get<NeoMemberListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("PlayerSpawnObject.PlacementTiles"), () => IsReadOnly);
-            }
-        }
-
-        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyPlayerSpawnObject.PlacementTiles
+        public new virtual NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles
         {
             get
             {
@@ -6632,28 +6581,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 return node.Get<NeoMemberBool>("isTrigger").value?.value;
             }
-            set
-            {
-                ThrowIfReadOnly("NeoCollider.isTrigger");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "isTrigger", NeoGeneratedTypesSupport.Value(value));
-            }
         }
 
-        public virtual NeoVector2? offset
-        {
-            get
-            {
-                var child = writableNode.Get<NeoMemberVector2Writable>("offset");
-                return child.value is null ? null : new NeoVector2(child);
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoCollider.offset");
-                NeoGeneratedTypesSupport.SetVector2OrClear(writableNode, "offset", value);
-            }
-        }
-
-        NeoReadOnlyVector2? IReadOnlyNeoCollider.offset
+        public virtual NeoReadOnlyVector2? offset
         {
             get
             {
@@ -6662,20 +6592,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public virtual NeoVector2 size
-        {
-            get
-            {
-                return new NeoVector2(writableNode.Get<NeoMemberVector2Writable>("size"));
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoCollider.size");
-                NeoGeneratedTypesSupport.SetVector2(writableNode, "size", value);
-            }
-        }
-
-        NeoReadOnlyVector2 IReadOnlyNeoCollider.size
+        public virtual NeoReadOnlyVector2 size
         {
             get
             {

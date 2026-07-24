@@ -24,17 +24,17 @@ namespace HelloWorld.Assets.Tests.PlayMode
         private const string ProjectResourcePath = "Neo/project";
 
         [UnityTest]
-        public IEnumerator Schema11Export_LoadsClassAndMemberContractInPlayMode()
+        public IEnumerator Schema12Export_LoadsClassAndMemberContractInPlayMode()
         {
             Assert.IsTrue(Application.isPlaying, "This gate must run through the PlayMode test runner.");
             yield return null;
 
             using var store = CreateLoadedStore();
-            using var synchronizer = store.CreateNew("playmode-schema-11");
+            using var synchronizer = store.CreateNew("playmode-schema-12");
             var schema = synchronizer.Schema;
 
             Assert.IsNotNull(schema.metadata);
-            Assert.AreEqual(11, schema.metadata!.schemaVersion);
+            Assert.AreEqual(12, schema.metadata!.schemaVersion);
             Assert.IsNotEmpty(schema.classes);
             Assert.IsNotEmpty(schema.members);
 
@@ -95,6 +95,43 @@ namespace HelloWorld.Assets.Tests.PlayMode
             Assert.AreEqual(NeoChangeSource.Local, observedSource);
             Assert.AreSame(Planet.mars, client.Save.World);
             CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds(), client.SerializeSaveData());
+        }
+
+        [UnityTest]
+        public IEnumerator GeneratedObjectAnimationClip_PlaysAuthoredFramesInPlayMode()
+        {
+            Assert.IsTrue(Application.isPlaying, "This gate must run through the PlayMode test runner.");
+
+            using var store = CreateLoadedStore();
+            using var synchronizer = store.CreateNew("playmode-object-animation");
+            using var client = HelloWorldNeo.Load(
+                    synchronizer,
+                    localizationOptions: EnglishLocalizationOptions())
+                .GetAwaiter()
+                .GetResult();
+            NeoResolvedObjectInstance<PlayerSpawnObject> placement = client
+                .Assets
+                .Worlds
+                .OldConsoleLanding
+                .Content
+                .Objects
+                .GetObject<PlayerSpawnObject>(new Vector2Int(-7, 2));
+            Assert.IsNotNull(placement);
+
+            PlayerSpawnObject playerSpawn = placement.Info;
+            NeoAnimationClip<PlayerSpawnObject> clip = playerSpawn.IdleAnimation;
+            var enteredFrames = new List<int>();
+            using var frameZero = clip.AddFrameEvent(0, () => enteredFrames.Add(0));
+            using var frameOne = clip.AddFrameEvent(1, () => enteredFrames.Add(1));
+
+            clip.PlayOnce();
+            Assert.AreEqual(new Vector3(-7, 2, 0), playerSpawn.Position.Value);
+
+            yield return new WaitForSeconds(0.25f);
+
+            Assert.AreEqual(new Vector3(-6, 2, 0), playerSpawn.Position.Value);
+            CollectionAssert.AreEqual(new[] { 0, 1 }, enteredFrames);
+            Assert.IsFalse(clip.IsPlaying);
         }
 
         [UnityTest]
