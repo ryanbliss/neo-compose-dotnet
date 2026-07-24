@@ -1483,6 +1483,29 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Construction_RejectsUnknownNonNullBodyMode()
+        {
+            NSFunctionMember function = ScriptFunction(
+                "fn-body-mode",
+                "BodyMode",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                Action(
+                    IntType(),
+                    Array.Empty<FunctionArgumentTypeInfo>(),
+                    Return(Number(1))));
+            function.bodyMode = "code";
+
+            InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
+                BuildClient(
+                    new JsonMember[] { function },
+                    ReceiverClass(("BodyMode", function.id))))!;
+
+            StringAssert.Contains("unsupported bodyMode 'code'", error.Message);
+        }
+
+        [Test]
         public void Construction_RejectsStaleStructuredArgumentType()
         {
             FunctionArgumentTypeInfo declared = Argument("Target", MemberKind.Class);

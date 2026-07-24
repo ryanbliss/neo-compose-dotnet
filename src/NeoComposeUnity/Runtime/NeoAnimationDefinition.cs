@@ -1000,12 +1000,13 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Animation clip '{clipKey}' frame {frameIndex} NSFunction action '{memberId}' requires a materialized per-instance target value id.");
             }
-            return () => new NeoMemberNSFunction(
-                    target.Client,
-                    script.Member,
-                    target.valueId,
-                    target.ValueOwnership)
-                .Invoke(target.valueId!, Array.Empty<object?>());
+            var function = new NeoMemberNSFunction(
+                target.Client,
+                script.Member,
+                target.valueId,
+                target.ValueOwnership);
+            string targetValueId = target.valueId!;
+            return () => function.Invoke(targetValueId, Array.Empty<object?>());
         }
 
         private static void ValidateActionSignature(

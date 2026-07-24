@@ -932,6 +932,22 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void AnimationTargetRelease_AllowsOnStopToMutateClipCache()
+        {
+            ProjectData data = BuildPlacementAnimationProjectData();
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
+            var target = (TestComposedObject)placed.Info;
+            NeoAnimationClip<TestComposedObject> clip =
+                NeoGeneratedTypesSupport.GetAnimationClip(target, "Animate");
+            clip.OnStop += client.InvalidateAnimationClips;
+            clip.PlayLoop();
+
+            Assert.DoesNotThrow(target.Dispose);
+            Assert.IsFalse(clip.IsPlaying);
+        }
+
+        [Test]
         public void AnimationOverride_SaveOwnedLeafWritesOnlyToSaveOverlay()
         {
             ProjectData data = BuildPlacementAnimationProjectData();

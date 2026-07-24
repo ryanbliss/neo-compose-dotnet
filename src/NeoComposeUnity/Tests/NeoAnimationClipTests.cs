@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
@@ -172,8 +173,36 @@ namespace NeoCompose.Tests
             using var cancellation = new CancellationTokenSource();
             Task canceled = clip.PlayOnceAsync(cancellationToken: cancellation.Token);
             cancellation.Cancel();
+            Assert.IsFalse(canceled.IsCanceled);
+            Assert.IsTrue(clip.IsPlaying);
+            clip.Tick(0f);
             Assert.IsTrue(canceled.IsCanceled);
             Assert.IsFalse(clip.IsPlaying);
+        }
+
+        [Test]
+        public void PlayOnceAsync_CancellationOnlyStopsDuringCoordinatorTick()
+        {
+            using NeoClient client = CreateClient();
+            TestTarget target = new(client);
+            var clip = CreateClip(target, "object-a", 2, new List<int>());
+            using var cancellation = new CancellationTokenSource();
+            int callerThread = Thread.CurrentThread.ManagedThreadId;
+            int stopThread = -1;
+            clip.OnStop += () => stopThread = Thread.CurrentThread.ManagedThreadId;
+
+            Task completion = clip.PlayOnceAsync(cancellationToken: cancellation.Token);
+            Task.Run(cancellation.Cancel).GetAwaiter().GetResult();
+
+            Assert.IsTrue(clip.IsPlaying);
+            Assert.IsFalse(completion.IsCompleted);
+            Assert.AreEqual(-1, stopThread);
+
+            clip.Tick(0f);
+
+            Assert.IsFalse(clip.IsPlaying);
+            Assert.IsTrue(completion.IsCanceled);
+            Assert.AreEqual(callerThread, stopThread);
         }
 
         [Test]
@@ -181,7 +210,8 @@ namespace NeoCompose.Tests
         {
             using NeoClient client = CreateClient();
             TestTarget target = new(client);
-            var clip = CreateClip(target, "object-a", 2, new List<int>());
+            var entered = new List<int>();
+            var clip = CreateClip(target, "object-a", 2, entered);
             clip.OnPlay += clip.Stop;
 
             Task completion = null!;
@@ -189,6 +219,46 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(completion.IsCanceled);
             Assert.IsFalse(clip.IsPlaying);
+            CollectionAssert.IsEmpty(entered);
+        }
+
+        [Test]
+        public void PlayOnceAsync_NestedRestartOwnsItsCancellationRegistration()
+        {
+            using NeoClient client = CreateClient();
+            TestTarget target = new(client);
+            var entered = new List<int>();
+            var clip = CreateClip(target, "object-a", 2, entered);
+            using var outerCancellation = new CancellationTokenSource();
+            using var nestedCancellation = new CancellationTokenSource();
+            Task? nested = null;
+            int playCount = 0;
+            clip.OnPlay += () =>
+            {
+                if (playCount++ == 0)
+                {
+                    nested = clip.PlayOnceAsync(
+                        cancellationToken: nestedCancellation.Token);
+                }
+            };
+
+            Task outer = clip.PlayOnceAsync(
+                cancellationToken: outerCancellation.Token);
+
+            Assert.IsTrue(outer.IsCanceled);
+            Assert.IsNotNull(nested);
+            Assert.IsTrue(clip.IsPlaying);
+            CollectionAssert.AreEqual(new[] { 0 }, entered);
+
+            outerCancellation.Cancel();
+            clip.Tick(0f);
+            Assert.IsTrue(clip.IsPlaying);
+            Assert.IsFalse(nested!.IsCompleted);
+
+            nestedCancellation.Cancel();
+            clip.Tick(0f);
+            Assert.IsFalse(clip.IsPlaying);
+            Assert.IsTrue(nested!.IsCanceled);
         }
 
         [Test]
@@ -284,6 +354,27 @@ namespace NeoCompose.Tests
             AssertTraversalVector(traversals, "boomerangForward", clip =>
                 clip.PlayLoop(NeoPlayMode.Boomerang, NeoPlayDirection.Forward));
             AssertTraversalVector(traversals, "boomerangBackward", clip =>
+                clip.PlayLoop(NeoPlayMode.Boomerang, NeoPlayDirection.Backward));
+        }
+
+        [Test]
+        public void Playback_MatchesCrossRuntimeParityResolvedFrames()
+        {
+            JObject fixture = JObject.Parse(
+                NeoAnimationFrameResolutionParityFixture.Json);
+            JObject traversals = (JObject)fixture["traversals"]!;
+
+            AssertResolvedFrameVector(fixture, traversals, "onceForward", clip =>
+                clip.PlayOnce(NeoPlayDirection.Forward));
+            AssertResolvedFrameVector(fixture, traversals, "onceBackward", clip =>
+                clip.PlayOnce(NeoPlayDirection.Backward));
+            AssertResolvedFrameVector(fixture, traversals, "repeatForwardWrap", clip =>
+                clip.PlayLoop(NeoPlayMode.Repeat, NeoPlayDirection.Forward));
+            AssertResolvedFrameVector(fixture, traversals, "repeatBackwardWrap", clip =>
+                clip.PlayLoop(NeoPlayMode.Repeat, NeoPlayDirection.Backward));
+            AssertResolvedFrameVector(fixture, traversals, "boomerangForward", clip =>
+                clip.PlayLoop(NeoPlayMode.Boomerang, NeoPlayDirection.Forward));
+            AssertResolvedFrameVector(fixture, traversals, "boomerangBackward", clip =>
                 clip.PlayLoop(NeoPlayMode.Boomerang, NeoPlayDirection.Backward));
         }
 
@@ -386,6 +477,82 @@ namespace NeoCompose.Tests
             Tick(clip, expected.Length - 1);
 
             CollectionAssert.AreEqual(expected, entered, key);
+        }
+
+        private static void AssertResolvedFrameVector(
+            JObject fixture,
+            JObject traversals,
+            string key,
+            Action<NeoAnimationClip<TestTarget>> play)
+        {
+            int[] traversal = traversals[key]!.ToObject<int[]>()!;
+            var expectedFrames = (JArray)fixture["resolvedFrames"]!;
+            var frames = (JArray)fixture["frames"]!;
+            JObject root = (JObject)fixture["root"]!;
+            JObject state = (JObject)root.DeepClone();
+            using NeoClient client = CreateClient();
+            TestTarget target = new(client);
+            int entered = 0;
+            var clip = new NeoAnimationClip<TestTarget>(
+                target,
+                key,
+                fps: 10,
+                duration: expectedFrames.Count,
+                target.Client.AnimationCoordinator,
+                preparePlayback: () => state = (JObject)root.DeepClone(),
+                applyFrame: (frameIndex, useResolvedState) =>
+                {
+                    if (useResolvedState)
+                    {
+                        state = ResolveFixtureFrame(root, frames, frameIndex);
+                    }
+                    else
+                    {
+                        JObject? sparse = frames
+                            .OfType<JObject>()
+                            .FirstOrDefault(frame =>
+                                frame.Value<int>("index") == frameIndex)?["overrides"]
+                            as JObject;
+                        if (sparse is not null) MergeFixtureState(state, sparse);
+                    }
+                    Assert.IsTrue(
+                        JToken.DeepEquals(expectedFrames[frameIndex], state),
+                        $"{key} frame {frameIndex} resolved to {state}");
+                    entered += 1;
+                });
+
+            play(clip);
+            Tick(clip, traversal.Length - 1);
+
+            Assert.AreEqual(traversal.Length, entered, key);
+        }
+
+        private static JObject ResolveFixtureFrame(
+            JObject root,
+            JArray frames,
+            int frameIndex)
+        {
+            var state = (JObject)root.DeepClone();
+            foreach (JObject frame in frames.OfType<JObject>()
+                         .Where(frame => frame.Value<int>("index") <= frameIndex)
+                         .OrderBy(frame => frame.Value<int>("index")))
+            {
+                if (frame["overrides"] is JObject sparse)
+                {
+                    MergeFixtureState(state, sparse);
+                }
+            }
+            return state;
+        }
+
+        private static void MergeFixtureState(JObject state, JObject sparse)
+        {
+            state.Merge(
+                sparse,
+                new JsonMergeSettings
+                {
+                    MergeArrayHandling = MergeArrayHandling.Replace,
+                });
         }
 
         private static void Tick(NeoAnimationClip<TestTarget> clip, int count)

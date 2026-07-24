@@ -194,16 +194,21 @@ namespace NeoCompose.Runtime
         {
             string prefix = $"{target.AnimationInstanceIdentity}\u001f";
             var remove = new List<string>();
-            foreach (var pair in animationClips)
+            var players = new List<INeoAnimationPlayer>();
+            foreach (var pair in new List<KeyValuePair<string, object>>(animationClips))
             {
                 if (!pair.Key.StartsWith(prefix, System.StringComparison.Ordinal)) continue;
                 if (pair.Value is INeoAnimationPlayer player)
                 {
-                    player.StopFromCoordinator();
+                    players.Add(player);
                 }
                 remove.Add(pair.Key);
             }
             foreach (string key in remove) animationClips.Remove(key);
+            foreach (INeoAnimationPlayer player in players)
+            {
+                player.StopFromCoordinator();
+            }
         }
 
         internal void InvalidateAnimationClips()

@@ -53,8 +53,9 @@ namespace NeoCompose.Runtime
         private bool isOnce;
         private bool isBoomerang;
         private bool hasTurned;
+        private long playbackGeneration;
         private TaskCompletionSource<object?>? completion;
-        private CancellationTokenRegistration cancellationRegistration;
+        private PlaybackCancellation? playbackCancellation;
 
         internal NeoAnimationClip(
             T target,
@@ -262,6 +263,12 @@ namespace NeoCompose.Runtime
 
         internal void Tick(float scaledDeltaTime)
         {
+            PlaybackCancellation? cancellation = playbackCancellation;
+            if (cancellation?.IsCancellationRequested == true)
+            {
+                StopInternal(cancelTask: true);
+                return;
+            }
             if (!IsPlaying || IsPaused || scaledDeltaTime <= 0f) return;
             elapsed += scaledDeltaTime;
             int steps = 0;
@@ -290,22 +297,24 @@ namespace NeoCompose.Runtime
         {
             var pending = new TaskCompletionSource<object?>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
-            Start(mode, direction, loops, once, pending);
+            long generation = Start(mode, direction, loops, once, pending);
             Task task = pending.Task;
             if (cancellationToken.CanBeCanceled)
             {
-                CancellationTokenRegistration registration = cancellationToken.Register(
-                    static state => ((NeoAnimationClip<T>)state!).StopInternal(
-                        cancelTask: true,
-                        disposeCancellationRegistration: false),
-                    this);
-                if (IsPlaying) cancellationRegistration = registration;
-                else registration.Dispose();
+                var cancellation = new PlaybackCancellation(cancellationToken);
+                if (IsPlaying && playbackGeneration == generation)
+                {
+                    playbackCancellation = cancellation;
+                }
+                else
+                {
+                    cancellation.Dispose();
+                }
             }
             return task;
         }
 
-        private void Start(
+        private long Start(
             NeoPlayMode mode,
             NeoPlayDirection direction,
             int loops,
@@ -322,6 +331,7 @@ namespace NeoCompose.Runtime
             }
 
             StopInternal(cancelTask: true);
+            long generation = ++playbackGeneration;
             preparePlayback();
             coordinator.Activate(this);
             elapsed = 0f;
@@ -336,9 +346,13 @@ namespace NeoCompose.Runtime
             IsPlaying = true;
             completion = pendingCompletion;
             OnPlay?.Invoke();
-            EnterFrame(
-                CurrentFrame,
-                useResolvedState: direction == NeoPlayDirection.Backward);
+            if (IsPlaying && playbackGeneration == generation)
+            {
+                EnterFrame(
+                    CurrentFrame,
+                    useResolvedState: direction == NeoPlayDirection.Backward);
+            }
+            return generation;
         }
 
         private void AdvanceOneFrame()
@@ -420,22 +434,20 @@ namespace NeoCompose.Runtime
             IsPlaying = false;
             IsPaused = false;
             coordinator.Deactivate(this);
-            CancellationTokenRegistration registration = cancellationRegistration;
-            cancellationRegistration = default;
-            registration.Dispose();
+            PlaybackCancellation? cancellation = playbackCancellation;
+            playbackCancellation = null;
+            cancellation?.Dispose();
             TaskCompletionSource<object?>? pending = completion;
             completion = null;
             pending?.TrySetResult(null);
             OnStop?.Invoke();
         }
 
-        private void StopInternal(
-            bool cancelTask,
-            bool disposeCancellationRegistration = true)
+        private void StopInternal(bool cancelTask)
         {
-            CancellationTokenRegistration registration = cancellationRegistration;
-            cancellationRegistration = default;
-            if (disposeCancellationRegistration) registration.Dispose();
+            PlaybackCancellation? cancellation = playbackCancellation;
+            playbackCancellation = null;
+            cancellation?.Dispose();
             if (!IsPlaying)
             {
                 if (cancelTask && completion is not null)
@@ -452,6 +464,30 @@ namespace NeoCompose.Runtime
             completion = null;
             if (cancelTask) pending?.TrySetCanceled();
             OnStop?.Invoke();
+        }
+
+        private sealed class PlaybackCancellation : IDisposable
+        {
+            private readonly CancellationTokenRegistration registration;
+            private int isCancellationRequested;
+
+            internal PlaybackCancellation(CancellationToken cancellationToken)
+            {
+                registration = cancellationToken.Register(
+                    static state =>
+                    {
+                        var cancellation = (PlaybackCancellation)state!;
+                        Interlocked.Exchange(
+                            ref cancellation.isCancellationRequested,
+                            1);
+                    },
+                    this);
+            }
+
+            internal bool IsCancellationRequested =>
+                Volatile.Read(ref isCancellationRequested) != 0;
+
+            public void Dispose() => registration.Dispose();
         }
 
         private static void ValidateLoopCount(int loopCount)
