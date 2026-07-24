@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-07-23
+
+### Changed
+
+- Updated the Hello World NeoScript and runtime fixtures to contract 3.4's
+  compact system protection kinds while retaining world authoring metadata
+  required by the Unity runtime.
+
 ## [0.6.2] - 2026-07-23
 
 ### Changed
