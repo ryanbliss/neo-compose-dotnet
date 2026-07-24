@@ -19,9 +19,9 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "885177aea267ed970986bf5966a2ea6b8032b0f7023d51baf64601d752a1aa52",
-        "codegenContractHash": "abb7cee26f145d14ff954e6c1224dba85b0daa28773a3d2ec4c7616ae372e6b0",
-        "runtimeDataContractHash": "e3f525b62a13c066e7131a1e958bd7d14a2b4fd8a8f41b6838738c87a80916fd"
+        "projectDocumentContentHash": "4b907f8d695b80506d17e62305edbefd680afaad7a9a0f8eefa93f8753a704b1",
+        "codegenContractHash": "448432d151349369f94e7c6e4d0ff10482f91f48138cef3395c2a1a7902c3364",
+        "runtimeDataContractHash": "b8906743359cb326cb5b2a61a2bc58a4f6014d0ab12a631403afbc5b7e0a98a9"
     },
     "localization": {
         "schemaVersion": 1,
@@ -491,6 +491,28 @@
             "updatedAt": 1778179728106,
             "valueId": "2b63dd9f-df25-460d-84c3-67b8fdefcd07"
         },
+        "094c2304-7a4a-44e6-9ee4-04d1a2d5b09e": {
+            "accessModifierKind": "public",
+            "createdAt": 1784892826165,
+            "defaultValue": {
+                "value": [
+                    "51d692d3-7fc7-4a2a-9619-ac7dba39b71c"
+                ]
+            },
+            "entryMemberId": "b3280478-f039-47a2-aa18-918175818bcb",
+            "extendsMemberId": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
+            "id": "094c2304-7a4a-44e6-9ee4-04d1a2d5b09e",
+            "isStatic": false,
+            "isVirtual": true,
+            "kind": 6,
+            "locked": true,
+            "name": "Children",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "storage": "session",
+            "updatedAt": 1784894429392,
+            "valueId": "85aeefc8-077c-4908-aa22-bfae92174e48"
+        },
         "0a51bdef-4b3e-49d6-913b-11cbea98bced": {
             "accessModifierKind": "public",
             "createdAt": 1782971224672,
@@ -740,6 +762,20 @@
                 "kind": "worldAuthoring"
             },
             "updatedAt": 1782971224672
+        },
+        "119f41e3-f3d3-4358-bf2d-43b80e0f1faa": {
+            "accessModifierKind": "public",
+            "classId": "f107d81d-d1b5-4d27-8411-3ed9f97b70d8",
+            "createdAt": 1784932168958,
+            "id": "119f41e3-f3d3-4358-bf2d-43b80e0f1faa",
+            "isStatic": false,
+            "isVirtual": true,
+            "kind": 7,
+            "locked": false,
+            "name": "RocketShipObject",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "updatedAt": 1784932168958
         },
         "13e587b4-f143-419e-b2f1-a5fb2fef92fd": {
             "accessModifierKind": "public",
@@ -1300,7 +1336,9 @@
             "name": "Children",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
-            "updatedAt": 1782957267819
+            "storage": "session",
+            "updatedAt": 1784891034605,
+            "valueId": "4c50815e-f51b-4480-8012-ce17ca5e42e1"
         },
         "33e86f10-7989-4d82-9156-631a19e3bf06": {
             "accessModifierKind": "public",
@@ -1496,7 +1534,9 @@
             "name": "Children",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
-            "updatedAt": 1782174037995
+            "storage": "session",
+            "updatedAt": 1784887496644,
+            "valueId": "104ffe27-d101-4e92-96d8-75ce67f46481"
         },
         "35ac06e1-119c-4d1f-81e9-f119610e3865": {
             "accessModifierKind": "public",
@@ -4818,6 +4858,20 @@
             },
             "updatedAt": 1783191296652
         },
+        "996149e8-8032-4ff5-b1d2-41f1f9d3d03e": {
+            "accessModifierKind": "public",
+            "classId": "f107d81d-d1b5-4d27-8411-3ed9f97b70d8",
+            "createdAt": 1784894390292,
+            "id": "996149e8-8032-4ff5-b1d2-41f1f9d3d03e",
+            "isStatic": false,
+            "isVirtual": true,
+            "kind": 7,
+            "locked": false,
+            "name": "RocketShipObject",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "updatedAt": 1784894390292
+        },
         "99a98018-cf3f-40b0-8405-7b0e1e0020e0": {
             "accessModifierKind": "public",
             "classId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
@@ -5618,6 +5672,37 @@
             "system": null,
             "updatedAt": 1779237891832
         },
+        "caffe91f-243a-4479-970d-0f94aacb474f": {
+            "accessModifierKind": "public",
+            "classArguments": {
+                "268e9d23-347b-4eb6-8bec-cf0edf326aa2": {
+                    "kind": "member",
+                    "memberId": "119f41e3-f3d3-4358-bf2d-43b80e0f1faa"
+                }
+            },
+            "classId": "d90c80ec-3bf4-59c2-83d3-8d8b94f605f4",
+            "createdAt": 1784932168958,
+            "defaultValue": {
+                "classId": "d90c80ec-3bf4-59c2-83d3-8d8b94f605f4",
+                "value": {
+                    "Duration": "d7fb802b-9eb7-4e71-a116-9a3027488f97",
+                    "FPS": "90da7836-fa49-4289-9a1e-8b8181b3e6d1",
+                    "Frames": "a7563355-8bdf-4472-8826-c90588444825",
+                    "Tracks": "b7d36599-a437-47a5-b6aa-46101364b717"
+                }
+            },
+            "id": "caffe91f-243a-4479-970d-0f94aacb474f",
+            "isStatic": false,
+            "isVirtual": true,
+            "kind": 7,
+            "locked": false,
+            "name": "RocketIdle",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "storage": "immutable",
+            "updatedAt": 1784932184349,
+            "valueId": "80504455-b8a7-4ce8-871a-98706fa48c24"
+        },
         "cb7b2bbc-3c66-458f-9ed5-362715c09ece": {
             "accessModifierKind": "public",
             "classId": "d0d89a1e-8981-5370-b78d-7848a3b999cb",
@@ -6294,9 +6379,9 @@
             "name": "Collider",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": false,
-            "storage": null,
+            "storage": "session",
             "system": null,
-            "updatedAt": 1783397356351,
+            "updatedAt": 1784887520597,
             "valueId": "5795c620-5095-4ac8-829d-bdeaa63a7a68"
         },
         "e6bdf8bd-bb3c-4827-b14c-24173d6b75d1": {
@@ -6408,6 +6493,20 @@
                 "kind": "worldAuthoring"
             },
             "updatedAt": 1783403829047
+        },
+        "ed1562d5-278a-4394-be95-c7ca94b53828": {
+            "accessModifierKind": "public",
+            "classId": "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
+            "createdAt": 1784933371008,
+            "id": "ed1562d5-278a-4394-be95-c7ca94b53828",
+            "isStatic": false,
+            "isVirtual": true,
+            "kind": 7,
+            "locked": true,
+            "name": "NeoSpriteObject",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "updatedAt": 1784933371008
         },
         "eee91bb4-a583-4f52-82a9-d98e07282946": {
             "accessModifierKind": "public",
@@ -8630,7 +8729,7 @@
                 "Collider",
                 "Position"
             ],
-            "updatedAt": 1784879631059
+            "updatedAt": 1784887476952
         },
         "7ed188f9-484b-4692-840d-436acf1635aa": {
             "createdAt": 1781759686435,
@@ -9149,6 +9248,21 @@
             },
             "updatedAt": 1783208181138
         },
+        "f107d81d-d1b5-4d27-8411-3ed9f97b70d8": {
+            "allowedStorage": "session",
+            "createdAt": 1784892759810,
+            "extendsClassId": "4c2aa621-e662-419f-a5b5-d8dcfab9b29b",
+            "hiddenInMemberSelector": false,
+            "id": "f107d81d-d1b5-4d27-8411-3ed9f97b70d8",
+            "isAbstract": false,
+            "name": "RocketShipObject",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "schema": {
+                "Children": "094c2304-7a4a-44e6-9ee4-04d1a2d5b09e",
+                "RocketIdle": "caffe91f-243a-4479-970d-0f94aacb474f"
+            },
+            "updatedAt": 1784932168958
+        },
         "f1b08825-2ad0-4666-acf1-3df7ffbda64e": {
             "createdAt": 1782348579677,
             "extendsClassId": "1e408179-cf71-5b9d-a4fb-f60a5f6fe705",
@@ -9343,6 +9457,17 @@
         }
     },
     "internalRecordRelations": {
+        "4832224f-6551-4888-8c52-734b577f9d60": {
+            "createdAt": 1784892759810,
+            "id": "4832224f-6551-4888-8c52-734b577f9d60",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "relationKind": "world.grid.object-import",
+            "sourceRecordId": "b44d80a9-7760-4919-8844-0cb71d08b788",
+            "sourceRecordKind": "class",
+            "targetRecordId": "f107d81d-d1b5-4d27-8411-3ed9f97b70d8",
+            "targetRecordKind": "class",
+            "updatedAt": 1784892759810
+        },
         "neo-tile-grid-record-relations-v1-relation-104bee80c8bc6c31b5b8d1fd54907638": {
             "createdAt": 1784270659880,
             "id": "neo-tile-grid-record-relations-v1-relation-104bee80c8bc6c31b5b8d1fd54907638",
@@ -10526,6 +10651,15 @@
                 "VisitCount": "9fb322dd-3cb1-4289-aa6f-f73171c1745e"
             }
         },
+        "104ffe27-d101-4e92-96d8-75ce67f46481": {
+            "createdAt": 1784887496644,
+            "id": "104ffe27-d101-4e92-96d8-75ce67f46481",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784887496644,
+            "value": [
+                "d0d48343-8748-40bf-b35a-3e88cdd7e3a5"
+            ]
+        },
         "10779d62-cb77-4aaa-a612-089da78deb54": {
             "createdAt": 1784883788656,
             "id": "10779d62-cb77-4aaa-a612-089da78deb54",
@@ -10695,6 +10829,16 @@
                 "fe185d9d-63c5-5f71-be71-408db18a84ee"
             ]
         },
+        "14a26a9d-7746-45c4-9320-c3d14c499ae3": {
+            "classId": "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
+            "createdAt": 1784933373849,
+            "id": "14a26a9d-7746-45c4-9320-c3d14c499ae3",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": {
+                "Sprite": "924b55fe-4400-4b01-9307-cc1519c78e28"
+            }
+        },
         "155a3ca9-1d94-416a-84b7-c9eecbf4cc94": {
             "classId": null,
             "createdAt": 1781648899404,
@@ -10718,6 +10862,13 @@
                 "Condition": "f57b08f4-37d8-4962-9f92-6098d7c6c690"
             }
         },
+        "1684f275-59a2-41ab-9910-a97b9151a864": {
+            "createdAt": 1784929874917,
+            "id": "1684f275-59a2-41ab-9910-a97b9151a864",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": 0
+        },
         "16ef076b-a0ed-4d9f-9b11-733f01961ac0": {
             "classId": null,
             "createdAt": 1781236918553,
@@ -10725,6 +10876,16 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1781236927622,
             "value": "a35cd96d-a503-40be-b006-ece982ed1ccd"
+        },
+        "177a4121-3d16-45be-86de-6d75cff03965": {
+            "classId": "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
+            "createdAt": 1784933373849,
+            "id": "177a4121-3d16-45be-86de-6d75cff03965",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": {
+                "Sprite": "ff616433-17fe-44c1-89a7-4fb21b1317ea"
+            }
         },
         "17a4c5a7-3807-4464-838d-6ce44524d4b0": {
             "classId": null,
@@ -10736,6 +10897,13 @@
                 "x": 1,
                 "y": 0
             }
+        },
+        "17aa7bf3-ff16-4f29-9a62-a043100a274f": {
+            "createdAt": 1784933373849,
+            "id": "17aa7bf3-ff16-4f29-9a62-a043100a274f",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": 2
         },
         "17c52495-7717-4fde-aacb-6945a392c029": {
             "classId": null,
@@ -10853,6 +11021,13 @@
                 "fileId": "615fb640-00f1-416b-af1b-be81a97efc44",
                 "sliceIndex": 14
             }
+        },
+        "19a6d264-bb59-42a1-9f25-8a085c00047c": {
+            "createdAt": 1784929874917,
+            "id": "19a6d264-bb59-42a1-9f25-8a085c00047c",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": 3
         },
         "1a814b1d-b167-4742-8d82-b65c9123b754": {
             "classId": "d90c80ec-3bf4-59c2-83d3-8d8b94f605f4",
@@ -11097,6 +11272,16 @@
                 "z": 0
             }
         },
+        "1fa34472-7a21-4f5f-af2b-4f2ed49e62e0": {
+            "classId": "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
+            "createdAt": 1784933373849,
+            "id": "1fa34472-7a21-4f5f-af2b-4f2ed49e62e0",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": {
+                "Sprite": "ef311fc7-5192-4d10-9bff-dff7de2c0854"
+            }
+        },
         "1fe5de35-840b-490e-8539-afc7771d566b": {
             "classId": null,
             "createdAt": 1781855575476,
@@ -11116,6 +11301,18 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1782973615255,
             "value": 1
+        },
+        "201c4d0e-2875-4df8-b490-6077a4e138d5": {
+            "classId": "a17efa2f-45e0-5c1c-b650-d321cf70efc3",
+            "createdAt": 1784933373849,
+            "id": "201c4d0e-2875-4df8-b490-6077a4e138d5",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": {
+                "Actions": "72834b2c-d8e2-4338-b6d2-f904e8c3ed59",
+                "ChildOverrides": "268bd534-f96f-4e62-9c64-673f042f97d8",
+                "Index": "95b4157a-a1e4-4ff7-a0e0-13dcff663667"
+            }
         },
         "2037e5c5-1204-4996-967c-b3a076af4ed9": {
             "classId": null,
@@ -11479,6 +11676,15 @@
                 "y": -10
             }
         },
+        "268bd534-f96f-4e62-9c64-673f042f97d8": {
+            "createdAt": 1784933373849,
+            "id": "268bd534-f96f-4e62-9c64-673f042f97d8",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": [
+                "a46d973f-5ced-4519-8c63-bedada293ea9"
+            ]
+        },
         "26cd2158-0bd9-4905-b3bf-1812bcd62a86": {
             "classId": null,
             "createdAt": 1781240904739,
@@ -11745,6 +11951,13 @@
             "value": {
                 "Cell": "969fb62e-8d7e-4c26-b3a1-143f5f454b0e"
             }
+        },
+        "2d24f0d2-6861-4f23-9371-e42df8bf4017": {
+            "createdAt": 1784894397795,
+            "id": "2d24f0d2-6861-4f23-9371-e42df8bf4017",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": 4
         },
         "2d59a566-3c0e-42e6-a359-0bf67570b4f1": {
             "classId": null,
@@ -12640,6 +12853,15 @@
                 "sliceIndex": 0
             }
         },
+        "3ddf81f7-ba36-4656-8cbb-0d86afaadb74": {
+            "createdAt": 1784933373849,
+            "id": "3ddf81f7-ba36-4656-8cbb-0d86afaadb74",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": [
+                "51d692d3-7fc7-4a2a-9619-ac7dba39b71c"
+            ]
+        },
         "3e5eebf9-1cd4-4c04-8cf9-23f58f644ce7": {
             "classId": "628e0cce-5472-4bec-addd-71230b8e64a6",
             "createdAt": 1782973589718,
@@ -12717,6 +12939,13 @@
                 "x": -5,
                 "y": -10
             }
+        },
+        "41228bcb-25f0-4afe-b7f7-ffe1599efb24": {
+            "createdAt": 1784933373849,
+            "id": "41228bcb-25f0-4afe-b7f7-ffe1599efb24",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": 3
         },
         "4168895f-4ed3-43bb-bfa5-765cbb25d7ff": {
             "classId": "3ab13327-ccaa-4dbe-8ec7-24b9592ddf15",
@@ -12803,6 +13032,17 @@
                 "53438afa-206b-5bec-a202-c9b60d1ad8b6"
             ]
         },
+        "427c98dd-313f-4bfe-9500-58ff90552f29": {
+            "createdAt": 1784894188616,
+            "id": "427c98dd-313f-4bfe-9500-58ff90552f29",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784894188616,
+            "value": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            }
+        },
         "42820a6e-afea-4ddb-b799-ca0d90d2beee": {
             "classId": null,
             "createdAt": 1782012571783,
@@ -12850,6 +13090,15 @@
                 "fe185d9d-63c5-5f71-be71-408db18a84ee"
             ]
         },
+        "43c6f202-06df-4a1c-bee9-eb170fd1da26": {
+            "createdAt": 1784929874917,
+            "id": "43c6f202-06df-4a1c-bee9-eb170fd1da26",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": [
+                "50f7c9b2-366b-45f9-9e1c-f48792a38ba2"
+            ]
+        },
         "43d2b80d-8c14-42ea-81ef-953f047c32e2": {
             "classId": "3ab13327-ccaa-4dbe-8ec7-24b9592ddf15",
             "createdAt": 1783122864109,
@@ -12859,6 +13108,21 @@
             "value": {
                 "Cell": "3921eb6b-1281-428c-983e-72c80b97312c"
             }
+        },
+        "43dc19bf-8ed1-43a7-9567-a4ee50922c2c": {
+            "createdAt": 1784894401382,
+            "genericBindings": {
+                "268e9d23-347b-4eb6-8bec-cf0edf326aa2": "996149e8-8032-4ff5-b1d2-41f1f9d3d03e"
+            },
+            "id": "43dc19bf-8ed1-43a7-9567-a4ee50922c2c",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": [
+                "7265e9c0-5738-45ed-b557-ee0d34523864",
+                "c57afdde-5746-41b6-b493-f511ae81ebfa",
+                "fd913612-15ee-4519-9b5c-b9a06e6c41fd",
+                "d3767d43-d05b-4dcf-aa48-107df1005b03"
+            ]
         },
         "4430bcd1-846e-476d-a38d-2706828123bc": {
             "classId": null,
@@ -12976,6 +13240,13 @@
                 "Condition": "75262de3-fe3d-4ecf-971e-47ec67a75a2e"
             }
         },
+        "46be0eb6-1f87-4d52-ae54-d2618d3e7b14": {
+            "createdAt": 1784933373849,
+            "id": "46be0eb6-1f87-4d52-ae54-d2618d3e7b14",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": []
+        },
         "46e81ca2-d333-4d11-913e-0c3ccc38a5c9": {
             "createdAt": 1782012971265,
             "id": "46e81ca2-d333-4d11-913e-0c3ccc38a5c9",
@@ -13042,6 +13313,16 @@
             "updatedAt": 1784282166878,
             "value": {
                 "Cell": "26828c49-a760-4496-9712-47a8ed8348db"
+            }
+        },
+        "48db23a4-b33f-4e48-99e9-e365a7403df6": {
+            "createdAt": 1784929874917,
+            "id": "48db23a4-b33f-4e48-99e9-e365a7403df6",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 3
             }
         },
         "4928425c-d4b0-45ae-8c16-791b21196439": {
@@ -13160,6 +13441,15 @@
                 "sliceIndex": 0
             }
         },
+        "4c50815e-f51b-4480-8012-ce17ca5e42e1": {
+            "createdAt": 1784891034605,
+            "id": "4c50815e-f51b-4480-8012-ce17ca5e42e1",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784891034605,
+            "value": [
+                "4d4d8a22-92e0-457d-8e86-0a41c6193259"
+            ]
+        },
         "4ca6b71b-2a7e-4f99-977d-1bcdb2556d9e": {
             "classId": "neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152",
             "createdAt": 1782012971265,
@@ -13204,6 +13494,15 @@
                 "53438afa-206b-5bec-a202-c9b60d1ad8b6"
             ]
         },
+        "4d3b3286-9bbb-40d8-bee1-1cdb5ffd04d4": {
+            "createdAt": 1784929874917,
+            "id": "4d3b3286-9bbb-40d8-bee1-1cdb5ffd04d4",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": [
+                "68c85642-4917-4a0f-8541-62d5af1d1169"
+            ]
+        },
         "4d4129fa-9064-42bb-97e1-858476f7c191": {
             "classId": null,
             "createdAt": 1782973289328,
@@ -13236,6 +13535,16 @@
                 "Position": "3eb881ba-bbff-4b83-9f3a-eab2e6345e75",
                 "Size": "cf645a71-f326-40b1-87ee-6561910ede0b",
                 "Sprite": "1bd90798-cbcc-40d5-b2c1-2d64d4306c9a"
+            }
+        },
+        "4d4de9ff-2fcd-47c0-873f-45ca32a56f0d": {
+            "createdAt": 1784933373849,
+            "id": "4d4de9ff-2fcd-47c0-873f-45ca32a56f0d",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 1
             }
         },
         "4d5e994c-1b72-461a-82bb-072ce839d9af": {
@@ -13371,6 +13680,17 @@
                 "Cell": "247cc816-9c9e-4a0b-997a-b05dc4a316d2"
             }
         },
+        "4f6554a5-d89c-4b4c-90c5-5d22777fdbfd": {
+            "classId": "7286fdd7-8ba1-5640-bfe0-8994cf245fb9",
+            "createdAt": 1784929874917,
+            "id": "4f6554a5-d89c-4b4c-90c5-5d22777fdbfd",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": {
+                "Child": "cef5315f-c801-4ebc-8541-9b4946e450c4",
+                "Overrides": "ac4573cd-5c6b-4ae6-b0c1-879f28cea3a4"
+            }
+        },
         "4fd7b766-01c5-4c5f-bb71-56575dd3454f": {
             "classId": null,
             "createdAt": 1782973413312,
@@ -13447,6 +13767,17 @@
                 "Condition": "5625b86a-d7ee-467b-a770-efb70a8261e1"
             }
         },
+        "50f7c9b2-366b-45f9-9e1c-f48792a38ba2": {
+            "classId": "7286fdd7-8ba1-5640-bfe0-8994cf245fb9",
+            "createdAt": 1784929874917,
+            "id": "50f7c9b2-366b-45f9-9e1c-f48792a38ba2",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": {
+                "Child": "9e8dcaad-7c74-4347-a725-d7b4b76c3c33",
+                "Overrides": "d7a88bca-ca09-42d3-8835-48eff2267175"
+            }
+        },
         "5147895c-666f-4e67-b77e-9575fde4d9d3": {
             "classId": null,
             "createdAt": 1782973106033,
@@ -13477,6 +13808,19 @@
             "value": [
                 "ccd4ad32-be66-4d5c-9dfb-4cb383c5910b"
             ]
+        },
+        "51d692d3-7fc7-4a2a-9619-ac7dba39b71c": {
+            "classId": "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
+            "createdAt": 1784894188616,
+            "id": "51d692d3-7fc7-4a2a-9619-ac7dba39b71c",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784894188616,
+            "value": {
+                "Name": "d554bff6-66df-458a-ae20-aa61cc9a0e64",
+                "Position": "427c98dd-313f-4bfe-9500-58ff90552f29",
+                "Size": "77539419-a17a-4387-8d73-b7da1d30768f",
+                "Sprite": "b6edcec1-8de4-4fd7-9834-6526ece3dffc"
+            }
         },
         "51f96355-fa16-4f33-8238-f84c06690fde": {
             "classId": null,
@@ -13561,8 +13905,8 @@
             "createdAt": 1782012971265,
             "id": "537b54d1-172d-4d09-923b-843294613388",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1782012971265,
-            "value": ""
+            "updatedAt": 1784888273882,
+            "value": "PlayerSprite"
         },
         "5380a52f-4d6e-4d63-b164-fadfef12003f": {
             "classId": null,
@@ -13622,7 +13966,7 @@
             },
             "id": "5585bbe9-cae2-4c48-b05f-65984b2fccc2",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1784879642426,
+            "updatedAt": 1784891195318,
             "value": []
         },
         "55b0676b-1a21-45bc-a72f-332e48aad362": {
@@ -13631,6 +13975,15 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1784883788656,
             "value": 8
+        },
+        "55c43b0f-c34e-4ac3-80ba-bf710652449f": {
+            "createdAt": 1784933373849,
+            "id": "55c43b0f-c34e-4ac3-80ba-bf710652449f",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": [
+                "51d692d3-7fc7-4a2a-9619-ac7dba39b71c"
+            ]
         },
         "55fc0709-788b-43f9-bb05-8ed20d207c34": {
             "classId": null,
@@ -14075,6 +14428,13 @@
                 "912f12ed-3b64-4312-85ce-b6e60f8a8ac6"
             ]
         },
+        "5d8f84c2-faeb-49b9-9b40-59d9a6435fcd": {
+            "createdAt": 1784894404987,
+            "id": "5d8f84c2-faeb-49b9-9b40-59d9a6435fcd",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784894404987,
+            "value": []
+        },
         "5dbb9c39-7f2e-4dfc-ac6b-f0c6137347d0": {
             "classId": null,
             "createdAt": 1782973364471,
@@ -14127,6 +14487,13 @@
             "value": {
                 "Cell": "604c5231-32bf-4a0e-9390-3589849e091a"
             }
+        },
+        "5eef83e1-bb95-4e9d-a283-d621ae53c65a": {
+            "createdAt": 1784929874917,
+            "id": "5eef83e1-bb95-4e9d-a283-d621ae53c65a",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": []
         },
         "5ffe9e64-4f46-45ad-b075-ceedd9074510": {
             "classId": null,
@@ -14445,6 +14812,17 @@
                 "Cell": "dc6d397b-bbb3-4fc7-8b5c-a785b9c4c215"
             }
         },
+        "68c85642-4917-4a0f-8541-62d5af1d1169": {
+            "classId": "7286fdd7-8ba1-5640-bfe0-8994cf245fb9",
+            "createdAt": 1784929874917,
+            "id": "68c85642-4917-4a0f-8541-62d5af1d1169",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": {
+                "Child": "c4ddab1e-134b-4179-b707-7fc9cddfec22",
+                "Overrides": "73b4ef59-bf3f-43db-8de5-d26d3ad326e8"
+            }
+        },
         "68f1c315-d651-4565-bc95-b1aa95d2a60e": {
             "createdAt": 1784883788656,
             "id": "68f1c315-d651-4565-bc95-b1aa95d2a60e",
@@ -14487,6 +14865,13 @@
                 "Frames": "0fd52937-1093-4540-b4a8-f6f83b521cd7",
                 "Tracks": "a5b39755-1898-455f-b038-17e38c48aea0"
             }
+        },
+        "69cb3522-bad3-4983-a2ca-7521a9f1a68c": {
+            "createdAt": 1784933373849,
+            "id": "69cb3522-bad3-4983-a2ca-7521a9f1a68c",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": 1
         },
         "69ffb699-0a33-4776-964f-5c39d15dc6e1": {
             "classId": null,
@@ -14608,6 +14993,15 @@
             "updatedAt": 1782974391617,
             "value": [
                 "53438afa-206b-5bec-a202-c9b60d1ad8b6"
+            ]
+        },
+        "6c16644c-a69a-48d0-8dd7-aeadf73866f3": {
+            "createdAt": 1784929874917,
+            "id": "6c16644c-a69a-48d0-8dd7-aeadf73866f3",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": [
+                "4f6554a5-d89c-4b4c-90c5-5d22777fdbfd"
             ]
         },
         "6c17765b-2aa5-4a00-a7f8-9707248f6882": {
@@ -14738,6 +15132,20 @@
                 "dd859a21-d18e-5ad4-962d-af6b939b7f29"
             ]
         },
+        "6ead1e48-cfa3-43f5-8bb8-5e7cec81b75e": {
+            "classId": "7286fdd7-8ba1-5640-bfe0-8994cf245fb9",
+            "createdAt": 1784933373849,
+            "genericBindings": {
+                "de23448a-45be-4e3f-8965-072a545e08f0": "ed1562d5-278a-4394-be95-c7ca94b53828"
+            },
+            "id": "6ead1e48-cfa3-43f5-8bb8-5e7cec81b75e",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": {
+                "Child": "8d1cea7b-8624-4e24-8322-739b38c45949",
+                "Overrides": "177a4121-3d16-45be-86de-6d75cff03965"
+            }
+        },
         "6ebcdf77-3c34-4cb6-a97a-54610f8ff9e2": {
             "classId": null,
             "createdAt": 1781240858303,
@@ -14832,6 +15240,25 @@
                 "Cell": "6cffd036-a1b7-4558-9103-34a60ef87d39"
             }
         },
+        "7265e9c0-5738-45ed-b557-ee0d34523864": {
+            "classId": "a17efa2f-45e0-5c1c-b650-d321cf70efc3",
+            "createdAt": 1784929874917,
+            "id": "7265e9c0-5738-45ed-b557-ee0d34523864",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": {
+                "Actions": "9f6b3a2d-e151-4975-9803-fe88466badf9",
+                "ChildOverrides": "4d3b3286-9bbb-40d8-bee1-1cdb5ffd04d4",
+                "Index": "1684f275-59a2-41ab-9910-a97b9151a864"
+            }
+        },
+        "72834b2c-d8e2-4338-b6d2-f904e8c3ed59": {
+            "createdAt": 1784933373849,
+            "id": "72834b2c-d8e2-4338-b6d2-f904e8c3ed59",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": []
+        },
         "728a1713-1c21-484a-bed8-cdd285134a11": {
             "classId": null,
             "createdAt": 1782974112429,
@@ -14883,6 +15310,16 @@
             "value": {
                 "Name": "1c78411e-4d5d-4f11-8306-420758f89046",
                 "Value": "d18cab07-8490-4ade-bbd0-41c3cab5ff4c"
+            }
+        },
+        "73b4ef59-bf3f-43db-8de5-d26d3ad326e8": {
+            "classId": "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
+            "createdAt": 1784929874917,
+            "id": "73b4ef59-bf3f-43db-8de5-d26d3ad326e8",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": {
+                "Sprite": "ea7feb12-0083-4d2d-947e-126464b89d4a"
             }
         },
         "74516a22-4993-4bef-a2ff-426884b65a83": {
@@ -15043,6 +15480,17 @@
             "updatedAt": 1784881162981,
             "value": []
         },
+        "77539419-a17a-4387-8d73-b7da1d30768f": {
+            "createdAt": 1784894188616,
+            "id": "77539419-a17a-4387-8d73-b7da1d30768f",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784894188616,
+            "value": {
+                "x": 1,
+                "y": 1,
+                "z": 0
+            }
+        },
         "77561c95-0c3f-4291-a79b-7e5562d8ee30": {
             "classId": null,
             "createdAt": 1777767446579,
@@ -15102,6 +15550,16 @@
             "value": [
                 "53438afa-206b-5bec-a202-c9b60d1ad8b6"
             ]
+        },
+        "78642e54-a08c-40ba-9d8a-99f4ba99d0ec": {
+            "classId": "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
+            "createdAt": 1784933373849,
+            "id": "78642e54-a08c-40ba-9d8a-99f4ba99d0ec",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": {
+                "Sprite": "4d4de9ff-2fcd-47c0-873f-45ca32a56f0d"
+            }
         },
         "7869f620-55c0-41c9-a144-fbfb83231124": {
             "classId": null,
@@ -15437,6 +15895,14 @@
             "updatedAt": 1782973931190,
             "value": 1
         },
+        "80504455-b8a7-4ce8-871a-98706fa48c24": {
+            "classId": "d90c80ec-3bf4-59c2-83d3-8d8b94f605f4",
+            "createdAt": 1784932168958,
+            "id": "80504455-b8a7-4ce8-871a-98706fa48c24",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784932168958,
+            "value": {}
+        },
         "805186a9-701a-42c0-8868-d36458a6d684": {
             "classId": null,
             "createdAt": 1783122864109,
@@ -15476,6 +15942,15 @@
                 "x": 1,
                 "y": 0
             }
+        },
+        "811a1b18-1c0d-47af-9567-67d7ebf191d4": {
+            "createdAt": 1784929874917,
+            "id": "811a1b18-1c0d-47af-9567-67d7ebf191d4",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": [
+                "51d692d3-7fc7-4a2a-9619-ac7dba39b71c"
+            ]
         },
         "81cae58d-bb95-4aac-a365-7cf73dd0a576": {
             "classId": null,
@@ -15589,6 +16064,16 @@
             "updatedAt": 1781240874943,
             "value": false
         },
+        "8435129f-d2ce-4b0b-8fd7-e3366498ab14": {
+            "createdAt": 1784929874917,
+            "id": "8435129f-d2ce-4b0b-8fd7-e3366498ab14",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 1
+            }
+        },
         "84399fd4-109c-4c0b-ad74-f2da3568e305": {
             "classId": null,
             "createdAt": 1781252900991,
@@ -15639,6 +16124,13 @@
                 "y": 1
             }
         },
+        "85aeefc8-077c-4908-aa22-bfae92174e48": {
+            "createdAt": 1784892826165,
+            "id": "85aeefc8-077c-4908-aa22-bfae92174e48",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784892826165,
+            "value": []
+        },
         "85c13b6a-1805-4fcb-bc54-6226af2a99ad": {
             "classId": null,
             "createdAt": 1778178913590,
@@ -15668,6 +16160,20 @@
             "value": [
                 "fe185d9d-63c5-5f71-be71-408db18a84ee"
             ]
+        },
+        "86b033dd-018c-4be3-8b69-b6feb04a4404": {
+            "classId": "7286fdd7-8ba1-5640-bfe0-8994cf245fb9",
+            "createdAt": 1784933373849,
+            "genericBindings": {
+                "de23448a-45be-4e3f-8965-072a545e08f0": "ed1562d5-278a-4394-be95-c7ca94b53828"
+            },
+            "id": "86b033dd-018c-4be3-8b69-b6feb04a4404",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": {
+                "Child": "c795c397-48b2-40ec-9e6a-0ec54df3bdab",
+                "Overrides": "1fa34472-7a21-4f5f-af2b-4f2ed49e62e0"
+            }
         },
         "86f05cfb-6596-4b61-bde0-c11efe51b713": {
             "classId": null,
@@ -15784,6 +16290,20 @@
             "updatedAt": 1784883932756,
             "value": 8
         },
+        "894147bb-3552-4aad-9e5c-1885ffce589b": {
+            "classId": "7286fdd7-8ba1-5640-bfe0-8994cf245fb9",
+            "createdAt": 1784933373849,
+            "genericBindings": {
+                "de23448a-45be-4e3f-8965-072a545e08f0": "ed1562d5-278a-4394-be95-c7ca94b53828"
+            },
+            "id": "894147bb-3552-4aad-9e5c-1885ffce589b",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": {
+                "Child": "3ddf81f7-ba36-4656-8cbb-0d86afaadb74",
+                "Overrides": "78642e54-a08c-40ba-9d8a-99f4ba99d0ec"
+            }
+        },
         "895ef200-07d1-4228-8991-e10b845031f0": {
             "classId": null,
             "createdAt": 1779225940580,
@@ -15893,6 +16413,16 @@
                 "531a08aa-e26e-4caf-aede-a9279151bdb1"
             ]
         },
+        "8b84751b-4f56-4f49-a89e-2da3ece7084f": {
+            "createdAt": 1784929874917,
+            "id": "8b84751b-4f56-4f49-a89e-2da3ece7084f",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 2
+            }
+        },
         "8b8bf3a0-635c-47de-88db-59a4bd61ef0b": {
             "classId": "628e0cce-5472-4bec-addd-71230b8e64a6",
             "createdAt": 1782973301647,
@@ -15980,6 +16510,15 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1778539217026,
             "value": true
+        },
+        "8d1cea7b-8624-4e24-8322-739b38c45949": {
+            "createdAt": 1784933373849,
+            "id": "8d1cea7b-8624-4e24-8322-739b38c45949",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": [
+                "51d692d3-7fc7-4a2a-9619-ac7dba39b71c"
+            ]
         },
         "8d23e45c-421b-45a9-8a47-28e90bec192f": {
             "classId": null,
@@ -16268,6 +16807,13 @@
                 "Size": "f5c59386-7add-4603-924b-0cfef0e59d09"
             }
         },
+        "90da7836-fa49-4289-9a1e-8b8181b3e6d1": {
+            "createdAt": 1784932172828,
+            "id": "90da7836-fa49-4289-9a1e-8b8181b3e6d1",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784932172828,
+            "value": 8
+        },
         "90fc1040-1fff-4c4a-80e7-5a7f88bc2e86": {
             "createdAt": 1784881162981,
             "id": "90fc1040-1fff-4c4a-80e7-5a7f88bc2e86",
@@ -16330,6 +16876,16 @@
             "updatedAt": 1782973165905,
             "value": 1
         },
+        "924b55fe-4400-4b01-9307-cc1519c78e28": {
+            "createdAt": 1784933373849,
+            "id": "924b55fe-4400-4b01-9307-cc1519c78e28",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 0
+            }
+        },
         "9268b099-53e5-4d0f-b969-ae2c9c0ef3db": {
             "classId": null,
             "createdAt": 1782973339942,
@@ -16352,6 +16908,18 @@
             "value": [
                 "aacc313b-e70f-420c-8b8e-2e913b7118c6"
             ]
+        },
+        "929e6c07-e15b-4df2-afd1-d8b0c5fa8bb5": {
+            "classId": "a17efa2f-45e0-5c1c-b650-d321cf70efc3",
+            "createdAt": 1784933373849,
+            "id": "929e6c07-e15b-4df2-afd1-d8b0c5fa8bb5",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": {
+                "Actions": "46be0eb6-1f87-4d52-ae54-d2618d3e7b14",
+                "ChildOverrides": "a1275ab0-5525-4508-82ff-aab4cc31021c",
+                "Index": "17aa7bf3-ff16-4f29-9a62-a043100a274f"
+            }
         },
         "93424123-ef01-40df-a2e2-06105b628c6b": {
             "createdAt": 1782952202186,
@@ -16382,6 +16950,18 @@
             "value": [
                 "53438afa-206b-5bec-a202-c9b60d1ad8b6"
             ]
+        },
+        "93a3ba76-78fd-4f63-a7de-582beda5c3fa": {
+            "classId": "a17efa2f-45e0-5c1c-b650-d321cf70efc3",
+            "createdAt": 1784933373849,
+            "id": "93a3ba76-78fd-4f63-a7de-582beda5c3fa",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": {
+                "Actions": "b3791d3b-6ed1-4e08-8cf5-274f2a2f5f88",
+                "ChildOverrides": "baf22c5e-de99-4361-881b-d1886f84a049",
+                "Index": "69cb3522-bad3-4983-a2ca-7521a9f1a68c"
+            }
         },
         "93b59706-7fa4-4ec0-bf43-41a48b51b632": {
             "classId": null,
@@ -16496,6 +17076,13 @@
                 "z": 0
             }
         },
+        "95b4157a-a1e4-4ff7-a0e0-13dcff663667": {
+            "createdAt": 1784933373849,
+            "id": "95b4157a-a1e4-4ff7-a0e0-13dcff663667",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": 0
+        },
         "95e1bd88-141c-4078-b65c-50c3904848dd": {
             "classId": "628e0cce-5472-4bec-addd-71230b8e64a6",
             "createdAt": 1782973117809,
@@ -16603,6 +17190,15 @@
                 "fileId": "1e4112b5-503c-4cfc-a026-4f5d38e6999c",
                 "sliceIndex": 0
             }
+        },
+        "9742585f-d742-4769-89d2-44b891f080b1": {
+            "createdAt": 1784933373849,
+            "id": "9742585f-d742-4769-89d2-44b891f080b1",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": [
+                "86b033dd-018c-4be3-8b69-b6feb04a4404"
+            ]
         },
         "9746a05a-e073-4ecc-8bd5-2c49d452ca4c": {
             "createdAt": 1784883932756,
@@ -16898,6 +17494,15 @@
                 "sliceIndex": 0
             }
         },
+        "9e8dcaad-7c74-4347-a725-d7b4b76c3c33": {
+            "createdAt": 1784929874917,
+            "id": "9e8dcaad-7c74-4347-a725-d7b4b76c3c33",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": [
+                "51d692d3-7fc7-4a2a-9619-ac7dba39b71c"
+            ]
+        },
         "9ea8c17f-90f6-4e71-968d-33e23e3c3401": {
             "classId": null,
             "createdAt": 1778817778861,
@@ -16942,6 +17547,13 @@
                 "x": -3,
                 "y": -10
             }
+        },
+        "9f6b3a2d-e151-4975-9803-fe88466badf9": {
+            "createdAt": 1784929874917,
+            "id": "9f6b3a2d-e151-4975-9803-fe88466badf9",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": []
         },
         "9f8fbdbc-e338-41c8-83f7-2b9a92b731b4": {
             "classId": null,
@@ -17046,6 +17658,15 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1784883932756,
             "value": 8
+        },
+        "a1275ab0-5525-4508-82ff-aab4cc31021c": {
+            "createdAt": 1784933373849,
+            "id": "a1275ab0-5525-4508-82ff-aab4cc31021c",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": [
+                "6ead1e48-cfa3-43f5-8bb8-5e7cec81b75e"
+            ]
         },
         "a156a90f-c09b-4485-96a6-352b81c88cab": {
             "classId": null,
@@ -17209,6 +17830,20 @@
                 "y": -10
             }
         },
+        "a46d973f-5ced-4519-8c63-bedada293ea9": {
+            "classId": "7286fdd7-8ba1-5640-bfe0-8994cf245fb9",
+            "createdAt": 1784933373849,
+            "genericBindings": {
+                "de23448a-45be-4e3f-8965-072a545e08f0": "ed1562d5-278a-4394-be95-c7ca94b53828"
+            },
+            "id": "a46d973f-5ced-4519-8c63-bedada293ea9",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": {
+                "Child": "55c43b0f-c34e-4ac3-80ba-bf710652449f",
+                "Overrides": "14a26a9d-7746-45c4-9320-c3d14c499ae3"
+            }
+        },
         "a4c37ee6-2584-4945-9114-8d65d0ae9a79": {
             "classId": null,
             "createdAt": 1779225930723,
@@ -17362,6 +17997,21 @@
             "updatedAt": 1777766988997,
             "value": "4c794088-4822-4786-a4d2-60603ec8b1c0"
         },
+        "a7563355-8bdf-4472-8826-c90588444825": {
+            "createdAt": 1784932180464,
+            "genericBindings": {
+                "268e9d23-347b-4eb6-8bec-cf0edf326aa2": "119f41e3-f3d3-4358-bf2d-43b80e0f1faa"
+            },
+            "id": "a7563355-8bdf-4472-8826-c90588444825",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": [
+                "201c4d0e-2875-4df8-b490-6077a4e138d5",
+                "93a3ba76-78fd-4f63-a7de-582beda5c3fa",
+                "929e6c07-e15b-4df2-afd1-d8b0c5fa8bb5",
+                "dcd241d9-95b3-4f82-b487-379f8600eb04"
+            ]
+        },
         "a76fbdf6-f23f-44d8-a6d1-6af933a385bd": {
             "classId": null,
             "createdAt": 1782974337661,
@@ -17428,6 +18078,13 @@
                 "fileId": "6e1643e2-5b91-45a6-a4b1-435f36c1a0f9",
                 "sliceIndex": 0
             }
+        },
+        "a894c1f8-2ab0-40be-9bf0-6e5ed43f9a5f": {
+            "createdAt": 1784929874917,
+            "id": "a894c1f8-2ab0-40be-9bf0-6e5ed43f9a5f",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": []
         },
         "a8c03000-9b4b-4a29-b588-295ac18e7641": {
             "classId": null,
@@ -17556,6 +18213,13 @@
                 "y": 0
             }
         },
+        "abe9471a-db64-4f56-9967-16913bc1d676": {
+            "createdAt": 1784929874917,
+            "id": "abe9471a-db64-4f56-9967-16913bc1d676",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": []
+        },
         "ac23da44-0f11-4355-a3a2-33194b0eca8f": {
             "classId": null,
             "createdAt": 1777767391947,
@@ -17563,6 +18227,16 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1777770991331,
             "value": "920bfdec-6ccd-4131-8fe4-3adcc4d0b96f"
+        },
+        "ac4573cd-5c6b-4ae6-b0c1-879f28cea3a4": {
+            "classId": "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
+            "createdAt": 1784929874917,
+            "id": "ac4573cd-5c6b-4ae6-b0c1-879f28cea3a4",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": {
+                "Sprite": "8b84751b-4f56-4f49-a89e-2da3ece7084f"
+            }
         },
         "acd8515f-e85f-44f7-8c3e-eceed211d7fd": {
             "classId": null,
@@ -17775,6 +18449,13 @@
                 "sliceIndex": 0
             }
         },
+        "b3791d3b-6ed1-4e08-8cf5-274f2a2f5f88": {
+            "createdAt": 1784933373849,
+            "id": "b3791d3b-6ed1-4e08-8cf5-274f2a2f5f88",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": []
+        },
         "b3b9246b-b048-4ac6-8bd3-fcb823be8e29": {
             "createdAt": 1784883932756,
             "id": "b3b9246b-b048-4ac6-8bd3-fcb823be8e29",
@@ -17904,6 +18585,16 @@
                 "Condition": "d5ffd7a5-b7ed-4ab3-9d51-4bc1ddaef13a"
             }
         },
+        "b6edcec1-8de4-4fd7-9834-6526ece3dffc": {
+            "createdAt": 1784894188616,
+            "id": "b6edcec1-8de4-4fd7-9834-6526ece3dffc",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784894231802,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 0
+            }
+        },
         "b7436c0d-3934-4933-955c-97c4ce3a85cd": {
             "classId": null,
             "createdAt": 1782973852895,
@@ -17956,6 +18647,13 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1781240886873,
             "value": false
+        },
+        "b7d36599-a437-47a5-b6aa-46101364b717": {
+            "createdAt": 1784932184349,
+            "id": "b7d36599-a437-47a5-b6aa-46101364b717",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784932184349,
+            "value": []
         },
         "b7f2ed6f-69af-4c6c-9a84-6021c5004160": {
             "classId": "3ab13327-ccaa-4dbe-8ec7-24b9592ddf15",
@@ -18119,6 +18817,15 @@
                 "x": 1,
                 "y": 0
             }
+        },
+        "baf22c5e-de99-4361-881b-d1886f84a049": {
+            "createdAt": 1784933373849,
+            "id": "baf22c5e-de99-4361-881b-d1886f84a049",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": [
+                "894147bb-3552-4aad-9e5c-1885ffce589b"
+            ]
         },
         "bb2caa91-f244-4bdf-9c13-47d2b5865c0e": {
             "createdAt": 1784883932756,
@@ -18516,6 +19223,27 @@
                 "53438afa-206b-5bec-a202-c9b60d1ad8b6"
             ]
         },
+        "c4ddab1e-134b-4179-b707-7fc9cddfec22": {
+            "createdAt": 1784929874917,
+            "id": "c4ddab1e-134b-4179-b707-7fc9cddfec22",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": [
+                "51d692d3-7fc7-4a2a-9619-ac7dba39b71c"
+            ]
+        },
+        "c57afdde-5746-41b6-b493-f511ae81ebfa": {
+            "classId": "a17efa2f-45e0-5c1c-b650-d321cf70efc3",
+            "createdAt": 1784929874917,
+            "id": "c57afdde-5746-41b6-b493-f511ae81ebfa",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": {
+                "Actions": "5eef83e1-bb95-4e9d-a283-d621ae53c65a",
+                "ChildOverrides": "43c6f202-06df-4a1c-bee9-eb170fd1da26",
+                "Index": "fa6d3bec-3e70-495f-adde-9d5b6a2522ae"
+            }
+        },
         "c5ed4be7-5061-40a8-8845-fc2d740a018a": {
             "classId": "628e0cce-5472-4bec-addd-71230b8e64a6",
             "createdAt": 1782973677184,
@@ -18617,6 +19345,15 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1777846623787,
             "value": {}
+        },
+        "c795c397-48b2-40ec-9e6a-0ec54df3bdab": {
+            "createdAt": 1784933373849,
+            "id": "c795c397-48b2-40ec-9e6a-0ec54df3bdab",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": [
+                "51d692d3-7fc7-4a2a-9619-ac7dba39b71c"
+            ]
         },
         "c8328a22-f74c-4d76-b3d6-dae99f897ab7": {
             "classId": null,
@@ -18796,6 +19533,13 @@
                 "y": 0.744
             }
         },
+        "cca4ee04-8835-4148-98e5-05a608445ddc": {
+            "createdAt": 1784929874917,
+            "id": "cca4ee04-8835-4148-98e5-05a608445ddc",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": 2
+        },
         "ccd4ad32-be66-4d5c-9dfb-4cb383c5910b": {
             "classId": null,
             "createdAt": 1782973943766,
@@ -18938,6 +19682,15 @@
                 "Index": "74c2fa30-e917-4f3d-9025-9e34187140e1",
                 "Overrides": "3c54df52-076c-4a2c-a0f2-a680afe9451d"
             }
+        },
+        "cef5315f-c801-4ebc-8541-9b4946e450c4": {
+            "createdAt": 1784929874917,
+            "id": "cef5315f-c801-4ebc-8541-9b4946e450c4",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": [
+                "51d692d3-7fc7-4a2a-9619-ac7dba39b71c"
+            ]
         },
         "cf645a71-f326-40b1-87ee-6561910ede0b": {
             "createdAt": 1782957228454,
@@ -19191,6 +19944,18 @@
             "updatedAt": 1784883932756,
             "value": []
         },
+        "d3767d43-d05b-4dcf-aa48-107df1005b03": {
+            "classId": "a17efa2f-45e0-5c1c-b650-d321cf70efc3",
+            "createdAt": 1784929874917,
+            "id": "d3767d43-d05b-4dcf-aa48-107df1005b03",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": {
+                "Actions": "abe9471a-db64-4f56-9967-16913bc1d676",
+                "ChildOverrides": "e354a4d7-d13a-49f9-a7d4-210cea1bf852",
+                "Index": "19a6d264-bb59-42a1-9f25-8a085c00047c"
+            }
+        },
         "d4068c92-6dae-4ac9-9f74-fd3b90acd0fb": {
             "classId": null,
             "createdAt": 1782974087030,
@@ -19227,6 +19992,13 @@
             "value": [
                 "53438afa-206b-5bec-a202-c9b60d1ad8b6"
             ]
+        },
+        "d554bff6-66df-458a-ae20-aa61cc9a0e64": {
+            "createdAt": 1784894188616,
+            "id": "d554bff6-66df-458a-ae20-aa61cc9a0e64",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784894188616,
+            "value": ""
         },
         "d5847d35-28b0-4800-ab46-c1b902fe9d9d": {
             "classId": null,
@@ -19329,6 +20101,23 @@
                 "sliceIndex": 41
             }
         },
+        "d7a88bca-ca09-42d3-8835-48eff2267175": {
+            "classId": "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
+            "createdAt": 1784929874917,
+            "id": "d7a88bca-ca09-42d3-8835-48eff2267175",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": {
+                "Sprite": "8435129f-d2ce-4b0b-8fd7-e3366498ab14"
+            }
+        },
+        "d7fb802b-9eb7-4e71-a116-9a3027488f97": {
+            "createdAt": 1784932176602,
+            "id": "d7fb802b-9eb7-4e71-a116-9a3027488f97",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": 4
+        },
         "d8b68b4d-77ae-4a7f-946f-985eef4da4fd": {
             "createdAt": 1784885046738,
             "id": "d8b68b4d-77ae-4a7f-946f-985eef4da4fd",
@@ -19422,6 +20211,17 @@
             "value": [
                 "fe185d9d-63c5-5f71-be71-408db18a84ee"
             ]
+        },
+        "da790eac-d10e-48f2-b4bb-76d421578cea": {
+            "classId": "7286fdd7-8ba1-5640-bfe0-8994cf245fb9",
+            "createdAt": 1784929874917,
+            "id": "da790eac-d10e-48f2-b4bb-76d421578cea",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": {
+                "Child": "811a1b18-1c0d-47af-9567-67d7ebf191d4",
+                "Overrides": "e69dade6-3287-4fdf-b4ff-143d8fe5533d"
+            }
         },
         "dab7bb2a-f641-4fb7-a987-3fbd15414631": {
             "createdAt": 1784883932756,
@@ -19596,6 +20396,18 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1782974008553,
             "value": 1
+        },
+        "dcd241d9-95b3-4f82-b487-379f8600eb04": {
+            "classId": "a17efa2f-45e0-5c1c-b650-d321cf70efc3",
+            "createdAt": 1784933373849,
+            "id": "dcd241d9-95b3-4f82-b487-379f8600eb04",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": {
+                "Actions": "e29c8d84-4d0a-41de-8dad-62f66b88666c",
+                "ChildOverrides": "9742585f-d742-4769-89d2-44b891f080b1",
+                "Index": "41228bcb-25f0-4afe-b7f7-ffe1599efb24"
+            }
         },
         "dcde719f-41d4-4b28-a39f-4354ccfaa995": {
             "classId": "3ab13327-ccaa-4dbe-8ec7-24b9592ddf15",
@@ -19836,6 +20648,13 @@
             "updatedAt": 1784883788656,
             "value": 8
         },
+        "e29c8d84-4d0a-41de-8dad-62f66b88666c": {
+            "createdAt": 1784933373849,
+            "id": "e29c8d84-4d0a-41de-8dad-62f66b88666c",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": []
+        },
         "e2c67a1d-4fcc-4b22-9409-70dbe25a8aee": {
             "classId": null,
             "createdAt": 1782973165905,
@@ -19873,6 +20692,15 @@
                 "y": 1,
                 "z": 0
             }
+        },
+        "e354a4d7-d13a-49f9-a7d4-210cea1bf852": {
+            "createdAt": 1784929874917,
+            "id": "e354a4d7-d13a-49f9-a7d4-210cea1bf852",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": [
+                "da790eac-d10e-48f2-b4bb-76d421578cea"
+            ]
         },
         "e39e8fae-9543-46dd-bf1c-3cad27d08680": {
             "classId": null,
@@ -19941,6 +20769,13 @@
                 "sliceIndex": 1
             }
         },
+        "e531908c-7f79-446f-a43d-5b085f6fcfb0": {
+            "createdAt": 1784894394084,
+            "id": "e531908c-7f79-446f-a43d-5b085f6fcfb0",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784894394084,
+            "value": 8
+        },
         "e5761d5b-e5f7-495c-9e52-912a377f3629": {
             "classId": "628e0cce-5472-4bec-addd-71230b8e64a6",
             "createdAt": 1782973758050,
@@ -19981,6 +20816,16 @@
             "value": [
                 "78eea93e-734b-5c5a-8b2f-3410f0701cef"
             ]
+        },
+        "e69dade6-3287-4fdf-b4ff-143d8fe5533d": {
+            "classId": "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
+            "createdAt": 1784929874917,
+            "id": "e69dade6-3287-4fdf-b4ff-143d8fe5533d",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": {
+                "Sprite": "48db23a4-b33f-4e48-99e9-e365a7403df6"
+            }
         },
         "e6fc9ff8-59fe-4a0e-80b4-9145159f6309": {
             "classId": null,
@@ -20146,6 +20991,16 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1784883932756,
             "value": []
+        },
+        "ea7feb12-0083-4d2d-947e-126464b89d4a": {
+            "createdAt": 1784929874917,
+            "id": "ea7feb12-0083-4d2d-947e-126464b89d4a",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 0
+            }
         },
         "ead7222b-86b4-48ac-bf9a-f9162689a8f2": {
             "classId": null,
@@ -20351,6 +21206,16 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1784885360807,
             "value": {}
+        },
+        "ef311fc7-5192-4d10-9bff-dff7de2c0854": {
+            "createdAt": 1784933373849,
+            "id": "ef311fc7-5192-4d10-9bff-dff7de2c0854",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 3
+            }
         },
         "ef3f3075-34bb-4d1c-9cc8-c72adbabbec5": {
             "classId": null,
@@ -20828,6 +21693,13 @@
                 "y": -1
             }
         },
+        "fa6d3bec-3e70-495f-adde-9d5b6a2522ae": {
+            "createdAt": 1784929874917,
+            "id": "fa6d3bec-3e70-495f-adde-9d5b6a2522ae",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": 1
+        },
         "fa6f6f5c-f432-41cc-aa5a-c92445b947fb": {
             "classId": "3ab13327-ccaa-4dbe-8ec7-24b9592ddf15",
             "containerId": "1365274a-f5f6-4707-bea5-4ccfc061ff25",
@@ -20952,6 +21824,18 @@
                 "Condition": "08c1aaa0-e615-452a-9edc-eaac0b3e1cba"
             }
         },
+        "fd913612-15ee-4519-9b5c-b9a06e6c41fd": {
+            "classId": "a17efa2f-45e0-5c1c-b650-d321cf70efc3",
+            "createdAt": 1784929874917,
+            "id": "fd913612-15ee-4519-9b5c-b9a06e6c41fd",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784929874917,
+            "value": {
+                "Actions": "a894c1f8-2ab0-40be-9bf0-6e5ed43f9a5f",
+                "ChildOverrides": "6c16644c-a69a-48d0-8dd7-aeadf73866f3",
+                "Index": "cca4ee04-8835-4148-98e5-05a608445ddc"
+            }
+        },
         "fd96438e-101d-4f6b-9fa3-2a33bd26f494": {
             "classId": null,
             "createdAt": 1783396444235,
@@ -21071,6 +21955,16 @@
             "value": {
                 "Cell": "a252a43f-53f8-45a7-8f8d-5a081418539f",
                 "Condition": "187b905d-c6aa-44e0-8ee9-9b4c8d06bbe4"
+            }
+        },
+        "ff616433-17fe-44c1-89a7-4fb21b1317ea": {
+            "createdAt": 1784933373849,
+            "id": "ff616433-17fe-44c1-89a7-4fb21b1317ea",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1784933373849,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 2
             }
         },
         "ff61cb99-3584-433e-899c-6d2b2fdc8557": {

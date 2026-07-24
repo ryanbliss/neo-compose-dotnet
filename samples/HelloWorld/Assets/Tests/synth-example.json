@@ -2017,6 +2017,406 @@
       "defaultValue": {
         "value": {}
       }
+    },
+    "af2d8db8-817b-46f0-adbe-cf9113b77155": {
+      "id": "af2d8db8-817b-46f0-adbe-cf9113b77155",
+      "projectId": "test-project",
+      "name": "FPS",
+      "kind": 2,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": 8
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "minValue": 1
+    },
+    "e1a1ba86-2599-43dc-a19a-46d08a2e4256": {
+      "id": "e1a1ba86-2599-43dc-a19a-46d08a2e4256",
+      "projectId": "test-project",
+      "name": "Duration",
+      "kind": 2,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": 1
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "minValue": 1
+    },
+    "485b0f05-ec7b-4e61-ba80-9a5d7d262b39": {
+      "id": "485b0f05-ec7b-4e61-ba80-9a5d7d262b39",
+      "projectId": "test-project",
+      "name": "Frames",
+      "kind": 6,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": []
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "entryMemberId": "9a08b7e8-9d75-4945-8648-b2ce916cea1a"
+    },
+    "eb602654-04a9-4766-860f-300b443be86e": {
+      "id": "eb602654-04a9-4766-860f-300b443be86e",
+      "projectId": "test-project",
+      "name": "Tracks",
+      "kind": 6,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": []
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "entryMemberId": "cb7b2bbc-3c66-458f-9ed5-362715c09ece"
+    },
+    "9a08b7e8-9d75-4945-8648-b2ce916cea1a": {
+      "id": "9a08b7e8-9d75-4945-8648-b2ce916cea1a",
+      "projectId": "test-project",
+      "name": "__FrameEntry",
+      "kind": 7,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "classId": "class-animation-frame",
+      "classArguments": {
+        "d2194ea1-08ec-4a0c-b9a0-97877031d39b": {
+          "kind": "generic",
+          "genericParamId": "268e9d23-347b-4eb6-8bec-cf0edf326aa2"
+        }
+      }
+    },
+    "cb7b2bbc-3c66-458f-9ed5-362715c09ece": {
+      "id": "cb7b2bbc-3c66-458f-9ed5-362715c09ece",
+      "projectId": "test-project",
+      "name": "__TrackEntry",
+      "kind": 7,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": {}
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "classId": "class-animation-child-track"
+    },
+    "0dbdd0f9-9dd2-4b4b-9403-50180c1500dd": {
+      "id": "0dbdd0f9-9dd2-4b4b-9403-50180c1500dd",
+      "projectId": "test-project",
+      "name": "Index",
+      "kind": 2,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "minValue": 0
+    },
+    "8ab7bb00-a475-43f0-8579-1b08f133d658": {
+      "id": "8ab7bb00-a475-43f0-8579-1b08f133d658",
+      "projectId": "test-project",
+      "name": "Overrides",
+      "kind": 21,
+      "locked": true,
+      "required": false,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "genericParamId": "d2194ea1-08ec-4a0c-b9a0-97877031d39b",
+      "partial": true
+    },
+    "a5905750-c472-46a8-89e9-f04f0bf66696": {
+      "id": "a5905750-c472-46a8-89e9-f04f0bf66696",
+      "projectId": "test-project",
+      "name": "ChildOverrides",
+      "kind": 6,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": []
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "entryMemberId": "bf62d243-5184-4b09-98e0-8682827cb66d"
+    },
+    "23e05410-6428-4bd1-b085-c0390ed7fcb7": {
+      "id": "23e05410-6428-4bd1-b085-c0390ed7fcb7",
+      "projectId": "test-project",
+      "name": "Actions",
+      "kind": 6,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": []
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "entryMemberId": "4c195860-4fb3-4e09-b33c-fb5a37601c25"
+    },
+    "bf62d243-5184-4b09-98e0-8682827cb66d": {
+      "id": "bf62d243-5184-4b09-98e0-8682827cb66d",
+      "projectId": "test-project",
+      "name": "__ChildOverrideEntry",
+      "kind": 7,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "classId": "class-animation-child-override",
+      "classArguments": {
+        "de23448a-45be-4e3f-8965-072a545e08f0": {
+          "kind": "member",
+          "memberId": "45d30ad2-e066-4017-8982-ec9c92655b19"
+        }
+      }
+    },
+    "4c195860-4fb3-4e09-b33c-fb5a37601c25": {
+      "id": "4c195860-4fb3-4e09-b33c-fb5a37601c25",
+      "projectId": "test-project",
+      "name": "__ActionEntry",
+      "kind": 24,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "45d30ad2-e066-4017-8982-ec9c92655b19": {
+      "id": "45d30ad2-e066-4017-8982-ec9c92655b19",
+      "projectId": "test-project",
+      "name": "__NeoObjectBaseTypeArgument",
+      "kind": 7,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "classId": "class-animation-object-base"
+    },
+    "6e15db41-a6f2-43fd-9793-c52fe4f3d0f8": {
+      "id": "6e15db41-a6f2-43fd-9793-c52fe4f3d0f8",
+      "projectId": "test-project",
+      "name": "Child",
+      "kind": 9,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "collectionMemberId": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
+      "collectionValueId": null,
+      "multiselect": false
+    },
+    "819b3743-0c3d-4896-b679-9aeeb73255f4": {
+      "id": "819b3743-0c3d-4896-b679-9aeeb73255f4",
+      "projectId": "test-project",
+      "name": "Overrides",
+      "kind": 21,
+      "locked": true,
+      "required": false,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "genericParamId": "de23448a-45be-4e3f-8965-072a545e08f0",
+      "partial": true
+    },
+    "29abc85e-2d38-4cef-a200-88915d176d06": {
+      "id": "29abc85e-2d38-4cef-a200-88915d176d06",
+      "projectId": "test-project",
+      "name": "Child",
+      "kind": 9,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "collectionMemberId": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
+      "collectionValueId": null,
+      "multiselect": false
+    },
+    "2c816624-0281-46d3-9ed5-d20bd43519f4": {
+      "id": "2c816624-0281-46d3-9ed5-d20bd43519f4",
+      "projectId": "test-project",
+      "name": "ClipKey",
+      "kind": 3,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "localizable": false
+    },
+    "5af60692-74a0-45ea-a9ba-747854989b2a": {
+      "id": "5af60692-74a0-45ea-a9ba-747854989b2a",
+      "projectId": "test-project",
+      "name": "StartFrame",
+      "kind": 2,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": 0
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "minValue": 0
+    },
+    "member-animation-x": {
+      "id": "member-animation-x",
+      "name": "X",
+      "kind": 2,
+      "locked": false,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "storage": "session",
+      "defaultValue": {
+        "value": 0
+      }
+    },
+    "member-animation-target-binding": {
+      "id": "member-animation-target-binding",
+      "name": "AnimatedSpriteBinding",
+      "kind": 7,
+      "locked": false,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "classId": "class-animated-sprite",
+      "classArguments": {}
+    },
+    "member-animation-idle": {
+      "id": "member-animation-idle",
+      "name": "Idle",
+      "kind": 7,
+      "locked": false,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "classId": "class-animated-sprite-idle",
+      "classArguments": {},
+      "storage": "immutable",
+      "defaultValue": {
+        "value": {
+          "FPS": "value-animation-fps",
+          "Duration": "value-animation-duration",
+          "Frames": "value-animation-frames",
+          "Tracks": "value-animation-tracks"
+        }
+      }
     }
   },
   "enums": {
@@ -2689,6 +3089,196 @@
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
+    },
+    "class-animation-object-base": {
+      "id": "class-animation-object-base",
+      "name": "NeoObjectBase",
+      "schema": {},
+      "hiddenInMemberSelector": false,
+      "isAbstract": true,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "objectBase"
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-animation-sprite-object": {
+      "id": "class-animation-sprite-object",
+      "name": "NeoSpriteObject",
+      "schema": {},
+      "hiddenInMemberSelector": false,
+      "isAbstract": true,
+      "extendsClassId": "class-animation-object-base",
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "spriteObject"
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-animation-clip": {
+      "id": "class-animation-clip",
+      "projectId": "test-project",
+      "name": "NeoAnimationClip",
+      "schema": {
+        "FPS": "af2d8db8-817b-46f0-adbe-cf9113b77155",
+        "Duration": "e1a1ba86-2599-43dc-a19a-46d08a2e4256",
+        "Frames": "485b0f05-ec7b-4e61-ba80-9a5d7d262b39",
+        "Tracks": "eb602654-04a9-4766-860f-300b443be86e"
+      },
+      "hiddenInMemberSelector": false,
+      "isAbstract": false,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "animationClip"
+      },
+      "allowedStorage": "immutable",
+      "genericParams": [
+        {
+          "id": "268e9d23-347b-4eb6-8bec-cf0edf326aa2",
+          "name": "TTarget",
+          "constraint": {
+            "kind": "class",
+            "classId": "class-animation-object-base"
+          }
+        }
+      ],
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-animation-frame": {
+      "id": "class-animation-frame",
+      "projectId": "test-project",
+      "name": "NeoAnimationFrame",
+      "schema": {
+        "Index": "0dbdd0f9-9dd2-4b4b-9403-50180c1500dd",
+        "Overrides": "8ab7bb00-a475-43f0-8579-1b08f133d658",
+        "ChildOverrides": "a5905750-c472-46a8-89e9-f04f0bf66696",
+        "Actions": "23e05410-6428-4bd1-b085-c0390ed7fcb7"
+      },
+      "hiddenInMemberSelector": false,
+      "isAbstract": false,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "animationFrame"
+      },
+      "allowedStorage": "immutable",
+      "genericParams": [
+        {
+          "id": "d2194ea1-08ec-4a0c-b9a0-97877031d39b",
+          "name": "TTarget",
+          "constraint": {
+            "kind": "class",
+            "classId": "class-animation-object-base"
+          }
+        }
+      ],
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-animation-child-override": {
+      "id": "class-animation-child-override",
+      "projectId": "test-project",
+      "name": "NeoAnimationChildOverride",
+      "schema": {
+        "Child": "6e15db41-a6f2-43fd-9793-c52fe4f3d0f8",
+        "Overrides": "819b3743-0c3d-4896-b679-9aeeb73255f4"
+      },
+      "hiddenInMemberSelector": false,
+      "isAbstract": false,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "animationChildOverride"
+      },
+      "allowedStorage": "immutable",
+      "genericParams": [
+        {
+          "id": "de23448a-45be-4e3f-8965-072a545e08f0",
+          "name": "TEntry",
+          "constraint": {
+            "kind": "class",
+            "classId": "class-animation-object-base"
+          }
+        }
+      ],
+      "constructorProjections": [
+        {
+          "parameterName": "id",
+          "memberId": "6e15db41-a6f2-43fd-9793-c52fe4f3d0f8"
+        }
+      ],
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-animation-child-track": {
+      "id": "class-animation-child-track",
+      "projectId": "test-project",
+      "name": "NeoAnimationChildTrack",
+      "schema": {
+        "Child": "29abc85e-2d38-4cef-a200-88915d176d06",
+        "ClipKey": "2c816624-0281-46d3-9ed5-d20bd43519f4",
+        "StartFrame": "5af60692-74a0-45ea-a9ba-747854989b2a"
+      },
+      "hiddenInMemberSelector": false,
+      "isAbstract": false,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "animationChildTrack"
+      },
+      "allowedStorage": "immutable",
+      "constructorProjections": [
+        {
+          "parameterName": "id",
+          "memberId": "29abc85e-2d38-4cef-a200-88915d176d06"
+        }
+      ],
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-animated-sprite-idle": {
+      "id": "class-animated-sprite-idle",
+      "name": "AnimatedSpriteIdle",
+      "schema": {},
+      "hiddenInMemberSelector": false,
+      "isAbstract": false,
+      "extendsClassId": "class-animation-clip",
+      "extendsGenericBindings": {
+        "268e9d23-347b-4eb6-8bec-cf0edf326aa2": {
+          "kind": "member",
+          "memberId": "member-animation-target-binding"
+        }
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-animated-sprite": {
+      "id": "class-animated-sprite",
+      "name": "AnimatedSprite",
+      "schema": {
+        "X": "member-animation-x",
+        "Idle": "member-animation-idle"
+      },
+      "hiddenInMemberSelector": false,
+      "isAbstract": false,
+      "extendsClassId": "class-animation-sprite-object",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-animated-sprite-child": {
+      "id": "class-animated-sprite-child",
+      "name": "AnimatedSpriteChild",
+      "schema": {},
+      "hiddenInMemberSelector": false,
+      "isAbstract": false,
+      "extendsClassId": "class-animated-sprite",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "internalRecordRelations": {},
@@ -3031,6 +3621,87 @@
       "createdAt": 0,
       "updatedAt": 0,
       "classId": "class-storage-g"
+    },
+    "value-animation-fps": {
+      "id": "value-animation-fps",
+      "projectId": "test-project",
+      "value": 8,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "value-animation-duration": {
+      "id": "value-animation-duration",
+      "projectId": "test-project",
+      "value": 2,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "value-animation-frames": {
+      "id": "value-animation-frames",
+      "projectId": "test-project",
+      "value": [
+        "value-animation-frame-0"
+      ],
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "value-animation-tracks": {
+      "id": "value-animation-tracks",
+      "projectId": "test-project",
+      "value": [],
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "value-animation-frame-0": {
+      "id": "value-animation-frame-0",
+      "projectId": "test-project",
+      "value": {
+        "Index": "value-animation-frame-index",
+        "Overrides": "value-animation-overrides",
+        "ChildOverrides": "value-animation-child-overrides",
+        "Actions": "value-animation-actions"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "classId": "class-animation-frame"
+    },
+    "value-animation-frame-index": {
+      "id": "value-animation-frame-index",
+      "projectId": "test-project",
+      "value": 0,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "value-animation-overrides": {
+      "id": "value-animation-overrides",
+      "projectId": "test-project",
+      "value": {
+        "X": "value-animation-override-x"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "classId": "class-animated-sprite"
+    },
+    "value-animation-override-x": {
+      "id": "value-animation-override-x",
+      "projectId": "test-project",
+      "value": 4,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "value-animation-child-overrides": {
+      "id": "value-animation-child-overrides",
+      "projectId": "test-project",
+      "value": [],
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "value-animation-actions": {
+      "id": "value-animation-actions",
+      "projectId": "test-project",
+      "value": [],
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "valuePartitions": {},
