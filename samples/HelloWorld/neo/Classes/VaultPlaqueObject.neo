@@ -35,7 +35,7 @@ class VaultPlaqueObject : ConsoleObject {
   @id("430fca56-b45a-4896-9ab2-795a3faf57f6")
   @locked
   @settings(kind: .Ordered)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public override List<NeoObjectPlacementTile> PlacementTiles = [
     @id("293652f8-54d6-4168-89be-7ac75207dcd0")
     new NeoObjectPlacementTile {
@@ -45,6 +45,6 @@ class VaultPlaqueObject : ConsoleObject {
 
   @id("neo-tile-grid-record-relations-v1-member-f7282b53bd3722c4d54307079bf7e242")
   @locked
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public override Vector3 Position = new(0, 0, 0);
 }

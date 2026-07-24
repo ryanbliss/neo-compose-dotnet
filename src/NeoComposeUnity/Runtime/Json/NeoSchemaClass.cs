@@ -34,9 +34,10 @@ namespace NeoCompose.Runtime.Json
         public bool hiddenInMemberSelector;
         public bool isAbstract;
         /// <summary>
-        /// Optional system metadata emitted for locked authoring classes. World
-        /// runtime validation reads <c>worldKind</c> from this object, including
-        /// through class ancestry.
+        /// Optional system metadata emitted for protected authoring classes.
+        /// Contract 3.4 identifies the protection rule with <c>kind</c>; world
+        /// runtime validation additionally reads <c>worldKind</c> from this
+        /// object, including through class ancestry.
         /// </summary>
         public JObject? system;
         /// <summary>

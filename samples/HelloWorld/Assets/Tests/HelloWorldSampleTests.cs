@@ -157,8 +157,8 @@ namespace HelloWorld.Assets.Tests
             Assert.AreEqual("NeoObjectLayerLink", systemBase["name"]!.Value<string>());
             Assert.AreEqual("objectLayerLink", systemBase["system"]!["worldKind"]!.Value<string>());
             Assert.AreEqual(
-                "Locked world authoring system class required by the Neo Compose Tile Grid Builder.",
-                systemBase["system"]!["reason"]!.Value<string>());
+                "worldAuthoring",
+                systemBase["system"]!["kind"]!.Value<string>());
             Assert.AreEqual(
                 "f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
                 systemBase["schema"]!["Objects"]!.Value<string>());

@@ -1,5 +1,5 @@
 @id("6d069010-c47c-4744-89af-243f4448f537")
-@system(worldKind: .LayerGroupBase, disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+@system(kind: .WorldAuthoring, worldKind: .LayerGroupBase)
 abstract class NeoLayerGroupBase : NeoObjectBase {
 
 }

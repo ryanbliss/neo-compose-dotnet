@@ -1,42 +1,42 @@
 @id("d500e920-87d9-4804-affa-1bd8fc5e91ae")
-@system(worldKind: .SmartTileRule, disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+@system(kind: .WorldAuthoring, worldKind: .SmartTileRule)
 class NeoSmartTileRule {
   @id("f8106137-0cde-4be0-bce7-3db5cf40257a")
   @locked
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public virtual NeoSmartTileCollider Collider = .Sprite;
 
   @id("9ae9cf8b-4ea1-413e-8c7a-dcabe1a5cc98")
   @locked
   @settings(min: 0)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public virtual float MaxAnimationSpeed = 1;
 
   @id("3111ed6f-d441-40b9-97f0-25fff2fb9838")
   @locked
   @settings(min: 0)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public virtual float MinAnimationSpeed = 1;
 
   @id("8bfadaa8-14e9-4488-a103-ee688c1cc9c4")
   @locked
   @settings(kind: .Ordered)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public virtual List<NeoSmartTileNeighbor> Neighbors = [];
 
   @id("9b22d8df-ea41-4c76-9d2e-a6c64c95a64a")
   @locked
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public virtual NeoSmartTileOutput Output = .Single;
 
   @id("29a3d2a7-ce2e-4d40-bcdf-ee6c314023fe")
   @locked
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public virtual NeoSmartTileTransform RuleTransform = .Fixed;
 
   @id("fd3a7f0f-cff8-4069-9b19-004015a6aca1")
   @locked
   @settings(kind: .Ordered)
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public virtual List<SpriteInfo> Sprites = [];
 }

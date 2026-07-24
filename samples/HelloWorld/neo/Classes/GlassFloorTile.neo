@@ -18,7 +18,7 @@ class GlassFloorTile : ConsoleTile {
 
   @id("neo-tile-grid-record-relations-v1-member-49e10224390d0b64abdf608051b2fcd5")
   @locked
-  @system(disallow: [.EditRecord, .DeleteRecord, .SelectRecord], reason: "Locked world authoring system type required by the Neo Compose Tile Grid Builder.")
+  @system(kind: .WorldAuthoring)
   public override NeoSmartTile? SmartTile = new NeoSmartTile {
     DefaultCollider = .Sprite,
     Rules = [
