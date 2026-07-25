@@ -1,4 +1,5 @@
 @id("dd0bbe5a-47ef-4164-9421-caea07f6f56f")
+@hidden
 class Assets {
   @id("3b73b328-9a9d-4ee3-955c-9cc573170346")
   public virtual Art Art = new Art();
@@ -18,6 +19,16 @@ class Assets {
 
   @id("2827aefd-7f57-48ea-994c-c5c39ec659e3")
   @settings(kind: .Ordered)
+  @column(member: Name, width: 158, frozen: true)
+  @column(member: Image, width: 96, frozen: true)
+  @column(member: Planet, width: 115)
+  @column(member: FullDisplayText, width: 223)
+  @column(member: SaveUnsafe, width: 221)
+  @column(member: Save, width: 264, hidden: true)
+  @column(member: DebugLog, hidden: true)
+  @column(member: AnimatedImage, width: 298)
+  @column(member: PlayAnimation, hidden: true)
+  @column(member: ShowRelic, hidden: true)
   public virtual List<Outpost> Outposts = [];
 
   @id("adb76be1-a78d-4736-8375-1c579455c396")

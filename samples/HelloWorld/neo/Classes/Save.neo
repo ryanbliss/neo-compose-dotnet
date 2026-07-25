@@ -1,4 +1,5 @@
 @id("96e8284d-ae43-4e91-919d-86c25ce098e0")
+@hidden
 class Save {
   @id("1f76e191-faaf-4840-9bb0-29785a1c8ed6")
   @settings(min: 0)

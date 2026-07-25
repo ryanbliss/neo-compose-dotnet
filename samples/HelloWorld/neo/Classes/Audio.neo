@@ -1,4 +1,5 @@
 @id("44d6324f-6507-4420-a919-3496681c3b21")
+@hidden
 class Audio {
   @id("421de440-ad72-4f9f-aef0-e3def8cd0582")
   public virtual AudioClipInfo BitsGainSfx;

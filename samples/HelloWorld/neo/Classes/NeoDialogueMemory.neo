@@ -1,4 +1,5 @@
 @id("48f37cd8-69d2-4cd3-ae44-7cfed7912415")
+@hidden
 @system(kind: .DialogueMemorySchema)
 class NeoDialogueMemory {
   @id("cd79c978-da95-4da3-8aa5-eea57f9e4f2c")

@@ -1,4 +1,5 @@
 @id("4cdf4a5b-b299-4253-854b-d25c0a4c7c20")
+@hidden
 @system(kind: .DialogueMemorySchema)
 class NeoTextNodeMemory {
   @id("214c9215-b01d-463a-b5fb-cb21e14b1961")

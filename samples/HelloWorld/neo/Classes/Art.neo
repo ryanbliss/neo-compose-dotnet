@@ -1,4 +1,5 @@
 @id("9a6019b6-680f-4300-8cea-bde6fce47fc1")
+@hidden
 class Art {
   @id("8d27045c-c3a0-44ae-9095-499e2f9779a7")
   public virtual SpriteInfo FirstWorldIconSprite;

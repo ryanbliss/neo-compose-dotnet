@@ -1,4 +1,5 @@
 @id("ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88")
+@hidden
 @system(kind: .WorldAuthoring, worldKind: .ObjectBase)
 abstract class NeoObjectBase {
   @id("b21bfd01-1234-4f49-ab6b-889f829cb148")
