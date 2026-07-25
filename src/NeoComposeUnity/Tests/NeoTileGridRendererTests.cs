@@ -538,7 +538,7 @@ namespace NeoCompose.Tests
                 var resolved = layer.GetObject(new Vector2Int(4, 5));
                 Assert.NotNull(resolved);
                 Assert.IsInstanceOf<TestComposedObject>(resolved!.Info);
-                Assert.IsNull(resolved.Info.valueId);
+                Assert.AreEqual(resolved.InstanceId.Value, resolved.Info.valueId);
                 var writtenRows = useSession ? client.sessionValues : client.saveValues;
                 var placement = (ObjectMemberValue)writtenRows[resolved.InstanceId.Value];
                 Assert.AreEqual(ObjectClassId, placement.classId);
@@ -556,12 +556,554 @@ namespace NeoCompose.Tests
                 Assert.AreEqual(2, changed);
                 var resolvedAsset = layer.GetObject(new Vector2Int(6, 7));
                 Assert.NotNull(resolvedAsset);
-                Assert.AreEqual("shop-object", resolvedAsset!.Info.valueId);
+                Assert.AreEqual(
+                    resolvedAsset!.InstanceId.Value,
+                    resolvedAsset.Info.valueId);
                 var assetPlacement = (ObjectMemberValue)writtenRows[
                     resolvedAsset.InstanceId.Value];
                 Assert.AreEqual(ObjectClassId, assetPlacement.value!["assetClassId"]);
                 Assert.AreEqual("shop-object", assetPlacement.value["assetValueId"]);
             }
+        }
+
+        [Test]
+        public void ObjectPlacementsCloneAuthoredChildrenWithExactProvenance()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            ((ObjectMemberValue)data.values["shop-object"]).value!["Children"] =
+                "shop-authored-children";
+            data.values["shop-authored-children"] = new ArrayMemberValue
+            {
+                id = "shop-authored-children",
+                value = new[] { "shop-authored-child" },
+            };
+            data.values["shop-authored-child"] = new ObjectMemberValue
+            {
+                id = "shop-authored-child",
+                classId = TileLayerLinkClassId,
+                value = new Dictionary<string, string>(),
+            };
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoTileGridPrimitive.ResolveForSave(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string>
+                {
+                    [typeof(TestComposedObject)] = ObjectClassId,
+                });
+            var layer = primitive.BindWritableObjectLayer<TestAuthoredObjectLayer>(
+                ObjectsLayerClassId,
+                new[] { ObjectClassId });
+            var asset = (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "shop-object",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories())!;
+
+            Assert.IsTrue(layer.Spawn(new Vector2Int(4, 5), asset).Ok);
+            Assert.IsTrue(layer.Spawn(new Vector2Int(6, 7), asset).Ok);
+            var first = layer.GetObject(new Vector2Int(4, 5))!;
+            var second = layer.GetObject(new Vector2Int(6, 7))!;
+
+            var firstRoot = (ObjectMemberValue)client.saveValues[first.InstanceId.Value];
+            var secondRoot = (ObjectMemberValue)client.saveValues[second.InstanceId.Value];
+            string firstListId = firstRoot.value!["Children"];
+            string secondListId = secondRoot.value!["Children"];
+            Assert.AreNotEqual(firstListId, secondListId);
+            Assert.AreEqual(
+                "shop-authored-children",
+                client.saveValues[firstListId].sourceValueId);
+            Assert.AreEqual(
+                "shop-authored-children",
+                client.saveValues[secondListId].sourceValueId);
+
+            string firstChildId = ((ArrayMemberValue)client.saveValues[firstListId]).value![0];
+            string secondChildId = ((ArrayMemberValue)client.saveValues[secondListId]).value![0];
+            Assert.AreNotEqual(firstChildId, secondChildId);
+            Assert.AreEqual(
+                "shop-authored-child",
+                client.saveValues[firstChildId].sourceValueId);
+            Assert.AreEqual(
+                "shop-authored-child",
+                client.saveValues[secondChildId].sourceValueId);
+            Assert.AreNotSame(first.Info, second.Info);
+        }
+
+        [Test]
+        public void AnimationChildOverrideWritesOnlyTheMatchingPlacedChild()
+        {
+            ProjectData data = BuildPlacementAnimationProjectData();
+            NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoTileGridPrimitive primitive = NeoTileGridPrimitive.ResolveForSave(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string>
+                {
+                    [typeof(TestComposedObject)] = ObjectClassId,
+                });
+            var layer = primitive.BindWritableObjectLayer<TestAuthoredObjectLayer>(
+                ObjectsLayerClassId,
+                new[] { ObjectClassId });
+            var asset = (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "shop-object",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories())!;
+            Assert.IsTrue(layer.Spawn(new Vector2Int(4, 5), asset).Ok);
+            Assert.IsTrue(layer.Spawn(new Vector2Int(6, 7), asset).Ok);
+            NeoResolvedObjectInstance first = layer.GetObject(new Vector2Int(4, 5))!;
+            NeoResolvedObjectInstance second = layer.GetObject(new Vector2Int(6, 7))!;
+            string firstPositionId = PlacedChildPositionId(client, first.InstanceId.Value);
+            string secondPositionId = PlacedChildPositionId(client, second.InstanceId.Value);
+
+            NeoAnimationClip<TestComposedObject> clip =
+                NeoGeneratedTypesSupport.GetAnimationClip(
+                    (TestComposedObject)first.Info,
+                    "Animate");
+            clip.PlayOnce();
+
+            Assert.AreEqual(
+                9,
+                ((Vector3MemberValue)client.sessionValues[firstPositionId]).value!.x);
+            Assert.AreEqual(
+                1,
+                ((Vector3MemberValue)client.sessionValues[secondPositionId]).value!.x);
+            Assert.AreNotEqual(firstPositionId, secondPositionId);
+        }
+
+        [Test]
+        public void AnimationChildTrackResamplesAgainstThePlacedChild()
+        {
+            ProjectData data = BuildPlacementAnimationProjectData();
+            NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoTileGridPrimitive primitive = NeoTileGridPrimitive.ResolveForSave(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string>
+                {
+                    [typeof(TestComposedObject)] = ObjectClassId,
+                });
+            var layer = primitive.BindWritableObjectLayer<TestAuthoredObjectLayer>(
+                ObjectsLayerClassId,
+                new[] { ObjectClassId });
+            var asset = (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "shop-object",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories())!;
+            Assert.IsTrue(layer.Spawn(new Vector2Int(4, 5), asset).Ok);
+            NeoResolvedObjectInstance placed = layer.GetObject(new Vector2Int(4, 5))!;
+            string positionId = PlacedChildPositionId(client, placed.InstanceId.Value);
+
+            NeoAnimationClip<TestComposedObject> clip =
+                NeoGeneratedTypesSupport.GetAnimationClip(
+                    (TestComposedObject)placed.Info,
+                    "TrackAnimate");
+            clip.PlayOnce();
+            Assert.AreEqual(
+                1,
+                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x);
+            clip.Tick(0.1f);
+            Assert.AreEqual(
+                7,
+                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x);
+        }
+
+        [TestCase("fps", "FPS must be at least 1")]
+        [TestCase("duplicate-frame", "duplicate frame index 0")]
+        [TestCase("child-track-fit", "past Duration 1")]
+        public void AnimationExportValidation_FailsDuringClientLoad(
+            string invalidCase,
+            string expectedMessage)
+        {
+            ProjectData data = BuildPlacementAnimationProjectData();
+            switch (invalidCase)
+            {
+                case "fps":
+                    ((NumberMemberValue)data.values["parent-clip-fps"]).value = 0;
+                    break;
+                case "duplicate-frame":
+                    ((ArrayMemberValue)data.values["parent-clip-frames"]).value =
+                        new[] { "parent-frame-0", "duplicate-parent-frame" };
+                    data.values["duplicate-parent-frame"] = new ObjectMemberValue
+                    {
+                        id = "duplicate-parent-frame",
+                        classId = ((ObjectMemberValue)data.values["parent-frame-0"]).classId,
+                        value = new Dictionary<string, string>
+                        {
+                            ["Index"] = "duplicate-parent-frame-index",
+                        },
+                    };
+                    data.values["duplicate-parent-frame-index"] =
+                        new NumberMemberValue
+                        {
+                            id = "duplicate-parent-frame-index",
+                            value = 0,
+                        };
+                    break;
+                case "child-track-fit":
+                    ((NumberMemberValue)data.values["track-parent-duration"]).value = 1;
+                    break;
+                default:
+                    Assert.Fail($"Unknown invalid case '{invalidCase}'.");
+                    break;
+            }
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                NeoTestSaveStack.ClientFromSchema(data));
+
+            StringAssert.Contains(expectedMessage, error!.Message);
+        }
+
+        [Test]
+        public void AnimationExportValidation_RejectsActionOutsideTargetMergedSchema()
+        {
+            ProjectData data = BuildPlacementAnimationProjectData();
+            data.classes["animation-frame-class"].schema["Actions"] =
+                "animation-actions-member";
+            data.members["animation-actions-member"] = new ListMember
+            {
+                id = "animation-actions-member",
+                projectId = "project-a",
+                name = "Actions",
+                kind = MemberKind.List,
+                entryMemberId = "animation-action-entry-member",
+            };
+            data.members["animation-action-entry-member"] = new FunctionRefMember
+            {
+                id = "animation-action-entry-member",
+                projectId = "project-a",
+                name = "Action",
+                kind = MemberKind.FunctionRef,
+            };
+            data.members["foreign-action"] = new FunctionMember
+            {
+                id = "foreign-action",
+                projectId = "project-a",
+                name = "ForeignAction",
+                kind = MemberKind.Function,
+                returnTypeInfo = new VoidTypeInfo
+                {
+                    type = MemberKind.Void,
+                    required = true,
+                },
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                deferred = false,
+            };
+            ((ObjectMemberValue)data.values["parent-frame-0"]).value!["Actions"] =
+                "parent-frame-actions";
+            data.values["parent-frame-actions"] = new ArrayMemberValue
+            {
+                id = "parent-frame-actions",
+                value = new[] { "parent-frame-action" },
+            };
+            data.values["parent-frame-action"] = new ObjectMemberValue
+            {
+                id = "parent-frame-action",
+                value = new Dictionary<string, string>
+                {
+                    ["functionMemberId"] = "foreign-action",
+                },
+            };
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                NeoTestSaveStack.ClientFromSchema(data));
+
+            StringAssert.Contains("outside target class", error!.Message);
+            StringAssert.Contains("foreign-action", error.Message);
+        }
+
+        [Test]
+        public void AnimationExportValidation_ValidatesInheritedClosedGenericClipPlacement()
+        {
+            ProjectData data = BuildPlacementAnimationProjectData();
+            const string paramId = "animation-target-param";
+            data.classes["generic-animation-owner"] = new NeoSchemaClass
+            {
+                id = "generic-animation-owner",
+                projectId = "project-a",
+                name = "GenericAnimationOwner",
+                isAbstract = true,
+                schema = new Dictionary<string, string>
+                {
+                    ["InheritedClip"] = "generic-animation-slot",
+                },
+                genericParams = new List<GenericParamDeclaration>
+                {
+                    new() { id = paramId, name = "TClip" },
+                },
+            };
+            data.classes["closed-animation-owner"] = new NeoSchemaClass
+            {
+                id = "closed-animation-owner",
+                projectId = "project-a",
+                name = "ClosedAnimationOwner",
+                extendsClassId = "generic-animation-owner",
+                schema = new Dictionary<string, string>(),
+                extendsGenericBindings = new Dictionary<string, GenericBinding>
+                {
+                    [paramId] = new()
+                    {
+                        kind = NeoGenericBindingKinds.Member,
+                        memberId = "inherited-invalid-clip-binding",
+                    },
+                },
+            };
+            data.members["generic-animation-slot"] = new GenericMember
+            {
+                id = "generic-animation-slot",
+                projectId = "project-a",
+                name = "InheritedClip",
+                kind = MemberKind.Generic,
+                genericParamId = paramId,
+            };
+            data.members["inherited-invalid-clip-binding"] = new ClassMember
+            {
+                id = "inherited-invalid-clip-binding",
+                projectId = "project-a",
+                name = "ClipBinding",
+                kind = MemberKind.Class,
+                classId = "animation-clip-class",
+                valueId = "inherited-invalid-clip",
+            };
+            data.values["inherited-invalid-clip"] = new ObjectMemberValue
+            {
+                id = "inherited-invalid-clip",
+                classId = "animation-clip-class",
+                value = new Dictionary<string, string>
+                {
+                    ["FPS"] = "inherited-invalid-fps",
+                    ["Duration"] = "inherited-invalid-duration",
+                    ["Frames"] = "inherited-invalid-frames",
+                    ["Tracks"] = "inherited-invalid-tracks",
+                },
+            };
+            data.values["inherited-invalid-fps"] = new NumberMemberValue
+            {
+                id = "inherited-invalid-fps",
+                value = 0,
+            };
+            data.values["inherited-invalid-duration"] = new NumberMemberValue
+            {
+                id = "inherited-invalid-duration",
+                value = 1,
+            };
+            data.values["inherited-invalid-frames"] = new ArrayMemberValue
+            {
+                id = "inherited-invalid-frames",
+                value = Array.Empty<string>(),
+            };
+            data.values["inherited-invalid-tracks"] = new ArrayMemberValue
+            {
+                id = "inherited-invalid-tracks",
+                value = Array.Empty<string>(),
+            };
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                NeoTestSaveStack.ClientFromSchema(data));
+
+            StringAssert.Contains("InheritedClip", error!.Message);
+            StringAssert.Contains("FPS must be at least 1", error.Message);
+        }
+
+        [Test]
+        public void AnimationCacheInvalidation_StopsPlayersAndRebuildsHandles()
+        {
+            ProjectData data = BuildPlacementAnimationProjectData();
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
+            var target = (TestComposedObject)placed.Info;
+            NeoAnimationClip<TestComposedObject> first =
+                NeoGeneratedTypesSupport.GetAnimationClip(target, "Animate");
+            first.PlayLoop();
+
+            NeoClient.InvalidateAllAnimationClips();
+            NeoAnimationClip<TestComposedObject> replacement =
+                NeoGeneratedTypesSupport.GetAnimationClip(target, "Animate");
+
+            Assert.IsFalse(first.IsPlaying);
+            Assert.AreNotSame(first, replacement);
+        }
+
+        [Test]
+        public void AnimationTargetRelease_AllowsOnStopToMutateClipCache()
+        {
+            ProjectData data = BuildPlacementAnimationProjectData();
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
+            var target = (TestComposedObject)placed.Info;
+            NeoAnimationClip<TestComposedObject> clip =
+                NeoGeneratedTypesSupport.GetAnimationClip(target, "Animate");
+            clip.OnStop += client.InvalidateAnimationClips;
+            clip.PlayLoop();
+
+            Assert.DoesNotThrow(target.Dispose);
+            Assert.IsFalse(clip.IsPlaying);
+        }
+
+        [Test]
+        public void AnimationOverride_SaveOwnedLeafWritesOnlyToSaveOverlay()
+        {
+            ProjectData data = BuildPlacementAnimationProjectData();
+            data.members["object-position-member"].storage = "save";
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
+            string positionId = PlacedChildPositionId(client, placed.InstanceId.Value);
+
+            NeoAnimationClip<TestComposedObject> clip =
+                NeoGeneratedTypesSupport.GetAnimationClip(
+                    (TestComposedObject)placed.Info,
+                    "Animate");
+            clip.PlayOnce();
+
+            Assert.AreEqual(
+                9,
+                ((Vector3MemberValue)client.saveValues[positionId]).value!.x);
+            Assert.IsFalse(client.sessionValues.ContainsKey(positionId));
+        }
+
+        [Test]
+        public void AnimationChildTrack_BackwardBoomerangUsesResolvedChildFrames()
+        {
+            ProjectData data = BuildPlacementAnimationProjectData();
+            ((NumberMemberValue)data.values["child-clip-duration"]).value = 2;
+            ((ArrayMemberValue)data.values["child-clip-frames"]).value =
+                new[] { "child-frame-0", "child-frame-1" };
+            ((NumberMemberValue)data.values["track-parent-duration"]).value = 3;
+            ((NumberMemberValue)data.values["track-parent-child-start"]).value = 0;
+            data.values["child-frame-1"] = new ObjectMemberValue
+            {
+                id = "child-frame-1",
+                classId = ((ObjectMemberValue)data.values["child-frame-0"]).classId,
+                value = new Dictionary<string, string>
+                {
+                    ["Index"] = "child-frame-1-index",
+                    ["Overrides"] = "child-frame-1-values",
+                },
+            };
+            data.values["child-frame-1-index"] = new NumberMemberValue
+            {
+                id = "child-frame-1-index",
+                value = 1,
+            };
+            data.values["child-frame-1-values"] = new ObjectMemberValue
+            {
+                id = "child-frame-1-values",
+                classId = ObjectClassId,
+                value = new Dictionary<string, string>
+                {
+                    ["Position"] = "child-frame-1-position",
+                },
+            };
+            data.values["child-frame-1-position"] = new Vector3MemberValue
+            {
+                id = "child-frame-1-position",
+                value = new NeoVector3Value { x = 8, y = 0, z = 0 },
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
+            string positionId = PlacedChildPositionId(client, placed.InstanceId.Value);
+            NeoAnimationClip<TestComposedObject> clip =
+                NeoGeneratedTypesSupport.GetAnimationClip(
+                    (TestComposedObject)placed.Info,
+                    "TrackAnimate");
+
+            clip.PlayLoop(
+                NeoPlayMode.Boomerang,
+                NeoPlayDirection.Backward);
+            Assert.AreEqual(
+                8,
+                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x);
+            clip.Tick(0.1f);
+            Assert.AreEqual(
+                8,
+                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x);
+            clip.Tick(0.1f);
+            Assert.AreEqual(
+                7,
+                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x);
+            clip.Tick(0.1f);
+            Assert.AreEqual(
+                8,
+                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x);
+        }
+
+        [Test]
+        public void AnimationChildTrack_HoldTailDoesNotRewriteUnchangedChildFrame()
+        {
+            ProjectData data = BuildPlacementAnimationProjectData();
+            ((NumberMemberValue)data.values["track-parent-duration"]).value = 4;
+            ((NumberMemberValue)data.values["track-parent-child-start"]).value = 0;
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
+            string positionId = PlacedChildPositionId(client, placed.InstanceId.Value);
+            NeoAnimationClip<TestComposedObject> clip =
+                NeoGeneratedTypesSupport.GetAnimationClip(
+                    (TestComposedObject)placed.Info,
+                    "TrackAnimate");
+
+            clip.PlayOnce();
+            Assert.AreEqual(
+                7,
+                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x);
+            ((Vector3MemberValue)client.sessionValues[positionId]).value!.x = 42;
+            clip.Tick(0.1f);
+            clip.Tick(0.1f);
+
+            Assert.AreEqual(
+                42,
+                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x,
+                "the child hold tail must not re-apply the same last frame");
+        }
+
+        [Test]
+        public void AnimationLegacyPlacementWithoutCloneProvenanceFailsWithMigrationPath()
+        {
+            ProjectData data = BuildPlacementAnimationProjectData();
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
+            var placement = (ObjectMemberValue)client.saveValues[placed.InstanceId.Value];
+            string childListId = placement.value!["Children"];
+            string childId = ((ArrayMemberValue)client.saveValues[childListId]).value![0];
+            client.saveValues[childId].sourceValueId = null;
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                NeoGeneratedTypesSupport.GetAnimationClip(
+                    (TestComposedObject)placed.Info,
+                    "Animate"));
+
+            StringAssert.Contains("legacy pre-0.7 placement", error!.Message);
+            StringAssert.Contains("Migrate or recreate", error.Message);
+        }
+
+        private static NeoResolvedObjectInstance SpawnAnimationTestObject(NeoClient client)
+        {
+            NeoTileGridPrimitive primitive = NeoTileGridPrimitive.ResolveForSave(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string>
+                {
+                    [typeof(TestComposedObject)] = ObjectClassId,
+                });
+            var layer = primitive.BindWritableObjectLayer<TestAuthoredObjectLayer>(
+                ObjectsLayerClassId,
+                new[] { ObjectClassId });
+            var asset = (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "shop-object",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories())!;
+            Assert.IsTrue(layer.Spawn(new Vector2Int(4, 5), asset).Ok);
+            return layer.GetObject(new Vector2Int(4, 5))!;
         }
 
         [Test]
@@ -2971,8 +3513,11 @@ namespace NeoCompose.Tests
 
         private sealed class TestComposedObject : NeoGeneratedClassValue
         {
-            public TestComposedObject(NeoClient client, NeoMemberClass node)
-                : base(client, node, ObjectClassId)
+            public TestComposedObject(
+                NeoClient client,
+                NeoMemberClass node,
+                bool isReadOnly = true)
+                : base(client, node, ObjectClassId, isReadOnly)
             {
             }
 
@@ -3110,12 +3655,412 @@ namespace NeoCompose.Tests
         private const string GridClassId = "grid-class";
         private const string ObjectLayerLinkClassId = "object-layer-link-class";
 
+        private static string PlacedChildPositionId(NeoClient client, string placementId)
+        {
+            var root = (ObjectMemberValue)client.saveValues[placementId];
+            var children = (ArrayMemberValue)client.saveValues[root.value!["Children"]];
+            var child = (ObjectMemberValue)client.saveValues[children.value![0]];
+            return child.value!["Position"];
+        }
+
+        private static ProjectData BuildPlacementAnimationProjectData()
+        {
+            const string clipClassId = "animation-clip-class";
+            const string frameClassId = "animation-frame-class";
+            const string childOverrideClassId = "animation-child-override-class";
+            const string trackClassId = "animation-track-class";
+            ProjectData data = BuildClassBackedTileGridProjectData();
+
+            data.members["object-child-entry-member"] = new ClassMember
+            {
+                id = "object-child-entry-member",
+                projectId = "project-a",
+                name = "Child",
+                kind = MemberKind.Class,
+                classId = ObjectClassId,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            ((ListMember)data.members["object-children-member"]).entryMemberId =
+                "object-child-entry-member";
+            data.members["object-position-member"].storage = "session";
+
+            data.classes[ObjectClassId].schema["Animate"] = "animate-member";
+            data.classes[ObjectClassId].schema["TrackAnimate"] = "track-animate-member";
+            data.classes[ObjectClassId].schema["ChildAnimate"] = "child-animate-member";
+            data.members["animate-member"] = ClipMember(
+                "animate-member",
+                "Animate",
+                clipClassId,
+                "parent-clip");
+            data.members["track-animate-member"] = ClipMember(
+                "track-animate-member",
+                "TrackAnimate",
+                clipClassId,
+                "track-parent-clip");
+            data.members["child-animate-member"] = ClipMember(
+                "child-animate-member",
+                "ChildAnimate",
+                clipClassId,
+                "child-clip");
+
+            data.classes[clipClassId] = new NeoSchemaClass
+            {
+                id = clipClassId,
+                projectId = "project-a",
+                name = "Animation Clip",
+                schema = new Dictionary<string, string>
+                {
+                    ["FPS"] = "animation-fps-member",
+                    ["Duration"] = "animation-duration-member",
+                    ["Frames"] = "animation-frames-member",
+                    ["Tracks"] = "animation-tracks-member",
+                },
+                system = JObject.FromObject(new { worldKind = "animationClip" }),
+            };
+            data.classes[frameClassId] = new NeoSchemaClass
+            {
+                id = frameClassId,
+                projectId = "project-a",
+                name = "Animation Frame",
+                schema = new Dictionary<string, string>
+                {
+                    ["Index"] = "animation-index-member",
+                    ["Overrides"] = "animation-overrides-member",
+                    ["ChildOverrides"] = "animation-child-overrides-member",
+                },
+            };
+            data.classes[childOverrideClassId] = new NeoSchemaClass
+            {
+                id = childOverrideClassId,
+                projectId = "project-a",
+                name = "Animation Child Override",
+                schema = new Dictionary<string, string>
+                {
+                    ["Child"] = "animation-child-member",
+                    ["Overrides"] = "animation-child-values-member",
+                },
+            };
+            data.classes[trackClassId] = new NeoSchemaClass
+            {
+                id = trackClassId,
+                projectId = "project-a",
+                name = "Animation Child Track",
+                schema = new Dictionary<string, string>
+                {
+                    ["Child"] = "animation-track-child-member",
+                    ["ClipKey"] = "animation-track-key-member",
+                    ["StartFrame"] = "animation-track-start-member",
+                },
+            };
+
+            data.members["animation-fps-member"] = IntMember(
+                "animation-fps-member",
+                "FPS");
+            data.members["animation-duration-member"] = IntMember(
+                "animation-duration-member",
+                "Duration");
+            data.members["animation-index-member"] = IntMember(
+                "animation-index-member",
+                "Index");
+            data.members["animation-track-start-member"] = IntMember(
+                "animation-track-start-member",
+                "StartFrame");
+            data.members["animation-frames-member"] = ListMember(
+                "animation-frames-member",
+                "Frames",
+                "animation-frame-entry-member");
+            data.members["animation-frame-entry-member"] = ClassMember(
+                "animation-frame-entry-member",
+                "Frame",
+                frameClassId);
+            data.members["animation-tracks-member"] = ListMember(
+                "animation-tracks-member",
+                "Tracks",
+                "animation-track-entry-member");
+            data.members["animation-track-entry-member"] = ClassMember(
+                "animation-track-entry-member",
+                "Track",
+                trackClassId);
+            data.members["animation-overrides-member"] = ClassMember(
+                "animation-overrides-member",
+                "Overrides",
+                ObjectClassId);
+            data.members["animation-child-overrides-member"] = ListMember(
+                "animation-child-overrides-member",
+                "ChildOverrides",
+                "animation-child-override-entry-member");
+            data.members["animation-child-override-entry-member"] = ClassMember(
+                "animation-child-override-entry-member",
+                "ChildOverride",
+                childOverrideClassId);
+            data.members["animation-child-member"] = LookupMember(
+                "animation-child-member",
+                "Child",
+                "object-children-member");
+            data.members["animation-child-values-member"] = ClassMember(
+                "animation-child-values-member",
+                "Overrides",
+                ObjectClassId);
+            data.members["animation-track-child-member"] = LookupMember(
+                "animation-track-child-member",
+                "Child",
+                "object-children-member");
+            data.members["animation-track-key-member"] = new StringMember
+            {
+                id = "animation-track-key-member",
+                projectId = "project-a",
+                name = "ClipKey",
+                kind = MemberKind.String,
+                localizable = false,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+
+            ((ObjectMemberValue)data.values["shop-object"]).value!["Children"] =
+                "shop-authored-children";
+            data.values["shop-authored-children"] = ArrayValue(
+                "shop-authored-children",
+                "shop-authored-child");
+            data.values["shop-authored-child"] = new ObjectMemberValue
+            {
+                id = "shop-authored-child",
+                classId = ObjectClassId,
+                value = new Dictionary<string, string>
+                {
+                    ["Position"] = "shop-authored-child-position",
+                },
+            };
+            data.values["shop-authored-child-position"] = VectorValue(
+                "shop-authored-child-position",
+                1);
+
+            data.values["parent-clip"] = ClipValue(
+                clipClassId,
+                "parent-clip",
+                "parent-clip-fps",
+                "parent-clip-duration",
+                "parent-clip-frames",
+                "parent-clip-tracks");
+            data.values["parent-clip-fps"] = NumberValue("parent-clip-fps", 10);
+            data.values["parent-clip-duration"] = NumberValue("parent-clip-duration", 1);
+            data.values["parent-clip-frames"] = ArrayValue(
+                "parent-clip-frames",
+                "parent-frame-0");
+            data.values["parent-clip-tracks"] = ArrayValue("parent-clip-tracks");
+            data.values["parent-frame-0"] = new ObjectMemberValue
+            {
+                id = "parent-frame-0",
+                classId = frameClassId,
+                value = new Dictionary<string, string>
+                {
+                    ["Index"] = "parent-frame-0-index",
+                    ["ChildOverrides"] = "parent-frame-0-child-overrides",
+                },
+            };
+            data.values["parent-frame-0-index"] = NumberValue("parent-frame-0-index", 0);
+            data.values["parent-frame-0-child-overrides"] = ArrayValue(
+                "parent-frame-0-child-overrides",
+                "parent-child-override");
+            data.values["parent-child-override"] = new ObjectMemberValue
+            {
+                id = "parent-child-override",
+                classId = childOverrideClassId,
+                value = new Dictionary<string, string>
+                {
+                    ["Child"] = "parent-child-lookup",
+                    ["Overrides"] = "parent-child-values",
+                },
+            };
+            data.values["parent-child-lookup"] = ArrayValue(
+                "parent-child-lookup",
+                "shop-authored-child");
+            data.values["parent-child-values"] = new ObjectMemberValue
+            {
+                id = "parent-child-values",
+                classId = ObjectClassId,
+                value = new Dictionary<string, string>
+                {
+                    ["Position"] = "parent-child-position-override",
+                },
+            };
+            data.values["parent-child-position-override"] = VectorValue(
+                "parent-child-position-override",
+                9);
+
+            data.values["child-clip"] = ClipValue(
+                clipClassId,
+                "child-clip",
+                "child-clip-fps",
+                "child-clip-duration",
+                "child-clip-frames",
+                "child-clip-tracks");
+            data.values["child-clip-fps"] = NumberValue("child-clip-fps", 10);
+            data.values["child-clip-duration"] = NumberValue("child-clip-duration", 1);
+            data.values["child-clip-frames"] = ArrayValue(
+                "child-clip-frames",
+                "child-frame-0");
+            data.values["child-clip-tracks"] = ArrayValue("child-clip-tracks");
+            data.values["child-frame-0"] = new ObjectMemberValue
+            {
+                id = "child-frame-0",
+                classId = frameClassId,
+                value = new Dictionary<string, string>
+                {
+                    ["Index"] = "child-frame-0-index",
+                    ["Overrides"] = "child-frame-0-values",
+                },
+            };
+            data.values["child-frame-0-index"] = NumberValue("child-frame-0-index", 0);
+            data.values["child-frame-0-values"] = new ObjectMemberValue
+            {
+                id = "child-frame-0-values",
+                classId = ObjectClassId,
+                value = new Dictionary<string, string>
+                {
+                    ["Position"] = "child-position-override",
+                },
+            };
+            data.values["child-position-override"] = VectorValue(
+                "child-position-override",
+                7);
+
+            data.values["track-parent-clip"] = ClipValue(
+                clipClassId,
+                "track-parent-clip",
+                "track-parent-fps",
+                "track-parent-duration",
+                "track-parent-frames",
+                "track-parent-tracks");
+            data.values["track-parent-fps"] = NumberValue("track-parent-fps", 10);
+            data.values["track-parent-duration"] = NumberValue("track-parent-duration", 2);
+            data.values["track-parent-frames"] = ArrayValue("track-parent-frames");
+            data.values["track-parent-tracks"] = ArrayValue(
+                "track-parent-tracks",
+                "track-parent-child");
+            data.values["track-parent-child"] = new ObjectMemberValue
+            {
+                id = "track-parent-child",
+                classId = trackClassId,
+                value = new Dictionary<string, string>
+                {
+                    ["Child"] = "track-parent-child-lookup",
+                    ["ClipKey"] = "track-parent-child-key",
+                    ["StartFrame"] = "track-parent-child-start",
+                },
+            };
+            data.values["track-parent-child-lookup"] = ArrayValue(
+                "track-parent-child-lookup",
+                "shop-authored-child");
+            data.values["track-parent-child-key"] = new StringMemberValue
+            {
+                id = "track-parent-child-key",
+                value = "ChildAnimate",
+            };
+            data.values["track-parent-child-start"] = NumberValue(
+                "track-parent-child-start",
+                1);
+            return data;
+
+            static ClassMember ClipMember(
+                string id,
+                string name,
+                string classId,
+                string valueId) => new()
+                {
+                    id = id,
+                    projectId = "project-a",
+                    name = name,
+                    kind = MemberKind.Class,
+                    classId = classId,
+                    valueId = valueId,
+                    storage = "immutable",
+                    createdAt = "x",
+                    updatedAt = "x",
+                };
+            static IntMember IntMember(string id, string name) => new()
+            {
+                id = id,
+                projectId = "project-a",
+                name = name,
+                kind = MemberKind.Int,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            static ListMember ListMember(string id, string name, string entryId) => new()
+            {
+                id = id,
+                projectId = "project-a",
+                name = name,
+                kind = MemberKind.List,
+                entryMemberId = entryId,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            static ClassMember ClassMember(string id, string name, string classId) => new()
+            {
+                id = id,
+                projectId = "project-a",
+                name = name,
+                kind = MemberKind.Class,
+                classId = classId,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            static LookupMember LookupMember(
+                string id,
+                string name,
+                string collectionId) => new()
+                {
+                    id = id,
+                    projectId = "project-a",
+                    name = name,
+                    kind = MemberKind.Lookup,
+                    collectionMemberId = collectionId,
+                    createdAt = "x",
+                    updatedAt = "x",
+                };
+            static ArrayMemberValue ArrayValue(string id, params string[] values) => new()
+            {
+                id = id,
+                value = values,
+            };
+            static NumberMemberValue NumberValue(string id, double value) => new()
+            {
+                id = id,
+                value = value,
+            };
+            static Vector3MemberValue VectorValue(string id, float x) => new()
+            {
+                id = id,
+                value = new NeoVector3Value { x = x, y = 0, z = 0 },
+            };
+            static ObjectMemberValue ClipValue(
+                string classId,
+                string id,
+                string fps,
+                string duration,
+                string frames,
+                string tracks) => new()
+                {
+                    id = id,
+                    classId = classId,
+                    value = new Dictionary<string, string>
+                    {
+                        ["FPS"] = fps,
+                        ["Duration"] = duration,
+                        ["Frames"] = frames,
+                        ["Tracks"] = tracks,
+                    },
+                };
+        }
+
         private static ProjectData BuildClassBackedTileGridProjectData()
         {
             var data = BuildTileGridProjectData();
             data.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 11,
+                schemaVersion = 12,
                 projectId = "project-a",
                 versionId = "version-relations",
             };
@@ -3399,6 +4344,14 @@ namespace NeoCompose.Tests
         {
             return new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
             {
+                [ObjectClassId] = (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                        resolvedClient,
+                        node,
+                        () => new TestComposedObject(
+                            resolvedClient,
+                            node,
+                            isReadOnly: false)),
                 [BackgroundLayerClassId] = (resolvedClient, node) =>
                     NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
                         resolvedClient,

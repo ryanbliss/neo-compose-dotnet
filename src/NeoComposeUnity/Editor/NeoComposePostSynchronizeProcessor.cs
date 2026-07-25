@@ -225,6 +225,10 @@ namespace NeoCompose.Unity.Editor
             string assetDatabasePath,
             Type generatedProjectType)
         {
+            // Immutable animation definitions may have changed. Stop live
+            // players and discard compiled clip caches before callbacks see
+            // the synchronized project data.
+            NeoClient.InvalidateAllAnimationClips();
             using var project = LoadGeneratedProject(
                 generatedProjectType,
                 projectJson,

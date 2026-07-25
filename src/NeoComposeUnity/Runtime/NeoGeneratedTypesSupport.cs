@@ -457,6 +457,19 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// Resolves and caches an authored animation clip for a generated
+        /// target value. Generated clip properties call this helper.
+        /// </summary>
+        public static NeoAnimationClip<T> GetAnimationClip<T>(
+            T target,
+            string schemaKey)
+            where T : NeoGeneratedClassValue
+        {
+            if (target is null) throw new ArgumentNullException(nameof(target));
+            return target.Client.GetOrCreateAnimationClip(target, schemaKey);
+        }
+
+        /// <summary>
         /// Core of the generated <c>GetChild&lt;T&gt;</c> family. Enumerates a generated
         /// Children collection live (no caching), returning the first child assignable
         /// to <typeparamref name="TChild"/> in list order, optionally filtered by an

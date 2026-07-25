@@ -49,6 +49,11 @@ namespace NeoCompose.Runtime.Json
         /// server-compiled action body.
         /// </summary>
         NSFunction = 23,
+        /// <summary>
+        /// Reference to a declared native or NeoScript function. The stored
+        /// payload is an object containing <c>functionMemberId</c>.
+        /// </summary>
+        FunctionRef = 24,
         Unknown = -1,
         Void = -2,
     }

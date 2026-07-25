@@ -22,6 +22,8 @@ namespace NeoCompose.Runtime
     /// </summary>
     public class NeoClient : INeoClient
     {
+        private static readonly HashSet<NeoClient> activeClients = new();
+
         public delegate string BuildSaveName();
         public delegate object? NeoNativeFunctionInvoker(
             NeoClient client,
@@ -72,6 +74,8 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, NeoMember> nodes => nodesInternal;
         private readonly Dictionary<string, NeoMember> nodesInternal = new();
         private readonly Dictionary<string, NeoGeneratedClassValue> generatedValuesInternal = new();
+        private readonly Dictionary<string, object> animationClips = new();
+        private readonly NeoAnimationCoordinator animationCoordinator = new();
         private readonly HashSet<NeoDialogue> activeDialogues = new();
         private readonly HashSet<NeoDeferredFunctionBase> activeDirectDeferredFunctions = new();
         private readonly object activeDirectDeferredFunctionsLock = new();
@@ -151,6 +155,81 @@ namespace NeoCompose.Runtime
         internal ProjectData ProjectDataForRuntime => data;
         internal bool IsDisposed => isDisposed;
         internal int ActiveDialogueCount => activeDialogues.Count;
+        internal NeoAnimationCoordinator AnimationCoordinator => animationCoordinator;
+
+        /// <summary>
+        /// Generated-code support for resolving the per-instance cached
+        /// animation handle for one clip schema key. Application code should
+        /// normally use the generated clip property instead.
+        /// </summary>
+        [System.ComponentModel.EditorBrowsable(
+            System.ComponentModel.EditorBrowsableState.Never)]
+        public NeoAnimationClip<T> GetOrCreateAnimationClip<T>(
+            T target,
+            string schemaKey)
+            where T : NeoGeneratedClassValue
+        {
+            EnsureNotDisposed();
+            string cacheKey = $"{target.AnimationInstanceIdentity}\u001f{schemaKey}";
+            if (animationClips.TryGetValue(cacheKey, out object existing))
+            {
+                if (existing is NeoAnimationClip<T> match) return match;
+                throw new InvalidOperationException(
+                    $"Animation clip cache key '{schemaKey}' changed target type; regenerate the project's C# types.");
+            }
+            NeoAnimationDefinition definition = NeoAnimationCompiler.Compile(target, schemaKey);
+            var clip = new NeoAnimationClip<T>(
+                target,
+                target.AnimationInstanceIdentity,
+                definition.FPS,
+                definition.Duration,
+                animationCoordinator,
+                definition.PreparePlayback,
+                definition.ApplyFrame);
+            animationClips.Add(cacheKey, clip);
+            return clip;
+        }
+
+        internal void ReleaseAnimationClips(NeoGeneratedClassValue target)
+        {
+            string prefix = $"{target.AnimationInstanceIdentity}\u001f";
+            var remove = new List<string>();
+            var players = new List<INeoAnimationPlayer>();
+            foreach (var pair in new List<KeyValuePair<string, object>>(animationClips))
+            {
+                if (!pair.Key.StartsWith(prefix, System.StringComparison.Ordinal)) continue;
+                if (pair.Value is INeoAnimationPlayer player)
+                {
+                    players.Add(player);
+                }
+                remove.Add(pair.Key);
+            }
+            foreach (string key in remove) animationClips.Remove(key);
+            foreach (INeoAnimationPlayer player in players)
+            {
+                player.StopFromCoordinator();
+            }
+        }
+
+        internal void InvalidateAnimationClips()
+        {
+            foreach (object cached in new List<object>(animationClips.Values))
+            {
+                if (cached is INeoAnimationPlayer player)
+                {
+                    player.StopFromCoordinator();
+                }
+            }
+            animationClips.Clear();
+        }
+
+        internal static void InvalidateAllAnimationClips()
+        {
+            foreach (NeoClient client in new List<NeoClient>(activeClients))
+            {
+                if (!client.isDisposed) client.InvalidateAnimationClips();
+            }
+        }
 
         /// <summary>
         /// Fired whenever a save-side value row is added, replaced, or
@@ -351,6 +430,7 @@ namespace NeoCompose.Runtime
             assets = new(this, data.project.rootAssetsMemberId, null);
             save = new(this, data.project.rootSaveFileMemberId, null, NeoValueOwnership.Save);
             session = new(this, data.project.rootSessionMemberId, null, NeoValueOwnership.Session);
+            NeoAnimationCompiler.ValidateProject(this);
             if (loadedExistingSave)
             {
                 CaptureCommittedSaveState();
@@ -360,12 +440,14 @@ namespace NeoCompose.Runtime
                 liveContentSource = liveSource;
                 liveSource.OnLiveContentChanged += HandleLiveContentChanged;
             }
+            activeClients.Add(this);
         }
 
         public void Dispose()
         {
             if (isDisposed) return;
             isDisposed = true;
+            activeClients.Remove(this);
             if (liveContentSource != null)
             {
                 liveContentSource.OnLiveContentChanged -= HandleLiveContentChanged;
@@ -391,6 +473,8 @@ namespace NeoCompose.Runtime
             {
                 resolvedNSFunctions.Clear();
             }
+            animationCoordinator.Dispose();
+            animationClips.Clear();
             assets.Dispose();
             save.Dispose();
             session.Dispose();
@@ -888,7 +972,7 @@ namespace NeoCompose.Runtime
 
         private static void ValidateExportSchemaVersion(ProjectExportMetadata? metadata)
         {
-            const int currentVersion = 11;
+            const int currentVersion = 12;
             if (metadata is null)
             {
                 throw new System.InvalidOperationException(
@@ -909,7 +993,7 @@ namespace NeoCompose.Runtime
             if (data.internalRecordRelations is null)
             {
                 throw new System.InvalidOperationException(
-                    "Project export schema version 11 is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
+                    "Project export schema version 12 is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
             }
 
             var knownKinds = new HashSet<string>(System.StringComparer.Ordinal)
@@ -3336,6 +3420,9 @@ namespace NeoCompose.Runtime
             // mapKey is immutable partition identity: a shadow of a
             // partition-stamped row stays in the same storage partition.
             clone.mapKey = row.mapKey;
+            // Authored-child provenance is immutable placement identity and
+            // must survive every Save/Session clone-on-write shadow.
+            clone.sourceValueId = row.sourceValueId;
             // genericBindings is immutable creation-time context
             // (specs/class-generics.md Decision 9): a shadow of a
             // stamped collection row keeps its entry-substitution stamp.
@@ -5092,6 +5179,21 @@ namespace NeoCompose.Runtime
 
         private void ValidateNSFunctionMember(NSFunctionMember member)
         {
+            if (member.bodyMode is not null && member.bodyMode != "ui")
+            {
+                throw new System.InvalidOperationException(
+                    $"NSFunction member '{member.id}' has unsupported bodyMode '{member.bodyMode}'.");
+            }
+            if (member.bodyMode == "ui" && member.uiAction is null)
+            {
+                throw new System.InvalidOperationException(
+                    $"UI-mode NSFunction member '{member.id}' is missing uiAction.");
+            }
+            if (member.bodyMode is null && member.uiAction is not null)
+            {
+                throw new System.InvalidOperationException(
+                    $"Custom-code NSFunction member '{member.id}' cannot declare uiAction.");
+            }
             if (member.required
                 || member.defaultValue is not null
                 || !string.IsNullOrEmpty(member.valueId)
@@ -5102,7 +5204,12 @@ namespace NeoCompose.Runtime
             }
             bool hasLocalCodeField = member.code is not null;
             bool hasLocalAction = member.action is not null;
-            if (hasLocalCodeField != hasLocalAction)
+            if (member.bodyMode == "ui" && !hasLocalAction)
+            {
+                throw new System.InvalidOperationException(
+                    $"UI-mode NSFunction member '{member.id}' is missing its compiled action.");
+            }
+            if (member.bodyMode is null && hasLocalCodeField != hasLocalAction)
             {
                 throw new System.InvalidOperationException(
                     $"NSFunction member '{member.id}' must export its local code and compiled action together.");
@@ -5115,10 +5222,10 @@ namespace NeoCompose.Runtime
             if (member.isAbstract == true) return;
 
             if (string.IsNullOrEmpty(member.extendsMemberId)
-                && !hasLocalCodeField)
+                && !hasLocalAction)
             {
                 throw new System.InvalidOperationException(
-                    $"Concrete NSFunction declaration '{member.id}' is missing code and compiled action.");
+                    $"Concrete NSFunction declaration '{member.id}' is missing its compiled action.");
             }
 
             NSFunctionMember? signature = ResolveNSFunctionSignature(member.id);

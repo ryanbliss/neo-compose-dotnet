@@ -63,7 +63,7 @@ namespace NeoCompose.Runtime
                     value = Cast<string?>(rawPayload, member),
                     neoLocalizationMode = NeoStringLocalizationMode.Literal,
                 },
-                DictionaryMember or ClassMember => new ObjectMemberValue
+                DictionaryMember or ClassMember or FunctionRefMember => new ObjectMemberValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = Cast<Dictionary<string, string>?>(rawPayload, member),
@@ -218,6 +218,12 @@ namespace NeoCompose.Runtime
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = member.defaultValue.value,
+                    classId = member.defaultValue.classId,
+                },
+                FunctionRefMember member => member.defaultValue is null ? null : new ObjectMemberValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = CloneDictionary(member.defaultValue.value),
                     classId = member.defaultValue.classId,
                 },
                 SpriteMember member => member.defaultValue is null ? null : new SpriteMemberValue

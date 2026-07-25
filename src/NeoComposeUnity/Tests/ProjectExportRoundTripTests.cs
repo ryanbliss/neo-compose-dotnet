@@ -48,6 +48,65 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void AnimationMemberMetadata_RoundTripsPartialFunctionRefAndUiBody()
+        {
+            const string classJson = @"{
+  'id':'partial','projectId':'project','name':'Overrides','kind':7,
+  'locked':true,'required':false,'isStatic':false,'accessModifierKind':'public',
+  'classId':'target','partial':true,'createdAt':'x','updatedAt':'x'
+}";
+            var partial = (ClassMember)JsonConvert.DeserializeObject<Member>(classJson)!;
+            Assert.AreEqual(true, partial.partial);
+
+            const string genericJson = @"{
+  'id':'generic-partial','projectId':'project','name':'Overrides','kind':21,
+  'locked':true,'required':false,'isStatic':false,'accessModifierKind':'public',
+  'genericParamId':'target-param','partial':true,'createdAt':'x','updatedAt':'x'
+}";
+            var generic = (GenericMember)JsonConvert.DeserializeObject<Member>(genericJson)!;
+            Assert.AreEqual(true, generic.partial);
+
+            const string functionRefJson = @"{
+  'id':'action-ref','projectId':'project','name':'Action','kind':24,
+  'locked':true,'required':true,'isStatic':false,'accessModifierKind':'public',
+  'defaultValue':{'value':{'functionMemberId':'function-a'}},
+  'createdAt':'x','updatedAt':'x'
+}";
+            var functionRef = (FunctionRefMember)JsonConvert.DeserializeObject<Member>(functionRefJson)!;
+            Assert.AreEqual(24, (int)functionRef.kind);
+            Assert.AreEqual("function-a", functionRef.defaultValue!.value!["functionMemberId"]);
+
+            const string nsFunctionJson = @"{
+  'id':'ui-function','projectId':'project','name':'OnFrame','kind':23,
+  'locked':false,'required':false,'isStatic':false,'accessModifierKind':'public',
+  'code':'return;','bodyMode':'ui','returnTypeInfo':{'type':'Void','required':true},
+  'argumentTypes':[],'deferred':false,'createdAt':'x','updatedAt':'x',
+  'uiAction':{'parameters':[],'instructions':[],'typeInfo':{'type':0,'required':true}},
+  'action':{'parameters':[],'instructions':[],'typeInfo':{'type':0,'required':true}}
+}";
+            var nsFunction = (NSFunctionMember)JsonConvert.DeserializeObject<Member>(nsFunctionJson)!;
+            Assert.AreEqual("ui", nsFunction.bodyMode);
+            Assert.IsNotNull(nsFunction.uiAction);
+
+            JObject serialized = JObject.Parse(JsonConvert.SerializeObject(nsFunction));
+            Assert.AreEqual("ui", serialized.Value<string>("bodyMode"));
+            Assert.IsNotNull(serialized["uiAction"]);
+
+            const string placedChildJson = @"{
+  'id':'placed-child','classId':'sprite-child','sourceValueId':'authored-child',
+  'createdAt':'x','updatedAt':'x','value':{}
+}";
+            var placedChild = (ObjectMemberValue)JsonConvert
+                .DeserializeObject<MemberValue>(placedChildJson)!;
+            Assert.AreEqual("authored-child", placedChild.sourceValueId);
+            JObject serializedChild = JObject.Parse(
+                JsonConvert.SerializeObject(placedChild));
+            Assert.AreEqual(
+                "authored-child",
+                serializedChild.Value<string>("sourceValueId"));
+        }
+
+        [Test]
         public void NSPropertySetter_RoundTripsAuthoredCodeCompiledIrAndWritability()
         {
             var typeInfo = new PrimitiveTypeInfo

@@ -24,17 +24,17 @@ namespace HelloWorld.Assets.Tests.PlayMode
         private const string ProjectResourcePath = "Neo/project";
 
         [UnityTest]
-        public IEnumerator Schema11Export_LoadsClassAndMemberContractInPlayMode()
+        public IEnumerator Schema12Export_LoadsClassAndMemberContractInPlayMode()
         {
             Assert.IsTrue(Application.isPlaying, "This gate must run through the PlayMode test runner.");
             yield return null;
 
             using var store = CreateLoadedStore();
-            using var synchronizer = store.CreateNew("playmode-schema-11");
+            using var synchronizer = store.CreateNew("playmode-schema-12");
             var schema = synchronizer.Schema;
 
             Assert.IsNotNull(schema.metadata);
-            Assert.AreEqual(11, schema.metadata!.schemaVersion);
+            Assert.AreEqual(12, schema.metadata!.schemaVersion);
             Assert.IsNotEmpty(schema.classes);
             Assert.IsNotEmpty(schema.members);
 
@@ -95,6 +95,45 @@ namespace HelloWorld.Assets.Tests.PlayMode
             Assert.AreEqual(NeoChangeSource.Local, observedSource);
             Assert.AreSame(Planet.mars, client.Save.World);
             CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds(), client.SerializeSaveData());
+        }
+
+        [UnityTest]
+        public IEnumerator GeneratedRecoveryCacheAnimationClip_ExecutesExportedFrameActionInPlayMode()
+        {
+            Assert.IsTrue(Application.isPlaying, "This gate must run through the PlayMode test runner.");
+
+            using var store = CreateLoadedStore();
+            using var synchronizer = store.CreateNew("playmode-object-animation");
+            using var client = HelloWorldNeo.Load(
+                    synchronizer,
+                    localizationOptions: EnglishLocalizationOptions())
+                .GetAwaiter()
+                .GetResult();
+            IReadOnlyList<NeoResolvedObjectInstance<RecoveryCacheObject>> placements = client
+                .Assets
+                .Worlds
+                .OldConsoleLanding
+                .Content
+                .Objects
+                .GetObjects<RecoveryCacheObject>();
+            Assert.AreEqual(1, placements.Count);
+
+            RecoveryCacheObject recoveryCache = placements[0].Info;
+            NeoAnimationClip<RecoveryCacheObject> clip = recoveryCache.Pulse;
+            var enteredFrames = new List<int>();
+            using var frameTwo = clip.AddFrameEvent(2, () => enteredFrames.Add(2));
+            client.Save.Bits = 0;
+
+            clip.PlayOnce();
+            float deadline = Time.realtimeSinceStartup + 2f;
+            while (clip.IsPlaying && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
+
+            Assert.AreEqual(1, client.Save.Bits);
+            CollectionAssert.AreEqual(new[] { 2 }, enteredFrames);
+            Assert.IsFalse(clip.IsPlaying);
         }
 
         [UnityTest]

@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-23
+
+### Breaking
+
+- Advanced the required Unity export contract to schema 12. Schema-11 exports
+  are rejected; re-export projects and regenerate their C# types before
+  upgrading.
+
+### Added
+
+- Added the `FunctionRef` wire kind, recursive Partial Class metadata, and
+  NeoScript UI-body metadata used by Neo object animation clips.
+- Sparse Partial Class values now materialize only authored fields, preventing
+  recursive clip defaults from creating cyclic change-notification graphs.
+- Added the typed `NeoAnimationClip<T>` playback API, deterministic frame
+  state machine, client-owned scaled-time runner, and per-target playback
+  coordination.
+- Object placements now resolve through their stable placement row, clone
+  mutable authored subtrees per placement, and preserve `sourceValueId`
+  provenance for exact child overrides and embedded child tracks.
+
 ## [0.6.3] - 2026-07-23
 
 ### Changed

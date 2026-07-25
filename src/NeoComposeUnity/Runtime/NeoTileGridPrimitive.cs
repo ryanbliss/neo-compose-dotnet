@@ -1554,13 +1554,15 @@ namespace NeoCompose.Runtime
             where TGenerated : class, INeoValueReference
         {
             if (!ClassExtendsClass(record.AssetClassId, expectedFamilyClassId)) return null;
-            object? resolved = record.AssetValueId is not null
-                ? NeoGeneratedTypesSupport.ResolveClassValue(
-                    client,
-                    record.AssetValueId,
-                    readOnlyFactories,
-                    writableFactories)
-                : ResolveGeneratedClassDefault(record.AssetClassId);
+            // The placement row is the durable runtime object identity. Its
+            // graph overlays authored defaults with placement-owned rows;
+            // resolving assetValueId here would return one shared wrapper and
+            // make writes from two placements alias each other.
+            object? resolved = NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                record.InstanceId,
+                readOnlyFactories,
+                writableFactories);
             if (resolved is not NeoGeneratedClassValue generated
                 || !ClassExtendsClass(
                     generated.classId ?? record.AssetClassId,
@@ -3130,12 +3132,19 @@ namespace NeoCompose.Runtime
             // Storage partitions: the spawned object's subtree lives in its
             // container's partition (see CreatePlacementRows).
             string? partitionMapKey = client.ResolveEffectiveRow(link.ListValueId)?.mapKey;
-            var record = new Dictionary<string, string>();
+            var record = ClonePlacementClassChildren(
+                objectClassId,
+                assetValueId is not null
+                    && client.ResolveEffectiveRow(assetValueId) is ObjectMemberValue assetRow
+                        ? assetRow.value
+                        : null,
+                writeOwnership,
+                partitionMapKey,
+                positionKey,
+                sizeKey);
             if (assetValueId is not null
-                && client.ResolveEffectiveRow(assetValueId) is ObjectMemberValue assetRow
-                && assetRow.value is not null)
+                && client.ResolveEffectiveRow(assetValueId) is ObjectMemberValue)
             {
-                foreach (var pair in assetRow.value) record[pair.Key] = pair.Value;
                 record["assetValueId"] = assetValueId;
             }
             record["assetClassId"] = objectClassId;
@@ -3175,6 +3184,168 @@ namespace NeoCompose.Runtime
             if (sizeRow is not null) client.SetWritableValue(writeOwnership, sizeRow);
             client.SetWritableValue(writeOwnership, objectRow);
             return null;
+        }
+
+        /// <summary>
+        /// Materializes the authored object graph as placement-owned rows.
+        /// Every owned row receives a fresh id and retains its exact authored
+        /// source id, so two placements never share mutable wrappers and an
+        /// authored Children entry can be addressed without name/index
+        /// heuristics. Explicit Immutable fields remain authored references;
+        /// Save/Session declarations select their own durable overlay store.
+        /// </summary>
+        private Dictionary<string, string> ClonePlacementClassChildren(
+            string classId,
+            IReadOnlyDictionary<string, string>? authoredValues,
+            NeoValueOwnership inheritedOwnership,
+            string? mapKey,
+            params string?[] excludedKeys)
+        {
+            var excluded = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string? key in excludedKeys)
+            {
+                if (!string.IsNullOrWhiteSpace(key)) excluded.Add(key!);
+            }
+
+            var result = new Dictionary<string, string>();
+            foreach (MergedSchemaEntry entry in client.ResolveInstanceSurfaceSchema(classId))
+            {
+                if (excluded.Contains(entry.schemaKey)) continue;
+                if (!client.TryGetMember(entry.memberId, out Json.Member? member)) continue;
+                NeoValueOwnership ownership =
+                    client.DeclaredOwnership(member) ?? inheritedOwnership;
+
+                MemberValue? source = null;
+                if (authoredValues is not null
+                    && authoredValues.TryGetValue(entry.schemaKey, out string sourceId))
+                {
+                    source = client.ResolveEffectiveRow(sourceId);
+                }
+                else if (member.valueId is not null)
+                {
+                    source = client.ResolveEffectiveRow(member.valueId);
+                }
+                else
+                {
+                    source = MemberValueFactory.CreateFromDefault(
+                        member,
+                        $"__neo_default:{member.id}",
+                        member.createdAt,
+                        member.updatedAt);
+                }
+
+                if (source is null) continue;
+                if (ownership == NeoValueOwnership.Asset || member.isReadOnly == true)
+                {
+                    // Immutable definitions (including clip graphs) remain
+                    // shared authored content and are never runtime targets.
+                    if (!source.id.StartsWith("__neo_default:", StringComparison.Ordinal))
+                    {
+                        result[entry.schemaKey] = source.id;
+                    }
+                    continue;
+                }
+
+                result[entry.schemaKey] = ClonePlacementOwnedRow(
+                    member,
+                    source,
+                    ownership,
+                    mapKey,
+                    clonedContainerId: null);
+            }
+            return result;
+        }
+
+        private string ClonePlacementOwnedRow(
+            Json.Member member,
+            MemberValue source,
+            NeoValueOwnership ownership,
+            string? mapKey,
+            string? clonedContainerId)
+        {
+            MemberValue clone = client.CloneRowForWrite(source);
+            clone.id = Guid.NewGuid().ToString();
+            clone.sourceValueId = source.sourceValueId ?? source.id;
+            clone.containerId = clonedContainerId;
+            clone.mapKey = mapKey;
+            clone.mark = null;
+
+            switch (clone)
+            {
+                case ObjectMemberValue objectClone
+                    when objectClone.value is not null
+                    && member is ClassMember classMember:
+                {
+                    string effectiveClassId = source.classId ?? classMember.classId;
+                    var mapped = ClonePlacementClassChildren(
+                        effectiveClassId,
+                        objectClone.value,
+                        ownership,
+                        mapKey);
+                    objectClone.value = mapped;
+                    break;
+                }
+                case ObjectMemberValue dictionaryClone
+                    when dictionaryClone.value is not null
+                    && member is DictionaryMember dictionaryMember
+                    && client.TryGetMember(
+                        dictionaryMember.entryMemberId,
+                        out Json.Member? dictionaryEntry):
+                {
+                    NeoValueOwnership entryOwnership =
+                        client.DeclaredOwnership(dictionaryEntry) ?? ownership;
+                    var mapped = new Dictionary<string, string>();
+                    foreach (var pair in dictionaryClone.value)
+                    {
+                        MemberValue? entrySource = client.ResolveEffectiveRow(pair.Value);
+                        mapped[pair.Key] = entrySource is null
+                            || entryOwnership == NeoValueOwnership.Asset
+                            || dictionaryEntry.isReadOnly == true
+                                ? pair.Value
+                                : ClonePlacementOwnedRow(
+                                    dictionaryEntry,
+                                    entrySource,
+                                    entryOwnership,
+                                    mapKey,
+                                    clonedContainerId: null);
+                    }
+                    dictionaryClone.value = mapped;
+                    break;
+                }
+                case ArrayMemberValue listClone
+                    when listClone.value is not null
+                    && member is ListMember listMember
+                    && client.TryGetMember(
+                        listMember.entryMemberId,
+                        out Json.Member? listEntry):
+                {
+                    NeoValueOwnership entryOwnership =
+                        client.DeclaredOwnership(listEntry) ?? ownership;
+                    var mapped = new string[listClone.value.Length];
+                    for (int index = 0; index < listClone.value.Length; index++)
+                    {
+                        string sourceId = listClone.value[index];
+                        MemberValue? entrySource = client.ResolveEffectiveRow(sourceId);
+                        mapped[index] = entrySource is null
+                            || entryOwnership == NeoValueOwnership.Asset
+                            || listEntry.isReadOnly == true
+                                ? sourceId
+                                : ClonePlacementOwnedRow(
+                                    listEntry,
+                                    entrySource,
+                                    entryOwnership,
+                                    mapKey,
+                                    listMember.listKind == NeoListKinds.Unordered
+                                        ? clone.id
+                                        : null);
+                    }
+                    listClone.value = mapped;
+                    break;
+                }
+            }
+
+            client.SetWritableValue(ownership, clone);
+            return clone.id;
         }
 
         private NeoPlacementResult? WritePlacementTileReference(
