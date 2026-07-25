@@ -13086,21 +13086,6 @@
                 "Cell": "3921eb6b-1281-428c-983e-72c80b97312c"
             }
         },
-        "43dc19bf-8ed1-43a7-9567-a4ee50922c2c": {
-            "createdAt": 1784894401382,
-            "genericBindings": {
-                "268e9d23-347b-4eb6-8bec-cf0edf326aa2": "996149e8-8032-4ff5-b1d2-41f1f9d3d03e"
-            },
-            "id": "43dc19bf-8ed1-43a7-9567-a4ee50922c2c",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1784929874917,
-            "value": [
-                "7265e9c0-5738-45ed-b557-ee0d34523864",
-                "c57afdde-5746-41b6-b493-f511ae81ebfa",
-                "fd913612-15ee-4519-9b5c-b9a06e6c41fd",
-                "d3767d43-d05b-4dcf-aa48-107df1005b03"
-            ]
-        },
         "4430bcd1-846e-476d-a38d-2706828123bc": {
             "classId": null,
             "createdAt": 1782974177263,
