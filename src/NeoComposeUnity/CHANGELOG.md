@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-07-26
+
+### Breaking
+
+- Every Neo-authored system record id now carries a reserved `system_` prefix,
+  so the sixteen `NeoSmartTileOptionIds` constants changed. The UUID inside is
+  unchanged — the re-identification is a pure prefix transform, so a
+  pre-migration id is the new one with `system_` removed.
+
+  This package version must be adopted together with the server-side
+  re-identification: a build running 0.7.0 against a re-identified project
+  compares smart tile option ids that no longer match, and every rule
+  evaluates as if its condition were unset. Re-export projects and regenerate
+  their C# types after upgrading.
+
 ## [0.7.0] - 2026-07-23
 
 ### Breaking
