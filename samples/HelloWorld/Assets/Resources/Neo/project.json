@@ -19,9 +19,9 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "e5c0b0ba41ec005125c86be759b511117b943e8dea5ac20e96cd6f81d927d1b5",
-        "codegenContractHash": "ff426051440c186aed86acd84a543c7b15f7534c1bc953ed933213e75899e795",
-        "runtimeDataContractHash": "187425cd012c78bb5bbad4bac6fa5c8c34edc6398305f3b7de683c6e9d37ef71"
+        "projectDocumentContentHash": "d9daf3850264a0828deb50a021f5dea0d9b3cc089ef284480b1a54a841bd3a05",
+        "codegenContractHash": "5ce38a1b1d287aa8b2e8dc529b1b4da02d9920c7566c4998ef2a982bbe706a23",
+        "runtimeDataContractHash": "ad10e8d394a790c89a4344892596ce8b6f8157cee2ce7236bddd32eed68b6554"
     },
     "localization": {
         "schemaVersion": 1,
@@ -401,24 +401,26 @@
             "required": true,
             "updatedAt": 1782014212397
         },
-        "04383910-20a1-4c7f-ad90-f87e165083ba": {
+        "0293cebd-1ecb-58a7-a8de-bd8eddab83dd": {
             "accessModifierKind": "public",
-            "classId": "3ab13327-ccaa-4dbe-8ec7-24b9592ddf15",
-            "createdAt": 1782012571783,
+            "classId": "4cdf4a5b-b299-4253-854b-d25c0a4c7c20",
+            "createdAt": 1778021393940,
             "defaultValue": {
                 "value": {}
             },
-            "id": "04383910-20a1-4c7f-ad90-f87e165083ba",
+            "extendsMemberId": null,
+            "id": "0293cebd-1ecb-58a7-a8de-bd8eddab83dd",
             "isStatic": false,
             "kind": 7,
             "locked": true,
-            "name": "Tile",
+            "name": "NeoTextNodeMemory",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "kind": "worldAuthoring"
+                "kind": "dialogueMemorySchema"
             },
-            "updatedAt": 1782539843163
+            "updatedAt": 1778021393940,
+            "valueId": "30cee785-a3ee-4bc4-8e11-50bf0d27af96"
         },
         "04d5e145-412b-4499-a253-b03496a065f0": {
             "accessModifierKind": "public",
@@ -643,26 +645,24 @@
             "updatedAt": 1781221745969,
             "valueId": "79e87314-be65-4a95-b4a6-ee28cffa1347"
         },
-        "0d4e7b75-97f6-44f2-b42b-925dc3983341": {
+        "0c4eba66-f5b6-5bfc-aa57-27c565beac53": {
             "accessModifierKind": "public",
-            "classId": "4cdf4a5b-b299-4253-854b-d25c0a4c7c20",
-            "createdAt": 1778021393940,
+            "classId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
+            "createdAt": 1782012571783,
             "defaultValue": {
                 "value": {}
             },
-            "extendsMemberId": null,
-            "id": "0d4e7b75-97f6-44f2-b42b-925dc3983341",
+            "id": "0c4eba66-f5b6-5bfc-aa57-27c565beac53",
             "isStatic": false,
             "kind": 7,
             "locked": true,
-            "name": "NeoTextNodeMemory",
+            "name": "Child",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
-                "kind": "dialogueMemorySchema"
+                "kind": "worldAuthoring"
             },
-            "updatedAt": 1778021393940,
-            "valueId": "30cee785-a3ee-4bc4-8e11-50bf0d27af96"
+            "updatedAt": 1782012571783
         },
         "0fa12fa0-9e74-4e85-9ce3-df0efe78d2dd": {
             "accessModifierKind": "public",
@@ -683,44 +683,6 @@
             },
             "system": null,
             "updatedAt": 1782708997676
-        },
-        "10be115c-1d1f-49f2-ae26-ab4b52657fda": {
-            "accessModifierKind": "public",
-            "classId": "fb219343-34db-4e82-baf0-09df9a2b5210",
-            "createdAt": 1781855034923,
-            "defaultValue": {
-                "value": {}
-            },
-            "id": "10be115c-1d1f-49f2-ae26-ab4b52657fda",
-            "isStatic": false,
-            "kind": 7,
-            "locked": true,
-            "name": "SortingLayer",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "required": true,
-            "system": {
-                "kind": "worldAuthoring"
-            },
-            "updatedAt": 1781855034923
-        },
-        "11873fad-7426-46cf-97d6-47b45bd1c091": {
-            "accessModifierKind": "public",
-            "classId": "628e0cce-5472-4bec-addd-71230b8e64a6",
-            "createdAt": 1782971224672,
-            "defaultValue": {
-                "value": {}
-            },
-            "id": "11873fad-7426-46cf-97d6-47b45bd1c091",
-            "isStatic": false,
-            "kind": 7,
-            "locked": true,
-            "name": "Neighbor",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "required": true,
-            "system": {
-                "kind": "worldAuthoring"
-            },
-            "updatedAt": 1782971224672
         },
         "13e587b4-f143-419e-b2f1-a5fb2fef92fd": {
             "accessModifierKind": "public",
@@ -842,7 +804,7 @@
             "defaultValue": {
                 "value": []
             },
-            "entryMemberId": "f81b06c0-9dde-4674-b419-918f7cf23a4f",
+            "entryMemberId": "bb7a8fbb-287d-5039-a474-908dec74157a",
             "extendsMemberId": null,
             "id": "214c9215-b01d-463a-b5fb-cb21e14b1961",
             "isStatic": false,
@@ -863,7 +825,7 @@
             "defaultValue": {
                 "value": []
             },
-            "entryMemberId": "dd6686e3-6435-47a3-b455-4cfbadad14ff",
+            "entryMemberId": "4e246d43-394d-524e-bb26-a4486d09d53f",
             "extendsMemberId": null,
             "id": "214df1a1-abca-4141-987b-380a5417c70a",
             "isStatic": false,
@@ -983,7 +945,7 @@
             "defaultValue": {
                 "value": []
             },
-            "entryMemberId": "9619809a-f7f0-4605-8f79-d1617b339819",
+            "entryMemberId": "5b130548-3421-5a5c-94d2-ae4959e616db",
             "extendsMemberId": null,
             "id": "2827aefd-7f57-48ea-994c-c5c39ec659e3",
             "isStatic": false,
@@ -1124,23 +1086,6 @@
             "updatedAt": 1777846554409,
             "valueId": "9d559f55-d80f-442a-a964-766b3d45780d"
         },
-        "2cd93779-d755-4368-b064-2361463526ea": {
-            "accessModifierKind": "public",
-            "createdAt": 1782971224672,
-            "defaultValue": null,
-            "id": "2cd93779-d755-4368-b064-2361463526ea",
-            "isStatic": false,
-            "kind": 11,
-            "locked": true,
-            "name": "Sprite",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "required": true,
-            "system": {
-                "kind": "worldAuthoring"
-            },
-            "templateId": null,
-            "updatedAt": 1782971224672
-        },
         "3111ed6f-d441-40b9-97f0-25fff2fb9838": {
             "accessModifierKind": "public",
             "createdAt": 1782971224672,
@@ -1185,7 +1130,7 @@
                     "4d4d8a22-92e0-457d-8e86-0a41c6193259"
                 ]
             },
-            "entryMemberId": "b3280478-f039-47a2-aa18-918175818bcb",
+            "entryMemberId": "0c4eba66-f5b6-5bfc-aa57-27c565beac53",
             "extendsMemberId": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
             "id": "32be897f-be96-4ab7-a586-a9a6fdfff8b7",
             "isStatic": false,
@@ -1377,7 +1322,7 @@
                     "d0d48343-8748-40bf-b35a-3e88cdd7e3a5"
                 ]
             },
-            "entryMemberId": "b3280478-f039-47a2-aa18-918175818bcb",
+            "entryMemberId": "0c4eba66-f5b6-5bfc-aa57-27c565beac53",
             "extendsMemberId": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
             "id": "35275ba0-4a3f-4b83-8b09-fccb7bd7a515",
             "isStatic": false,
@@ -1402,27 +1347,6 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "updatedAt": 1781246186689
-        },
-        "3611d8af-6bfe-4015-93c4-2b611b33f2b6": {
-            "accessModifierKind": "public",
-            "classId": "48f37cd8-69d2-4cd3-ae44-7cfed7912415",
-            "createdAt": 1778021394752,
-            "defaultValue": {
-                "value": {}
-            },
-            "extendsMemberId": null,
-            "id": "3611d8af-6bfe-4015-93c4-2b611b33f2b6",
-            "isStatic": false,
-            "kind": 7,
-            "locked": true,
-            "name": "NeoDialogueMemory",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "required": true,
-            "system": {
-                "kind": "dialogueMemorySchema"
-            },
-            "updatedAt": 1778021394752,
-            "valueId": "583ff4fa-2d0f-451e-8e37-fb47eee09a85"
         },
         "3898975b-c6cc-4f35-a82e-89ba3ff240c6": {
             "accessModifierKind": "public",
@@ -2739,25 +2663,6 @@
             "required": true,
             "updatedAt": 1781246186689
         },
-        "42d3d49d-3ba8-4672-ad54-53dc109697fc": {
-            "accessModifierKind": "public",
-            "classId": "8ccfe860-309f-428b-b74c-76a873bdea8a",
-            "createdAt": 1778176777884,
-            "defaultValue": {
-                "value": {}
-            },
-            "extendsMemberId": null,
-            "id": "42d3d49d-3ba8-4672-ad54-53dc109697fc",
-            "isStatic": false,
-            "kind": 7,
-            "locked": false,
-            "name": "OutpostSaveData",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "required": false,
-            "system": null,
-            "updatedAt": 1778176777884,
-            "valueId": "e621365a-edd1-43a7-b36a-18c35b515057"
-        },
         "430fca56-b45a-4896-9ab2-795a3faf57f6": {
             "accessModifierKind": "public",
             "createdAt": 1782071674504,
@@ -2766,7 +2671,7 @@
                     "293652f8-54d6-4168-89be-7ac75207dcd0"
                 ]
             },
-            "entryMemberId": "c2bf0c92-1d24-4950-bea3-37d5f195728d",
+            "entryMemberId": "96c7650a-1805-5b27-ae99-d1e49d3cb207",
             "extendsMemberId": "5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
             "id": "430fca56-b45a-4896-9ab2-795a3faf57f6",
             "isStatic": false,
@@ -2858,7 +2763,7 @@
                     "6de63821-b102-4b62-aac6-c99c8aabecc9"
                 ]
             },
-            "entryMemberId": "c2bf0c92-1d24-4950-bea3-37d5f195728d",
+            "entryMemberId": "96c7650a-1805-5b27-ae99-d1e49d3cb207",
             "extendsMemberId": "5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
             "id": "47c21aa5-e852-41d2-882c-b4f555aee9dd",
             "isStatic": false,
@@ -3112,23 +3017,43 @@
             "updatedAt": 1779619853435,
             "valueId": "299b23d6-4ea0-4475-94f5-f59c4d18d9cd"
         },
-        "4cf934a0-531f-4513-8c22-27a688669eec": {
+        "4db0598c-9385-5613-8d13-258f74eafd3e": {
             "accessModifierKind": "public",
-            "classId": "9296e4be-bd27-44e3-9823-77fbeaa60665",
-            "createdAt": 1777846623890,
+            "classId": "8ccfe860-309f-428b-b74c-76a873bdea8a",
+            "createdAt": 1778176777884,
             "defaultValue": {
                 "value": {}
             },
             "extendsMemberId": null,
-            "id": "4cf934a0-531f-4513-8c22-27a688669eec",
+            "id": "4db0598c-9385-5613-8d13-258f74eafd3e",
             "isStatic": false,
             "kind": 7,
             "locked": false,
-            "name": "LookupEntry",
+            "name": "OutpostSaveData",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": false,
+            "system": null,
+            "updatedAt": 1778176777884,
+            "valueId": "e621365a-edd1-43a7-b36a-18c35b515057"
+        },
+        "4e246d43-394d-524e-bb26-a4486d09d53f": {
+            "accessModifierKind": "public",
+            "classId": "60c25a92-cb01-46f7-b5cf-c9d950586116",
+            "createdAt": 1778274659218,
+            "defaultValue": {
+                "value": {}
+            },
+            "extendsMemberId": null,
+            "id": "4e246d43-394d-524e-bb26-a4486d09d53f",
+            "isStatic": false,
+            "kind": 7,
+            "locked": false,
+            "name": "Item",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
-            "updatedAt": 1777846623890,
-            "valueId": "c76972cb-5d92-4d1b-865f-b919615e51aa"
+            "system": null,
+            "updatedAt": 1778274659218,
+            "valueId": "45e98d35-3ff0-46d2-a115-533466acd814"
         },
         "502c9308-974b-446d-935b-c22adde5a9d2": {
             "accessModifierKind": "public",
@@ -3324,6 +3249,23 @@
             "updatedAt": 1778154441360,
             "valueId": "188eb9c2-7619-4564-a5f6-7124baf8cc15"
         },
+        "52752963-3f1f-5d66-8ede-4c64e1620963": {
+            "accessModifierKind": "public",
+            "createdAt": 1779225087309,
+            "defaultValue": null,
+            "extendsMemberId": null,
+            "id": "52752963-3f1f-5d66-8ede-4c64e1620963",
+            "isStatic": false,
+            "kind": 11,
+            "locked": false,
+            "name": "List",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": null,
+            "templateId": null,
+            "updatedAt": 1779225261317,
+            "valueId": "3d7dd2b8-d157-4ebd-832c-334806cd6b1c"
+        },
         "54c74f99-f949-44f6-bc1c-37a80888e32f": {
             "accessModifierKind": "public",
             "createdAt": 1778178994613,
@@ -3374,7 +3316,7 @@
                     "8ba3f179-5171-4b77-99de-a8beec7bab25"
                 ]
             },
-            "entryMemberId": "c2bf0c92-1d24-4950-bea3-37d5f195728d",
+            "entryMemberId": "96c7650a-1805-5b27-ae99-d1e49d3cb207",
             "extendsMemberId": "5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
             "id": "571a0e0b-b36c-45f3-ae9a-5fde39045c11",
             "isStatic": false,
@@ -3412,7 +3354,7 @@
             "defaultValue": {
                 "value": []
             },
-            "entryMemberId": "c2bf0c92-1d24-4950-bea3-37d5f195728d",
+            "entryMemberId": "96c7650a-1805-5b27-ae99-d1e49d3cb207",
             "id": "5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
             "isStatic": false,
             "kind": 6,
@@ -3424,6 +3366,25 @@
                 "kind": "worldAuthoring"
             },
             "updatedAt": 1782012571783
+        },
+        "5b130548-3421-5a5c-94d2-ae4959e616db": {
+            "accessModifierKind": "public",
+            "classId": "4c196697-4e08-4aeb-823f-322b353071ac",
+            "createdAt": 1778178223515,
+            "defaultValue": {
+                "value": {}
+            },
+            "extendsMemberId": null,
+            "id": "5b130548-3421-5a5c-94d2-ae4959e616db",
+            "isStatic": false,
+            "kind": 7,
+            "locked": false,
+            "name": "Outpost",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": null,
+            "updatedAt": 1778178223515,
+            "valueId": "0a5924c6-5603-49d5-9c2d-a83cdb68b790"
         },
         "6133e24a-bf87-4d3a-a71e-3933eebcab25": {
             "accessModifierKind": "public",
@@ -3453,7 +3414,7 @@
             "defaultValue": {
                 "value": {}
             },
-            "entryMemberId": "3611d8af-6bfe-4015-93c4-2b611b33f2b6",
+            "entryMemberId": "f7f25231-6521-56e2-baa2-1dcd7c12fbfd",
             "extendsMemberId": null,
             "id": "6223e7c9-a37a-480d-820b-c70f53c6eb0d",
             "isStatic": false,
@@ -3468,24 +3429,6 @@
             },
             "updatedAt": 1778021394854,
             "valueId": "2831fdaa-9090-4bfc-aae3-c70c16a67151"
-        },
-        "659589fe-95b2-472f-a53b-e305db97450f": {
-            "accessModifierKind": "public",
-            "classId": "7755a905-f2a1-4e5d-8b60-78cbdd2b2042",
-            "createdAt": 1777767446642,
-            "defaultValue": {
-                "value": {}
-            },
-            "extendsMemberId": null,
-            "id": "659589fe-95b2-472f-a53b-e305db97450f",
-            "isStatic": false,
-            "kind": 7,
-            "locked": false,
-            "name": "visits",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "required": true,
-            "updatedAt": 1777767446642,
-            "valueId": "77561c95-0c3f-4291-a79b-7e5562d8ee30"
         },
         "663d7511-cfc3-427c-8431-90cfc87a9813": {
             "accessModifierKind": "public",
@@ -3689,6 +3632,25 @@
             "required": true,
             "updatedAt": 1781251248136
         },
+        "7d80825c-077b-5b56-83f0-433a60435693": {
+            "accessModifierKind": "public",
+            "classId": "fb219343-34db-4e82-baf0-09df9a2b5210",
+            "createdAt": 1781855034923,
+            "defaultValue": {
+                "value": {}
+            },
+            "id": "7d80825c-077b-5b56-83f0-433a60435693",
+            "isStatic": false,
+            "kind": 7,
+            "locked": true,
+            "name": "SortingLayer",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "updatedAt": 1781855034923
+        },
         "7ec79ef8-a216-407f-8886-9f770bc9895b": {
             "accessModifierKind": "public",
             "createdAt": 1781855034923,
@@ -3697,7 +3659,7 @@
                     "88c0d53b-94ee-4f48-839b-9148d07828fb"
                 ]
             },
-            "entryMemberId": "10be115c-1d1f-49f2-ae26-ab4b52657fda",
+            "entryMemberId": "7d80825c-077b-5b56-83f0-433a60435693",
             "id": "7ec79ef8-a216-407f-8886-9f770bc9895b",
             "isStatic": false,
             "kind": 6,
@@ -3780,13 +3742,32 @@
             "updatedAt": 1778181555579,
             "valueId": "3918da79-ae6d-4da7-a61f-e39d559f2faf"
         },
+        "843c77b2-9db6-5fe7-94e0-c3edf436b7b1": {
+            "accessModifierKind": "public",
+            "classId": "3ab13327-ccaa-4dbe-8ec7-24b9592ddf15",
+            "createdAt": 1782012571783,
+            "defaultValue": {
+                "value": {}
+            },
+            "id": "843c77b2-9db6-5fe7-94e0-c3edf436b7b1",
+            "isStatic": false,
+            "kind": 7,
+            "locked": true,
+            "name": "Tile",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "updatedAt": 1782539843163
+        },
         "84960eeb-60ea-4241-a074-99a47a0d8dc1": {
             "accessModifierKind": "public",
             "createdAt": 1778021394040,
             "defaultValue": {
                 "value": {}
             },
-            "entryMemberId": "0d4e7b75-97f6-44f2-b42b-925dc3983341",
+            "entryMemberId": "0293cebd-1ecb-58a7-a8de-bd8eddab83dd",
             "extendsMemberId": null,
             "id": "84960eeb-60ea-4241-a074-99a47a0d8dc1",
             "isStatic": false,
@@ -3820,6 +3801,23 @@
             "system": null,
             "updatedAt": 1779226040699,
             "valueId": "e780e4d7-17e8-49db-8fa9-bd641a322110"
+        },
+        "886c7f57-686f-5c8a-b35d-f42fb8e12ae6": {
+            "accessModifierKind": "public",
+            "createdAt": 1782971224672,
+            "defaultValue": null,
+            "id": "886c7f57-686f-5c8a-b35d-f42fb8e12ae6",
+            "isStatic": false,
+            "kind": 11,
+            "locked": true,
+            "name": "Sprite",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "templateId": null,
+            "updatedAt": 1782971224672
         },
         "89dbb12e-1d7c-42ad-b872-63fc7fe8bd5b": {
             "accessModifierKind": "public",
@@ -3868,7 +3866,7 @@
             "defaultValue": {
                 "value": []
             },
-            "entryMemberId": "11873fad-7426-46cf-97d6-47b45bd1c091",
+            "entryMemberId": "a70a9115-390c-508c-863a-aa5f45b0d533",
             "id": "8bfadaa8-14e9-4488-a103-ee688c1cc9c4",
             "isStatic": false,
             "kind": 6,
@@ -3936,6 +3934,24 @@
             },
             "updatedAt": 1781855034923
         },
+        "8eceb67b-763e-5327-9a71-91fd273b2988": {
+            "accessModifierKind": "public",
+            "classId": "9296e4be-bd27-44e3-9823-77fbeaa60665",
+            "createdAt": 1777846623890,
+            "defaultValue": {
+                "value": {}
+            },
+            "extendsMemberId": null,
+            "id": "8eceb67b-763e-5327-9a71-91fd273b2988",
+            "isStatic": false,
+            "kind": 7,
+            "locked": false,
+            "name": "LookupEntry",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "updatedAt": 1777846623890,
+            "valueId": "c76972cb-5d92-4d1b-865f-b919615e51aa"
+        },
         "8f1dbf20-8d7c-49e0-9e0f-5e172da6f684": {
             "accessModifierKind": "public",
             "classId": "dd0bbe5a-47ef-4164-9421-caea07f6f56f",
@@ -3999,25 +4015,6 @@
             "updatedAt": 1777852728691,
             "valueId": "f048262e-5a44-4a7d-b548-5aa24158fde3"
         },
-        "934a2525-f95d-4c09-9504-b71da30b9186": {
-            "accessModifierKind": "public",
-            "classId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
-            "createdAt": 1782514300374,
-            "defaultValue": {
-                "value": {}
-            },
-            "id": "934a2525-f95d-4c09-9504-b71da30b9186",
-            "isStatic": false,
-            "kind": 7,
-            "locked": true,
-            "name": "Object",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "required": true,
-            "system": {
-                "kind": "worldAuthoring"
-            },
-            "updatedAt": 1782514300374
-        },
         "94472662-a3a9-4c02-8abb-6229442e1e49": {
             "accessModifierKind": "public",
             "classId": "7ed188f9-484b-4692-840d-436acf1635aa",
@@ -4044,24 +4041,24 @@
             "updatedAt": 1783396444235,
             "valueId": "cd559dee-a2c9-4ca9-a4b9-0ef2fd8651ec"
         },
-        "9619809a-f7f0-4605-8f79-d1617b339819": {
+        "96c7650a-1805-5b27-ae99-d1e49d3cb207": {
             "accessModifierKind": "public",
-            "classId": "4c196697-4e08-4aeb-823f-322b353071ac",
-            "createdAt": 1778178223515,
+            "classId": "38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6",
+            "createdAt": 1782012571783,
             "defaultValue": {
                 "value": {}
             },
-            "extendsMemberId": null,
-            "id": "9619809a-f7f0-4605-8f79-d1617b339819",
+            "id": "96c7650a-1805-5b27-ae99-d1e49d3cb207",
             "isStatic": false,
             "kind": 7,
-            "locked": false,
-            "name": "Outpost",
+            "locked": true,
+            "name": "PlacementTile",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
-            "system": null,
-            "updatedAt": 1778178223515,
-            "valueId": "0a5924c6-5603-49d5-9c2d-a83cdb68b790"
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "updatedAt": 1782012571783
         },
         "96cda8f5-3100-45b5-adcb-0552d21504dd": {
             "accessModifierKind": "public",
@@ -4088,7 +4085,7 @@
             "defaultValue": {
                 "value": []
             },
-            "entryMemberId": "fa146cb3-b0d5-4a87-a781-918b78307b20",
+            "entryMemberId": "b4ec8eb4-4a8a-5a7f-8d6a-5c879d461110",
             "id": "97cb9d95-2d54-4809-ae88-0b0ba7859248",
             "isStatic": false,
             "kind": 6,
@@ -4107,7 +4104,7 @@
             "defaultValue": {
                 "value": []
             },
-            "entryMemberId": "f1d89b43-7de6-4d50-9614-342bcdf85531",
+            "entryMemberId": "c86da069-7ef9-5693-a54b-5c331755fde9",
             "id": "98578ba3-a70e-4397-9283-996a898d44c8",
             "isStatic": false,
             "kind": 6,
@@ -4140,7 +4137,7 @@
             "defaultValue": {
                 "value": []
             },
-            "entryMemberId": "04383910-20a1-4c7f-ad90-f87e165083ba",
+            "entryMemberId": "843c77b2-9db6-5fe7-94e0-c3edf436b7b1",
             "id": "98655d2b-ad0b-45e2-a901-62600b4d3a22",
             "isStatic": false,
             "kind": 6,
@@ -4266,7 +4263,7 @@
             "defaultValue": {
                 "value": {}
             },
-            "entryMemberId": "4cf934a0-531f-4513-8c22-27a688669eec",
+            "entryMemberId": "8eceb67b-763e-5327-9a71-91fd273b2988",
             "extendsMemberId": null,
             "id": "a65d4782-28cb-401f-8577-128dccca3d46",
             "isStatic": false,
@@ -4278,6 +4275,25 @@
             "required": true,
             "updatedAt": 1777846624003,
             "valueId": "ad543d1b-ed0a-45c3-b528-e55e9c41a288"
+        },
+        "a70a9115-390c-508c-863a-aa5f45b0d533": {
+            "accessModifierKind": "public",
+            "classId": "628e0cce-5472-4bec-addd-71230b8e64a6",
+            "createdAt": 1782971224672,
+            "defaultValue": {
+                "value": {}
+            },
+            "id": "a70a9115-390c-508c-863a-aa5f45b0d533",
+            "isStatic": false,
+            "kind": 7,
+            "locked": true,
+            "name": "Neighbor",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "updatedAt": 1782971224672
         },
         "a804bead-3d5b-4c68-a733-94e85e1e79b6": {
             "accessModifierKind": "public",
@@ -4584,24 +4600,24 @@
             },
             "updatedAt": 1782012571783
         },
-        "b3280478-f039-47a2-aa18-918175818bcb": {
+        "b4ec8eb4-4a8a-5a7f-8d6a-5c879d461110": {
             "accessModifierKind": "public",
-            "classId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
-            "createdAt": 1782012571783,
+            "classId": "d500e920-87d9-4804-affa-1bd8fc5e91ae",
+            "createdAt": 1782971224672,
             "defaultValue": {
                 "value": {}
             },
-            "id": "b3280478-f039-47a2-aa18-918175818bcb",
+            "id": "b4ec8eb4-4a8a-5a7f-8d6a-5c879d461110",
             "isStatic": false,
             "kind": 7,
             "locked": true,
-            "name": "Child",
+            "name": "Rule",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
                 "kind": "worldAuthoring"
             },
-            "updatedAt": 1782012571783
+            "updatedAt": 1782971224672
         },
         "b56410b3-b2da-4681-897f-a25ce0a0ceb1": {
             "accessModifierKind": "public",
@@ -4645,7 +4661,7 @@
             "defaultValue": {
                 "value": []
             },
-            "entryMemberId": "b3280478-f039-47a2-aa18-918175818bcb",
+            "entryMemberId": "0c4eba66-f5b6-5bfc-aa57-27c565beac53",
             "id": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
             "isStatic": false,
             "kind": 6,
@@ -4657,6 +4673,27 @@
                 "kind": "worldAuthoring"
             },
             "updatedAt": 1782012571783
+        },
+        "bb7a8fbb-287d-5039-a474-908dec74157a": {
+            "accessModifierKind": "public",
+            "classId": "af5795d0-e019-4776-8b7c-d0206f90d59f",
+            "createdAt": 1778021392883,
+            "defaultValue": {
+                "value": {}
+            },
+            "extendsMemberId": null,
+            "id": "bb7a8fbb-287d-5039-a474-908dec74157a",
+            "isStatic": false,
+            "kind": 7,
+            "locked": true,
+            "name": "NeoChoiceLog",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "kind": "dialogueMemorySchema"
+            },
+            "updatedAt": 1778021392883,
+            "valueId": "11cd55b5-6d41-43be-9897-93ac91dd4777"
         },
         "bf4a75b5-acf9-4ff8-8511-57f871749db3": {
             "accessModifierKind": "public",
@@ -4684,7 +4721,7 @@
             "defaultValue": {
                 "value": []
             },
-            "entryMemberId": "659589fe-95b2-472f-a53b-e305db97450f",
+            "entryMemberId": "debff5c6-43c2-5a62-bc01-5d503f97b175",
             "extendsMemberId": null,
             "id": "c151eda4-ecce-4edf-988d-25a97c657146",
             "isStatic": false,
@@ -4696,24 +4733,24 @@
             "updatedAt": 1777852760546,
             "valueId": "8ed8c9f9-ea7a-4aa4-9b58-8454cb4db68e"
         },
-        "c2bf0c92-1d24-4950-bea3-37d5f195728d": {
+        "c3acfb82-b797-525f-b416-818eaadeb5f4": {
             "accessModifierKind": "public",
-            "classId": "38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6",
-            "createdAt": 1782012571783,
+            "classId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
+            "createdAt": 1782514300374,
             "defaultValue": {
                 "value": {}
             },
-            "id": "c2bf0c92-1d24-4950-bea3-37d5f195728d",
+            "id": "c3acfb82-b797-525f-b416-818eaadeb5f4",
             "isStatic": false,
             "kind": 7,
             "locked": true,
-            "name": "PlacementTile",
+            "name": "Object",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
                 "kind": "worldAuthoring"
             },
-            "updatedAt": 1782012571783
+            "updatedAt": 1782514300374
         },
         "c481dc1e-b5fd-4352-a76b-536cc3e17f71": {
             "accessModifierKind": "public",
@@ -4723,7 +4760,7 @@
                     "522f0109-97d2-4ac1-ad7c-70357d278035"
                 ]
             },
-            "entryMemberId": "b3280478-f039-47a2-aa18-918175818bcb",
+            "entryMemberId": "0c4eba66-f5b6-5bfc-aa57-27c565beac53",
             "extendsMemberId": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
             "id": "c481dc1e-b5fd-4352-a76b-536cc3e17f71",
             "isStatic": false,
@@ -4754,6 +4791,25 @@
                 "kind": "worldAuthoring"
             },
             "updatedAt": 1781855034923
+        },
+        "c86da069-7ef9-5693-a54b-5c331755fde9": {
+            "accessModifierKind": "public",
+            "classId": "6d069010-c47c-4744-89af-243f4448f537",
+            "createdAt": 1782348579677,
+            "defaultValue": {
+                "value": {}
+            },
+            "id": "c86da069-7ef9-5693-a54b-5c331755fde9",
+            "isStatic": false,
+            "kind": 7,
+            "locked": true,
+            "name": "LayerGroup",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "updatedAt": 1782348579677
         },
         "c91791ff-8b41-47b2-ba12-81a84e595f42": {
             "accessModifierKind": "public",
@@ -4827,7 +4883,7 @@
             "accessModifierKind": "public",
             "createdAt": 1779225087356,
             "defaultValue": null,
-            "entryMemberId": "d17d421c-b2e8-4956-baf5-ab174d1f4cb0",
+            "entryMemberId": "52752963-3f1f-5d66-8ede-4c64e1620963",
             "extendsMemberId": null,
             "id": "cc7fec3f-593b-4888-bf93-b9bb6bcb5e44",
             "isStatic": false,
@@ -5069,23 +5125,6 @@
             "required": false,
             "updatedAt": 1781221776244
         },
-        "d17d421c-b2e8-4956-baf5-ab174d1f4cb0": {
-            "accessModifierKind": "public",
-            "createdAt": 1779225087309,
-            "defaultValue": null,
-            "extendsMemberId": null,
-            "id": "d17d421c-b2e8-4956-baf5-ab174d1f4cb0",
-            "isStatic": false,
-            "kind": 11,
-            "locked": false,
-            "name": "List",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "required": true,
-            "system": null,
-            "templateId": null,
-            "updatedAt": 1779225261317,
-            "valueId": "3d7dd2b8-d157-4ebd-832c-334806cd6b1c"
-        },
         "d30300c6-4fca-4fa4-be07-65ccc5ebc427": {
             "accessModifierKind": "public",
             "createdAt": 1781255546299,
@@ -5176,7 +5215,7 @@
                     "9404babf-786a-4e74-aec4-9c6667485278"
                 ]
             },
-            "entryMemberId": "c2bf0c92-1d24-4950-bea3-37d5f195728d",
+            "entryMemberId": "96c7650a-1805-5b27-ae99-d1e49d3cb207",
             "extendsMemberId": "5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
             "id": "d8e9ad0e-157f-4709-96a7-8775efa3dd11",
             "isStatic": false,
@@ -5222,25 +5261,6 @@
             "updatedAt": 1778021392285,
             "valueId": "555389b1-1a61-416e-9ba8-4f1b4b9a9acf"
         },
-        "dd6686e3-6435-47a3-b455-4cfbadad14ff": {
-            "accessModifierKind": "public",
-            "classId": "60c25a92-cb01-46f7-b5cf-c9d950586116",
-            "createdAt": 1778274659218,
-            "defaultValue": {
-                "value": {}
-            },
-            "extendsMemberId": null,
-            "id": "dd6686e3-6435-47a3-b455-4cfbadad14ff",
-            "isStatic": false,
-            "kind": 7,
-            "locked": false,
-            "name": "Item",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "required": true,
-            "system": null,
-            "updatedAt": 1778274659218,
-            "valueId": "45e98d35-3ff0-46d2-a115-533466acd814"
-        },
         "de93c887-ea29-49bd-bfea-a6255b8b9a54": {
             "accessModifierKind": "public",
             "createdAt": 1782014212397,
@@ -5250,7 +5270,7 @@
                     "4ca6b71b-2a7e-4f99-977d-1bcdb2556d9e"
                 ]
             },
-            "entryMemberId": "b3280478-f039-47a2-aa18-918175818bcb",
+            "entryMemberId": "0c4eba66-f5b6-5bfc-aa57-27c565beac53",
             "extendsMemberId": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
             "id": "de93c887-ea29-49bd-bfea-a6255b8b9a54",
             "isStatic": false,
@@ -5260,6 +5280,24 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "updatedAt": 1782174037995
+        },
+        "debff5c6-43c2-5a62-bc01-5d503f97b175": {
+            "accessModifierKind": "public",
+            "classId": "7755a905-f2a1-4e5d-8b60-78cbdd2b2042",
+            "createdAt": 1777767446642,
+            "defaultValue": {
+                "value": {}
+            },
+            "extendsMemberId": null,
+            "id": "debff5c6-43c2-5a62-bc01-5d503f97b175",
+            "isStatic": false,
+            "kind": 7,
+            "locked": false,
+            "name": "visits",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "updatedAt": 1777767446642,
+            "valueId": "77561c95-0c3f-4291-a79b-7e5562d8ee30"
         },
         "defd7f67-7f35-4907-a75d-8da3b24b96f4": {
             "accessModifierKind": "public",
@@ -5526,25 +5564,6 @@
             "updatedAt": 1778922605772,
             "valueId": "ead7222b-86b4-48ac-bf9a-f9162689a8f2"
         },
-        "f1d89b43-7de6-4d50-9614-342bcdf85531": {
-            "accessModifierKind": "public",
-            "classId": "6d069010-c47c-4744-89af-243f4448f537",
-            "createdAt": 1782348579677,
-            "defaultValue": {
-                "value": {}
-            },
-            "id": "f1d89b43-7de6-4d50-9614-342bcdf85531",
-            "isStatic": false,
-            "kind": 7,
-            "locked": true,
-            "name": "LayerGroup",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "required": true,
-            "system": {
-                "kind": "worldAuthoring"
-            },
-            "updatedAt": 1782348579677
-        },
         "f4be2707-74f5-4833-9784-e81bb2474330": {
             "accessModifierKind": "public",
             "createdAt": 1782539843163,
@@ -5803,6 +5822,27 @@
             "required": true,
             "updatedAt": 1781759873079
         },
+        "f7f25231-6521-56e2-baa2-1dcd7c12fbfd": {
+            "accessModifierKind": "public",
+            "classId": "48f37cd8-69d2-4cd3-ae44-7cfed7912415",
+            "createdAt": 1778021394752,
+            "defaultValue": {
+                "value": {}
+            },
+            "extendsMemberId": null,
+            "id": "f7f25231-6521-56e2-baa2-1dcd7c12fbfd",
+            "isStatic": false,
+            "kind": 7,
+            "locked": true,
+            "name": "NeoDialogueMemory",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "kind": "dialogueMemorySchema"
+            },
+            "updatedAt": 1778021394752,
+            "valueId": "583ff4fa-2d0f-451e-8e37-fb47eee09a85"
+        },
         "f8106137-0cde-4be0-bce7-3db5cf40257a": {
             "accessModifierKind": "public",
             "createdAt": 1782971224672,
@@ -5825,34 +5865,13 @@
             },
             "updatedAt": 1782971224672
         },
-        "f81b06c0-9dde-4674-b419-918f7cf23a4f": {
-            "accessModifierKind": "public",
-            "classId": "af5795d0-e019-4776-8b7c-d0206f90d59f",
-            "createdAt": 1778021392883,
-            "defaultValue": {
-                "value": {}
-            },
-            "extendsMemberId": null,
-            "id": "f81b06c0-9dde-4674-b419-918f7cf23a4f",
-            "isStatic": false,
-            "kind": 7,
-            "locked": true,
-            "name": "NeoChoiceLog",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "required": true,
-            "system": {
-                "kind": "dialogueMemorySchema"
-            },
-            "updatedAt": 1778021392883,
-            "valueId": "11cd55b5-6d41-43be-9897-93ac91dd4777"
-        },
         "f8e217b1-da89-4819-9c8d-e9c9da2bdfb2": {
             "accessModifierKind": "public",
             "createdAt": 1782514300374,
             "defaultValue": {
                 "value": []
             },
-            "entryMemberId": "934a2525-f95d-4c09-9504-b71da30b9186",
+            "entryMemberId": "c3acfb82-b797-525f-b416-818eaadeb5f4",
             "id": "f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
             "isStatic": false,
             "kind": 6,
@@ -5872,7 +5891,7 @@
             "defaultValue": {
                 "value": {}
             },
-            "entryMemberId": "42d3d49d-3ba8-4672-ad54-53dc109697fc",
+            "entryMemberId": "4db0598c-9385-5613-8d13-258f74eafd3e",
             "extendsMemberId": null,
             "id": "f977a94e-aa40-414c-9812-dacdd50110a8",
             "isStatic": false,
@@ -5886,32 +5905,13 @@
             "updatedAt": 1778176777998,
             "valueId": "439c4651-7e63-47b8-923e-6969781a2551"
         },
-        "fa146cb3-b0d5-4a87-a781-918b78307b20": {
-            "accessModifierKind": "public",
-            "classId": "d500e920-87d9-4804-affa-1bd8fc5e91ae",
-            "createdAt": 1782971224672,
-            "defaultValue": {
-                "value": {}
-            },
-            "id": "fa146cb3-b0d5-4a87-a781-918b78307b20",
-            "isStatic": false,
-            "kind": 7,
-            "locked": true,
-            "name": "Rule",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "required": true,
-            "system": {
-                "kind": "worldAuthoring"
-            },
-            "updatedAt": 1782971224672
-        },
         "fd3a7f0f-cff8-4069-9b19-004015a6aca1": {
             "accessModifierKind": "public",
             "createdAt": 1782971224672,
             "defaultValue": {
                 "value": []
             },
-            "entryMemberId": "2cd93779-d755-4368-b064-2361463526ea",
+            "entryMemberId": "886c7f57-686f-5c8a-b35d-f42fb8e12ae6",
             "id": "fd3a7f0f-cff8-4069-9b19-004015a6aca1",
             "isStatic": false,
             "kind": 6,
@@ -6282,7 +6282,7 @@
                     "93b59706-7fa4-4ec0-bf43-41a48b51b632"
                 ]
             },
-            "entryMemberId": "c2bf0c92-1d24-4950-bea3-37d5f195728d",
+            "entryMemberId": "96c7650a-1805-5b27-ae99-d1e49d3cb207",
             "extendsMemberId": "571a0e0b-b36c-45f3-ae9a-5fde39045c11",
             "id": "neo-tile-grid-record-relations-v1-member-8b86fa92f77a420dc3e61fca997644f5",
             "isStatic": false,
@@ -6632,7 +6632,7 @@
                     "03665dc8-a346-46aa-89c8-f04e5f4e643b"
                 ]
             },
-            "entryMemberId": "b3280478-f039-47a2-aa18-918175818bcb",
+            "entryMemberId": "0c4eba66-f5b6-5bfc-aa57-27c565beac53",
             "extendsMemberId": "de93c887-ea29-49bd-bfea-a6255b8b9a54",
             "id": "neo-tile-grid-record-relations-v1-member-f5cbad50312ebc69397239b2f2035a87",
             "isStatic": false,
