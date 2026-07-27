@@ -73,6 +73,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["system_49f62a6e-7238-4bee-b5fd-66458a138903"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.Create(client, node),
                 ["system_57342999-9cf1-4e01-b6d1-18d26ad554f5"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.Create(client, node),
                 ["system_663d4d74-035e-4412-871a-24bd114b4686"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTextNodeMemory.Create(client, node),
+                ["system_69150540-b653-4bd0-a4fa-43a9f39da72b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingGroup.Create(client, node),
                 ["system_8b540423-5920-4c83-a632-1415448e7fd7"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.Create(client, node),
                 ["system_98cebff1-0590-4c59-8ef0-618d2c14f905"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoDialogueMemory.Create(client, node),
                 ["system_9f34deed-2616-43c9-b614-d812da89ee51"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.Create(client, node),
@@ -130,6 +131,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["system_49f62a6e-7238-4bee-b5fd-66458a138903"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.CreateWritable(client, node),
                 ["system_57342999-9cf1-4e01-b6d1-18d26ad554f5"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateWritable(client, node),
                 ["system_663d4d74-035e-4412-871a-24bd114b4686"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTextNodeMemory.CreateWritable(client, node),
+                ["system_69150540-b653-4bd0-a4fa-43a9f39da72b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingGroup.CreateWritable(client, node),
                 ["system_8b540423-5920-4c83-a632-1415448e7fd7"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, node),
                 ["system_98cebff1-0590-4c59-8ef0-618d2c14f905"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoDialogueMemory.CreateWritable(client, node),
                 ["system_9f34deed-2616-43c9-b614-d812da89ee51"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.CreateWritable(client, node),
@@ -187,6 +189,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule)] = "system_49f62a6e-7238-4bee-b5fd-66458a138903",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoMemory)] = "system_57342999-9cf1-4e01-b6d1-18d26ad554f5",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoTextNodeMemory)] = "system_663d4d74-035e-4412-871a-24bd114b4686",
+                [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoSortingGroup)] = "system_69150540-b653-4bd0-a4fa-43a9f39da72b",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog)] = "system_8b540423-5920-4c83-a632-1415448e7fd7",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoDialogueMemory)] = "system_98cebff1-0590-4c59-8ef0-618d2c14f905",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile)] = "system_9f34deed-2616-43c9-b614-d812da89ee51",
@@ -797,6 +800,74 @@ namespace HelloWorld.Assets.Scripts.Neo
         public static bool operator ==(WorldEnding? left, WorldEnding? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(WorldEnding? left, WorldEnding? right) => !(left == right);
     }
+    public sealed class NeoSpriteMaskInteraction : IEquatable<NeoSpriteMaskInteraction>, global::NeoCompose.Runtime.INeoEnumOption
+    {
+        private static readonly Dictionary<string, NeoSpriteMaskInteraction> values = new Dictionary<string, NeoSpriteMaskInteraction>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoSpriteMaskInteraction(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoSpriteMaskInteraction None = FromOptionId("system_9d607a4f-60c3-4347-94fc-f24b538bf468");
+        public static readonly NeoSpriteMaskInteraction VisibleInsideMask = FromOptionId("system_4c670ac9-78a4-44e9-9833-94e1c69dca97");
+        public static readonly NeoSpriteMaskInteraction VisibleOutsideMask = FromOptionId("system_a0aeb200-7216-49e2-aad2-e151ff35c336");
+
+        public static NeoSpriteMaskInteraction FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new NeoSpriteMaskInteraction(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoSpriteMaskInteraction>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "system_9d607a4f-60c3-4347-94fc-f24b538bf468" => true,
+                "system_4c670ac9-78a4-44e9-9833-94e1c69dca97" => true,
+                "system_a0aeb200-7216-49e2-aad2-e151ff35c336" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "system_9d607a4f-60c3-4347-94fc-f24b538bf468" => "None",
+                "system_4c670ac9-78a4-44e9-9833-94e1c69dca97" => "Visible inside mask",
+                "system_a0aeb200-7216-49e2-aad2-e151ff35c336" => "Visible outside mask",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoSpriteMaskInteraction value) => value.optionId;
+        public static implicit operator NeoSpriteMaskInteraction(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoSpriteMaskInteraction? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as NeoSpriteMaskInteraction);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(NeoSpriteMaskInteraction? left, NeoSpriteMaskInteraction? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(NeoSpriteMaskInteraction? left, NeoSpriteMaskInteraction? right) => !(left == right);
+    }
     public sealed class NeoSmartTileOutput : IEquatable<NeoSmartTileOutput>, global::NeoCompose.Runtime.INeoEnumOption
     {
         private static readonly Dictionary<string, NeoSmartTileOutput> values = new Dictionary<string, NeoSmartTileOutput>();
@@ -1200,6 +1271,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
+        {
+            get
+            {
+                return (IReadOnlyNeoSortingGroup?)(object)((NeoObject)this).SortingGroup!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -1215,6 +1294,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
             public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+
+            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -1227,6 +1308,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => null,
                 [Fields.Collider] = () => null,
                 [Fields.PlacementTiles] = () => null,
+                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -1250,6 +1332,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => Children,
                 [Fields.Collider] = () => Collider,
                 [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
@@ -1946,12 +2029,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public RecoveryCacheObject(IEnumerable<NeoObjectBase>? Children = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Children, Name, PlacementTiles, RecoveryCache, Collider, Position, Size), false, NeoValueOwnership.Session)
+        public RecoveryCacheObject(IEnumerable<NeoObjectBase>? Children = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoSortingGroup? SortingGroup = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Children, Name, PlacementTiles, RecoveryCache, Collider, Position, Size, SortingGroup), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<NeoObjectBase>? Children = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<NeoObjectBase>? Children = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoSortingGroup? SortingGroup = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -1963,7 +2046,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("RecoveryCache", "47466be3-368c-4ac1-8c0e-7a825af6b538", RecoveryCache),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "94472662-a3a9-4c02-8abb-6229442e1e49", Collider),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingGroup", "system_84335193-baa9-434e-8801-3e5e8053b841", SortingGroup)
             );
         }
 
@@ -2132,6 +2216,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
+        {
+            get
+            {
+                return (IReadOnlyNeoSortingGroup?)(object)((NeoObject)this).SortingGroup!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -2149,6 +2241,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
+
+            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -2162,6 +2256,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Collider] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
+                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -2186,6 +2281,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Collider] = () => Collider,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
+                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
@@ -3473,6 +3569,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
+        {
+            get
+            {
+                return (IReadOnlyNeoSortingGroup?)(object)((NeoObject)this).SortingGroup!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -3492,6 +3596,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
+            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -3506,6 +3612,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.PlacementTiles] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Collider] = () => null,
+                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -3531,6 +3638,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.Position] = () => Position,
                 [Fields.Collider] = () => Collider,
+                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
@@ -4367,12 +4475,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public PlayerSpawnObject(string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Children, PlacementTiles, Collider, Position, Size), false, NeoValueOwnership.Session)
+        public PlayerSpawnObject(string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoSortingGroup? SortingGroup = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Children, PlacementTiles, Collider, Position, Size, SortingGroup), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoSortingGroup? SortingGroup = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -4383,7 +4491,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "47c21aa5-e852-41d2-882c-b4f555aee9dd", PlacementTiles),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "e5f5125c-fe5c-46b4-9589-9c6ae6fcba19", Collider),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "2b10e854-d60a-40a7-bc4c-8aede3e5049e", Position),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingGroup", "system_84335193-baa9-434e-8801-3e5e8053b841", SortingGroup)
             );
         }
 
@@ -4550,6 +4659,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
+        {
+            get
+            {
+                return (IReadOnlyNeoSortingGroup?)(object)((NeoObject)this).SortingGroup!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -4565,6 +4682,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
+
+            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -4577,6 +4696,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Collider] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
+                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -4600,6 +4720,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Collider] = () => Collider,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
+                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
@@ -6685,12 +6806,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public VaultPlaqueObject(string? Name = null, NeoDialogueReference? VaultPlaqueLocked = null, NeoDialogueReference? VaultPlaqueReward = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoCollider? Collider = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, VaultPlaqueLocked, VaultPlaqueReward, Children, PlacementTiles, Position, Size, Collider), false, NeoValueOwnership.Session)
+        public VaultPlaqueObject(string? Name = null, NeoDialogueReference? VaultPlaqueLocked = null, NeoDialogueReference? VaultPlaqueReward = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoCollider? Collider = null, NeoSortingGroup? SortingGroup = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, VaultPlaqueLocked, VaultPlaqueReward, Children, PlacementTiles, Position, Size, Collider, SortingGroup), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoDialogueReference? VaultPlaqueLocked = null, NeoDialogueReference? VaultPlaqueReward = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoCollider? Collider = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoDialogueReference? VaultPlaqueLocked = null, NeoDialogueReference? VaultPlaqueReward = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoCollider? Collider = null, NeoSortingGroup? SortingGroup = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -6703,7 +6824,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "430fca56-b45a-4896-9ab2-795a3faf57f6", PlacementTiles),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "neo-tile-grid-record-relations-v1-member-f7282b53bd3722c4d54307079bf7e242", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingGroup", "system_84335193-baa9-434e-8801-3e5e8053b841", SortingGroup)
             );
         }
 
@@ -6871,6 +6993,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
+        {
+            get
+            {
+                return (IReadOnlyNeoSortingGroup?)(object)((NeoObject)this).SortingGroup!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -6890,6 +7020,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
+            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -6904,6 +7036,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
                 [Fields.Collider] = () => null,
+                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -6929,6 +7062,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
                 [Fields.Collider] = () => Collider,
+                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
@@ -7962,12 +8096,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public ExitPromptObject37f67d(NeoVector3? Position = null, NeoVector3? Size = null, string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Position, Size, Name, ExitPromptRelay, ExitPromptQuiet, Children, PlacementTiles, Collider), false, NeoValueOwnership.Session)
+        public ExitPromptObject37f67d(NeoVector3? Position = null, NeoVector3? Size = null, string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoSortingGroup? SortingGroup = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Position, Size, Name, ExitPromptRelay, ExitPromptQuiet, Children, PlacementTiles, Collider, SortingGroup), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(NeoVector3? Position = null, NeoVector3? Size = null, string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null)
+        private static NeoMemberClassWritable CreateFactoryNode(NeoVector3? Position = null, NeoVector3? Size = null, string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoSortingGroup? SortingGroup = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -7980,7 +8114,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ExitPromptQuiet", "663d7511-cfc3-427c-8431-90cfc87a9813", ExitPromptQuiet),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "de93c887-ea29-49bd-bfea-a6255b8b9a54", Children),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "571a0e0b-b36c-45f3-ae9a-5fde39045c11", PlacementTiles),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingGroup", "system_84335193-baa9-434e-8801-3e5e8053b841", SortingGroup)
             );
         }
 
@@ -8133,6 +8268,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
+        {
+            get
+            {
+                return (IReadOnlyNeoSortingGroup?)(object)((NeoObject)this).SortingGroup!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -8152,6 +8295,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
+            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -8166,6 +8311,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => null,
                 [Fields.PlacementTiles] = () => null,
                 [Fields.Collider] = () => null,
+                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -8191,6 +8337,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => Children,
                 [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.Collider] = () => Collider,
+                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
@@ -8229,12 +8376,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public ExitPromptObjecta26352(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoCollider? Collider = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, ExitPromptRelay, ExitPromptQuiet, Children, Size, PlacementTiles, Position, Collider), false, NeoValueOwnership.Session)
+        public ExitPromptObjecta26352(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoCollider? Collider = null, NeoSortingGroup? SortingGroup = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, ExitPromptRelay, ExitPromptQuiet, Children, Size, PlacementTiles, Position, Collider, SortingGroup), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoCollider? Collider = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoCollider? Collider = null, NeoSortingGroup? SortingGroup = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -8247,7 +8394,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "8e8c5ddf-6273-4440-869e-f1f9ca5dc51b", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "571a0e0b-b36c-45f3-ae9a-5fde39045c11", PlacementTiles),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingGroup", "system_84335193-baa9-434e-8801-3e5e8053b841", SortingGroup)
             );
         }
 
@@ -8358,6 +8506,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
+        {
+            get
+            {
+                return (IReadOnlyNeoSortingGroup?)(object)((NeoObject)this).SortingGroup!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -8377,6 +8533,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
+            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -8391,6 +8549,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.PlacementTiles] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Collider] = () => null,
+                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -8416,6 +8575,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.Position] = () => Position,
                 [Fields.Collider] = () => Collider,
+                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
@@ -9475,12 +9635,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public ExitPromptObject987403(IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Children, Collider, Name, PlacementTiles, Position, Size, ExitPromptRelay, ExitPromptQuiet), false, NeoValueOwnership.Session)
+        public ExitPromptObject987403(IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, NeoSortingGroup? SortingGroup = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Children, Collider, Name, PlacementTiles, Position, Size, ExitPromptRelay, ExitPromptQuiet, SortingGroup), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, NeoSortingGroup? SortingGroup = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -9493,7 +9653,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "neo-tile-grid-record-relations-v1-member-df3924f038bd73f8515d31f77f04683d", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "neo-tile-grid-record-relations-v1-member-f87a1ce82507a55782cd5f947b46b5f5", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ExitPromptRelay", "5676cb8a-be0f-4f1b-adc6-7241c09f8cf5", ExitPromptRelay),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ExitPromptQuiet", "663d7511-cfc3-427c-8431-90cfc87a9813", ExitPromptQuiet)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ExitPromptQuiet", "663d7511-cfc3-427c-8431-90cfc87a9813", ExitPromptQuiet),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingGroup", "system_84335193-baa9-434e-8801-3e5e8053b841", SortingGroup)
             );
         }
 
@@ -9714,6 +9875,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
+        {
+            get
+            {
+                return (IReadOnlyNeoSortingGroup?)(object)((NeoObject)this).SortingGroup!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -9733,6 +9902,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoDialogueReference> ExitPromptRelay = new("ExitPromptRelay");
 
             public static readonly NeoField<NeoDialogueReference> ExitPromptQuiet = new("ExitPromptQuiet");
+
+            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -9747,6 +9918,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Size] = () => null,
                 [Fields.ExitPromptRelay] = () => null,
                 [Fields.ExitPromptQuiet] = () => null,
+                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -9772,6 +9944,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Size] = () => Size,
                 [Fields.ExitPromptRelay] = () => ExitPromptRelay,
                 [Fields.ExitPromptQuiet] = () => ExitPromptQuiet,
+                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
@@ -9932,7 +10105,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public interface IReadOnlyNeoCollider : INeoValueReference
+    public interface IReadOnlyNeoCollider : INeoValueReference, INeoCollider
     {
         bool IsReadOnly { get; }
 
@@ -9953,7 +10126,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         NeoReadOnlyVector2 size { get; }
     }
 
-    public partial class NeoCollider : NeoGeneratedClassValue, IReadOnlyNeoCollider
+    public partial class NeoCollider : NeoGeneratedClassValue, IReadOnlyNeoCollider, INeoCollider
     {
         internal NeoCollider(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, "system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d", isReadOnly, inheritedStorageOwnership)
@@ -10020,6 +10193,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return TryWritable<NeoCollider>(out writable);
         }
+
+        NeoReadOnlyVector2 INeoCollider.Size => size;
+        NeoReadOnlyVector2? INeoCollider.Offset => offset;
+        bool? INeoCollider.IsTrigger => isTrigger;
 
         public virtual bool? isTrigger
         {
@@ -11036,7 +11213,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public interface IReadOnlyNeoObjectBase : INeoValueReference
+    public interface IReadOnlyNeoObjectBase : INeoValueReference, INeoWorldObjectValue
     {
         bool IsReadOnly { get; }
 
@@ -11046,14 +11223,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoObjectBase writable);
 
-        string Name { get; }
+        new string Name { get; }
 
-        NeoReadOnlyVector3 Position { get; }
+        new NeoReadOnlyVector3 Position { get; }
 
-        NeoReadOnlyVector3 Size { get; }
+        new NeoReadOnlyVector3 Size { get; }
     }
 
-    public abstract partial class NeoObjectBase : NeoGeneratedClassValue, IReadOnlyNeoObjectBase
+    public abstract partial class NeoObjectBase : NeoGeneratedClassValue, IReadOnlyNeoObjectBase, INeoWorldObjectValue
     {
         internal NeoObjectBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, "system_61b30a92-90dc-4bf8-8503-ee4f6414effc", isReadOnly, inheritedStorageOwnership)
@@ -11125,6 +11302,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return TryWritable<NeoObjectBase>(out writable);
         }
+
+        NeoReadOnlyVector3 INeoWorldObjectValue.Position => Position;
+        NeoReadOnlyVector3 INeoWorldObjectValue.Size => Size;
 
         public virtual string Name
         {
@@ -11396,6 +11576,153 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.LastVisitedAt] = () => LastVisitedAt,
                 [Fields.MostRecentChoiceId] = () => MostRecentChoiceId,
                 [Fields.VisitCount] = () => VisitCount,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoSortingGroup : INeoValueReference, INeoSortingGroup
+    {
+        bool IsReadOnly { get; }
+
+        IReadOnlyNeoSortingGroup Clone();
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoSortingGroup writable);
+
+
+        /// <summary>
+        /// Sort this group against the scene root, ignoring any enclosing sorting group. Maps to SortingGroup.sortAtRoot.
+        /// </summary>
+        new bool SortAtRoot { get; }
+    }
+
+    public partial class NeoSortingGroup : NeoGeneratedClassValue, IReadOnlyNeoSortingGroup, INeoSortingGroup
+    {
+        internal NeoSortingGroup(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "system_69150540-b653-4bd0-a4fa-43a9f39da72b", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public NeoSortingGroup(bool? SortAtRoot = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(SortAtRoot), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoMemberClassWritable CreateFactoryNode(bool? SortAtRoot = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
+                client,
+                "system_69150540-b653-4bd0-a4fa-43a9f39da72b",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortAtRoot", "system_fb90f48f-fcc0-4c98-bc22-70a8ea01170e", SortAtRoot)
+            );
+        }
+
+        internal static NeoSortingGroup Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSortingGroup>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => new NeoSortingGroup(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal static NeoSortingGroup CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSortingGroup>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => new NeoSortingGroup(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public NeoSortingGroup Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoSortingGroup IReadOnlyNeoSortingGroup.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoSortingGroup writable)
+        {
+            return TryWritable<NeoSortingGroup>(out writable);
+        }
+
+        /// <summary>
+        /// Sort this group against the scene root, ignoring any enclosing sorting group. Maps to SortingGroup.sortAtRoot.
+        /// </summary>
+        public virtual bool SortAtRoot
+        {
+            get
+            {
+                return node.Get<NeoMemberBool>("SortAtRoot").value?.value ?? throw new InvalidOperationException("Required bool 'SortAtRoot' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoSortingGroup.SortAtRoot");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "SortAtRoot", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<bool> SortAtRoot = new("SortAtRoot");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.SortAtRoot] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.SortAtRoot] = () => SortAtRoot,
             };
         }
 
@@ -12642,7 +12969,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public interface IReadOnlyNeoSpriteObject : IReadOnlyNeoObjectBase
+    public interface IReadOnlyNeoSpriteObject : IReadOnlyNeoObjectBase, INeoSpriteObjectValue
     {
         new bool IsReadOnly { get; }
 
@@ -12652,24 +12979,48 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoSpriteObject writable);
 
+
+        /// <summary>
+        /// Mirrors the sprite horizontally about its own centre. Maps to SpriteRenderer.flipX.
+        /// </summary>
+        new bool FlipX { get; }
+
+
+        /// <summary>
+        /// Mirrors the sprite vertically about its own centre. Maps to SpriteRenderer.flipY.
+        /// </summary>
+        new bool FlipY { get; }
+
+
+        /// <summary>
+        /// How this sprite reacts to sprite masks. Maps to SpriteRenderer.maskInteraction.
+        /// </summary>
+        new NeoSpriteMaskInteraction MaskInteraction { get; }
+
         new string Name { get; }
 
-        Sprite Sprite { get; }
+
+        /// <summary>
+        /// Nudges this sprite's draw order within its object. Added to the order derived from the object's layer group — it does not replace it. Leave unset for the default order.
+        /// </summary>
+        new int? SortingOrder { get; }
+
+        new Sprite Sprite { get; }
     }
 
-    public partial class NeoSpriteObject : NeoObjectBase, IReadOnlyNeoSpriteObject
+    public partial class NeoSpriteObject : NeoObjectBase, IReadOnlyNeoSpriteObject, INeoSpriteObjectValue
     {
         internal NeoSpriteObject(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        public NeoSpriteObject(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Sprite, Name, Position, Size), false, NeoValueOwnership.Session)
+        public NeoSpriteObject(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Sprite, Name, Position, Size, FlipX, FlipY, MaskInteraction, SortingOrder), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoMemberClassWritable CreateFactoryNode(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -12678,7 +13029,11 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "system_e9288ba9-f5a2-4485-8443-6afb155b31e0", Sprite),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_441cb790-a45f-4488-a5a9-6f375af6c369", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlipX", "system_9fcab37a-9743-4e35-8eee-80cb560f1433", FlipX),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlipY", "system_ddd09f08-1656-4404-b36b-5570a4c01fcf", FlipY),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("MaskInteraction", "system_f2a8c86d-ace5-421b-9475-0f3f6f97b2a6", MaskInteraction),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingOrder", "system_6f32f1f2-83ea-42fc-8647-34ed0946b7f1", SortingOrder)
             );
         }
 
@@ -12726,6 +13081,57 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoSpriteObject>(out writable);
         }
 
+        string INeoSpriteObjectValue.MaskInteraction => MaskInteraction.optionId;
+
+        /// <summary>
+        /// Mirrors the sprite horizontally about its own centre. Maps to SpriteRenderer.flipX.
+        /// </summary>
+        public virtual bool FlipX
+        {
+            get
+            {
+                return node.Get<NeoMemberBool>("FlipX").value?.value ?? throw new InvalidOperationException("Required bool 'FlipX' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoSpriteObject.FlipX");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "FlipX", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        /// <summary>
+        /// Mirrors the sprite vertically about its own centre. Maps to SpriteRenderer.flipY.
+        /// </summary>
+        public virtual bool FlipY
+        {
+            get
+            {
+                return node.Get<NeoMemberBool>("FlipY").value?.value ?? throw new InvalidOperationException("Required bool 'FlipY' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoSpriteObject.FlipY");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "FlipY", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        /// <summary>
+        /// How this sprite reacts to sprite masks. Maps to SpriteRenderer.maskInteraction.
+        /// </summary>
+        public virtual NeoSpriteMaskInteraction MaskInteraction
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("MaskInteraction"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'MaskInteraction' has no selected option.") : NeoSpriteMaskInteraction.FromOptionId(selected);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoSpriteObject.MaskInteraction");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "MaskInteraction", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+            }
+        }
+
         public new virtual string Name
         {
             get
@@ -12736,6 +13142,22 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 ThrowIfReadOnly("NeoSpriteObject.Name");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        /// <summary>
+        /// Nudges this sprite's draw order within its object. Added to the order derived from the object's layer group — it does not replace it. Leave unset for the default order.
+        /// </summary>
+        public virtual int? SortingOrder
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("SortingOrder"));
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoSpriteObject.SortingOrder");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "SortingOrder", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -12763,6 +13185,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
+            public static readonly NeoField<bool> FlipX = new("FlipX");
+
+            public static readonly NeoField<bool> FlipY = new("FlipY");
+
+            public static readonly NeoField<NeoSpriteMaskInteraction> MaskInteraction = new("MaskInteraction");
+
+            public static readonly NeoField<int?> SortingOrder = new("SortingOrder");
+
             public static readonly NeoField<Sprite> Sprite = new("Sprite");
         }
 
@@ -12773,6 +13203,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
+                [Fields.FlipX] = () => null,
+                [Fields.FlipY] = () => null,
+                [Fields.MaskInteraction] = () => null,
+                [Fields.SortingOrder] = () => null,
                 [Fields.Sprite] = () => null,
             };
         }
@@ -12794,6 +13228,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
+                [Fields.FlipX] = () => FlipX,
+                [Fields.FlipY] = () => FlipY,
+                [Fields.MaskInteraction] = () => MaskInteraction,
+                [Fields.SortingOrder] = () => SortingOrder,
                 [Fields.Sprite] = () => Sprite,
             };
         }
@@ -13216,7 +13654,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public interface IReadOnlyNeoObject : IReadOnlyNeoObjectBase
+    public interface IReadOnlyNeoObject : IReadOnlyNeoObjectBase, INeoObjectCompositionSource, INeoColliderSource, INeoSortingGroupSource
     {
         new bool IsReadOnly { get; }
 
@@ -13234,16 +13672,22 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         IReadOnlyList<TChild> GetChildren<TChild>() where TChild : NeoGeneratedClassValue;
 
-        NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
+        new NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
 
-        IReadOnlyNeoCollider? Collider { get; }
+        new IReadOnlyNeoCollider? Collider { get; }
 
         new string Name { get; }
 
         NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
+
+
+        /// <summary>
+        /// Optional sorting group. When set, this object and its children sort as one unit against the rest of the layer.
+        /// </summary>
+        new IReadOnlyNeoSortingGroup? SortingGroup { get; }
     }
 
-    public abstract partial class NeoObject : NeoObjectBase, IReadOnlyNeoObject, INeoObjectSpawnHooks
+    public abstract partial class NeoObject : NeoObjectBase, IReadOnlyNeoObject, INeoObjectCompositionSource, INeoColliderSource, INeoSortingGroupSource, INeoObjectSpawnHooks
     {
         internal NeoObject(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -13325,6 +13769,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetGeneratedChildren<TChild>(((IReadOnlyNeoObject)this).Children);
         }
+
+        IReadOnlyList<INeoWorldObjectValue> INeoObjectCompositionSource.Children => Children;
+        INeoCollider? INeoColliderSource.Collider => Collider;
+        INeoSortingGroup? INeoSortingGroupSource.SortingGroup => SortingGroup;
 
         void INeoObjectSpawnHooks.OnObjectSpawned(NeoObjectBehaviour behaviour) => OnObjectSpawned(behaviour);
 
@@ -13430,6 +13878,45 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        /// <summary>
+        /// Optional sorting group. When set, this object and its children sort as one unit against the rest of the layer.
+        /// </summary>
+        public virtual NeoSortingGroup? SortingGroup
+        {
+            get
+            {
+                if (IsReadOnly)
+                {
+                    var child = node.Get<NeoMemberClass>("SortingGroup");
+                    return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSortingGroup.Create(client, child);
+                }
+                else
+                {
+                    var child = writableNode.Get<NeoMemberClassWritable>("SortingGroup");
+                    return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSortingGroup.CreateWritable(client, child);
+                }
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoObject.SortingGroup");
+                if (value is null)
+                {
+                    writableNode.Unset("SortingGroup");
+                    return;
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "SortingGroup", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
+        {
+            get
+            {
+                var child = node.Get<NeoMemberClass>("SortingGroup");
+                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSortingGroup.Create(client, child);
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -13445,6 +13932,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
             public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+
+            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -13457,6 +13946,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => null,
                 [Fields.Collider] = () => null,
                 [Fields.PlacementTiles] = () => null,
+                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -13480,6 +13970,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => Children,
                 [Fields.Collider] = () => Collider,
                 [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 

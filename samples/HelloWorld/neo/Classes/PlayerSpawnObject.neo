@@ -19,6 +19,9 @@ class PlayerSpawnObject : ConsoleObject {
   public override List<NeoObjectBase> Children = [
     @id("d0d48343-8748-40bf-b35a-3e88cdd7e3a5")
     new NeoSpriteObject {
+      FlipX = false,
+      FlipY = false,
+      MaskInteraction = .None,
       Name = "",
       Sprite = Images.PlayerSpawnObject.Slice(0),
       Position = new(0, 0, 0),

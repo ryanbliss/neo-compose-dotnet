@@ -15,6 +15,9 @@ class ExitPromptObject987403 : ExitPromptObject {
   public override List<NeoObjectBase> Children = [
     @id("b9de5fe2-8ddc-4b79-bfb2-bd802d8a4fa4")
     new NeoSpriteObject {
+      FlipX = false,
+      FlipY = false,
+      MaskInteraction = .None,
       Name = "",
       Sprite = Images.ExitPromptObject.Slice(0),
       Position = new(0, 0, 0),

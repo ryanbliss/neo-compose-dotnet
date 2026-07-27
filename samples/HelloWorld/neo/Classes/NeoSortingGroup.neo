@@ -1,0 +1,9 @@
+@id("system_69150540-b653-4bd0-a4fa-43a9f39da72b")
+@system(kind: .WorldAuthoring, worldKind: .SortingGroup)
+class NeoSortingGroup {
+  /// Sort this group against the scene root, ignoring any enclosing sorting group. Maps to SortingGroup.sortAtRoot.
+  @id("system_fb90f48f-fcc0-4c98-bc22-70a8ea01170e")
+  @locked
+  @system(kind: .WorldAuthoring)
+  public virtual bool SortAtRoot = false;
+}

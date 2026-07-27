@@ -15,6 +15,9 @@ class RecoveryCacheObject : ConsoleObject {
   public override List<NeoObjectBase> Children = [
     @id("4d4d8a22-92e0-457d-8e86-0a41c6193259")
     new NeoSpriteObject {
+      FlipX = false,
+      FlipY = false,
+      MaskInteraction = .None,
       Name = "",
       Sprite = Images.RecoveryCacheObject.Slice(0),
       Position = new(0, 0, 0),

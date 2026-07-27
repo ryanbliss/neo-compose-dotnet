@@ -3,9 +3,9 @@ enum JupiterMoon {
   @id("5cdeb824-3b72-511b-b248-584bbe2002f4")
   io,
   @id("017b6de2-cab7-5dcc-949e-127e81452071")
-  europa,
+  europa = "Europa",
   @id("5503d837-8ff6-5ac1-9293-ca496c608890")
-  ganymede,
+  ganymede = "Ganymede",
   @id("5bf07e46-2cd8-5277-8910-e66fd3ddef3c")
-  callisto,
+  callisto = "Callisto",
 }
