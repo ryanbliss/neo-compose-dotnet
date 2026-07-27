@@ -128,7 +128,7 @@ namespace NeoCompose.Runtime
         public string ExpectedClassId => string.Empty;
         public string? SortingLayerName =>
             NeoWorldLayerReflection.ReadSortingLayerName(this);
-        public int? SortingOrder => NeoWorldLayerReflection.ReadInt(this, "Order");
+        public int? SortingOrder => NeoWorldLayerMembers.ReadSortingOrder(node);
 
         public IReadOnlyList<NeoResolvedTileInstance> GetTiles() =>
             Binding.Primitive.GetTiles(LayerClassId);
@@ -243,7 +243,7 @@ namespace NeoCompose.Runtime
         public string ExpectedClassId => string.Empty;
         public string? SortingLayerName =>
             NeoWorldLayerReflection.ReadSortingLayerName(this);
-        public int? SortingOrder => NeoWorldLayerReflection.ReadInt(this, "Order");
+        public int? SortingOrder => NeoWorldLayerMembers.ReadSortingOrder(node);
 
         public IReadOnlyList<NeoResolvedObjectInstance> GetObjects() =>
             Binding.Primitive.GetObjects(LayerClassId);
@@ -326,25 +326,31 @@ namespace NeoCompose.Runtime
         }
     }
 
+    /// <summary>
+    /// Authored world layer members read straight off the value node. A
+    /// generated layer class lives in the consumer's namespace, so these bases
+    /// cannot name its properties — but a schema key is stable contract, so
+    /// the node read resolves the authored value where a property-name lookup
+    /// silently resolved nothing.
+    /// </summary>
+    internal static class NeoWorldLayerMembers
+    {
+        internal const string SortingOrderSchemaKey = "SortingOrder";
+
+        internal static int? ReadSortingOrder(NeoMemberClass node)
+        {
+            return node.TryGet<NeoMemberInt>(SortingOrderSchemaKey, out var member)
+                ? NeoGeneratedTypesSupport.ReadInt(member)
+                : null;
+        }
+    }
+
     internal static class NeoWorldLayerReflection
     {
         internal static string? ReadString(object target, string propertyName)
         {
             object? value = target.GetType().GetProperty(propertyName)?.GetValue(target);
             return value as string;
-        }
-
-        internal static int? ReadInt(object target, string propertyName)
-        {
-            object? value = target.GetType().GetProperty(propertyName)?.GetValue(target);
-            return value switch
-            {
-                int integer => integer,
-                long integer => checked((int)integer),
-                float number => (int)number,
-                double number => (int)number,
-                _ => null,
-            };
         }
 
         internal static string? ReadSortingLayerName(object target)

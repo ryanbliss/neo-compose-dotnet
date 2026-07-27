@@ -6,7 +6,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
@@ -2952,14 +2954,14 @@ namespace NeoCompose.Tests
                 writableFactories)!;
             tile.Sprite = tileSprite;
             obj.Sprite = parentSprite;
-            obj.Children = new object[]
+            obj.Children = new INeoWorldObjectValue[]
             {
                 new TestSpriteChild
                 {
                     Name = "Sprite Child",
                     Sprite = childSprite,
-                    Position = new Vector3(0f, 0f, 0f),
-                    Size = new Vector3(2f, 1f, 0f),
+                    Position = new NeoReadOnlyVector3(0f, 0f, 0f),
+                    Size = new NeoReadOnlyVector3(2f, 1f, 0f),
                 },
                 tileLayerLink,
             };
@@ -3033,14 +3035,352 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void TryResolveObjectColliderSpec_ReadsVectorColliderFields()
+        public void Render_AddsSortingGroupWithLayerSortingAndAuthoredSortAtRoot()
         {
-            var source = new ObjectWithVectorCollider
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var obj = ResolveComposedTestObject(client);
+            obj.SortingGroup = new TestSortingGroup { SortAtRoot = true };
+            var go = new GameObject("NeoTileGridRenderer sorting group test");
+
+            try
             {
-                Collider = new VectorCollider
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(
+                    NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) });
+
+                var objectRoot = go.transform
+                    .Find("Object Layer - Objects")
+                    ?.Find("Object - object-1");
+                Assert.IsNotNull(objectRoot);
+                Assert.IsTrue(objectRoot!.TryGetComponent(
+                    out UnityEngine.Rendering.SortingGroup sortingGroup));
+                Assert.IsTrue(sortingGroup.sortAtRoot);
+                Assert.AreEqual("Default", sortingGroup.sortingLayerName);
+                // Layer order 12 plus the instance's authored order 1.
+                Assert.AreEqual(13, sortingGroup.sortingOrder);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void Render_OmitsSortingGroupWhenObjectAuthoredNone()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var obj = ResolveComposedTestObject(client);
+            var go = new GameObject("NeoTileGridRenderer ungrouped object test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(
+                    NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) });
+
+                var objectRoot = go.transform
+                    .Find("Object Layer - Objects")
+                    ?.Find("Object - object-1");
+                Assert.IsNotNull(objectRoot);
+                Assert.IsFalse(objectRoot!.TryGetComponent(
+                    out UnityEngine.Rendering.SortingGroup _));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void Render_AppliesAuthoredSpriteFlipsAndMaskInteraction()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var obj = ResolveComposedTestObject(client);
+            var childSprite = CreateTestSprite("masked-child");
+            obj.Children = new INeoWorldObjectValue[]
+            {
+                new TestSpriteChild
                 {
-                    Size = new Vector2(2.5f, 3.5f),
-                    Offset = new Vector2(0.25f, -0.5f),
+                    Name = "Masked Child",
+                    Sprite = childSprite,
+                    FlipX = true,
+                    FlipY = true,
+                    MaskInteraction =
+                        NeoSpriteMaskInteractionIds.VisibleInsideMask,
+                },
+            };
+            var go = new GameObject("NeoTileGridRenderer sprite state test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(
+                    NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) });
+
+                var child = go.transform
+                    .Find("Object Layer - Objects")
+                    ?.Find("Object - object-1")
+                    ?.Find("Masked Child");
+                Assert.IsNotNull(child);
+                var childRenderer = child!.GetComponent<SpriteRenderer>();
+                Assert.IsTrue(childRenderer.flipX);
+                Assert.IsTrue(childRenderer.flipY);
+                Assert.AreEqual(
+                    SpriteMaskInteraction.VisibleInsideMask,
+                    childRenderer.maskInteraction);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(childSprite);
+            }
+        }
+
+        [Test]
+        public void Render_AddsAuthoredSpriteSortingOrderToLayerOrder()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var obj = ResolveComposedTestObject(client);
+            var nudgedSprite = CreateTestSprite("nudged");
+            var plainSprite = CreateTestSprite("plain");
+            obj.Children = new INeoWorldObjectValue[]
+            {
+                new TestSpriteChild
+                {
+                    Name = "Nudged",
+                    Sprite = nudgedSprite,
+                    SortingOrder = 5,
+                },
+                new TestSpriteChild
+                {
+                    Name = "Plain",
+                    Sprite = plainSprite,
+                },
+            };
+            var go = new GameObject("NeoTileGridRenderer sprite order test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(
+                    NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) });
+
+                var objectRoot = go.transform
+                    .Find("Object Layer - Objects")
+                    ?.Find("Object - object-1");
+                Assert.IsNotNull(objectRoot);
+                var nudged = objectRoot!.Find("Nudged");
+                var plain = objectRoot.Find("Plain");
+                Assert.IsNotNull(nudged);
+                Assert.IsNotNull(plain);
+                // Layer 12 + instance order 1 + composition index 0 + the
+                // authored offset 5.
+                Assert.AreEqual(
+                    18,
+                    nudged!.GetComponent<SpriteRenderer>().sortingOrder);
+                Assert.AreEqual(
+                    14,
+                    plain!.GetComponent<SpriteRenderer>().sortingOrder);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(nudgedSprite);
+                DestroyTestSprite(plainSprite);
+            }
+        }
+
+        [Test]
+        public void Render_RendersPlacedSpriteObjectThroughItsContract()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var factories =
+                new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+                {
+                    [ObjectClassId] = (resolvedClient, node) =>
+                        new TestSpriteObject(resolvedClient, node),
+                };
+            var obj = (TestSpriteObject)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "shop-object",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
+            var sprite = CreateTestSprite("placed-sprite");
+            obj.Name = "Placed Sprite";
+            obj.Sprite = sprite;
+            obj.FlipX = true;
+            obj.SortingOrder = -2;
+            var go = new GameObject("NeoTileGridRenderer sprite object test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(
+                    NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) });
+
+                var child = go.transform
+                    .Find("Object Layer - Objects")
+                    ?.Find("Object - object-1")
+                    ?.Find("Placed Sprite");
+                Assert.IsNotNull(child);
+                var childRenderer = child!.GetComponent<SpriteRenderer>();
+                Assert.AreSame(sprite, childRenderer.sprite);
+                Assert.IsTrue(childRenderer.flipX);
+                Assert.IsFalse(childRenderer.flipY);
+                Assert.AreEqual(11, childRenderer.sortingOrder);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(sprite);
+            }
+        }
+
+        [Test]
+        public void AuthoredObjectLayerReadsSortingOrderFromItsAuthoredMember()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.classes[ObjectsLayerClassId].schema["SortingOrder"] =
+                "objects-layer-sorting-order-member";
+            data.members["objects-layer-sorting-order-member"] = SortingOrderMember(
+                "objects-layer-sorting-order-member",
+                42);
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var layer = primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(
+                ObjectsLayerClassId,
+                new[] { ObjectClassId });
+
+            Assert.AreEqual(42, layer.SortingOrder);
+        }
+
+        [Test]
+        public void AuthoredTileLayerReadsSortingOrderFromItsAuthoredMember()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.classes[BackgroundLayerClassId].schema["SortingOrder"] =
+                "background-layer-sorting-order-member";
+            data.members["background-layer-sorting-order-member"] = SortingOrderMember(
+                "background-layer-sorting-order-member",
+                7);
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var layer = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+
+            Assert.AreEqual(7, layer.SortingOrder);
+        }
+
+        [Test]
+        public void RendererReadsWorldObjectMembersThroughContractsNotReflection()
+        {
+            var rendererSourcePath = RendererSourcePath();
+            Assert.IsTrue(
+                File.Exists(rendererSourcePath),
+                $"Renderer source not found at '{rendererSourcePath}'.");
+
+            var source = File.ReadAllText(rendererSourcePath);
+            Assert.IsFalse(
+                source.Contains("GetProperty"),
+                "NeoTileGridRenderer must read world object members through the "
+                    + "generated runtime contracts, not property reflection.");
+            Assert.IsFalse(
+                source.Contains("using System.Reflection;"),
+                "NeoTileGridRenderer must not import System.Reflection.");
+        }
+
+        private static string RendererSourcePath(
+            [CallerFilePath] string testSourcePath = "")
+        {
+            var testsDirectory = Path.GetDirectoryName(testSourcePath)!;
+            return Path.Combine(
+                Path.GetDirectoryName(testsDirectory)!,
+                "Runtime",
+                "NeoTileGridRenderer.cs");
+        }
+
+        private static IntMember SortingOrderMember(string memberId, int value)
+        {
+            return new IntMember
+            {
+                id = memberId,
+                projectId = "project-a",
+                name = "SortingOrder",
+                kind = MemberKind.Int,
+                defaultValue = new NumberMemberValueBase { value = value },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+        }
+
+        private static TestComposedObject ResolveComposedTestObject(NeoClient client)
+        {
+            var factories =
+                new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+                {
+                    [ObjectClassId] = (resolvedClient, node) =>
+                        new TestComposedObject(resolvedClient, node),
+                };
+            return (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "shop-object",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
+        }
+
+        private static TestObjectLayerRuntime ObjectLayerWithSingleInstance(
+            NeoGeneratedClassValue obj,
+            string? sortingLayerName,
+            int? sortingOrder)
+        {
+            return new TestObjectLayerRuntime(
+                "object-layer",
+                "Objects",
+                ObjectClassId,
+                sortingLayerName,
+                sortingOrder,
+                new[]
+                {
+                    new NeoResolvedObjectInstance(
+                        "object-1",
+                        "object-layer",
+                        new Vector2Int(0, 0),
+                        new[] { new Vector2Int(0, 0) },
+                        obj,
+                        1),
+                });
+        }
+
+        [Test]
+        public void TryResolveObjectColliderSpec_ReadsAuthoredColliderMembers()
+        {
+            var source = new TestColliderSource
+            {
+                Collider = new TestObjectCollider
+                {
+                    Size = new NeoReadOnlyVector2(2.5f, 3.5f),
+                    Offset = new NeoReadOnlyVector2(0.25f, -0.5f),
                     IsTrigger = true,
                 },
             };
@@ -3054,66 +3394,45 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void TryResolveObjectColliderSpec_ReadsScalarColliderFields()
+        public void TryResolveObjectColliderSpec_DefaultsUnsetOffsetAndTrigger()
         {
-            var source = new ObjectWithScalarCollider
+            var source = new TestColliderSource
             {
-                BoxCollider = new ScalarCollider
+                Collider = new TestObjectCollider
                 {
-                    Width = 4,
-                    Height = 5.25,
-                    OffsetX = -1,
-                    OffsetY = 1.5f,
-                    isTrigger = false,
+                    Size = new NeoReadOnlyVector2(4f, 5.25f),
                 },
             };
 
             Assert.IsTrue(NeoTileGridRenderer.TryResolveObjectColliderSpec(source, out var spec));
             Assert.AreEqual(4f, spec.Size.x);
             Assert.AreEqual(5.25f, spec.Size.y);
-            Assert.AreEqual(-1f, spec.Offset.x);
-            Assert.AreEqual(1.5f, spec.Offset.y);
+            Assert.AreEqual(Vector2.zero, spec.Offset);
             Assert.IsFalse(spec.IsTrigger);
         }
 
         [Test]
         public void TryResolveObjectColliderSpec_RejectsColliderWithoutSize()
         {
-            var source = new ObjectWithVectorCollider
+            var source = new TestColliderSource
             {
-                Collider = new VectorCollider
+                Collider = new TestObjectCollider
                 {
-                    Offset = Vector2.one,
+                    Size = new NeoReadOnlyVector2(0f, 0f),
+                    Offset = new NeoReadOnlyVector2(Vector2.one),
                 },
             };
 
             Assert.IsFalse(NeoTileGridRenderer.TryResolveObjectColliderSpec(source, out _));
         }
 
-        private sealed class ObjectWithVectorCollider
+        [Test]
+        public void TryResolveObjectColliderSpec_RejectsObjectWithoutCollider()
         {
-            public VectorCollider? Collider { get; set; }
-        }
-
-        private sealed class ObjectWithScalarCollider
-        {
-            public ScalarCollider? BoxCollider { get; set; }
-        }
-
-        private sealed class VectorCollider
-        {
-            public Vector2 Size { get; set; }
-            public Vector2 Offset { get; set; }
-            public bool IsTrigger { get; set; }
-        }
-
-        private sealed class ScalarCollider
-        {
-            public int Width { get; set; }
-            public double Height { get; set; }
-            public long OffsetX { get; set; }
-            public float OffsetY { get; set; }
-            public bool isTrigger { get; set; }
+            Assert.IsFalse(
+                NeoTileGridRenderer.TryResolveObjectColliderSpec(
+                    new TestColliderSource(),
+                    out _));
         }
 
         private sealed class TestTile : NeoGeneratedClassValue, INeoSmartTileSource
@@ -3193,9 +3512,15 @@ namespace NeoCompose.Tests
                 tilesByCell.TryGetValue(cell, out var tile) ? tile : null;
         }
 
+        /// <summary>
+        /// Stands in for a generated <c>NeoTileLayerLink</c>: a layer group
+        /// base is an object base, so it is a world object value as well as a
+        /// tile layer link.
+        /// </summary>
         private sealed class TestTileLayerLink
             : NeoGeneratedClassValue,
-              INeoTileLayerLinkValue
+              INeoTileLayerLinkValue,
+              INeoWorldObjectValue
         {
             private NeoList<string>? tiles;
 
@@ -3206,6 +3531,10 @@ namespace NeoCompose.Tests
                 : base(client, node, TileLayerLinkClassId, isReadOnly)
             {
             }
+
+            public string Name { get; set; } = "";
+            public NeoReadOnlyVector3 Position { get; set; } = new(Vector3.zero);
+            public NeoReadOnlyVector3 Size { get; set; } = new(Vector3.one);
 
             public NeoList<string> Tiles =>
                 tiles ??= new NeoList<string>(
@@ -3511,7 +3840,17 @@ namespace NeoCompose.Tests
                 Primitive.OnChanged(handler);
         }
 
-        private sealed class TestComposedObject : NeoGeneratedClassValue
+        /// <summary>
+        /// Stands in for a generated <c>NeoObject</c>: world kind
+        /// <c>object</c>, so it carries the composition, collider, and
+        /// sorting group contracts on top of the object base contract.
+        /// </summary>
+        private sealed class TestComposedObject
+            : NeoGeneratedClassValue,
+              INeoWorldObjectValue,
+              INeoObjectCompositionSource,
+              INeoColliderSource,
+              INeoSortingGroupSource
         {
             public TestComposedObject(
                 NeoClient client,
@@ -3522,15 +3861,74 @@ namespace NeoCompose.Tests
             }
 
             public Sprite? Sprite { get; set; }
-            public IReadOnlyList<object> Children { get; set; } = new List<object>();
+            public string Name { get; set; } = "";
+            public NeoReadOnlyVector3 Position { get; set; } = new(Vector3.zero);
+            public NeoReadOnlyVector3 Size { get; set; } = new(Vector3.one);
+            public IReadOnlyList<INeoWorldObjectValue> Children { get; set; } =
+                new List<INeoWorldObjectValue>();
+            public INeoCollider? Collider { get; set; }
+            public INeoSortingGroup? SortingGroup { get; set; }
         }
 
-        private sealed class TestSpriteChild
+        /// <summary>
+        /// Stands in for a generated <c>NeoSpriteObject</c>: world kind
+        /// <c>spriteObject</c>, a leaf that carries the SpriteRenderer state.
+        /// </summary>
+        private sealed class TestSpriteChild : INeoSpriteObjectValue
         {
+            public string? valueId => null;
             public string Name { get; set; } = "";
-            public Sprite? Sprite { get; set; }
-            public Vector3 Position { get; set; }
-            public Vector3 Size { get; set; } = Vector3.one;
+            public NeoReadOnlyVector3 Position { get; set; } = new(Vector3.zero);
+            public NeoReadOnlyVector3 Size { get; set; } = new(Vector3.one);
+            public Sprite Sprite { get; set; } = null!;
+            public bool FlipX { get; set; }
+            public bool FlipY { get; set; }
+            public string MaskInteraction { get; set; } =
+                NeoSpriteMaskInteractionIds.None;
+            public int? SortingOrder { get; set; }
+        }
+
+        /// <summary>
+        /// Stands in for a placed generated <c>NeoSpriteObject</c> — the root
+        /// sprite fallback path, which needs a resolvable class value.
+        /// </summary>
+        private sealed class TestSpriteObject
+            : NeoGeneratedClassValue,
+              INeoSpriteObjectValue
+        {
+            public TestSpriteObject(NeoClient client, NeoMemberClass node)
+                : base(client, node, ObjectClassId)
+            {
+            }
+
+            public string Name { get; set; } = "";
+            public NeoReadOnlyVector3 Position { get; set; } = new(Vector3.zero);
+            public NeoReadOnlyVector3 Size { get; set; } = new(Vector3.one);
+            public Sprite Sprite { get; set; } = null!;
+            public bool FlipX { get; set; }
+            public bool FlipY { get; set; }
+            public string MaskInteraction { get; set; } =
+                NeoSpriteMaskInteractionIds.None;
+            public int? SortingOrder { get; set; }
+        }
+
+        private sealed class TestSortingGroup : INeoSortingGroup
+        {
+            public string? valueId => null;
+            public bool SortAtRoot { get; set; }
+        }
+
+        private sealed class TestObjectCollider : INeoCollider
+        {
+            public string? valueId => null;
+            public NeoReadOnlyVector2 Size { get; set; } = new(Vector2.one);
+            public NeoReadOnlyVector2? Offset { get; set; }
+            public bool? IsTrigger { get; set; }
+        }
+
+        private sealed class TestColliderSource : INeoColliderSource
+        {
+            public INeoCollider? Collider { get; set; }
         }
 
         private static Sprite CreateTestSprite(string name)
