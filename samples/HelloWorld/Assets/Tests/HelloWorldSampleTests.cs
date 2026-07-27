@@ -48,8 +48,11 @@ namespace HelloWorld.Assets.Tests
             ownedResources.Clear();
         }
         private const string BlockedPathValueId = "432f5226-99d8-4d59-8cf0-4d86ca64462f";
-        private const string NeoTileLayerLinkClassId = "e78cfcd2-78ae-4656-9f04-6429bb0efe20";
-        private const string NeoObjectLayerLinkClassId = "1e408179-cf71-5b9d-a4fb-f60a5f6fe705";
+        // Canonical system class ids. Both moved into the reserved `system_`
+        // namespace when the sample was re-identified, and the per-project ids
+        // they carried before the run are gone from the export.
+        private const string NeoTileLayerLinkClassId = "system_c45e7270-954c-4eb5-8cf1-709e877d4d59";
+        private const string NeoObjectLayerLinkClassId = "system_04ef83b0-3171-4299-9580-902708690750";
         private const string ObjectLayerLinkClassId = "f1b08825-2ad0-4666-acf1-3df7ffbda64e";
         private const string ObjectLayerLinkRelationId = "neo-tile-grid-record-relations-v1-relation-62fe5d6862a5acb378441d9ba0d0745a";
         private const string ObjectLayerLinkValueId = "0e638a67-3d86-45c3-a13b-e0888a46d538";
@@ -150,7 +153,7 @@ namespace HelloWorld.Assets.Tests
             Assert.AreEqual("NeoTileLayerLink", tileSystemBase["name"]!.Value<string>());
             Assert.AreEqual("tileLayerLink", tileSystemBase["system"]!["worldKind"]!.Value<string>());
             Assert.AreEqual(
-                "98655d2b-ad0b-45e2-a901-62600b4d3a22",
+                "system_98655d2b-ad0b-45e2-a901-62600b4d3a22",
                 tileSystemBase["schema"]!["Tiles"]!.Value<string>());
 
             Assert.IsTrue(systemBase["isAbstract"]!.Value<bool>());
@@ -160,7 +163,7 @@ namespace HelloWorld.Assets.Tests
                 "worldAuthoring",
                 systemBase["system"]!["kind"]!.Value<string>());
             Assert.AreEqual(
-                "f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
+                "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
                 systemBase["schema"]!["Objects"]!.Value<string>());
 
             Assert.AreEqual("ObjectLayerLink", authoredLink["name"]!.Value<string>());

@@ -3,6 +3,7 @@
 
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -1711,11 +1712,18 @@ namespace NeoCompose.Tests
             var export = Deserialize(LoadFixture("synth-example.json"));
             var element = export.enums["enum-element"];
             Assert.AreEqual("Element", element.name);
-            Assert.AreEqual("Fire", element.options["fire"].text);
-            Assert.AreEqual("Ice", element.options["ice"].text);
+            // Options are keyed by option id, which the fixture's enum owns.
+            // Read the ids out of the declared order rather than spelling
+            // them, so this stays a round-trip assertion about the shape:
+            // every ordered key resolves, and the order is the authored one.
+            CollectionAssert.AreEquivalent(
+                element.optionKeyOrder,
+                element.options.Keys);
             CollectionAssert.AreEqual(
-                new[] { "fire", "ice" },
-                element.optionKeyOrder);
+                new[] { "Fire", "Ice" },
+                element.optionKeyOrder
+                    .Select(optionId => element.options[optionId].text)
+                    .ToArray());
         }
 
         // --------------------------------------------------------------

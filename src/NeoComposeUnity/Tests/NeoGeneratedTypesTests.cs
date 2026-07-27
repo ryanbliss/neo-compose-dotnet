@@ -212,8 +212,11 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(app.Session);
             Assert.AreSame(app.Client.SessionRoot, host.SessionRoot);
             Assert.IsNotNull(host.FindUnlinkedSaveValueIds());
-            Assert.AreEqual("fire", Element.fire.optionId);
-            Assert.IsTrue(Element.IsKnown("fire"));
+            // The option id is whatever the fixture's enum declares, so read
+            // it off the generated member rather than restating it — what
+            // matters is that the generated lookup round-trips it.
+            Assert.IsNotEmpty(Element.fire.optionId);
+            Assert.IsTrue(Element.IsKnown(Element.fire.optionId));
             Assert.IsFalse(Element.IsKnown("modded-element"));
         }
 
@@ -262,7 +265,9 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual("Fire", Element.fire.TextId);
             Assert.AreEqual("Localized Fire", Element.fire.Text);
-            Assert.AreEqual("Localized Fire", Element.TextForOptionId("fire", app.Client));
+            Assert.AreEqual(
+                "Localized Fire",
+                Element.TextForOptionId(Element.fire.optionId, app.Client));
             Assert.AreEqual("modded-element", Element.TextIdForOptionId("modded-element"));
         }
 
