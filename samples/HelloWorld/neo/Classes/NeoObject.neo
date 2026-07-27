@@ -23,10 +23,4 @@ abstract class NeoObject : NeoObjectBase {
   @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoObjectPlacementTile> PlacementTiles = [];
-
-  /// Optional sorting group. When set, this object and its children sort as one unit against the rest of the layer.
-  @id("system_84335193-baa9-434e-8801-3e5e8053b841")
-  @locked
-  @system(kind: .WorldAuthoring)
-  public virtual NeoSortingGroup? SortingGroup = null;
 }

@@ -1271,14 +1271,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
-        {
-            get
-            {
-                return (IReadOnlyNeoSortingGroup?)(object)((NeoObject)this).SortingGroup!;
-            }
-        }
-
         public new sealed class Fields
         {
             private Fields() {}
@@ -1294,8 +1286,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
             public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
-
-            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -1308,7 +1298,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => null,
                 [Fields.Collider] = () => null,
                 [Fields.PlacementTiles] = () => null,
-                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -1332,7 +1321,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => Children,
                 [Fields.Collider] = () => Collider,
                 [Fields.PlacementTiles] = () => PlacementTiles,
-                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
@@ -2029,12 +2017,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public RecoveryCacheObject(IEnumerable<NeoObjectBase>? Children = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoSortingGroup? SortingGroup = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Children, Name, PlacementTiles, RecoveryCache, Collider, Position, Size, SortingGroup), false, NeoValueOwnership.Session)
+        public RecoveryCacheObject(IEnumerable<NeoObjectBase>? Children = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Children, Name, PlacementTiles, RecoveryCache, Collider, Position, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<NeoObjectBase>? Children = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoSortingGroup? SortingGroup = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<NeoObjectBase>? Children = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -2046,8 +2034,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("RecoveryCache", "47466be3-368c-4ac1-8c0e-7a825af6b538", RecoveryCache),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "94472662-a3a9-4c02-8abb-6229442e1e49", Collider),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingGroup", "system_84335193-baa9-434e-8801-3e5e8053b841", SortingGroup)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size)
             );
         }
 
@@ -2216,14 +2203,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
-        {
-            get
-            {
-                return (IReadOnlyNeoSortingGroup?)(object)((NeoObject)this).SortingGroup!;
-            }
-        }
-
         public new sealed class Fields
         {
             private Fields() {}
@@ -2241,8 +2220,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
-
-            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -2256,7 +2233,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Collider] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
-                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -2281,7 +2257,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Collider] = () => Collider,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
-                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
@@ -3569,14 +3544,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
-        {
-            get
-            {
-                return (IReadOnlyNeoSortingGroup?)(object)((NeoObject)this).SortingGroup!;
-            }
-        }
-
         public new sealed class Fields
         {
             private Fields() {}
@@ -3596,8 +3563,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
-
-            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -3612,7 +3577,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.PlacementTiles] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Collider] = () => null,
-                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -3638,7 +3602,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.Position] = () => Position,
                 [Fields.Collider] = () => Collider,
-                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
@@ -4475,12 +4438,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public PlayerSpawnObject(string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoSortingGroup? SortingGroup = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Children, PlacementTiles, Collider, Position, Size, SortingGroup), false, NeoValueOwnership.Session)
+        public PlayerSpawnObject(string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Children, PlacementTiles, Collider, Position, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoSortingGroup? SortingGroup = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -4491,8 +4454,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "47c21aa5-e852-41d2-882c-b4f555aee9dd", PlacementTiles),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "e5f5125c-fe5c-46b4-9589-9c6ae6fcba19", Collider),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "2b10e854-d60a-40a7-bc4c-8aede3e5049e", Position),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingGroup", "system_84335193-baa9-434e-8801-3e5e8053b841", SortingGroup)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size)
             );
         }
 
@@ -4659,14 +4621,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
-        {
-            get
-            {
-                return (IReadOnlyNeoSortingGroup?)(object)((NeoObject)this).SortingGroup!;
-            }
-        }
-
         public new sealed class Fields
         {
             private Fields() {}
@@ -4682,8 +4636,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
-
-            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -4696,7 +4648,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Collider] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
-                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -4720,7 +4671,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Collider] = () => Collider,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
-                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
@@ -6806,12 +6756,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public VaultPlaqueObject(string? Name = null, NeoDialogueReference? VaultPlaqueLocked = null, NeoDialogueReference? VaultPlaqueReward = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoCollider? Collider = null, NeoSortingGroup? SortingGroup = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, VaultPlaqueLocked, VaultPlaqueReward, Children, PlacementTiles, Position, Size, Collider, SortingGroup), false, NeoValueOwnership.Session)
+        public VaultPlaqueObject(string? Name = null, NeoDialogueReference? VaultPlaqueLocked = null, NeoDialogueReference? VaultPlaqueReward = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoCollider? Collider = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, VaultPlaqueLocked, VaultPlaqueReward, Children, PlacementTiles, Position, Size, Collider), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoDialogueReference? VaultPlaqueLocked = null, NeoDialogueReference? VaultPlaqueReward = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoCollider? Collider = null, NeoSortingGroup? SortingGroup = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoDialogueReference? VaultPlaqueLocked = null, NeoDialogueReference? VaultPlaqueReward = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoCollider? Collider = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -6824,8 +6774,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "430fca56-b45a-4896-9ab2-795a3faf57f6", PlacementTiles),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "neo-tile-grid-record-relations-v1-member-f7282b53bd3722c4d54307079bf7e242", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingGroup", "system_84335193-baa9-434e-8801-3e5e8053b841", SortingGroup)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider)
             );
         }
 
@@ -6993,14 +6942,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
-        {
-            get
-            {
-                return (IReadOnlyNeoSortingGroup?)(object)((NeoObject)this).SortingGroup!;
-            }
-        }
-
         public new sealed class Fields
         {
             private Fields() {}
@@ -7020,8 +6961,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
-
-            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -7036,7 +6975,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
                 [Fields.Collider] = () => null,
-                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -7062,7 +7000,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
                 [Fields.Collider] = () => Collider,
-                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
@@ -8096,12 +8033,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public ExitPromptObject37f67d(NeoVector3? Position = null, NeoVector3? Size = null, string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoSortingGroup? SortingGroup = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Position, Size, Name, ExitPromptRelay, ExitPromptQuiet, Children, PlacementTiles, Collider, SortingGroup), false, NeoValueOwnership.Session)
+        public ExitPromptObject37f67d(NeoVector3? Position = null, NeoVector3? Size = null, string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Position, Size, Name, ExitPromptRelay, ExitPromptQuiet, Children, PlacementTiles, Collider), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(NeoVector3? Position = null, NeoVector3? Size = null, string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoSortingGroup? SortingGroup = null)
+        private static NeoMemberClassWritable CreateFactoryNode(NeoVector3? Position = null, NeoVector3? Size = null, string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -8114,8 +8051,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ExitPromptQuiet", "663d7511-cfc3-427c-8431-90cfc87a9813", ExitPromptQuiet),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "de93c887-ea29-49bd-bfea-a6255b8b9a54", Children),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "571a0e0b-b36c-45f3-ae9a-5fde39045c11", PlacementTiles),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingGroup", "system_84335193-baa9-434e-8801-3e5e8053b841", SortingGroup)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider)
             );
         }
 
@@ -8268,14 +8204,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
-        {
-            get
-            {
-                return (IReadOnlyNeoSortingGroup?)(object)((NeoObject)this).SortingGroup!;
-            }
-        }
-
         public new sealed class Fields
         {
             private Fields() {}
@@ -8295,8 +8223,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
-
-            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -8311,7 +8237,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => null,
                 [Fields.PlacementTiles] = () => null,
                 [Fields.Collider] = () => null,
-                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -8337,7 +8262,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => Children,
                 [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.Collider] = () => Collider,
-                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
@@ -8376,12 +8300,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public ExitPromptObjecta26352(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoCollider? Collider = null, NeoSortingGroup? SortingGroup = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, ExitPromptRelay, ExitPromptQuiet, Children, Size, PlacementTiles, Position, Collider, SortingGroup), false, NeoValueOwnership.Session)
+        public ExitPromptObjecta26352(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoCollider? Collider = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, ExitPromptRelay, ExitPromptQuiet, Children, Size, PlacementTiles, Position, Collider), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoCollider? Collider = null, NeoSortingGroup? SortingGroup = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoCollider? Collider = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -8394,8 +8318,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "8e8c5ddf-6273-4440-869e-f1f9ca5dc51b", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "571a0e0b-b36c-45f3-ae9a-5fde39045c11", PlacementTiles),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingGroup", "system_84335193-baa9-434e-8801-3e5e8053b841", SortingGroup)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider)
             );
         }
 
@@ -8506,14 +8429,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
-        {
-            get
-            {
-                return (IReadOnlyNeoSortingGroup?)(object)((NeoObject)this).SortingGroup!;
-            }
-        }
-
         public new sealed class Fields
         {
             private Fields() {}
@@ -8533,8 +8448,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
-
-            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -8549,7 +8462,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.PlacementTiles] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Collider] = () => null,
-                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -8575,7 +8487,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.Position] = () => Position,
                 [Fields.Collider] = () => Collider,
-                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
@@ -9635,12 +9546,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public ExitPromptObject987403(IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, NeoSortingGroup? SortingGroup = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Children, Collider, Name, PlacementTiles, Position, Size, ExitPromptRelay, ExitPromptQuiet, SortingGroup), false, NeoValueOwnership.Session)
+        public ExitPromptObject987403(IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Children, Collider, Name, PlacementTiles, Position, Size, ExitPromptRelay, ExitPromptQuiet), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, NeoSortingGroup? SortingGroup = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -9653,8 +9564,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "neo-tile-grid-record-relations-v1-member-df3924f038bd73f8515d31f77f04683d", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "neo-tile-grid-record-relations-v1-member-f87a1ce82507a55782cd5f947b46b5f5", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ExitPromptRelay", "5676cb8a-be0f-4f1b-adc6-7241c09f8cf5", ExitPromptRelay),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ExitPromptQuiet", "663d7511-cfc3-427c-8431-90cfc87a9813", ExitPromptQuiet),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingGroup", "system_84335193-baa9-434e-8801-3e5e8053b841", SortingGroup)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ExitPromptQuiet", "663d7511-cfc3-427c-8431-90cfc87a9813", ExitPromptQuiet)
             );
         }
 
@@ -9875,14 +9785,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
-        {
-            get
-            {
-                return (IReadOnlyNeoSortingGroup?)(object)((NeoObject)this).SortingGroup!;
-            }
-        }
-
         public new sealed class Fields
         {
             private Fields() {}
@@ -9902,8 +9804,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoDialogueReference> ExitPromptRelay = new("ExitPromptRelay");
 
             public static readonly NeoField<NeoDialogueReference> ExitPromptQuiet = new("ExitPromptQuiet");
-
-            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -9918,7 +9818,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Size] = () => null,
                 [Fields.ExitPromptRelay] = () => null,
                 [Fields.ExitPromptQuiet] = () => null,
-                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -9944,7 +9843,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Size] = () => Size,
                 [Fields.ExitPromptRelay] = () => ExitPromptRelay,
                 [Fields.ExitPromptQuiet] = () => ExitPromptQuiet,
-                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
@@ -13654,7 +13552,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public interface IReadOnlyNeoObject : IReadOnlyNeoObjectBase, INeoObjectCompositionSource, INeoColliderSource, INeoSortingGroupSource
+    public interface IReadOnlyNeoObject : IReadOnlyNeoObjectBase, INeoObjectCompositionSource, INeoColliderSource
     {
         new bool IsReadOnly { get; }
 
@@ -13679,15 +13577,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         new string Name { get; }
 
         NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
-
-
-        /// <summary>
-        /// Optional sorting group. When set, this object and its children sort as one unit against the rest of the layer.
-        /// </summary>
-        new IReadOnlyNeoSortingGroup? SortingGroup { get; }
     }
 
-    public abstract partial class NeoObject : NeoObjectBase, IReadOnlyNeoObject, INeoObjectCompositionSource, INeoColliderSource, INeoSortingGroupSource, INeoObjectSpawnHooks
+    public abstract partial class NeoObject : NeoObjectBase, IReadOnlyNeoObject, INeoObjectCompositionSource, INeoColliderSource, INeoObjectSpawnHooks
     {
         internal NeoObject(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -13772,7 +13664,6 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         IReadOnlyList<INeoWorldObjectValue> INeoObjectCompositionSource.Children => Children;
         INeoCollider? INeoColliderSource.Collider => Collider;
-        INeoSortingGroup? INeoSortingGroupSource.SortingGroup => SortingGroup;
 
         void INeoObjectSpawnHooks.OnObjectSpawned(NeoObjectBehaviour behaviour) => OnObjectSpawned(behaviour);
 
@@ -13878,45 +13769,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        /// <summary>
-        /// Optional sorting group. When set, this object and its children sort as one unit against the rest of the layer.
-        /// </summary>
-        public virtual NeoSortingGroup? SortingGroup
-        {
-            get
-            {
-                if (IsReadOnly)
-                {
-                    var child = node.Get<NeoMemberClass>("SortingGroup");
-                    return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSortingGroup.Create(client, child);
-                }
-                else
-                {
-                    var child = writableNode.Get<NeoMemberClassWritable>("SortingGroup");
-                    return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSortingGroup.CreateWritable(client, child);
-                }
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoObject.SortingGroup");
-                if (value is null)
-                {
-                    writableNode.Unset("SortingGroup");
-                    return;
-                }
-                NeoGeneratedTypesSupport.SetValue(writableNode, "SortingGroup", NeoGeneratedTypesSupport.ValueReference(value));
-            }
-        }
-
-        IReadOnlyNeoSortingGroup? IReadOnlyNeoObject.SortingGroup
-        {
-            get
-            {
-                var child = node.Get<NeoMemberClass>("SortingGroup");
-                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSortingGroup.Create(client, child);
-            }
-        }
-
         public new sealed class Fields
         {
             private Fields() {}
@@ -13932,8 +13784,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
             public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
-
-            public static readonly NeoField<NeoSortingGroup?> SortingGroup = new("SortingGroup");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -13946,7 +13796,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => null,
                 [Fields.Collider] = () => null,
                 [Fields.PlacementTiles] = () => null,
-                [Fields.SortingGroup] = () => null,
             };
         }
 
@@ -13970,7 +13819,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => Children,
                 [Fields.Collider] = () => Collider,
                 [Fields.PlacementTiles] = () => PlacementTiles,
-                [Fields.SortingGroup] = () => SortingGroup,
             };
         }
 
