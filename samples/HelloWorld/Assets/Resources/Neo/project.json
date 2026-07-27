@@ -19,9 +19,9 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "00d3a2eb0c127da6cda967d93cc1687e235377917bc5a4723ea0293f3dab94d0",
-        "codegenContractHash": "8be9eb238cb048f72c332fca38f6083c4c5c9b339a79d30aa67b071fc6a56ed0",
-        "runtimeDataContractHash": "1590f1e0b98d7e457c24a8451bbf53f4a9e10788400a2ec2096b87359d981cb4"
+        "projectDocumentContentHash": "66c24b7786bbfec7893f60543e44c322f20d0dbb88056ecc0b634a1026e95d93",
+        "codegenContractHash": "aa3f530c59d1f472e5a16072c1d6d4bb48fe34a984fb58107751eccf4c59b144",
+        "runtimeDataContractHash": "2596cb677093785dc498e08a6cd9ce8545c3221742ac5f49fd50e0d18a101aac"
     },
     "localization": {
         "schemaVersion": 1,
@@ -5965,6 +5965,27 @@
             },
             "updatedAt": 1785064719279
         },
+        "system_6f32f1f2-83ea-42fc-8647-34ed0946b7f1": {
+            "accessModifierKind": "public",
+            "createdAt": 1785139228609,
+            "defaultValue": {
+                "value": null
+            },
+            "id": "system_6f32f1f2-83ea-42fc-8647-34ed0946b7f1",
+            "isStatic": false,
+            "isVirtual": true,
+            "kind": 2,
+            "locked": true,
+            "maxValue": 32767,
+            "minValue": -32768,
+            "name": "SortingOrder",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": false,
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "updatedAt": 1785139228609
+        },
         "system_7202cfb6-9cc4-49d3-b3fb-e44a23915b40": {
             "accessModifierKind": "public",
             "createdAt": 1782971224672,
@@ -6438,6 +6459,25 @@
             },
             "updatedAt": 1785064719279
         },
+        "system_9fcab37a-9743-4e35-8eee-80cb560f1433": {
+            "accessModifierKind": "public",
+            "createdAt": 1785139228609,
+            "defaultValue": {
+                "value": false
+            },
+            "id": "system_9fcab37a-9743-4e35-8eee-80cb560f1433",
+            "isStatic": false,
+            "isVirtual": true,
+            "kind": 1,
+            "locked": true,
+            "name": "FlipX",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "updatedAt": 1785139228609
+        },
         "system_a0083c92-72f7-405f-8863-ff86f995d36d": {
             "accessModifierKind": "public",
             "classId": "system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d",
@@ -6777,6 +6817,25 @@
             "updatedAt": 1778021394040,
             "valueId": "cb814b03-88c8-482b-9fb2-d839b1f529ae"
         },
+        "system_ddd09f08-1656-4404-b36b-5570a4c01fcf": {
+            "accessModifierKind": "public",
+            "createdAt": 1785139228609,
+            "defaultValue": {
+                "value": false
+            },
+            "id": "system_ddd09f08-1656-4404-b36b-5570a4c01fcf",
+            "isStatic": false,
+            "isVirtual": true,
+            "kind": 1,
+            "locked": true,
+            "name": "FlipY",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "updatedAt": 1785139228609
+        },
         "system_e1a1ba86-2599-43dc-a19a-46d08a2e4256": {
             "accessModifierKind": "public",
             "createdAt": 1785064719279,
@@ -7013,6 +7072,29 @@
             },
             "updatedAt": 1785064719279
         },
+        "system_f2a8c86d-ace5-421b-9475-0f3f6f97b2a6": {
+            "accessModifierKind": "public",
+            "createdAt": 1785139228609,
+            "defaultValue": {
+                "value": [
+                    "system_9d607a4f-60c3-4347-94fc-f24b538bf468"
+                ]
+            },
+            "enumId": "system_4e6c4d6f-1d0b-402a-ad3a-be92242dceec",
+            "id": "system_f2a8c86d-ace5-421b-9475-0f3f6f97b2a6",
+            "isStatic": false,
+            "isVirtual": true,
+            "kind": 8,
+            "locked": true,
+            "multiselect": false,
+            "name": "MaskInteraction",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "updatedAt": 1785143084303
+        },
         "system_f4be2707-74f5-4833-9784-e81bb2474330": {
             "accessModifierKind": "public",
             "createdAt": 1782539843163,
@@ -7098,6 +7180,25 @@
                 "kind": "worldAuthoring"
             },
             "updatedAt": 1785064719279
+        },
+        "system_fb90f48f-fcc0-4c98-bc22-70a8ea01170e": {
+            "accessModifierKind": "public",
+            "createdAt": 1785139228609,
+            "defaultValue": {
+                "value": false
+            },
+            "id": "system_fb90f48f-fcc0-4c98-bc22-70a8ea01170e",
+            "isStatic": false,
+            "isVirtual": true,
+            "kind": 1,
+            "locked": true,
+            "name": "SortAtRoot",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "updatedAt": 1785139228609
         },
         "system_fd3a7f0f-cff8-4069-9b19-004015a6aca1": {
             "accessModifierKind": "public",
@@ -7331,6 +7432,38 @@
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1781246186689
+        },
+        "system_4e6c4d6f-1d0b-402a-ad3a-be92242dceec": {
+            "createdAt": 1785139228609,
+            "id": "system_4e6c4d6f-1d0b-402a-ad3a-be92242dceec",
+            "name": "NeoSpriteMaskInteraction",
+            "optionKeyOrder": [
+                "system_9d607a4f-60c3-4347-94fc-f24b538bf468",
+                "system_4c670ac9-78a4-44e9-9833-94e1c69dca97",
+                "system_a0aeb200-7216-49e2-aad2-e151ff35c336"
+            ],
+            "options": {
+                "system_4c670ac9-78a4-44e9-9833-94e1c69dca97": {
+                    "id": "system_4c670ac9-78a4-44e9-9833-94e1c69dca97",
+                    "name": "VisibleInsideMask",
+                    "text": "Visible inside mask"
+                },
+                "system_9d607a4f-60c3-4347-94fc-f24b538bf468": {
+                    "id": "system_9d607a4f-60c3-4347-94fc-f24b538bf468",
+                    "name": "None",
+                    "text": "None"
+                },
+                "system_a0aeb200-7216-49e2-aad2-e151ff35c336": {
+                    "id": "system_a0aeb200-7216-49e2-aad2-e151ff35c336",
+                    "name": "VisibleOutsideMask",
+                    "text": "Visible outside mask"
+                }
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "updatedAt": 1785139228609
         },
         "system_551025ad-e441-4d43-90b0-2821c6235786": {
             "createdAt": 1782971224672,
@@ -8442,6 +8575,22 @@
             },
             "updatedAt": 1778022449181
         },
+        "system_69150540-b653-4bd0-a4fa-43a9f39da72b": {
+            "createdAt": 1785139228609,
+            "hiddenInMemberSelector": false,
+            "id": "system_69150540-b653-4bd0-a4fa-43a9f39da72b",
+            "isAbstract": false,
+            "name": "NeoSortingGroup",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "schema": {
+                "SortAtRoot": "system_fb90f48f-fcc0-4c98-bc22-70a8ea01170e"
+            },
+            "system": {
+                "kind": "worldAuthoring",
+                "worldKind": "sortingGroup"
+            },
+            "updatedAt": 1785139228609
+        },
         "system_8b540423-5920-4c83-a632-1415448e7fd7": {
             "createdAt": 1778021392334,
             "extendsClassId": null,
@@ -8671,14 +8820,18 @@
             "name": "NeoSpriteObject",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "schema": {
+                "FlipX": "system_9fcab37a-9743-4e35-8eee-80cb560f1433",
+                "FlipY": "system_ddd09f08-1656-4404-b36b-5570a4c01fcf",
+                "MaskInteraction": "system_f2a8c86d-ace5-421b-9475-0f3f6f97b2a6",
                 "Name": "system_441cb790-a45f-4488-a5a9-6f375af6c369",
+                "SortingOrder": "system_6f32f1f2-83ea-42fc-8647-34ed0946b7f1",
                 "Sprite": "system_e9288ba9-f5a2-4485-8443-6afb155b31e0"
             },
             "system": {
                 "kind": "worldAuthoring",
                 "worldKind": "spriteObject"
             },
-            "updatedAt": 1782174037995
+            "updatedAt": 1785139228609
         },
         "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0": {
             "createdAt": 1781759686435,
@@ -8773,7 +8926,7 @@
                 "kind": "worldAuthoring",
                 "worldKind": "object"
             },
-            "updatedAt": 1784282874548
+            "updatedAt": 1785145164989
         }
     },
     "internalRecordRelations": {
@@ -9254,6 +9407,15 @@
                 "y": -10
             }
         },
+        "012baf7c-c7b4-4233-927b-340574f82d4a": {
+            "createdAt": 1785139228609,
+            "id": "012baf7c-c7b4-4233-927b-340574f82d4a",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": [
+                "system_9d607a4f-60c3-4347-94fc-f24b538bf468"
+            ]
+        },
         "01c6e53a-2d04-4c56-80eb-55b257fb56bc": {
             "classId": null,
             "createdAt": 1781236863845,
@@ -9443,6 +9605,13 @@
             "updatedAt": 1778274764868,
             "value": "bdbe6838-8a19-4731-9b08-c431a8574cad"
         },
+        "06ef68f3-0308-490f-a948-8f85749913fb": {
+            "createdAt": 1785139228609,
+            "id": "06ef68f3-0308-490f-a948-8f85749913fb",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
+        },
         "0705a0e0-7f9c-4a5b-953e-55f982e2b381": {
             "classId": null,
             "createdAt": 1778274529456,
@@ -9531,6 +9700,13 @@
                 "x": 1,
                 "y": 1
             }
+        },
+        "09d88e42-fc05-4bd7-a7eb-1ca331d9c07d": {
+            "createdAt": 1785139228609,
+            "id": "09d88e42-fc05-4bd7-a7eb-1ca331d9c07d",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
         },
         "0a10d8df-5d92-47b4-b4ff-91bfa17d3e9d": {
             "classId": null,
@@ -9921,6 +10097,13 @@
                 "x": 6,
                 "y": -10
             }
+        },
+        "13d81c2f-bca4-4eb3-9d40-5e672e9e2a61": {
+            "createdAt": 1785139228609,
+            "id": "13d81c2f-bca4-4eb3-9d40-5e672e9e2a61",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
         },
         "13ec597a-f261-4d94-83d7-0aee4fae83d8": {
             "classId": null,
@@ -10496,6 +10679,13 @@
                 "system_6cf2f768-993c-5e9c-8bcb-60e1a0d8c575"
             ]
         },
+        "265098db-cd34-4e20-8203-f23895167ff0": {
+            "createdAt": 1785139228609,
+            "id": "265098db-cd34-4e20-8203-f23895167ff0",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
+        },
         "2657d51f-db14-43af-b8ff-cb7b663c9183": {
             "createdAt": 1782952202186,
             "id": "2657d51f-db14-43af-b8ff-cb7b663c9183",
@@ -10685,6 +10875,13 @@
             "value": {
                 "Cell": "39350309-6095-48cb-b96f-e44d00efcfdf"
             }
+        },
+        "2ad35bb4-91b5-4f71-ab35-89ab4ba1ee11": {
+            "createdAt": 1785139228609,
+            "id": "2ad35bb4-91b5-4f71-ab35-89ab4ba1ee11",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
         },
         "2b63dd9f-df25-460d-84c3-67b8fdefcd07": {
             "classId": null,
@@ -11308,6 +11505,15 @@
             "updatedAt": 1782973690110,
             "value": [
                 "system_6cf2f768-993c-5e9c-8bcb-60e1a0d8c575"
+            ]
+        },
+        "3c2cf33e-8362-4dd1-8a07-46747284a10b": {
+            "createdAt": 1785139228609,
+            "id": "3c2cf33e-8362-4dd1-8a07-46747284a10b",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": [
+                "system_9d607a4f-60c3-4347-94fc-f24b538bf468"
             ]
         },
         "3c34d333-c67f-4457-b299-9457eb00c61c": {
@@ -11958,8 +12164,11 @@
             "createdAt": 1782957228454,
             "id": "4d4d8a22-92e0-457d-8e86-0a41c6193259",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1782957228454,
+            "updatedAt": 1785139228609,
             "value": {
+                "FlipX": "06ef68f3-0308-490f-a948-8f85749913fb",
+                "FlipY": "fc1f51af-1953-422c-ad5b-0a257456bb1d",
+                "MaskInteraction": "ba217a9d-081f-4d66-9f65-73eb9e55b7fe",
                 "Name": "08bf074c-e497-42fb-8457-7a544f4931d5",
                 "Position": "3eb881ba-bbff-4b83-9f3a-eab2e6345e75",
                 "Size": "cf645a71-f326-40b1-87ee-6561910ede0b",
@@ -12208,8 +12417,11 @@
             "createdAt": 1782012971265,
             "id": "522f0109-97d2-4ac1-ad7c-70357d278035",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1782186069272,
+            "updatedAt": 1785139228609,
             "value": {
+                "FlipX": "6d83f1a5-d7c7-49b5-950f-e2e5fb147190",
+                "FlipY": "09d88e42-fc05-4bd7-a7eb-1ca331d9c07d",
+                "MaskInteraction": "012baf7c-c7b4-4233-927b-340574f82d4a",
                 "Name": "2798bb90-0ad8-4e15-9702-2da0ac3137d7",
                 "Position": "a9da4ab8-bcd9-43ee-8f50-c7360cb89ff8",
                 "Size": "7e367e07-643c-4725-8e38-2d8be37530f1",
@@ -12940,6 +13152,15 @@
                 "Sprites": "06995688-b339-40bc-894a-c7b3c4befab0"
             }
         },
+        "6a3481ad-4a93-4686-bd54-296446e58ab2": {
+            "createdAt": 1785139228609,
+            "id": "6a3481ad-4a93-4686-bd54-296446e58ab2",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": [
+                "system_9d607a4f-60c3-4347-94fc-f24b538bf468"
+            ]
+        },
         "6a6a8fac-c6e5-4a8e-968c-20bbca2f944a": {
             "classId": null,
             "createdAt": 1782974087030,
@@ -13079,13 +13300,23 @@
             "updatedAt": 1778021395060,
             "value": {}
         },
+        "6d83f1a5-d7c7-49b5-950f-e2e5fb147190": {
+            "createdAt": 1785139228609,
+            "id": "6d83f1a5-d7c7-49b5-950f-e2e5fb147190",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
+        },
         "6dbdfc93-1071-4e62-85f4-eb6d0cc33f73": {
             "classId": "system_d48b66ab-4d59-47e7-a25a-591fe97062de",
             "createdAt": 1782012971265,
             "id": "6dbdfc93-1071-4e62-85f4-eb6d0cc33f73",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1782186069272,
+            "updatedAt": 1785139228609,
             "value": {
+                "FlipX": "d137a690-8242-4d17-8196-12ae2b194c2e",
+                "FlipY": "ca26c233-03c6-405d-a895-c1071746e77e",
+                "MaskInteraction": "a41462bb-008c-4787-8109-881efcb92da7",
                 "Name": "9cd36c77-9d63-445b-8bb4-4cc23feb2c4d",
                 "Position": "a50d13b4-44ac-4c53-a4c7-938cdfdb0c04",
                 "Size": "d0d8fca6-3af9-42ab-ac6b-7896c07f0360",
@@ -13111,6 +13342,13 @@
             "value": {
                 "Cell": "2657d51f-db14-43af-b8ff-cb7b663c9183"
             }
+        },
+        "6e42ffe7-5fe6-4bc4-b6b6-db5fb82dfbce": {
+            "createdAt": 1785139228609,
+            "id": "6e42ffe7-5fe6-4bc4-b6b6-db5fb82dfbce",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
         },
         "6e5f99f2-673e-458f-9bb0-9671a0fef704": {
             "classId": "system_49803132-d83b-4e1e-8a10-6699dca5dc1c",
@@ -13667,6 +13905,13 @@
             "updatedAt": 1782973931190,
             "value": 1
         },
+        "7fbe81d7-bccf-43c7-9f61-b094b7afeea0": {
+            "createdAt": 1785139228609,
+            "id": "7fbe81d7-bccf-43c7-9f61-b094b7afeea0",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
+        },
         "805186a9-701a-42c0-8868-d36458a6d684": {
             "classId": null,
             "createdAt": 1783122864109,
@@ -13795,6 +14040,13 @@
                 "sliceIndex": 2
             }
         },
+        "8463d002-30da-48c5-a30f-adce0a98fc5f": {
+            "createdAt": 1785139228609,
+            "id": "8463d002-30da-48c5-a30f-adce0a98fc5f",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
+        },
         "84ba28e3-f6e3-4cea-aba0-847abd0faa73": {
             "classId": "system_49803132-d83b-4e1e-8a10-6699dca5dc1c",
             "createdAt": 1782974311749,
@@ -13815,6 +14067,13 @@
             "value": [
                 "system_fe185d9d-63c5-5f71-be71-408db18a84ee"
             ]
+        },
+        "84ec3bf8-818f-4e57-b61d-de039144e2ca": {
+            "createdAt": 1785139228609,
+            "id": "84ec3bf8-818f-4e57-b61d-de039144e2ca",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
         },
         "84ec832c-66e5-40c5-a9d2-c7f0c33f2d10": {
             "classId": null,
@@ -14003,6 +14262,13 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1778180903060,
             "value": "c6c95b48-2422-4bd0-bb2e-07d125b74762"
+        },
+        "8a491b09-59f0-4794-8766-8d21f0f27176": {
+            "createdAt": 1785139228609,
+            "id": "8a491b09-59f0-4794-8766-8d21f0f27176",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
         },
         "8b0f01a3-a38a-4f25-84f4-0ba968021b57": {
             "classId": "system_49803132-d83b-4e1e-8a10-6699dca5dc1c",
@@ -15011,6 +15277,15 @@
                 "sliceIndex": 28
             }
         },
+        "a41462bb-008c-4787-8109-881efcb92da7": {
+            "createdAt": 1785139228609,
+            "id": "a41462bb-008c-4787-8109-881efcb92da7",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": [
+                "system_9d607a4f-60c3-4347-94fc-f24b538bf468"
+            ]
+        },
         "a42e6798-e0fb-40ca-8b12-0d95148199d3": {
             "createdAt": 1782952202186,
             "id": "a42e6798-e0fb-40ca-8b12-0d95148199d3",
@@ -15222,6 +15497,13 @@
             "value": [
                 "987a97e1-02c7-52f1-a638-117d76726337"
             ]
+        },
+        "a8d5796b-aab2-4273-a6dd-9e7db570b4dc": {
+            "createdAt": 1785139228609,
+            "id": "a8d5796b-aab2-4273-a6dd-9e7db570b4dc",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
         },
         "a91ac442-3f18-4e5f-bd03-1d21d61eda50": {
             "classId": null,
@@ -15740,8 +16022,11 @@
             "createdAt": 1783038921558,
             "id": "b9de5fe2-8ddc-4b79-bfb2-bd802d8a4fa4",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1783038921558,
+            "updatedAt": 1785139228609,
             "value": {
+                "FlipX": "6e42ffe7-5fe6-4bc4-b6b6-db5fb82dfbce",
+                "FlipY": "8a491b09-59f0-4794-8766-8d21f0f27176",
+                "MaskInteraction": "6a3481ad-4a93-4686-bd54-296446e58ab2",
                 "Name": "2e9b95b3-f056-4498-bba0-d2618e0a55d5",
                 "Position": "1c25eb63-8223-4338-a690-4a7849fa0502",
                 "Size": "285bd0b2-ce7a-4c26-aaff-67b2ad49858e",
@@ -15758,6 +16043,15 @@
                 "fileId": "615fb640-00f1-416b-af1b-be81a97efc44",
                 "sliceIndex": 21
             }
+        },
+        "ba217a9d-081f-4d66-9f65-73eb9e55b7fe": {
+            "createdAt": 1785139228609,
+            "id": "ba217a9d-081f-4d66-9f65-73eb9e55b7fe",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": [
+                "system_9d607a4f-60c3-4347-94fc-f24b538bf468"
+            ]
         },
         "baf0a598-d9e7-40a5-85eb-9980b070cad1": {
             "classId": null,
@@ -15927,6 +16221,13 @@
             "value": {
                 "Cell": "ff345cce-52d6-488c-ac78-12431d3755b4"
             }
+        },
+        "c1df8aa4-1f0e-419a-89ef-97838f25a2d8": {
+            "createdAt": 1785139228609,
+            "id": "c1df8aa4-1f0e-419a-89ef-97838f25a2d8",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
         },
         "c1fc5ba2-53c5-40e8-9cbd-6b40a5915287": {
             "classId": null,
@@ -16135,6 +16436,15 @@
                 "Value": "01c6e53a-2d04-4c56-80eb-55b257fb56bc"
             }
         },
+        "c987c7b0-3691-4b75-98ef-c9257625a16a": {
+            "createdAt": 1785139228609,
+            "id": "c987c7b0-3691-4b75-98ef-c9257625a16a",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": [
+                "system_9d607a4f-60c3-4347-94fc-f24b538bf468"
+            ]
+        },
         "c9cbef1c-4660-432c-83e1-0e9c10c897e0": {
             "classId": "96818dab-90e5-4ab9-8f69-cce66e39e370",
             "createdAt": 1778179758419,
@@ -16168,6 +16478,13 @@
                 "Name": "06eea766-0e13-4bdf-ac92-2cc64e124bf4",
                 "Value": "8e7cd8b7-0454-40bc-9462-eca3c9e4721c"
             }
+        },
+        "ca26c233-03c6-405d-a895-c1071746e77e": {
+            "createdAt": 1785139228609,
+            "id": "ca26c233-03c6-405d-a895-c1071746e77e",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
         },
         "cad1e48f-6dc5-46a8-a0a1-e1ea91132d91": {
             "classId": null,
@@ -16431,8 +16748,11 @@
             "createdAt": 1782012971265,
             "id": "d0d48343-8748-40bf-b35a-3e88cdd7e3a5",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1782186069272,
+            "updatedAt": 1785139228609,
             "value": {
+                "FlipX": "13d81c2f-bca4-4eb3-9d40-5e672e9e2a61",
+                "FlipY": "84ec3bf8-818f-4e57-b61d-de039144e2ca",
+                "MaskInteraction": "3c2cf33e-8362-4dd1-8a07-46747284a10b",
                 "Name": "537b54d1-172d-4d09-923b-843294613388",
                 "Position": "46e81ca2-d333-4d11-913e-0c3ccc38a5c9",
                 "Size": "07efedad-5423-4b90-a8d5-0c4975f1c996",
@@ -16449,6 +16769,13 @@
                 "y": 1,
                 "z": 0
             }
+        },
+        "d137a690-8242-4d17-8196-12ae2b194c2e": {
+            "createdAt": 1785139228609,
+            "id": "d137a690-8242-4d17-8196-12ae2b194c2e",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
         },
         "d18cab07-8490-4ade-bbd0-41c3cab5ff4c": {
             "classId": null,
@@ -16530,6 +16857,13 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1781236998530,
             "value": "344c7825-e56e-408c-83a1-d3f5400738f8"
+        },
+        "d45c7f16-bbe7-47bb-b472-5d76c71e350c": {
+            "createdAt": 1785139228609,
+            "id": "d45c7f16-bbe7-47bb-b472-5d76c71e350c",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
         },
         "d4e7ece6-fa4a-4ebe-a3e7-dba0a6d10f62": {
             "classId": null,
@@ -17119,6 +17453,15 @@
                 "sliceIndex": 1
             }
         },
+        "e50589da-73d9-426a-a810-b93e40609d58": {
+            "createdAt": 1785139228609,
+            "id": "e50589da-73d9-426a-a810-b93e40609d58",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": [
+                "system_9d607a4f-60c3-4347-94fc-f24b538bf468"
+            ]
+        },
         "e5761d5b-e5f7-495c-9e52-912a377f3629": {
             "classId": "system_49803132-d83b-4e1e-8a10-6699dca5dc1c",
             "createdAt": 1782973758050,
@@ -17539,6 +17882,13 @@
                 "y": -10
             }
         },
+        "f1143ad0-d9c9-4b23-981d-a2bc83097a0d": {
+            "createdAt": 1785139228609,
+            "id": "f1143ad0-d9c9-4b23-981d-a2bc83097a0d",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
+        },
         "f12693df-6929-4160-8eb9-0c1fade3b31b": {
             "classId": null,
             "createdAt": 1782973499728,
@@ -17629,6 +17979,15 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1781240892932,
             "value": false
+        },
+        "f42cb759-5852-4c9e-8df5-1e13ba0be4e1": {
+            "createdAt": 1785139228609,
+            "id": "f42cb759-5852-4c9e-8df5-1e13ba0be4e1",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": [
+                "system_9d607a4f-60c3-4347-94fc-f24b538bf468"
+            ]
         },
         "f44c089a-5e09-4f3e-94e9-325eb1a92f4a": {
             "classId": null,
@@ -17807,6 +18166,15 @@
                 "Condition": "d1ed1811-f8f6-450f-9222-5644c2467de8"
             }
         },
+        "f9de7e84-62b1-4ff7-9020-3a063be2fc8f": {
+            "createdAt": 1785139228609,
+            "id": "f9de7e84-62b1-4ff7-9020-3a063be2fc8f",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": [
+                "system_9d607a4f-60c3-4347-94fc-f24b538bf468"
+            ]
+        },
         "f9facdbf-c947-4d78-a46a-2a2774ea3fec": {
             "classId": null,
             "createdAt": 1779225809244,
@@ -17925,6 +18293,13 @@
                 "fileId": "615fb640-00f1-416b-af1b-be81a97efc44",
                 "sliceIndex": 33
             }
+        },
+        "fc1f51af-1953-422c-ad5b-0a257456bb1d": {
+            "createdAt": 1785139228609,
+            "id": "fc1f51af-1953-422c-ad5b-0a257456bb1d",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1785139228609,
+            "value": false
         },
         "fc63774b-6b77-4a3b-b101-0aa84447967d": {
             "classId": null,
@@ -26397,8 +26772,11 @@
                 "id": "89f12e1d-3f07-47b5-a86e-8fb02b1152dd",
                 "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
                 "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "updatedAt": 1783404316091,
+                "updatedAt": 1785139228609,
                 "value": {
+                    "FlipX": "265098db-cd34-4e20-8203-f23895167ff0",
+                    "FlipY": "d45c7f16-bbe7-47bb-b472-5d76c71e350c",
+                    "MaskInteraction": "e50589da-73d9-426a-a810-b93e40609d58",
                     "Name": "f2f8e780-c842-490c-8356-cbdad325cc7d",
                     "Position": "e20ca107-a85d-4122-a26b-41fd14691d92",
                     "Size": "e848a478-7b1b-4c34-9fdc-942b05c59ff1",
@@ -28179,8 +28557,11 @@
                 "id": "a5c5595a-f83e-4a22-b025-7a97b2791ece",
                 "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
                 "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "updatedAt": 1783404325050,
+                "updatedAt": 1785139228609,
                 "value": {
+                    "FlipX": "2ad35bb4-91b5-4f71-ab35-89ab4ba1ee11",
+                    "FlipY": "7fbe81d7-bccf-43c7-9f61-b094b7afeea0",
+                    "MaskInteraction": "f42cb759-5852-4c9e-8df5-1e13ba0be4e1",
                     "Name": "2a378048-e1d0-4372-9652-88b3e7e4d94f",
                     "Position": "601c4b51-db22-4c9f-b949-c24e23c2186f",
                     "Size": "a3cbdedf-02d4-4382-bb37-c1dbd196793b",
@@ -29160,8 +29541,11 @@
                 "id": "b5a1b14f-359f-42f8-b16a-4eaee192bfaf",
                 "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
                 "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "updatedAt": 1783398513080,
+                "updatedAt": 1785139228609,
                 "value": {
+                    "FlipX": "f1143ad0-d9c9-4b23-981d-a2bc83097a0d",
+                    "FlipY": "a8d5796b-aab2-4273-a6dd-9e7db570b4dc",
+                    "MaskInteraction": "c987c7b0-3691-4b75-98ef-c9257625a16a",
                     "Name": "2285eae2-21bc-4f46-918c-7118559a4687",
                     "Position": "93897d08-1ba6-4bea-93b6-d814438807be",
                     "Size": "85f691aa-5bbe-48ed-a2c1-e6b94ac00e02",
@@ -30709,8 +31093,11 @@
                 "id": "cc3c9ee5-6428-4a62-ae4a-7e961057c7d9",
                 "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
                 "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "updatedAt": 1783456074994,
+                "updatedAt": 1785139228609,
                 "value": {
+                    "FlipX": "8463d002-30da-48c5-a30f-adce0a98fc5f",
+                    "FlipY": "c1df8aa4-1f0e-419a-89ef-97838f25a2d8",
+                    "MaskInteraction": "f9de7e84-62b1-4ff7-9020-3a063be2fc8f",
                     "Name": "ef6828c2-e350-453e-8003-de9b86f2dfb8",
                     "Position": "fc1d1443-a08c-4f8a-b8df-246142446339",
                     "Size": "9a35fcf9-6ddd-4842-bdc2-5211e4f7d203",

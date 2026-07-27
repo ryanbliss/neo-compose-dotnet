@@ -4,9 +4,7 @@
 #nullable enable
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using NeoCompose.Runtime.Json;
@@ -962,13 +960,9 @@ namespace NeoCompose.Runtime
                         return;
                     }
 
-                    var position = NeoGeneratedTypesSupport.ReadVector3Value(
-                        ReadOptionalProperty(changedValue, "Position"));
-                    if (position == null) return;
-                    root.transform.localPosition = new Vector3(
-                        position.Value.x * cellSize,
-                        position.Value.y * cellSize,
-                        position.Value.z * cellSize);
+                    if (changedValue is not INeoWorldObjectValue worldObject) return;
+                    root.transform.localPosition =
+                        CellOffsetToLocalPosition(worldObject.Position);
                 });
         }
 
@@ -1426,6 +1420,9 @@ namespace NeoCompose.Runtime
 
             var sortingOrder =
                 (layer.SortingOrder ?? layerFallbackSortingOrder) + instance.Order;
+            // Attached before children render so every descendant renderer is
+            // parented under a group that already exists.
+            AttachSortingGroup(go, layer, instance.Object, sortingOrder);
             var renderedChildren = RenderObjectComposition(
                 go.transform,
                 layer,
@@ -1434,7 +1431,8 @@ namespace NeoCompose.Runtime
                 new HashSet<string>(),
                 0);
 
-            if (TryResolveObjectColliderSpec(instance.Object, out var colliderSpec))
+            if (instance.Object is INeoColliderSource colliderSource
+                && TryResolveObjectColliderSpec(colliderSource, out var colliderSpec))
             {
                 // Authored collider values are grid cells; BoxCollider2D wants
                 // local units. Offset needs no re-anchoring — it shares the
@@ -1449,29 +1447,51 @@ namespace NeoCompose.Runtime
 
             if (renderedChildren > 0) return go;
 
-            var sprite = ResolveSprite(instance.Object);
-            if (sprite == null) return go;
+            if (instance.Object is not INeoSpriteObjectValue spriteObject) return go;
 
             RenderSpriteChild(
                 go.transform,
                 layer,
-                instance.Object,
-                sprite,
+                spriteObject.Name,
+                spriteObject,
+                spriteObject.Sprite,
                 Vector3.zero,
-                ReadCellSpan(instance.Object),
+                CellSpanFromSize(spriteObject.Size),
                 sortingOrder);
             return go;
+        }
+
+        /// <summary>
+        /// Adds a Unity SortingGroup when the value authored one, so the
+        /// object and its children sort as a single unit. Sorting layer and
+        /// order come from the object layer group, exactly as they do for a
+        /// SpriteRenderer, which is what makes the group take the object's
+        /// computed position in the layer.
+        /// </summary>
+        private static void AttachSortingGroup(
+            GameObject target,
+            IReadOnlyNeoObjectLayerRuntime layer,
+            INeoValueReference value,
+            int sortingOrder)
+        {
+            if (value is not INeoSortingGroupSource source) return;
+            if (source.SortingGroup is not { } group) return;
+
+            var sortingGroup = target.AddComponent<UnityEngine.Rendering.SortingGroup>();
+            sortingGroup.sortAtRoot = group.SortAtRoot;
+            ApplySorting(sortingGroup, layer.SortingLayerName, sortingOrder);
         }
 
         private int RenderObjectComposition(
             Transform parent,
             IReadOnlyNeoObjectLayerRuntime layer,
-            NeoGeneratedClassValue value,
+            INeoValueReference value,
             int baseSortingOrder,
             HashSet<string> visitedValueIds,
             int depth)
         {
             if (depth > MaxObjectCompositionDepth) return 0;
+            if (value is not INeoObjectCompositionSource composition) return 0;
 
             var valueId = value.valueId;
             var hasValueId = !string.IsNullOrEmpty(valueId);
@@ -1482,8 +1502,9 @@ namespace NeoCompose.Runtime
 
             var rendered = 0;
             var childIndex = 0;
-            foreach (var child in ReadEnumerableProperty(value, "Children"))
+            foreach (var child in composition.Children)
             {
+                if (child == null) continue;
                 rendered += RenderObjectChild(
                     parent,
                     layer,
@@ -1504,76 +1525,59 @@ namespace NeoCompose.Runtime
         private int RenderObjectChild(
             Transform parent,
             IReadOnlyNeoObjectLayerRuntime layer,
-            object child,
+            INeoWorldObjectValue child,
             int baseSortingOrder,
             int orderOffset,
             HashSet<string> visitedValueIds,
             int depth)
         {
-            if (child == null) return 0;
-
-            var childOffset = ReadCellOffset(child);
+            var childOffset = CellOffsetToLocalPosition(child.Position);
+            var childSortingOrder = baseSortingOrder + orderOffset;
             var rendered = RenderTileLayerLinkChild(
                 parent,
                 layer,
                 child,
                 childOffset,
-                baseSortingOrder + orderOffset);
+                childSortingOrder);
             if (rendered > 0) return rendered;
 
-            if (child is NeoGeneratedClassValue generatedChild)
-            {
-                var childSprite = ResolveSprite(generatedChild);
-                if (childSprite != null)
-                {
-                    RenderSpriteChild(
-                        parent,
-                        layer,
-                        child,
-                        childSprite,
-                        childOffset,
-                        ReadCellSpan(child),
-                        baseSortingOrder + orderOffset);
-                    return 1;
-                }
-
-                var childRoot = new GameObject(ReadObjectName(child, "Object"));
-                childRoot.transform.SetParent(parent, false);
-                childRoot.transform.localPosition = childOffset;
-                var childRendered = RenderObjectComposition(
-                    childRoot.transform,
-                    layer,
-                    generatedChild,
-                    baseSortingOrder + orderOffset,
-                    visitedValueIds,
-                    depth + 1);
-                if (childRendered == 0)
-                {
-                    DestroyCompositionRoot(childRoot);
-                }
-                return childRendered;
-            }
-
-            if (ReadOptionalProperty(child, "Sprite") is Sprite sprite)
+            if (child is INeoSpriteObjectValue spriteChild)
             {
                 RenderSpriteChild(
                     parent,
                     layer,
-                    child,
-                    sprite,
+                    spriteChild.Name,
+                    spriteChild,
+                    spriteChild.Sprite,
                     childOffset,
-                    ReadCellSpan(child),
-                    baseSortingOrder + orderOffset);
+                    CellSpanFromSize(spriteChild.Size),
+                    childSortingOrder);
                 return 1;
             }
 
-            return rendered;
+            var childRoot = new GameObject(
+                string.IsNullOrWhiteSpace(child.Name) ? "Object" : child.Name);
+            childRoot.transform.SetParent(parent, false);
+            childRoot.transform.localPosition = childOffset;
+            AttachSortingGroup(childRoot, layer, child, childSortingOrder);
+            var childRendered = RenderObjectComposition(
+                childRoot.transform,
+                layer,
+                child,
+                childSortingOrder,
+                visitedValueIds,
+                depth + 1);
+            if (childRendered == 0)
+            {
+                DestroyCompositionRoot(childRoot);
+            }
+            return childRendered;
         }
 
         private int RenderTileLayerLinkChild(
             Transform parent,
             IReadOnlyNeoObjectLayerRuntime layer,
-            object link,
+            INeoValueReference link,
             Vector3 linkOffset,
             int baseSortingOrder)
         {
@@ -1585,13 +1589,17 @@ namespace NeoCompose.Runtime
             {
                 var tileValue = tileInstance.Tile;
 
-                var sprite = ResolveSprite(tileValue);
+                // Tiles are not world objects, so they carry no sprite
+                // contract: the tile asset factory stays the sprite source
+                // here, and the child takes the sprite's own name.
+                var sprite = NeoTileAssetFactory.ResolveSprite(tileValue);
                 if (sprite == null) continue;
 
                 RenderSpriteChild(
                     parent,
                     layer,
-                    tileValue,
+                    sprite.name,
+                    spriteObject: null,
                     sprite,
                     linkOffset + CellOffsetToLocalPosition(tileInstance.Cell),
                     Vector3.one,
@@ -1601,22 +1609,36 @@ namespace NeoCompose.Runtime
             return rendered;
         }
 
+        /// <summary>
+        /// Renders one sprite child. <paramref name="spriteObject"/> is the
+        /// authored sprite state and is null for tile-layer-link tiles, which
+        /// are not world objects and carry no renderer metadata.
+        /// </summary>
         private void RenderSpriteChild(
             Transform parent,
             IReadOnlyNeoObjectLayerRuntime layer,
-            object source,
+            string name,
+            INeoSpriteObjectValue? spriteObject,
             Sprite sprite,
             Vector3 localPosition,
             Vector3 cellSpan,
             int sortingOrder)
         {
-            var go = new GameObject(ReadObjectName(source, sprite.name));
+            var go = new GameObject(
+                string.IsNullOrWhiteSpace(name) ? sprite.name : name);
             go.transform.SetParent(parent, false);
             go.transform.localPosition = localPosition + CellSpanCenterOffset(cellSpan);
             ScaleSpriteToCellSpan(go.transform, sprite, cellSpan);
             var renderer = go.AddComponent<SpriteRenderer>();
             renderer.sprite = sprite;
-            ApplySorting(renderer, layer.SortingLayerName, sortingOrder);
+            ApplySpriteState(renderer, spriteObject);
+            // The authored order is an offset on the order derived from the
+            // object's layer group, so an object layer's sorting order still
+            // moves the sprite with it.
+            ApplySorting(
+                renderer,
+                layer.SortingLayerName,
+                sortingOrder + (spriteObject?.SortingOrder ?? 0));
 
             if (addSpriteBoundsColliders)
             {
@@ -1625,6 +1647,18 @@ namespace NeoCompose.Runtime
                     sprite.bounds.center,
                     isTrigger: false));
             }
+        }
+
+        private static void ApplySpriteState(
+            SpriteRenderer renderer,
+            INeoSpriteObjectValue? spriteObject)
+        {
+            if (spriteObject == null) return;
+
+            renderer.flipX = spriteObject.FlipX;
+            renderer.flipY = spriteObject.FlipY;
+            renderer.maskInteraction =
+                NeoSpriteMaskInteractionIds.Parse(spriteObject.MaskInteraction);
         }
 
         private static void ApplySorting(
@@ -1640,34 +1674,44 @@ namespace NeoCompose.Runtime
             renderer.sortingOrder = sortingOrder;
         }
 
+        // SortingGroup is a Component, not a Renderer, so it needs its own
+        // overload rather than a widened one — the tilemap path shares the
+        // Renderer signature above.
+        private static void ApplySorting(
+            UnityEngine.Rendering.SortingGroup sortingGroup,
+            string? sortingLayerName,
+            int sortingOrder)
+        {
+            if (!string.IsNullOrWhiteSpace(sortingLayerName))
+            {
+                sortingGroup.sortingLayerName = sortingLayerName;
+            }
+
+            sortingGroup.sortingOrder = sortingOrder;
+        }
+
         private Vector3 CellToLocalPosition(Vector2Int cell) =>
             CellOffsetToLocalPosition(cell);
 
         private Vector3 CellOffsetToLocalPosition(Vector2Int cell) =>
             new(cell.x * cellSize, cell.y * cellSize, 0f);
 
-        private Vector3 ReadCellOffset(object source)
+        private Vector3 CellOffsetToLocalPosition(NeoReadOnlyVector3 position)
         {
-            var position = NeoGeneratedTypesSupport.ReadVector3Value(
-                ReadOptionalProperty(source, "Position"));
-            return position == null
-                ? Vector3.zero
-                : new Vector3(
-                    position.Value.x * cellSize,
-                    position.Value.y * cellSize,
-                    position.Value.z * cellSize);
+            var cells = position.Value;
+            return new Vector3(
+                cells.x * cellSize,
+                cells.y * cellSize,
+                cells.z * cellSize);
         }
 
-        private Vector3 ReadCellSpan(object source)
+        private static Vector3 CellSpanFromSize(NeoReadOnlyVector3 size)
         {
-            var size = NeoGeneratedTypesSupport.ReadVector3Value(
-                ReadOptionalProperty(source, "Size"));
-            if (size == null) return Vector3.one;
-
+            var cells = size.Value;
             return new Vector3(
-                PositiveOrFallback(size.Value.x, 1f),
-                PositiveOrFallback(size.Value.y, 1f),
-                size.Value.z);
+                PositiveOrFallback(cells.x, 1f),
+                PositiveOrFallback(cells.y, 1f),
+                cells.z);
         }
 
         private Vector3 CellSpanCenterOffset(Vector3 cellSpan) =>
@@ -1815,45 +1859,25 @@ namespace NeoCompose.Runtime
                 NeoTileAssetFactory.TryResolveSmartTile(value, out _);
         }
 
-        private Sprite? ResolveSprite(NeoGeneratedClassValue value)
-        {
-            return NeoTileAssetFactory.ResolveSprite(value);
-        }
-
+        /// <summary>
+        /// Reads the authored collider off an object value. Size is in cells
+        /// and must be positive on both axes; a collider with no usable size
+        /// renders no <c>BoxCollider2D</c>.
+        /// </summary>
         internal static bool TryResolveObjectColliderSpec(
-            object source,
+            INeoColliderSource? source,
             out NeoBoxColliderSpec spec)
         {
             spec = default;
-            if (source == null) return false;
+            if (source?.Collider is not { } collider) return false;
 
-            var collider = ReadOptionalProperty(source, "Collider")
-                ?? ReadOptionalProperty(source, "ObjectCollider")
-                ?? ReadOptionalProperty(source, "BoxCollider");
-            if (collider == null) return false;
-
-            if (!TryReadVector2(collider, "Size", out var size)
-                && !TryReadVector2(collider, "Bounds", out size)
-                && !TryReadWidthHeight(collider, out size))
-            {
-                return false;
-            }
+            var size = collider.Size.Value;
             if (size.x <= 0f || size.y <= 0f) return false;
 
-            if (!TryReadVector2(collider, "Offset", out var offset))
-            {
-                var hasOffsetX = TryReadFloat(collider, "OffsetX", out var offsetX);
-                var hasOffsetY = TryReadFloat(collider, "OffsetY", out var offsetY);
-                offset = hasOffsetX || hasOffsetY
-                    ? new Vector2(offsetX, offsetY)
-                    : Vector2.zero;
-            }
-
-            bool isTrigger = TryReadBool(collider, "IsTrigger", out var value)
-                || TryReadBool(collider, "isTrigger", out value)
-                ? value
-                : false;
-            spec = new NeoBoxColliderSpec(size, offset, isTrigger);
+            spec = new NeoBoxColliderSpec(
+                size,
+                collider.Offset?.Value ?? Vector2.zero,
+                collider.IsTrigger ?? false);
             return true;
         }
 
@@ -1865,122 +1889,6 @@ namespace NeoCompose.Runtime
             collider.isTrigger = spec.IsTrigger;
         }
 
-        private static bool TryReadVector2(
-            object source,
-            string propertyName,
-            out Vector2 value)
-        {
-            value = default;
-            var raw = ReadOptionalProperty(source, propertyName);
-            var vector = NeoGeneratedTypesSupport.ReadVector2Value(raw);
-            if (vector == null) return false;
-            value = vector.Value;
-            return true;
-        }
-
-        private static bool TryReadWidthHeight(object source, out Vector2 size)
-        {
-            size = default;
-            bool hasWidth = TryReadFloat(source, "Width", out var width);
-            bool hasHeight = TryReadFloat(source, "Height", out var height);
-            if (!hasWidth || !hasHeight) return false;
-            size = new Vector2(width, height);
-            return true;
-        }
-
-        private static bool TryReadFloat(
-            object source,
-            string propertyName,
-            out float value)
-        {
-            value = 0f;
-            var raw = ReadOptionalProperty(source, propertyName);
-            if (raw == null) return false;
-            switch (raw)
-            {
-                case float f:
-                    value = f;
-                    return true;
-                case double d:
-                    value = (float)d;
-                    return true;
-                case int i:
-                    value = i;
-                    return true;
-                case long l:
-                    value = l;
-                    return true;
-                case decimal m:
-                    value = (float)m;
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        private static bool TryReadBool(
-            object source,
-            string propertyName,
-            out bool value)
-        {
-            value = false;
-            var raw = ReadOptionalProperty(source, propertyName);
-            if (raw is not bool boolValue) return false;
-            value = boolValue;
-            return true;
-        }
-
-        private static object? ReadOptionalProperty(object source, string propertyName)
-        {
-            var properties = source.GetType().GetProperties(
-                BindingFlags.Public | BindingFlags.Instance);
-            foreach (var property in properties)
-            {
-                if (property.GetIndexParameters().Length > 0) continue;
-                if (!string.Equals(
-                    property.Name,
-                    propertyName,
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-                try
-                {
-                    return property.GetValue(source);
-                }
-                catch (TargetInvocationException)
-                {
-                    return null;
-                }
-                catch (InvalidOperationException)
-                {
-                    return null;
-                }
-            }
-            return null;
-        }
-
-        private static IEnumerable<object> ReadEnumerableProperty(
-            object source,
-            string propertyName)
-        {
-            var value = ReadOptionalProperty(source, propertyName);
-            if (value is null || value is string) yield break;
-            if (value is not IEnumerable enumerable) yield break;
-            foreach (var item in enumerable)
-            {
-                if (item != null) yield return item;
-            }
-        }
-
-        private static string ReadObjectName(object source, string fallback)
-        {
-            return ReadOptionalProperty(source, "Name") is string name
-                && !string.IsNullOrWhiteSpace(name)
-                    ? name
-                    : fallback;
-        }
-
         private static void DestroyCompositionRoot(GameObject root)
         {
             if (Application.isPlaying)
@@ -1989,15 +1897,6 @@ namespace NeoCompose.Runtime
                 return;
             }
             UnityEngine.Object.DestroyImmediate(root);
-        }
-
-        private static T? ReadProperty<T>(object source, string propertyName)
-            where T : class
-        {
-            var property = source.GetType().GetProperty(
-                propertyName,
-                BindingFlags.Public | BindingFlags.Instance);
-            return property?.GetValue(source) as T;
         }
 
         private bool MatchesSmartTileNeighbor(
@@ -2100,28 +1999,6 @@ namespace NeoCompose.Runtime
                 currentClassId = schemaClass.extendsClassId;
             }
             return false;
-        }
-
-        private static IReadOnlyList<T> ReadLayerList<T>(
-            object source,
-            string propertyName)
-            where T : class
-        {
-            var value = source.GetType()
-                .GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)
-                ?.GetValue(source);
-            var result = new List<T>();
-            if (value is IEnumerable<T> typed)
-            {
-                result.AddRange(typed);
-                return result;
-            }
-            if (value is not IEnumerable enumerable) return result;
-            foreach (var item in enumerable)
-            {
-                if (item is T layer) result.Add(layer);
-            }
-            return result;
         }
 
         private static void ClearChildren(Transform parent)

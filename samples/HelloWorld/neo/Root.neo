@@ -3574,6 +3574,9 @@ Root root = new() {
                   Children = [
                     @id("a5c5595a-f83e-4a22-b025-7a97b2791ece")
                     new NeoSpriteObject {
+                      FlipX = false,
+                      FlipY = false,
+                      MaskInteraction = .None,
                       Name = "",
                       Sprite = Images.RecoveryCacheObject.Slice(0),
                       Position = new(0, 0, 0),
@@ -3603,6 +3606,9 @@ Root root = new() {
                   Children = [
                     @id("89f12e1d-3f07-47b5-a86e-8fb02b1152dd")
                     new NeoSpriteObject {
+                      FlipX = false,
+                      FlipY = false,
+                      MaskInteraction = .None,
                       Name = "",
                       Sprite = Images.PlayerSpawnObject.Slice(0),
                       Position = new(0, 0, 0),

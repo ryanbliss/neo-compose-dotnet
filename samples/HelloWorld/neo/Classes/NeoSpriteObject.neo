@@ -1,11 +1,36 @@
 @id("system_d48b66ab-4d59-47e7-a25a-591fe97062de")
 @system(kind: .WorldAuthoring, worldKind: .SpriteObject)
 class NeoSpriteObject : NeoObjectBase {
+  /// Mirrors the sprite horizontally about its own centre. Maps to SpriteRenderer.flipX.
+  @id("system_9fcab37a-9743-4e35-8eee-80cb560f1433")
+  @locked
+  @system(kind: .WorldAuthoring)
+  public virtual bool FlipX = false;
+
+  /// Mirrors the sprite vertically about its own centre. Maps to SpriteRenderer.flipY.
+  @id("system_ddd09f08-1656-4404-b36b-5570a4c01fcf")
+  @locked
+  @system(kind: .WorldAuthoring)
+  public virtual bool FlipY = false;
+
+  /// How this sprite reacts to sprite masks. Maps to SpriteRenderer.maskInteraction. The web canvas has no real sprite mask, so anything other than None previews as a distinguishable treatment rather than as the mask itself — only Unity renders the real thing.
+  @id("system_f2a8c86d-ace5-421b-9475-0f3f6f97b2a6")
+  @locked
+  @system(kind: .WorldAuthoring)
+  public virtual NeoSpriteMaskInteraction MaskInteraction = .None;
+
   @id("system_441cb790-a45f-4488-a5a9-6f375af6c369")
   @locked
   @settings(localizable: false)
   @system(kind: .WorldAuthoring)
   public virtual string Name = "";
+
+  /// Nudges this sprite's draw order within its object. Added to the order derived from the object's layer group — it does not replace it. Leave unset for the default order.
+  @id("system_6f32f1f2-83ea-42fc-8647-34ed0946b7f1")
+  @locked
+  @settings(min: -32768, max: 32767)
+  @system(kind: .WorldAuthoring)
+  public virtual int? SortingOrder = null;
 
   @id("system_e9288ba9-f5a2-4485-8443-6afb155b31e0")
   @locked

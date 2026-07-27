@@ -2,6 +2,54 @@
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-07-27
+
+### Breaking
+
+- The renderer reads world object members through generated contract
+  interfaces instead of reflecting on property names. A `NeoGeneratedTypes.cs`
+  generated before P40 implements none of `INeoWorldObjectValue`,
+  `INeoObjectCompositionSource`, `INeoColliderSource`,
+  `INeoSortingGroupSource`, or `INeoSpriteObjectValue`, so on this version an
+  object renders no composition children, no authored collider, and no
+  fallback sprite. Re-export projects and regenerate their C# types after
+  upgrading.
+
+  There is deliberately no compatibility fallback: `ReadOptionalProperty`,
+  `ReadEnumerableProperty`, `ReadObjectName`, and the rest of the name-keyed
+  reflection over world object members are gone, along with the per-object,
+  per-spawn `GetProperties()` scan they each cost.
+
+### Added
+
+- Sorting groups. An object whose authored `SortingGroup` is non-null gets a
+  `UnityEngine.Rendering.SortingGroup` on its root, taking the sorting layer
+  and order from the object layer exactly as a `SpriteRenderer` does, so the
+  object and its children sort against the world as one unit. `SortAtRoot`
+  maps to `SortingGroup.sortAtRoot` and is read once at spawn.
+- Sprite renderer state. Authored `FlipX`, `FlipY`, and `MaskInteraction` are
+  applied to the `SpriteRenderer`, and `SortingOrder` is **added** to the draw
+  order derived from the object's layer group rather than replacing it.
+- `NeoSpriteMaskInteractionIds`, pinning the three `NeoSpriteMaskInteraction`
+  option ids authored on the web side, with `Parse` onto
+  `UnityEngine.SpriteMaskInteraction`.
+
+### Fixed
+
+- An object or tile layer's authored `SortingOrder` was never honoured.
+  `NeoGeneratedTileLayerValue` and `NeoGeneratedObjectLayerValue` reflected a
+  property named `Order`, which generated layers do not have — they expose
+  `SortingOrder` — so the value was always null and the renderer silently fell
+  back to its 1000-per-layer stride. Changing a layer's sorting order now
+  moves its content.
+
+### Changed
+
+- A tile rendered through a tile layer link names its GameObject after the
+  sprite. It previously preferred a reflected `Name` property on the tile
+  value; tiles are not world objects and carry no runtime contract, so there
+  is no typed equivalent.
+
 ## [0.8.0] - 2026-07-26
 
 ### Breaking
