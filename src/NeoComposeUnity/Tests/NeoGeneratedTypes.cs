@@ -30,6 +30,8 @@ namespace Assets.Scripts.Neo
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory> DialogueReadOnlyValueFactories =
             new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
             {
+                ["class-animated-sprite"] = (client, node) => global::Assets.Scripts.Neo.AnimatedSprite.Create(client, node),
+                ["class-animated-sprite-child"] = (client, node) => global::Assets.Scripts.Neo.AnimatedSpriteChild.Create(client, node),
                 ["class-base"] = (client, node) => global::Assets.Scripts.Neo.Base.Create(client, node),
                 ["class-choice-log"] = (client, node) => global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, node),
                 ["class-concrete-readonly-stats"] = (client, node) => global::Assets.Scripts.Neo.ConcreteReadonlyStats.Create(client, node),
@@ -67,6 +69,8 @@ namespace Assets.Scripts.Neo
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableClassFactory> DialogueWritableValueFactories =
             new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
             {
+                ["class-animated-sprite"] = (client, node) => global::Assets.Scripts.Neo.AnimatedSprite.CreateWritable(client, node),
+                ["class-animated-sprite-child"] = (client, node) => global::Assets.Scripts.Neo.AnimatedSpriteChild.CreateWritable(client, node),
                 ["class-base"] = (client, node) => global::Assets.Scripts.Neo.Base.CreateWritable(client, node),
                 ["class-choice-log"] = (client, node) => global::Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, node),
                 ["class-concrete-readonly-stats"] = (client, node) => global::Assets.Scripts.Neo.ConcreteReadonlyStats.CreateWritable(client, node),
@@ -104,6 +108,8 @@ namespace Assets.Scripts.Neo
         internal static readonly IReadOnlyDictionary<Type, string> NeoClassIdsByType =
             new Dictionary<Type, string>
             {
+                [typeof(global::Assets.Scripts.Neo.AnimatedSprite)] = "class-animated-sprite",
+                [typeof(global::Assets.Scripts.Neo.AnimatedSpriteChild)] = "class-animated-sprite-child",
                 [typeof(global::Assets.Scripts.Neo.Base)] = "class-base",
                 [typeof(global::Assets.Scripts.Neo.NeoChoiceLog)] = "class-choice-log",
                 [typeof(global::Assets.Scripts.Neo.ConcreteReadonlyStats)] = "class-concrete-readonly-stats",
@@ -433,8 +439,8 @@ namespace Assets.Scripts.Neo
             this.optionId = optionId;
         }
 
-        public static readonly Element fire = FromOptionId("fire");
-        public static readonly Element ice = FromOptionId("ice");
+        public static readonly Element fire = FromOptionId("4df3e94b-977f-43bc-b99a-5b4076431480");
+        public static readonly Element ice = FromOptionId("b2ee3d04-e768-42a2-9889-28e24f7780cf");
 
         public static Element FromOptionId(string optionId)
         {
@@ -456,8 +462,8 @@ namespace Assets.Scripts.Neo
         {
             return id switch
             {
-                "fire" => true,
-                "ice" => true,
+                "4df3e94b-977f-43bc-b99a-5b4076431480" => true,
+                "b2ee3d04-e768-42a2-9889-28e24f7780cf" => true,
                 _ => false,
             };
         }
@@ -466,8 +472,8 @@ namespace Assets.Scripts.Neo
         {
             return optionId switch
             {
-                "fire" => "Fire",
-                "ice" => "Ice",
+                "4df3e94b-977f-43bc-b99a-5b4076431480" => "Fire",
+                "b2ee3d04-e768-42a2-9889-28e24f7780cf" => "Ice",
                 _ => optionId,
             };
         }
@@ -6579,6 +6585,502 @@ namespace Assets.Scripts.Neo
         }
 
         public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoObjectBase : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        IReadOnlyNeoObjectBase Clone();
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoObjectBase writable);
+    }
+
+    public abstract partial class NeoObjectBase : NeoGeneratedClassValue, IReadOnlyNeoObjectBase
+    {
+        internal NeoObjectBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-animation-object-base", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal static NeoObjectBase Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectBase>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    "class-animated-sprite" => new AnimatedSprite(client, node, true, NeoValueOwnership.Asset),
+                    "class-animated-sprite-child" => new AnimatedSpriteChild(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectBase' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal static NeoObjectBase CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectBase>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    "class-animated-sprite" => new AnimatedSprite(client, node, false, node.ownership),
+                    "class-animated-sprite-child" => new AnimatedSpriteChild(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectBase' without a concrete client type id."),
+                };
+            });
+        }
+
+        public NeoObjectBase Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoObjectBase IReadOnlyNeoObjectBase.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoObjectBase writable)
+        {
+            return TryWritable<NeoObjectBase>(out writable);
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoSpriteObject : IReadOnlyNeoObjectBase
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoSpriteObject Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoSpriteObject writable);
+    }
+
+    public abstract partial class NeoSpriteObject : NeoObjectBase, IReadOnlyNeoSpriteObject
+    {
+        internal NeoSpriteObject(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal new static NeoSpriteObject Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteObject>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    "class-animated-sprite" => new AnimatedSprite(client, node, true, NeoValueOwnership.Asset),
+                    "class-animated-sprite-child" => new AnimatedSpriteChild(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoSpriteObject' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal new static NeoSpriteObject CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteObject>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    "class-animated-sprite" => new AnimatedSprite(client, node, false, node.ownership),
+                    "class-animated-sprite-child" => new AnimatedSpriteChild(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoSpriteObject' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new NeoSpriteObject Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoSpriteObject IReadOnlyNeoSpriteObject.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoSpriteObject writable)
+        {
+            return TryWritable<NeoSpriteObject>(out writable);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyAnimatedSprite : IReadOnlyNeoSpriteObject
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyAnimatedSprite Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out AnimatedSprite writable);
+
+        int X { get; }
+
+        NeoAnimationClip<AnimatedSprite> Idle { get; }
+    }
+
+    public partial class AnimatedSprite : NeoSpriteObject, IReadOnlyAnimatedSprite
+    {
+        internal AnimatedSprite(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public AnimatedSprite(int? X = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(X), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoMemberClassWritable CreateFactoryNode(int? X = null)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
+                client,
+                "class-animated-sprite",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("X", "member-animation-x", X)
+            );
+        }
+
+        internal new static AnimatedSprite Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimatedSprite>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    "class-animated-sprite-child" => new AnimatedSpriteChild(client, node, true, NeoValueOwnership.Asset),
+                    _ => new AnimatedSprite(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static AnimatedSprite CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimatedSprite>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    "class-animated-sprite-child" => new AnimatedSpriteChild(client, node, false, node.ownership),
+                    _ => new AnimatedSprite(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new AnimatedSprite Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyAnimatedSprite IReadOnlyAnimatedSprite.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out AnimatedSprite writable)
+        {
+            return TryWritable<AnimatedSprite>(out writable);
+        }
+
+        public virtual int X
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("X")) ?? throw new InvalidOperationException("Required int 'X' has no value.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "X", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public virtual NeoAnimationClip<AnimatedSprite> Idle
+        {
+            get
+            {
+                return client.GetOrCreateAnimationClip(this, "Idle");
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<int> X = new("X");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.X] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.X] = () => X,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyAnimatedSpriteChild : IReadOnlyAnimatedSprite
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyAnimatedSpriteChild Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out AnimatedSpriteChild writable);
+    }
+
+    public partial class AnimatedSpriteChild : AnimatedSprite, IReadOnlyAnimatedSpriteChild
+    {
+        internal AnimatedSpriteChild(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public AnimatedSpriteChild(int? X = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(X), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoMemberClassWritable CreateFactoryNode(int? X = null)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
+                client,
+                "class-animated-sprite-child",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("X", "member-animation-x", X)
+            );
+        }
+
+        internal new static AnimatedSpriteChild Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimatedSpriteChild>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => new AnimatedSpriteChild(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static AnimatedSpriteChild CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimatedSpriteChild>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => new AnimatedSpriteChild(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new AnimatedSpriteChild Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyAnimatedSpriteChild IReadOnlyAnimatedSpriteChild.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out AnimatedSpriteChild writable)
+        {
+            return TryWritable<AnimatedSpriteChild>(out writable);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<int> X = new("X");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.X] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.X] = () => X,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

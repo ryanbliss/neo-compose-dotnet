@@ -80,7 +80,7 @@ namespace NeoCompose.Tests
 
             // The persisted save keys the entry by the raw option id.
             string persisted = stack.PersistedContent()!;
-            StringAssert.Contains("\"ice\"", persisted);
+            StringAssert.Contains($"\"{Element.ice.optionId}\"", persisted);
 
             var reloaded = TestProjectNeo.Load(stack.Reopen())
                 .GetAwaiter()
@@ -208,7 +208,7 @@ namespace NeoCompose.Tests
                 client,
                 node,
                 (_, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child));
-            Assert.AreEqual(12, stringView["fire"]);
+            Assert.AreEqual(12, stringView[Element.fire.optionId]);
             Assert.AreEqual(99, stringView["storm"]);
         }
 

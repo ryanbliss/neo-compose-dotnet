@@ -2018,8 +2018,8 @@
         "value": {}
       }
     },
-    "af2d8db8-817b-46f0-adbe-cf9113b77155": {
-      "id": "af2d8db8-817b-46f0-adbe-cf9113b77155",
+    "system_af2d8db8-817b-46f0-adbe-cf9113b77155": {
+      "id": "system_af2d8db8-817b-46f0-adbe-cf9113b77155",
       "projectId": "test-project",
       "name": "FPS",
       "kind": 2,
@@ -2038,8 +2038,8 @@
       "updatedAt": 0,
       "minValue": 1
     },
-    "e1a1ba86-2599-43dc-a19a-46d08a2e4256": {
-      "id": "e1a1ba86-2599-43dc-a19a-46d08a2e4256",
+    "system_e1a1ba86-2599-43dc-a19a-46d08a2e4256": {
+      "id": "system_e1a1ba86-2599-43dc-a19a-46d08a2e4256",
       "projectId": "test-project",
       "name": "Duration",
       "kind": 2,
@@ -2058,8 +2058,8 @@
       "updatedAt": 0,
       "minValue": 1
     },
-    "485b0f05-ec7b-4e61-ba80-9a5d7d262b39": {
-      "id": "485b0f05-ec7b-4e61-ba80-9a5d7d262b39",
+    "system_485b0f05-ec7b-4e61-ba80-9a5d7d262b39": {
+      "id": "system_485b0f05-ec7b-4e61-ba80-9a5d7d262b39",
       "projectId": "test-project",
       "name": "Frames",
       "kind": 6,
@@ -2076,10 +2076,10 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "entryMemberId": "9a08b7e8-9d75-4945-8648-b2ce916cea1a"
+      "entryMemberId": "system_557a29b1-a12b-5610-9990-aa422af28269"
     },
-    "eb602654-04a9-4766-860f-300b443be86e": {
-      "id": "eb602654-04a9-4766-860f-300b443be86e",
+    "system_eb602654-04a9-4766-860f-300b443be86e": {
+      "id": "system_eb602654-04a9-4766-860f-300b443be86e",
       "projectId": "test-project",
       "name": "Tracks",
       "kind": 6,
@@ -2096,10 +2096,10 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "entryMemberId": "cb7b2bbc-3c66-458f-9ed5-362715c09ece"
+      "entryMemberId": "system_f89776c0-a7ac-5e80-9fcb-df9a5a1033fc"
     },
-    "9a08b7e8-9d75-4945-8648-b2ce916cea1a": {
-      "id": "9a08b7e8-9d75-4945-8648-b2ce916cea1a",
+    "system_557a29b1-a12b-5610-9990-aa422af28269": {
+      "id": "system_557a29b1-a12b-5610-9990-aa422af28269",
       "projectId": "test-project",
       "name": "__FrameEntry",
       "kind": 7,
@@ -2115,14 +2115,14 @@
       "updatedAt": 0,
       "classId": "class-animation-frame",
       "classArguments": {
-        "d2194ea1-08ec-4a0c-b9a0-97877031d39b": {
+        "system_d2194ea1-08ec-4a0c-b9a0-97877031d39b": {
           "kind": "generic",
-          "genericParamId": "268e9d23-347b-4eb6-8bec-cf0edf326aa2"
+          "genericParamId": "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2"
         }
       }
     },
-    "cb7b2bbc-3c66-458f-9ed5-362715c09ece": {
-      "id": "cb7b2bbc-3c66-458f-9ed5-362715c09ece",
+    "system_f89776c0-a7ac-5e80-9fcb-df9a5a1033fc": {
+      "id": "system_f89776c0-a7ac-5e80-9fcb-df9a5a1033fc",
       "projectId": "test-project",
       "name": "__TrackEntry",
       "kind": 7,
@@ -2141,8 +2141,8 @@
       "updatedAt": 0,
       "classId": "class-animation-child-track"
     },
-    "0dbdd0f9-9dd2-4b4b-9403-50180c1500dd": {
-      "id": "0dbdd0f9-9dd2-4b4b-9403-50180c1500dd",
+    "system_0dbdd0f9-9dd2-4b4b-9403-50180c1500dd": {
+      "id": "system_0dbdd0f9-9dd2-4b4b-9403-50180c1500dd",
       "projectId": "test-project",
       "name": "Index",
       "kind": 2,
@@ -2158,8 +2158,8 @@
       "updatedAt": 0,
       "minValue": 0
     },
-    "8ab7bb00-a475-43f0-8579-1b08f133d658": {
-      "id": "8ab7bb00-a475-43f0-8579-1b08f133d658",
+    "system_8ab7bb00-a475-43f0-8579-1b08f133d658": {
+      "id": "system_8ab7bb00-a475-43f0-8579-1b08f133d658",
       "projectId": "test-project",
       "name": "Overrides",
       "kind": 21,
@@ -2173,11 +2173,11 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "genericParamId": "d2194ea1-08ec-4a0c-b9a0-97877031d39b",
+      "genericParamId": "system_d2194ea1-08ec-4a0c-b9a0-97877031d39b",
       "partial": true
     },
-    "a5905750-c472-46a8-89e9-f04f0bf66696": {
-      "id": "a5905750-c472-46a8-89e9-f04f0bf66696",
+    "system_a5905750-c472-46a8-89e9-f04f0bf66696": {
+      "id": "system_a5905750-c472-46a8-89e9-f04f0bf66696",
       "projectId": "test-project",
       "name": "ChildOverrides",
       "kind": 6,
@@ -2194,10 +2194,10 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "entryMemberId": "bf62d243-5184-4b09-98e0-8682827cb66d"
+      "entryMemberId": "system_86688965-6b26-529e-95f3-a4070f022582"
     },
-    "23e05410-6428-4bd1-b085-c0390ed7fcb7": {
-      "id": "23e05410-6428-4bd1-b085-c0390ed7fcb7",
+    "system_23e05410-6428-4bd1-b085-c0390ed7fcb7": {
+      "id": "system_23e05410-6428-4bd1-b085-c0390ed7fcb7",
       "projectId": "test-project",
       "name": "Actions",
       "kind": 6,
@@ -2214,10 +2214,10 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "entryMemberId": "4c195860-4fb3-4e09-b33c-fb5a37601c25"
+      "entryMemberId": "system_57c6c50f-def6-52a2-9e3e-e4af69998c96"
     },
-    "bf62d243-5184-4b09-98e0-8682827cb66d": {
-      "id": "bf62d243-5184-4b09-98e0-8682827cb66d",
+    "system_86688965-6b26-529e-95f3-a4070f022582": {
+      "id": "system_86688965-6b26-529e-95f3-a4070f022582",
       "projectId": "test-project",
       "name": "__ChildOverrideEntry",
       "kind": 7,
@@ -2233,14 +2233,14 @@
       "updatedAt": 0,
       "classId": "class-animation-child-override",
       "classArguments": {
-        "de23448a-45be-4e3f-8965-072a545e08f0": {
+        "system_de23448a-45be-4e3f-8965-072a545e08f0": {
           "kind": "member",
-          "memberId": "45d30ad2-e066-4017-8982-ec9c92655b19"
+          "memberId": "system_cbab87cf-1923-5891-a605-7dd7120e6760"
         }
       }
     },
-    "4c195860-4fb3-4e09-b33c-fb5a37601c25": {
-      "id": "4c195860-4fb3-4e09-b33c-fb5a37601c25",
+    "system_57c6c50f-def6-52a2-9e3e-e4af69998c96": {
+      "id": "system_57c6c50f-def6-52a2-9e3e-e4af69998c96",
       "projectId": "test-project",
       "name": "__ActionEntry",
       "kind": 24,
@@ -2255,8 +2255,8 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "45d30ad2-e066-4017-8982-ec9c92655b19": {
-      "id": "45d30ad2-e066-4017-8982-ec9c92655b19",
+    "system_cbab87cf-1923-5891-a605-7dd7120e6760": {
+      "id": "system_cbab87cf-1923-5891-a605-7dd7120e6760",
       "projectId": "test-project",
       "name": "__NeoObjectBaseTypeArgument",
       "kind": 7,
@@ -2272,8 +2272,8 @@
       "updatedAt": 0,
       "classId": "class-animation-object-base"
     },
-    "6e15db41-a6f2-43fd-9793-c52fe4f3d0f8": {
-      "id": "6e15db41-a6f2-43fd-9793-c52fe4f3d0f8",
+    "system_6e15db41-a6f2-43fd-9793-c52fe4f3d0f8": {
+      "id": "system_6e15db41-a6f2-43fd-9793-c52fe4f3d0f8",
       "projectId": "test-project",
       "name": "Child",
       "kind": 9,
@@ -2287,12 +2287,12 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "collectionMemberId": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
+      "collectionMemberId": "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
       "collectionValueId": null,
       "multiselect": false
     },
-    "819b3743-0c3d-4896-b679-9aeeb73255f4": {
-      "id": "819b3743-0c3d-4896-b679-9aeeb73255f4",
+    "system_819b3743-0c3d-4896-b679-9aeeb73255f4": {
+      "id": "system_819b3743-0c3d-4896-b679-9aeeb73255f4",
       "projectId": "test-project",
       "name": "Overrides",
       "kind": 21,
@@ -2306,11 +2306,11 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "genericParamId": "de23448a-45be-4e3f-8965-072a545e08f0",
+      "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0",
       "partial": true
     },
-    "29abc85e-2d38-4cef-a200-88915d176d06": {
-      "id": "29abc85e-2d38-4cef-a200-88915d176d06",
+    "system_29abc85e-2d38-4cef-a200-88915d176d06": {
+      "id": "system_29abc85e-2d38-4cef-a200-88915d176d06",
       "projectId": "test-project",
       "name": "Child",
       "kind": 9,
@@ -2324,12 +2324,12 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "collectionMemberId": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
+      "collectionMemberId": "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
       "collectionValueId": null,
       "multiselect": false
     },
-    "2c816624-0281-46d3-9ed5-d20bd43519f4": {
-      "id": "2c816624-0281-46d3-9ed5-d20bd43519f4",
+    "system_2c816624-0281-46d3-9ed5-d20bd43519f4": {
+      "id": "system_2c816624-0281-46d3-9ed5-d20bd43519f4",
       "projectId": "test-project",
       "name": "ClipKey",
       "kind": 3,
@@ -2345,8 +2345,8 @@
       "updatedAt": 0,
       "localizable": false
     },
-    "5af60692-74a0-45ea-a9ba-747854989b2a": {
-      "id": "5af60692-74a0-45ea-a9ba-747854989b2a",
+    "system_5af60692-74a0-45ea-a9ba-747854989b2a": {
+      "id": "system_5af60692-74a0-45ea-a9ba-747854989b2a",
       "projectId": "test-project",
       "name": "StartFrame",
       "kind": 2,
@@ -2424,20 +2424,20 @@
       "id": "enum-element",
       "name": "Element",
       "options": {
-        "fire": {
-          "id": "fire",
+        "4df3e94b-977f-43bc-b99a-5b4076431480": {
+          "id": "4df3e94b-977f-43bc-b99a-5b4076431480",
           "name": "fire",
           "text": "Fire"
         },
-        "ice": {
-          "id": "ice",
+        "b2ee3d04-e768-42a2-9889-28e24f7780cf": {
+          "id": "b2ee3d04-e768-42a2-9889-28e24f7780cf",
           "name": "ice",
           "text": "Ice"
         }
       },
       "optionKeyOrder": [
-        "fire",
-        "ice"
+        "4df3e94b-977f-43bc-b99a-5b4076431480",
+        "b2ee3d04-e768-42a2-9889-28e24f7780cf"
       ],
       "projectId": "test-project",
       "createdAt": 0,
@@ -3124,10 +3124,10 @@
       "projectId": "test-project",
       "name": "NeoAnimationClip",
       "schema": {
-        "FPS": "af2d8db8-817b-46f0-adbe-cf9113b77155",
-        "Duration": "e1a1ba86-2599-43dc-a19a-46d08a2e4256",
-        "Frames": "485b0f05-ec7b-4e61-ba80-9a5d7d262b39",
-        "Tracks": "eb602654-04a9-4766-860f-300b443be86e"
+        "FPS": "system_af2d8db8-817b-46f0-adbe-cf9113b77155",
+        "Duration": "system_e1a1ba86-2599-43dc-a19a-46d08a2e4256",
+        "Frames": "system_485b0f05-ec7b-4e61-ba80-9a5d7d262b39",
+        "Tracks": "system_eb602654-04a9-4766-860f-300b443be86e"
       },
       "hiddenInMemberSelector": false,
       "isAbstract": false,
@@ -3138,7 +3138,7 @@
       "allowedStorage": "immutable",
       "genericParams": [
         {
-          "id": "268e9d23-347b-4eb6-8bec-cf0edf326aa2",
+          "id": "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2",
           "name": "TTarget",
           "constraint": {
             "kind": "class",
@@ -3154,10 +3154,10 @@
       "projectId": "test-project",
       "name": "NeoAnimationFrame",
       "schema": {
-        "Index": "0dbdd0f9-9dd2-4b4b-9403-50180c1500dd",
-        "Overrides": "8ab7bb00-a475-43f0-8579-1b08f133d658",
-        "ChildOverrides": "a5905750-c472-46a8-89e9-f04f0bf66696",
-        "Actions": "23e05410-6428-4bd1-b085-c0390ed7fcb7"
+        "Index": "system_0dbdd0f9-9dd2-4b4b-9403-50180c1500dd",
+        "Overrides": "system_8ab7bb00-a475-43f0-8579-1b08f133d658",
+        "ChildOverrides": "system_a5905750-c472-46a8-89e9-f04f0bf66696",
+        "Actions": "system_23e05410-6428-4bd1-b085-c0390ed7fcb7"
       },
       "hiddenInMemberSelector": false,
       "isAbstract": false,
@@ -3168,7 +3168,7 @@
       "allowedStorage": "immutable",
       "genericParams": [
         {
-          "id": "d2194ea1-08ec-4a0c-b9a0-97877031d39b",
+          "id": "system_d2194ea1-08ec-4a0c-b9a0-97877031d39b",
           "name": "TTarget",
           "constraint": {
             "kind": "class",
@@ -3184,8 +3184,8 @@
       "projectId": "test-project",
       "name": "NeoAnimationChildOverride",
       "schema": {
-        "Child": "6e15db41-a6f2-43fd-9793-c52fe4f3d0f8",
-        "Overrides": "819b3743-0c3d-4896-b679-9aeeb73255f4"
+        "Child": "system_6e15db41-a6f2-43fd-9793-c52fe4f3d0f8",
+        "Overrides": "system_819b3743-0c3d-4896-b679-9aeeb73255f4"
       },
       "hiddenInMemberSelector": false,
       "isAbstract": false,
@@ -3196,7 +3196,7 @@
       "allowedStorage": "immutable",
       "genericParams": [
         {
-          "id": "de23448a-45be-4e3f-8965-072a545e08f0",
+          "id": "system_de23448a-45be-4e3f-8965-072a545e08f0",
           "name": "TEntry",
           "constraint": {
             "kind": "class",
@@ -3207,7 +3207,7 @@
       "constructorProjections": [
         {
           "parameterName": "id",
-          "memberId": "6e15db41-a6f2-43fd-9793-c52fe4f3d0f8"
+          "memberId": "system_6e15db41-a6f2-43fd-9793-c52fe4f3d0f8"
         }
       ],
       "createdAt": 0,
@@ -3218,9 +3218,9 @@
       "projectId": "test-project",
       "name": "NeoAnimationChildTrack",
       "schema": {
-        "Child": "29abc85e-2d38-4cef-a200-88915d176d06",
-        "ClipKey": "2c816624-0281-46d3-9ed5-d20bd43519f4",
-        "StartFrame": "5af60692-74a0-45ea-a9ba-747854989b2a"
+        "Child": "system_29abc85e-2d38-4cef-a200-88915d176d06",
+        "ClipKey": "system_2c816624-0281-46d3-9ed5-d20bd43519f4",
+        "StartFrame": "system_5af60692-74a0-45ea-a9ba-747854989b2a"
       },
       "hiddenInMemberSelector": false,
       "isAbstract": false,
@@ -3232,7 +3232,7 @@
       "constructorProjections": [
         {
           "parameterName": "id",
-          "memberId": "29abc85e-2d38-4cef-a200-88915d176d06"
+          "memberId": "system_29abc85e-2d38-4cef-a200-88915d176d06"
         }
       ],
       "createdAt": 0,
@@ -3246,7 +3246,7 @@
       "isAbstract": false,
       "extendsClassId": "class-animation-clip",
       "extendsGenericBindings": {
-        "268e9d23-347b-4eb6-8bec-cf0edf326aa2": {
+        "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2": {
           "kind": "member",
           "memberId": "member-animation-target-binding"
         }
@@ -3406,7 +3406,7 @@
       "id": "v-elem-stats",
       "projectId": "p-1",
       "value": {
-        "fire": "v-elem-stats-fire",
+        "4df3e94b-977f-43bc-b99a-5b4076431480": "v-elem-stats-fire",
         "storm": "v-elem-stats-storm"
       },
       "createdAt": 0,
@@ -3430,7 +3430,7 @@
       "id": "v-elem-multipliers",
       "projectId": "p-1",
       "value": {
-        "ice": "v-elem-mult-ice"
+        "b2ee3d04-e768-42a2-9889-28e24f7780cf": "v-elem-mult-ice"
       },
       "createdAt": 0,
       "updatedAt": 0
@@ -3446,7 +3446,7 @@
       "id": "v-elem-champions",
       "projectId": "p-1",
       "value": {
-        "fire": "v-elem-champion-fire"
+        "4df3e94b-977f-43bc-b99a-5b4076431480": "v-elem-champion-fire"
       },
       "createdAt": 0,
       "updatedAt": 0
@@ -3473,7 +3473,7 @@
       "id": "v-elem-affinity-map",
       "projectId": "p-1",
       "value": {
-        "fire": "v-elem-affinity-fire"
+        "4df3e94b-977f-43bc-b99a-5b4076431480": "v-elem-affinity-fire"
       },
       "createdAt": 0,
       "updatedAt": 0
@@ -3645,7 +3645,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "genericBindings": {
-        "268e9d23-347b-4eb6-8bec-cf0edf326aa2": "member-animation-target-binding"
+        "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2": "member-animation-target-binding"
       }
     },
     "value-animation-tracks": {
