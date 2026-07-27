@@ -13,7 +13,7 @@ class NeoSpriteObject : NeoObjectBase {
   @system(kind: .WorldAuthoring)
   public virtual bool FlipY = false;
 
-  /// How this sprite reacts to sprite masks. Maps to SpriteRenderer.maskInteraction.
+  /// How this sprite reacts to sprite masks. Maps to SpriteRenderer.maskInteraction. The web canvas has no real sprite mask, so anything other than None previews as a distinguishable treatment rather than as the mask itself — only Unity renders the real thing.
   @id("system_f2a8c86d-ace5-421b-9475-0f3f6f97b2a6")
   @locked
   @system(kind: .WorldAuthoring)

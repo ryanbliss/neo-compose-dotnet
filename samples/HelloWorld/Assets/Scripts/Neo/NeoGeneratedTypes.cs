@@ -12993,7 +12993,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
         /// <summary>
-        /// How this sprite reacts to sprite masks. Maps to SpriteRenderer.maskInteraction.
+        /// How this sprite reacts to sprite masks. Maps to SpriteRenderer.maskInteraction. The web canvas has no real sprite mask, so anything other than None previews as a distinguishable treatment rather than as the mask itself — only Unity renders the real thing.
         /// </summary>
         new NeoSpriteMaskInteraction MaskInteraction { get; }
 
@@ -13116,7 +13116,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         /// <summary>
-        /// How this sprite reacts to sprite masks. Maps to SpriteRenderer.maskInteraction.
+        /// How this sprite reacts to sprite masks. Maps to SpriteRenderer.maskInteraction. The web canvas has no real sprite mask, so anything other than None previews as a distinguishable treatment rather than as the mask itself — only Unity renders the real thing.
         /// </summary>
         public virtual NeoSpriteMaskInteraction MaskInteraction
         {

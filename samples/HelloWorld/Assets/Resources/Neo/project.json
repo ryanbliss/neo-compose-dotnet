@@ -19,8 +19,8 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "3737315fcaa05afed5b274d587cc6b97d4624065ae618f981ba06eeac171e816",
-        "codegenContractHash": "07ae4e28ddfb068e789fef4169cd7d22b63d2e310fa1dac11a88f1ff6bbbc28e",
+        "projectDocumentContentHash": "cce322c4b13e8fa3b92f35fbfc22574707608a1af2ca6aff8c6510c41f055854",
+        "codegenContractHash": "4c066430e59a62212e4011d213e9e1e334eb44c6067fd5342cb227455dc25b56",
         "runtimeDataContractHash": "19c55f8c7e6775f66a661b016ae5fdc17e36bf7703831978765e00b52a519d2c"
     },
     "localization": {
@@ -7113,7 +7113,7 @@
             "system": {
                 "kind": "worldAuthoring"
             },
-            "updatedAt": 1785139228609
+            "updatedAt": 1785143084303
         },
         "system_f4be2707-74f5-4833-9784-e81bb2474330": {
             "accessModifierKind": "public",
