@@ -3643,7 +3643,10 @@
         "value-animation-frame-0"
       ],
       "createdAt": 0,
-      "updatedAt": 0
+      "updatedAt": 0,
+      "genericBindings": {
+        "268e9d23-347b-4eb6-8bec-cf0edf326aa2": "member-animation-target-binding"
+      }
     },
     "value-animation-tracks": {
       "id": "value-animation-tracks",
