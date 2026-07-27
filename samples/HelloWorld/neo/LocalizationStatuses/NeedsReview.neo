@@ -1,4 +1,4 @@
-@id("localization-status-needs-review")
+@id("system_254abd15-7556-4a7b-8556-f976bb3251c9")
 LocalizationStatus NeedsReview = new(
   slug: "needs-review",
   name: "Needs review",

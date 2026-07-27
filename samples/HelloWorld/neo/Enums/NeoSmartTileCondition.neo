@@ -1,11 +1,11 @@
-@id("ba63d042-51c1-4bce-be70-d9848e6bb240")
+@id("system_ba63d042-51c1-4bce-be70-d9848e6bb240")
 enum NeoSmartTileCondition {
-  @id("fe185d9d-63c5-5f71-be71-408db18a84ee")
+  @id("system_fe185d9d-63c5-5f71-be71-408db18a84ee")
   This,
-  @id("53438afa-206b-5bec-a202-c9b60d1ad8b6")
-  NotThis,
-  @id("04d1dedf-8b84-5638-8db1-158c4243ef3f")
-  InheritsFromClass,
-  @id("bc62a20a-a386-5224-b54b-12c00e7c576b")
-  NotInheritsFromClass,
+  @id("system_53438afa-206b-5bec-a202-c9b60d1ad8b6")
+  NotThis = "Not this",
+  @id("system_04d1dedf-8b84-5638-8db1-158c4243ef3f")
+  InheritsFromClass = "Inherits from class",
+  @id("system_bc62a20a-a386-5224-b54b-12c00e7c576b")
+  NotInheritsFromClass = "Does not inherit from class",
 }

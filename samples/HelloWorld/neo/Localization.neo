@@ -1,4 +1,4 @@
-@id("localization-config")
+@id("system_b9f80fd7-7ed2-4344-a2b6-625ced732ed0")
 Localization Localization = new(
   mainLocale: "en-US",
   mainLocaleDefaultStatus: Approved,

@@ -1,4 +1,4 @@
-@id("localization-status-in-progress")
+@id("system_530a5776-3a29-4c3a-a797-727b7c7364b5")
 LocalizationStatus InProgress = new(
   slug: "in-progress",
   name: "In progress",

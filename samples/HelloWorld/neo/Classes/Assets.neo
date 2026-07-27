@@ -34,7 +34,7 @@ class Assets {
   @id("adb76be1-a78d-4736-8375-1c579455c396")
   public virtual OldConsoleLandingGrid ScreenshotEmptyGrid;
 
-  @id("7ec79ef8-a216-407f-8886-9f770bc9895b")
+  @id("system_7ec79ef8-a216-407f-8886-9f770bc9895b")
   @locked
   @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)

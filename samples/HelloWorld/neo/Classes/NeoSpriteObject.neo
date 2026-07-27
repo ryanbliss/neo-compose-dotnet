@@ -1,13 +1,13 @@
-@id("7cb1b706-95d2-4465-8e75-c82a6b7d8830")
+@id("system_d48b66ab-4d59-47e7-a25a-591fe97062de")
 @system(kind: .WorldAuthoring, worldKind: .SpriteObject)
 class NeoSpriteObject : NeoObjectBase {
-  @id("441cb790-a45f-4488-a5a9-6f375af6c369")
+  @id("system_441cb790-a45f-4488-a5a9-6f375af6c369")
   @locked
   @settings(localizable: false)
   @system(kind: .WorldAuthoring)
   public virtual string Name = "";
 
-  @id("e9288ba9-f5a2-4485-8443-6afb155b31e0")
+  @id("system_e9288ba9-f5a2-4485-8443-6afb155b31e0")
   @locked
   @system(kind: .WorldAuthoring)
   public virtual SpriteInfo Sprite;

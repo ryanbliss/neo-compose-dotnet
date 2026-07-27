@@ -1,0 +1,30 @@
+@id("system_ba921c72-e4b2-47f9-861f-f30ac1156965")
+@storage(allowed: .Immutable)
+@system(kind: .WorldAuthoring, worldKind: .AnimationFrame)
+class NeoAnimationFrame<
+  @id("system_d2194ea1-08ec-4a0c-b9a0-97877031d39b")
+  TTarget extends NeoObjectBase
+> {
+  @id("system_23e05410-6428-4bd1-b085-c0390ed7fcb7")
+  @locked
+  @settings(kind: .Ordered)
+  @system(kind: .WorldAuthoring)
+  public virtual List<FunctionRef> Actions = [];
+
+  @id("system_a5905750-c472-46a8-89e9-f04f0bf66696")
+  @locked
+  @settings(kind: .Ordered)
+  @system(kind: .WorldAuthoring)
+  public virtual List<NeoAnimationChildOverride<NeoObjectBase>> ChildOverrides = [];
+
+  @id("system_0dbdd0f9-9dd2-4b4b-9403-50180c1500dd")
+  @locked
+  @settings(min: 0)
+  @system(kind: .WorldAuthoring)
+  public virtual int Index;
+
+  @id("system_8ab7bb00-a475-43f0-8579-1b08f133d658")
+  @locked
+  @system(kind: .WorldAuthoring)
+  public virtual Partial<TTarget> Overrides;
+}

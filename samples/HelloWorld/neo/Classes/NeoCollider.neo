@@ -1,17 +1,18 @@
-@id("7ed188f9-484b-4692-840d-436acf1635aa")
+@id("system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d")
 @system(kind: .WorldAuthoring, worldKind: .ObjectCollider)
 class NeoCollider {
-  @id("c66c17e3-ecfc-4f41-96de-6a53bb2acd4f")
+  @id("system_c66c17e3-ecfc-4f41-96de-6a53bb2acd4f")
   @locked
   @system(kind: .WorldAuthoring)
   public virtual Vector2 size = new(1, 1);
 
-  @id("ec5b5d5e-7053-4378-87d1-9cceec30ff1a")
+  /// Offset from the object's origin-cell corner, measured in cells, matching Unity's BoxCollider2D model. (0.5, 0.5) centers a 1x1 collider on the origin cell.
+  @id("system_ec5b5d5e-7053-4378-87d1-9cceec30ff1a")
   @locked
   @system(kind: .WorldAuthoring)
   public virtual Vector2? offset = new(0.5, 0.5);
 
-  @id("6ed1890b-0ae6-4979-bf5b-6f216d69f432")
+  @id("system_6ed1890b-0ae6-4979-bf5b-6f216d69f432")
   @locked
   @system(kind: .WorldAuthoring)
   public virtual bool? isTrigger = false;

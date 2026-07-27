@@ -1,18 +1,18 @@
-@id("1968a188-8220-4d1a-99b2-f1d0cea0c802")
+@id("system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0")
 @system(kind: .WorldAuthoring, worldKind: .Tile)
 abstract class NeoTile {
-  @id("3b02422f-1ef2-4a50-8386-155d5001082b")
+  @id("system_3b02422f-1ef2-4a50-8386-155d5001082b")
   @locked
   @settings(localizable: false)
   @system(kind: .WorldAuthoring)
   public virtual string Name = "";
 
-  @id("cbd6db9a-f473-44b5-b913-7cdc06452f35")
+  @id("system_cbd6db9a-f473-44b5-b913-7cdc06452f35")
   @locked
   @system(kind: .WorldAuthoring)
   public virtual SpriteInfo Sprite;
 
-  @id("96cda8f5-3100-45b5-adcb-0552d21504dd")
+  @id("system_96cda8f5-3100-45b5-adcb-0552d21504dd")
   @locked
   @system(kind: .WorldAuthoring)
   public virtual NeoSmartTile? SmartTile = null;

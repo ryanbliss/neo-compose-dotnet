@@ -1,0 +1,31 @@
+@id("system_994b3886-7392-4bd2-8f9d-d5f7fd316a5a")
+@storage(allowed: .Immutable)
+@system(kind: .WorldAuthoring, worldKind: .AnimationClip)
+class NeoAnimationClip<
+  @id("system_268e9d23-347b-4eb6-8bec-cf0edf326aa2")
+  TTarget extends NeoObjectBase
+> {
+  @id("system_e1a1ba86-2599-43dc-a19a-46d08a2e4256")
+  @locked
+  @settings(min: 1)
+  @system(kind: .WorldAuthoring)
+  public virtual int Duration = 1;
+
+  @id("system_af2d8db8-817b-46f0-adbe-cf9113b77155")
+  @locked
+  @settings(min: 1)
+  @system(kind: .WorldAuthoring)
+  public virtual int FPS = 8;
+
+  @id("system_485b0f05-ec7b-4e61-ba80-9a5d7d262b39")
+  @locked
+  @settings(kind: .Ordered)
+  @system(kind: .WorldAuthoring)
+  public virtual List<NeoAnimationFrame<TTarget>> Frames = [];
+
+  @id("system_eb602654-04a9-4766-860f-300b443be86e")
+  @locked
+  @settings(kind: .Ordered)
+  @system(kind: .WorldAuthoring)
+  public virtual List<NeoAnimationChildTrack> Tracks = [];
+}

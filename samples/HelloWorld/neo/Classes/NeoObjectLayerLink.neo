@@ -1,7 +1,7 @@
-@id("1e408179-cf71-5b9d-a4fb-f60a5f6fe705")
+@id("system_04ef83b0-3171-4299-9580-902708690750")
 @system(kind: .WorldAuthoring, worldKind: .ObjectLayerLink)
 abstract class NeoObjectLayerLink : NeoLayerGroupBase {
-  @id("f8e217b1-da89-4819-9c8d-e9c9da2bdfb2")
+  @id("system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2")
   @locked
   @settings(kind: .Unordered)
   @system(kind: .WorldAuthoring)

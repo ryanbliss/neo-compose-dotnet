@@ -1,8 +1,8 @@
-@id("af5795d0-e019-4776-8b7c-d0206f90d59f")
+@id("system_8b540423-5920-4c83-a632-1415448e7fd7")
 @hidden
 @system(kind: .DialogueMemorySchema)
 class NeoChoiceLog {
-  @id("dd65f671-aedb-4c17-8849-1a3290b5c4d0")
+  @id("system_c7dcce0f-557f-430b-aaeb-c953e85934be")
   @locked
   @settings(localizable: true)
   @system(kind: .DialogueMemorySchema)

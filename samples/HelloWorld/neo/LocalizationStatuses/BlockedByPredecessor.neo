@@ -1,4 +1,4 @@
-@id("localization-status-blocked-by-predecessor")
+@id("system_07ccc0ef-9fff-46b9-96d6-1ce3baf45bf3")
 LocalizationStatus BlockedByPredecessor = new(
   slug: "blocked-by-predecessor",
   name: "Blocked by predecessor",

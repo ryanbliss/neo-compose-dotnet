@@ -1,7 +1,7 @@
-@id("38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6")
+@id("system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9")
 @system(kind: .WorldAuthoring, worldKind: .ObjectPlacementTile)
 class NeoObjectPlacementTile {
-  @id("b0b3c45c-a87d-4218-b056-7418ef46aac5")
+  @id("system_b0b3c45c-a87d-4218-b056-7418ef46aac5")
   @locked
   @system(kind: .WorldAuthoring)
   public virtual Vector2Int Cell = new(0, 0);

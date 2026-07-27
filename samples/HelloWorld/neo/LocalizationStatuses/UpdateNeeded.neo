@@ -1,4 +1,4 @@
-@id("localization-status-update-needed")
+@id("system_b3d5aeaf-0ebc-40c8-a074-a4cf5f2ad111")
 LocalizationStatus UpdateNeeded = new(
   slug: "update-needed",
   name: "Update needed",

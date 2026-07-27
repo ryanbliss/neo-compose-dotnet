@@ -1,19 +1,19 @@
-@id("c1dc3dd7-397a-4f8f-acbf-b928cc66076d")
+@id("system_5c912ecc-a323-41c1-a3ee-1a143b72b3d3")
 @system(kind: .WorldAuthoring, worldKind: .ObjectLayer)
 abstract class NeoObjectLayer {
-  @id("788a3dbc-6167-4320-83aa-1e884924f776")
+  @id("system_788a3dbc-6167-4320-83aa-1e884924f776")
   @locked
   @settings(localizable: false)
   @system(kind: .WorldAuthoring)
   public virtual string Name = "";
 
-  @id("89dbb12e-1d7c-42ad-b872-63fc7fe8bd5b")
+  @id("system_89dbb12e-1d7c-42ad-b872-63fc7fe8bd5b")
   @locked
   @settings(collection: Assets.SortingLayers, collectionValue: Reference(id: "e82662a0-10be-45cb-8c4a-a5d8b6b5bb0c"))
   @system(kind: .WorldAuthoring)
   public virtual NeoSortingLayer SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
 
-  @id("472dfd84-59cb-4516-8763-90d0af6d039f")
+  @id("system_472dfd84-59cb-4516-8763-90d0af6d039f")
   @locked
   @settings(min: -32768, max: 32767)
   @system(kind: .WorldAuthoring)

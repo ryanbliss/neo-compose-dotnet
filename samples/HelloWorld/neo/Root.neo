@@ -4,7 +4,6 @@ Root root = new() {
   @locked
   @storage(allowed: .Immutable)
   Assets Assets =
-    @id("393c69b8-ceb2-4405-9a0f-28516913f7b6")
     new() {
       Art = new Art {
         FirstWorldIconSprite = Images.FirstWorldIcon.Slice(0),
@@ -3659,7 +3658,6 @@ Root root = new() {
   @locked
   @storage(allowed: .Save)
   Save Save =
-    @id("299b23d6-4ea0-4475-94f5-f59c4d18d9cd")
     new() {
       Bits = 1000,
       Dead = false,
@@ -3758,7 +3756,6 @@ Root root = new() {
   @locked
   @storage(allowed: .Session)
   Session Session =
-    @id("ead7222b-86b4-48ac-bf9a-f9162689a8f2")
     new() {
       Position = new(0, 0, 0)
     };

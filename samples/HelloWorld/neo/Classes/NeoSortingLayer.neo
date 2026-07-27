@@ -1,7 +1,7 @@
-@id("fb219343-34db-4e82-baf0-09df9a2b5210")
+@id("system_b3a94a53-8cb8-4df1-95f4-597bca10dac2")
 @system(kind: .WorldAuthoring, worldKind: .SortingLayer)
 class NeoSortingLayer {
-  @id("e963862e-6228-4594-8220-8ef06098c253")
+  @id("system_e963862e-6228-4594-8220-8ef06098c253")
   @locked
   @settings(localizable: false)
   @system(kind: .WorldAuthoring)

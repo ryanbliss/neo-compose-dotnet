@@ -1,24 +1,24 @@
-@id("4c2aa621-e662-419f-a5b5-d8dcfab9b29b")
+@id("system_f671535d-0eb6-4139-9caf-5c5276febd31")
 @system(kind: .WorldAuthoring, worldKind: .Object)
 abstract class NeoObject : NeoObjectBase {
-  @id("bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071")
+  @id("system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071")
   @locked
   @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoObjectBase> Children = [];
 
-  @id("a0083c92-72f7-405f-8863-ff86f995d36d")
+  @id("system_a0083c92-72f7-405f-8863-ff86f995d36d")
   @locked
   @system(kind: .WorldAuthoring)
   public virtual NeoCollider? Collider = null;
 
-  @id("3b02422f-1ef2-4a50-8386-155d5001082b")
+  @id("system_3b02422f-1ef2-4a50-8386-155d5001082b")
   @locked
   @settings(localizable: false)
   @system(kind: .WorldAuthoring)
   public virtual string Name = "";
 
-  @id("5a9ca1f5-a21b-4d4e-8c55-00341af594b4")
+  @id("system_5a9ca1f5-a21b-4d4e-8c55-00341af594b4")
   @locked
   @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)

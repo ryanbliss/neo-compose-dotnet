@@ -1,7 +1,7 @@
-@id("3ab13327-ccaa-4dbe-8ec7-24b9592ddf15")
+@id("system_4689bc94-de98-46cd-b220-efe118f4106c")
 @system(kind: .WorldAuthoring, worldKind: .TileInstance)
 class NeoTileInstance {
-  @id("f4be2707-74f5-4833-9784-e81bb2474330")
+  @id("system_f4be2707-74f5-4833-9784-e81bb2474330")
   @locked
   @system(kind: .WorldAuthoring)
   public virtual Vector2Int Cell = new(0, 0);

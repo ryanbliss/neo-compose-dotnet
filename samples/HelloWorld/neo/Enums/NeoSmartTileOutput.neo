@@ -1,9 +1,9 @@
-@id("551025ad-e441-4d43-90b0-2821c6235786")
+@id("system_551025ad-e441-4d43-90b0-2821c6235786")
 enum NeoSmartTileOutput {
-  @id("b76ada21-68e0-5b52-bdfe-3b1f95a8c896")
+  @id("system_b76ada21-68e0-5b52-bdfe-3b1f95a8c896")
   Single,
-  @id("717e141c-a3af-535e-9f30-da2a9241803d")
+  @id("system_717e141c-a3af-535e-9f30-da2a9241803d")
   Random,
-  @id("649f99d0-c726-5f20-aeea-786a0776f53f")
+  @id("system_649f99d0-c726-5f20-aeea-786a0776f53f")
   Animation,
 }

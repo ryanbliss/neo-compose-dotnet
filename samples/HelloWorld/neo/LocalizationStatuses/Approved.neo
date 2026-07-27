@@ -1,4 +1,4 @@
-@id("localization-status-approved")
+@id("system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f")
 LocalizationStatus Approved = new(
   slug: "approved",
   name: "Approved",

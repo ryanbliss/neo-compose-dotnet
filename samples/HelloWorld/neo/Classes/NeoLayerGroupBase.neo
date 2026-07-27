@@ -1,4 +1,4 @@
-@id("6d069010-c47c-4744-89af-243f4448f537")
+@id("system_bf076e9b-c8da-47dc-bae3-7527d0c307a8")
 @system(kind: .WorldAuthoring, worldKind: .LayerGroupBase)
 abstract class NeoLayerGroupBase : NeoObjectBase {
 

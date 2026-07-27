@@ -1,0 +1,18 @@
+@id("system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd")
+@storage(allowed: .Immutable)
+@system(kind: .WorldAuthoring, worldKind: .AnimationChildOverride)
+class NeoAnimationChildOverride<
+  @id("system_de23448a-45be-4e3f-8965-072a545e08f0")
+  TEntry extends NeoObjectBase
+> {
+  @id("system_6e15db41-a6f2-43fd-9793-c52fe4f3d0f8")
+  @locked
+  @settings(collection: NeoObject.Children)
+  @system(kind: .WorldAuthoring)
+  public virtual NeoObjectBase Child;
+
+  @id("system_819b3743-0c3d-4896-b679-9aeeb73255f4")
+  @locked
+  @system(kind: .WorldAuthoring)
+  public virtual Partial<TEntry> Overrides;
+}
