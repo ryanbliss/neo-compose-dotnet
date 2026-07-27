@@ -483,15 +483,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return optionId switch
             {
-                "423134f9-3331-5b33-944b-5e4d7160e060" => "4e5a1262-ba35-4bf6-a68a-45b27479143d",
-                "f492d879-e4a7-5419-9a8c-6f890d4657c7" => "fe5ab262-4a0f-4551-ab27-5fd1c97da128",
-                "901a21ff-6ad4-5791-8ae3-2f9df559b9ff" => "165b49a1-0b48-4e99-beec-079dc0531484",
-                "4f9bc257-1579-59b5-90c3-417c3518e407" => "92fe9254-9e61-40c6-aced-6f55692b0120",
-                "78eea93e-734b-5c5a-8b2f-3410f0701cef" => "dae6ab0c-4b82-4a11-8057-097a193fecea",
-                "dd859a21-d18e-5ad4-962d-af6b939b7f29" => "1f81373c-bdb0-47ab-87a8-283c45f1a686",
-                "0e7998db-d1c8-5036-955e-923dbc5fb78a" => "fafce114-ab70-4813-a4e2-cb436b66aba6",
-                "7eda9aa1-0212-5433-b292-349d4b63039e" => "1ad90a45-a7f6-4e11-9524-5f6d05fe5ab6",
-                "987a97e1-02c7-52f1-a638-117d76726337" => "ee2f7b0b-786c-41ca-8578-6f348194d52c",
+                "423134f9-3331-5b33-944b-5e4d7160e060" => "Mercury",
+                "f492d879-e4a7-5419-9a8c-6f890d4657c7" => "Venus",
+                "901a21ff-6ad4-5791-8ae3-2f9df559b9ff" => "Earth",
+                "4f9bc257-1579-59b5-90c3-417c3518e407" => "Mars",
+                "78eea93e-734b-5c5a-8b2f-3410f0701cef" => "Jupiter",
+                "dd859a21-d18e-5ad4-962d-af6b939b7f29" => "Saturn",
+                "0e7998db-d1c8-5036-955e-923dbc5fb78a" => "Uranus",
+                "7eda9aa1-0212-5433-b292-349d4b63039e" => "Neptune",
+                "987a97e1-02c7-52f1-a638-117d76726337" => "Pluto",
                 _ => optionId,
             };
         }
@@ -555,8 +555,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return optionId switch
             {
-                "71a4807b-b9d9-5ed7-b4b1-39cce6b49457" => "c59bdeaf-9f71-4970-a95f-058c7f54c18b",
-                "8875803f-5d33-582a-bb56-1389f7746d34" => "543a1e52-c9ca-470a-ad07-884ee0c55cc2",
+                "71a4807b-b9d9-5ed7-b4b1-39cce6b49457" => "Titan",
+                "8875803f-5d33-582a-bb56-1389f7746d34" => "Enceladus",
                 _ => optionId,
             };
         }
@@ -624,10 +624,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return optionId switch
             {
-                "5cdeb824-3b72-511b-b248-584bbe2002f4" => "03d962a1-c763-4589-89bd-f0db811c9b95",
-                "017b6de2-cab7-5dcc-949e-127e81452071" => "134542ba-7414-4353-b0bd-5773e31d63bf",
-                "5503d837-8ff6-5ac1-9293-ca496c608890" => "15a60d3e-940d-4ac4-b6ba-ac1403dcfea2",
-                "5bf07e46-2cd8-5277-8910-e66fd3ddef3c" => "c9ec2854-89aa-4a36-bbd8-ece671852b77",
+                "5cdeb824-3b72-511b-b248-584bbe2002f4" => "io",
+                "017b6de2-cab7-5dcc-949e-127e81452071" => "Europa",
+                "5503d837-8ff6-5ac1-9293-ca496c608890" => "Ganymede",
+                "5bf07e46-2cd8-5277-8910-e66fd3ddef3c" => "Callisto",
                 _ => optionId,
             };
         }

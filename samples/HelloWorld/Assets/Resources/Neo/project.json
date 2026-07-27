@@ -19,9 +19,9 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "bab020652dd21a11e76efdbf7f6e404ae1820211ded0a1f11d66dddc6ddf9bd3",
-        "codegenContractHash": "cb5d09a2c18fc81fdb9864a98d79c33c6d2042fa892efb441a68979941f30457",
-        "runtimeDataContractHash": "28e16e2f0cf53f00c0d6766d22c2e794c681331f18ab87323bbc19babec76efc"
+        "projectDocumentContentHash": "00d3a2eb0c127da6cda967d93cc1687e235377917bc5a4723ea0293f3dab94d0",
+        "codegenContractHash": "8be9eb238cb048f72c332fca38f6083c4c5c9b339a79d30aa67b071fc6a56ed0",
+        "runtimeDataContractHash": "1590f1e0b98d7e457c24a8451bbf53f4a9e10788400a2ec2096b87359d981cb4"
     },
     "localization": {
         "schemaVersion": 1,
@@ -43,7 +43,6 @@
             "0207e1a6-3515-46e4-9c4d-18ce45546ab1",
             "021ed024-3eca-4579-9f5a-2210c7991c74",
             "032f82a1-cc12-4906-9dba-543ad6af556e",
-            "03d962a1-c763-4589-89bd-f0db811c9b95",
             "053e67c7-24cc-45b4-904f-dee65fa797b4",
             "058d35b4-b7bd-4653-909c-1b33da8a46ee",
             "070400a3-f6c2-4b33-9357-1bdfa3e2819a",
@@ -57,12 +56,9 @@
             "12190092-3e2f-4c75-bdc7-bd29207bcbfe",
             "12227e5c-7472-4789-9a02-c90781b4cc22",
             "12dfc09d-db6f-4253-9fdd-2b61b49ac7cb",
-            "134542ba-7414-4353-b0bd-5773e31d63bf",
             "14140023-0700-4c44-9ead-219be96499b0",
             "145458cf-d517-41f1-9841-43861f4b5457",
-            "15a60d3e-940d-4ac4-b6ba-ac1403dcfea2",
             "1635cccd-b851-43c7-917c-6f565f0417dd",
-            "165b49a1-0b48-4e99-beec-079dc0531484",
             "1838cfe3-fde6-4791-b349-945834ec24a2",
             "18a545fa-fb9a-46a0-aeec-b40af668cbd7",
             "18e5d40d-148a-400e-983c-7e94f0f2916f",
@@ -70,12 +66,10 @@
             "19b0df63-d5ab-44f8-93e2-7c6bf40b2a58",
             "19c53f29-a7da-4d8d-98fe-e001b2361833",
             "1a718b4a-81e0-4dd2-8a33-efc109fa14a0",
-            "1ad90a45-a7f6-4e11-9524-5f6d05fe5ab6",
             "1ae8613f-bd20-4a45-8ed7-66885cf7bb8e",
             "1be8eaba-ceeb-4f97-98a8-a132659d672d",
             "1c369d04-ed9b-42d1-ba4b-fe0ca3c7c393",
             "1ccf2410-cf2c-48e9-ad68-bfeb87c2f7bc",
-            "1f81373c-bdb0-47ab-87a8-283c45f1a686",
             "20d46a89-b7b3-41c8-9b0a-fac7e11498a1",
             "2190abe5-1862-4df6-9caf-9a9346145701",
             "251c967a-dff1-4af9-962e-8d22cc40cbad",
@@ -124,10 +118,8 @@
             "4c9247f4-0c6a-4e3c-a1f2-93241eecca0d",
             "4d889a4b-3e5c-408f-a451-a95c78743855",
             "4de63d4d-594e-4865-8d1d-7279f165ef1e",
-            "4e5a1262-ba35-4bf6-a68a-45b27479143d",
             "51876b19-1ad1-4564-bb64-55ebcb6bc68e",
             "52d39d24-9be6-4db1-8bf3-d0c3cc3fd201",
-            "543a1e52-c9ca-470a-ad07-884ee0c55cc2",
             "55a4dfda-3399-491e-a73a-49719fb0c581",
             "561bfa28-4549-40a9-9549-343c052c8537",
             "57641129-e19c-47fd-bfb0-43a03b06f876",
@@ -203,7 +195,6 @@
             "91cccef5-947a-469e-9567-049a94c894a1",
             "920bfdec-6ccd-4131-8fe4-3adcc4d0b96f",
             "920fdac4-1b4a-4be8-b980-22e9efaa932b",
-            "92fe9254-9e61-40c6-aced-6f55692b0120",
             "93eeaf92-4d22-43ed-a594-5cc5965cf0af",
             "94380d2c-4424-47a0-8371-6ff9f62329df",
             "944e6206-d1bb-451d-b6f7-1bca88607511",
@@ -262,13 +253,11 @@
             "bf0f1ce0-14ad-49ac-8673-7bae74c934fc",
             "c1826283-ffc9-4e20-a4ed-232f23034144",
             "c442b1bd-d28b-4565-baf4-23a00421017c",
-            "c59bdeaf-9f71-4970-a95f-058c7f54c18b",
             "c5e359a7-bc03-4cb2-95ba-994ba370eee1",
             "c6c95b48-2422-4bd0-bb2e-07d125b74762",
             "c7794ddf-4bf6-47e8-b5f0-951c4ca28d58",
             "c804dadc-240c-40fc-b2c4-d4ae21df5077",
             "c972a88a-97f0-4ca1-a9c0-c17aa091b840",
-            "c9ec2854-89aa-4a36-bbd8-ece671852b77",
             "cb1159cc-6cee-47cd-9296-494eb17b5d6d",
             "cb7e109b-8ea1-4995-b46e-6c7598ddf36f",
             "ccd76b12-a9ae-4409-bb2a-c2c08eaa5d5b",
@@ -287,7 +276,6 @@
             "d8ae0af3-3f5b-49d5-917c-5141e2c511e0",
             "d9a827c9-b293-40d7-b5af-6b3a0fc0c76a",
             "da13bc64-e7fe-44bf-b6f9-96e9a2405908",
-            "dae6ab0c-4b82-4a11-8057-097a193fecea",
             "dbeff7df-5694-41d0-9b3e-3567d3cdf71c",
             "dc2843c7-ca07-4c3a-b652-a9201c5a6d17",
             "dc43e8d0-1e16-4f35-a25e-11e16480f862",
@@ -314,7 +302,6 @@
             "ed818e13-29fc-4e15-b718-529613549572",
             "ede61345-580d-4c04-a061-3c789175566d",
             "ede9f487-0958-4c01-a58a-54ff88cd679f",
-            "ee2f7b0b-786c-41ca-8578-6f348194d52c",
             "eeb1e09c-883b-4c3f-aa32-c8614c92506b",
             "eee05c09-7eaa-4cef-b1e9-b8f66c14eb9b",
             "f03b7974-ef09-48dd-95a3-3ad99aa0f580",
@@ -330,9 +317,7 @@
             "f6fef637-e07b-4de1-b9c5-0ce678e59545",
             "f8213d8f-77eb-48ab-a3fc-af6a93ffa7db",
             "faa042a8-22d3-4c6c-ba3c-f0c25831ef07",
-            "fafce114-ab70-4813-a4e2-cb436b66aba6",
             "fbc8936c-8519-40a6-a58c-2af8a9d80038",
-            "fe5ab262-4a0f-4551-ab27-5fd1c97da128",
             "ff4fd8ef-2219-401e-b4c4-1b7dfd23c3fb"
         ],
         "mainLocaleFileName": "en-US.json",
@@ -7155,51 +7140,51 @@
                 "0e7998db-d1c8-5036-955e-923dbc5fb78a": {
                     "id": "0e7998db-d1c8-5036-955e-923dbc5fb78a",
                     "name": "uranus",
-                    "text": "fafce114-ab70-4813-a4e2-cb436b66aba6"
+                    "text": "Uranus"
                 },
                 "423134f9-3331-5b33-944b-5e4d7160e060": {
                     "id": "423134f9-3331-5b33-944b-5e4d7160e060",
                     "name": "mercury",
-                    "text": "4e5a1262-ba35-4bf6-a68a-45b27479143d"
+                    "text": "Mercury"
                 },
                 "4f9bc257-1579-59b5-90c3-417c3518e407": {
                     "id": "4f9bc257-1579-59b5-90c3-417c3518e407",
                     "name": "mars",
-                    "text": "92fe9254-9e61-40c6-aced-6f55692b0120"
+                    "text": "Mars"
                 },
                 "78eea93e-734b-5c5a-8b2f-3410f0701cef": {
                     "id": "78eea93e-734b-5c5a-8b2f-3410f0701cef",
                     "name": "jupiter",
-                    "text": "dae6ab0c-4b82-4a11-8057-097a193fecea"
+                    "text": "Jupiter"
                 },
                 "7eda9aa1-0212-5433-b292-349d4b63039e": {
                     "id": "7eda9aa1-0212-5433-b292-349d4b63039e",
                     "name": "neptune",
-                    "text": "1ad90a45-a7f6-4e11-9524-5f6d05fe5ab6"
+                    "text": "Neptune"
                 },
                 "901a21ff-6ad4-5791-8ae3-2f9df559b9ff": {
                     "id": "901a21ff-6ad4-5791-8ae3-2f9df559b9ff",
                     "name": "earth",
-                    "text": "165b49a1-0b48-4e99-beec-079dc0531484"
+                    "text": "Earth"
                 },
                 "987a97e1-02c7-52f1-a638-117d76726337": {
                     "id": "987a97e1-02c7-52f1-a638-117d76726337",
                     "name": "pluto",
-                    "text": "ee2f7b0b-786c-41ca-8578-6f348194d52c"
+                    "text": "Pluto"
                 },
                 "dd859a21-d18e-5ad4-962d-af6b939b7f29": {
                     "id": "dd859a21-d18e-5ad4-962d-af6b939b7f29",
                     "name": "saturn",
-                    "text": "1f81373c-bdb0-47ab-87a8-283c45f1a686"
+                    "text": "Saturn"
                 },
                 "f492d879-e4a7-5419-9a8c-6f890d4657c7": {
                     "id": "f492d879-e4a7-5419-9a8c-6f890d4657c7",
                     "name": "venus",
-                    "text": "fe5ab262-4a0f-4551-ab27-5fd1c97da128"
+                    "text": "Venus"
                 }
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1778179604183
+            "updatedAt": 1785130104699
         },
         "9d3ef3f4-0823-412b-a2b6-97874739072d": {
             "createdAt": 1778179646588,
@@ -7213,16 +7198,16 @@
                 "71a4807b-b9d9-5ed7-b4b1-39cce6b49457": {
                     "id": "71a4807b-b9d9-5ed7-b4b1-39cce6b49457",
                     "name": "titan",
-                    "text": "c59bdeaf-9f71-4970-a95f-058c7f54c18b"
+                    "text": "Titan"
                 },
                 "8875803f-5d33-582a-bb56-1389f7746d34": {
                     "id": "8875803f-5d33-582a-bb56-1389f7746d34",
                     "name": "enceladus",
-                    "text": "543a1e52-c9ca-470a-ad07-884ee0c55cc2"
+                    "text": "Enceladus"
                 }
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1778179675026
+            "updatedAt": 1785130104699
         },
         "a2d44a04-35a6-4529-8fd2-f54a55cf518b": {
             "createdAt": 1778178771572,
@@ -7238,26 +7223,26 @@
                 "017b6de2-cab7-5dcc-949e-127e81452071": {
                     "id": "017b6de2-cab7-5dcc-949e-127e81452071",
                     "name": "europa",
-                    "text": "134542ba-7414-4353-b0bd-5773e31d63bf"
+                    "text": "Europa"
                 },
                 "5503d837-8ff6-5ac1-9293-ca496c608890": {
                     "id": "5503d837-8ff6-5ac1-9293-ca496c608890",
                     "name": "ganymede",
-                    "text": "15a60d3e-940d-4ac4-b6ba-ac1403dcfea2"
+                    "text": "Ganymede"
                 },
                 "5bf07e46-2cd8-5277-8910-e66fd3ddef3c": {
                     "id": "5bf07e46-2cd8-5277-8910-e66fd3ddef3c",
                     "name": "callisto",
-                    "text": "c9ec2854-89aa-4a36-bbd8-ece671852b77"
+                    "text": "Callisto"
                 },
                 "5cdeb824-3b72-511b-b248-584bbe2002f4": {
                     "id": "5cdeb824-3b72-511b-b248-584bbe2002f4",
                     "name": "io",
-                    "text": "03d962a1-c763-4589-89bd-f0db811c9b95"
+                    "text": "io"
                 }
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1778178828320
+            "updatedAt": 1785130104699
         },
         "a5c2a3f4-f91a-4878-bec0-a38b432ad762": {
             "createdAt": 1781246186689,
@@ -61813,35 +61798,6 @@
             "sourceComment": null,
             "updatedAt": 1781237739286
         },
-        "03d962a1-c763-4589-89bd-f0db811c9b95": {
-            "createdAt": 1779674427578,
-            "id": "03d962a1-c763-4589-89bd-f0db811c9b95",
-            "links": [
-                {
-                    "fieldPath": "options.5cdeb824-3b72-511b-b248-584bbe2002f4.text",
-                    "kind": "member-enum-option",
-                    "recordId": "a2d44a04-35a6-4529-8fd2-f54a55cf518b",
-                    "recordKind": "enum"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1781255115324,
-                    "value": null
-                },
-                "es-ES": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779749262207,
-                    "value": "Ío"
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1781255115324
-        },
         "053e67c7-24cc-45b4-904f-dee65fa797b4": {
             "createdAt": 1781236886607,
             "id": "053e67c7-24cc-45b4-904f-dee65fa797b4",
@@ -62164,35 +62120,6 @@
             "sourceComment": null,
             "updatedAt": 1781263707684
         },
-        "134542ba-7414-4353-b0bd-5773e31d63bf": {
-            "createdAt": 1779674427578,
-            "id": "134542ba-7414-4353-b0bd-5773e31d63bf",
-            "links": [
-                {
-                    "fieldPath": "options.017b6de2-cab7-5dcc-949e-127e81452071.text",
-                    "kind": "member-enum-option",
-                    "recordId": "a2d44a04-35a6-4529-8fd2-f54a55cf518b",
-                    "recordKind": "enum"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779674427578,
-                    "value": "Europa"
-                },
-                "es-ES": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779749262207,
-                    "value": "Europa"
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1779749262207
-        },
         "14140023-0700-4c44-9ead-219be96499b0": {
             "createdAt": 1779674427578,
             "id": "14140023-0700-4c44-9ead-219be96499b0",
@@ -62247,35 +62174,6 @@
             "sourceComment": null,
             "updatedAt": 1784143083817
         },
-        "15a60d3e-940d-4ac4-b6ba-ac1403dcfea2": {
-            "createdAt": 1779674427578,
-            "id": "15a60d3e-940d-4ac4-b6ba-ac1403dcfea2",
-            "links": [
-                {
-                    "fieldPath": "options.5503d837-8ff6-5ac1-9293-ca496c608890.text",
-                    "kind": "member-enum-option",
-                    "recordId": "a2d44a04-35a6-4529-8fd2-f54a55cf518b",
-                    "recordKind": "enum"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779674427578,
-                    "value": "Ganymede"
-                },
-                "es-ES": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779749262207,
-                    "value": "Ganímedes"
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1779749262207
-        },
         "1635cccd-b851-43c7-917c-6f565f0417dd": {
             "createdAt": 1781261471281,
             "id": "1635cccd-b851-43c7-917c-6f565f0417dd",
@@ -62300,35 +62198,6 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
             "updatedAt": 1781261471281
-        },
-        "165b49a1-0b48-4e99-beec-079dc0531484": {
-            "createdAt": 1779674427578,
-            "id": "165b49a1-0b48-4e99-beec-079dc0531484",
-            "links": [
-                {
-                    "fieldPath": "options.901a21ff-6ad4-5791-8ae3-2f9df559b9ff.text",
-                    "kind": "member-enum-option",
-                    "recordId": "576de38f-6c77-440d-91b3-95a19aad5e23",
-                    "recordKind": "enum"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779674427578,
-                    "value": "Earth"
-                },
-                "es-ES": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779685129125,
-                    "value": "Tierra"
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1779685129125
         },
         "1838cfe3-fde6-4791-b349-945834ec24a2": {
             "createdAt": 1781246815769,
@@ -62505,35 +62374,6 @@
             "sourceComment": null,
             "updatedAt": 1779749262207
         },
-        "1ad90a45-a7f6-4e11-9524-5f6d05fe5ab6": {
-            "createdAt": 1779674427578,
-            "id": "1ad90a45-a7f6-4e11-9524-5f6d05fe5ab6",
-            "links": [
-                {
-                    "fieldPath": "options.7eda9aa1-0212-5433-b292-349d4b63039e.text",
-                    "kind": "member-enum-option",
-                    "recordId": "576de38f-6c77-440d-91b3-95a19aad5e23",
-                    "recordKind": "enum"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779674427578,
-                    "value": "Neptune"
-                },
-                "es-ES": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779749262207,
-                    "value": "Neptuno"
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1779749262207
-        },
         "1ae8613f-bd20-4a45-8ed7-66885cf7bb8e": {
             "createdAt": 1781252531188,
             "id": "1ae8613f-bd20-4a45-8ed7-66885cf7bb8e",
@@ -62636,35 +62476,6 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
             "updatedAt": 1781236905157
-        },
-        "1f81373c-bdb0-47ab-87a8-283c45f1a686": {
-            "createdAt": 1779674427578,
-            "id": "1f81373c-bdb0-47ab-87a8-283c45f1a686",
-            "links": [
-                {
-                    "fieldPath": "options.dd859a21-d18e-5ad4-962d-af6b939b7f29.text",
-                    "kind": "member-enum-option",
-                    "recordId": "576de38f-6c77-440d-91b3-95a19aad5e23",
-                    "recordKind": "enum"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779674427578,
-                    "value": "Saturn"
-                },
-                "es-ES": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779749262207,
-                    "value": "Saturno"
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1779749262207
         },
         "20d46a89-b7b3-41c8-9b0a-fac7e11498a1": {
             "createdAt": 1781261471281,
@@ -63897,35 +63708,6 @@
             "sourceComment": null,
             "updatedAt": 1781272854653
         },
-        "4e5a1262-ba35-4bf6-a68a-45b27479143d": {
-            "createdAt": 1779674427578,
-            "id": "4e5a1262-ba35-4bf6-a68a-45b27479143d",
-            "links": [
-                {
-                    "fieldPath": "options.423134f9-3331-5b33-944b-5e4d7160e060.text",
-                    "kind": "member-enum-option",
-                    "recordId": "576de38f-6c77-440d-91b3-95a19aad5e23",
-                    "recordKind": "enum"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779674427578,
-                    "value": "Mercury"
-                },
-                "es-ES": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779749262207,
-                    "value": "Mercurio"
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1779749262207
-        },
         "51876b19-1ad1-4564-bb64-55ebcb6bc68e": {
             "createdAt": 1781237456895,
             "id": "51876b19-1ad1-4564-bb64-55ebcb6bc68e",
@@ -63974,35 +63756,6 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
             "updatedAt": 1781246870273
-        },
-        "543a1e52-c9ca-470a-ad07-884ee0c55cc2": {
-            "createdAt": 1779674427578,
-            "id": "543a1e52-c9ca-470a-ad07-884ee0c55cc2",
-            "links": [
-                {
-                    "fieldPath": "options.8875803f-5d33-582a-bb56-1389f7746d34.text",
-                    "kind": "member-enum-option",
-                    "recordId": "9d3ef3f4-0823-412b-a2b6-97874739072d",
-                    "recordKind": "enum"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779674427578,
-                    "value": "Enceladus"
-                },
-                "es-ES": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779749262207,
-                    "value": "Encélado"
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1779749262207
         },
         "55a4dfda-3399-491e-a73a-49719fb0c581": {
             "createdAt": 1781237543175,
@@ -65927,35 +65680,6 @@
             "sourceComment": null,
             "updatedAt": 1781237547826
         },
-        "92fe9254-9e61-40c6-aced-6f55692b0120": {
-            "createdAt": 1779674427578,
-            "id": "92fe9254-9e61-40c6-aced-6f55692b0120",
-            "links": [
-                {
-                    "fieldPath": "options.4f9bc257-1579-59b5-90c3-417c3518e407.text",
-                    "kind": "member-enum-option",
-                    "recordId": "576de38f-6c77-440d-91b3-95a19aad5e23",
-                    "recordKind": "enum"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779674427578,
-                    "value": "Mars"
-                },
-                "es-ES": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779749262207,
-                    "value": "Marte"
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1779749262207
-        },
         "93eeaf92-4d22-43ed-a594-5cc5965cf0af": {
             "createdAt": 1781246815769,
             "id": "93eeaf92-4d22-43ed-a594-5cc5965cf0af",
@@ -67427,35 +67151,6 @@
             "sourceComment": null,
             "updatedAt": 1781273070161
         },
-        "c59bdeaf-9f71-4970-a95f-058c7f54c18b": {
-            "createdAt": 1779674427578,
-            "id": "c59bdeaf-9f71-4970-a95f-058c7f54c18b",
-            "links": [
-                {
-                    "fieldPath": "options.71a4807b-b9d9-5ed7-b4b1-39cce6b49457.text",
-                    "kind": "member-enum-option",
-                    "recordId": "9d3ef3f4-0823-412b-a2b6-97874739072d",
-                    "recordKind": "enum"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779674427578,
-                    "value": "Titan"
-                },
-                "es-ES": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779749262207,
-                    "value": "Titán"
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1779749262207
-        },
         "c5e359a7-bc03-4cb2-95ba-994ba370eee1": {
             "createdAt": 1779674427578,
             "id": "c5e359a7-bc03-4cb2-95ba-994ba370eee1",
@@ -67589,35 +67284,6 @@
                     "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
                     "updatedAt": 1779749262207,
                     "value": "¡Hola, mundos!"
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1779749262207
-        },
-        "c9ec2854-89aa-4a36-bbd8-ece671852b77": {
-            "createdAt": 1779674427578,
-            "id": "c9ec2854-89aa-4a36-bbd8-ece671852b77",
-            "links": [
-                {
-                    "fieldPath": "options.5bf07e46-2cd8-5277-8910-e66fd3ddef3c.text",
-                    "kind": "member-enum-option",
-                    "recordId": "a2d44a04-35a6-4529-8fd2-f54a55cf518b",
-                    "recordKind": "enum"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779674427578,
-                    "value": "Callisto"
-                },
-                "es-ES": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779749262207,
-                    "value": "Calisto"
                 }
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
@@ -68070,35 +67736,6 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
             "updatedAt": 1781237613071
-        },
-        "dae6ab0c-4b82-4a11-8057-097a193fecea": {
-            "createdAt": 1779674427578,
-            "id": "dae6ab0c-4b82-4a11-8057-097a193fecea",
-            "links": [
-                {
-                    "fieldPath": "options.78eea93e-734b-5c5a-8b2f-3410f0701cef.text",
-                    "kind": "member-enum-option",
-                    "recordId": "576de38f-6c77-440d-91b3-95a19aad5e23",
-                    "recordKind": "enum"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779674427578,
-                    "value": "Jupiter"
-                },
-                "es-ES": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779749262207,
-                    "value": "Júpiter"
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1779749262207
         },
         "dbeff7df-5694-41d0-9b3e-3567d3cdf71c": {
             "createdAt": 1781237780882,
@@ -68756,35 +68393,6 @@
             "sourceComment": null,
             "updatedAt": 1781237627028
         },
-        "ee2f7b0b-786c-41ca-8578-6f348194d52c": {
-            "createdAt": 1779674427578,
-            "id": "ee2f7b0b-786c-41ca-8578-6f348194d52c",
-            "links": [
-                {
-                    "fieldPath": "options.987a97e1-02c7-52f1-a638-117d76726337.text",
-                    "kind": "member-enum-option",
-                    "recordId": "576de38f-6c77-440d-91b3-95a19aad5e23",
-                    "recordKind": "enum"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779674427578,
-                    "value": "Pluto"
-                },
-                "es-ES": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779749262207,
-                    "value": "Plutón"
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1779749262207
-        },
         "eeb1e09c-883b-4c3f-aa32-c8614c92506b": {
             "createdAt": 1781272867287,
             "id": "eeb1e09c-883b-4c3f-aa32-c8614c92506b",
@@ -69153,35 +68761,6 @@
             "sourceComment": null,
             "updatedAt": 1781273070161
         },
-        "fafce114-ab70-4813-a4e2-cb436b66aba6": {
-            "createdAt": 1779674427578,
-            "id": "fafce114-ab70-4813-a4e2-cb436b66aba6",
-            "links": [
-                {
-                    "fieldPath": "options.0e7998db-d1c8-5036-955e-923dbc5fb78a.text",
-                    "kind": "member-enum-option",
-                    "recordId": "576de38f-6c77-440d-91b3-95a19aad5e23",
-                    "recordKind": "enum"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779674427578,
-                    "value": "Uranus"
-                },
-                "es-ES": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779749262207,
-                    "value": "Urano"
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1779749262207
-        },
         "fbc8936c-8519-40a6-a58c-2af8a9d80038": {
             "createdAt": 1782954497301,
             "id": "fbc8936c-8519-40a6-a58c-2af8a9d80038",
@@ -69205,35 +68784,6 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
             "updatedAt": 1782954497301
-        },
-        "fe5ab262-4a0f-4551-ab27-5fd1c97da128": {
-            "createdAt": 1779674427578,
-            "id": "fe5ab262-4a0f-4551-ab27-5fd1c97da128",
-            "links": [
-                {
-                    "fieldPath": "options.f492d879-e4a7-5419-9a8c-6f890d4657c7.text",
-                    "kind": "member-enum-option",
-                    "recordId": "576de38f-6c77-440d-91b3-95a19aad5e23",
-                    "recordKind": "enum"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779674427578,
-                    "value": "Venus"
-                },
-                "es-ES": {
-                    "localeComment": null,
-                    "statusId": "system_bd21274f-ea8e-4103-a7fc-6323e57d1e3f",
-                    "updatedAt": 1779749262207,
-                    "value": "Venus"
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1779749262207
         },
         "ff4fd8ef-2219-401e-b4c4-1b7dfd23c3fb": {
             "createdAt": 1781246826062,
