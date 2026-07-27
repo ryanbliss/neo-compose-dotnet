@@ -48,10 +48,13 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>
-    /// Runtime contract implemented by generated composed object values (world
-    /// kind <c>object</c>) that can carry an authored sorting group. A
-    /// non-null <see cref="SortingGroup"/> makes the object and its children
-    /// sort as one unit.
+    /// Runtime contract implemented by any generated class that declares a
+    /// member of a <c>sortingGroup</c> world-kind class — the author attaches
+    /// one to their own <c>NeoObject</c> subclass, the way a component is added
+    /// in Unity, so it is not a member of <c>NeoObject</c> itself. The property
+    /// maps to whatever the author named that member. A non-null
+    /// <see cref="SortingGroup"/> makes the object and its children sort as one
+    /// unit.
     /// </summary>
     public interface INeoSortingGroupSource
     {
