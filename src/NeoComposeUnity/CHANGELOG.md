@@ -27,7 +27,7 @@
   the generated getter and onto `Resolve()` and the implicit conversion. The
   message is byte-identical, so `catch`/assert text still matches, but it now
   fires when you resolve rather than when you read — which is the point:
-  `obj.Portrait.sliceIndex` no longer throws for an asset that has not been
+  `obj.Portrait.SliceIndex` no longer throws for an asset that has not been
   synchronized into Unity.
 
 - **Optional sprites need `?.` before `Resolve()`.** User-defined implicit
@@ -71,9 +71,27 @@
 
 ### Added
 
-- Addressable fields on structured leaf members. A sprite's `fileId` and
-  `sliceIndex`, a vector's `x`/`y`/`z`, and a color's `r`/`g`/`b`/`a` are now
+- Addressable fields on structured leaf members. A sprite's `FileId` and
+  `SliceIndex`, a vector's `x`/`y`/`z`, and a color's `r`/`g`/`b`/`a` are now
   readable, writable, and individually addressable.
+
+  **The casing difference is deliberate, not an oversight.** Sprite's fields
+  are PascalCase — `FileId`, `SliceIndex` — while vector components stay `x`,
+  `y`, `z` and color channels stay `r`, `g`, `b`, `a`. Vectors and colors keep
+  lowercase so they read the same as the Unity types they project to
+  (`UnityEngine.Vector3.x`, `UnityEngine.Color.r`); renaming them would break
+  shipped API for nothing. Sprite has no Unity counterpart to match and it
+  already had a PascalCase surface in NeoScript, so it takes the one spelling
+  its own convention implies. There is exactly one name per field on every
+  public surface — C#, NeoScript, and `.neo` source — and no lowercase
+  sprite-field alias exists.
+
+  The **stored record keys are unchanged and stay lowercase everywhere**:
+  `fileId`, `sliceIndex`, `x`, `y`, `z`, `r`, `g`, `b`, `a`. Nothing on the
+  wire moved. `SpriteValue` — the serialization DTO reached through
+  `NeoReadOnlySprite.Value` — therefore still has lowercase `fileId` and
+  `sliceIndex` fields, and `{"$partial": {...}}` override envelopes still
+  carry stored keys.
 
 - Everywhere that accepted a `Sprite` by inspecting its type now also accepts
   a `NeoSprite`: tile sprite discovery, NeoScript function arguments and their
@@ -86,8 +104,8 @@
   Passing `obj.Portrait` to an NS or native function works as before.
 
 - `NeoReadOnlySprite` / `NeoSprite`, the wrapper pair Sprite never had.
-  `NeoReadOnlySprite` exposes `fileId`, `sliceIndex`, `Value`, and
-  `Resolve()`; `NeoSprite` adds settable `fileId` / `sliceIndex` and the
+  `NeoReadOnlySprite` exposes `FileId`, `SliceIndex`, `Value`, and
+  `Resolve()`; `NeoSprite` adds settable `FileId` / `SliceIndex` and the
   implicit `UnityEngine.Sprite → NeoSprite` conversion so
   `obj.Portrait = someUnitySprite;` still reads the same. The
   `NeoReadOnlySprite → UnityEngine.Sprite` operator is declared on the
@@ -113,8 +131,8 @@
 - `r`, `g`, `b`, and `a` on `NeoReadOnlyColor`, which previously exposed only
   `Value`. New surface, not a shadow of an inherited member.
 
-- Field-level animation overrides. A frame can override `Sprite.sliceIndex`
-  alone and leave `fileId` as whatever the object currently holds — authored
+- Field-level animation overrides. A frame can override `Sprite.SliceIndex`
+  alone and leave `FileId` as whatever the object currently holds — authored
   as a default, written at runtime by game code, or synced live. One authored
   clip then drives every art variant that shares a slice layout, instead of
   needing one copy of the clip per sheet. The same applies to a single vector
@@ -127,7 +145,7 @@
 
 - `NeoGeneratedTypesSupport.SpriteValue` overloads taking
   `NeoReadOnlySprite?`, which generated sprite setters now bind to. They read
-  `fileId`/`sliceIndex` off the wrapper directly instead of round-tripping
+  the addressable pair off the wrapper directly instead of round-tripping
   through a resolved `UnityEngine.Sprite`, so writing a sprite whose file is
   not synchronized into Unity neither throws nor silently loses its slice
   index. The wrong-sheet template check is preserved and reports identically.

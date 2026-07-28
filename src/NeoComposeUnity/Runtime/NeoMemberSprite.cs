@@ -15,9 +15,12 @@ namespace NeoCompose.Runtime
     /// of the pair are new here; the shape deliberately mirrors
     /// <see cref="NeoReadOnlyVector3"/> and <see cref="NeoReadOnlyColor"/>.
     ///
-    /// <para>The addressable fields are <see cref="fileId"/> and
-    /// <see cref="sliceIndex"/> (P42 §1.1); <see cref="Value"/> exposes them
-    /// together as the wire DTO, always as a copy so a caller cannot reach
+    /// <para>The addressable fields are <see cref="FileId"/> and
+    /// <see cref="SliceIndex"/> (P42 decision D11 — Sprite's author-facing
+    /// field names are PascalCase on every public surface, while the stored
+    /// record keys stay <c>fileId</c>/<c>sliceIndex</c>). <see cref="Value"/>
+    /// exposes the pair together as the wire DTO — which therefore keeps the
+    /// lowercase stored keys — always as a copy so a caller cannot reach
     /// through and mutate the live row. <see cref="Resolve()"/> turns them
     /// into a <see cref="UnityEngine.Sprite"/> through the synchronized
     /// <see cref="NeoAssetDatabase"/> — for a bound instance by delegating to
@@ -87,7 +90,7 @@ namespace NeoCompose.Runtime
         /// The file this sprite addresses. Throws when the leaf has no value,
         /// matching <c>NeoVectorValues.ReadVector3</c> / <c>ReadColor</c>.
         /// </summary>
-        public string fileId => RequireValue(nameof(fileId)).fileId;
+        public string FileId => RequireValue(nameof(FileId)).fileId;
 
         /// <summary>
         /// The slice this sprite addresses within its file (P42 §1.1);
@@ -95,19 +98,19 @@ namespace NeoCompose.Runtime
         /// validated here — §1.4 makes that a runtime skip at resolution
         /// time, and <see cref="Resolve()"/> already returns null for one.
         /// </summary>
-        public int sliceIndex => RequireValue(nameof(sliceIndex)).sliceIndex;
+        public int SliceIndex => RequireValue(nameof(SliceIndex)).sliceIndex;
 
         /// <summary>
         /// Resolves the addressable value through the synchronized
         /// <see cref="NeoAssetDatabase"/>. Null when the member has no value,
         /// when the file is not in the database, or when
-        /// <see cref="sliceIndex"/> is out of range for the file's slices.
+        /// <see cref="SliceIndex"/> is out of range for the file's slices.
         ///
         /// <para>For a required member with no synchronized asset this throws
         /// instead — P42 §4.2 moves that throw off the generated getter and
         /// onto <c>Resolve()</c> and the implicit
         /// <c>NeoSprite → UnityEngine.Sprite</c> conversion, so that reading
-        /// <c>obj.Sprite.sliceIndex</c> on an unsynchronized asset does not
+        /// <c>obj.Sprite.SliceIndex</c> on an unsynchronized asset does not
         /// throw.</para>
         /// </summary>
         public Sprite? Resolve()
@@ -246,8 +249,8 @@ namespace NeoCompose.Runtime
     /// Writable-context Sprite wrapper. Adds the native→wrapper implicit
     /// conversion so <c>obj.Sprite = someUnitySprite;</c> compiles once the
     /// generated property type moves from <see cref="UnityEngine.Sprite"/> to
-    /// this type, and — P42 §4.1 — settable <see cref="fileId"/> and
-    /// <see cref="sliceIndex"/>.
+    /// this type, and — P42 §4.1 — settable <see cref="FileId"/> and
+    /// <see cref="SliceIndex"/>.
     ///
     /// <para><b>Binding decides what a field write means.</b> A wrapper minted
     /// from a member node (what generated getters emit) is <b>bound</b>:
@@ -283,24 +286,24 @@ namespace NeoCompose.Runtime
         public NeoSprite(string fileId, int sliceIndex)
             : base(fileId, sliceIndex) { }
 
-        public new string fileId
+        public new string FileId
         {
-            get => base.fileId;
+            get => base.FileId;
             set
             {
                 if (value is null) throw new System.ArgumentNullException(nameof(value));
-                var next = RequireValue(nameof(fileId));
-                Write(new SpriteValue { fileId = value, sliceIndex = next.sliceIndex }, nameof(fileId));
+                var next = RequireValue(nameof(FileId));
+                Write(new SpriteValue { fileId = value, sliceIndex = next.sliceIndex }, nameof(FileId));
             }
         }
 
-        public new int sliceIndex
+        public new int SliceIndex
         {
-            get => base.sliceIndex;
+            get => base.SliceIndex;
             set
             {
-                var next = RequireValue(nameof(sliceIndex));
-                Write(new SpriteValue { fileId = next.fileId, sliceIndex = value }, nameof(sliceIndex));
+                var next = RequireValue(nameof(SliceIndex));
+                Write(new SpriteValue { fileId = next.fileId, sliceIndex = value }, nameof(SliceIndex));
             }
         }
 

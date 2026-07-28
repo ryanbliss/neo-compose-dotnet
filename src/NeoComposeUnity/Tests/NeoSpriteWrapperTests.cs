@@ -17,8 +17,11 @@ namespace NeoCompose.Tests
     /// projected straight to <c>UnityEngine.Sprite</c> — so both halves are
     /// new.
     ///
-    /// <para>Asserted here: the addressable fields <c>fileId</c> and
-    /// <c>sliceIndex</c> read off bound and detached instances; a bound
+    /// <para>Asserted here: the addressable fields <c>FileId</c> and
+    /// <c>SliceIndex</c> (decision D11 — Sprite's public field names are
+    /// PascalCase; the stored record keys stay <c>fileId</c>/<c>sliceIndex</c>
+    /// and <c>Value</c> still exposes those) read off bound and detached
+    /// instances; a bound
     /// instance writes a field change through as a read-modify-write of the
     /// whole leaf; a detached instance mutates locally; a field write is
     /// rejected when the bound node is not writable or the owning generated
@@ -43,8 +46,8 @@ namespace NeoCompose.Tests
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
             var portrait = new NeoSprite(client.save.Get<NeoMemberSpriteWritable>("Portrait"));
 
-            Assert.AreEqual("file-a", portrait.fileId);
-            Assert.AreEqual(3, portrait.sliceIndex);
+            Assert.AreEqual("file-a", portrait.FileId);
+            Assert.AreEqual(3, portrait.SliceIndex);
             Assert.AreEqual("file-a", portrait.Value!.fileId);
             Assert.AreEqual(3, portrait.Value.sliceIndex);
         }
@@ -59,7 +62,7 @@ namespace NeoCompose.Tests
             snapshot.sliceIndex = 99;
 
             // Mutating the returned DTO must not reach the stored row.
-            Assert.AreEqual(3, portrait.sliceIndex);
+            Assert.AreEqual(3, portrait.SliceIndex);
         }
 
         [Test]
@@ -67,8 +70,8 @@ namespace NeoCompose.Tests
         {
             var detached = new NeoSprite("file-z", 7);
 
-            Assert.AreEqual("file-z", detached.fileId);
-            Assert.AreEqual(7, detached.sliceIndex);
+            Assert.AreEqual("file-z", detached.FileId);
+            Assert.AreEqual(7, detached.SliceIndex);
         }
 
         [Test]
@@ -79,7 +82,7 @@ namespace NeoCompose.Tests
 
             Assert.IsNull(badge.Value);
             var error = Assert.Throws<System.InvalidOperationException>(() =>
-                _ = badge.sliceIndex);
+                _ = badge.SliceIndex);
             StringAssert.Contains("has no value", error!.Message);
         }
 
@@ -97,12 +100,12 @@ namespace NeoCompose.Tests
         {
             // P42 §4.2 moves this throw off the generated getter and onto
             // Resolve() / the implicit NeoSprite → Sprite conversion, so that
-            // reading obj.Sprite.sliceIndex on an unsynchronized asset does
+            // reading obj.Sprite.SliceIndex on an unsynchronized asset does
             // not throw.
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
             var portrait = new NeoSprite(client.save.Get<NeoMemberSpriteWritable>("Portrait"));
 
-            Assert.AreEqual(3, portrait.sliceIndex);
+            Assert.AreEqual(3, portrait.SliceIndex);
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 portrait.Resolve());
             StringAssert.Contains("has no synchronized asset", error!.Message);
@@ -137,12 +140,12 @@ namespace NeoCompose.Tests
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
             var portrait = new NeoSprite(client.save.Get<NeoMemberSpriteWritable>("Portrait"));
 
-            portrait.sliceIndex = 1;
+            portrait.SliceIndex = 1;
 
             var reread = new NeoSprite(client.save.Get<NeoMemberSpriteWritable>("Portrait"));
-            Assert.AreEqual(1, reread.sliceIndex);
+            Assert.AreEqual(1, reread.SliceIndex);
             // fileId survived the read-modify-write.
-            Assert.AreEqual("file-a", reread.fileId);
+            Assert.AreEqual("file-a", reread.FileId);
         }
 
         [Test]
@@ -151,11 +154,11 @@ namespace NeoCompose.Tests
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
             var portrait = new NeoSprite(client.save.Get<NeoMemberSpriteWritable>("Portrait"));
 
-            portrait.fileId = "file-b";
+            portrait.FileId = "file-b";
 
             var reread = new NeoSprite(client.save.Get<NeoMemberSpriteWritable>("Portrait"));
-            Assert.AreEqual("file-b", reread.fileId);
-            Assert.AreEqual(3, reread.sliceIndex);
+            Assert.AreEqual("file-b", reread.FileId);
+            Assert.AreEqual(3, reread.SliceIndex);
         }
 
         [Test]
@@ -164,11 +167,11 @@ namespace NeoCompose.Tests
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
             var detached = new NeoSprite("file-a", 3);
 
-            detached.sliceIndex = 5;
+            detached.SliceIndex = 5;
 
-            Assert.AreEqual(5, detached.sliceIndex);
+            Assert.AreEqual(5, detached.SliceIndex);
             var portrait = new NeoSprite(client.save.Get<NeoMemberSpriteWritable>("Portrait"));
-            Assert.AreEqual(3, portrait.sliceIndex);
+            Assert.AreEqual(3, portrait.SliceIndex);
         }
 
         [Test]
@@ -182,9 +185,9 @@ namespace NeoCompose.Tests
                 NeoValueOwnership.Save));
 
             var error = Assert.Throws<System.InvalidOperationException>(() =>
-                wrapper.sliceIndex = 1);
+                wrapper.SliceIndex = 1);
             StringAssert.Contains("read-only", error!.Message);
-            Assert.AreEqual(3, wrapper.sliceIndex);
+            Assert.AreEqual(3, wrapper.SliceIndex);
         }
 
         [Test]
@@ -197,9 +200,9 @@ namespace NeoCompose.Tests
                 owner);
 
             var error = Assert.Throws<System.InvalidOperationException>(() =>
-                wrapper.fileId = "file-b");
+                wrapper.FileId = "file-b");
             StringAssert.Contains("read-only", error!.Message);
-            Assert.AreEqual("file-a", wrapper.fileId);
+            Assert.AreEqual("file-a", wrapper.FileId);
         }
 
         [Test]
@@ -211,7 +214,7 @@ namespace NeoCompose.Tests
             // A field write is a read-modify-write, so there must be something
             // to modify. Assign a whole value first.
             var error = Assert.Throws<System.InvalidOperationException>(() =>
-                badge.sliceIndex = 2);
+                badge.SliceIndex = 2);
             StringAssert.Contains("has no value", error!.Message);
         }
 
@@ -261,8 +264,8 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(portrait != icon);
 
-            icon.sliceIndex = 3;
-            icon.fileId = "file-a";
+            icon.SliceIndex = 3;
+            icon.FileId = "file-a";
 
             Assert.IsTrue(portrait == icon);
         }

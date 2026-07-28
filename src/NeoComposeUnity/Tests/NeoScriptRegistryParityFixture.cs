@@ -46,12 +46,12 @@ namespace NeoCompose.Tests
   ""compileCases"": [
     {
       ""name"": ""an image symbol lowers to its project file record id"",
-      ""statement"": ""Sprite.fileId = Images.BodyNormalWalkSideLeg;"",
+      ""statement"": ""Sprite.FileId = Images.BodyNormalWalkSideLeg;"",
       ""expectedWriteValue"": ""6d1f5f14-0b1a-4a2e-8f6d-2c7b1a4e9d01""
     },
     {
       ""name"": ""a second image symbol lowers to its own record id"",
-      ""statement"": ""Sprite.fileId = Images.PantsLongWalkSideLeg;"",
+      ""statement"": ""Sprite.FileId = Images.PantsLongWalkSideLeg;"",
       ""expectedWriteValue"": ""6d1f5f14-0b1a-4a2e-8f6d-2c7b1a4e9d02""
     },
     {
@@ -61,7 +61,7 @@ namespace NeoCompose.Tests
     },
     {
       ""name"": ""an unknown image symbol is a compile error"",
-      ""statement"": ""Sprite.fileId = Images.NotAFile;"",
+      ""statement"": ""Sprite.FileId = Images.NotAFile;"",
       ""expectedError"": ""The ImageRegistry has no NeoImage named 'NotAFile'.""
     },
     {
@@ -81,7 +81,7 @@ namespace NeoCompose.Tests
     },
     {
       ""name"": ""an arbitrary string is not a file reference"",
-      ""statement"": ""Sprite.fileId = \""6d1f5f14-0b1a-4a2e-8f6d-2c7b1a4e9d01\"";"",
+      ""statement"": ""Sprite.FileId = \""6d1f5f14-0b1a-4a2e-8f6d-2c7b1a4e9d01\"";"",
       ""expectedError"": ""Cannot use string as assign of type ImageRef""
     }
   ],
