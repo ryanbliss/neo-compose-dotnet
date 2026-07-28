@@ -84,6 +84,12 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<NeoObjectInstanceId, GameObject> objectRootsByInstanceId = new();
         private readonly Dictionary<NeoObjectInstanceId, IDisposable>
             objectPositionSubscriptionsByInstanceId = new();
+        // Every GameObject an instance's object graph rendered, paired with the
+        // value it came from, so a runtime Enabled write can toggle it without
+        // re-walking the composition. A tile-layer-link child contributes one
+        // entry per tile because its tiles are bare siblings with no root.
+        private readonly Dictionary<NeoObjectInstanceId, List<RenderedObjectVisibility>>
+            objectVisibilityByInstanceId = new();
         private readonly Dictionary<string, int> objectLayerFallbackSortingOrdersByLayerId = new();
         private RendererSmartTileNeighborMatcher? smartTileMatcher;
         private NeoTileGridRenderSession? liveSession;
@@ -91,6 +97,25 @@ namespace NeoCompose.Runtime
         private NeoReadOnlyTileGridPrimitive? renderedPrimitive;
         private CancellationTokenSource? activeRenderCancellation;
         private List<TileLayerTargetRegistration>? activeRenderTargets;
+
+        /// <summary>
+        /// One rendered GameObject and the world object value whose
+        /// <see cref="INeoWorldObjectValue.Enabled"/> decides whether it is
+        /// active. Deactivating a composition root hides its whole subtree, so
+        /// a nested part needs only its own entry.
+        /// </summary>
+        private readonly struct RenderedObjectVisibility
+        {
+            public RenderedObjectVisibility(INeoWorldObjectValue value, GameObject gameObject)
+            {
+                Value = value;
+                GameObject = gameObject;
+            }
+
+            public INeoWorldObjectValue Value { get; }
+
+            public GameObject GameObject { get; }
+        }
 
         private sealed class TileLayerTargetRegistration
         {
@@ -922,6 +947,7 @@ namespace NeoCompose.Runtime
         private void DestroyRenderedObject(NeoObjectInstanceId instanceId)
         {
             DisposeObjectPositionSubscription(instanceId);
+            objectVisibilityByInstanceId.Remove(instanceId);
             if (!objectRootsByInstanceId.TryGetValue(instanceId, out var root) ||
                 root == null)
             {
@@ -941,10 +967,11 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Keeps a rendered object's transform in sync with its value-model
-        /// Position: runtime writes (e.g. a Session-storage Position on the
-        /// player spawn) move the GameObject, so the Neo data model stays the
-        /// single source of truth for placement.
+        /// Keeps a rendered object's transform and visibility in sync with its
+        /// value model: runtime writes (e.g. a Session-storage Position on the
+        /// player spawn, or an Enabled write that equips a hat) move or reveal
+        /// the GameObject, so the Neo data model stays the single source of
+        /// truth for placement.
         /// </summary>
         private void TrackObjectPosition(NeoResolvedObjectInstance instance)
         {
@@ -963,7 +990,43 @@ namespace NeoCompose.Runtime
                     if (changedValue is not INeoWorldObjectValue worldObject) return;
                     root.transform.localPosition =
                         CellOffsetToLocalPosition(worldObject.Position);
+                    // Descendant writes bubble to this one root subscription, so
+                    // a nested part's Enabled arrives here too. The handler is
+                    // told which object changed, not which member, so the whole
+                    // instance is reconciled — cheap, because it compares
+                    // against activeSelf and only writes on a real difference.
+                    SyncObjectVisibility(instanceId);
                 });
+        }
+
+        /// <summary>
+        /// Reapplies every rendered GameObject's active state from the value
+        /// that governs it. Deactivating a composition root already hides its
+        /// descendants, so a child whose own Enabled is true stays true and is
+        /// restored the moment its parent comes back.
+        /// <para>
+        /// The value model is the single source of truth for visibility, the
+        /// same way it already is for Position: calling
+        /// <see cref="GameObject.SetActive"/> directly on a renderer-spawned
+        /// object is reverted the next time any member on that placement
+        /// changes. Write <c>Enabled</c> instead.
+        /// </para>
+        /// </summary>
+        private void SyncObjectVisibility(NeoObjectInstanceId instanceId)
+        {
+            if (!objectVisibilityByInstanceId.TryGetValue(instanceId, out var visibility))
+            {
+                return;
+            }
+
+            foreach (var entry in visibility)
+            {
+                var gameObject = entry.GameObject;
+                if (gameObject == null) continue;
+                var enabled = entry.Value.Enabled;
+                if (gameObject.activeSelf == enabled) continue;
+                gameObject.SetActive(enabled);
+            }
         }
 
         private void DisposeObjectPositionSubscription(NeoObjectInstanceId instanceId)
@@ -1015,6 +1078,7 @@ namespace NeoCompose.Runtime
             objectLayerRootsByLayerId.Clear();
             DisposeObjectPositionSubscriptions();
             objectRootsByInstanceId.Clear();
+            objectVisibilityByInstanceId.Clear();
             objectLayerFallbackSortingOrdersByLayerId.Clear();
         }
 
@@ -1404,6 +1468,10 @@ namespace NeoCompose.Runtime
             // e.g. an added Rigidbody2D composes with the BoxCollider2D.
             var behaviour = go.AddComponent<NeoObjectBehaviour>();
             behaviour.Initialize(this, layer, instance);
+            // Applied only after Initialize, so the spawn hook still sees an
+            // active, fully-built root as its contract promises. The root's own
+            // collider follows GameObject activity for free.
+            SyncObjectVisibility(instance.InstanceId);
             return go;
         }
 
@@ -1418,6 +1486,16 @@ namespace NeoCompose.Runtime
             go.transform.localPosition = CellToLocalPosition(instance.Cell);
             TrackObjectPosition(instance);
 
+            var visibility = new List<RenderedObjectVisibility>();
+            objectVisibilityByInstanceId[instance.InstanceId] = visibility;
+            // Registered without applying: the placed root must stay active
+            // until the spawn hook has observed it, so SpawnObject applies the
+            // whole index once Initialize has run.
+            if (instance.Object is INeoWorldObjectValue rootObject)
+            {
+                visibility.Add(new RenderedObjectVisibility(rootObject, go));
+            }
+
             var sortingOrder =
                 (layer.SortingOrder ?? layerFallbackSortingOrder) + instance.Order;
             // Attached before children render so every descendant renderer is
@@ -1429,7 +1507,8 @@ namespace NeoCompose.Runtime
                 instance.Object,
                 sortingOrder,
                 new HashSet<string>(),
-                0);
+                0,
+                visibility);
 
             if (instance.Object is INeoColliderSource colliderSource
                 && TryResolveObjectColliderSpec(colliderSource, out var colliderSpec))
@@ -1488,7 +1567,8 @@ namespace NeoCompose.Runtime
             INeoValueReference value,
             int baseSortingOrder,
             HashSet<string> visitedValueIds,
-            int depth)
+            int depth,
+            List<RenderedObjectVisibility> visibility)
         {
             if (depth > MaxObjectCompositionDepth) return 0;
             if (value is not INeoObjectCompositionSource composition) return 0;
@@ -1512,7 +1592,8 @@ namespace NeoCompose.Runtime
                     baseSortingOrder,
                     childIndex++,
                     visitedValueIds,
-                    depth + 1);
+                    depth + 1,
+                    visibility);
             }
 
             if (hasValueId)
@@ -1529,7 +1610,8 @@ namespace NeoCompose.Runtime
             int baseSortingOrder,
             int orderOffset,
             HashSet<string> visitedValueIds,
-            int depth)
+            int depth,
+            List<RenderedObjectVisibility> visibility)
         {
             var childOffset = CellOffsetToLocalPosition(child.Position);
             var childSortingOrder = baseSortingOrder + orderOffset;
@@ -1538,12 +1620,13 @@ namespace NeoCompose.Runtime
                 layer,
                 child,
                 childOffset,
-                childSortingOrder);
+                childSortingOrder,
+                visibility);
             if (rendered > 0) return rendered;
 
             if (child is INeoSpriteObjectValue spriteChild)
             {
-                RenderSpriteChild(
+                var spriteGo = RenderSpriteChild(
                     parent,
                     layer,
                     spriteChild.Name,
@@ -1552,6 +1635,7 @@ namespace NeoCompose.Runtime
                     childOffset,
                     CellSpanFromSize(spriteChild.Size),
                     childSortingOrder);
+                RegisterVisibility(visibility, child, spriteGo);
                 return 1;
             }
 
@@ -1560,18 +1644,44 @@ namespace NeoCompose.Runtime
             childRoot.transform.SetParent(parent, false);
             childRoot.transform.localPosition = childOffset;
             AttachSortingGroup(childRoot, layer, child, childSortingOrder);
+            // The subtree is built even when the child is disabled, so a
+            // runtime write can toggle it back on and so a clip playing through
+            // it keeps resolving. Deactivation happens after, in
+            // RegisterVisibility.
             var childRendered = RenderObjectComposition(
                 childRoot.transform,
                 layer,
                 child,
                 childSortingOrder,
                 visitedValueIds,
-                depth + 1);
+                depth + 1,
+                visibility);
             if (childRendered == 0)
             {
                 DestroyCompositionRoot(childRoot);
+                return childRendered;
             }
+            RegisterVisibility(visibility, child, childRoot);
             return childRendered;
+        }
+
+        /// <summary>
+        /// Records a rendered GameObject against the value that governs its
+        /// visibility and applies that value's current state. Registration and
+        /// the initial deactivation are one step so no render path can add a
+        /// GameObject to the index while forgetting to honour
+        /// <see cref="INeoWorldObjectValue.Enabled"/>.
+        /// </summary>
+        private static void RegisterVisibility(
+            List<RenderedObjectVisibility> visibility,
+            INeoWorldObjectValue value,
+            GameObject gameObject)
+        {
+            visibility.Add(new RenderedObjectVisibility(value, gameObject));
+            if (!value.Enabled)
+            {
+                gameObject.SetActive(false);
+            }
         }
 
         private int RenderTileLayerLinkChild(
@@ -1579,7 +1689,8 @@ namespace NeoCompose.Runtime
             IReadOnlyNeoObjectLayerRuntime layer,
             INeoValueReference link,
             Vector3 linkOffset,
-            int baseSortingOrder)
+            int baseSortingOrder,
+            List<RenderedObjectVisibility> visibility)
         {
             if (link is not INeoTileLayerLinkValue tileLayerLink) return 0;
 
@@ -1595,7 +1706,10 @@ namespace NeoCompose.Runtime
                 var sprite = NeoTileAssetFactory.ResolveSprite(tileValue);
                 if (sprite == null) continue;
 
-                RenderSpriteChild(
+                // A link's tiles are bare siblings under the shared parent with
+                // no root of their own, so each one is registered against the
+                // link value that governs them.
+                var tileGo = RenderSpriteChild(
                     parent,
                     layer,
                     sprite.name,
@@ -1604,6 +1718,10 @@ namespace NeoCompose.Runtime
                     linkOffset + CellOffsetToLocalPosition(tileInstance.Cell),
                     Vector3.one,
                     baseSortingOrder + tileIndex++);
+                if (link is INeoWorldObjectValue linkObject)
+                {
+                    RegisterVisibility(visibility, linkObject, tileGo);
+                }
                 rendered++;
             }
             return rendered;
@@ -1614,7 +1732,11 @@ namespace NeoCompose.Runtime
         /// authored sprite state and is null for tile-layer-link tiles, which
         /// are not world objects and carry no renderer metadata.
         /// </summary>
-        private void RenderSpriteChild(
+        /// <returns>
+        /// The GameObject created, so the caller can register it for
+        /// visibility. Always non-null.
+        /// </returns>
+        private GameObject RenderSpriteChild(
             Transform parent,
             IReadOnlyNeoObjectLayerRuntime layer,
             string name,
@@ -1647,6 +1769,8 @@ namespace NeoCompose.Runtime
                     sprite.bounds.center,
                     isTrigger: false));
             }
+
+            return go;
         }
 
         private static void ApplySpriteState(

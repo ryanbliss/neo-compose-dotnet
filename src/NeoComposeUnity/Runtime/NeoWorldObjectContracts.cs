@@ -25,6 +25,16 @@ namespace NeoCompose.Runtime
 
         /// <summary>Footprint in cells.</summary>
         NeoReadOnlyVector3 Size { get; }
+
+        /// <summary>
+        /// When false, this object and its subtree render nowhere and
+        /// contribute no collider. The value stays live: member writes still
+        /// apply, and a clip playing on or through the object keeps running and
+        /// keeps writing. Disabling an object hides its whole subtree
+        /// regardless of each child's own value, so re-enabling it restores
+        /// exactly what was there.
+        /// </summary>
+        bool Enabled { get; }
     }
 
     /// <summary>

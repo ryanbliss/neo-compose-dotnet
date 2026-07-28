@@ -2,6 +2,64 @@
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-07-28
+
+### Breaking
+
+- `INeoWorldObjectValue` gains `bool Enabled`. Every generated world object
+  implements this interface, so a `NeoGeneratedTypes.cs` generated before P41
+  **will not compile** on this version — this is a harder break than P40's,
+  which degraded silently. Re-export projects and regenerate their C# types
+  after upgrading.
+- The project export schema version moves from 12 to 13. `NeoClient` requires
+  an exact match, so an export produced before P41 is rejected with a clear
+  message rather than loading and drawing objects that should be hidden.
+
+### Added
+
+- Optional object children. `NeoObjectBase` carries an `Enabled` bool
+  defaulting to true; when false, the object and its whole subtree are
+  deactivated and contribute no collider. The renderer still **builds** the
+  subtree rather than skipping or destroying it, so a runtime `Enabled` write
+  toggles it straight back on, and a clip playing on or through a disabled
+  object keeps running and keeps writing values. Disabling a nested part hides
+  its subtree regardless of each child's own value, and re-enabling restores
+  exactly what was there.
+
+  This is what an empty equipment slot is made of: author the slot once, hide
+  it when nothing is equipped, and never write to `Children` at runtime — so
+  the authored graph a clip validates against and the graph the player resolves
+  against stay identical.
+
+  The value model is now the single source of truth for visibility, the same
+  way it already was for `Position`. Calling `SetActive` directly on a
+  renderer-spawned object is reverted the next time any member on that
+  placement changes; write `Enabled` instead. Code that hid renderer-spawned
+  objects by hand before P41 — which was the only option, since the renderer
+  never called `SetActive` — needs to move to `Enabled`.
+
+  One edge stays as it was: a composition part that renders nothing at all is
+  still destroyed rather than kept, so an *empty* part cannot be revealed by a
+  later `Enabled` write without a re-render. A part whose children are merely
+  disabled is unaffected — those children are built and deactivated, so the
+  part still counts as rendered and survives.
+
+### Changed
+
+- An animation `ChildOverride` or `ChildTrack` naming a child that no placed
+  `Children` row carries is now **skipped** with a single warning logged at
+  clip-compile time, instead of throwing. Skipping is scoped to that one
+  reference: the frame's other overrides, its own `Overrides`, and its actions
+  all still apply, and a clip with one unresolvable track still plays every
+  other track. A skipped track is excluded from the
+  `StartFrame + childLength <= Duration` fit check, since there is no child
+  clip to fit.
+
+  Ambiguity (a source child matching more than one placed row) and legacy
+  pre-0.7 placements (rows without `sourceValueId` provenance) still throw —
+  those are data errors, not absent slots. Export and CLI push validation of
+  authored clip graphs is unchanged and still strict.
+
 ## [0.9.0] - 2026-07-27
 
 ### Breaking

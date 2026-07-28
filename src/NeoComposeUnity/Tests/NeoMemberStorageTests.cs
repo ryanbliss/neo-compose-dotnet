@@ -166,14 +166,14 @@ namespace NeoCompose.Tests
             var data = BuildStorageProjectData();
             data.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 13,
+                schemaVersion = 14,
                 projectId = ProjectId,
                 versionId = "version-1",
             };
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 NeoTestSaveStack.ClientFromSchema(data));
-            StringAssert.Contains("schema version 13", error!.Message);
-            StringAssert.Contains("schema version 12", error.Message);
+            StringAssert.Contains("schema version 14", error!.Message);
+            StringAssert.Contains("schema version 13", error.Message);
             StringAssert.Contains("Update", error.Message);
         }
 
@@ -210,12 +210,12 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ExportSchemaVersion_TwelveWithRelationsIsAccepted()
+        public void ExportSchemaVersion_ThirteenWithRelationsIsAccepted()
         {
             var current = BuildStorageProjectData();
             current.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 12,
+                schemaVersion = 13,
                 projectId = ProjectId,
                 versionId = "version-1",
             };
@@ -226,12 +226,12 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ExportSchemaVersion_TwelveMissingRelationsThrowsClearly()
+        public void ExportSchemaVersion_ThirteenMissingRelationsThrowsClearly()
         {
             var invalid = BuildStorageProjectData();
             invalid.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 12,
+                schemaVersion = 13,
                 projectId = ProjectId,
                 versionId = "version-1",
             };
@@ -241,16 +241,16 @@ namespace NeoCompose.Tests
                 NeoTestSaveStack.ClientFromSchema(invalid));
 
             StringAssert.Contains("internalRecordRelations", error!.Message);
-            StringAssert.Contains("schema version 12", error.Message);
+            StringAssert.Contains("schema version 13", error.Message);
         }
 
         [Test]
-        public void ExportSchemaVersion_TwelveRejectsUnknownRelationKind()
+        public void ExportSchemaVersion_ThirteenRejectsUnknownRelationKind()
         {
             var invalid = BuildStorageProjectData();
             invalid.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 12,
+                schemaVersion = 13,
                 projectId = ProjectId,
                 versionId = "version-1",
             };
@@ -291,7 +291,7 @@ namespace NeoCompose.Tests
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 NeoTestSaveStack.ClientFromSchema(previous));
             StringAssert.Contains("schema version 7", error!.Message);
-            StringAssert.Contains("schema version 12", error.Message);
+            StringAssert.Contains("schema version 13", error.Message);
             StringAssert.Contains("Re-export", error.Message);
         }
 
@@ -307,7 +307,7 @@ namespace NeoCompose.Tests
                     assumeCurrentSchema: false));
 
             StringAssert.Contains("metadata is missing", error!.Message);
-            StringAssert.Contains("requires schema version 12", error.Message);
+            StringAssert.Contains("requires schema version 13", error.Message);
             StringAssert.Contains("Re-export", error.Message);
         }
 
