@@ -21,12 +21,14 @@ abstract class ExitPromptObject : ConsoleObject {
       MaskInteraction = .None,
       Name = "",
       Sprite = Images.ExitPromptObject.Slice(0),
+      Enabled = true,
       Position = new(0, 0, 0),
       Size = new(1, 1, 0)
     },
 
     @id("4ca6b71b-2a7e-4f99-977d-1bcdb2556d9e")
     new BackgroundTileLayerLink {
+      Enabled = true,
       Name = "Background",
       Position = new(0, 0, 0),
       Size = new(1, 1, 0),

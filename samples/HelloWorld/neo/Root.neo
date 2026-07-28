@@ -438,6 +438,7 @@ Root root = new() {
           Children = [
             @id("7ae2813f-432a-468e-829d-fe3e6ddc559d")
             new BackgroundTileLayerLink {
+              Enabled = true,
               Name = "Background",
               Position = new(0, 0, 0),
               Size = new(1, 1, 0),
@@ -3147,6 +3148,7 @@ Root root = new() {
     
             @id("34f17eff-236f-4262-bf24-621b125c94f8")
             new CollisionsTileLayerLink {
+              Enabled = true,
               Name = "Collisions",
               Position = new(0, 0, 0),
               Size = new(1, 1, 0),
@@ -3566,6 +3568,7 @@ Root root = new() {
     
             @id("0e638a67-3d86-45c3-a13b-e0888a46d538")
             new ObjectLayerLink {
+              Enabled = true,
               Name = "Objects",
               Objects = @id("1d57ae36-0e0a-4558-a03b-27b5eb0a733d")
               [
@@ -3579,6 +3582,7 @@ Root root = new() {
                       MaskInteraction = .None,
                       Name = "",
                       Sprite = Images.RecoveryCacheObject.Slice(0),
+                      Enabled = true,
                       Position = new(0, 0, 0),
                       Size = new(1, 1, 0)
                     }
@@ -3596,6 +3600,7 @@ Root root = new() {
                     offset = new(0.512, 0.451),
                     isTrigger = false
                   },
+                  Enabled = true,
                   Position = new(6, 2, 0),
                   Size = new(1, 1, 0)
                 },
@@ -3611,6 +3616,7 @@ Root root = new() {
                       MaskInteraction = .None,
                       Name = "",
                       Sprite = Images.PlayerSpawnObject.Slice(0),
+                      Enabled = true,
                       Position = new(0, 0, 0),
                       Size = new(1, 1, 0)
                     }
@@ -3627,6 +3633,7 @@ Root root = new() {
                     isTrigger = false
                   },
                   Position = new(-7, 2, 0),
+                  Enabled = true,
                   Size = new(1, 1, 0)
                 }
               ],
@@ -3638,6 +3645,7 @@ Root root = new() {
             new BlockedPath {
               BootGlyphSealLocked = Reference<OldConsoleLandingBarrierLocked>(OldConsoleLandingBarrierLocked),
               BootGlyphSealReady = Reference<OldConsoleLandingBarrierReady>(OldConsoleLandingBarrierReady),
+              Enabled = true,
               Name = "Blocked Path",
               Position = new(0, 0, 0),
               Size = new(1, 1, 0),
