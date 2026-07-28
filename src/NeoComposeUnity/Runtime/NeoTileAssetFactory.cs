@@ -72,19 +72,41 @@ namespace NeoCompose.Runtime
                 BindingFlags.Public | BindingFlags.Instance);
             foreach (var property in properties)
             {
-                if (!typeof(Sprite).IsAssignableFrom(property.PropertyType)) continue;
+                if (!IsSpriteProperty(property)) continue;
                 if (!property.Name.EndsWith("Sprite", StringComparison.Ordinal)) continue;
                 var sprite = TryReadSpriteProperty(value, property);
                 if (sprite != null) return sprite;
             }
             foreach (var property in properties)
             {
-                if (!typeof(Sprite).IsAssignableFrom(property.PropertyType)) continue;
+                if (!IsSpriteProperty(property)) continue;
                 var sprite = TryReadSpriteProperty(value, property);
                 if (sprite != null) return sprite;
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Whether a generated property can carry a sprite this scan should
+        /// consider. Both projections are live at once and both must match.
+        ///
+        /// <para>A generated Sprite <em>property</em> projects
+        /// <see cref="NeoSprite"/> since P42 §4.1, and its read-only
+        /// counterpart projects <see cref="NeoReadOnlySprite"/> — neither is
+        /// assignable to <see cref="UnityEngine.Sprite"/>, because the bridge
+        /// between them is a user-defined implicit conversion operator and
+        /// <see cref="Type.IsAssignableFrom"/> cannot see one. Testing only
+        /// the native type silently matched nothing on every generated tile.
+        /// Sprites in non-property positions — list and dictionary entries,
+        /// generic slots, static members, constructor parameters — are still
+        /// emitted as native <see cref="UnityEngine.Sprite"/>, so the native
+        /// arm is not legacy and does not go away.</para>
+        /// </summary>
+        private static bool IsSpriteProperty(PropertyInfo property)
+        {
+            return typeof(Sprite).IsAssignableFrom(property.PropertyType)
+                || typeof(NeoReadOnlySprite).IsAssignableFrom(property.PropertyType);
         }
 
         private static Sprite? TryReadSpriteProperty(object source, string propertyName)
@@ -97,11 +119,18 @@ namespace NeoCompose.Runtime
 
         private static Sprite? TryReadSpriteProperty(object source, PropertyInfo property)
         {
-            if (!typeof(Sprite).IsAssignableFrom(property.PropertyType)) return null;
+            if (!IsSpriteProperty(property)) return null;
             if (property.GetIndexParameters().Length > 0) return null;
             try
             {
-                return property.GetValue(source) as Sprite;
+                var raw = property.GetValue(source);
+                if (raw is Sprite sprite) return sprite;
+                // ResolveOrNull, not Resolve: a required member whose asset is
+                // not synchronized is just another empty candidate here, and
+                // this scan is best-effort by construction — it already
+                // tolerates properties it cannot read at all.
+                if (raw is NeoReadOnlySprite wrapper) return wrapper.ResolveOrNull();
+                return null;
             }
             catch (TargetInvocationException)
             {

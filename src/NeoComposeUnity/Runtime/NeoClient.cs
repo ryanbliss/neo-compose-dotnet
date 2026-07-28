@@ -4955,6 +4955,15 @@ namespace NeoCompose.Runtime
                     return optionIds;
                 }
                 case MemberKind.Sprite:
+                    // NeoReadOnlySprite first: since P42 §4.1 a generated
+                    // sprite property hands out the wrapper, and it carries
+                    // the addressable pair directly — resolving it to a
+                    // UnityEngine.Sprite only to reverse-resolve it back would
+                    // throw for an unsynchronized asset and lose sliceIndex.
+                    if (value is NeoReadOnlySprite spriteWrapper)
+                    {
+                        return NeoGeneratedTypesSupport.SpriteValue(this, spriteWrapper);
+                    }
                     return value is Sprite sprite
                         ? NeoGeneratedTypesSupport.SpriteValue(this, sprite)
                         : value;

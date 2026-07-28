@@ -112,16 +112,38 @@ namespace NeoCompose.Runtime
         /// </summary>
         public Sprite? Resolve()
         {
-            if (memberNode is not null)
+            var resolved = ResolveOrNull();
+            if (resolved == null && memberNode is not null && memberNode.member.required)
             {
-                var resolved = memberNode.Resolve();
-                if (resolved == null && memberNode.member.required)
-                {
-                    throw new System.InvalidOperationException(
-                        $"Required Sprite '{memberNode.member.name}' has no synchronized asset.");
-                }
-                return resolved;
+                throw new System.InvalidOperationException(
+                    $"Required Sprite '{memberNode.member.name}' has no synchronized asset.");
             }
+            return resolved;
+        }
+
+        /// <summary>
+        /// <see cref="Resolve()"/> without the required-member throw — the
+        /// same resolution, reporting "nothing to show" as null.
+        ///
+        /// <para>This exists for best-effort <em>discovery</em> callers, which
+        /// inspect whatever sprite-ish members a value happens to expose and
+        /// move on to the next candidate when one yields nothing
+        /// (<see cref="NeoTileAssetFactory.ResolveSprite"/> is the caller that
+        /// motivated it). For those, a required member whose asset is not
+        /// synchronized is one more empty candidate, not an error to raise at
+        /// the caller — the same way the scan already tolerates a property it
+        /// cannot read. A <see cref="Value"/> null-check alone does not cover
+        /// this: the required throw fires when a row IS present and its file
+        /// simply is not in the asset database, so <see cref="Value"/> is
+        /// non-null in exactly the throwing case.</para>
+        ///
+        /// <para>Deliberately not public. Ordinary reads must keep going
+        /// through <see cref="Resolve()"/> so the required-member contract
+        /// (P42 §4.2) stays loud everywhere an author can see it.</para>
+        /// </summary>
+        internal Sprite? ResolveOrNull()
+        {
+            if (memberNode is not null) return memberNode.Resolve();
 
             // A wrapper detached from a Unity sprite resolves back to that
             // sprite — until it acquires an addressable value, either by

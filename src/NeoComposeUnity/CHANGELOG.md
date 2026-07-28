@@ -75,6 +75,16 @@
   `sliceIndex`, a vector's `x`/`y`/`z`, and a color's `r`/`g`/`b`/`a` are now
   readable, writable, and individually addressable.
 
+- Everywhere that accepted a `Sprite` by inspecting its type now also accepts
+  a `NeoSprite`: tile sprite discovery, NeoScript function arguments and their
+  validation, and native function arguments. This matters because the implicit
+  conversion that keeps compiled call sites working is a *user-defined*
+  operator — invisible to `IsAssignableFrom` and to a `value is Sprite`
+  pattern — so a consumer that matched on the type rather than taking one as a
+  parameter silently stopped seeing sprites when the generated property type
+  moved. It cost the tile renderer its sprites with no error of any kind.
+  Passing `obj.Portrait` to an NS or native function works as before.
+
 - `NeoReadOnlySprite` / `NeoSprite`, the wrapper pair Sprite never had.
   `NeoReadOnlySprite` exposes `fileId`, `sliceIndex`, `Value`, and
   `Resolve()`; `NeoSprite` adds settable `fileId` / `sliceIndex` and the
