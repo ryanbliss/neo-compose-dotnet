@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
+using NeoJson = NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
@@ -412,7 +413,7 @@ namespace NeoCompose.Tests
             // unwrapped inside the recursion, not only at the top level.
             Assert.IsNull(
                 lastCollider!["Offset"]![
-                    global::NeoCompose.Runtime.Json.NeoPartialLeafValue.EnvelopeKey],
+                    NeoJson.NeoPartialLeafValue.EnvelopeKey],
                 "the $partial envelope leaked into a resolved value");
 
             // The bound sheet survives the slice-only frame, and the z the clip
@@ -474,7 +475,7 @@ namespace NeoCompose.Tests
 
                 var envelope = new JObject
                 {
-                    [global::NeoCompose.Runtime.Json.NeoPartialLeafValue
+                    [NeoJson.NeoPartialLeafValue
                         .EnvelopeKey] = new JObject
                     {
                         [field] = write["value"]!.DeepClone(),
@@ -482,7 +483,7 @@ namespace NeoCompose.Tests
                 };
                 var leafPartial = Newtonsoft.Json.JsonConvert
                     .DeserializeObject<
-                        global::NeoCompose.Runtime.Json.NeoPartialLeafValue>(
+                        NeoJson.NeoPartialLeafValue>(
                             envelope.ToString(
                                 Newtonsoft.Json.Formatting.None))!;
 
@@ -507,6 +508,260 @@ namespace NeoCompose.Tests
                 "No fixture value is accepted on one kind and rejected on "
                 + "another, so the verdicts prove nothing the float vectors "
                 + "do not already prove.");
+        }
+
+        /// <summary>
+        /// P42 sections 1.4 and 2.1 — the two composition rules the resolved
+        /// frame vectors cannot express, because both describe an envelope
+        /// whose composed value is indistinguishable from its base:
+        ///
+        /// <list type="number">
+        /// <item><c>{"$partial":{}}</c> composes to the base AND authors
+        /// nothing, so it must never become the frame the leaf's value is
+        /// attributed to.</item>
+        /// <item>A field the leaf does not carry is <b>ignored</b>, never
+        /// applied — a composer that falls through to its last component
+        /// writes a value nobody authored, which is why every fixture case
+        /// pairs an undeclared key with a declared one on the same leaf.</item>
+        /// </list>
+        ///
+        /// <para>Each case runs twice: through the real composer
+        /// (<see cref="NeoAnimationLeafFields.Compose"/>, which is what a
+        /// played clip uses) and through this file's JObject merge, which is
+        /// the fixture harness's mirror of the web resolver and has to agree
+        /// with the composer to be worth anything. Mirrors the web harness in
+        /// `animation-frame-parity-fixture-coverage.test.ts` and
+        /// `world-grid-animation-model.test.ts`.</para>
+        /// </summary>
+        [Test]
+        public void ParityFixture_ComposesPartialFieldsLikeTheWebResolver()
+        {
+            JObject fixture = JObject.Parse(
+                NeoAnimationFrameResolutionParityFixture.Json);
+            var compositions = (JArray)fixture["partialCompositions"]!;
+            Assert.Greater(compositions.Count, 0, "partialCompositions went missing.");
+
+            var kinds = new HashSet<string>(StringComparer.Ordinal);
+            bool anyUndeclared = false;
+            foreach (JObject composition in compositions.OfType<JObject>())
+            {
+                string kindName = composition.Value<string>("kind")!;
+                string label = $"{kindName}: {composition.Value<string>("label")}";
+                var current = (JObject)composition["current"]!;
+                var fields = (JObject)composition["fields"]!;
+                var expected = (JObject)composition["composed"]!;
+                bool authored = composition.Value<bool>("authored");
+                kinds.Add(kindName);
+                anyUndeclared = anyUndeclared || fields
+                    .Properties()
+                    .Any(field => current.Property(field.Name) is null);
+
+                NeoAnimationLeafKind kind = ParityLeafKind(kindName);
+                object? composed = NeoAnimationLeafFields.Compose(
+                    kind,
+                    ParityLeafFields(kind, fields),
+                    ParityLeafRow(kind, current),
+                    out string? skipReason);
+                Assert.IsNull(skipReason, label);
+                Assert.IsNotNull(composed, label);
+                AssertLeafMatches(expected, DescribeComposedLeaf(composed!), label);
+
+                // The harness's own merge must reach the same answer, or the
+                // frame vectors above and these cases are describing two
+                // different runtimes.
+                JToken? merged = MergeFixtureValue(
+                    current.DeepClone(),
+                    new JObject
+                    {
+                        [NeoJson.NeoPartialLeafValue
+                            .EnvelopeKey] = fields.DeepClone(),
+                    });
+                Assert.IsTrue(
+                    JToken.DeepEquals(expected, merged),
+                    $"{label}: harness merge produced {merged}");
+
+                // An empty envelope is the "no change" form, and the compiler
+                // drops it before it can claim a frame — see
+                // `NeoAnimationFieldOverrideTests.ParityFixture_EmptyEnvelopeAuthorsNoWrite`
+                // for that half against the real compiler.
+                var envelope = new JObject
+                {
+                    [NeoJson.NeoPartialLeafValue
+                        .EnvelopeKey] = fields.DeepClone(),
+                };
+                Assert.AreEqual(
+                    authored,
+                    !NeoJson.NeoPartialLeafValue
+                        .FromEnvelope(envelope).IsEmpty,
+                    label);
+            }
+
+            Assert.IsTrue(
+                anyUndeclared,
+                "No fixture case writes a field the leaf does not carry, so the "
+                + "section no longer pins the rule it exists for.");
+            Assert.AreEqual(
+                6,
+                kinds.Count,
+                "P42 section 7.1 wants every case across all six structured-leaf kinds.");
+        }
+
+        private static NeoAnimationLeafKind ParityLeafKind(string kindName)
+        {
+            return kindName switch
+            {
+                "Sprite" => NeoAnimationLeafKind.Sprite,
+                "Vector2" => NeoAnimationLeafKind.Vector2,
+                "Vector2Int" => NeoAnimationLeafKind.Vector2Int,
+                "Vector3" => NeoAnimationLeafKind.Vector3,
+                "Vector3Int" => NeoAnimationLeafKind.Vector3Int,
+                "Color" => NeoAnimationLeafKind.Color,
+                _ => throw new AssertionException(
+                    $"The fixture names kind '{kindName}', which is not a structured leaf kind."),
+            };
+        }
+
+        /// <summary>
+        /// Builds the field list the composer receives, deliberately WITHOUT
+        /// going through <see cref="NeoAnimationLeafFields.Compile"/>: Compile
+        /// rejects an undeclared key at export-validation time, which is the
+        /// first layer and is asserted separately. These cases are about the
+        /// second layer — what the composer does with a field list that
+        /// reached apply time anyway.
+        /// </summary>
+        private static List<NeoAnimationLeafFieldValue> ParityLeafFields(
+            NeoAnimationLeafKind kind,
+            JObject fields)
+        {
+            var compiled = new List<NeoAnimationLeafFieldValue>(fields.Count);
+            foreach (JProperty field in fields.Properties())
+            {
+                bool isFileId = kind == NeoAnimationLeafKind.Sprite
+                    && string.Equals(
+                        field.Name,
+                        NeoAnimationLeafFields.FileIdKey,
+                        StringComparison.Ordinal);
+                compiled.Add(isFileId
+                    ? NeoAnimationLeafFieldValue.OfText(
+                        field.Name, field.Value.Value<string>())
+                    : NeoAnimationLeafFieldValue.OfNumber(
+                        field.Name, field.Value.Value<double>()));
+            }
+            return compiled;
+        }
+
+        private static NeoJson.MemberValue ParityLeafRow(NeoAnimationLeafKind kind, JObject current)
+        {
+            switch (kind)
+            {
+                case NeoAnimationLeafKind.Sprite:
+                    return new NeoJson.SpriteMemberValue
+                    {
+                        value = new NeoJson.SpriteValue
+                        {
+                            fileId = current.Value<string>("fileId")!,
+                            sliceIndex = current.Value<int>("sliceIndex"),
+                        },
+                    };
+                case NeoAnimationLeafKind.Vector2:
+                case NeoAnimationLeafKind.Vector2Int:
+                    return new NeoJson.Vector2MemberValue
+                    {
+                        value = new NeoJson.NeoVector2Value
+                        {
+                            x = current.Value<float>("x"),
+                            y = current.Value<float>("y"),
+                        },
+                    };
+                case NeoAnimationLeafKind.Vector3:
+                case NeoAnimationLeafKind.Vector3Int:
+                    return new NeoJson.Vector3MemberValue
+                    {
+                        value = new NeoJson.NeoVector3Value
+                        {
+                            x = current.Value<float>("x"),
+                            y = current.Value<float>("y"),
+                            z = current.Value<float>("z"),
+                        },
+                    };
+                default:
+                    return new NeoJson.ColorMemberValue
+                    {
+                        value = new NeoJson.NeoColorValue
+                        {
+                            r = current.Value<float>("r"),
+                            g = current.Value<float>("g"),
+                            b = current.Value<float>("b"),
+                            a = current.Value<float>("a"),
+                        },
+                    };
+            }
+        }
+
+        /// <summary>
+        /// The composed value as a JSON record, so the fixture's expectation
+        /// can be compared key by key. <see cref="NeoJson.NeoVector3Value"/> derives
+        /// from <see cref="NeoJson.NeoVector2Value"/>, so it has to be matched first.
+        /// </summary>
+        private static JObject DescribeComposedLeaf(object composed)
+        {
+            switch (composed)
+            {
+                case NeoJson.SpriteValue sprite:
+                    return new JObject
+                    {
+                        ["fileId"] = sprite.fileId,
+                        ["sliceIndex"] = sprite.sliceIndex,
+                    };
+                case NeoJson.NeoVector3Value vector3:
+                    return new JObject
+                    {
+                        ["x"] = vector3.x,
+                        ["y"] = vector3.y,
+                        ["z"] = vector3.z,
+                    };
+                case NeoJson.NeoVector2Value vector2:
+                    return new JObject { ["x"] = vector2.x, ["y"] = vector2.y };
+                case NeoJson.NeoColorValue color:
+                    return new JObject
+                    {
+                        ["r"] = color.r,
+                        ["g"] = color.g,
+                        ["b"] = color.b,
+                        ["a"] = color.a,
+                    };
+                default:
+                    throw new AssertionException(
+                        $"Composed an unexpected leaf type '{composed.GetType().Name}'.");
+            }
+        }
+
+        /// <summary>
+        /// Compares key by key rather than with <c>DeepEquals</c>: the fixture
+        /// writes whole components as JSON integers and the composer produces
+        /// floats, and <c>DeepEquals</c> calls those two different values.
+        /// </summary>
+        private static void AssertLeafMatches(JObject expected, JObject actual, string label)
+        {
+            Assert.AreEqual(expected.Count, actual.Count, $"{label}: key count");
+            foreach (JProperty property in expected.Properties())
+            {
+                JToken? got = actual[property.Name];
+                Assert.IsNotNull(got, $"{label}: composed leaf has no '{property.Name}'");
+                if (property.Value.Type == JTokenType.String)
+                {
+                    Assert.AreEqual(
+                        property.Value.Value<string>(),
+                        got!.Value<string>(),
+                        $"{label}: {property.Name}");
+                    continue;
+                }
+                Assert.AreEqual(
+                    property.Value.Value<double>(),
+                    got!.Value<double>(),
+                    1e-5,
+                    $"{label}: {property.Name}");
+            }
         }
 
         private static void AssertParityResolvedFrames(
@@ -735,6 +990,12 @@ namespace NeoCompose.Tests
                 var patched = (JObject)leaf.DeepClone();
                 foreach (JProperty field in partialFields.Properties())
                 {
+                    // A field write can only overwrite a key the leaf already
+                    // carries. A valid whole leaf carries every field its kind
+                    // declares, so "already present" and "declared by the kind"
+                    // name the same set — and this mirror needs no kind, just
+                    // like the web `applyStructuredLeafPartial` it copies.
+                    if (leaf.Property(field.Name) is null) continue;
                     patched[field.Name] = field.Value.DeepClone();
                 }
                 return patched;
@@ -767,7 +1028,7 @@ namespace NeoCompose.Tests
             if (value is not JObject envelope) return null;
             if (envelope.Count != 1) return null;
             return envelope[
-                global::NeoCompose.Runtime.Json.NeoPartialLeafValue.EnvelopeKey]
+                NeoJson.NeoPartialLeafValue.EnvelopeKey]
                 as JObject;
         }
 

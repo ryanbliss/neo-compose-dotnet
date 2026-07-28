@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
@@ -17,10 +18,12 @@ namespace NeoCompose.Tests
     ///
     /// <para>These stand up a hand-built project carrying an actual animation
     /// clip and drive <see cref="NeoAnimationCompiler"/> and the compiled
-    /// writes it produces. The P29 cross-runtime parity fixture is deliberately
-    /// not used: its harness re-implements frame resolution over JObjects and
-    /// never touches the compiler, so it cannot observe any of the behaviour
-    /// this spec changes.</para>
+    /// writes it produces. The parity fixture's frame-resolution vectors are
+    /// deliberately not used: that harness re-implements frame resolution over
+    /// JObjects and never touches the compiler, so it cannot observe any of the
+    /// behaviour this spec changes. Its <c>partialCompositions</c> section is
+    /// the exception and is driven from here — those cases are statements about
+    /// what the compiler emits, which is exactly what this file can see.</para>
     /// </summary>
     public class NeoAnimationFieldOverrideTests
     {
@@ -349,6 +352,101 @@ namespace NeoCompose.Tests
             AssertSprite(client, "a-sprite", "sheet-a", 0);
         }
 
+        /// <summary>
+        /// The cross-runtime `partialCompositions` cases, run through the REAL
+        /// compiler rather than through the fixture harness's JObject mirror.
+        /// Two separate claims, and the fixture states both:
+        ///
+        /// <list type="bullet">
+        /// <item><c>authored</c> — an empty envelope produces NO write, so it
+        /// can never become the frame the leaf's value is attributed to, while
+        /// a declared field write produces exactly one. This is the .NET half
+        /// of the web resolver's "skip the empty envelope at collection".</item>
+        /// <item>An undeclared field is refused by name at export validation,
+        /// which is the layer an author hears about. The composer's ignore rule
+        /// (asserted in <c>NeoAnimationClipTests</c>) is the second layer, for
+        /// a field list that reaches apply time anyway.</item>
+        /// </list>
+        ///
+        /// <para>This is the one place the parity fixture and the compiler
+        /// meet: the frame-resolution vectors cannot, because their harness
+        /// re-implements resolution over JObjects, but these cases are about
+        /// what the compiler emits and so they can.</para>
+        /// </summary>
+        [Test]
+        public void ParityFixture_EmptyEnvelopeAuthorsNoWriteAndUndeclaredFieldsAreRefused()
+        {
+            var fixture = Newtonsoft.Json.Linq.JObject.Parse(
+                NeoAnimationFrameResolutionParityFixture.Json);
+            var compositions =
+                (Newtonsoft.Json.Linq.JArray)fixture["partialCompositions"]!;
+            int compiled = 0;
+            int refused = 0;
+            int silent = 0;
+
+            foreach (Newtonsoft.Json.Linq.JObject composition in compositions
+                         .OfType<Newtonsoft.Json.Linq.JObject>())
+            {
+                string kindName = composition.Value<string>("kind")!;
+                string label = $"{kindName}: {composition.Value<string>("label")}";
+                var current = (Newtonsoft.Json.Linq.JObject)composition["current"]!;
+                var fields = (Newtonsoft.Json.Linq.JObject)composition["fields"]!;
+                bool authored = composition.Value<bool>("authored");
+                string memberName = ParityMemberName(kindName);
+                string envelope = fields.ToString(Formatting.None);
+
+                if (fields.Properties().Any(field => current.Property(field.Name) is null))
+                {
+                    var error = Assert.Throws<System.InvalidOperationException>(() =>
+                        BuildClient(Frame(0, (memberName, PartialRow(envelope)))));
+                    StringAssert.Contains(
+                        "which is not a field of a",
+                        error!.Message,
+                        label);
+                    refused += 1;
+                    continue;
+                }
+
+                using NeoClient client = BuildClient(
+                    Frame(0, (memberName, PartialRow(envelope))));
+                using var target = OpenPlacement(client, "PlacementA");
+                NeoAnimationDefinition definition =
+                    NeoAnimationCompiler.Compile(target, "Idle");
+
+                Assert.AreEqual(
+                    authored ? 1 : 0,
+                    definition.SparseWritesForFrame(0).Length,
+                    label);
+                compiled += 1;
+                if (!authored) silent += 1;
+            }
+
+            Assert.Greater(compiled, 0, "No fixture case reached the compiler.");
+            Assert.Greater(silent, 0, "No fixture case carries an empty envelope.");
+            Assert.Greater(refused, 0, "No fixture case carries an undeclared field.");
+        }
+
+        /// <summary>
+        /// Which member of this file's hand-built target class stands for each
+        /// structured-leaf kind. Declared rather than inferred: the whole point
+        /// of decision D1's envelope is that a record's shape does not name its
+        /// kind.
+        /// </summary>
+        private static string ParityMemberName(string kindName)
+        {
+            return kindName switch
+            {
+                "Sprite" => "Sprite",
+                "Vector2" => "Offset",
+                "Vector2Int" => "Grid",
+                "Vector3" => "Position",
+                "Vector3Int" => "Cell",
+                "Color" => "Tint",
+                _ => throw new AssertionException(
+                    $"The fixture names kind '{kindName}', which is not a structured leaf kind."),
+            };
+        }
+
         [Test]
         public void Payload_RefusesBothPathSegmentShapesByName()
         {
@@ -577,7 +675,9 @@ namespace NeoCompose.Tests
                     ["Sprite"] = "sprite-member",
                     ["Locked"] = "locked-member",
                     ["Position"] = "position-member",
+                    ["Offset"] = "offset-member",
                     ["Grid"] = "grid-member",
+                    ["Cell"] = "cell-member",
                     ["Tint"] = "tint-member",
                     ["Count"] = "count-member",
                     ["Idle"] = "idle-member",
@@ -679,6 +779,22 @@ namespace NeoCompose.Tests
                 projectId = project,
                 name = "Position",
                 kind = MemberKind.Vector3,
+                storage = "save",
+            };
+            members["offset-member"] = new Vector2Member
+            {
+                id = "offset-member",
+                projectId = project,
+                name = "Offset",
+                kind = MemberKind.Vector2,
+                storage = "save",
+            };
+            members["cell-member"] = new Vector3IntMember
+            {
+                id = "cell-member",
+                projectId = project,
+                name = "Cell",
+                kind = MemberKind.Vector3Int,
                 storage = "save",
             };
             members["grid-member"] = new Vector2IntMember
@@ -827,6 +943,16 @@ namespace NeoCompose.Tests
                 id = $"{suffix}-position",
                 value = new NeoVector3Value { x = 0f, y = 0f, z = 0f },
             };
+            values[$"{suffix}-offset"] = new Vector2MemberValue
+            {
+                id = $"{suffix}-offset",
+                value = new NeoVector2Value { x = 0f, y = 0f },
+            };
+            values[$"{suffix}-cell"] = new Vector3MemberValue
+            {
+                id = $"{suffix}-cell",
+                value = new NeoVector3Value { x = 0f, y = 0f, z = 0f },
+            };
             values[$"{suffix}-grid"] = new Vector2MemberValue
             {
                 id = $"{suffix}-grid",
@@ -848,7 +974,9 @@ namespace NeoCompose.Tests
                     ["Sprite"] = $"{suffix}-sprite",
                     ["Locked"] = $"{suffix}-locked",
                     ["Position"] = $"{suffix}-position",
+                    ["Offset"] = $"{suffix}-offset",
                     ["Grid"] = $"{suffix}-grid",
+                    ["Cell"] = $"{suffix}-cell",
                     ["Tint"] = $"{suffix}-tint",
                     ["Count"] = $"{suffix}-count",
                 });

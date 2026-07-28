@@ -152,6 +152,18 @@
 
 ### Fixed
 
+- **An unrecognised `$partial` field could land on the wrong component.** The
+  animation composer matched the first key or two of each leaf kind and let
+  everything else fall through to the last one, so a field write carrying a
+  key the kind does not declare — `z` on a `Vector2`, `q` on a `Color` —
+  composed a value nobody authored (`y = 5`, `a = 0`) rather than being
+  ignored. Export validation already refuses such a key by name, so this was
+  only reachable for a field list that got past it; the composer now drops any
+  key the leaf does not carry, matching the web resolver's
+  `applyStructuredLeafPartial` rule. The cross-runtime frame fixture gained a
+  `partialCompositions` section that pins the composed value, and the
+  authorship of an empty `{"$partial": {}}`, on both runtimes.
+
 - **A leaf write notified subscribers twice.** `NeoMemberColorWritable.Set`
   and its siblings for every other leaf kind called `NotifyChanged()` after
   `client.SetWritableValue` — which had already delivered the notification to

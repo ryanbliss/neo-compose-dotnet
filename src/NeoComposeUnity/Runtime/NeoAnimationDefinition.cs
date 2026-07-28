@@ -266,6 +266,137 @@ namespace NeoCompose.Runtime
             }
             return compiled;
         }
+
+        /// <summary>
+        /// P42 §1.2/§1.4: composes <paramref name="fields"/> onto the leaf's
+        /// value <b>as it stands</b> in <paramref name="current"/> and returns
+        /// the whole composed value. Returns null when there is nothing to
+        /// merge into — §1.4's "null leaf at apply time" — with
+        /// <paramref name="skipReason"/> saying so, because inventing a base
+        /// value is the one thing a field write must never do.
+        ///
+        /// <para>A field the composed leaf does not carry is <b>ignored</b>,
+        /// never applied. This mirrors the web resolver's
+        /// <c>applyStructuredLeafPartial</c> ("a field write can only overwrite
+        /// a key the leaf already carries") and it is the reason every case
+        /// below matches its own keys explicitly instead of falling through to
+        /// a last component: an unrecognised key smeared onto <c>y</c>,
+        /// <c>z</c>, <c>a</c>, or <c>sliceIndex</c> would compose a value the
+        /// author never wrote, which is worse in every way than composing
+        /// nothing. Applying it is not an option either — every whole-leaf
+        /// guard is exact-keyed, so the result would be a record no value
+        /// guard accepts and the CLI refuses to emit back to source.</para>
+        ///
+        /// <para><see cref="Compile"/> already rejects an unrecognised key at
+        /// export-validation time, which is where an author gets told. This is
+        /// the second layer, for field lists that reach apply time anyway.</para>
+        /// </summary>
+        internal static object? Compose(
+            NeoAnimationLeafKind kind,
+            IReadOnlyList<NeoAnimationLeafFieldValue> fields,
+            MemberValue? current,
+            out string? skipReason)
+        {
+            skipReason = null;
+            switch (kind)
+            {
+                case NeoAnimationLeafKind.Sprite:
+                {
+                    if (current is not SpriteMemberValue spriteRow || spriteRow.value is null)
+                    {
+                        skipReason = NullLeafSkipReason;
+                        return null;
+                    }
+                    var composed = new SpriteValue
+                    {
+                        fileId = spriteRow.value.fileId,
+                        sliceIndex = spriteRow.value.sliceIndex,
+                    };
+                    foreach (NeoAnimationLeafFieldValue field in fields)
+                    {
+                        if (Is(field, FileIdKey)) composed.fileId = field.Text!;
+                        else if (Is(field, SliceIndexKey)) composed.sliceIndex = (int)field.Number;
+                    }
+                    return composed;
+                }
+                case NeoAnimationLeafKind.Vector2:
+                case NeoAnimationLeafKind.Vector2Int:
+                {
+                    if (current is not Vector2MemberValue vector2Row || vector2Row.value is null)
+                    {
+                        skipReason = NullLeafSkipReason;
+                        return null;
+                    }
+                    var composed = new NeoVector2Value
+                    {
+                        x = vector2Row.value.x,
+                        y = vector2Row.value.y,
+                    };
+                    foreach (NeoAnimationLeafFieldValue field in fields)
+                    {
+                        if (Is(field, "x")) composed.x = (float)field.Number;
+                        else if (Is(field, "y")) composed.y = (float)field.Number;
+                    }
+                    return composed;
+                }
+                case NeoAnimationLeafKind.Vector3:
+                case NeoAnimationLeafKind.Vector3Int:
+                {
+                    if (current is not Vector3MemberValue vector3Row || vector3Row.value is null)
+                    {
+                        skipReason = NullLeafSkipReason;
+                        return null;
+                    }
+                    var composed = new NeoVector3Value
+                    {
+                        x = vector3Row.value.x,
+                        y = vector3Row.value.y,
+                        z = vector3Row.value.z,
+                    };
+                    foreach (NeoAnimationLeafFieldValue field in fields)
+                    {
+                        if (Is(field, "x")) composed.x = (float)field.Number;
+                        else if (Is(field, "y")) composed.y = (float)field.Number;
+                        else if (Is(field, "z")) composed.z = (float)field.Number;
+                    }
+                    return composed;
+                }
+                case NeoAnimationLeafKind.Color:
+                {
+                    if (current is not ColorMemberValue colorRow || colorRow.value is null)
+                    {
+                        skipReason = NullLeafSkipReason;
+                        return null;
+                    }
+                    var composed = new NeoColorValue
+                    {
+                        r = colorRow.value.r,
+                        g = colorRow.value.g,
+                        b = colorRow.value.b,
+                        a = colorRow.value.a,
+                    };
+                    foreach (NeoAnimationLeafFieldValue field in fields)
+                    {
+                        if (Is(field, "r")) composed.r = (float)field.Number;
+                        else if (Is(field, "g")) composed.g = (float)field.Number;
+                        else if (Is(field, "b")) composed.b = (float)field.Number;
+                        else if (Is(field, "a")) composed.a = (float)field.Number;
+                    }
+                    return composed;
+                }
+                default:
+                    skipReason = "its member kind has no addressable fields";
+                    return null;
+            }
+        }
+
+        internal const string NullLeafSkipReason =
+            "its current value is null, so there is no record to merge the field into";
+
+        private static bool Is(NeoAnimationLeafFieldValue field, string key)
+        {
+            return string.Equals(field.Key, key, StringComparison.Ordinal);
+        }
     }
 
     /// <summary>
@@ -429,6 +560,12 @@ namespace NeoCompose.Runtime
             var snapshot = new List<NeoAnimationLeafFieldValue>(fieldKeys.Count);
             foreach (string key in fieldKeys)
             {
+                // Same rule the compose side applies: a key the leaf does not
+                // carry is ignored, so there is nothing to snapshot or restore
+                // for it either. Without this the fallback below would read —
+                // and later re-assert — whichever component the reader's last
+                // branch happens to name.
+                if (!NeoAnimationLeafFields.IsLegalKey(fieldKind, key)) continue;
                 if (!TryReadCurrentField(current, key, out NeoAnimationLeafFieldValue value))
                 {
                     return null;
@@ -500,147 +637,24 @@ namespace NeoCompose.Runtime
         /// Read-modify-write against the leaf's value <b>as it stands right
         /// now</b> (P42 §1.4). Returns null when the write must be skipped, with
         /// <paramref name="skipReason"/> describing why.
+        /// <para>The merge itself lives on <see cref="NeoAnimationLeafFields"/>
+        /// because it is a pure function of (kind, fields, current row) and the
+        /// cross-runtime fixture asserts it directly. The slice-count check
+        /// stays here: it needs this write's client and asset database.</para>
         /// </summary>
         private object? ComposeFieldValue(out string? skipReason)
         {
-            skipReason = null;
-            MemberValue? current = ReadCurrentLeafRow();
-            switch (fieldKind)
-            {
-                case NeoAnimationLeafKind.Sprite:
-                {
-                    if (current is not SpriteMemberValue spriteRow || spriteRow.value is null)
-                    {
-                        skipReason = NullLeafSkipReason;
-                        return null;
-                    }
-                    var composed = new SpriteValue
-                    {
-                        fileId = spriteRow.value.fileId,
-                        sliceIndex = spriteRow.value.sliceIndex,
-                    };
-                    foreach (NeoAnimationLeafFieldValue field in fields!)
-                    {
-                        if (string.Equals(
-                                field.Key,
-                                NeoAnimationLeafFields.FileIdKey,
-                                StringComparison.Ordinal))
-                        {
-                            composed.fileId = field.Text!;
-                        }
-                        else
-                        {
-                            composed.sliceIndex = (int)field.Number;
-                        }
-                    }
-                    if (!SliceIndexIsWithinResolvedFile(composed))
-                    {
-                        skipReason =
-                            $"slice index {composed.sliceIndex} is outside the slice count of file '{composed.fileId}'";
-                        return null;
-                    }
-                    return composed;
-                }
-                case NeoAnimationLeafKind.Vector2:
-                case NeoAnimationLeafKind.Vector2Int:
-                {
-                    if (current is not Vector2MemberValue vector2Row || vector2Row.value is null)
-                    {
-                        skipReason = NullLeafSkipReason;
-                        return null;
-                    }
-                    var composed = new NeoVector2Value
-                    {
-                        x = vector2Row.value.x,
-                        y = vector2Row.value.y,
-                    };
-                    foreach (NeoAnimationLeafFieldValue field in fields!)
-                    {
-                        if (string.Equals(field.Key, "x", StringComparison.Ordinal))
-                        {
-                            composed.x = (float)field.Number;
-                        }
-                        else
-                        {
-                            composed.y = (float)field.Number;
-                        }
-                    }
-                    return composed;
-                }
-                case NeoAnimationLeafKind.Vector3:
-                case NeoAnimationLeafKind.Vector3Int:
-                {
-                    if (current is not Vector3MemberValue vector3Row || vector3Row.value is null)
-                    {
-                        skipReason = NullLeafSkipReason;
-                        return null;
-                    }
-                    var composed = new NeoVector3Value
-                    {
-                        x = vector3Row.value.x,
-                        y = vector3Row.value.y,
-                        z = vector3Row.value.z,
-                    };
-                    foreach (NeoAnimationLeafFieldValue field in fields!)
-                    {
-                        if (string.Equals(field.Key, "x", StringComparison.Ordinal))
-                        {
-                            composed.x = (float)field.Number;
-                        }
-                        else if (string.Equals(field.Key, "y", StringComparison.Ordinal))
-                        {
-                            composed.y = (float)field.Number;
-                        }
-                        else
-                        {
-                            composed.z = (float)field.Number;
-                        }
-                    }
-                    return composed;
-                }
-                case NeoAnimationLeafKind.Color:
-                {
-                    if (current is not ColorMemberValue colorRow || colorRow.value is null)
-                    {
-                        skipReason = NullLeafSkipReason;
-                        return null;
-                    }
-                    var composed = new NeoColorValue
-                    {
-                        r = colorRow.value.r,
-                        g = colorRow.value.g,
-                        b = colorRow.value.b,
-                        a = colorRow.value.a,
-                    };
-                    foreach (NeoAnimationLeafFieldValue field in fields!)
-                    {
-                        if (string.Equals(field.Key, "r", StringComparison.Ordinal))
-                        {
-                            composed.r = (float)field.Number;
-                        }
-                        else if (string.Equals(field.Key, "g", StringComparison.Ordinal))
-                        {
-                            composed.g = (float)field.Number;
-                        }
-                        else if (string.Equals(field.Key, "b", StringComparison.Ordinal))
-                        {
-                            composed.b = (float)field.Number;
-                        }
-                        else
-                        {
-                            composed.a = (float)field.Number;
-                        }
-                    }
-                    return composed;
-                }
-                default:
-                    skipReason = "its member kind has no addressable fields";
-                    return null;
-            }
+            object? composed = NeoAnimationLeafFields.Compose(
+                fieldKind,
+                fields!,
+                ReadCurrentLeafRow(),
+                out skipReason);
+            if (composed is not SpriteValue sprite) return composed;
+            if (SliceIndexIsWithinResolvedFile(sprite)) return sprite;
+            skipReason =
+                $"slice index {sprite.sliceIndex} is outside the slice count of file '{sprite.fileId}'";
+            return null;
         }
-
-        private const string NullLeafSkipReason =
-            "its current value is null, so there is no record to merge the field into";
 
         private bool TryReadCurrentField(
             MemberValue? current,
@@ -1604,7 +1618,15 @@ namespace NeoCompose.Runtime
                     EnsureEligibleCompiledLeaf(child, ownership, where);
                     List<NeoAnimationLeafFieldValue> compiledFields =
                         NeoAnimationLeafFields.Compile(leafKind, partialFields, where);
-                    // `{"$partial":{}}` is the wire form of "no change".
+                    // `{"$partial":{}}` is the wire form of "no change", so it
+                    // produces NO write at all — it must never become the frame
+                    // the leaf's value is attributed to. Emitting an empty
+                    // write would compose an identical value and then hand this
+                    // frame the leaf's resolved-state slot (and, on a leaf the
+                    // clip only field-addresses, a root snapshot), so a frame
+                    // that authored nothing would read as the one that did.
+                    // The web resolver skips it at collection for exactly this
+                    // reason (`resolveSparseValueAtPath`).
                     if (compiledFields.Count == 0) continue;
                     EnsurePlacementPathIsIsolated(
                         client,
