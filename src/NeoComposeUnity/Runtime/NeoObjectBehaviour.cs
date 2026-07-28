@@ -25,6 +25,14 @@ namespace NeoCompose.Runtime
         /// data changes despawn and respawn the GameObject, so this can run
         /// again with a fresh <see cref="NeoObjectBehaviour"/> for the same
         /// <see cref="NeoObjectBehaviour.InstanceId"/>.
+        /// <para>
+        /// The whole subtree is still active when this runs, including objects
+        /// whose <see cref="INeoWorldObjectValue.Enabled"/> is false — the
+        /// renderer applies visibility only after this returns. A
+        /// <c>GetComponentsInChildren</c> here therefore sees every layer the
+        /// composition built, hidden ones included, without passing
+        /// <c>includeInactive</c>.
+        /// </para>
         /// </summary>
         void OnObjectSpawned(NeoObjectBehaviour behaviour);
 

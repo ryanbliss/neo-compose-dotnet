@@ -2,6 +2,85 @@
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-07-28
+
+### Breaking
+
+- `INeoWorldObjectValue` gains `bool Enabled`. Every generated world object
+  implements this interface, so a `NeoGeneratedTypes.cs` generated before P41
+  **will not compile** on this version — this is a harder break than P40's,
+  which degraded silently. Re-export projects and regenerate their C# types
+  after upgrading.
+- The project export schema version moves from 12 to 13. `NeoClient` requires
+  an exact match, so an export produced before P41 is rejected with a clear
+  message rather than loading and drawing objects that should be hidden.
+
+### Added
+
+- Optional object children. `NeoObjectBase` carries an `Enabled` bool
+  defaulting to true; when false, the object and its whole subtree are
+  deactivated and contribute no collider. The renderer still **builds** the
+  subtree rather than skipping or destroying it, so a runtime `Enabled` write
+  toggles it straight back on, and a clip playing on or through a disabled
+  object keeps running and keeps writing values. Disabling a nested part hides
+  its subtree regardless of each child's own value, and re-enabling restores
+  exactly what was there.
+
+  This is what an empty equipment slot is made of: author the slot once, hide
+  it when nothing is equipped, and never write to `Children` at runtime — so
+  the authored graph a clip validates against and the graph the player resolves
+  against stay identical.
+
+  `INeoObjectSpawnHooks.OnObjectSpawned` still observes a fully-built, fully
+  **active** subtree: the renderer applies visibility to the placed root *and*
+  every composition child only after the hook returns, so a
+  `GetComponentsInChildren` in a spawn hook sees hidden layers too, without
+  passing `includeInactive`.
+
+  The value model is now the single source of truth for visibility, the same
+  way it already was for `Position`. Calling `SetActive` directly on a
+  renderer-spawned object is reverted the next time that object's own `Enabled`
+  changes; write `Enabled` instead. Code that hid renderer-spawned objects by
+  hand before P41 — which was the only option, since the renderer never called
+  `SetActive` — needs to move to `Enabled`.
+
+  Reconciling is scoped to writes that can carry an `Enabled`, so a placement's
+  own `Position`, `Size`, or `Sprite` write — and therefore every frame of a
+  clip animating the placement itself — costs no visibility work at all. A
+  write that reaches the placement through its `Children` still reconciles, but
+  compares one bool per object value rather than round-tripping every
+  GameObject: a 400-tile layer-link child is one comparison, not 400.
+
+  One edge stays as it was, and it is worth stating precisely: a composition
+  part that renders nothing at all — an empty `Children` list, or a subtree cut
+  short by the composition depth limit or a cycle — is still destroyed rather
+  than kept, and does **not** count towards its parent's rendered children. The
+  consequence to watch is the parent, not the part: an object whose only child
+  is such a part falls back to drawing its own root sprite, exactly as if it
+  had no composition at all. A part whose children are merely *disabled* is
+  unaffected — those children are built and deactivated, so the part counts as
+  rendered, survives, and suppresses the parent's sprite fallback.
+
+### Changed
+
+- An animation `ChildOverride` or `ChildTrack` naming a child that no placed
+  `Children` row carries is now **skipped** with a single warning logged at
+  clip-compile time, instead of throwing. The warning is deduped per
+  (clip, reference) on the client — not per placement, and not once more per
+  parent for a shared child clip — so fifty placements missing the same
+  optional slot log once between them rather than fifty times. A full clip-cache
+  invalidation resets the dedup, so a genuine re-compile reports again.
+  Skipping is scoped to that one reference: the frame's other
+  overrides, its own `Overrides`, and its actions all still apply, and a clip
+  with one unresolvable track still plays every other track. A skipped track is
+  excluded from the `StartFrame + childLength <= Duration` fit check, since
+  there is no child clip to fit.
+
+  Ambiguity (a source child matching more than one placed row) and legacy
+  pre-0.7 placements (rows without `sourceValueId` provenance) still throw —
+  those are data errors, not absent slots. Export and CLI push validation of
+  authored clip graphs is unchanged and still strict.
+
 ## [0.9.0] - 2026-07-27
 
 ### Breaking

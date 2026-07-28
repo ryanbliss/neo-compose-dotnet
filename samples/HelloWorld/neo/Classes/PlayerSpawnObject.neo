@@ -24,6 +24,7 @@ class PlayerSpawnObject : ConsoleObject {
       MaskInteraction = .None,
       Name = "",
       Sprite = Images.PlayerSpawnObject.Slice(0),
+      Enabled = true,
       Position = new(0, 0, 0),
       Size = new(1, 1, 0)
     }

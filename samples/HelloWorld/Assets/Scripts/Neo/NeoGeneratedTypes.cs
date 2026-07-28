@@ -1275,6 +1275,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
@@ -1292,6 +1294,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
@@ -1315,6 +1318,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
@@ -2017,12 +2021,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public RecoveryCacheObject(IEnumerable<NeoObjectBase>? Children = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Children, Name, PlacementTiles, RecoveryCache, Collider, Position, Size), false, NeoValueOwnership.Session)
+        public RecoveryCacheObject(IEnumerable<NeoObjectBase>? Children = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Children, Name, PlacementTiles, RecoveryCache, Collider, Enabled, Position, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<NeoObjectBase>? Children = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<NeoObjectBase>? Children = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -2033,6 +2037,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "d8e9ad0e-157f-4709-96a7-8775efa3dd11", PlacementTiles),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("RecoveryCache", "47466be3-368c-4ac1-8c0e-7a825af6b538", RecoveryCache),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "94472662-a3a9-4c02-8abb-6229442e1e49", Collider),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size)
             );
@@ -2217,6 +2222,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
@@ -2231,6 +2238,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.PlacementTiles] = () => null,
                 [Fields.RecoveryCache] = () => null,
                 [Fields.Collider] = () => null,
+                [Fields.Enabled] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
             };
@@ -2255,6 +2263,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.RecoveryCache] = () => RecoveryCache,
                 [Fields.Collider] = () => Collider,
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
             };
@@ -2708,18 +2717,19 @@ namespace HelloWorld.Assets.Scripts.Neo
             set => FunctionHandlerObject = value;
         }
 
-        public BlockedPath(string Name, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoDialogueReference? BootGlyphSealLocked = null, NeoDialogueReference? BootGlyphSealReady = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Position, Size, Tiles, BootGlyphSealLocked, BootGlyphSealReady), false, NeoValueOwnership.Session)
+        public BlockedPath(string Name, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoDialogueReference? BootGlyphSealLocked = null, NeoDialogueReference? BootGlyphSealReady = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Enabled, Position, Size, Tiles, BootGlyphSealLocked, BootGlyphSealReady), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string Name, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoDialogueReference? BootGlyphSealLocked = null, NeoDialogueReference? BootGlyphSealReady = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string Name, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoDialogueReference? BootGlyphSealLocked = null, NeoDialogueReference? BootGlyphSealReady = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b",
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tiles", "system_98655d2b-ad0b-45e2-a901-62600b4d3a22", Tiles),
@@ -2822,6 +2832,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
@@ -2839,6 +2851,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
@@ -2862,6 +2875,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
@@ -3560,6 +3574,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
@@ -3575,6 +3591,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => null,
                 [Fields.Size] = () => null,
                 [Fields.PlacementTiles] = () => null,
+                [Fields.Enabled] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Collider] = () => null,
             };
@@ -3600,6 +3617,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => Children,
                 [Fields.Size] = () => Size,
                 [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Position] = () => Position,
                 [Fields.Collider] = () => Collider,
             };
@@ -4438,12 +4456,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public PlayerSpawnObject(string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Children, PlacementTiles, Collider, Position, Size), false, NeoValueOwnership.Session)
+        public PlayerSpawnObject(string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, bool? Enabled = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Children, PlacementTiles, Collider, Position, Enabled, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, bool? Enabled = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -4454,6 +4472,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "47c21aa5-e852-41d2-882c-b4f555aee9dd", PlacementTiles),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "e5f5125c-fe5c-46b4-9589-9c6ae6fcba19", Collider),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "2b10e854-d60a-40a7-bc4c-8aede3e5049e", Position),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size)
             );
         }
@@ -4635,6 +4654,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<NeoVector3> Size = new("Size");
         }
 
@@ -4647,6 +4668,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.PlacementTiles] = () => null,
                 [Fields.Collider] = () => null,
                 [Fields.Position] = () => null,
+                [Fields.Enabled] = () => null,
                 [Fields.Size] = () => null,
             };
         }
@@ -4670,6 +4692,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.Collider] = () => Collider,
                 [Fields.Position] = () => Position,
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Size] = () => Size,
             };
         }
@@ -6756,12 +6779,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public VaultPlaqueObject(string? Name = null, NeoDialogueReference? VaultPlaqueLocked = null, NeoDialogueReference? VaultPlaqueReward = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoCollider? Collider = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, VaultPlaqueLocked, VaultPlaqueReward, Children, PlacementTiles, Position, Size, Collider), false, NeoValueOwnership.Session)
+        public VaultPlaqueObject(string? Name = null, NeoDialogueReference? VaultPlaqueLocked = null, NeoDialogueReference? VaultPlaqueReward = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, bool? Enabled = null, NeoVector3? Size = null, NeoCollider? Collider = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, VaultPlaqueLocked, VaultPlaqueReward, Children, PlacementTiles, Position, Enabled, Size, Collider), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoDialogueReference? VaultPlaqueLocked = null, NeoDialogueReference? VaultPlaqueReward = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoCollider? Collider = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoDialogueReference? VaultPlaqueLocked = null, NeoDialogueReference? VaultPlaqueReward = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, bool? Enabled = null, NeoVector3? Size = null, NeoCollider? Collider = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -6773,6 +6796,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "c481dc1e-b5fd-4352-a76b-536cc3e17f71", Children),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "430fca56-b45a-4896-9ab2-795a3faf57f6", PlacementTiles),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "neo-tile-grid-record-relations-v1-member-f7282b53bd3722c4d54307079bf7e242", Position),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider)
             );
@@ -6958,6 +6982,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
@@ -6973,6 +6999,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => null,
                 [Fields.PlacementTiles] = () => null,
                 [Fields.Position] = () => null,
+                [Fields.Enabled] = () => null,
                 [Fields.Size] = () => null,
                 [Fields.Collider] = () => null,
             };
@@ -6998,6 +7025,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => Children,
                 [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.Position] = () => Position,
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Size] = () => Size,
                 [Fields.Collider] = () => Collider,
             };
@@ -7738,18 +7766,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public ObjectLayerLink(string Name, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Objects = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Position, Size, Objects), false, NeoValueOwnership.Session)
+        public ObjectLayerLink(string Name, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Objects = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Enabled, Position, Size, Objects), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string Name, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Objects = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string Name, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Objects = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "f1b08825-2ad0-4666-acf1-3df7ffbda64e",
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Objects", "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2", Objects)
@@ -7812,6 +7841,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
@@ -7825,6 +7856,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
@@ -7846,6 +7878,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
@@ -8033,12 +8066,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public ExitPromptObject37f67d(NeoVector3? Position = null, NeoVector3? Size = null, string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Position, Size, Name, ExitPromptRelay, ExitPromptQuiet, Children, PlacementTiles, Collider), false, NeoValueOwnership.Session)
+        public ExitPromptObject37f67d(NeoVector3? Position = null, NeoVector3? Size = null, string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, bool? Enabled = null, NeoCollider? Collider = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Position, Size, Name, ExitPromptRelay, ExitPromptQuiet, Children, PlacementTiles, Enabled, Collider), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(NeoVector3? Position = null, NeoVector3? Size = null, string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null)
+        private static NeoMemberClassWritable CreateFactoryNode(NeoVector3? Position = null, NeoVector3? Size = null, string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, bool? Enabled = null, NeoCollider? Collider = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -8051,6 +8084,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ExitPromptQuiet", "663d7511-cfc3-427c-8431-90cfc87a9813", ExitPromptQuiet),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "de93c887-ea29-49bd-bfea-a6255b8b9a54", Children),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "571a0e0b-b36c-45f3-ae9a-5fde39045c11", PlacementTiles),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider)
             );
         }
@@ -8222,6 +8256,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
         }
 
@@ -8236,6 +8272,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.ExitPromptQuiet] = () => null,
                 [Fields.Children] = () => null,
                 [Fields.PlacementTiles] = () => null,
+                [Fields.Enabled] = () => null,
                 [Fields.Collider] = () => null,
             };
         }
@@ -8261,6 +8298,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.ExitPromptQuiet] = () => ExitPromptQuiet,
                 [Fields.Children] = () => Children,
                 [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Collider] = () => Collider,
             };
         }
@@ -8300,12 +8338,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public ExitPromptObjecta26352(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoCollider? Collider = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, ExitPromptRelay, ExitPromptQuiet, Children, Size, PlacementTiles, Position, Collider), false, NeoValueOwnership.Session)
+        public ExitPromptObjecta26352(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, bool? Enabled = null, NeoVector3? Position = null, NeoCollider? Collider = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, ExitPromptRelay, ExitPromptQuiet, Children, Size, PlacementTiles, Enabled, Position, Collider), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoCollider? Collider = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, bool? Enabled = null, NeoVector3? Position = null, NeoCollider? Collider = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -8317,6 +8355,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "de93c887-ea29-49bd-bfea-a6255b8b9a54", Children),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "8e8c5ddf-6273-4440-869e-f1f9ca5dc51b", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "571a0e0b-b36c-45f3-ae9a-5fde39045c11", PlacementTiles),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider)
             );
@@ -8445,6 +8484,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
@@ -8460,6 +8501,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => null,
                 [Fields.Size] = () => null,
                 [Fields.PlacementTiles] = () => null,
+                [Fields.Enabled] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Collider] = () => null,
             };
@@ -8485,6 +8527,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => Children,
                 [Fields.Size] = () => Size,
                 [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Position] = () => Position,
                 [Fields.Collider] = () => Collider,
             };
@@ -8523,18 +8566,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public BackgroundTileLayerLink(string Name, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Position, Size, Tiles), false, NeoValueOwnership.Session)
+        public BackgroundTileLayerLink(string Name, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Enabled, Position, Size, Tiles), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string Name, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string Name, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152",
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tiles", "system_98655d2b-ad0b-45e2-a901-62600b4d3a22", Tiles)
@@ -8597,6 +8641,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
@@ -8610,6 +8656,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
@@ -8631,6 +8678,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
@@ -8911,18 +8959,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public CollisionsTileLayerLink(string Name, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Position, Size, Tiles), false, NeoValueOwnership.Session)
+        public CollisionsTileLayerLink(string Name, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Enabled, Position, Size, Tiles), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string Name, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string Name, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "neo-tile-grid-record-relations-v1-class-c0ae01529031e2de38dc078687d59140",
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tiles", "system_98655d2b-ad0b-45e2-a901-62600b4d3a22", Tiles)
@@ -8985,6 +9034,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
@@ -8998,6 +9049,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
@@ -9019,6 +9071,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
@@ -9546,12 +9599,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public ExitPromptObject987403(IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Children, Collider, Name, PlacementTiles, Position, Size, ExitPromptRelay, ExitPromptQuiet), false, NeoValueOwnership.Session)
+        public ExitPromptObject987403(IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, bool? Enabled = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Children, Collider, Name, PlacementTiles, Position, Size, ExitPromptRelay, ExitPromptQuiet, Enabled), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, bool? Enabled = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -9564,7 +9617,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "neo-tile-grid-record-relations-v1-member-df3924f038bd73f8515d31f77f04683d", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "neo-tile-grid-record-relations-v1-member-f87a1ce82507a55782cd5f947b46b5f5", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ExitPromptRelay", "5676cb8a-be0f-4f1b-adc6-7241c09f8cf5", ExitPromptRelay),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ExitPromptQuiet", "663d7511-cfc3-427c-8431-90cfc87a9813", ExitPromptQuiet)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ExitPromptQuiet", "663d7511-cfc3-427c-8431-90cfc87a9813", ExitPromptQuiet),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled)
             );
         }
 
@@ -9804,6 +9858,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoDialogueReference> ExitPromptRelay = new("ExitPromptRelay");
 
             public static readonly NeoField<NeoDialogueReference> ExitPromptQuiet = new("ExitPromptQuiet");
+
+            public static readonly NeoField<bool> Enabled = new("Enabled");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -9818,6 +9874,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Size] = () => null,
                 [Fields.ExitPromptRelay] = () => null,
                 [Fields.ExitPromptQuiet] = () => null,
+                [Fields.Enabled] = () => null,
             };
         }
 
@@ -9843,6 +9900,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Size] = () => Size,
                 [Fields.ExitPromptRelay] = () => ExitPromptRelay,
                 [Fields.ExitPromptQuiet] = () => ExitPromptQuiet,
+                [Fields.Enabled] = () => Enabled,
             };
         }
 
@@ -9947,6 +10005,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
@@ -9960,6 +10020,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
@@ -9981,6 +10042,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
@@ -11121,6 +11183,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoObjectBase writable);
 
+
+        /// <summary>
+        /// When false, this object and its children are neither rendered nor collided with. The value stays live: member writes still apply and a running animation clip keeps playing. Disabling an object hides its whole subtree regardless of each child's own value, and re-enabling it restores exactly what was there.
+        /// </summary>
+        new bool Enabled { get; }
+
         new string Name { get; }
 
         new NeoReadOnlyVector3 Position { get; }
@@ -11204,6 +11272,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         NeoReadOnlyVector3 INeoWorldObjectValue.Position => Position;
         NeoReadOnlyVector3 INeoWorldObjectValue.Size => Size;
 
+        /// <summary>
+        /// When false, this object and its children are neither rendered nor collided with. The value stays live: member writes still apply and a running animation clip keeps playing. Disabling an object hides its whole subtree regardless of each child's own value, and re-enabling it restores exactly what was there.
+        /// </summary>
+        public virtual bool Enabled
+        {
+            get
+            {
+                return node.Get<NeoMemberBool>("Enabled").value?.value ?? throw new InvalidOperationException("Required bool 'Enabled' has no value.");
+            }
+        }
+
         public virtual string Name
         {
             get
@@ -11232,6 +11311,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
@@ -11243,6 +11324,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
@@ -11263,6 +11345,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
@@ -12521,6 +12604,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
@@ -12532,6 +12617,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
@@ -12552,6 +12638,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
@@ -12663,6 +12750,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
@@ -12676,6 +12765,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
@@ -12697,6 +12787,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
@@ -12913,18 +13004,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public NeoSpriteObject(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Sprite, Name, Position, Size, FlipX, FlipY, MaskInteraction, SortingOrder), false, NeoValueOwnership.Session)
+        public NeoSpriteObject(Sprite Sprite, bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Sprite, Enabled, Name, Position, Size, FlipX, FlipY, MaskInteraction, SortingOrder), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null)
+        private static NeoMemberClassWritable CreateFactoryNode(Sprite Sprite, bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "system_d48b66ab-4d59-47e7-a25a-591fe97062de",
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "system_e9288ba9-f5a2-4485-8443-6afb155b31e0", Sprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_441cb790-a45f-4488-a5a9-6f375af6c369", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
@@ -13077,6 +13169,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
@@ -13098,6 +13192,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
@@ -13123,6 +13218,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
@@ -13773,6 +13869,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
@@ -13790,6 +13888,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
@@ -13813,6 +13912,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,

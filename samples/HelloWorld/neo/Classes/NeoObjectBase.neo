@@ -1,6 +1,12 @@
 @id("system_61b30a92-90dc-4bf8-8503-ee4f6414effc")
 @system(kind: .WorldAuthoring, worldKind: .ObjectBase)
 abstract class NeoObjectBase {
+  /// When false, this object and its children are neither rendered nor collided with. The value stays live: member writes still apply and a running animation clip keeps playing. Disabling an object hides its whole subtree regardless of each child's own value, and re-enabling it restores exactly what was there.
+  @id("system_4858148e-1c42-449d-8a03-c1601da529bd")
+  @locked
+  @system(kind: .WorldAuthoring)
+  public virtual bool Enabled = true;
+
   @id("system_b21bfd01-1234-4f49-ab6b-889f829cb148")
   @locked
   @settings(localizable: false)

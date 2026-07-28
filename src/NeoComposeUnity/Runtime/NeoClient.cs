@@ -75,6 +75,8 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, NeoMember> nodesInternal = new();
         private readonly Dictionary<string, NeoGeneratedClassValue> generatedValuesInternal = new();
         private readonly Dictionary<string, object> animationClips = new();
+        private readonly HashSet<string> reportedAnimationChildSkips =
+            new(System.StringComparer.Ordinal);
         private readonly NeoAnimationCoordinator animationCoordinator = new();
         private readonly HashSet<NeoDialogue> activeDialogues = new();
         private readonly HashSet<NeoDeferredFunctionBase> activeDirectDeferredFunctions = new();
@@ -190,6 +192,32 @@ namespace NeoCompose.Runtime
             return clip;
         }
 
+        /// <summary>
+        /// Whether a skipped animation child reference has not been reported
+        /// yet, claiming it if so. The spec's granularity is one log per
+        /// (clip, reference) — not per instance, and not once more per parent
+        /// for a shared child clip, whose nested compile bypasses the clip
+        /// cache entirely — so fifty placements missing the same optional slot
+        /// produce one warning between them.
+        /// <para>
+        /// Cleared by <see cref="InvalidateAnimationClips"/>, which drops every
+        /// compiled clip, so a genuine re-compile of the whole project reports
+        /// again. Deliberately <b>not</b> cleared by
+        /// <see cref="ReleaseAnimationClips"/>: that drops one value's clips,
+        /// and this key is not value-scoped — resetting it there would let a
+        /// single despawn mid-spawn-wave restore exactly the per-instance
+        /// warning storm the dedup exists to stop, while telling an author
+        /// nothing new about an unchanged authored graph.
+        /// </para>
+        /// </summary>
+        internal bool ShouldReportAnimationChildSkip(
+            string clipKey,
+            string sourceChildId)
+        {
+            return reportedAnimationChildSkips.Add(
+                $"{clipKey}\u001f{sourceChildId}");
+        }
+
         internal void ReleaseAnimationClips(NeoGeneratedClassValue target)
         {
             string prefix = $"{target.AnimationInstanceIdentity}\u001f";
@@ -221,6 +249,7 @@ namespace NeoCompose.Runtime
                 }
             }
             animationClips.Clear();
+            reportedAnimationChildSkips.Clear();
         }
 
         internal static void InvalidateAllAnimationClips()
@@ -475,6 +504,7 @@ namespace NeoCompose.Runtime
             }
             animationCoordinator.Dispose();
             animationClips.Clear();
+            reportedAnimationChildSkips.Clear();
             assets.Dispose();
             save.Dispose();
             session.Dispose();
@@ -972,7 +1002,7 @@ namespace NeoCompose.Runtime
 
         private static void ValidateExportSchemaVersion(ProjectExportMetadata? metadata)
         {
-            const int currentVersion = 12;
+            const int currentVersion = 13;
             if (metadata is null)
             {
                 throw new System.InvalidOperationException(
@@ -993,7 +1023,7 @@ namespace NeoCompose.Runtime
             if (data.internalRecordRelations is null)
             {
                 throw new System.InvalidOperationException(
-                    "Project export schema version 12 is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
+                    "Project export schema version 13 is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
             }
 
             var knownKinds = new HashSet<string>(System.StringComparer.Ordinal)

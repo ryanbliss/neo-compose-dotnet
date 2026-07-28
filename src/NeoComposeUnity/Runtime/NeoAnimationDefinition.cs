@@ -721,11 +721,19 @@ namespace NeoCompose.Runtime
                     "Child",
                     clipKey,
                     frameIndex);
-                NeoMemberClass placedChild = ResolvePlacedChild(
+                NeoMemberClass? placedChild = ResolvePlacedChild(
+                    target.Client,
                     target.BackingNode,
                     sourceChildId,
                     clipKey,
                     $"frame {frameIndex} child override");
+                if (placedChild is null)
+                {
+                    // Absent slot. Skipping is scoped to this one reference:
+                    // the frame's other child overrides, its own Overrides, and
+                    // its actions all still apply.
+                    continue;
+                }
                 if (!childOverride.TryGet("Overrides", out NeoMemberClass? overrides)
                     || overrides.value is null)
                 {
@@ -772,11 +780,20 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Animation clip '{clipKey}' child track '{childClipKey}' StartFrame must be non-negative; found {startFrame}.");
                 }
-                NeoMemberClass placedChild = ResolvePlacedChild(
+                NeoMemberClass? placedChild = ResolvePlacedChild(
+                    target.Client,
                     target.BackingNode,
                     sourceChildId,
                     clipKey,
                     $"child track '{childClipKey}'");
+                if (placedChild is null)
+                {
+                    // Absent slot. Skipping before the fit check below is what
+                    // excludes this track from `StartFrame + childLength <=
+                    // Duration`: there is no child clip to fit. Every other
+                    // track on this clip still compiles and plays.
+                    continue;
+                }
                 if (string.IsNullOrWhiteSpace(placedChild.value?.id))
                 {
                     throw MissingPlacementGraph(clipKey, $"child track '{childClipKey}'");
@@ -827,7 +844,21 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static NeoMemberClass ResolvePlacedChild(
+        /// <summary>
+        /// Resolves the placed <c>Children</c> row an authored clip reference
+        /// names, matching on <c>sourceValueId</c> exactly — name and index
+        /// matching are deliberately unsupported.
+        /// </summary>
+        /// <returns>
+        /// The matching row, or <c>null</c> when no row matches and every row
+        /// carries provenance. A null return means the reference is for a slot
+        /// this instance does not have — an optional slot on a subclass that
+        /// trimmed its <c>Children</c> — and the caller skips that one
+        /// reference. Ambiguous matches and legacy rows without provenance
+        /// still throw, because those are data errors rather than absent slots.
+        /// </returns>
+        private static NeoMemberClass? ResolvePlacedChild(
+            NeoClient client,
             NeoMemberClass target,
             string sourceChildId,
             string clipKey,
@@ -868,8 +899,19 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Animation clip '{clipKey}' {usage} cannot run on legacy pre-0.7 placement '{target.value?.id ?? "<unmaterialized>"}': its Children rows do not carry sourceValueId placement-clone provenance. Migrate or recreate the persisted placement; re-exporting alone cannot upgrade saved placement rows.");
                 }
-                throw new InvalidOperationException(
-                    $"Animation clip '{clipKey}' {usage} cannot resolve authored child '{sourceChildId}' on placement '{target.value?.id ?? "<unmaterialized>"}'. Every placed child row must carry its exact sourceValueId; name/index matching is not supported.");
+                // Not a data error: the slot is simply absent on this instance.
+                // Logged here, at compile time, so a clip looping at 8 FPS
+                // reports once per reference rather than once per tick — and
+                // deduped on the client, because the clip cache would otherwise
+                // make it once per *instance* (fifty placements missing the same
+                // slot, fifty warnings) and a nested child clip's compile
+                // bypasses that cache entirely.
+                if (client.ShouldReportAnimationChildSkip(clipKey, sourceChildId))
+                {
+                    UnityEngine.Debug.LogWarning(
+                        $"Animation clip '{clipKey}' {usage} skipped: no placed Children row on placement '{target.value?.id ?? "<unmaterialized>"}' carries sourceValueId '{sourceChildId}'. The rest of the clip still plays.");
+                }
+                return null;
             }
             return match;
         }
