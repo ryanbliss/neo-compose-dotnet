@@ -934,6 +934,26 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError($"Missing receiver row '{receiverRowId}'.");
             }
 
+            // P42 §1.2 / §3. A structured leaf is one value row, so a field
+            // assignment is a read-modify-write of that row rather than a new
+            // storage unit. This arm sits ahead of the collection arms because
+            // a sprite receiver unwraps to an `IDictionary` and would
+            // otherwise read as a plain dictionary entry write.
+            //
+            // Everything that governs a whole-value assignment has already
+            // happened above and is untouched: `TargetOwnership` rejected an
+            // Immutable/read-only target, and `EnsureWritableRow` rejected a
+            // row that is not owned by the target store. A field write on an
+            // Immutable-resolved member therefore fails identically to a
+            // whole-value write on it.
+            if (NeoStructuredLeafFieldWriteTarget.IsStructuredLeafRow(row))
+            {
+                return new NeoStructuredLeafFieldWriteTarget(
+                    receiverRowId,
+                    ToStringKey(key, "Structured leaf field name"),
+                    targetType,
+                    ownership);
+            }
             if (row is ArrayMemberValue)
             {
                 if (key is string)
@@ -1765,6 +1785,331 @@ namespace NeoCompose.Runtime
                 }
                 parent.updatedAt = now;
                 StoreWritableRow(client, ownership, parent, ctx);
+            }
+        }
+
+        /// <summary>
+        /// P42 §1.2 and §3. Write target for one <b>field</b> of a structured
+        /// leaf — <c>Sprite.fileId</c>, <c>Sprite.sliceIndex</c>,
+        /// <c>Position.y</c>, <c>Tint.a</c>.
+        ///
+        /// <para>The leaf stays the storage unit. Descending into it is
+        /// addressing, not granularity: this reads the leaf's current value,
+        /// replaces the one named field, and writes the whole row back through
+        /// the ordinary write path. Sibling fields are copied from whatever the
+        /// row holds <b>right now</b>, which is what lets a clip and game code
+        /// own different components of the same vector (§1.4).</para>
+        ///
+        /// <para>The field table itself lives in
+        /// <see cref="NeoAnimationLeafFields"/> — the same P42 §1.1 table the
+        /// animation override path validates against, consulted here so the
+        /// two write paths cannot drift on which keys exist per kind.</para>
+        /// </summary>
+        private sealed class NeoStructuredLeafFieldWriteTarget : NeoResolvedWriteTarget
+        {
+            private readonly string rowId;
+            private readonly string field;
+            private readonly TypeInfo fieldType;
+            private readonly NeoValueOwnership ownership;
+
+            internal NeoStructuredLeafFieldWriteTarget(
+                string rowId,
+                string field,
+                TypeInfo fieldType,
+                NeoValueOwnership ownership)
+            {
+                this.rowId = rowId;
+                this.field = field;
+                this.fieldType = fieldType;
+                this.ownership = ownership;
+            }
+
+            /// <summary>
+            /// The four stored-row types that carry a P42 §1.1 field surface.
+            /// <c>FileMemberValue</c> is deliberately absent: an Audio or File
+            /// value is a <c>fileId</c> and nothing else, and §"Non-goals"
+            /// keeps it that way.
+            /// </summary>
+            internal static bool IsStructuredLeafRow(MemberValue row)
+            {
+                return row is SpriteMemberValue
+                    || row is Vector2MemberValue
+                    || row is Vector3MemberValue
+                    || row is ColorMemberValue;
+            }
+
+            public override object? ReadCurrentValue(
+                NeoClient client,
+                NSGetterEvaluator.Context ctx)
+            {
+                if (!client.TryGetValue(ownership, rowId, out MemberValue? row))
+                {
+                    return null;
+                }
+                return ReadField(row);
+            }
+
+            public override void Write(
+                NeoClient client,
+                object? value,
+                NSGetterEvaluator.Context ctx)
+            {
+                string writableRowId = EnsureWritableRow(client, rowId, ownership);
+                if (!client.TryGetValue(ownership, writableRowId, out MemberValue? row))
+                {
+                    throw new NSGetterRuntimeError($"Missing target row '{writableRowId}'.");
+                }
+                ApplyField(row, value);
+                row.updatedAt = DateTime.UtcNow.ToString("o");
+                StoreWritableRow(client, ownership, row, ctx);
+            }
+
+            private object? ReadField(MemberValue row)
+            {
+                switch (row)
+                {
+                    case SpriteMemberValue sprite:
+                    {
+                        SpriteValue? current = sprite.value;
+                        if (current is null) return null;
+                        RequireLegalKey(NeoAnimationLeafKind.Sprite);
+                        return field == NeoAnimationLeafFields.FileIdKey
+                            ? current.fileId
+                            : (object)current.sliceIndex;
+                    }
+                    case Vector3MemberValue vector3:
+                    {
+                        NeoVector3Value? current = vector3.value;
+                        if (current is null) return null;
+                        RequireLegalKey(NeoAnimationLeafKind.Vector3);
+                        return field switch
+                        {
+                            "x" => current.x,
+                            "y" => current.y,
+                            _ => current.z,
+                        };
+                    }
+                    case Vector2MemberValue vector2:
+                    {
+                        NeoVector2Value? current = vector2.value;
+                        if (current is null) return null;
+                        RequireLegalKey(NeoAnimationLeafKind.Vector2);
+                        return field == "x" ? current.x : current.y;
+                    }
+                    case ColorMemberValue color:
+                    {
+                        NeoColorValue? current = color.value;
+                        if (current is null) return null;
+                        RequireLegalKey(NeoAnimationLeafKind.Color);
+                        return field switch
+                        {
+                            "r" => current.r,
+                            "g" => current.g,
+                            "b" => current.b,
+                            _ => current.a,
+                        };
+                    }
+                    default:
+                        return null;
+                }
+            }
+
+            /// <summary>
+            /// Read-modify-write. A fresh payload object is composed from the
+            /// row's current value and then installed, rather than mutating the
+            /// existing payload in place, so nothing that still aliases the
+            /// pre-write instance observes a torn value.
+            /// </summary>
+            private void ApplyField(MemberValue row, object? value)
+            {
+                switch (row)
+                {
+                    case SpriteMemberValue sprite:
+                    {
+                        RequireLegalKey(NeoAnimationLeafKind.Sprite);
+                        SpriteValue current = RequireLeafValue<SpriteValue>(
+                            sprite.value,
+                            NeoAnimationLeafKind.Sprite);
+                        var composed = new SpriteValue
+                        {
+                            fileId = current.fileId,
+                            sliceIndex = current.sliceIndex,
+                        };
+                        if (field == NeoAnimationLeafFields.FileIdKey)
+                        {
+                            // §2.2: the right-hand side is a registry symbol,
+                            // which lowers to the project file record id — a
+                            // bare string on the wire.
+                            if (value is null)
+                            {
+                                composed.fileId = null!;
+                            }
+                            else if (value is string fileId)
+                            {
+                                composed.fileId = fileId;
+                            }
+                            else
+                            {
+                                throw new NSGetterRuntimeError(
+                                    "Sprite field 'fileId' must be a project image reference or null.");
+                            }
+                        }
+                        else
+                        {
+                            int sliceIndex = RequireInteger(value);
+                            if (sliceIndex < 0)
+                            {
+                                throw new NSGetterRuntimeError(
+                                    "Sprite field 'sliceIndex' must be 0 or greater.");
+                            }
+                            composed.sliceIndex = sliceIndex;
+                        }
+                        sprite.value = composed;
+                        return;
+                    }
+                    case Vector3MemberValue vector3:
+                    {
+                        RequireLegalKey(NeoAnimationLeafKind.Vector3);
+                        NeoVector3Value current = RequireLeafValue<NeoVector3Value>(
+                            vector3.value,
+                            NeoAnimationLeafKind.Vector3);
+                        float component = RequireComponent(value);
+                        vector3.value = new NeoVector3Value
+                        {
+                            x = field == "x" ? component : current.x,
+                            y = field == "y" ? component : current.y,
+                            z = field == "z" ? component : current.z,
+                        };
+                        return;
+                    }
+                    case Vector2MemberValue vector2:
+                    {
+                        RequireLegalKey(NeoAnimationLeafKind.Vector2);
+                        NeoVector2Value current = RequireLeafValue<NeoVector2Value>(
+                            vector2.value,
+                            NeoAnimationLeafKind.Vector2);
+                        float component = RequireComponent(value);
+                        vector2.value = new NeoVector2Value
+                        {
+                            x = field == "x" ? component : current.x,
+                            y = field == "y" ? component : current.y,
+                        };
+                        return;
+                    }
+                    case ColorMemberValue color:
+                    {
+                        RequireLegalKey(NeoAnimationLeafKind.Color);
+                        NeoColorValue current = RequireLeafValue<NeoColorValue>(
+                            color.value,
+                            NeoAnimationLeafKind.Color);
+                        float channel = RequireColorChannel(value);
+                        color.value = new NeoColorValue
+                        {
+                            r = field == "r" ? channel : current.r,
+                            g = field == "g" ? channel : current.g,
+                            b = field == "b" ? channel : current.b,
+                            a = field == "a" ? channel : current.a,
+                        };
+                        return;
+                    }
+                    default:
+                        throw new NSGetterRuntimeError(
+                            "Assignment receiver must be a list, dictionary, or class object.");
+                }
+            }
+
+            /// <summary>
+            /// A stored vector row cannot tell Vector2 from Vector2Int — the
+            /// member declaration can, and so can the resolver, which types an
+            /// integer vector's components as Int. That is the only signal
+            /// available on this path, and it is the authoritative one.
+            /// </summary>
+            private NeoAnimationLeafKind NarrowKind(NeoAnimationLeafKind kind)
+            {
+                if (fieldType.type != MemberKind.Int) return kind;
+                return kind switch
+                {
+                    NeoAnimationLeafKind.Vector2 => NeoAnimationLeafKind.Vector2Int,
+                    NeoAnimationLeafKind.Vector3 => NeoAnimationLeafKind.Vector3Int,
+                    _ => kind,
+                };
+            }
+
+            private void RequireLegalKey(NeoAnimationLeafKind kind)
+            {
+                if (NeoAnimationLeafFields.IsLegalKey(kind, field)) return;
+                NeoAnimationLeafKind narrowed = NarrowKind(kind);
+                throw new NSGetterRuntimeError(
+                    $"'{field}' is not a field of a {NeoAnimationLeafFields.Describe(narrowed)} value. Legal fields: {string.Join(", ", NeoAnimationLeafFields.LegalKeys(narrowed))}.");
+            }
+
+            /// <summary>
+            /// P42 §1.3: there is no record to merge a field into when the leaf
+            /// is null, so the write is rejected rather than inventing siblings.
+            /// </summary>
+            private T RequireLeafValue<T>(T? current, NeoAnimationLeafKind kind)
+                where T : class
+            {
+                if (current is not null) return current;
+                throw new NSGetterRuntimeError(
+                    $"Cannot assign field '{field}' because the {NeoAnimationLeafFields.Describe(NarrowKind(kind))} value at '{rowId}' is null.");
+            }
+
+            /// <summary>
+            /// A vector component. Integral only when the resolver typed the
+            /// field as Int, which it does for exactly Vector2Int and
+            /// Vector3Int — P42 §1.4's "no runtime coercion" rule.
+            /// </summary>
+            private float RequireComponent(object? value)
+            {
+                double numeric = ToDouble(value, $"Vector field '{field}'");
+                if (double.IsNaN(numeric) || double.IsInfinity(numeric))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Vector field '{field}' must be a finite number.");
+                }
+                if (fieldType.type == MemberKind.Int
+                    && numeric != Math.Truncate(numeric))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Vector field '{field}' must be an integer on an integer vector; found {numeric}.");
+                }
+                return (float)numeric;
+            }
+
+            /// <summary>
+            /// P42 decision D2: a colour channel outside <c>[0, 1]</c> is
+            /// <b>rejected</b>, never clamped — matching
+            /// <c>NeoColorValueConverter</c>, which already refuses one on
+            /// deserialize.
+            /// </summary>
+            private float RequireColorChannel(object? value)
+            {
+                double numeric = ToDouble(value, $"Colour channel '{field}'");
+                if (double.IsNaN(numeric) || double.IsInfinity(numeric))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Colour channel '{field}' must be a finite number.");
+                }
+                if (numeric < 0d || numeric > 1d)
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Colour channel '{field}' must be within [0, 1]; found {numeric}.");
+                }
+                return (float)numeric;
+            }
+
+            private int RequireInteger(object? value)
+            {
+                double numeric = ToDouble(value, $"Sprite field '{field}'");
+                if (numeric != Math.Truncate(numeric)
+                    || double.IsNaN(numeric)
+                    || double.IsInfinity(numeric))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Sprite field '{field}' must be a whole number.");
+                }
+                return (int)numeric;
             }
         }
 

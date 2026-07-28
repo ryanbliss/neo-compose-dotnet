@@ -164,6 +164,112 @@ namespace NeoCompose.Runtime
                     memberName);
         }
 
+        /// <summary>
+        /// Wrapper-typed sprite write funnel (P42 §4.1). Generated setters for
+        /// Sprite members bind here now that the generated property type is
+        /// <see cref="NeoSprite"/>: the wrapper already carries the
+        /// addressable <c>fileId</c>/<c>sliceIndex</c> pair, so it is read
+        /// directly rather than round-tripped through a resolved
+        /// <see cref="UnityEngine.Sprite"/>, exactly as
+        /// <c>SetColor</c>/<c>SetVector3</c> read their wrappers. Letting the
+        /// <see cref="UnityEngine.Sprite"/> overload above win through the
+        /// implicit conversion would regress twice: it throws for an
+        /// unsynchronized asset on what is only a data write, and it discards
+        /// <c>sliceIndex</c> whenever the sprite cannot be reverse-resolved.
+        ///
+        /// <para><b>Template validation is preserved.</b> Writing a sprite
+        /// from the wrong sheet still throws. When the wrapper carries an
+        /// addressable value the check runs against the asset-database entry
+        /// for its <c>fileId</c> — no resolved <see cref="UnityEngine.Sprite"/>
+        /// is needed, because the entry is what carries the template id. When
+        /// the wrapper carries only a Unity sprite (the implicit
+        /// <c>obj.Portrait = someUnitySprite</c> conversion, whose
+        /// reverse-resolution is deliberately deferred to write time) the
+        /// unchanged <c>NeoAssetResolver.ValueForSprite</c> path runs,
+        /// including its untracked-sprite diagnostic.</para>
+        /// </summary>
+        public static SpriteValue? SpriteValue(
+            NeoClient client,
+            NeoReadOnlySprite? sprite,
+            string? expectedTemplateId = null,
+            string? memberName = null)
+        {
+            if (sprite is null) return null;
+
+            // Value is always a fresh copy, so handing it to the write payload
+            // cannot alias the source member's live row.
+            var addressable = sprite.Value;
+            if (addressable is null)
+            {
+                // No addressable value yet. Either the wrapper was detached
+                // from a Unity sprite the asset database does not track — in
+                // which case ValueForSprite raises the diagnostic callers
+                // already know — or the source member simply has no row, which
+                // writes null exactly as it did before P42.
+                var resolved = sprite.Resolve();
+                return resolved is null
+                    ? null
+                    : NeoAssetResolver.ValueForSprite(
+                        client.assetDatabase,
+                        resolved,
+                        expectedTemplateId,
+                        memberName);
+            }
+
+            ValidateSpriteTemplate(
+                client,
+                addressable.fileId,
+                expectedTemplateId,
+                memberName);
+            return addressable;
+        }
+
+        /// <summary>
+        /// Template check for a sprite write that already carries an
+        /// addressable value and therefore has no resolved
+        /// <see cref="UnityEngine.Sprite"/> to reverse-resolve. Mirrors the
+        /// validation inside <c>NeoAssetResolver.ValueForSprite</c> — same
+        /// message, same wording — so both sprite write paths report a
+        /// wrong-sheet sprite identically.
+        /// </summary>
+        private static void ValidateSpriteTemplate(
+            NeoClient client,
+            string fileId,
+            string? expectedTemplateId,
+            string? memberName)
+        {
+            // No template on the member means there is nothing to validate,
+            // matching NeoAssetResolver.ValidateTemplate's first guard.
+            if (expectedTemplateId is null) return;
+
+            var subject = memberName ?? "Sprite member";
+            var database = client.assetDatabase ?? NeoAssetDatabase.LoadDefault();
+            var entry = database?.TryGetEntry(fileId);
+            if (entry is null)
+            {
+                // The member demands a template and the file is not in this
+                // Unity project's asset database, so the check cannot run.
+                // Fail loudly rather than let an unvalidated sprite reach the
+                // row: an unknown file is indistinguishable from a sprite off
+                // the wrong sheet, which is precisely what this guard exists
+                // to catch.
+                throw new InvalidOperationException(
+                    $"Sprite file '{fileId}' is not synchronized into this Unity project, so it cannot be " +
+                    $"validated against the Unity template required by '{subject}'. " +
+                    $"Expected template id '{expectedTemplateId}'. Run Neo Compose editor sync and try again.");
+            }
+
+            if (entry.TemplateId == expectedTemplateId) return;
+
+            var actualTemplate = entry.TemplateId ?? "<none>";
+            var fileName = string.IsNullOrWhiteSpace(entry.FileName)
+                ? entry.FileId
+                : entry.FileName;
+            throw new InvalidOperationException(
+                $"Sprite '{fileName}' does not match the Unity template required by '{subject}'. " +
+                $"Expected template id '{expectedTemplateId}', actual template id '{actualTemplate}'.");
+        }
+
         public static FileValue? AudioValue(
             NeoClient client,
             AudioClip? audioClip,
@@ -302,14 +408,36 @@ namespace NeoCompose.Runtime
         }
 
         // ------------------------------------------------------------------
-        // Wrapper-typed write funnels (specs/color-member.md §4/§6.2).
+        // Wrapper-typed write funnels (specs/color-member.md §4/§6.2, as
+        // amended by P42 decision D6).
+        //
         // Generated property setters route through these: `obj.Position = v`
-        // assigns a (bound or detached) wrapper whose *current* value is
-        // written — value-copy semantics, never a live link. The native-typed
-        // overloads above stay for NeoScript marshalling and value-row
-        // creation. The null guard throws a distinct ArgumentNullException
-        // because an implicit-conversion NRE would otherwise surface with a
-        // useless message.
+        // reads the supplied wrapper's *current* value once and writes that
+        // value. Assignment is therefore still a value copy — assigning
+        // `a.Position = b.Position` does not link the two members, and later
+        // edits to `b` do not reach `a`.
+        //
+        // What changed in P42 is the wrapper itself, so the old unqualified
+        // "value-copy semantics, never a live link" is now only half true and
+        // has to be read per binding:
+        //
+        //   * A DETACHED wrapper — one built from a plain value: the implicit
+        //     operator, `new NeoVector3(...)`, a factory argument — owns its
+        //     value. Mutating a component is local and reaches the project
+        //     only when the wrapper is assigned through one of these funnels.
+        //     This is the case the old comment described.
+        //
+        //   * A BOUND wrapper — one minted from a member node, which is what
+        //     every generated getter now returns — IS a live link to its own
+        //     leaf. `obj.Position.y = 1f` writes through immediately, without
+        //     passing through here at all (P42 §1.2 read-modify-write, guarded
+        //     by NeoStructuredLeafWriteGuard per decision D5). These funnels
+        //     are only the whole-value assignment path.
+        //
+        // The native-typed overloads above stay for NeoScript marshalling and
+        // value-row creation. The null guard throws a distinct
+        // ArgumentNullException because an implicit-conversion NRE would
+        // otherwise surface with a useless message.
         // ------------------------------------------------------------------
 
         public static void SetVector2(

@@ -32,6 +32,7 @@ namespace Assets.Scripts.Neo
             {
                 ["class-animated-sprite"] = (client, node) => global::Assets.Scripts.Neo.AnimatedSprite.Create(client, node),
                 ["class-animated-sprite-child"] = (client, node) => global::Assets.Scripts.Neo.AnimatedSpriteChild.Create(client, node),
+                ["class-animation-sprite-object"] = (client, node) => global::Assets.Scripts.Neo.NeoSpriteObject.Create(client, node),
                 ["class-base"] = (client, node) => global::Assets.Scripts.Neo.Base.Create(client, node),
                 ["class-choice-log"] = (client, node) => global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, node),
                 ["class-concrete-readonly-stats"] = (client, node) => global::Assets.Scripts.Neo.ConcreteReadonlyStats.Create(client, node),
@@ -71,6 +72,7 @@ namespace Assets.Scripts.Neo
             {
                 ["class-animated-sprite"] = (client, node) => global::Assets.Scripts.Neo.AnimatedSprite.CreateWritable(client, node),
                 ["class-animated-sprite-child"] = (client, node) => global::Assets.Scripts.Neo.AnimatedSpriteChild.CreateWritable(client, node),
+                ["class-animation-sprite-object"] = (client, node) => global::Assets.Scripts.Neo.NeoSpriteObject.CreateWritable(client, node),
                 ["class-base"] = (client, node) => global::Assets.Scripts.Neo.Base.CreateWritable(client, node),
                 ["class-choice-log"] = (client, node) => global::Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, node),
                 ["class-concrete-readonly-stats"] = (client, node) => global::Assets.Scripts.Neo.ConcreteReadonlyStats.CreateWritable(client, node),
@@ -110,6 +112,7 @@ namespace Assets.Scripts.Neo
             {
                 [typeof(global::Assets.Scripts.Neo.AnimatedSprite)] = "class-animated-sprite",
                 [typeof(global::Assets.Scripts.Neo.AnimatedSpriteChild)] = "class-animated-sprite-child",
+                [typeof(global::Assets.Scripts.Neo.NeoSpriteObject)] = "class-animation-sprite-object",
                 [typeof(global::Assets.Scripts.Neo.Base)] = "class-base",
                 [typeof(global::Assets.Scripts.Neo.NeoChoiceLog)] = "class-choice-log",
                 [typeof(global::Assets.Scripts.Neo.ConcreteReadonlyStats)] = "class-concrete-readonly-stats",
@@ -492,6 +495,358 @@ namespace Assets.Scripts.Neo
         public static bool operator ==(Element? left, Element? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(Element? left, Element? right) => !(left == right);
     }
+    public sealed class NeoSmartTileCondition : IEquatable<NeoSmartTileCondition>, global::NeoCompose.Runtime.INeoEnumOption
+    {
+        private static readonly Dictionary<string, NeoSmartTileCondition> values = new Dictionary<string, NeoSmartTileCondition>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoSmartTileCondition(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoSmartTileCondition This = FromOptionId("system_fe185d9d-63c5-5f71-be71-408db18a84ee");
+        public static readonly NeoSmartTileCondition NotThis = FromOptionId("system_53438afa-206b-5bec-a202-c9b60d1ad8b6");
+        public static readonly NeoSmartTileCondition InheritsFromClass = FromOptionId("system_04d1dedf-8b84-5638-8db1-158c4243ef3f");
+        public static readonly NeoSmartTileCondition NotInheritsFromClass = FromOptionId("system_bc62a20a-a386-5224-b54b-12c00e7c576b");
+
+        public static NeoSmartTileCondition FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new NeoSmartTileCondition(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoSmartTileCondition>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "system_fe185d9d-63c5-5f71-be71-408db18a84ee" => true,
+                "system_53438afa-206b-5bec-a202-c9b60d1ad8b6" => true,
+                "system_04d1dedf-8b84-5638-8db1-158c4243ef3f" => true,
+                "system_bc62a20a-a386-5224-b54b-12c00e7c576b" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "system_fe185d9d-63c5-5f71-be71-408db18a84ee" => "This",
+                "system_53438afa-206b-5bec-a202-c9b60d1ad8b6" => "Not this",
+                "system_04d1dedf-8b84-5638-8db1-158c4243ef3f" => "Inherits from class",
+                "system_bc62a20a-a386-5224-b54b-12c00e7c576b" => "Does not inherit from class",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? TestProjectNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoSmartTileCondition value) => value.optionId;
+        public static implicit operator NeoSmartTileCondition(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoSmartTileCondition? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as NeoSmartTileCondition);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(NeoSmartTileCondition? left, NeoSmartTileCondition? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(NeoSmartTileCondition? left, NeoSmartTileCondition? right) => !(left == right);
+    }
+    public sealed class NeoSmartTileOutput : IEquatable<NeoSmartTileOutput>, global::NeoCompose.Runtime.INeoEnumOption
+    {
+        private static readonly Dictionary<string, NeoSmartTileOutput> values = new Dictionary<string, NeoSmartTileOutput>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoSmartTileOutput(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoSmartTileOutput Single = FromOptionId("system_b76ada21-68e0-5b52-bdfe-3b1f95a8c896");
+        public static readonly NeoSmartTileOutput Random = FromOptionId("system_717e141c-a3af-535e-9f30-da2a9241803d");
+        public static readonly NeoSmartTileOutput Animation = FromOptionId("system_649f99d0-c726-5f20-aeea-786a0776f53f");
+
+        public static NeoSmartTileOutput FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new NeoSmartTileOutput(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoSmartTileOutput>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "system_b76ada21-68e0-5b52-bdfe-3b1f95a8c896" => true,
+                "system_717e141c-a3af-535e-9f30-da2a9241803d" => true,
+                "system_649f99d0-c726-5f20-aeea-786a0776f53f" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "system_b76ada21-68e0-5b52-bdfe-3b1f95a8c896" => "Single",
+                "system_717e141c-a3af-535e-9f30-da2a9241803d" => "Random",
+                "system_649f99d0-c726-5f20-aeea-786a0776f53f" => "Animation",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? TestProjectNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoSmartTileOutput value) => value.optionId;
+        public static implicit operator NeoSmartTileOutput(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoSmartTileOutput? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as NeoSmartTileOutput);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(NeoSmartTileOutput? left, NeoSmartTileOutput? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(NeoSmartTileOutput? left, NeoSmartTileOutput? right) => !(left == right);
+    }
+    public sealed class NeoSmartTileCollider : IEquatable<NeoSmartTileCollider>, global::NeoCompose.Runtime.INeoEnumOption
+    {
+        private static readonly Dictionary<string, NeoSmartTileCollider> values = new Dictionary<string, NeoSmartTileCollider>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoSmartTileCollider(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoSmartTileCollider None = FromOptionId("system_cfca7937-a285-5b1a-97f4-6c088137a517");
+        public static readonly NeoSmartTileCollider Sprite = FromOptionId("system_6cf2f768-993c-5e9c-8bcb-60e1a0d8c575");
+        public static readonly NeoSmartTileCollider Grid = FromOptionId("system_5e0f42af-fff5-5a65-9844-f11f36ae55a8");
+
+        public static NeoSmartTileCollider FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new NeoSmartTileCollider(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoSmartTileCollider>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "system_cfca7937-a285-5b1a-97f4-6c088137a517" => true,
+                "system_6cf2f768-993c-5e9c-8bcb-60e1a0d8c575" => true,
+                "system_5e0f42af-fff5-5a65-9844-f11f36ae55a8" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "system_cfca7937-a285-5b1a-97f4-6c088137a517" => "None",
+                "system_6cf2f768-993c-5e9c-8bcb-60e1a0d8c575" => "Sprite",
+                "system_5e0f42af-fff5-5a65-9844-f11f36ae55a8" => "Grid",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? TestProjectNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoSmartTileCollider value) => value.optionId;
+        public static implicit operator NeoSmartTileCollider(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoSmartTileCollider? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as NeoSmartTileCollider);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(NeoSmartTileCollider? left, NeoSmartTileCollider? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(NeoSmartTileCollider? left, NeoSmartTileCollider? right) => !(left == right);
+    }
+    public sealed class NeoSmartTileTransform : IEquatable<NeoSmartTileTransform>, global::NeoCompose.Runtime.INeoEnumOption
+    {
+        private static readonly Dictionary<string, NeoSmartTileTransform> values = new Dictionary<string, NeoSmartTileTransform>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoSmartTileTransform(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoSmartTileTransform Fixed = FromOptionId("system_3f16d1d6-ec8b-532b-ad8b-23af9ea01172");
+        public static readonly NeoSmartTileTransform Rotated = FromOptionId("system_d6e0f63f-910c-5e51-ac77-250c7f606664");
+        public static readonly NeoSmartTileTransform MirrorX = FromOptionId("system_00edc26a-6ef4-57db-a290-f1f8300146e9");
+        public static readonly NeoSmartTileTransform MirrorY = FromOptionId("system_c1c2577b-870f-5305-b206-3c70dfeb775b");
+        public static readonly NeoSmartTileTransform MirrorXY = FromOptionId("system_35b53059-1836-5fac-bcde-291274dcebc7");
+        public static readonly NeoSmartTileTransform RotatedMirror = FromOptionId("system_9da42749-b317-5558-8f76-0a9fcb69229d");
+
+        public static NeoSmartTileTransform FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new NeoSmartTileTransform(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoSmartTileTransform>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "system_3f16d1d6-ec8b-532b-ad8b-23af9ea01172" => true,
+                "system_d6e0f63f-910c-5e51-ac77-250c7f606664" => true,
+                "system_00edc26a-6ef4-57db-a290-f1f8300146e9" => true,
+                "system_c1c2577b-870f-5305-b206-3c70dfeb775b" => true,
+                "system_35b53059-1836-5fac-bcde-291274dcebc7" => true,
+                "system_9da42749-b317-5558-8f76-0a9fcb69229d" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "system_3f16d1d6-ec8b-532b-ad8b-23af9ea01172" => "Fixed",
+                "system_d6e0f63f-910c-5e51-ac77-250c7f606664" => "Rotated",
+                "system_00edc26a-6ef4-57db-a290-f1f8300146e9" => "Mirror X",
+                "system_c1c2577b-870f-5305-b206-3c70dfeb775b" => "Mirror Y",
+                "system_35b53059-1836-5fac-bcde-291274dcebc7" => "Mirror XY",
+                "system_9da42749-b317-5558-8f76-0a9fcb69229d" => "Rotated mirror",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? TestProjectNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoSmartTileTransform value) => value.optionId;
+        public static implicit operator NeoSmartTileTransform(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoSmartTileTransform? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as NeoSmartTileTransform);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(NeoSmartTileTransform? left, NeoSmartTileTransform? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(NeoSmartTileTransform? left, NeoSmartTileTransform? right) => !(left == right);
+    }
+    public sealed class NeoSpriteMaskInteraction : IEquatable<NeoSpriteMaskInteraction>, global::NeoCompose.Runtime.INeoEnumOption
+    {
+        private static readonly Dictionary<string, NeoSpriteMaskInteraction> values = new Dictionary<string, NeoSpriteMaskInteraction>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoSpriteMaskInteraction(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoSpriteMaskInteraction None = FromOptionId("system_9d607a4f-60c3-4347-94fc-f24b538bf468");
+        public static readonly NeoSpriteMaskInteraction VisibleInsideMask = FromOptionId("system_4c670ac9-78a4-44e9-9833-94e1c69dca97");
+        public static readonly NeoSpriteMaskInteraction VisibleOutsideMask = FromOptionId("system_a0aeb200-7216-49e2-aad2-e151ff35c336");
+
+        public static NeoSpriteMaskInteraction FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new NeoSpriteMaskInteraction(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoSpriteMaskInteraction>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "system_9d607a4f-60c3-4347-94fc-f24b538bf468" => true,
+                "system_4c670ac9-78a4-44e9-9833-94e1c69dca97" => true,
+                "system_a0aeb200-7216-49e2-aad2-e151ff35c336" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "system_9d607a4f-60c3-4347-94fc-f24b538bf468" => "None",
+                "system_4c670ac9-78a4-44e9-9833-94e1c69dca97" => "Visible inside mask",
+                "system_a0aeb200-7216-49e2-aad2-e151ff35c336" => "Visible outside mask",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? TestProjectNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoSpriteMaskInteraction value) => value.optionId;
+        public static implicit operator NeoSpriteMaskInteraction(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoSpriteMaskInteraction? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as NeoSpriteMaskInteraction);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(NeoSpriteMaskInteraction? left, NeoSpriteMaskInteraction? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(NeoSpriteMaskInteraction? left, NeoSpriteMaskInteraction? right) => !(left == right);
+    }
 
     public interface IContract
     {
@@ -653,7 +1008,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Position"));
+                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Position"), this);
             }
             set
             {
@@ -675,7 +1030,7 @@ namespace Assets.Scripts.Neo
             get
             {
                 var child = writableNode.Get<NeoMemberVector3IntWritable>("GridCell");
-                return child.value is null ? null : new NeoVector3Int(child);
+                return child.value is null ? null : new NeoVector3Int(child, this);
             }
             set
             {
@@ -6599,7 +6954,7 @@ namespace Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public interface IReadOnlyNeoObjectBase : INeoValueReference
+    public interface IReadOnlyNeoObjectBase : INeoValueReference, INeoWorldObjectValue
     {
         bool IsReadOnly { get; }
 
@@ -6608,9 +6963,17 @@ namespace Assets.Scripts.Neo
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoObjectBase writable);
+
+        new string Name { get; }
+
+        new NeoReadOnlyVector3 Position { get; }
+
+        new NeoReadOnlyVector3 Size { get; }
+
+        new bool Enabled { get; }
     }
 
-    public abstract partial class NeoObjectBase : NeoGeneratedClassValue, IReadOnlyNeoObjectBase
+    public abstract partial class NeoObjectBase : NeoGeneratedClassValue, IReadOnlyNeoObjectBase, INeoWorldObjectValue
     {
         internal NeoObjectBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, "class-animation-object-base", isReadOnly, inheritedStorageOwnership)
@@ -6626,6 +6989,7 @@ namespace Assets.Scripts.Neo
                 {
                     "class-animated-sprite" => new AnimatedSprite(client, node, true, NeoValueOwnership.Asset),
                     "class-animated-sprite-child" => new AnimatedSpriteChild(client, node, true, NeoValueOwnership.Asset),
+                    "class-animation-sprite-object" => new NeoSpriteObject(client, node, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectBase' without a concrete client type id."),
                 };
             });
@@ -6640,6 +7004,7 @@ namespace Assets.Scripts.Neo
                 {
                     "class-animated-sprite" => new AnimatedSprite(client, node, false, node.ownership),
                     "class-animated-sprite-child" => new AnimatedSpriteChild(client, node, false, node.ownership),
+                    "class-animation-sprite-object" => new NeoSpriteObject(client, node, false, node.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectBase' without a concrete client type id."),
                 };
             });
@@ -6665,15 +7030,98 @@ namespace Assets.Scripts.Neo
             return TryWritable<NeoObjectBase>(out writable);
         }
 
+        NeoReadOnlyVector3 INeoWorldObjectValue.Position => Position;
+        NeoReadOnlyVector3 INeoWorldObjectValue.Size => Size;
+
+        public virtual string Name
+        {
+            get
+            {
+                return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoObjectBase.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public virtual NeoVector3 Position
+        {
+            get
+            {
+                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Position"), this);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoObjectBase.Position");
+                NeoGeneratedTypesSupport.SetVector3(writableNode, "Position", value);
+            }
+        }
+
+        NeoReadOnlyVector3 IReadOnlyNeoObjectBase.Position
+        {
+            get
+            {
+                return new NeoReadOnlyVector3(node.Get<NeoMemberVector3>("Position"));
+            }
+        }
+
+        public virtual NeoVector3 Size
+        {
+            get
+            {
+                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Size"), this);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoObjectBase.Size");
+                NeoGeneratedTypesSupport.SetVector3(writableNode, "Size", value);
+            }
+        }
+
+        NeoReadOnlyVector3 IReadOnlyNeoObjectBase.Size
+        {
+            get
+            {
+                return new NeoReadOnlyVector3(node.Get<NeoMemberVector3>("Size"));
+            }
+        }
+
+        public virtual bool Enabled
+        {
+            get
+            {
+                return node.Get<NeoMemberBool>("Enabled").value?.value ?? throw new InvalidOperationException("Required bool 'Enabled' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoObjectBase.Enabled");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Enabled", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
         public sealed class Fields
         {
             private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+
+            public static readonly NeoField<bool> Enabled = new("Enabled");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Name] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
+                [Fields.Enabled] = () => null,
             };
         }
 
@@ -6691,6 +7139,10 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Name] = () => Name,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
+                [Fields.Enabled] = () => Enabled,
             };
         }
 
@@ -6709,7 +7161,7 @@ namespace Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public interface IReadOnlyNeoSpriteObject : IReadOnlyNeoObjectBase
+    public interface IReadOnlyNeoSpriteObject : IReadOnlyNeoObjectBase, INeoSpriteObjectValue
     {
         new bool IsReadOnly { get; }
 
@@ -6718,13 +7170,48 @@ namespace Assets.Scripts.Neo
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoSpriteObject writable);
+
+        new string Name { get; }
+
+        new NeoReadOnlySprite Sprite { get; }
+
+        new bool FlipX { get; }
+
+        new bool FlipY { get; }
+
+        new NeoSpriteMaskInteraction MaskInteraction { get; }
+
+        new int? SortingOrder { get; }
     }
 
-    public abstract partial class NeoSpriteObject : NeoObjectBase, IReadOnlyNeoSpriteObject
+    public partial class NeoSpriteObject : NeoObjectBase, IReadOnlyNeoSpriteObject, INeoSpriteObjectValue
     {
         internal NeoSpriteObject(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
+        }
+
+        public NeoSpriteObject(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Sprite, Name, Position, Size, Enabled, FlipX, FlipY, MaskInteraction, SortingOrder), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoMemberClassWritable CreateFactoryNode(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
+                client,
+                "class-animation-sprite-object",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "system_e9288ba9-f5a2-4485-8443-6afb155b31e0", Sprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_441cb790-a45f-4488-a5a9-6f375af6c369", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlipX", "system_9fcab37a-9743-4e35-8eee-80cb560f1433", FlipX),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlipY", "system_ddd09f08-1656-4404-b36b-5570a4c01fcf", FlipY),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("MaskInteraction", "system_f2a8c86d-ace5-421b-9475-0f3f6f97b2a6", MaskInteraction),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingOrder", "system_6f32f1f2-83ea-42fc-8647-34ed0946b7f1", SortingOrder)
+            );
         }
 
         internal new static NeoSpriteObject Create(NeoClient client, NeoMemberClass node)
@@ -6736,7 +7223,7 @@ namespace Assets.Scripts.Neo
                 {
                     "class-animated-sprite" => new AnimatedSprite(client, node, true, NeoValueOwnership.Asset),
                     "class-animated-sprite-child" => new AnimatedSpriteChild(client, node, true, NeoValueOwnership.Asset),
-                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoSpriteObject' without a concrete client type id."),
+                    _ => new NeoSpriteObject(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
@@ -6750,7 +7237,7 @@ namespace Assets.Scripts.Neo
                 {
                     "class-animated-sprite" => new AnimatedSprite(client, node, false, node.ownership),
                     "class-animated-sprite-child" => new AnimatedSpriteChild(client, node, false, node.ownership),
-                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoSpriteObject' without a concrete client type id."),
+                    _ => new NeoSpriteObject(client, node, false, node.ownership),
                 };
             });
         }
@@ -6775,15 +7262,148 @@ namespace Assets.Scripts.Neo
             return TryWritable<NeoSpriteObject>(out writable);
         }
 
+        Sprite INeoSpriteObjectValue.Sprite => Sprite;
+        string INeoSpriteObjectValue.MaskInteraction => MaskInteraction.optionId;
+
+        public override string Name
+        {
+            get
+            {
+                return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoSpriteObject.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public virtual NeoSprite Sprite
+        {
+            get
+            {
+                return new NeoSprite(writableNode.Get<NeoMemberSpriteWritable>("Sprite"), this);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoSpriteObject.Sprite");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        NeoReadOnlySprite IReadOnlyNeoSpriteObject.Sprite
+        {
+            get
+            {
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("Sprite"));
+            }
+        }
+
+        public virtual bool FlipX
+        {
+            get
+            {
+                return node.Get<NeoMemberBool>("FlipX").value?.value ?? throw new InvalidOperationException("Required bool 'FlipX' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoSpriteObject.FlipX");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "FlipX", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public virtual bool FlipY
+        {
+            get
+            {
+                return node.Get<NeoMemberBool>("FlipY").value?.value ?? throw new InvalidOperationException("Required bool 'FlipY' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoSpriteObject.FlipY");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "FlipY", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public virtual NeoSpriteMaskInteraction MaskInteraction
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("MaskInteraction"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'MaskInteraction' has no selected option.") : NeoSpriteMaskInteraction.FromOptionId(selected);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoSpriteObject.MaskInteraction");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "MaskInteraction", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+            }
+        }
+
+        public virtual int? SortingOrder
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("SortingOrder"));
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoSpriteObject.SortingOrder");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "SortingOrder", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        NeoReadOnlyVector3 IReadOnlyNeoObjectBase.Position
+        {
+            get
+            {
+                return (NeoReadOnlyVector3)(object)((NeoObjectBase)this).Position!;
+            }
+        }
+
+        NeoReadOnlyVector3 IReadOnlyNeoObjectBase.Size
+        {
+            get
+            {
+                return (NeoReadOnlyVector3)(object)((NeoObjectBase)this).Size!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<bool> FlipX = new("FlipX");
+
+            public static readonly NeoField<bool> FlipY = new("FlipY");
+
+            public static readonly NeoField<NeoSpriteMaskInteraction> MaskInteraction = new("MaskInteraction");
+
+            public static readonly NeoField<int?> SortingOrder = new("SortingOrder");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Name] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
+                [Fields.Enabled] = () => null,
+                [Fields.Sprite] = () => null,
+                [Fields.FlipX] = () => null,
+                [Fields.FlipY] = () => null,
+                [Fields.MaskInteraction] = () => null,
+                [Fields.SortingOrder] = () => null,
             };
         }
 
@@ -6801,6 +7421,15 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Name] = () => Name,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
+                [Fields.Enabled] = () => Enabled,
+                [Fields.Sprite] = () => Sprite,
+                [Fields.FlipX] = () => FlipX,
+                [Fields.FlipY] = () => FlipY,
+                [Fields.MaskInteraction] = () => MaskInteraction,
+                [Fields.SortingOrder] = () => SortingOrder,
             };
         }
 
@@ -6841,17 +7470,26 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        public AnimatedSprite(int? X = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(X), false, NeoValueOwnership.Session)
+        public AnimatedSprite(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null, int? X = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Sprite, Name, Position, Size, Enabled, FlipX, FlipY, MaskInteraction, SortingOrder, X), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(int? X = null)
+        private static NeoMemberClassWritable CreateFactoryNode(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null, int? X = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "class-animated-sprite",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "system_e9288ba9-f5a2-4485-8443-6afb155b31e0", Sprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_441cb790-a45f-4488-a5a9-6f375af6c369", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlipX", "system_9fcab37a-9743-4e35-8eee-80cb560f1433", FlipX),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlipY", "system_ddd09f08-1656-4404-b36b-5570a4c01fcf", FlipY),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("MaskInteraction", "system_f2a8c86d-ace5-421b-9475-0f3f6f97b2a6", MaskInteraction),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingOrder", "system_6f32f1f2-83ea-42fc-8647-34ed0946b7f1", SortingOrder),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("X", "member-animation-x", X)
             );
         }
@@ -6922,9 +7560,51 @@ namespace Assets.Scripts.Neo
             }
         }
 
+        NeoReadOnlySprite IReadOnlyNeoSpriteObject.Sprite
+        {
+            get
+            {
+                return (NeoReadOnlySprite)(object)((NeoSpriteObject)this).Sprite!;
+            }
+        }
+
+        NeoReadOnlyVector3 IReadOnlyNeoObjectBase.Position
+        {
+            get
+            {
+                return (NeoReadOnlyVector3)(object)((NeoObjectBase)this).Position!;
+            }
+        }
+
+        NeoReadOnlyVector3 IReadOnlyNeoObjectBase.Size
+        {
+            get
+            {
+                return (NeoReadOnlyVector3)(object)((NeoObjectBase)this).Size!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<bool> FlipX = new("FlipX");
+
+            public static readonly NeoField<bool> FlipY = new("FlipY");
+
+            public static readonly NeoField<NeoSpriteMaskInteraction> MaskInteraction = new("MaskInteraction");
+
+            public static readonly NeoField<int?> SortingOrder = new("SortingOrder");
 
             public static readonly NeoField<int> X = new("X");
         }
@@ -6933,6 +7613,15 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Name] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
+                [Fields.Enabled] = () => null,
+                [Fields.Sprite] = () => null,
+                [Fields.FlipX] = () => null,
+                [Fields.FlipY] = () => null,
+                [Fields.MaskInteraction] = () => null,
+                [Fields.SortingOrder] = () => null,
                 [Fields.X] = () => null,
             };
         }
@@ -6951,6 +7640,15 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Name] = () => Name,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
+                [Fields.Enabled] = () => Enabled,
+                [Fields.Sprite] = () => Sprite,
+                [Fields.FlipX] = () => FlipX,
+                [Fields.FlipY] = () => FlipY,
+                [Fields.MaskInteraction] = () => MaskInteraction,
+                [Fields.SortingOrder] = () => SortingOrder,
                 [Fields.X] = () => X,
             };
         }
@@ -6988,17 +7686,26 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        public AnimatedSpriteChild(int? X = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(X), false, NeoValueOwnership.Session)
+        public AnimatedSpriteChild(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null, int? X = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Sprite, Name, Position, Size, Enabled, FlipX, FlipY, MaskInteraction, SortingOrder, X), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(int? X = null)
+        private static NeoMemberClassWritable CreateFactoryNode(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null, int? X = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "class-animated-sprite-child",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "system_e9288ba9-f5a2-4485-8443-6afb155b31e0", Sprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_441cb790-a45f-4488-a5a9-6f375af6c369", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlipX", "system_9fcab37a-9743-4e35-8eee-80cb560f1433", FlipX),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlipY", "system_ddd09f08-1656-4404-b36b-5570a4c01fcf", FlipY),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("MaskInteraction", "system_f2a8c86d-ace5-421b-9475-0f3f6f97b2a6", MaskInteraction),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingOrder", "system_6f32f1f2-83ea-42fc-8647-34ed0946b7f1", SortingOrder),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("X", "member-animation-x", X)
             );
         }
@@ -7047,9 +7754,51 @@ namespace Assets.Scripts.Neo
             return TryWritable<AnimatedSpriteChild>(out writable);
         }
 
+        NeoReadOnlySprite IReadOnlyNeoSpriteObject.Sprite
+        {
+            get
+            {
+                return (NeoReadOnlySprite)(object)((NeoSpriteObject)this).Sprite!;
+            }
+        }
+
+        NeoReadOnlyVector3 IReadOnlyNeoObjectBase.Position
+        {
+            get
+            {
+                return (NeoReadOnlyVector3)(object)((NeoObjectBase)this).Position!;
+            }
+        }
+
+        NeoReadOnlyVector3 IReadOnlyNeoObjectBase.Size
+        {
+            get
+            {
+                return (NeoReadOnlyVector3)(object)((NeoObjectBase)this).Size!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<bool> FlipX = new("FlipX");
+
+            public static readonly NeoField<bool> FlipY = new("FlipY");
+
+            public static readonly NeoField<NeoSpriteMaskInteraction> MaskInteraction = new("MaskInteraction");
+
+            public static readonly NeoField<int?> SortingOrder = new("SortingOrder");
 
             public static readonly NeoField<int> X = new("X");
         }
@@ -7058,6 +7807,15 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Name] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
+                [Fields.Enabled] = () => null,
+                [Fields.Sprite] = () => null,
+                [Fields.FlipX] = () => null,
+                [Fields.FlipY] = () => null,
+                [Fields.MaskInteraction] = () => null,
+                [Fields.SortingOrder] = () => null,
                 [Fields.X] = () => null,
             };
         }
@@ -7076,6 +7834,15 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Name] = () => Name,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
+                [Fields.Enabled] = () => Enabled,
+                [Fields.Sprite] = () => Sprite,
+                [Fields.FlipX] = () => FlipX,
+                [Fields.FlipY] = () => FlipY,
+                [Fields.MaskInteraction] = () => MaskInteraction,
+                [Fields.SortingOrder] = () => SortingOrder,
                 [Fields.X] = () => X,
             };
         }

@@ -233,14 +233,20 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>
-    /// Read-only Vector2 wrapper. Assignment convention
-    /// (specs/color-member.md §6, decisions 5–6): <see cref="Value"/> is
-    /// get-only across the whole wrapper family — writes flow exclusively
-    /// through generated property setters calling
-    /// <see cref="NeoGeneratedTypesSupport.SetVector2(NeoMemberClassWritable, string, NeoReadOnlyVector2)"/>,
-    /// so read-only misuse is a compile error. Equality is value-based:
-    /// property getters mint fresh wrapper instances, so reference equality
-    /// would always be false.
+    /// Read-only Vector2 wrapper. <see cref="Value"/> and the
+    /// <see cref="x"/>/<see cref="y"/> components are get-only here, and
+    /// whole-value assignment still flows through generated property setters
+    /// calling
+    /// <see cref="NeoGeneratedTypesSupport.SetVector2(NeoMemberClassWritable, string, NeoReadOnlyVector2)"/>.
+    ///
+    /// <para>P42 §4.1 overturns specs/color-member.md §6 decisions 5–6, which
+    /// made the <em>whole</em> family get-only: the writable
+    /// <see cref="NeoVector2"/> now carries write-through component setters.
+    /// Read-only misuse is therefore no longer purely a compile error — see
+    /// <see cref="NeoVector2"/> for the runtime guard.</para>
+    ///
+    /// <para>Equality is value-based: property getters mint fresh wrapper
+    /// instances, so reference equality would always be false.</para>
     /// </summary>
     public class NeoReadOnlyVector2
     {
@@ -301,14 +307,29 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>
-    /// Writable-context Vector2 wrapper. Adds no mutation API over
-    /// <see cref="NeoReadOnlyVector2"/> — only the native→wrapper implicit
-    /// conversion so <c>obj.Position = new Vector2(…);</c> produces a
-    /// detached instance whose value the generated setter writes through
-    /// the node (value-copy semantics, never a live link).
+    /// Writable-context Vector2 wrapper. Adds the native→wrapper implicit
+    /// conversion so <c>obj.Position = new Vector2(…);</c> compiles, and —
+    /// since P42 §4.1 — settable <see cref="x"/>/<see cref="y"/> components.
+    ///
+    /// <para><b>Binding decides what a component write means.</b> A wrapper
+    /// minted from a member node (what generated getters emit) is
+    /// <b>bound</b>: setting a component reads the leaf's current value,
+    /// patches the one component, and writes the whole leaf straight back
+    /// through the node. A wrapper built from a plain value — the implicit
+    /// operator, <c>new NeoVector2(1f, 2f)</c>, a factory argument — is a
+    /// <b>detached</b> copy: mutating it is local until it is assigned, and
+    /// assignment itself still copies the value rather than creating a live
+    /// link.</para>
+    ///
+    /// <para>Read-only enforcement (P42 decision D5) is a runtime throw, not
+    /// a compile error, because a read-only generated instance still hands
+    /// out a wrapper over a writable node. Every component setter goes
+    /// through <see cref="NeoStructuredLeafWriteGuard"/> first.</para>
     /// </summary>
     public class NeoVector2 : NeoReadOnlyVector2
     {
+        private readonly NeoGeneratedClassValue? owner;
+
         public NeoVector2(Vector2 value)
             : this(value.x, value.y) { }
 
@@ -318,7 +339,55 @@ namespace NeoCompose.Runtime
         public NeoVector2(NeoMemberVector2 member)
             : base(member) { }
 
+        /// <summary>
+        /// Bound ctor that also records the owning generated value, so
+        /// component setters can honour instance-level read-only
+        /// (decision D5). Generated getters on writable families should
+        /// prefer this overload.
+        /// </summary>
+        public NeoVector2(NeoMemberVector2 member, NeoGeneratedClassValue owner)
+            : base(member)
+        {
+            this.owner = owner;
+        }
+
+        public new float x
+        {
+            get => Value.x;
+            set
+            {
+                Vector2 next = Value;
+                next.x = value;
+                Write(next, nameof(x));
+            }
+        }
+
+        public new float y
+        {
+            get => Value.y;
+            set
+            {
+                Vector2 next = Value;
+                next.y = value;
+                Write(next, nameof(y));
+            }
+        }
+
         public static implicit operator NeoVector2(Vector2 value) => new NeoVector2(value);
+
+        private void Write(Vector2 next, string field)
+        {
+            if (memberNode is null)
+            {
+                detachedValue = next;
+                return;
+            }
+
+            NeoStructuredLeafWriteGuard
+                .RequireWritable<NeoMemberVector2Writable>(
+                    owner, memberNode, nameof(NeoVector2), field)
+                .Set(next);
+        }
     }
 
     /// <summary>
@@ -384,11 +453,16 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>
-    /// Writable-context Vector2Int wrapper — no mutation API; see
-    /// <see cref="NeoVector2"/>.
+    /// Writable-context Vector2Int wrapper — write-through components when
+    /// bound, value copy when detached; see <see cref="NeoVector2"/>.
+    /// Components are typed <c>int</c>, so the integrality rule
+    /// <see cref="NeoVectorValues"/> enforces on read cannot be violated by a
+    /// write through this wrapper.
     /// </summary>
     public class NeoVector2Int : NeoReadOnlyVector2Int
     {
+        private readonly NeoGeneratedClassValue? owner;
+
         public NeoVector2Int(Vector2Int value)
             : this(value.x, value.y) { }
 
@@ -398,7 +472,50 @@ namespace NeoCompose.Runtime
         public NeoVector2Int(NeoMemberVector2Int member)
             : base(member) { }
 
+        /// <inheritdoc cref="NeoVector2(NeoMemberVector2, NeoGeneratedClassValue)"/>
+        public NeoVector2Int(NeoMemberVector2Int member, NeoGeneratedClassValue owner)
+            : base(member)
+        {
+            this.owner = owner;
+        }
+
+        public new int x
+        {
+            get => Value.x;
+            set
+            {
+                Vector2Int next = Value;
+                next.x = value;
+                Write(next, nameof(x));
+            }
+        }
+
+        public new int y
+        {
+            get => Value.y;
+            set
+            {
+                Vector2Int next = Value;
+                next.y = value;
+                Write(next, nameof(y));
+            }
+        }
+
         public static implicit operator NeoVector2Int(Vector2Int value) => new NeoVector2Int(value);
+
+        private void Write(Vector2Int next, string field)
+        {
+            if (memberNode is null)
+            {
+                detachedValue = next;
+                return;
+            }
+
+            NeoStructuredLeafWriteGuard
+                .RequireWritable<NeoMemberVector2IntWritable>(
+                    owner, memberNode, nameof(NeoVector2Int), field)
+                .Set(next);
+        }
     }
 
     /// <summary>
@@ -465,11 +582,13 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>
-    /// Writable-context Vector3 wrapper — no mutation API; see
-    /// <see cref="NeoVector2"/>.
+    /// Writable-context Vector3 wrapper — write-through components when
+    /// bound, value copy when detached; see <see cref="NeoVector2"/>.
     /// </summary>
     public class NeoVector3 : NeoReadOnlyVector3
     {
+        private readonly NeoGeneratedClassValue? owner;
+
         public NeoVector3(Vector3 value)
             : this(value.x, value.y, value.z) { }
 
@@ -479,7 +598,61 @@ namespace NeoCompose.Runtime
         public NeoVector3(NeoMemberVector3 member)
             : base(member) { }
 
+        /// <inheritdoc cref="NeoVector2(NeoMemberVector2, NeoGeneratedClassValue)"/>
+        public NeoVector3(NeoMemberVector3 member, NeoGeneratedClassValue owner)
+            : base(member)
+        {
+            this.owner = owner;
+        }
+
+        public new float x
+        {
+            get => Value.x;
+            set
+            {
+                Vector3 next = Value;
+                next.x = value;
+                Write(next, nameof(x));
+            }
+        }
+
+        public new float y
+        {
+            get => Value.y;
+            set
+            {
+                Vector3 next = Value;
+                next.y = value;
+                Write(next, nameof(y));
+            }
+        }
+
+        public new float z
+        {
+            get => Value.z;
+            set
+            {
+                Vector3 next = Value;
+                next.z = value;
+                Write(next, nameof(z));
+            }
+        }
+
         public static implicit operator NeoVector3(Vector3 value) => new NeoVector3(value);
+
+        private void Write(Vector3 next, string field)
+        {
+            if (memberNode is null)
+            {
+                detachedValue = next;
+                return;
+            }
+
+            NeoStructuredLeafWriteGuard
+                .RequireWritable<NeoMemberVector3Writable>(
+                    owner, memberNode, nameof(NeoVector3), field)
+                .Set(next);
+        }
     }
 
     /// <summary>
@@ -546,11 +719,14 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>
-    /// Writable-context Vector3Int wrapper — no mutation API; see
-    /// <see cref="NeoVector2"/>.
+    /// Writable-context Vector3Int wrapper — write-through components when
+    /// bound, value copy when detached; see <see cref="NeoVector2"/> and
+    /// <see cref="NeoVector2Int"/>.
     /// </summary>
     public class NeoVector3Int : NeoReadOnlyVector3Int
     {
+        private readonly NeoGeneratedClassValue? owner;
+
         public NeoVector3Int(Vector3Int value)
             : this(value.x, value.y, value.z) { }
 
@@ -560,7 +736,116 @@ namespace NeoCompose.Runtime
         public NeoVector3Int(NeoMemberVector3Int member)
             : base(member) { }
 
+        /// <inheritdoc cref="NeoVector2(NeoMemberVector2, NeoGeneratedClassValue)"/>
+        public NeoVector3Int(NeoMemberVector3Int member, NeoGeneratedClassValue owner)
+            : base(member)
+        {
+            this.owner = owner;
+        }
+
+        public new int x
+        {
+            get => Value.x;
+            set
+            {
+                Vector3Int next = Value;
+                next.x = value;
+                Write(next, nameof(x));
+            }
+        }
+
+        public new int y
+        {
+            get => Value.y;
+            set
+            {
+                Vector3Int next = Value;
+                next.y = value;
+                Write(next, nameof(y));
+            }
+        }
+
+        public new int z
+        {
+            get => Value.z;
+            set
+            {
+                Vector3Int next = Value;
+                next.z = value;
+                Write(next, nameof(z));
+            }
+        }
+
         public static implicit operator NeoVector3Int(Vector3Int value) => new NeoVector3Int(value);
+
+        private void Write(Vector3Int next, string field)
+        {
+            if (memberNode is null)
+            {
+                detachedValue = next;
+                return;
+            }
+
+            NeoStructuredLeafWriteGuard
+                .RequireWritable<NeoMemberVector3IntWritable>(
+                    owner, memberNode, nameof(NeoVector3Int), field)
+                .Set(next);
+        }
+    }
+
+    /// <summary>
+    /// Shared read-only gate for the P42 write-through field setters on the
+    /// structured-leaf wrappers (<see cref="NeoVector2"/> and friends,
+    /// <see cref="NeoColor"/>, <see cref="NeoSprite"/>).
+    ///
+    /// <para>Decision D5: before P42 no wrapper had a mutation API, so
+    /// "read-only misuse is a compile error" held for free. It no longer
+    /// does — <c>NeoGeneratedClassValue.writableNode</c> is materialized
+    /// without consulting <see cref="NeoGeneratedClassValue.IsReadOnly"/>, so
+    /// a read-only generated instance can hand out a wrapper over a writable
+    /// node. Two signals are therefore checked, in order:</para>
+    /// <list type="number">
+    ///   <item><description>the owning generated value's
+    ///   <see cref="NeoGeneratedClassValue.IsReadOnly"/>, when the wrapper was
+    ///   minted with the owner-carrying bound ctor;</description></item>
+    ///   <item><description>the bound node's own writability — a node that is
+    ///   not the <c>*Writable</c> kind has no public <c>Set</c> and must never
+    ///   be mutated.</description></item>
+    /// </list>
+    /// <para>Signal 1 is only as good as the call site: generated getters that
+    /// still use the single-argument bound ctor fall back to signal 2 alone.
+    /// The complementary half of D5 is codegen returning the
+    /// <c>NeoReadOnly*</c> wrapper on the read-only family.</para>
+    /// </summary>
+    internal static class NeoStructuredLeafWriteGuard
+    {
+        /// <summary>
+        /// Throws unless <paramref name="node"/> may be mutated right now;
+        /// otherwise returns it as the writable node kind.
+        /// </summary>
+        public static TWritable RequireWritable<TWritable>(
+            NeoGeneratedClassValue? owner,
+            NeoMember node,
+            string wrapperName,
+            string field)
+            where TWritable : NeoMember
+        {
+            if (owner is not null && owner.IsReadOnly)
+            {
+                throw new System.InvalidOperationException(
+                    $"Cannot write field '{field}' on {wrapperName} because the owning "
+                    + $"{owner.GetType().Name} value is read-only.");
+            }
+
+            if (node is not TWritable writable)
+            {
+                throw new System.InvalidOperationException(
+                    $"Cannot write field '{field}' on {wrapperName} because the bound Neo "
+                    + $"member '{node.member.name}' is read-only.");
+            }
+
+            return writable;
+        }
     }
 
     internal static class NeoVectorValues

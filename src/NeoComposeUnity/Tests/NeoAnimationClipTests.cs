@@ -360,21 +360,104 @@ namespace NeoCompose.Tests
         [Test]
         public void Playback_MatchesCrossRuntimeParityResolvedFrames()
         {
+            AssertParityResolvedFrames("root", "resolvedFrames");
+        }
+
+        /// <summary>
+        /// P42 section 1.4: "as it stands" means at apply time on the played
+        /// instance. The same `frames` chain resolved against a second
+        /// placement — a different sprite sheet, a `Position.z`, a
+        /// `Collider.Offset` and a `Tint` the clip never writes — must land on
+        /// `boundResolvedFrames`, not on the authored default's frames. A
+        /// runtime that composes a field override against the authored default
+        /// instead of the current value passes the test above and fails this
+        /// one.
+        /// </summary>
+        [Test]
+        public void Playback_MatchesCrossRuntimeParityBoundPlacementFrames()
+        {
+            AssertParityResolvedFrames("boundRoot", "boundResolvedFrames");
+        }
+
+        /// <summary>
+        /// Pins what the resolved-frame vectors exist to prove. `DeepEquals`
+        /// over the whole state would still pass if the fixture quietly lost
+        /// the rows that carry the P42 semantics, so name them: the nested
+        /// class merges key-wise, the envelope is unwrapped at depth 2 and
+        /// never survives into a resolved value, and the two placements
+        /// disagree exactly where the clip never wrote. This mirrors the web
+        /// harness's assertions in
+        /// `world-grid-animation-model.test.ts`.
+        /// </summary>
+        [Test]
+        public void ParityFixture_PinsFieldOverrideAndBoundPlacementVectors()
+        {
+            JObject fixture = JObject.Parse(
+                NeoAnimationFrameResolutionParityFixture.Json);
+            var resolved = (JArray)fixture["resolvedFrames"]!;
+            var bound = (JArray)fixture["boundResolvedFrames"]!;
+            JObject boundRoot = (JObject)fixture["boundRoot"]!;
+
+            // Frame 1 writes only `Collider.Offset` and frame 3 only
+            // `Collider.Enabled`, so both keys surviving at frame 3 is the
+            // subset-record merge a nested CLASS is entitled to (decision D1
+            // bans bare subsets for structured LEAVES only).
+            JToken? lastCollider = resolved[3]["Collider"];
+            Assert.IsTrue(
+                JToken.DeepEquals(
+                    JObject.Parse(@"{ ""Enabled"": false, ""Offset"": { ""x"": 1, ""y"": 0 } }"),
+                    lastCollider),
+                $"resolvedFrames[3].Collider was {lastCollider}");
+            // `Offset.x` moved without `$partial` appearing: the envelope is
+            // unwrapped inside the recursion, not only at the top level.
+            Assert.IsNull(
+                lastCollider!["Offset"]![
+                    global::NeoCompose.Runtime.Json.NeoPartialLeafValue.EnvelopeKey],
+                "the $partial envelope leaked into a resolved value");
+
+            // The bound sheet survives the slice-only frame, and the z the clip
+            // never touches stays the placement's.
+            Assert.AreEqual(
+                boundRoot["Sprite"]!.Value<string>("fileId"),
+                bound[1]!["Sprite"]!.Value<string>("fileId"));
+            Assert.AreNotEqual(
+                resolved[1]!["Sprite"]!.Value<string>("fileId"),
+                bound[1]!["Sprite"]!.Value<string>("fileId"));
+            Assert.AreEqual(
+                boundRoot["Position"]!.Value<float>("z"),
+                bound[3]!["Position"]!.Value<float>("z"));
+            // Same rule two levels down: the nested field write moves `x` on
+            // both placements and leaves each placement's own `y` alone.
+            Assert.AreEqual(
+                1f,
+                bound[1]!["Collider"]!["Offset"]!.Value<float>("x"));
+            Assert.AreEqual(
+                boundRoot["Collider"]!["Offset"]!.Value<float>("y"),
+                bound[1]!["Collider"]!["Offset"]!.Value<float>("y"));
+            Assert.AreNotEqual(
+                resolved[1]!["Collider"]!["Offset"]!.Value<float>("y"),
+                bound[1]!["Collider"]!["Offset"]!.Value<float>("y"));
+        }
+
+        private static void AssertParityResolvedFrames(
+            string rootKey,
+            string expectedFramesKey)
+        {
             JObject fixture = JObject.Parse(
                 NeoAnimationFrameResolutionParityFixture.Json);
             JObject traversals = (JObject)fixture["traversals"]!;
 
-            AssertResolvedFrameVector(fixture, traversals, "onceForward", clip =>
+            AssertResolvedFrameVector(fixture, traversals, rootKey, expectedFramesKey, "onceForward", clip =>
                 clip.PlayOnce(NeoPlayDirection.Forward));
-            AssertResolvedFrameVector(fixture, traversals, "onceBackward", clip =>
+            AssertResolvedFrameVector(fixture, traversals, rootKey, expectedFramesKey, "onceBackward", clip =>
                 clip.PlayOnce(NeoPlayDirection.Backward));
-            AssertResolvedFrameVector(fixture, traversals, "repeatForwardWrap", clip =>
+            AssertResolvedFrameVector(fixture, traversals, rootKey, expectedFramesKey, "repeatForwardWrap", clip =>
                 clip.PlayLoop(NeoPlayMode.Repeat, NeoPlayDirection.Forward));
-            AssertResolvedFrameVector(fixture, traversals, "repeatBackwardWrap", clip =>
+            AssertResolvedFrameVector(fixture, traversals, rootKey, expectedFramesKey, "repeatBackwardWrap", clip =>
                 clip.PlayLoop(NeoPlayMode.Repeat, NeoPlayDirection.Backward));
-            AssertResolvedFrameVector(fixture, traversals, "boomerangForward", clip =>
+            AssertResolvedFrameVector(fixture, traversals, rootKey, expectedFramesKey, "boomerangForward", clip =>
                 clip.PlayLoop(NeoPlayMode.Boomerang, NeoPlayDirection.Forward));
-            AssertResolvedFrameVector(fixture, traversals, "boomerangBackward", clip =>
+            AssertResolvedFrameVector(fixture, traversals, rootKey, expectedFramesKey, "boomerangBackward", clip =>
                 clip.PlayLoop(NeoPlayMode.Boomerang, NeoPlayDirection.Backward));
         }
 
@@ -482,13 +565,15 @@ namespace NeoCompose.Tests
         private static void AssertResolvedFrameVector(
             JObject fixture,
             JObject traversals,
+            string rootKey,
+            string expectedFramesKey,
             string key,
             Action<NeoAnimationClip<TestTarget>> play)
         {
             int[] traversal = traversals[key]!.ToObject<int[]>()!;
-            var expectedFrames = (JArray)fixture["resolvedFrames"]!;
+            var expectedFrames = (JArray)fixture[expectedFramesKey]!;
             var frames = (JArray)fixture["frames"]!;
-            JObject root = (JObject)fixture["root"]!;
+            JObject root = (JObject)fixture[rootKey]!;
             JObject state = (JObject)root.DeepClone();
             using NeoClient client = CreateClient();
             TestTarget target = new(client);
@@ -517,7 +602,7 @@ namespace NeoCompose.Tests
                     }
                     Assert.IsTrue(
                         JToken.DeepEquals(expectedFrames[frameIndex], state),
-                        $"{key} frame {frameIndex} resolved to {state}");
+                        $"{rootKey}/{key} frame {frameIndex} resolved to {state}");
                     entered += 1;
                 });
 
@@ -545,14 +630,75 @@ namespace NeoCompose.Tests
             return state;
         }
 
+        /// <summary>
+        /// Deep record merge, mirroring the web resolver's `mergeSparseValue`
+        /// (`world-grid-animation-model.ts`) key for key. This replaced
+        /// `JObject.Merge` when P42 put the `$partial` envelope in the fixture:
+        /// Newtonsoft's merge has no idea what the envelope means and would
+        /// leave a literal `$partial` key sitting in the resolved state, so the
+        /// two runtimes would stop agreeing about what the vectors even say.
+        /// </summary>
         private static void MergeFixtureState(JObject state, JObject sparse)
         {
-            state.Merge(
-                sparse,
-                new JsonMergeSettings
+            foreach (JProperty property in sparse.Properties())
+            {
+                JToken? merged = MergeFixtureValue(
+                    state[property.Name], property.Value);
+                // P42 section 1.4, "a null leaf at apply time": a field write
+                // onto something that is not a record has nothing to compose
+                // against, so the write is skipped and the previous value
+                // stands. Assigning here would invent a base value.
+                if (merged is null) continue;
+                state[property.Name] = merged;
+            }
+        }
+
+        private static JToken? MergeFixtureValue(JToken? current, JToken value)
+        {
+            JObject? partialFields = PartialEnvelopeFields(value);
+            if (partialFields is not null)
+            {
+                // P42 section 1.2: a field override is a read-modify-write of
+                // the WHOLE leaf, and "the rest" comes from the value as it
+                // stands on the played instance.
+                if (current is not JObject leaf) return null;
+                var patched = (JObject)leaf.DeepClone();
+                foreach (JProperty field in partialFields.Properties())
                 {
-                    MergeArrayHandling = MergeArrayHandling.Replace,
-                });
+                    patched[field.Name] = field.Value.DeepClone();
+                }
+                return patched;
+            }
+
+            // A full leaf value is not an envelope: every key present means
+            // every key is replaced, which is the whole-leaf override P42
+            // section 1.3 promises. Nested CLASS records still merge key-wise.
+            if (value is not JObject record) return value.DeepClone();
+            JObject next = current is JObject baseRecord
+                ? (JObject)baseRecord.DeepClone()
+                : new JObject();
+            foreach (JProperty property in record.Properties())
+            {
+                JToken? merged = MergeFixtureValue(
+                    next[property.Name], property.Value);
+                if (merged is null) continue;
+                next[property.Name] = merged;
+            }
+            return next;
+        }
+
+        /// <summary>
+        /// The envelope probe, matching the web `isStructuredLeafPartialValue`:
+        /// exactly one key, named <c>$partial</c>, whose value is an object.
+        /// Anything else is an ordinary record and merges as one.
+        /// </summary>
+        private static JObject? PartialEnvelopeFields(JToken value)
+        {
+            if (value is not JObject envelope) return null;
+            if (envelope.Count != 1) return null;
+            return envelope[
+                global::NeoCompose.Runtime.Json.NeoPartialLeafValue.EnvelopeKey]
+                as JObject;
         }
 
         private static void Tick(NeoAnimationClip<TestTarget> clip, int count)

@@ -91,6 +91,8 @@ namespace NeoCompose.Runtime.Json
         public const string VisitCount = "visitCount";
         public const string HasVisited = "hasVisited";
         public const string VectorConstructor = "vectorConstructor";
+        /// <summary>P42 §2.3 — <c>Images.&lt;Name&gt;.Slice(n)</c>.</summary>
+        public const string ImageSlice = "imageSlice";
         public const string StringOp = "stringOp";
         public const string DecimalOp = "decimalOp";
         public const string ListIndex = "listIndex";
