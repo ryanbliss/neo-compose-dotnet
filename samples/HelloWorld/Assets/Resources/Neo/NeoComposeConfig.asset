@@ -28,8 +28,14 @@ MonoBehaviour:
   audioClipDirectory: Assets/Resources/Neo/Files/Audio
   namespaceForGeneratedTypes: HelloWorld.Assets.Scripts.Neo
   singleton: 1
-  runtimeOAuthClientId: 
-  runtimeOAuthScopes: []
+  runtimeOAuthClientId: neo-compose-runtime-7cd65ee0-a3be-4162-b617-cba3ada4f8e8
+  runtimeOAuthScopes:
+  - openid
+  - profile:read
+  - project:7cd65ee0-a3be-4162-b617-cba3ada4f8e8:save:read
+  - project:7cd65ee0-a3be-4162-b617-cba3ada4f8e8:save:write
+  - project:7cd65ee0-a3be-4162-b617-cba3ada4f8e8:save:archive
+  - project:7cd65ee0-a3be-4162-b617-cba3ada4f8e8:runtime:read
   convexUrl: https://enduring-mouse-881.convex.cloud
   enableOAuthCloudSync: 1
   runtimeOAuthOverridden: 0
