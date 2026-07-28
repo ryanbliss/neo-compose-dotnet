@@ -485,6 +485,85 @@ namespace NeoCompose.Tests
         }
 
         // ------------------------------------------------------------------
+        // Missing-value reporting. The message names the component that was
+        // read and says nothing about requiredness — an optional member with
+        // no row is not "Required Vector2 'Offset'", which is what every one
+        // of these reads used to claim.
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void ComponentAccessor_OnAnOptionalMemberDoesNotClaimItIsRequired()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            NeoGeneratedTypesSupport.SetVector2OrClear(client.save, "Offset", null);
+            var offset = new NeoReadOnlyVector2(client.save.Get<NeoMemberVector2>("Offset"));
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                _ = offset.y);
+            Assert.AreEqual(
+                "Cannot read 'y': Vector2 'Offset' has no value.",
+                error!.Message);
+        }
+
+        // One message shape per condition: a required member with no value
+        // reports the same thing.
+        [Test]
+        public void ComponentAccessor_OnARequiredMemberReportsTheSameMessage()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var bounds = new NeoReadOnlyVector3(client.save.Get<NeoMemberVector3>("Bounds"));
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                _ = bounds.z);
+            Assert.AreEqual(
+                "Cannot read 'z': Vector3 'Bounds' has no value.",
+                error!.Message);
+        }
+
+        // A component write is a read-modify-write, so it fails through the
+        // same read — and names the same component.
+        [Test]
+        public void ComponentSetter_WithoutACurrentValueNamesTheComponent()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            NeoGeneratedTypesSupport.SetVector2OrClear(client.save, "Offset", null);
+            var offset = new NeoVector2(client.save.Get<NeoMemberVector2Writable>("Offset"));
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                offset.x = 5f);
+            Assert.AreEqual(
+                "Cannot read 'x': Vector2 'Offset' has no value.",
+                error!.Message);
+            // Nothing was composed against a phantom base and written back.
+            Assert.IsNull(client.save.Get<NeoMemberVector2Writable>("Offset").value);
+        }
+
+        // The whole-value read has no one component to blame, so it names
+        // none.
+        [Test]
+        public void ValueAccessor_WithoutACurrentValueNamesNoComponent()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var bounds = new NeoReadOnlyVector3(client.save.Get<NeoMemberVector3>("Bounds"));
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                _ = bounds.Value);
+            Assert.AreEqual("Vector3 'Bounds' has no value.", error!.Message);
+        }
+
+        // A detached wrapper always has a value; the field-naming read path
+        // must not make one throw.
+        [Test]
+        public void ComponentAccessors_OnDetachedWrappersNeverThrow()
+        {
+            Assert.AreEqual(2f, new NeoReadOnlyVector2(1f, 2f).y);
+            Assert.AreEqual(1, new NeoReadOnlyVector2Int(1, 2).x);
+            Assert.AreEqual(3f, new NeoReadOnlyVector3(1f, 2f, 3f).z);
+            Assert.AreEqual(2, new NeoReadOnlyVector3Int(1, 2, 3).y);
+            Assert.AreEqual(9f, new NeoVector3(9f, 8f, 7f).x);
+        }
+
+        // ------------------------------------------------------------------
         // Fixture.
         // ------------------------------------------------------------------
 
@@ -514,6 +593,7 @@ namespace NeoCompose.Tests
                     ["Fractional"] = "fractional-member",
                     ["Size"] = "size-member",
                     ["Grid"] = "grid-member",
+                    ["Bounds"] = "bounds-member",
                 },
             };
 
@@ -584,6 +664,17 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Grid",
                         kind = MemberKind.Vector3Int,
+                        required = true,
+                    },
+                    // Required, and deliberately left without a value row (no
+                    // entry in the save record below) so the missing-value
+                    // message can be pinned for the required case too.
+                    ["bounds-member"] = new Vector3Member
+                    {
+                        id = "bounds-member",
+                        projectId = "project-a",
+                        name = "Bounds",
+                        kind = MemberKind.Vector3,
                         required = true,
                     },
                 },

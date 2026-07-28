@@ -37,7 +37,9 @@ namespace NeoCompose.Runtime
                 writable.value = newValue;
                 writable.updatedAt = nowIso;
                 client.SetWritableValue(ownership, writable, "value");
-                NotifyChanged();
+                // No NotifyChanged() here — the write above already raised it
+                // through this node's own OnValueIdChainChanged. See that
+                // method's remarks.
                 return;
             }
 
@@ -93,7 +95,9 @@ namespace NeoCompose.Runtime
                 writable.value = newValue;
                 writable.updatedAt = nowIso;
                 client.SetWritableValue(ownership, writable, "value");
-                NotifyChanged();
+                // No NotifyChanged() here — the write above already raised it
+                // through this node's own OnValueIdChainChanged. See that
+                // method's remarks.
                 return;
             }
 
@@ -149,7 +153,9 @@ namespace NeoCompose.Runtime
                 writable.value = newValue;
                 writable.updatedAt = nowIso;
                 client.SetWritableValue(ownership, writable, "value");
-                NotifyChanged();
+                // No NotifyChanged() here — the write above already raised it
+                // through this node's own OnValueIdChainChanged. See that
+                // method's remarks.
                 return;
             }
 
@@ -205,7 +211,9 @@ namespace NeoCompose.Runtime
                 writable.value = newValue;
                 writable.updatedAt = nowIso;
                 client.SetWritableValue(ownership, writable, "value");
-                NotifyChanged();
+                // No NotifyChanged() here — the write above already raised it
+                // through this node's own OnValueIdChainChanged. See that
+                // method's remarks.
                 return;
             }
 
@@ -266,11 +274,20 @@ namespace NeoCompose.Runtime
             memberNode = member;
         }
 
-        public float x => Value.x;
-        public float y => Value.y;
+        public float x => RequireValue(nameof(x)).x;
+        public float y => RequireValue(nameof(y)).y;
         public Vector2 Value => memberNode is null
             ? detachedValue
             : NeoVectorValues.ReadVector2(memberNode);
+
+        /// <summary>
+        /// <see cref="Value"/> for a read that has one field to blame, so the
+        /// no-value message can name it. A detached wrapper always has a value
+        /// and never throws here.
+        /// </summary>
+        private protected Vector2 RequireValue(string field) => memberNode is null
+            ? detachedValue
+            : NeoVectorValues.ReadVector2(memberNode, field);
 
         public static implicit operator Vector2(NeoReadOnlyVector2 value) => value.Value;
 
@@ -353,10 +370,10 @@ namespace NeoCompose.Runtime
 
         public new float x
         {
-            get => Value.x;
+            get => RequireValue(nameof(x)).x;
             set
             {
-                Vector2 next = Value;
+                Vector2 next = RequireValue(nameof(x));
                 next.x = value;
                 Write(next, nameof(x));
             }
@@ -364,10 +381,10 @@ namespace NeoCompose.Runtime
 
         public new float y
         {
-            get => Value.y;
+            get => RequireValue(nameof(y)).y;
             set
             {
-                Vector2 next = Value;
+                Vector2 next = RequireValue(nameof(y));
                 next.y = value;
                 Write(next, nameof(y));
             }
@@ -412,11 +429,16 @@ namespace NeoCompose.Runtime
             memberNode = member;
         }
 
-        public int x => Value.x;
-        public int y => Value.y;
+        public int x => RequireValue(nameof(x)).x;
+        public int y => RequireValue(nameof(y)).y;
         public Vector2Int Value => memberNode is null
             ? detachedValue
             : NeoVectorValues.ReadVector2Int(memberNode);
+
+        /// <inheritdoc cref="NeoReadOnlyVector2.RequireValue"/>
+        private protected Vector2Int RequireValue(string field) => memberNode is null
+            ? detachedValue
+            : NeoVectorValues.ReadVector2Int(memberNode, field);
 
         public static implicit operator Vector2Int(NeoReadOnlyVector2Int value) => value.Value;
 
@@ -481,10 +503,10 @@ namespace NeoCompose.Runtime
 
         public new int x
         {
-            get => Value.x;
+            get => RequireValue(nameof(x)).x;
             set
             {
-                Vector2Int next = Value;
+                Vector2Int next = RequireValue(nameof(x));
                 next.x = value;
                 Write(next, nameof(x));
             }
@@ -492,10 +514,10 @@ namespace NeoCompose.Runtime
 
         public new int y
         {
-            get => Value.y;
+            get => RequireValue(nameof(y)).y;
             set
             {
-                Vector2Int next = Value;
+                Vector2Int next = RequireValue(nameof(y));
                 next.y = value;
                 Write(next, nameof(y));
             }
@@ -540,12 +562,17 @@ namespace NeoCompose.Runtime
             memberNode = member;
         }
 
-        public float x => Value.x;
-        public float y => Value.y;
-        public float z => Value.z;
+        public float x => RequireValue(nameof(x)).x;
+        public float y => RequireValue(nameof(y)).y;
+        public float z => RequireValue(nameof(z)).z;
         public Vector3 Value => memberNode is null
             ? detachedValue
             : NeoVectorValues.ReadVector3(memberNode);
+
+        /// <inheritdoc cref="NeoReadOnlyVector2.RequireValue"/>
+        private protected Vector3 RequireValue(string field) => memberNode is null
+            ? detachedValue
+            : NeoVectorValues.ReadVector3(memberNode, field);
 
         public static implicit operator Vector3(NeoReadOnlyVector3 value) => value.Value;
 
@@ -607,10 +634,10 @@ namespace NeoCompose.Runtime
 
         public new float x
         {
-            get => Value.x;
+            get => RequireValue(nameof(x)).x;
             set
             {
-                Vector3 next = Value;
+                Vector3 next = RequireValue(nameof(x));
                 next.x = value;
                 Write(next, nameof(x));
             }
@@ -618,10 +645,10 @@ namespace NeoCompose.Runtime
 
         public new float y
         {
-            get => Value.y;
+            get => RequireValue(nameof(y)).y;
             set
             {
-                Vector3 next = Value;
+                Vector3 next = RequireValue(nameof(y));
                 next.y = value;
                 Write(next, nameof(y));
             }
@@ -629,10 +656,10 @@ namespace NeoCompose.Runtime
 
         public new float z
         {
-            get => Value.z;
+            get => RequireValue(nameof(z)).z;
             set
             {
-                Vector3 next = Value;
+                Vector3 next = RequireValue(nameof(z));
                 next.z = value;
                 Write(next, nameof(z));
             }
@@ -677,12 +704,17 @@ namespace NeoCompose.Runtime
             memberNode = member;
         }
 
-        public int x => Value.x;
-        public int y => Value.y;
-        public int z => Value.z;
+        public int x => RequireValue(nameof(x)).x;
+        public int y => RequireValue(nameof(y)).y;
+        public int z => RequireValue(nameof(z)).z;
         public Vector3Int Value => memberNode is null
             ? detachedValue
             : NeoVectorValues.ReadVector3Int(memberNode);
+
+        /// <inheritdoc cref="NeoReadOnlyVector2.RequireValue"/>
+        private protected Vector3Int RequireValue(string field) => memberNode is null
+            ? detachedValue
+            : NeoVectorValues.ReadVector3Int(memberNode, field);
 
         public static implicit operator Vector3Int(NeoReadOnlyVector3Int value) => value.Value;
 
@@ -745,10 +777,10 @@ namespace NeoCompose.Runtime
 
         public new int x
         {
-            get => Value.x;
+            get => RequireValue(nameof(x)).x;
             set
             {
-                Vector3Int next = Value;
+                Vector3Int next = RequireValue(nameof(x));
                 next.x = value;
                 Write(next, nameof(x));
             }
@@ -756,10 +788,10 @@ namespace NeoCompose.Runtime
 
         public new int y
         {
-            get => Value.y;
+            get => RequireValue(nameof(y)).y;
             set
             {
-                Vector3Int next = Value;
+                Vector3Int next = RequireValue(nameof(y));
                 next.y = value;
                 Write(next, nameof(y));
             }
@@ -767,10 +799,10 @@ namespace NeoCompose.Runtime
 
         public new int z
         {
-            get => Value.z;
+            get => RequireValue(nameof(z)).z;
             set
             {
-                Vector3Int next = Value;
+                Vector3Int next = RequireValue(nameof(z));
                 next.z = value;
                 Write(next, nameof(z));
             }
@@ -816,6 +848,17 @@ namespace NeoCompose.Runtime
     /// still use the single-argument bound ctor fall back to signal 2 alone.
     /// The complementary half of D5 is codegen returning the
     /// <c>NeoReadOnly*</c> wrapper on the read-only family.</para>
+    /// <para>That call-site obligation covers EVERY path that hands out a
+    /// bound writable-family wrapper, not only the direct property. A
+    /// generated collection getter reads its node through
+    /// <c>writableNode</c> too, so on a read-only instance its element
+    /// children are still the <c>*Writable</c> kind and signal 2 says
+    /// "writable" — leaving signal 1 as the only guard. A collection-element
+    /// factory that omits the owner reopens exactly the hole the direct
+    /// property closes, and does it invisibly, because the property next to it
+    /// throws. Codegen therefore passes the owner from the element factory as
+    /// well; see `childConverter` in the web repo's
+    /// `generate-unity-classes.ts`.</para>
     /// </summary>
     internal static class NeoStructuredLeafWriteGuard
     {
@@ -848,6 +891,37 @@ namespace NeoCompose.Runtime
         }
     }
 
+    /// <summary>
+    /// Shared "this leaf has nothing to read" reporting for the structured-leaf
+    /// wrappers (<see cref="NeoReadOnlyVector2"/> and friends,
+    /// <see cref="NeoReadOnlyColor"/>, <see cref="NeoReadOnlySprite"/>).
+    ///
+    /// <para>One message shape per condition. It deliberately does <b>not</b>
+    /// claim the member is required: these wrappers are handed out for optional
+    /// members too, and "Required Color 'Glow' has no value." was simply false
+    /// on the optional ones. "Has no value" is the actionable part, and naming
+    /// the field being read is what tells the author which accessor tripped
+    /// it.</para>
+    /// </summary>
+    internal static class NeoStructuredLeafReadGuard
+    {
+        /// <summary>
+        /// <paramref name="field"/> is the component/channel/field being read
+        /// (<c>x</c>, <c>a</c>, <c>SliceIndex</c>); null for a whole-value read,
+        /// which has no one field to name.
+        /// </summary>
+        public static System.InvalidOperationException MissingValue(
+            string typeName,
+            string memberName,
+            string? field)
+        {
+            return new System.InvalidOperationException(
+                field is null
+                    ? $"{typeName} '{memberName}' has no value."
+                    : $"Cannot read '{field}': {typeName} '{memberName}' has no value.");
+        }
+    }
+
     internal static class NeoVectorValues
     {
         public static NeoVector2Value FromVector2(Vector2 value)
@@ -870,46 +944,55 @@ namespace NeoCompose.Runtime
             return new NeoVector3Value { x = value.x, y = value.y, z = value.z };
         }
 
-        public static Vector2 ReadVector2(NeoMemberVector2 member)
+        /// <summary>
+        /// <paramref name="field"/> names the component being read, for the
+        /// message a component accessor raises when the leaf has no value; a
+        /// whole-value read leaves it null. See
+        /// <see cref="NeoStructuredLeafReadGuard"/>.
+        /// </summary>
+        public static Vector2 ReadVector2(NeoMemberVector2 member, string? field = null)
         {
             var value = member.value?.value;
             if (value is null)
             {
-                throw new System.InvalidOperationException(
-                    $"Required Vector2 '{member.member.name}' has no value.");
+                throw NeoStructuredLeafReadGuard.MissingValue(
+                    "Vector2", member.member.name, field);
             }
             return ToVector2(value);
         }
 
-        public static Vector2Int ReadVector2Int(NeoMemberVector2Int member)
+        /// <inheritdoc cref="ReadVector2(NeoMemberVector2, string?)"/>
+        public static Vector2Int ReadVector2Int(NeoMemberVector2Int member, string? field = null)
         {
             var value = member.value?.value;
             if (value is null)
             {
-                throw new System.InvalidOperationException(
-                    $"Required Vector2Int '{member.member.name}' has no value.");
+                throw NeoStructuredLeafReadGuard.MissingValue(
+                    "Vector2Int", member.member.name, field);
             }
             return ToVector2Int(value);
         }
 
-        public static Vector3 ReadVector3(NeoMemberVector3 member)
+        /// <inheritdoc cref="ReadVector2(NeoMemberVector2, string?)"/>
+        public static Vector3 ReadVector3(NeoMemberVector3 member, string? field = null)
         {
             var value = member.value?.value;
             if (value is null)
             {
-                throw new System.InvalidOperationException(
-                    $"Required Vector3 '{member.member.name}' has no value.");
+                throw NeoStructuredLeafReadGuard.MissingValue(
+                    "Vector3", member.member.name, field);
             }
             return ToVector3(value);
         }
 
-        public static Vector3Int ReadVector3Int(NeoMemberVector3Int member)
+        /// <inheritdoc cref="ReadVector2(NeoMemberVector2, string?)"/>
+        public static Vector3Int ReadVector3Int(NeoMemberVector3Int member, string? field = null)
         {
             var value = member.value?.value;
             if (value is null)
             {
-                throw new System.InvalidOperationException(
-                    $"Required Vector3Int '{member.member.name}' has no value.");
+                throw NeoStructuredLeafReadGuard.MissingValue(
+                    "Vector3Int", member.member.name, field);
             }
             return ToVector3Int(value);
         }

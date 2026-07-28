@@ -203,17 +203,62 @@ namespace NeoCompose.Runtime.Json
     public class ColorMemberValueBase : MemberValueBase<NeoColorValue?> { }
 
     /// <summary>
-    /// Carrier for a P42 <c>$partial</c> structured-leaf envelope in a
-    /// <see cref="Member.defaultValue"/> position. Declared for parity with
-    /// <see cref="PartialLeafMemberValue"/> so an envelope reaching the
-    /// embedded-carrier converter resolves to a row that can hold it and
-    /// report a precise error, rather than being force-fed into
-    /// <see cref="ObjectMemberValueBase"/>'s
-    /// <c>Dictionary&lt;string, string&gt;</c>. Authored defaults are never
-    /// legitimately partial — a partial is only legal inside an animation
-    /// override graph.
+    /// P42 decision D10 — a <c>$partial</c> structured-leaf envelope is legal
+    /// <b>only</b> inside an animation override graph, and the position is
+    /// statically knowable rather than inferred from the value's shape or the
+    /// member's kind. A <see cref="Member.defaultValue"/> is never an override
+    /// graph, so an envelope there is invalid data and is rejected by name.
+    ///
+    /// <para>There is deliberately no <c>PartialLeafMemberValueBase</c> carrier
+    /// to hold one. An earlier revision declared it "so an envelope reaching
+    /// the embedded-carrier converter resolves to a row that can report a
+    /// precise error" — but nothing raised that error, so the envelope was
+    /// swallowed: a stray <c>$partial</c> under a Sprite declaration
+    /// deserialized into a <see cref="SpriteValue"/> with a null
+    /// <c>fileId</c>, i.e. silently became "no value". The error is raised
+    /// here instead, which leaves the carrier with nothing to carry.</para>
     /// </summary>
-    public class PartialLeafMemberValueBase : MemberValueBase<NeoPartialLeafValue?> { }
+    internal static class PartialLeafPositionGuard
+    {
+        /// <summary>
+        /// Rejects a <c>$partial</c> envelope sitting in the <c>value</c> of a
+        /// declaration-default carrier. <paramref name="carrier"/> is the
+        /// <see cref="MemberValueBase"/> JSON object; <paramref name="subject"/>
+        /// names the position for the message.
+        /// </summary>
+        internal static void RejectDefaultCarrier(JObject? carrier, string subject)
+        {
+            if (carrier is null) return;
+            if (!NeoPartialLeafValue.IsEnvelope(carrier["value"])) return;
+            throw new JsonSerializationException(
+                $"{subject} holds a '{NeoPartialLeafValue.EnvelopeKey}' structured-leaf "
+                + "value. A partial value is legal only inside an animation override graph "
+                + "(the Overrides subtree of a frame or a child override), never in a "
+                + "member declaration default; declare a whole value instead.");
+        }
+
+        /// <summary>
+        /// Same rule, reached from <c>MemberConverter</c> where the member's
+        /// own JSON is in hand — so the message can name the member and its
+        /// kind, which is what decision D10 asks for. Runs before the member's
+        /// fields are populated, so it wins over the carrier-level check.
+        /// </summary>
+        internal static void RejectMemberDeclarationDefault(JObject member, Type concrete)
+        {
+            if (member["defaultValue"] is not JObject carrier) return;
+            RejectDefaultCarrier(carrier, DescribeMember(member, concrete));
+        }
+
+        private static string DescribeMember(JObject member, Type concrete)
+        {
+            string? name = member.Value<string>("name");
+            string? id = member.Value<string>("id");
+            string named = name is null ? concrete.Name : $"{concrete.Name} '{name}'";
+            return id is null
+                ? $"The default value of {named}"
+                : $"The default value of {named} ({id})";
+        }
+    }
 
     public class NeoVector2ValueConverter : JsonConverter
     {
@@ -878,6 +923,17 @@ namespace NeoCompose.Runtime.Json
             if (reader.TokenType == JsonToken.Null) return null;
             var obj = JObject.Load(reader);
             RejectRemovedClassIdentityField(obj);
+            // P42 decision D10 — a MemberValueBase is only ever a
+            // Member.defaultValue, which is never an animation override
+            // graph, so a `$partial` envelope here is invalid wherever it
+            // came from. Raised before dispatch: the context path would
+            // otherwise force-feed the envelope into the declared kind's
+            // payload (a Sprite default silently becoming a SpriteValue with
+            // a null fileId), and the shape path would need a carrier type
+            // that exists only to fail.
+            PartialLeafPositionGuard.RejectDefaultCarrier(
+                obj,
+                "A member declaration default");
             var concrete =
                 TypedHierarchyMap.ResolveByContext(objectType, typeof(MemberValueBase<>))
                 ?? ResolveByShape(obj["value"]);
@@ -923,13 +979,12 @@ namespace NeoCompose.Runtime.Json
                 case JTokenType.Array:
                     return typeof(ArrayMemberValueBase);
                 case JTokenType.Object:
-                    // P42: the `$partial` envelope probe MUST come first. A
-                    // bare {"fileId":"…"} sprite partial is byte-identical to
-                    // a whole File value, so the envelope is the only signal
-                    // that disambiguates — and a malformed envelope has to
-                    // land on the partial row so its converter can reject it
-                    // by name.
-                    if (NeoPartialLeafValue.IsEnvelope(token)) return typeof(PartialLeafMemberValueBase);
+                    // P42: an envelope never reaches here — ReadJson rejects
+                    // it above, because this is a declaration-default
+                    // position (decision D10). The negative envelope guard on
+                    // each probe below still matters: it keeps a
+                    // {"$partial":{"fileId":"…"}} from being mistaken for a
+                    // whole File value should any other caller reuse them.
                     if (NeoVector3ValueConverter.LooksLikeVector3Value(token)) return typeof(Vector3MemberValueBase);
                     if (NeoVector2ValueConverter.LooksLikeVector2Value(token)) return typeof(Vector2MemberValueBase);
                     if (NeoColorValueConverter.LooksLikeColorValue(token)) return typeof(ColorMemberValueBase);

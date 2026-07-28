@@ -439,6 +439,76 @@ namespace NeoCompose.Tests
                 bound[1]!["Collider"]!["Offset"]!.Value<float>("y"));
         }
 
+        /// <summary>
+        /// P42 section 7.1: every case runs across all six structured-leaf
+        /// kinds. `Cell` (Vector2Int) and `Grid` (Vector3Int) merge through
+        /// exactly the same path as their float counterparts and are therefore
+        /// invisible in `resolvedFrames` — an int vector resolved as floats
+        /// produces identical frames right up until a component lands on a
+        /// fraction. `intFieldWrites` is the vector that separates them, and it
+        /// is deliberately paired: the same fractional value is accepted on the
+        /// float kind and rejected on the int one, so a runtime that reads an
+        /// int component with <c>NeoPartialLeafValue.TryGetSingle</c> fails
+        /// here rather than truncating a frame in the field.
+        ///
+        /// <para>Mirrors the web harness's assertions in
+        /// `animation-frame-parity-fixture-coverage.test.ts`. Only the verdict
+        /// is shared across the two runtimes; the diagnostic wording is
+        /// not.</para>
+        /// </summary>
+        [Test]
+        public void ParityFixture_PinsIntComponentVerdicts()
+        {
+            JObject fixture = JObject.Parse(
+                NeoAnimationFrameResolutionParityFixture.Json);
+            var writes = (JArray)fixture["intFieldWrites"]!;
+            Assert.Greater(writes.Count, 0, "intFieldWrites went missing.");
+
+            bool contested = false;
+            foreach (JObject write in writes.OfType<JObject>())
+            {
+                string kind = write.Value<string>("kind")!;
+                string field = write.Value<string>("field")!;
+                bool accepted = write.Value<bool>("accepted");
+                string label = $"{kind}: {write.Value<string>("label")}";
+
+                var envelope = new JObject
+                {
+                    [global::NeoCompose.Runtime.Json.NeoPartialLeafValue
+                        .EnvelopeKey] = new JObject
+                    {
+                        [field] = write["value"]!.DeepClone(),
+                    },
+                };
+                var leafPartial = Newtonsoft.Json.JsonConvert
+                    .DeserializeObject<
+                        global::NeoCompose.Runtime.Json.NeoPartialLeafValue>(
+                            envelope.ToString(
+                                Newtonsoft.Json.Formatting.None))!;
+
+                // The int kinds are the ones whose reader rejects a fraction;
+                // every other kind reads its component as a float, which is
+                // why the same payload has two verdicts.
+                bool readable = kind.EndsWith("Int", StringComparison.Ordinal)
+                    ? leafPartial.TryGetInt32(field, out _)
+                    : leafPartial.TryGetSingle(field, out _);
+                Assert.AreEqual(accepted, readable, label);
+
+                contested = contested || writes
+                    .OfType<JObject>()
+                    .Any(other =>
+                        other.Value<string>("field") == field
+                        && JToken.DeepEquals(other["value"], write["value"])
+                        && other.Value<bool>("accepted") != accepted);
+            }
+
+            Assert.IsTrue(
+                contested,
+                "No fixture value is accepted on one kind and rejected on "
+                + "another, so the verdicts prove nothing the float vectors "
+                + "do not already prove.");
+        }
+
         private static void AssertParityResolvedFrames(
             string rootKey,
             string expectedFramesKey)

@@ -141,12 +141,67 @@ namespace NeoCompose.Tests
             }
         }
 
+        // ------------------------------------------------------------------
+        // Position — decision D10. A MemberValueBase is only ever a
+        // Member.defaultValue, which is never an animation override graph, so
+        // an envelope there is rejected rather than swallowed.
+        // ------------------------------------------------------------------
+
         [Test]
-        public void ShapeSniffing_EnvelopeResolvesPartialLeafMemberValueBase()
+        public void DeclarationDefault_RejectsAnEnvelopeInAnUntypedCarrier()
         {
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<MemberValueBase>(
+                    "{\"value\":{\"$partial\":{\"sliceIndex\":1}}}"));
+            StringAssert.Contains("member declaration default", error!.ToString());
+            StringAssert.Contains("animation override graph", error.ToString());
+        }
+
+        [Test]
+        public void DeclarationDefault_RejectsAnEnvelopeInATypedCarrier()
+        {
+            // The typed path picks its concrete from the declared kind, not
+            // the wire shape, so before D10 was enforced this envelope was fed
+            // straight into SpriteValue and silently became "no value".
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<MemberValueBase<SpriteValue?>>(
+                    "{\"value\":{\"$partial\":{\"sliceIndex\":1}}}"));
+            StringAssert.Contains("member declaration default", error!.ToString());
+        }
+
+        [Test]
+        public void DeclarationDefault_RejectsAnEnvelopeNamingTheMemberAndKind()
+        {
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<NeoCompose.Runtime.Json.Member>(
+                    "{\"id\":\"portrait-member\",\"projectId\":\"p\",\"name\":\"Portrait\","
+                    + "\"kind\":11,\"isStatic\":false,\"accessModifierKind\":\"public\","
+                    + "\"defaultValue\":{\"value\":{\"$partial\":{\"sliceIndex\":1}}}}"));
+            StringAssert.Contains("SpriteMember 'Portrait' (portrait-member)", error!.ToString());
+            StringAssert.Contains("animation override graph", error.ToString());
+        }
+
+        [Test]
+        public void DeclarationDefault_LeavesWholeValueDefaultsAlone()
+        {
+            var member = JsonConvert.DeserializeObject<NeoCompose.Runtime.Json.Member>(
+                "{\"id\":\"portrait-member\",\"projectId\":\"p\",\"name\":\"Portrait\","
+                + "\"kind\":11,\"isStatic\":false,\"accessModifierKind\":\"public\","
+                + "\"defaultValue\":{\"value\":{\"fileId\":\"file-a\",\"sliceIndex\":1}}}");
+            var sprite = (SpriteMember)member!;
+            Assert.AreEqual("file-a", sprite.defaultValue!.value!.fileId);
+            Assert.AreEqual(1, sprite.defaultValue.value.sliceIndex);
+        }
+
+        [Test]
+        public void DeclarationDefault_LeavesADictionaryDefaultWithADollarPartialEntryAlone()
+        {
+            // A Dictionary default is Dictionary<string, string>, so a
+            // '$partial' entry there is a string beside other strings, not an
+            // envelope — exactly the distinction IsEnvelope draws.
             var carrier = JsonConvert.DeserializeObject<MemberValueBase>(
-                "{\"value\":{\"$partial\":{\"sliceIndex\":1}}}");
-            Assert.IsInstanceOf<PartialLeafMemberValueBase>(carrier);
+                "{\"value\":{\"$partial\":\"child-value\",\"Other\":\"x\"}}");
+            Assert.IsInstanceOf<ObjectMemberValueBase>(carrier);
         }
 
         [Test]

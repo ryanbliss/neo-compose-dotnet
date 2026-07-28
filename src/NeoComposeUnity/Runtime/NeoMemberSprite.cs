@@ -94,9 +94,12 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// The slice this sprite addresses within its file (P42 §1.1);
-        /// single-sprite textures use 0. Out-of-range indices are not
-        /// validated here — §1.4 makes that a runtime skip at resolution
-        /// time, and <see cref="Resolve()"/> already returns null for one.
+        /// single-sprite textures use 0. An index past the end of the file's
+        /// slices is not validated here — §1.4 makes that a runtime skip at
+        /// resolution time, and <see cref="Resolve()"/> already returns null
+        /// for one. A <em>negative</em> index is a different matter and is
+        /// rejected by the writable setter; see
+        /// <see cref="NeoSpriteValues.RequireSliceIndex"/>.
         /// </summary>
         public int SliceIndex => RequireValue(nameof(SliceIndex)).sliceIndex;
 
@@ -222,9 +225,8 @@ namespace NeoCompose.Runtime
             var value = CurrentValue();
             if (value is null)
             {
-                string name = memberNode?.member.name ?? "Sprite";
-                throw new System.InvalidOperationException(
-                    $"Cannot read '{field}': Sprite '{name}' has no value.");
+                throw NeoStructuredLeafReadGuard.MissingValue(
+                    "Sprite", memberNode?.member.name ?? "Sprite", field);
             }
             return value;
         }
@@ -303,7 +305,13 @@ namespace NeoCompose.Runtime
             set
             {
                 var next = RequireValue(nameof(SliceIndex));
-                Write(new SpriteValue { fileId = next.fileId, sliceIndex = value }, nameof(SliceIndex));
+                Write(
+                    new SpriteValue
+                    {
+                        fileId = next.fileId,
+                        sliceIndex = NeoSpriteValues.RequireSliceIndex(value),
+                    },
+                    nameof(SliceIndex));
             }
         }
 
@@ -324,6 +332,38 @@ namespace NeoCompose.Runtime
                 .RequireWritable<NeoMemberSpriteWritable>(
                     owner, memberNode, nameof(NeoSprite), field)
                 .Set(next);
+        }
+    }
+
+    internal static class NeoSpriteValues
+    {
+        /// <summary>
+        /// A slice index addresses a slice of the imported texture, so the
+        /// smallest legal value is 0. Negative indices are <b>rejected</b> at
+        /// the setter, the same way <see cref="NeoColorValues.RequireChannel"/>
+        /// rejects a channel outside <c>[0, 1]</c>.
+        ///
+        /// <para>This closes a hole rather than adding a rule: NeoScript's
+        /// field-assign path already refuses a negative <c>sliceIndex</c>
+        /// ("Sprite field 'sliceIndex' must be 0 or greater"), and the
+        /// animation apply path skips one. Only the C# wrapper wrote it
+        /// through — producing a row that no resolver can ever turn into a
+        /// sprite and that nothing anywhere reports.</para>
+        ///
+        /// <para>The upper bound is deliberately not checked: how many slices
+        /// a file has is known only to a synchronized
+        /// <see cref="NeoAssetDatabase"/>, so §1.4 keeps that a resolution-time
+        /// null rather than a write-time throw.</para>
+        /// </summary>
+        public static int RequireSliceIndex(int value)
+        {
+            if (value < 0)
+            {
+                throw new System.ArgumentOutOfRangeException(
+                    nameof(value),
+                    $"Sprite field '{nameof(NeoSprite.SliceIndex)}' must be 0 or greater.");
+            }
+            return value;
         }
     }
 }

@@ -510,6 +510,69 @@ namespace NeoCompose.Tests
             Assert.AreEqual(new Vector3(21, 22, 23), appended);
         }
 
+        /// <summary>
+        /// Decision D5, collection-element half: the write-through guard must
+        /// hold on EVERY access path to a bound structured leaf, not just the
+        /// direct property.
+        ///
+        /// <para>A generated collection getter on the writable family reads
+        /// through <c>writableNode</c>, which is materialized without
+        /// consulting <see cref="NeoGeneratedClassValue.IsReadOnly"/>, so its
+        /// element nodes are the <c>*Writable</c> kind even on a read-only
+        /// instance. That defeats the guard's node-kind signal, leaving the
+        /// owner signal as the only thing standing between a read-only value
+        /// and a silent write. If the element factory mints the wrapper with
+        /// the single-argument bound ctor, <c>hero.Path[0].x = 1f</c> writes
+        /// while <c>hero.Position.y = 1f</c> throws — the guard reads as
+        /// covered and is not.</para>
+        /// </summary>
+        [Test]
+        public void GeneratedCollectionElementLeaf_ReadOnlyOwnerRefusesFieldWrite()
+        {
+            var app = LoadGeneratedClient(out _);
+            var assetHero = (Hero)app.ResolveDialogueValue("v-dict")!;
+            Assert.IsTrue(assetHero.IsReadOnly);
+
+            Vector3 before = assetHero.Path[0];
+
+            // The direct property has always been guarded...
+            var propertyError = Assert.Throws<System.InvalidOperationException>(
+                () => assetHero.Position.y = 42f);
+            StringAssert.Contains("read-only", propertyError!.Message);
+
+            // ...and the collection element must be guarded identically.
+            var elementError = Assert.Throws<System.InvalidOperationException>(
+                () => assetHero.Path[0].x = 42f);
+            StringAssert.Contains("read-only", elementError!.Message);
+            StringAssert.Contains("x", elementError.Message);
+
+            // Nothing was written.
+            Assert.AreEqual(before, (Vector3)assetHero.Path[0]);
+        }
+
+        /// <summary>
+        /// The other half of the same guard: a writable instance's collection
+        /// element still writes through, so D5 closes the escape hatch without
+        /// disabling P42 §4.1 write-through where it is legitimate.
+        /// </summary>
+        [Test]
+        public void GeneratedCollectionElementLeaf_WritableOwnerWritesFieldThrough()
+        {
+            var app = LoadGeneratedClient(out _);
+            var hero = new Hero(Path: new[] { new NeoVector3(3, 4, 5) });
+            Assert.IsFalse(hero.IsReadOnly);
+
+            hero.Path[0].y = 41f;
+
+            Assert.AreEqual(new Vector3(3, 41, 5), (Vector3)hero.Path[0]);
+
+            // A second element is independent — the write rewrote one leaf.
+            hero.Path.Add(new Vector3(7, 8, 9));
+            hero.Path[1].z = 90f;
+            Assert.AreEqual(new Vector3(3, 41, 5), (Vector3)hero.Path[0]);
+            Assert.AreEqual(new Vector3(7, 8, 90), (Vector3)hero.Path[1]);
+        }
+
         [Test]
         public void GeneratedVectorFunction_UsesUnityNativeSignature()
         {

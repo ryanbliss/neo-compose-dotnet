@@ -37,7 +37,9 @@ namespace NeoCompose.Runtime
                 writable.value = newValue;
                 writable.updatedAt = nowIso;
                 client.SetWritableValue(ownership, writable, "value");
-                NotifyChanged();
+                // No NotifyChanged() here — the write above already raised it
+                // through this node's own OnValueIdChainChanged. See that
+                // method's remarks.
                 return;
             }
 
@@ -102,15 +104,20 @@ namespace NeoCompose.Runtime
             memberNode = member;
         }
 
-        public float r => Value.r;
-        public float g => Value.g;
-        public float b => Value.b;
-        public float a => Value.a;
+        public float r => RequireValue(nameof(r)).r;
+        public float g => RequireValue(nameof(g)).g;
+        public float b => RequireValue(nameof(b)).b;
+        public float a => RequireValue(nameof(a)).a;
 
         /// <summary>Explicit read access; never needed for writes.</summary>
         public Color Value => memberNode is null
             ? detachedValue
             : NeoColorValues.ReadColor(memberNode);
+
+        /// <inheritdoc cref="NeoReadOnlyVector2.RequireValue"/>
+        private protected Color RequireValue(string field) => memberNode is null
+            ? detachedValue
+            : NeoColorValues.ReadColor(memberNode, field);
 
         public static implicit operator Color(NeoReadOnlyColor value) => value.Value;
 
@@ -205,10 +212,10 @@ namespace NeoCompose.Runtime
 
         public new float r
         {
-            get => Value.r;
+            get => RequireValue(nameof(r)).r;
             set
             {
-                Color next = Value;
+                Color next = RequireValue(nameof(r));
                 next.r = NeoColorValues.RequireChannel(value, nameof(r));
                 Write(next, nameof(r));
             }
@@ -216,10 +223,10 @@ namespace NeoCompose.Runtime
 
         public new float g
         {
-            get => Value.g;
+            get => RequireValue(nameof(g)).g;
             set
             {
-                Color next = Value;
+                Color next = RequireValue(nameof(g));
                 next.g = NeoColorValues.RequireChannel(value, nameof(g));
                 Write(next, nameof(g));
             }
@@ -227,10 +234,10 @@ namespace NeoCompose.Runtime
 
         public new float b
         {
-            get => Value.b;
+            get => RequireValue(nameof(b)).b;
             set
             {
-                Color next = Value;
+                Color next = RequireValue(nameof(b));
                 next.b = NeoColorValues.RequireChannel(value, nameof(b));
                 Write(next, nameof(b));
             }
@@ -238,10 +245,10 @@ namespace NeoCompose.Runtime
 
         public new float a
         {
-            get => Value.a;
+            get => RequireValue(nameof(a)).a;
             set
             {
-                Color next = Value;
+                Color next = RequireValue(nameof(a));
                 next.a = NeoColorValues.RequireChannel(value, nameof(a));
                 Write(next, nameof(a));
             }
@@ -276,13 +283,14 @@ namespace NeoCompose.Runtime
             return new NeoColorValue { r = value.r, g = value.g, b = value.b, a = value.a };
         }
 
-        public static Color ReadColor(NeoMemberColor member)
+        /// <inheritdoc cref="NeoVectorValues.ReadVector2(NeoMemberVector2, string?)"/>
+        public static Color ReadColor(NeoMemberColor member, string? field = null)
         {
             var value = member.value?.value;
             if (value is null)
             {
-                throw new System.InvalidOperationException(
-                    $"Required Color '{member.member.name}' has no value.");
+                throw NeoStructuredLeafReadGuard.MissingValue(
+                    "Color", member.member.name, field);
             }
             return ToColor(value);
         }

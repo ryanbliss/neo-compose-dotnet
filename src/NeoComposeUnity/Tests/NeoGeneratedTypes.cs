@@ -1052,7 +1052,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<NeoVector3>(client, writableNode.Get<NeoMemberListWritable>("Path"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Path"), (client, child) => new NeoVector3((NeoMemberVector3)child), item => NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.Vector3Value(item.Value)), () => ThrowIfReadOnly("Hero.Path"), () => IsReadOnly);
+                return new NeoList<NeoVector3>(client, writableNode.Get<NeoMemberListWritable>("Path"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Path"), (client, child) => new NeoVector3((NeoMemberVector3)child, this), item => NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.Vector3Value(item.Value)), () => ThrowIfReadOnly("Hero.Path"), () => IsReadOnly);
             }
         }
 

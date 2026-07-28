@@ -513,6 +513,27 @@ namespace NeoCompose.Runtime
         /// becoming null when the shadow is cleared and there is no authored
         /// default). Collection-kind subclasses override to also re-walk
         /// their children.
+        ///
+        /// <para><b>This is where a write to an already-bound row notifies
+        /// from.</b> <c>NeoClient.SetWritableValue</c> always raises
+        /// <c>OnWritableValueChanged</c>, every node subscribes to it in its
+        /// ctor, and a leaf's <c>Set</c> writes at its own
+        /// <see cref="valueId"/> — so the notification is already delivered by
+        /// the time <c>Set</c> returns. A <c>Set</c> that also called
+        /// <see cref="NeoMember.NotifyChanged()"/> after writing therefore
+        /// delivered every leaf write twice; none of them do any more.
+        /// <see cref="BindNewValue"/> is the exception and still notifies
+        /// explicitly: it publishes the row <i>before</i> the node's own
+        /// resolution chain points at it, so this handler filters that raise
+        /// out as "not my value id".</para>
+        ///
+        /// <para>Why it matters beyond tidiness: P42's write-through field
+        /// setters route <c>obj.Position.y = 1f</c> through the leaf's
+        /// <c>Set</c>, while a whole-value <c>obj.Position = v</c> goes
+        /// through <c>NeoMemberClass.SetSerializedValue</c>, which deliberately
+        /// leaves notification to the child (see its <c>ChildSelfNotifies</c>
+        /// check). The duplicate made the two spellings of the same write
+        /// notify a different number of times.</para>
         /// </summary>
         protected virtual void OnValueIdChainChanged()
         {

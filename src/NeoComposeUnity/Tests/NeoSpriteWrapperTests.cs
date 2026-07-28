@@ -25,8 +25,9 @@ namespace NeoCompose.Tests
     /// instance writes a field change through as a read-modify-write of the
     /// whole leaf; a detached instance mutates locally; a field write is
     /// rejected when the bound node is not writable or the owning generated
-    /// value is read-only (decision D5); and equality is value-based over the
-    /// two fields.</para>
+    /// value is read-only (decision D5); a negative <c>SliceIndex</c> is
+    /// rejected rather than written through; and equality is value-based over
+    /// the two fields.</para>
     ///
     /// <para><b>Not</b> asserted here: anything that needs a synchronized
     /// <see cref="NeoAssetDatabase"/>. These are EditMode tests with no
@@ -206,6 +207,46 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SliceIndexSetter_RejectsANegativeIndex()
+        {
+            // NeoScript's field-assign path and the animation apply path both
+            // already refuse a negative slice; the wrapper used to write one
+            // through, leaving a row no resolver can ever turn into a sprite.
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var portrait = new NeoSprite(client.save.Get<NeoMemberSpriteWritable>("Portrait"));
+
+            var error = Assert.Throws<System.ArgumentOutOfRangeException>(() =>
+                portrait.SliceIndex = -1);
+            StringAssert.Contains("'SliceIndex' must be 0 or greater", error!.Message);
+
+            // Rejected, not coerced: the leaf is untouched.
+            var reread = new NeoSprite(client.save.Get<NeoMemberSpriteWritable>("Portrait"));
+            Assert.AreEqual(3, reread.SliceIndex);
+            Assert.AreEqual("file-a", reread.FileId);
+        }
+
+        [Test]
+        public void SliceIndexSetter_RejectsANegativeIndexOnADetachedWrapper()
+        {
+            var detached = new NeoSprite("file-a", 3);
+
+            Assert.Throws<System.ArgumentOutOfRangeException>(() =>
+                detached.SliceIndex = -2);
+            Assert.AreEqual(3, detached.SliceIndex);
+        }
+
+        [Test]
+        public void SliceIndexSetter_AcceptsZero()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var portrait = new NeoSprite(client.save.Get<NeoMemberSpriteWritable>("Portrait"));
+
+            portrait.SliceIndex = 0;
+
+            Assert.AreEqual(0, portrait.SliceIndex);
+        }
+
+        [Test]
         public void FieldSetter_WithoutACurrentValueThrows()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
@@ -216,6 +257,59 @@ namespace NeoCompose.Tests
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 badge.SliceIndex = 2);
             StringAssert.Contains("has no value", error!.Message);
+        }
+
+        // ------------------------------------------------------------------
+        // Change notification. A field write is a read-modify-write of the
+        // whole leaf, so subscribers must see exactly what a whole-value
+        // write raises — no more, no less.
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void FieldWrite_NotifiesSubscribersLikeAWholeValueWrite()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var node = client.save.Get<NeoMemberSpriteWritable>("Portrait");
+            int changes = 0;
+            node.OnChanged += _ => changes++;
+
+            node.Set(new SpriteValue { fileId = "file-a", sliceIndex = 3 });
+            Assert.AreEqual(1, changes, "whole-value write");
+
+            new NeoSprite(node).SliceIndex = 5;
+            Assert.AreEqual(2, changes, "SliceIndex field write");
+
+            new NeoSprite(node).FileId = "file-b";
+            Assert.AreEqual(3, changes, "FileId field write");
+        }
+
+        [Test]
+        public void RejectedFieldWrite_NotifiesNobody()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var node = client.save.Get<NeoMemberSpriteWritable>("Portrait");
+            int changes = 0;
+            node.OnChanged += _ => changes++;
+
+            Assert.Throws<System.ArgumentOutOfRangeException>(() =>
+                new NeoSprite(node).SliceIndex = -1);
+
+            Assert.AreEqual(0, changes);
+        }
+
+        [Test]
+        public void DetachedFieldWrite_NotifiesNobody()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var node = client.save.Get<NeoMemberSpriteWritable>("Portrait");
+            int changes = 0;
+            node.OnChanged += _ => changes++;
+
+            var detached = new NeoSprite("file-a", 3);
+            detached.SliceIndex = 9;
+
+            Assert.AreEqual(9, detached.SliceIndex);
+            Assert.AreEqual(0, changes, "a detached mutation is local");
         }
 
         // ------------------------------------------------------------------

@@ -150,6 +150,58 @@
   not synchronized into Unity neither throws nor silently loses its slice
   index. The wrong-sheet template check is preserved and reports identically.
 
+### Fixed
+
+- **A leaf write notified subscribers twice.** `NeoMemberColorWritable.Set`
+  and its siblings for every other leaf kind called `NotifyChanged()` after
+  `client.SetWritableValue` — which had already delivered the notification to
+  the same node through `OnWritableValueChanged` → `OnValueIdChainChanged`. So
+  a handler registered with `OnChanged` ran twice per write. This predates
+  P42, but P42 is what makes it visible: `obj.Position.y = 1f` routes through
+  the leaf's `Set` while `obj.Position = v` routes through
+  `NeoMemberClass.SetSerializedValue`, which deliberately leaves notification
+  to the child — so the two spellings of the same write notified a different
+  number of times. The redundant call is gone from all fifteen leaf setters;
+  the `BindNewValue` path still notifies explicitly, because it publishes the
+  row before the node's own resolution chain points at it. If you counted
+  notifications from a direct `node.Set(...)` call, the count halves.
+
+- **A `$partial` structured-leaf envelope in a member declaration default is
+  rejected instead of silently swallowed.** Decision D10 makes the envelope
+  legal only inside an animation override graph, and a declaration default is
+  never one — but nothing enforced it here. A stray
+  `{"$partial": {"sliceIndex": 1}}` under a Sprite declaration was fed
+  straight into `SpriteValue`, came back out with a null `fileId`, and became
+  "no value" with no diagnostic anywhere. `MemberConverter` now names the
+  member and its kind; `MemberValueBaseConverter` raises the same error for a
+  carrier deserialized without member context. The `PartialLeafMemberValueBase`
+  carrier — declared so an envelope could "report a precise error" that no
+  code ever raised — is gone, since the error is now raised before any carrier
+  is built. Whole-value defaults are untouched, and a Dictionary default with
+  a `$partial` *string* entry still resolves exactly as before.
+
+- **`NeoSprite.SliceIndex` rejects a negative index** with
+  `ArgumentOutOfRangeException` rather than writing it through. NeoScript's
+  field-assign path already refused one ("Sprite field 'sliceIndex' must be 0
+  or greater") and the animation apply path skips one, so the C# wrapper was
+  the only way to store a sprite that no resolver can ever resolve and that
+  nothing anywhere reports. The upper bound stays a resolution-time null: how
+  many slices a file has is known only to a synchronized asset database.
+
+- **Reading a vector or color leaf with no value no longer claims the member
+  is "Required".** `NeoVectorValues.ReadVector*` and `NeoColorValues.ReadColor`
+  hardcoded the word regardless of the member, so `obj.Glow.a` on an *optional*
+  colour with no row reported "Required Color 'Glow' has no value." — false,
+  and pointing at the wrong fix. The message now names the field that was read
+  and says nothing about requiredness, matching `NeoSprite`:
+  `Cannot read 'a': Color 'Glow' has no value.` A whole-value read
+  (`obj.Glow.Value`) has no one field to blame and reports
+  `Color 'Glow' has no value.` Required members report exactly the same text —
+  one shape per condition. Generated getters for required members are
+  unaffected; their own `"Required int 'X' has no value."` is accurate and
+  unchanged. This predates P42; assertions matching on the old text need
+  updating.
+
 ## [0.10.0] - 2026-07-28
 
 ### Breaking
