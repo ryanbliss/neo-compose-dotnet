@@ -1093,13 +1093,7 @@ namespace NeoCompose.Tests
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
             NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
             string positionId = PlacedChildPositionId(client, placed.InstanceId.Value);
-            var placement = (ObjectMemberValue)client.saveValues[placed.InstanceId.Value];
-            string childListId = placement.value!["Children"];
-            string childId = ((ArrayMemberValue)client.saveValues[childListId]).value![0];
-            // A different, NON-EMPTY authored id: every placed row still carries
-            // provenance, so this is the absent-slot row of the section 2.2
-            // table rather than the legacy pre-0.7 row.
-            client.saveValues[childId].sourceValueId = "absent-authored-child";
+            RepointPlacedChildProvenance(client, placed.InstanceId.Value);
             LogAssert.Expect(
                 LogType.Warning,
                 new Regex("child override skipped: no placed Children row"));
@@ -1118,6 +1112,83 @@ namespace NeoCompose.Tests
             // tick, and nothing else logged.
             clip.Tick(0.1f);
             LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// The spec's granularity is one log per (clip, reference). The clip
+        /// cache alone only gets to once per <em>instance</em>, so fifty
+        /// placements missing the same authored slot would log fifty times.
+        /// </summary>
+        [Test]
+        public void AnimationUnresolvableChildOverrideWarnsOncePerReferenceAcrossPlacements()
+        {
+            ProjectData data = BuildPlacementAnimationProjectData();
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoTileGridPrimitive primitive = NeoTileGridPrimitive.ResolveForSave(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string>
+                {
+                    [typeof(TestComposedObject)] = ObjectClassId,
+                });
+            var layer = primitive.BindWritableObjectLayer<TestAuthoredObjectLayer>(
+                ObjectsLayerClassId,
+                new[] { ObjectClassId });
+            var asset = (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "shop-object",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories())!;
+            Assert.IsTrue(layer.Spawn(new Vector2Int(4, 5), asset).Ok);
+            Assert.IsTrue(layer.Spawn(new Vector2Int(6, 7), asset).Ok);
+            NeoResolvedObjectInstance first = layer.GetObject(new Vector2Int(4, 5))!;
+            NeoResolvedObjectInstance second = layer.GetObject(new Vector2Int(6, 7))!;
+            // Both placements lose the same authored slot, so both compiles
+            // reach the same (clip, reference) skip.
+            RepointPlacedChildProvenance(client, first.InstanceId.Value);
+            RepointPlacedChildProvenance(client, second.InstanceId.Value);
+            // One Expect: a second warning fails NoUnexpectedReceived below.
+            LogAssert.Expect(
+                LogType.Warning,
+                new Regex("child override skipped: no placed Children row"));
+
+            // Two separate compiles: the clip cache is keyed per instance, so
+            // nothing but the client-level dedup stops the second warning.
+            NeoAnimationClip<TestComposedObject> firstClip =
+                NeoGeneratedTypesSupport.GetAnimationClip(
+                    (TestComposedObject)first.Info,
+                    "Animate");
+            NeoAnimationClip<TestComposedObject> secondClip =
+                NeoGeneratedTypesSupport.GetAnimationClip(
+                    (TestComposedObject)second.Info,
+                    "Animate");
+
+            Assert.IsNotNull(firstClip);
+            Assert.IsNotNull(secondClip);
+            Assert.AreNotSame(
+                firstClip,
+                secondClip,
+                "each placement must compile its own clip, or the dedup is "
+                    + "not the thing under test");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// Repoints a placement's only <c>Children</c> row at an authored id no
+        /// clip names, so the clip's reference resolves to nothing while every
+        /// row still carries provenance — the absent-slot row of the spec's
+        /// section 2.2 table, not the legacy pre-0.7 row.
+        /// </summary>
+        private static void RepointPlacedChildProvenance(
+            NeoClient client,
+            string placementId)
+        {
+            var placement = (ObjectMemberValue)client.saveValues[placementId];
+            string childListId = placement.value!["Children"];
+            string childId = ((ArrayMemberValue)client.saveValues[childListId]).value![0];
+            client.saveValues[childId].sourceValueId = "absent-authored-child";
         }
 
         [Test]
@@ -1147,10 +1218,7 @@ namespace NeoCompose.Tests
             ProjectData data = BuildPlacementAnimationProjectData();
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
             NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
-            var placement = (ObjectMemberValue)client.saveValues[placed.InstanceId.Value];
-            string childListId = placement.value!["Children"];
-            string childId = ((ArrayMemberValue)client.saveValues[childListId]).value![0];
-            client.saveValues[childId].sourceValueId = "absent-authored-child";
+            RepointPlacedChildProvenance(client, placed.InstanceId.Value);
             // Pushed past the end of the parent AFTER load, so the authored-graph
             // export check (which already ran and stays strict, section 2.4) is
             // not the one under test: the child clip is one parent frame long,
@@ -3712,7 +3780,7 @@ namespace NeoCompose.Tests
                 Assert.IsFalse(scar!.gameObject.activeSelf);
 
                 head.Enabled = true;
-                NotifyObjectChanged(obj);
+                NotifyObjectVisibilityChanged(obj);
 
                 Assert.IsTrue(headRoot.gameObject.activeSelf);
                 Assert.IsTrue(
@@ -3856,7 +3924,7 @@ namespace NeoCompose.Tests
                 // plain object, so the member write that carries the change to
                 // the renderer's per-object subscription is issued separately.
                 hat.Enabled = true;
-                NotifyObjectChanged(obj);
+                NotifyObjectVisibilityChanged(obj);
 
                 // Read back through the transform cached before the write: a
                 // re-render would have destroyed it, so this also proves the
@@ -3866,9 +3934,76 @@ namespace NeoCompose.Tests
                     "a runtime Enabled write must reveal the object without a re-render");
 
                 hat.Enabled = false;
-                NotifyObjectChanged(obj);
+                NotifyObjectVisibilityChanged(obj);
 
                 Assert.IsFalse(hatRoot.gameObject.activeSelf);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(hatSprite);
+            }
+        }
+
+        /// <summary>
+        /// The hot path: a clip animating a placement writes a leaf on the
+        /// placement itself every frame, and none of those writes can carry an
+        /// <c>Enabled</c>. Reconciling visibility on them would put the whole
+        /// rendered subtree — up to 400 GameObjects for a tile-layer-link child
+        /// — on the per-frame budget.
+        /// </summary>
+        [Test]
+        public void Render_UnrelatedMemberWriteLeavesTheVisibilityIndexAlone()
+        {
+            ProjectData data = BuildPlacementAnimationProjectData();
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
+            var obj = (TestComposedObject)placed.Info;
+            var hatSprite = CreateTestSprite("hat");
+            var hat = new TestSpriteChild
+            {
+                Name = "Hat",
+                Sprite = hatSprite,
+                Enabled = false,
+            };
+            obj.Children = new INeoWorldObjectValue[] { hat };
+            var go = new GameObject("NeoTileGridRenderer visibility gate test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(
+                    NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) });
+
+                var hatRoot = go.transform
+                    .Find("Object Layer - Objects")
+                    ?.Find("Object - object-1")
+                    ?.Find("Hat");
+                Assert.IsNotNull(hatRoot);
+                Assert.IsFalse(hatRoot!.gameObject.activeSelf);
+
+                // Linking a key the placement does not carry yet rewrites the
+                // record itself, which the renderer honours conservatively. The
+                // write under test is the second one: a pure leaf write, the
+                // shape every subsequent clip frame takes.
+                NotifyObjectPositionChanged(obj);
+
+                hat.Enabled = true;
+                NotifyObjectPositionChanged(obj);
+
+                Assert.IsFalse(
+                    hatRoot.gameObject.activeSelf,
+                    "a Position write must not walk the visibility index");
+
+                // The subscription is live and the index is reachable, so the
+                // assertion above is a real gate rather than a dead one.
+                NotifyObjectVisibilityChanged(obj);
+
+                Assert.IsTrue(
+                    hatRoot.gameObject.activeSelf,
+                    "an Enabled write must still reconcile visibility");
             }
             finally
             {
@@ -4052,13 +4187,91 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
-        /// Issues a real member write on a placed object so the renderer's
-        /// single per-object subscription fires. Generated values raise this
-        /// themselves on any member write (including a nested
-        /// <c>Enabled</c>); the renderer test doubles are plain objects, so a
-        /// test drives the notification explicitly.
+        /// The other half of the empty-part edge, and the sharper one: a part
+        /// that renders nothing at all is destroyed and does not count, so an
+        /// object whose only child is such a part falls back to drawing its own
+        /// root sprite — as if it had no composition. Pinned because the
+        /// consequence lands on the parent, not on the empty part.
         /// </summary>
-        private static void NotifyObjectChanged(TestComposedObject target)
+        [Test]
+        public void Render_ObjectWhoseOnlyChildRendersNothingFallsBackToItsRootSprite()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var factories =
+                new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+                {
+                    [ObjectClassId] = (resolvedClient, node) =>
+                        new TestComposedSpriteObject(resolvedClient, node),
+                };
+            var obj = (TestComposedSpriteObject)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "shop-object",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
+            var rootSprite = CreateTestSprite("root-sprite");
+            obj.Name = "Placed Body";
+            obj.Sprite = rootSprite;
+            obj.Children = new INeoWorldObjectValue[]
+            {
+                // Enabled, but empty: nothing under it renders, so its
+                // composition root is destroyed and contributes no count.
+                new TestComposedChild { Name = "Head" },
+            };
+            var go = new GameObject("NeoTileGridRenderer empty part fallback test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(
+                    NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) });
+
+                var objectRoot = go.transform
+                    .Find("Object Layer - Objects")
+                    ?.Find("Object - object-1");
+                Assert.IsNotNull(objectRoot);
+                Assert.IsNull(
+                    objectRoot!.Find("Head"),
+                    "a part that renders nothing is destroyed, not kept");
+                var placedBody = objectRoot.Find("Placed Body");
+                Assert.IsNotNull(
+                    placedBody,
+                    "with no rendered children left, the parent draws its own "
+                        + "root sprite — the flip an empty part causes");
+                Assert.AreSame(
+                    rootSprite,
+                    placedBody!.GetComponent<SpriteRenderer>().sprite);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(rootSprite);
+            }
+        }
+
+        /// <summary>
+        /// Issues a real <c>Enabled</c> write on a placed object so the
+        /// renderer's per-object subscription fires with a member the renderer
+        /// treats as visibility-bearing. Generated values raise this themselves
+        /// on an <c>Enabled</c> write anywhere in the placement's subtree; the
+        /// renderer test doubles hold <c>Enabled</c> as a plain property, so a
+        /// test sets the property and drives the notification explicitly.
+        /// </summary>
+        private static void NotifyObjectVisibilityChanged(TestComposedObject target)
+        {
+            NeoGeneratedTypesSupport.SetValue(
+                NeoGeneratedTypesSupport.AsWritable(target.BackingNode),
+                "Enabled",
+                NeoValueWritePayload.FromValue(target.Enabled));
+        }
+
+        /// <summary>
+        /// Issues a member write the renderer must NOT treat as
+        /// visibility-bearing — the shape every frame of a clip animating the
+        /// placement itself takes.
+        /// </summary>
+        private static void NotifyObjectPositionChanged(TestComposedObject target)
         {
             NeoGeneratedTypesSupport.SetValue(
                 NeoGeneratedTypesSupport.AsWritable(target.BackingNode),
@@ -4163,6 +4376,56 @@ namespace NeoCompose.Tests
                 "SpawnObject must apply the placed root's Enabled state after "
                     + "NeoObjectBehaviour.Initialize, so the spawn hook still sees "
                     + "an active, fully-built root.");
+        }
+
+        /// <summary>
+        /// The same contract, extended to composition children: a hook calling
+        /// <c>GetComponentsInChildren</c> must not silently miss a disabled
+        /// layer, so no render path may deactivate anything while it builds.
+        /// <c>SyncObjectVisibility</c> — which the test above pins to after
+        /// <c>Initialize</c> — is therefore the renderer's single visibility
+        /// write. Pinned in source for the same reason as the test above:
+        /// <c>INeoObjectSpawnHooks</c> never fires in EditMode.
+        /// </summary>
+        [Test]
+        public void RendererDeactivatesObjectsOnlyFromSyncObjectVisibility()
+        {
+            var rendererSourcePath = RendererSourcePath();
+            Assert.IsTrue(
+                File.Exists(rendererSourcePath),
+                $"Renderer source not found at '{rendererSourcePath}'.");
+
+            var source = File.ReadAllText(rendererSourcePath);
+            var syncStart = source.IndexOf(
+                "private void SyncObjectVisibility(",
+                StringComparison.Ordinal);
+            Assert.Greater(syncStart, -1, "SyncObjectVisibility must still exist.");
+            var syncEnd = source.IndexOf(
+                "\n        private ",
+                syncStart + 1,
+                StringComparison.Ordinal);
+            Assert.Greater(
+                syncEnd,
+                syncStart,
+                "SyncObjectVisibility must be followed by another member.");
+
+            var occurrences = 0;
+            for (var index = source.IndexOf(".SetActive(", StringComparison.Ordinal);
+                index >= 0;
+                index = source.IndexOf(".SetActive(", index + 1, StringComparison.Ordinal))
+            {
+                occurrences++;
+                Assert.IsTrue(
+                    index > syncStart && index < syncEnd,
+                    "Every SetActive in NeoTileGridRenderer must live in "
+                        + "SyncObjectVisibility. Deactivating a child while the "
+                        + "composition is still building hides it from a spawn "
+                        + "hook's GetComponentsInChildren.");
+            }
+            Assert.AreEqual(
+                1,
+                occurrences,
+                "SyncObjectVisibility is the renderer's single visibility write.");
         }
 
         private static string RendererSourcePath(
@@ -4994,6 +5257,9 @@ namespace NeoCompose.Tests
             ((ListMember)data.members["object-children-member"]).entryMemberId =
                 "object-child-entry-member";
             data.members["object-position-member"].storage = "session";
+            // Session-storage Enabled, the shape section 1.1 of the spec calls
+            // for on a class that wants visibility written at runtime.
+            data.members["object-enabled-member"].storage = "session";
 
             data.classes[ObjectClassId].schema["Animate"] = "animate-member";
             data.classes[ObjectClassId].schema["TrackAnimate"] = "track-animate-member";
@@ -5730,6 +5996,11 @@ namespace NeoCompose.Tests
                 schema = new Dictionary<string, string>
                 {
                     ["Position"] = "object-position-member",
+                    // The renderer tells a visibility write apart from every
+                    // other member write by schema key, so the fixture carries
+                    // NeoObjectBase.Enabled as a real member rather than only
+                    // as a property on the test double.
+                    ["Enabled"] = "object-enabled-member",
                     ["Children"] = "object-children-member",
                 },
             };
@@ -5826,6 +6097,14 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Position",
                         kind = MemberKind.Vector3,
+                    },
+                    ["object-enabled-member"] = new BoolMember
+                    {
+                        id = "object-enabled-member",
+                        projectId = "project-a",
+                        name = "Enabled",
+                        kind = MemberKind.Bool,
+                        defaultValue = new BoolMemberValueBase { value = true },
                     },
                     ["object-children-member"] = new ListMember
                     {

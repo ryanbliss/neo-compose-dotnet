@@ -31,29 +31,50 @@
   the authored graph a clip validates against and the graph the player resolves
   against stay identical.
 
+  `INeoObjectSpawnHooks.OnObjectSpawned` still observes a fully-built, fully
+  **active** subtree: the renderer applies visibility to the placed root *and*
+  every composition child only after the hook returns, so a
+  `GetComponentsInChildren` in a spawn hook sees hidden layers too, without
+  passing `includeInactive`.
+
   The value model is now the single source of truth for visibility, the same
   way it already was for `Position`. Calling `SetActive` directly on a
-  renderer-spawned object is reverted the next time any member on that
-  placement changes; write `Enabled` instead. Code that hid renderer-spawned
-  objects by hand before P41 — which was the only option, since the renderer
-  never called `SetActive` — needs to move to `Enabled`.
+  renderer-spawned object is reverted the next time that object's own `Enabled`
+  changes; write `Enabled` instead. Code that hid renderer-spawned objects by
+  hand before P41 — which was the only option, since the renderer never called
+  `SetActive` — needs to move to `Enabled`.
 
-  One edge stays as it was: a composition part that renders nothing at all is
-  still destroyed rather than kept, so an *empty* part cannot be revealed by a
-  later `Enabled` write without a re-render. A part whose children are merely
-  disabled is unaffected — those children are built and deactivated, so the
-  part still counts as rendered and survives.
+  Reconciling is scoped to writes that can carry an `Enabled`, so a placement's
+  own `Position`, `Size`, or `Sprite` write — and therefore every frame of a
+  clip animating the placement itself — costs no visibility work at all. A
+  write that reaches the placement through its `Children` still reconciles, but
+  compares one bool per object value rather than round-tripping every
+  GameObject: a 400-tile layer-link child is one comparison, not 400.
+
+  One edge stays as it was, and it is worth stating precisely: a composition
+  part that renders nothing at all — an empty `Children` list, or a subtree cut
+  short by the composition depth limit or a cycle — is still destroyed rather
+  than kept, and does **not** count towards its parent's rendered children. The
+  consequence to watch is the parent, not the part: an object whose only child
+  is such a part falls back to drawing its own root sprite, exactly as if it
+  had no composition at all. A part whose children are merely *disabled* is
+  unaffected — those children are built and deactivated, so the part counts as
+  rendered, survives, and suppresses the parent's sprite fallback.
 
 ### Changed
 
 - An animation `ChildOverride` or `ChildTrack` naming a child that no placed
   `Children` row carries is now **skipped** with a single warning logged at
-  clip-compile time, instead of throwing. Skipping is scoped to that one
-  reference: the frame's other overrides, its own `Overrides`, and its actions
-  all still apply, and a clip with one unresolvable track still plays every
-  other track. A skipped track is excluded from the
-  `StartFrame + childLength <= Duration` fit check, since there is no child
-  clip to fit.
+  clip-compile time, instead of throwing. The warning is deduped per
+  (clip, reference) on the client — not per placement, and not once more per
+  parent for a shared child clip — so fifty placements missing the same
+  optional slot log once between them rather than fifty times. A full clip-cache
+  invalidation resets the dedup, so a genuine re-compile reports again.
+  Skipping is scoped to that one reference: the frame's other
+  overrides, its own `Overrides`, and its actions all still apply, and a clip
+  with one unresolvable track still plays every other track. A skipped track is
+  excluded from the `StartFrame + childLength <= Duration` fit check, since
+  there is no child clip to fit.
 
   Ambiguity (a source child matching more than one placed row) and legacy
   pre-0.7 placements (rows without `sourceValueId` provenance) still throw —

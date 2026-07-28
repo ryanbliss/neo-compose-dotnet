@@ -722,6 +722,7 @@ namespace NeoCompose.Runtime
                     clipKey,
                     frameIndex);
                 NeoMemberClass? placedChild = ResolvePlacedChild(
+                    target.Client,
                     target.BackingNode,
                     sourceChildId,
                     clipKey,
@@ -780,6 +781,7 @@ namespace NeoCompose.Runtime
                         $"Animation clip '{clipKey}' child track '{childClipKey}' StartFrame must be non-negative; found {startFrame}.");
                 }
                 NeoMemberClass? placedChild = ResolvePlacedChild(
+                    target.Client,
                     target.BackingNode,
                     sourceChildId,
                     clipKey,
@@ -856,6 +858,7 @@ namespace NeoCompose.Runtime
         /// still throw, because those are data errors rather than absent slots.
         /// </returns>
         private static NeoMemberClass? ResolvePlacedChild(
+            NeoClient client,
             NeoMemberClass target,
             string sourceChildId,
             string clipKey,
@@ -898,9 +901,16 @@ namespace NeoCompose.Runtime
                 }
                 // Not a data error: the slot is simply absent on this instance.
                 // Logged here, at compile time, so a clip looping at 8 FPS
-                // reports once per reference rather than once per tick.
-                UnityEngine.Debug.LogWarning(
-                    $"Animation clip '{clipKey}' {usage} skipped: no placed Children row on placement '{target.value?.id ?? "<unmaterialized>"}' carries sourceValueId '{sourceChildId}'. The rest of the clip still plays.");
+                // reports once per reference rather than once per tick — and
+                // deduped on the client, because the clip cache would otherwise
+                // make it once per *instance* (fifty placements missing the same
+                // slot, fifty warnings) and a nested child clip's compile
+                // bypasses that cache entirely.
+                if (client.ShouldReportAnimationChildSkip(clipKey, sourceChildId))
+                {
+                    UnityEngine.Debug.LogWarning(
+                        $"Animation clip '{clipKey}' {usage} skipped: no placed Children row on placement '{target.value?.id ?? "<unmaterialized>"}' carries sourceValueId '{sourceChildId}'. The rest of the clip still plays.");
+                }
                 return null;
             }
             return match;
