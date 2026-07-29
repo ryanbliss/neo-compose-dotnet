@@ -80,7 +80,9 @@ namespace NeoCompose.Runtime
                 writable.neoLocalizationMode = NeoStringLocalizationMode.Literal;
                 writable.updatedAt = nowIso;
                 client.SetWritableValue(ownership, writable, "value");
-                NotifyChanged();
+                // No NotifyChanged() here — the write above already raised it
+                // through this node's own OnValueIdChainChanged. See that
+                // method's remarks.
                 return;
             }
 

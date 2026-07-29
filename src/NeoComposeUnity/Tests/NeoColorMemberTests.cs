@@ -15,9 +15,19 @@ namespace NeoCompose.Tests
     /// <summary>
     /// Color member SDK support (specs/color-member.md §5): the strict
     /// {r,g,b,a} converter, shape sniffing, the NeoReadOnlyColor/NeoColor
-    /// wrappers (assignment convention, decisions 5–6), the SetColor /
-    /// SetColorOrClear write funnels, and the opaque-white default
-    /// (decision 4).
+    /// wrappers, the SetColor / SetColorOrClear write funnels, and the
+    /// opaque-white default (decision 4).
+    ///
+    /// <para>P42 §4.1 overturns color-member.md §6 decisions 5–6, which made
+    /// the wrapper family entirely get-only. <c>NeoReadOnlyColor</c> gains
+    /// r/g/b/a channel accessors (it had none — reading a channel used to mean
+    /// <c>obj.Tint.Value.a</c>), and <c>NeoColor</c> gains write-through
+    /// channel setters: bound writes the whole leaf back immediately, detached
+    /// mutates locally. Whole-value assignment still copies, and that is still
+    /// asserted below.</para>
+    ///
+    /// <para>Channel writes reject out-of-[0,1] values rather than clamping
+    /// them (§1.4 / decision D2), matching the converter on the read path.</para>
     /// </summary>
     public class NeoColorMemberTests
     {
@@ -219,11 +229,245 @@ namespace NeoCompose.Tests
             var tint = new NeoColor(client.save.Get<NeoMemberColorWritable>("Tint"));
             Assert.AreEqual(accentBefore, tint.Value);
 
-            // Mutating the source afterwards must not affect the target —
-            // the assignment copied a value, it did not create a link.
+            // Changing the source leaf afterwards must not affect the target —
+            // the assignment copied a value, it did not create a link. That
+            // holds for whole-value writes...
             NeoGeneratedTypesSupport.SetColor(client.save, "Accent", new NeoColor(Color.blue));
             Assert.AreEqual(Color.blue, accent.Value);
             Assert.AreEqual(accentBefore, tint.Value);
+
+            // ...and for P42's write-through channel writes.
+            accent.g = 0.25f;
+            Assert.AreEqual(0.25f, accent.g);
+            Assert.AreEqual(accentBefore, tint.Value);
+        }
+
+        // ------------------------------------------------------------------
+        // P42 §4.1 — channel accessors and write-through channel setters.
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void ReadOnlyWrapper_ExposesChannelAccessors()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var bound = new NeoReadOnlyColor(client.save.Get<NeoMemberColor>("Tint"));
+
+            Assert.AreEqual(0.1f, bound.r);
+            Assert.AreEqual(0.2f, bound.g);
+            Assert.AreEqual(0.3f, bound.b);
+            Assert.AreEqual(1f, bound.a);
+
+            var detached = new NeoReadOnlyColor(0.4f, 0.5f, 0.6f, 0.7f);
+            Assert.AreEqual(0.4f, detached.r);
+            Assert.AreEqual(0.7f, detached.a);
+        }
+
+        [Test]
+        public void Wrapper_BoundChannelSetterWritesThrough()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var tint = new NeoColor(client.save.Get<NeoMemberColorWritable>("Tint"));
+
+            tint.a = 0.5f;
+
+            var reread = new NeoColor(client.save.Get<NeoMemberColorWritable>("Tint"));
+            Assert.AreEqual(new Color(0.1f, 0.2f, 0.3f, 0.5f), reread.Value);
+            // The other three channels survived the read-modify-write.
+            Assert.AreEqual(0.1f, reread.r);
+            Assert.AreEqual(0.2f, reread.g);
+            Assert.AreEqual(0.3f, reread.b);
+        }
+
+        [Test]
+        public void Wrapper_DetachedChannelSetterStaysLocal()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var detached = new NeoColor(Color.red);
+
+            detached.g = 0.5f;
+
+            Assert.AreEqual(new Color(1f, 0.5f, 0f, 1f), detached.Value);
+            var tint = new NeoColor(client.save.Get<NeoMemberColorWritable>("Tint"));
+            Assert.AreEqual(new Color(0.1f, 0.2f, 0.3f, 1f), tint.Value);
+
+            // ...until the detached copy is assigned.
+            NeoGeneratedTypesSupport.SetColor(client.save, "Tint", detached);
+            Assert.AreEqual(new Color(1f, 0.5f, 0f, 1f), tint.Value);
+        }
+
+        [Test]
+        public void ChannelSetter_RejectsComponentBelowZero()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var tint = new NeoColor(client.save.Get<NeoMemberColorWritable>("Tint"));
+
+            var error = Assert.Throws<System.ArgumentOutOfRangeException>(() =>
+                tint.r = -0.1f);
+            StringAssert.Contains("'r' must not be less than 0", error!.Message);
+            // Rejected, not clamped: the leaf is untouched.
+            Assert.AreEqual(new Color(0.1f, 0.2f, 0.3f, 1f), tint.Value);
+        }
+
+        [Test]
+        public void ChannelSetter_RejectsComponentAboveOne()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var tint = new NeoColor(client.save.Get<NeoMemberColorWritable>("Tint"));
+
+            var error = Assert.Throws<System.ArgumentOutOfRangeException>(() =>
+                tint.b = 1.5f);
+            StringAssert.Contains("'b' must not be greater than 1", error!.Message);
+            Assert.AreEqual(new Color(0.1f, 0.2f, 0.3f, 1f), tint.Value);
+        }
+
+        [Test]
+        public void ChannelSetter_RejectsNonFiniteComponent()
+        {
+            var detached = new NeoColor(Color.red);
+
+            var error = Assert.Throws<System.ArgumentOutOfRangeException>(() =>
+                detached.a = float.NaN);
+            StringAssert.Contains("'a' must be a finite number", error!.Message);
+            Assert.AreEqual(Color.red, detached.Value);
+        }
+
+        [Test]
+        public void ChannelSetter_AcceptsTheRangeBounds()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var tint = new NeoColor(client.save.Get<NeoMemberColorWritable>("Tint"));
+
+            tint.r = 0f;
+            tint.g = 1f;
+
+            Assert.AreEqual(new Color(0f, 1f, 0.3f, 1f), tint.Value);
+        }
+
+        [Test]
+        public void ChannelSetter_WithoutACurrentValueThrows()
+        {
+            // A field write is a read-modify-write, so there has to be
+            // something to modify. The sprite wrapper says so through
+            // RequireValue; Color says so through the same read its channel
+            // setter composes from. Neither may invent a base value to merge
+            // the one channel into.
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            NeoGeneratedTypesSupport.SetColorOrClear(client.save, "Glow", null);
+            var glow = new NeoColor(client.save.Get<NeoMemberColorWritable>("Glow"));
+            Assert.IsNull(client.save.Get<NeoMemberColorWritable>("Glow").value);
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                glow.a = 0.5f);
+            StringAssert.Contains("has no value", error!.Message);
+            StringAssert.Contains("'a'", error.Message);
+            StringAssert.DoesNotContain("Required", error.Message);
+
+            // Nothing was composed against a phantom base and written back.
+            Assert.IsNull(client.save.Get<NeoMemberColorWritable>("Glow").value);
+        }
+
+        [Test]
+        public void ChannelAccessor_WithoutACurrentValueThrows()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            NeoGeneratedTypesSupport.SetColorOrClear(client.save, "Glow", null);
+            var glow = new NeoReadOnlyColor(client.save.Get<NeoMemberColor>("Glow"));
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                _ = glow.a);
+            StringAssert.Contains("has no value", error!.Message);
+        }
+
+        // The message must not claim the member is required when it is not:
+        // Glow is optional, and "Required Color 'Glow' has no value." — what
+        // the wrapper used to say for every member alike — was simply false.
+        // It names the channel that was read instead, the way the sprite
+        // wrapper does.
+        [Test]
+        public void ChannelAccessor_OnAnOptionalMemberDoesNotClaimItIsRequired()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            NeoGeneratedTypesSupport.SetColorOrClear(client.save, "Glow", null);
+            var glow = new NeoReadOnlyColor(client.save.Get<NeoMemberColor>("Glow"));
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                _ = glow.a);
+            Assert.AreEqual(
+                "Cannot read 'a': Color 'Glow' has no value.",
+                error!.Message);
+        }
+
+        // One message shape per condition — a required member with no value
+        // reports exactly the same thing, minus any claim about requiredness.
+        [Test]
+        public void ChannelAccessor_OnARequiredMemberReportsTheSameMessage()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var halo = new NeoReadOnlyColor(client.save.Get<NeoMemberColor>("Halo"));
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                _ = halo.r);
+            Assert.AreEqual(
+                "Cannot read 'r': Color 'Halo' has no value.",
+                error!.Message);
+        }
+
+        // The whole-value read has no one channel to blame, so it names none.
+        [Test]
+        public void ValueAccessor_WithoutACurrentValueNamesNoField()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var halo = new NeoReadOnlyColor(client.save.Get<NeoMemberColor>("Halo"));
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                _ = halo.Value);
+            Assert.AreEqual("Color 'Halo' has no value.", error!.Message);
+        }
+
+        // A detached wrapper always has a value; nothing about the new
+        // message path may make one throw.
+        [Test]
+        public void ChannelAccessor_OnADetachedWrapperNeverThrows()
+        {
+            var detached = new NeoReadOnlyColor(Color.cyan);
+
+            Assert.AreEqual(Color.cyan.r, detached.r);
+            Assert.AreEqual(Color.cyan.g, detached.g);
+            Assert.AreEqual(Color.cyan.b, detached.b);
+            Assert.AreEqual(Color.cyan.a, detached.a);
+        }
+
+        [Test]
+        public void ChannelSetter_OnNonWritableNodeThrows()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var wrapper = new NeoColor(new NeoMemberColor(
+                client,
+                "tint-member",
+                "tint-value",
+                NeoValueOwnership.Save));
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                wrapper.a = 0.5f);
+            StringAssert.Contains("read-only", error!.Message);
+            Assert.AreEqual(new Color(0.1f, 0.2f, 0.3f, 1f), wrapper.Value);
+        }
+
+        [Test]
+        public void ChannelSetter_OnReadOnlyOwnerThrows()
+        {
+            // Decision D5 — the node is writable, but the generated value that
+            // handed out the wrapper is not.
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var owner = new NeoReadOnlyClassValueDouble(client, client.save, "save-root-class");
+            var wrapper = new NeoColor(
+                client.save.Get<NeoMemberColorWritable>("Tint"),
+                owner);
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                wrapper.r = 0.5f);
+            StringAssert.Contains("read-only", error!.Message);
+            Assert.AreEqual(new Color(0.1f, 0.2f, 0.3f, 1f), wrapper.Value);
         }
 
         [Test]
@@ -257,6 +501,44 @@ namespace NeoCompose.Tests
             var error = Assert.Throws<System.ArgumentNullException>(() =>
                 NeoGeneratedTypesSupport.SetColor(client.save, "Tint", null!));
             StringAssert.Contains("Tint", error!.Message);
+        }
+
+        // ------------------------------------------------------------------
+        // Change notification. A channel write is a read-modify-write of the
+        // whole leaf, so subscribers see exactly what a whole-value write
+        // raises.
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void ChannelWrite_NotifiesSubscribersLikeAWholeValueWrite()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var node = client.save.Get<NeoMemberColorWritable>("Tint");
+            int changes = 0;
+            node.OnChanged += _ => changes++;
+
+            node.Set(Color.red);
+            Assert.AreEqual(1, changes, "whole-value write");
+
+            new NeoColor(node).g = 0.25f;
+            Assert.AreEqual(2, changes, "channel write");
+
+            new NeoColor(node).a = 0f;
+            Assert.AreEqual(3, changes, "second channel write");
+        }
+
+        [Test]
+        public void RejectedChannelWrite_NotifiesNobody()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var node = client.save.Get<NeoMemberColorWritable>("Tint");
+            int changes = 0;
+            node.OnChanged += _ => changes++;
+
+            Assert.Throws<System.ArgumentOutOfRangeException>(() =>
+                new NeoColor(node).r = 1.5f);
+
+            Assert.AreEqual(0, changes);
         }
 
         // ------------------------------------------------------------------
@@ -385,6 +667,7 @@ namespace NeoCompose.Tests
                     ["Tint"] = "tint-member",
                     ["Accent"] = "accent-member",
                     ["Glow"] = "glow-member",
+                    ["Halo"] = "halo-member",
                 },
             };
             var paletteClass = new NeoSchemaClass
@@ -418,6 +701,10 @@ namespace NeoCompose.Tests
                     ["tint-member"] = ColorMemberDefinition("tint-member", "Tint", required: true),
                     ["accent-member"] = ColorMemberDefinition("accent-member", "Accent", required: true),
                     ["glow-member"] = ColorMemberDefinition("glow-member", "Glow", required: false),
+                    // Required, and deliberately left without a value row (no
+                    // entry in the save record below) so the missing-value
+                    // message can be pinned for the required case too.
+                    ["halo-member"] = ColorMemberDefinition("halo-member", "Halo", required: true),
                     ["palette-main-member"] = ColorMemberDefinition("palette-main-member", "Main", required: true),
                     ["palette-alt-member"] = ColorMemberDefinition(
                         "palette-alt-member",

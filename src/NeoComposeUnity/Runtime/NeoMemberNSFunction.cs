@@ -1187,7 +1187,16 @@ namespace NeoCompose.Runtime
                         value = NeoGeneratedTypesSupport.ColorValue(unityColor);
                     break;
                 case MemberKind.Sprite:
-                    if (value is Sprite sprite)
+                    // The wrapper arm mirrors Color/Vector above, and is what
+                    // an author passing a generated sprite property now hands
+                    // in: since P42 §4.1 `obj.Portrait` is a NeoSprite, not a
+                    // UnityEngine.Sprite. Read the addressable pair off the
+                    // wrapper rather than resolving it — the argument is data,
+                    // and an unsynchronized asset must not throw on a call
+                    // that never needed the Unity object.
+                    if (value is NeoReadOnlySprite spriteWrapper)
+                        value = NeoGeneratedTypesSupport.SpriteValue(client, spriteWrapper);
+                    else if (value is Sprite sprite)
                         value = NeoGeneratedTypesSupport.SpriteValue(client, sprite);
                     if (value is SpriteValue spriteValue)
                     {
@@ -1293,6 +1302,7 @@ namespace NeoCompose.Runtime
                     || value is NeoReadOnlyColor,
                 MemberKind.Sprite => value is SpriteValue
                     || value is Sprite
+                    || value is NeoReadOnlySprite
                     || HasDictionaryString(value, "fileId")
                         && HasDictionaryNumber(value, "sliceIndex"),
                 MemberKind.Audio => value is FileValue

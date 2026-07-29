@@ -202,6 +202,64 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Carrier for Color defaults.</summary>
     public class ColorMemberValueBase : MemberValueBase<NeoColorValue?> { }
 
+    /// <summary>
+    /// P42 decision D10 — a <c>$partial</c> structured-leaf envelope is legal
+    /// <b>only</b> inside an animation override graph, and the position is
+    /// statically knowable rather than inferred from the value's shape or the
+    /// member's kind. A <see cref="Member.defaultValue"/> is never an override
+    /// graph, so an envelope there is invalid data and is rejected by name.
+    ///
+    /// <para>There is deliberately no <c>PartialLeafMemberValueBase</c> carrier
+    /// to hold one. An earlier revision declared it "so an envelope reaching
+    /// the embedded-carrier converter resolves to a row that can report a
+    /// precise error" — but nothing raised that error, so the envelope was
+    /// swallowed: a stray <c>$partial</c> under a Sprite declaration
+    /// deserialized into a <see cref="SpriteValue"/> with a null
+    /// <c>fileId</c>, i.e. silently became "no value". The error is raised
+    /// here instead, which leaves the carrier with nothing to carry.</para>
+    /// </summary>
+    internal static class PartialLeafPositionGuard
+    {
+        /// <summary>
+        /// Rejects a <c>$partial</c> envelope sitting in the <c>value</c> of a
+        /// declaration-default carrier. <paramref name="carrier"/> is the
+        /// <see cref="MemberValueBase"/> JSON object; <paramref name="subject"/>
+        /// names the position for the message.
+        /// </summary>
+        internal static void RejectDefaultCarrier(JObject? carrier, string subject)
+        {
+            if (carrier is null) return;
+            if (!NeoPartialLeafValue.IsEnvelope(carrier["value"])) return;
+            throw new JsonSerializationException(
+                $"{subject} holds a '{NeoPartialLeafValue.EnvelopeKey}' structured-leaf "
+                + "value. A partial value is legal only inside an animation override graph "
+                + "(the Overrides subtree of a frame or a child override), never in a "
+                + "member declaration default; declare a whole value instead.");
+        }
+
+        /// <summary>
+        /// Same rule, reached from <c>MemberConverter</c> where the member's
+        /// own JSON is in hand — so the message can name the member and its
+        /// kind, which is what decision D10 asks for. Runs before the member's
+        /// fields are populated, so it wins over the carrier-level check.
+        /// </summary>
+        internal static void RejectMemberDeclarationDefault(JObject member, Type concrete)
+        {
+            if (member["defaultValue"] is not JObject carrier) return;
+            RejectDefaultCarrier(carrier, DescribeMember(member, concrete));
+        }
+
+        private static string DescribeMember(JObject member, Type concrete)
+        {
+            string? name = member.Value<string>("name");
+            string? id = member.Value<string>("id");
+            string named = name is null ? concrete.Name : $"{concrete.Name} '{name}'";
+            return id is null
+                ? $"The default value of {named}"
+                : $"The default value of {named} ({id})";
+        }
+    }
+
     public class NeoVector2ValueConverter : JsonConverter
     {
         public override bool CanConvert(Type objectType)
@@ -242,6 +300,11 @@ namespace NeoCompose.Runtime.Json
         internal static bool LooksLikeVector2Value(JToken token)
         {
             if (token.Type != JTokenType.Object) return false;
+            // P42: a `$partial` envelope is never a whole value, whatever
+            // else it carries. The exact-count rule below already excludes
+            // the canonical one-key envelope; this makes the exclusion
+            // explicit rather than incidental.
+            if (NeoPartialLeafValue.IsEnvelope(token)) return false;
             var obj = (JObject)token;
             return obj.Count == 2 && IsFiniteNumber(obj["x"]) && IsFiniteNumber(obj["y"]);
         }
@@ -317,6 +380,8 @@ namespace NeoCompose.Runtime.Json
         internal static bool LooksLikeVector3Value(JToken token)
         {
             if (token.Type != JTokenType.Object) return false;
+            // P42: see NeoVector2ValueConverter.LooksLikeVector2Value.
+            if (NeoPartialLeafValue.IsEnvelope(token)) return false;
             var obj = (JObject)token;
             return obj.Count == 3
                 && IsFiniteNumber(obj["x"])
@@ -385,6 +450,8 @@ namespace NeoCompose.Runtime.Json
         internal static bool LooksLikeColorValue(JToken token)
         {
             if (token.Type != JTokenType.Object) return false;
+            // P42: see NeoVector2ValueConverter.LooksLikeVector2Value.
+            if (NeoPartialLeafValue.IsEnvelope(token)) return false;
             var obj = (JObject)token;
             return obj.Count == 4
                 && IsColorComponent(obj["r"])
@@ -435,6 +502,373 @@ namespace NeoCompose.Runtime.Json
             var value = token.Value<float>();
             if (float.IsNaN(value) || float.IsInfinity(value)) return false;
             return value >= 0f && value <= 1f;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // P42 — partial structured-leaf values.
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// The payload of a <b>partial</b> structured-leaf value row (P42
+    /// decision D1). On the wire it is an explicit envelope:
+    ///
+    /// <code>
+    /// { "$partial": { "sliceIndex": 1 } }
+    /// </code>
+    ///
+    /// <para>A row holding a <b>full</b> value is unchanged —
+    /// <c>{"fileId":…,"sliceIndex":…}</c>, <c>{"x":…,"y":…,"z":…}</c>,
+    /// <c>{"r":…,"g":…,"b":…,"a":…}</c>. The envelope exists because
+    /// <c>ResolveByShape</c> picks a row type from JSON shape alone, with no
+    /// member kind in hand: a bare <c>{"fileId":"…"}</c> sprite partial is
+    /// byte-identical to a whole Audio/File value, and <c>{"sliceIndex":1}</c>
+    /// or <c>{"y":0.25}</c> matches no probe at all. One discriminating key
+    /// makes the signal unambiguous without changing any existing row's
+    /// bytes.</para>
+    ///
+    /// <para>An empty envelope (<c>{"$partial":{}}</c>) is legal and means
+    /// "no change".</para>
+    ///
+    /// <para>This is a plain data row and performs <b>no</b> resolution: it
+    /// answers exactly two questions cheaply — <see cref="FieldKeys"/> ("which
+    /// fields do you write", in wire order) and the <c>TryGet*</c> family
+    /// ("what is the value for field K"). It deliberately does not know which
+    /// field names are legal for which member kind, because the kind is not
+    /// available at this layer; per-kind key validation (Sprite =
+    /// <c>fileId</c>/<c>sliceIndex</c>; Vector2(Int) = <c>x</c>/<c>y</c>;
+    /// Vector3(Int) = <c>x</c>/<c>y</c>/<c>z</c>; Color =
+    /// <c>r</c>/<c>g</c>/<c>b</c>/<c>a</c>) and the colour channel
+    /// <c>[0, 1]</c> range rule (P42 decision D2 — <b>rejected</b>, never
+    /// clamped) belong to the kind-aware consumer.</para>
+    ///
+    /// <para>Field values are held as their original JSON tokens so a row
+    /// that is read and re-written is byte-stable: an integer stays an
+    /// integer, key order is preserved.</para>
+    /// </summary>
+    [JsonConverter(typeof(NeoPartialLeafValueConverter))]
+    public sealed class NeoPartialLeafValue
+    {
+        /// <summary>The single discriminating wire key, <c>"$partial"</c>.</summary>
+        public const string EnvelopeKey = "$partial";
+
+        /// <summary>
+        /// The field tokens in wire order. Only scalars live here (string,
+        /// finite number, or null) — enforced on read by
+        /// <see cref="FromEnvelope"/> and by the setters.
+        /// </summary>
+        private readonly JObject fields;
+
+        private string[]? keyCache;
+
+        /// <summary>Creates an empty envelope — the "no change" form.</summary>
+        public NeoPartialLeafValue()
+        {
+            fields = new JObject();
+        }
+
+        private NeoPartialLeafValue(JObject fields)
+        {
+            this.fields = fields;
+        }
+
+        /// <summary>Number of fields this partial writes.</summary>
+        public int FieldCount => fields.Count;
+
+        /// <summary>True for <c>{"$partial":{}}</c> — writes nothing.</summary>
+        public bool IsEmpty => fields.Count == 0;
+
+        /// <summary>
+        /// The field names this partial writes, in wire order. Cached; the
+        /// cache is dropped by any mutation.
+        /// </summary>
+        public IReadOnlyList<string> FieldKeys
+        {
+            get
+            {
+                if (keyCache is null)
+                {
+                    var keys = new string[fields.Count];
+                    var index = 0;
+                    foreach (var property in fields.Properties())
+                    {
+                        keys[index++] = property.Name;
+                    }
+                    keyCache = keys;
+                }
+                return keyCache;
+            }
+        }
+
+        /// <summary>True when <paramref name="key"/> is written by this partial.</summary>
+        public bool HasField(string key) => fields.Property(key) is not null;
+
+        /// <summary>
+        /// True when <paramref name="key"/> is written and its value is JSON
+        /// null. Distinct from "absent" — an absent field is left alone, an
+        /// explicit null is a write.
+        /// </summary>
+        public bool IsNullField(string key)
+        {
+            return fields.Property(key)?.Value.Type == JTokenType.Null;
+        }
+
+        /// <summary>
+        /// Reads <paramref name="key"/> as a string. False when the field is
+        /// absent, null, or not a string.
+        /// </summary>
+        public bool TryGetString(string key, out string? value)
+        {
+            value = null;
+            var token = fields.Property(key)?.Value;
+            if (token is null || token.Type != JTokenType.String) return false;
+            value = token.Value<string>();
+            return true;
+        }
+
+        /// <summary>
+        /// Reads <paramref name="key"/> as a double. False when the field is
+        /// absent or not a number.
+        /// </summary>
+        public bool TryGetDouble(string key, out double value)
+        {
+            value = 0d;
+            var token = fields.Property(key)?.Value;
+            if (token is null) return false;
+            if (token.Type != JTokenType.Integer && token.Type != JTokenType.Float)
+            {
+                return false;
+            }
+            value = token.Value<double>();
+            return true;
+        }
+
+        /// <summary>
+        /// Reads <paramref name="key"/> as a float — the component type of
+        /// every vector and colour DTO. False when the field is absent or not
+        /// a number.
+        /// </summary>
+        public bool TryGetSingle(string key, out float value)
+        {
+            value = 0f;
+            if (!TryGetDouble(key, out double raw)) return false;
+            value = (float)raw;
+            return true;
+        }
+
+        /// <summary>
+        /// Reads <paramref name="key"/> as an int — the type of
+        /// <see cref="SpriteValue.sliceIndex"/>. False when the field is
+        /// absent, not a number, fractional, or outside the int range.
+        /// </summary>
+        public bool TryGetInt32(string key, out int value)
+        {
+            value = 0;
+            if (!TryGetDouble(key, out double raw)) return false;
+            if (raw < int.MinValue || raw > int.MaxValue) return false;
+            if (raw != System.Math.Floor(raw)) return false;
+            value = (int)raw;
+            return true;
+        }
+
+        /// <summary>Writes (or overwrites) a string field. A null value writes JSON null.</summary>
+        public void SetString(string key, string? value)
+        {
+            SetToken(key, value is null ? JValue.CreateNull() : new JValue(value));
+        }
+
+        /// <summary>Writes (or overwrites) a fractional number field.</summary>
+        public void SetDouble(string key, double value)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                throw new System.ArgumentException(
+                    $"Partial structured-leaf field '{key}' must be a finite number.",
+                    nameof(value));
+            }
+            SetToken(key, new JValue(value));
+        }
+
+        /// <summary>
+        /// Writes (or overwrites) an integral number field. Kept separate
+        /// from <see cref="SetDouble"/> so <c>sliceIndex</c> re-serializes as
+        /// <c>1</c> rather than <c>1.0</c>.
+        /// </summary>
+        public void SetInt32(string key, int value)
+        {
+            SetToken(key, new JValue((long)value));
+        }
+
+        /// <summary>Removes a field. True when one was present.</summary>
+        public bool RemoveField(string key)
+        {
+            var removed = fields.Remove(key);
+            if (removed) keyCache = null;
+            return removed;
+        }
+
+        /// <summary>Deep copy — the row layer hands out no shared mutable state.</summary>
+        public NeoPartialLeafValue Clone()
+        {
+            return new NeoPartialLeafValue((JObject)fields.DeepClone());
+        }
+
+        private void SetToken(string key, JValue token)
+        {
+            if (fields.Property(key) is JProperty existing)
+            {
+                existing.Value = token;
+                return;
+            }
+            fields.Add(key, token);
+            keyCache = null;
+        }
+
+        /// <summary>
+        /// Shape probe used by both <c>ResolveByShape</c> implementations and
+        /// as a negative guard on every other object probe.
+        ///
+        /// <para>Deliberately looser than <see cref="FromEnvelope"/>: it
+        /// claims anything that is recognisably an <i>attempted</i> envelope —
+        /// a <c>$partial</c> key whose value is an object, or a <c>$partial</c>
+        /// key standing alone — so a malformed envelope lands on the partial
+        /// row and is rejected there by name, instead of falling through to
+        /// <c>ObjectMemberValue</c> and failing later with a Newtonsoft
+        /// message about dictionaries.</para>
+        ///
+        /// <para>The "or standing alone" half is what keeps a Dictionary value
+        /// row that happens to contain a <c>$partial</c> <b>string</b> entry
+        /// alongside others resolving exactly as it did before P42 — dictionary
+        /// and class rows are <c>Dictionary&lt;string, string&gt;</c>, so their
+        /// entries are never objects.</para>
+        /// </summary>
+        internal static bool IsEnvelope(JToken? token)
+        {
+            if (token is not JObject obj) return false;
+            var property = obj.Property(EnvelopeKey);
+            if (property is null) return false;
+            return property.Value.Type == JTokenType.Object || obj.Count == 1;
+        }
+
+        /// <summary>
+        /// Validates and materializes an envelope. The member kind is not
+        /// available here, so this checks the <b>shape</b> only: exactly one
+        /// <c>$partial</c> key whose value is an object of scalars.
+        /// </summary>
+        internal static NeoPartialLeafValue FromEnvelope(JObject envelope)
+        {
+            if (envelope.Count != 1 || envelope.Property(EnvelopeKey) is null)
+            {
+                throw new JsonSerializationException(
+                    "Partial structured-leaf value must be an object with exactly one "
+                    + $"'{EnvelopeKey}' key; found {DescribeKeys(envelope)}.");
+            }
+            var inner = envelope.Property(EnvelopeKey)!.Value;
+            if (inner.Type != JTokenType.Object)
+            {
+                throw new JsonSerializationException(
+                    $"Partial structured-leaf value '{EnvelopeKey}' must be an object of "
+                    + "scalar field values.");
+            }
+            var copied = new JObject();
+            foreach (var property in ((JObject)inner).Properties())
+            {
+                ValidateScalarField(property);
+                copied.Add(property.Name, property.Value.DeepClone());
+            }
+            return new NeoPartialLeafValue(copied);
+        }
+
+        /// <summary>
+        /// Writes the envelope back exactly as read — same key order, same
+        /// numeric token types — so a row that round-trips is byte-stable.
+        /// </summary>
+        internal void WriteEnvelope(JsonWriter writer)
+        {
+            writer.WriteStartObject();
+            writer.WritePropertyName(EnvelopeKey);
+            fields.WriteTo(writer);
+            writer.WriteEndObject();
+        }
+
+        private static void ValidateScalarField(JProperty property)
+        {
+            switch (property.Value.Type)
+            {
+                case JTokenType.String:
+                case JTokenType.Null:
+                    return;
+                case JTokenType.Integer:
+                case JTokenType.Float:
+                    var number = property.Value.Value<double>();
+                    if (double.IsNaN(number) || double.IsInfinity(number))
+                    {
+                        throw new JsonSerializationException(
+                            $"Partial structured-leaf field '{property.Name}' must be a "
+                            + "finite number.");
+                    }
+                    return;
+                default:
+                    throw new JsonSerializationException(
+                        $"Partial structured-leaf field '{property.Name}' must be a string "
+                        + "or a number.");
+            }
+        }
+
+        private static string DescribeKeys(JObject envelope)
+        {
+            if (envelope.Count == 0) return "no keys";
+            var names = new List<string>(envelope.Count);
+            foreach (var property in envelope.Properties())
+            {
+                names.Add($"'{property.Name}'");
+            }
+            return string.Join(", ", names.ToArray());
+        }
+    }
+
+    /// <summary>
+    /// Read/write converter for <see cref="NeoPartialLeafValue"/>. Unlike the
+    /// vector and colour converters this one <b>does</b> write — the envelope
+    /// shape is not what default Newtonsoft serialization would emit, and the
+    /// round-trip has to be byte-stable.
+    /// </summary>
+    public class NeoPartialLeafValueConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType)
+        {
+            return objectType == typeof(NeoPartialLeafValue);
+        }
+
+        public override bool CanWrite => true;
+
+        public override object? ReadJson(
+            JsonReader reader,
+            Type objectType,
+            object? existingValue,
+            JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.Null) return null;
+            if (reader.TokenType != JsonToken.StartObject)
+            {
+                throw new JsonSerializationException(
+                    "Partial structured-leaf value must be an object with exactly one "
+                    + $"'{NeoPartialLeafValue.EnvelopeKey}' key.");
+            }
+            return NeoPartialLeafValue.FromEnvelope(JObject.Load(reader));
+        }
+
+        public override void WriteJson(
+            JsonWriter writer,
+            object? value,
+            JsonSerializer serializer)
+        {
+            if (value is not NeoPartialLeafValue partial)
+            {
+                writer.WriteNull();
+                return;
+            }
+            partial.WriteEnvelope(writer);
         }
     }
 
@@ -489,6 +923,17 @@ namespace NeoCompose.Runtime.Json
             if (reader.TokenType == JsonToken.Null) return null;
             var obj = JObject.Load(reader);
             RejectRemovedClassIdentityField(obj);
+            // P42 decision D10 — a MemberValueBase is only ever a
+            // Member.defaultValue, which is never an animation override
+            // graph, so a `$partial` envelope here is invalid wherever it
+            // came from. Raised before dispatch: the context path would
+            // otherwise force-feed the envelope into the declared kind's
+            // payload (a Sprite default silently becoming a SpriteValue with
+            // a null fileId), and the shape path would need a carrier type
+            // that exists only to fail.
+            PartialLeafPositionGuard.RejectDefaultCarrier(
+                obj,
+                "A member declaration default");
             var concrete =
                 TypedHierarchyMap.ResolveByContext(objectType, typeof(MemberValueBase<>))
                 ?? ResolveByShape(obj["value"]);
@@ -534,6 +979,12 @@ namespace NeoCompose.Runtime.Json
                 case JTokenType.Array:
                     return typeof(ArrayMemberValueBase);
                 case JTokenType.Object:
+                    // P42: an envelope never reaches here — ReadJson rejects
+                    // it above, because this is a declaration-default
+                    // position (decision D10). The negative envelope guard on
+                    // each probe below still matters: it keeps a
+                    // {"$partial":{"fileId":"…"}} from being mistaken for a
+                    // whole File value should any other caller reuse them.
                     if (NeoVector3ValueConverter.LooksLikeVector3Value(token)) return typeof(Vector3MemberValueBase);
                     if (NeoVector2ValueConverter.LooksLikeVector2Value(token)) return typeof(Vector2MemberValueBase);
                     if (NeoColorValueConverter.LooksLikeColorValue(token)) return typeof(ColorMemberValueBase);
@@ -547,8 +998,11 @@ namespace NeoCompose.Runtime.Json
 
         private static bool LooksLikeFileValue(JToken token)
         {
-            return token.Type == JTokenType.Object &&
-                token["fileId"]?.Type == JTokenType.String;
+            if (token.Type != JTokenType.Object) return false;
+            // P42: an envelope is never a whole File/Sprite value, even if a
+            // future envelope grew a sibling key.
+            if (NeoPartialLeafValue.IsEnvelope(token)) return false;
+            return token["fileId"]?.Type == JTokenType.String;
         }
 
         private static bool LooksLikeSpriteValue(JToken token)
@@ -705,6 +1159,23 @@ namespace NeoCompose.Runtime.Json
     public class ColorMemberValue : MemberValue<NeoColorValue?> { }
 
     /// <summary>
+    /// Stored row holding a <b>partial</b> structured-leaf value — the P42
+    /// <c>$partial</c> envelope (decision D1). Legal only for a structured
+    /// leaf (Sprite / Vector2(Int) / Vector3(Int) / Color) inside an
+    /// animation override graph; everywhere else it is invalid data and the
+    /// kind-aware consumer must say so by name.
+    ///
+    /// <para>Because <c>NeoMember.Create</c> picks the node CLR type from the
+    /// member <i>declaration</i> kind, a row of this type never satisfies the
+    /// <c>TValue</c> of the node it lands under (a <c>NeoMemberSprite</c>
+    /// wants <see cref="SpriteMemberValue"/>) — so it resolves as null
+    /// through the typed accessor and is reached instead via
+    /// <c>NeoMember.partialLeafValue</c>, which is untyped by construction
+    /// and therefore cannot fail a cast.</para>
+    /// </summary>
+    public class PartialLeafMemberValue : MemberValue<NeoPartialLeafValue?> { }
+
+    /// <summary>
     /// Two-mode dispatch converter for <see cref="MemberValue"/>.
     /// Same dual logic as <see cref="MemberValueBaseConverter"/>,
     /// scoped to the stored-row hierarchy: TValue dispatch when the
@@ -768,6 +1239,9 @@ namespace NeoCompose.Runtime.Json
                 case JTokenType.Array:
                     return typeof(ArrayMemberValue);
                 case JTokenType.Object:
+                    // P42: the `$partial` envelope probe MUST come first —
+                    // see MemberValueBaseConverter.ResolveByShape.
+                    if (NeoPartialLeafValue.IsEnvelope(token)) return typeof(PartialLeafMemberValue);
                     if (NeoVector3ValueConverter.LooksLikeVector3Value(token)) return typeof(Vector3MemberValue);
                     if (NeoVector2ValueConverter.LooksLikeVector2Value(token)) return typeof(Vector2MemberValue);
                     if (NeoColorValueConverter.LooksLikeColorValue(token)) return typeof(ColorMemberValue);
@@ -781,8 +1255,10 @@ namespace NeoCompose.Runtime.Json
 
         private static bool LooksLikeFileValue(JToken token)
         {
-            return token.Type == JTokenType.Object &&
-                token["fileId"]?.Type == JTokenType.String;
+            if (token.Type != JTokenType.Object) return false;
+            // P42: see MemberValueBaseConverter.LooksLikeFileValue.
+            if (NeoPartialLeafValue.IsEnvelope(token)) return false;
+            return token["fileId"]?.Type == JTokenType.String;
         }
 
         private static bool LooksLikeSpriteValue(JToken token)

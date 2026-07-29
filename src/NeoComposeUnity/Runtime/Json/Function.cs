@@ -154,6 +154,26 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
+    /// P42 §2.3. Info shape for <c>imageSlice</c> —
+    /// <c>Images.&lt;Name&gt;.Slice(n)</c>. Mirrors TS-side
+    /// <c>INSFunctionImageSliceInfo</c>. Modelled on
+    /// <see cref="FunctionVectorConstructorInfo"/>: both build a raw
+    /// structured-leaf value out of pointers, with no schema provenance.
+    /// </summary>
+    public class FunctionImageSliceInfo
+    {
+        /// <summary>
+        /// Pointer to the project image <b>file record id</b>. The compiler
+        /// already resolved the registry symbol against the project document,
+        /// so this is a plain string on both runtimes.
+        /// </summary>
+        public Pointer filePointer = null!;
+
+        /// <summary>Pointer to the int slice index.</summary>
+        public Pointer sliceIndexPointer = null!;
+    }
+
+    /// <summary>
     /// Info shape for <c>stringOp</c>: a method-call-style string builtin
     /// (<c>ToLower</c>/<c>ToUpper</c>/<c>Trim</c>/<c>StartsWith</c>/
     /// <c>EndsWith</c>). Mirrors TS-side <c>INSFunctionStringOpInfo</c>.
@@ -244,6 +264,11 @@ namespace NeoCompose.Runtime.Json
         public FunctionVectorConstructorInfo info = null!;
     }
 
+    public class ImageSliceFunction : Function
+    {
+        public FunctionImageSliceInfo info = null!;
+    }
+
     public class StringOpFunction : Function
     {
         public FunctionStringOpInfo info = null!;
@@ -276,6 +301,7 @@ namespace NeoCompose.Runtime.Json
                 case FunctionKind.VisitCount: return typeof(VisitCountFunction);
                 case FunctionKind.HasVisited: return typeof(HasVisitedFunction);
                 case FunctionKind.VectorConstructor: return typeof(VectorConstructorFunction);
+                case FunctionKind.ImageSlice: return typeof(ImageSliceFunction);
                 case FunctionKind.StringOp: return typeof(StringOpFunction);
                 case FunctionKind.DecimalOp: return typeof(DecimalOpFunction);
                 case FunctionKind.ListIndex: return typeof(ListIndexFunction);

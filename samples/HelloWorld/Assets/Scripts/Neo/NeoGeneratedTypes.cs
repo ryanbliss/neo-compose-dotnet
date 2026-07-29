@@ -1357,7 +1357,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new string Name { get; }
 
-        new Sprite Sprite { get; }
+        new NeoReadOnlySprite Sprite { get; }
     }
 
     public partial class BootGlyphTile : ConsoleTile, IReadOnlyBootGlyphTile
@@ -1458,17 +1458,24 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public override Sprite Sprite
+        public override NeoSprite Sprite
         {
             get
             {
-                var resolved = node.Get<NeoMemberSprite>("Sprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset.");
+                return new NeoSprite(writableNode.Get<NeoMemberSpriteWritable>("Sprite"), this);
             }
             set
             {
                 ThrowIfReadOnly("BootGlyphTile.Sprite");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        NeoReadOnlySprite IReadOnlyBootGlyphTile.Sprite
+        {
+            get
+            {
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("Sprite"));
             }
         }
 
@@ -1480,6 +1487,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        NeoReadOnlySprite IReadOnlyNeoTile.Sprite
+        {
+            get
+            {
+                return (NeoReadOnlySprite)(object)((NeoTile)this).Sprite!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -1488,7 +1503,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<string> Name = new("Name");
 
-            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
 
             public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
@@ -1802,13 +1817,21 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        NeoReadOnlySprite IReadOnlyNeoTile.Sprite
+        {
+            get
+            {
+                return (NeoReadOnlySprite)(object)((NeoTile)this).Sprite!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
 
             public static readonly NeoField<string> Name = new("Name");
 
-            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
 
             public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
@@ -2912,7 +2935,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new string Name { get; }
 
-        new Sprite Sprite { get; }
+        new NeoReadOnlySprite Sprite { get; }
     }
 
     public partial class VoidTile : ConsoleTile, IReadOnlyVoidTile
@@ -2998,17 +3021,24 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public override Sprite Sprite
+        public override NeoSprite Sprite
         {
             get
             {
-                var resolved = node.Get<NeoMemberSprite>("Sprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset.");
+                return new NeoSprite(writableNode.Get<NeoMemberSpriteWritable>("Sprite"), this);
             }
             set
             {
                 ThrowIfReadOnly("VoidTile.Sprite");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        NeoReadOnlySprite IReadOnlyVoidTile.Sprite
+        {
+            get
+            {
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("Sprite"));
             }
         }
 
@@ -3020,13 +3050,21 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        NeoReadOnlySprite IReadOnlyNeoTile.Sprite
+        {
+            get
+            {
+                return (NeoReadOnlySprite)(object)((NeoTile)this).Sprite!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
 
             public static readonly NeoField<string> Name = new("Name");
 
-            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
 
             public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
@@ -3099,7 +3137,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         string FullDisplayText { get; }
 
-        Sprite Image { get; }
+        NeoReadOnlySprite Image { get; }
 
         new string Name { get; }
 
@@ -3213,12 +3251,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public virtual Sprite Image
+        public virtual NeoReadOnlySprite Image
         {
             get
             {
-                var resolved = node.Get<NeoMemberSprite>("Image").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'Image' has no synchronized asset.");
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("Image"));
             }
         }
 
@@ -3296,7 +3333,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
 
-            public static readonly NeoField<Sprite> Image = new("Image");
+            public static readonly NeoField<NeoSprite> Image = new("Image");
 
             public static readonly NeoField<string> Name = new("Name");
 
@@ -3517,7 +3554,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Size"));
+                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Size"), this);
             }
             set
             {
@@ -3954,7 +3991,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new string Name { get; }
 
-        new Sprite Sprite { get; }
+        new NeoReadOnlySprite Sprite { get; }
     }
 
     public partial class SealBarrierTile : ConsoleTile, IReadOnlySealBarrierTile
@@ -4040,17 +4077,24 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public override Sprite Sprite
+        public override NeoSprite Sprite
         {
             get
             {
-                var resolved = node.Get<NeoMemberSprite>("Sprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset.");
+                return new NeoSprite(writableNode.Get<NeoMemberSpriteWritable>("Sprite"), this);
             }
             set
             {
                 ThrowIfReadOnly("SealBarrierTile.Sprite");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        NeoReadOnlySprite IReadOnlySealBarrierTile.Sprite
+        {
+            get
+            {
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("Sprite"));
             }
         }
 
@@ -4062,13 +4106,21 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        NeoReadOnlySprite IReadOnlyNeoTile.Sprite
+        {
+            get
+            {
+                return (NeoReadOnlySprite)(object)((NeoTile)this).Sprite!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
 
             public static readonly NeoField<string> Name = new("Name");
 
-            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
 
             public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
@@ -5173,7 +5225,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
 
-            public static readonly NeoField<Sprite> Image = new("Image");
+            public static readonly NeoField<NeoSprite> Image = new("Image");
 
             public static readonly NeoField<string> Name = new("Name");
 
@@ -5541,23 +5593,23 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out Art writable);
 
-        Sprite FirstWorldIconSprite { get; }
+        NeoReadOnlySprite FirstWorldIconSprite { get; }
 
         IReadOnlyAnimationInfo? FlareAnimation { get; }
 
-        Sprite FlareStaticSprite { get; }
+        NeoReadOnlySprite FlareStaticSprite { get; }
 
-        Sprite JupiterSprite { get; }
+        NeoReadOnlySprite JupiterSprite { get; }
 
-        Sprite SaturnSprite { get; }
+        NeoReadOnlySprite SaturnSprite { get; }
 
         IReadOnlyAnimationInfo? ShipAnimation { get; }
 
-        Sprite ShipSprite { get; }
+        NeoReadOnlySprite ShipSprite { get; }
 
-        Sprite SunSprite { get; }
+        NeoReadOnlySprite SunSprite { get; }
 
-        Sprite VaultPlaqueSprite { get; }
+        NeoReadOnlySprite VaultPlaqueSprite { get; }
     }
 
     public partial class Art : NeoGeneratedClassValue, IReadOnlyArt
@@ -5634,12 +5686,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<Art>(out writable);
         }
 
-        public virtual Sprite FirstWorldIconSprite
+        public virtual NeoReadOnlySprite FirstWorldIconSprite
         {
             get
             {
-                var resolved = node.Get<NeoMemberSprite>("FirstWorldIconSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'FirstWorldIconSprite' has no synchronized asset.");
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("FirstWorldIconSprite"));
             }
         }
 
@@ -5652,30 +5703,27 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public virtual Sprite FlareStaticSprite
+        public virtual NeoReadOnlySprite FlareStaticSprite
         {
             get
             {
-                var resolved = node.Get<NeoMemberSprite>("FlareStaticSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'FlareStaticSprite' has no synchronized asset.");
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("FlareStaticSprite"));
             }
         }
 
-        public virtual Sprite JupiterSprite
+        public virtual NeoReadOnlySprite JupiterSprite
         {
             get
             {
-                var resolved = node.Get<NeoMemberSprite>("JupiterSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'JupiterSprite' has no synchronized asset.");
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("JupiterSprite"));
             }
         }
 
-        public virtual Sprite SaturnSprite
+        public virtual NeoReadOnlySprite SaturnSprite
         {
             get
             {
-                var resolved = node.Get<NeoMemberSprite>("SaturnSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'SaturnSprite' has no synchronized asset.");
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("SaturnSprite"));
             }
         }
 
@@ -5688,30 +5736,27 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public virtual Sprite ShipSprite
+        public virtual NeoReadOnlySprite ShipSprite
         {
             get
             {
-                var resolved = node.Get<NeoMemberSprite>("ShipSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'ShipSprite' has no synchronized asset.");
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("ShipSprite"));
             }
         }
 
-        public virtual Sprite SunSprite
+        public virtual NeoReadOnlySprite SunSprite
         {
             get
             {
-                var resolved = node.Get<NeoMemberSprite>("SunSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'SunSprite' has no synchronized asset.");
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("SunSprite"));
             }
         }
 
-        public virtual Sprite VaultPlaqueSprite
+        public virtual NeoReadOnlySprite VaultPlaqueSprite
         {
             get
             {
-                var resolved = node.Get<NeoMemberSprite>("VaultPlaqueSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'VaultPlaqueSprite' has no synchronized asset.");
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("VaultPlaqueSprite"));
             }
         }
 
@@ -5719,23 +5764,23 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<Sprite> FirstWorldIconSprite = new("FirstWorldIconSprite");
+            public static readonly NeoField<NeoSprite> FirstWorldIconSprite = new("FirstWorldIconSprite");
 
             public static readonly NeoField<AnimationInfo?> FlareAnimation = new("FlareAnimation");
 
-            public static readonly NeoField<Sprite> FlareStaticSprite = new("FlareStaticSprite");
+            public static readonly NeoField<NeoSprite> FlareStaticSprite = new("FlareStaticSprite");
 
-            public static readonly NeoField<Sprite> JupiterSprite = new("JupiterSprite");
+            public static readonly NeoField<NeoSprite> JupiterSprite = new("JupiterSprite");
 
-            public static readonly NeoField<Sprite> SaturnSprite = new("SaturnSprite");
+            public static readonly NeoField<NeoSprite> SaturnSprite = new("SaturnSprite");
 
             public static readonly NeoField<AnimationInfo?> ShipAnimation = new("ShipAnimation");
 
-            public static readonly NeoField<Sprite> ShipSprite = new("ShipSprite");
+            public static readonly NeoField<NeoSprite> ShipSprite = new("ShipSprite");
 
-            public static readonly NeoField<Sprite> SunSprite = new("SunSprite");
+            public static readonly NeoField<NeoSprite> SunSprite = new("SunSprite");
 
-            public static readonly NeoField<Sprite> VaultPlaqueSprite = new("VaultPlaqueSprite");
+            public static readonly NeoField<NeoSprite> VaultPlaqueSprite = new("VaultPlaqueSprite");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -5807,7 +5852,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new string FullDisplayText { get; }
 
-        new Sprite? Image { get; }
+        new NeoReadOnlySprite? Image { get; }
 
         JupiterMoon Moon { get; }
 
@@ -5894,16 +5939,26 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new virtual Sprite? Image
+        public new virtual NeoSprite? Image
         {
             get
             {
-                return node.Get<NeoMemberSprite>("Image").Resolve();
+                var child = writableNode.Get<NeoMemberSpriteWritable>("Image");
+                return child.value is null ? null : new NeoSprite(child, this);
             }
             set
             {
                 ThrowIfReadOnly("JupiterOutpost.Image");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Image", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value, "66504747-cbd5-4026-9d4c-89a0644f8192", "Image")));
+            }
+        }
+
+        NeoReadOnlySprite? IReadOnlyJupiterOutpost.Image
+        {
+            get
+            {
+                var child = node.Get<NeoMemberSprite>("Image");
+                return child.value is null ? null : new NeoReadOnlySprite(child);
             }
         }
 
@@ -5943,7 +5998,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
 
-            public static readonly NeoField<Sprite?> Image = new("Image");
+            public static readonly NeoField<NeoSprite?> Image = new("Image");
 
             public static readonly NeoField<string> Name = new("Name");
 
@@ -6025,7 +6080,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new IReadOnlyNeoSmartTile? SmartTile { get; }
 
-        new Sprite Sprite { get; }
+        new NeoReadOnlySprite Sprite { get; }
     }
 
     public partial class HullPlatingTile : ConsoleTile, IReadOnlyHullPlatingTile
@@ -6147,17 +6202,24 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public override Sprite Sprite
+        public override NeoSprite Sprite
         {
             get
             {
-                var resolved = node.Get<NeoMemberSprite>("Sprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset.");
+                return new NeoSprite(writableNode.Get<NeoMemberSpriteWritable>("Sprite"), this);
             }
             set
             {
                 ThrowIfReadOnly("HullPlatingTile.Sprite");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        NeoReadOnlySprite IReadOnlyHullPlatingTile.Sprite
+        {
+            get
+            {
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("Sprite"));
             }
         }
 
@@ -6169,13 +6231,21 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        NeoReadOnlySprite IReadOnlyNeoTile.Sprite
+        {
+            get
+            {
+                return (NeoReadOnlySprite)(object)((NeoTile)this).Sprite!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
 
             public static readonly NeoField<string> Name = new("Name");
 
-            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
 
             public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
@@ -6549,7 +6619,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new IReadOnlyNeoSmartTile? SmartTile { get; }
 
-        new Sprite Sprite { get; }
+        new NeoReadOnlySprite Sprite { get; }
     }
 
     public partial class GlassFloorTile : ConsoleTile, IReadOnlyGlassFloorTile
@@ -6671,17 +6741,24 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public override Sprite Sprite
+        public override NeoSprite Sprite
         {
             get
             {
-                var resolved = node.Get<NeoMemberSprite>("Sprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset.");
+                return new NeoSprite(writableNode.Get<NeoMemberSpriteWritable>("Sprite"), this);
             }
             set
             {
                 ThrowIfReadOnly("GlassFloorTile.Sprite");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        NeoReadOnlySprite IReadOnlyGlassFloorTile.Sprite
+        {
+            get
+            {
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("Sprite"));
             }
         }
 
@@ -6693,13 +6770,21 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        NeoReadOnlySprite IReadOnlyNeoTile.Sprite
+        {
+            get
+            {
+                return (NeoReadOnlySprite)(object)((NeoTile)this).Sprite!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
 
             public static readonly NeoField<string> Name = new("Name");
 
-            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
 
             public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
@@ -6897,7 +6982,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Position"));
+                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Position"), this);
             }
             set
             {
@@ -7058,7 +7143,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new string Name { get; }
 
-        new Sprite Sprite { get; }
+        new NeoReadOnlySprite Sprite { get; }
     }
 
     public partial class RedNovaWarningTile : ConsoleTile, IReadOnlyRedNovaWarningTile
@@ -7144,17 +7229,24 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public override Sprite Sprite
+        public override NeoSprite Sprite
         {
             get
             {
-                var resolved = node.Get<NeoMemberSprite>("Sprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset.");
+                return new NeoSprite(writableNode.Get<NeoMemberSpriteWritable>("Sprite"), this);
             }
             set
             {
                 ThrowIfReadOnly("RedNovaWarningTile.Sprite");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        NeoReadOnlySprite IReadOnlyRedNovaWarningTile.Sprite
+        {
+            get
+            {
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("Sprite"));
             }
         }
 
@@ -7166,13 +7258,21 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        NeoReadOnlySprite IReadOnlyNeoTile.Sprite
+        {
+            get
+            {
+                return (NeoReadOnlySprite)(object)((NeoTile)this).Sprite!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
 
             public static readonly NeoField<string> Name = new("Name");
 
-            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
 
             public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
@@ -8152,7 +8252,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Position"));
+                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Position"), this);
             }
             set
             {
@@ -8173,7 +8273,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Size"));
+                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Size"), this);
             }
             set
             {
@@ -9753,7 +9853,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Position"));
+                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Position"), this);
             }
             set
             {
@@ -9774,7 +9874,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Size"));
+                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Size"), this);
             }
             set
             {
@@ -10179,7 +10279,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 var child = writableNode.Get<NeoMemberVector2Writable>("offset");
-                return child.value is null ? null : new NeoVector2(child);
+                return child.value is null ? null : new NeoVector2(child, this);
             }
             set
             {
@@ -10201,7 +10301,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector2(writableNode.Get<NeoMemberVector2Writable>("size"));
+                return new NeoVector2(writableNode.Get<NeoMemberVector2Writable>("size"), this);
             }
             set
             {
@@ -10357,7 +10457,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector2Int(writableNode.Get<NeoMemberVector2IntWritable>("Cell"));
+                return new NeoVector2Int(writableNode.Get<NeoMemberVector2IntWritable>("Cell"), this);
             }
             set
             {
@@ -10512,7 +10612,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector2Int(writableNode.Get<NeoMemberVector2IntWritable>("Cell"));
+                return new NeoVector2Int(writableNode.Get<NeoMemberVector2IntWritable>("Cell"), this);
             }
             set
             {
@@ -12893,7 +12993,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector2Int(writableNode.Get<NeoMemberVector2IntWritable>("Cell"));
+                return new NeoVector2Int(writableNode.Get<NeoMemberVector2IntWritable>("Cell"), this);
             }
             set
             {
@@ -12994,7 +13094,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// </summary>
         new int? SortingOrder { get; }
 
-        new Sprite Sprite { get; }
+        new NeoReadOnlySprite Sprite { get; }
     }
 
     public partial class NeoSpriteObject : NeoObjectBase, IReadOnlyNeoSpriteObject, INeoSpriteObjectValue
@@ -13071,6 +13171,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoSpriteObject>(out writable);
         }
 
+        Sprite INeoSpriteObjectValue.Sprite => Sprite;
         string INeoSpriteObjectValue.MaskInteraction => MaskInteraction.optionId;
 
         /// <summary>
@@ -13151,17 +13252,24 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public virtual Sprite Sprite
+        public virtual NeoSprite Sprite
         {
             get
             {
-                var resolved = node.Get<NeoMemberSprite>("Sprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset.");
+                return new NeoSprite(writableNode.Get<NeoMemberSpriteWritable>("Sprite"), this);
             }
             set
             {
                 ThrowIfReadOnly("NeoSpriteObject.Sprite");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        NeoReadOnlySprite IReadOnlyNeoSpriteObject.Sprite
+        {
+            get
+            {
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("Sprite"));
             }
         }
 
@@ -13185,7 +13293,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<int?> SortingOrder = new("SortingOrder");
 
-            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -13259,7 +13367,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new IReadOnlyNeoSmartTile? SmartTile { get; }
 
-        Sprite Sprite { get; }
+        NeoReadOnlySprite Sprite { get; }
     }
 
     public abstract partial class NeoTile : NeoGeneratedClassValue, IReadOnlyNeoTile, INeoSmartTileSource
@@ -13376,17 +13484,24 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public virtual Sprite Sprite
+        public virtual NeoSprite Sprite
         {
             get
             {
-                var resolved = node.Get<NeoMemberSprite>("Sprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset.");
+                return new NeoSprite(writableNode.Get<NeoMemberSpriteWritable>("Sprite"), this);
             }
             set
             {
                 ThrowIfReadOnly("NeoTile.Sprite");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        NeoReadOnlySprite IReadOnlyNeoTile.Sprite
+        {
+            get
+            {
+                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("Sprite"));
             }
         }
 
@@ -13396,7 +13511,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<string> Name = new("Name");
 
-            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
 
             public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }

@@ -1150,6 +1150,15 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return component;
             }
+            // P42 §3. Colour channels read exactly like vector components.
+            // Before P42 a `ColorMemberValue` unwrapped to a bare
+            // `NeoColorValue`, which is neither a vector nor an
+            // `IDictionary`, so `Tint.a` fell through to the "cannot index
+            // into" throw below while the TS evaluator read it happily.
+            if (TryReadColorComponent(receiver, k, out float channel))
+            {
+                return channel;
+            }
             if (k == "Id")
             {
                 if (receiver is INeoValueReference reference
@@ -1812,6 +1821,8 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 case VectorConstructorFunction vcf:
                     return EvalVectorConstructor(vcf.info, scope, ctx);
+                case ImageSliceFunction isf:
+                    return EvalImageSlice(isf.info, scope, ctx);
                 case DecimalOpFunction dof:
                     return EvalDecimalOp(dof.info, scope, ctx);
                 case StringOpFunction sof:
@@ -2160,6 +2171,58 @@ namespace NeoCompose.Runtime.NeoScript
                 default:
                     throw new NSGetterRuntimeError($"Unsupported vector constructor '{info.vectorType}'.");
             }
+        }
+
+        /// <summary>
+        /// P42 §2.3. Evaluates the <c>imageSlice</c> intrinsic —
+        /// <c>Images.&lt;Name&gt;.Slice(n)</c> — into the same
+        /// <c>{ fileId, sliceIndex }</c> record a <see cref="SpriteMemberValue"/>
+        /// unwraps to, so the produced value is interchangeable with a stored
+        /// sprite everywhere downstream.
+        ///
+        /// <para>The registry symbol was already resolved to the project file
+        /// record id by the compiler, against the project document; the file
+        /// half therefore arrives here as a plain string and this evaluator
+        /// looks nothing up. <see cref="NeoAssetDatabase"/> enters later, on
+        /// the ordinary <c>NeoMemberSprite.Resolve()</c> path, once the record
+        /// has been assigned to a sprite member — which is the one place the
+        /// two runtimes resolve from different sources and is why
+        /// <c>neoscript-registry-parity-fixture.json</c> exists. Validation
+        /// order and message text are shared verbatim with the TS
+        /// <c>evalImageSlice</c>.</para>
+        /// </summary>
+        private static object EvalImageSlice(
+            FunctionImageSliceInfo info,
+            Dictionary<string, object?> scope,
+            Context ctx)
+        {
+            var fileId = EvalPointer(info.filePointer, scope, ctx) as string;
+            if (string.IsNullOrEmpty(fileId))
+            {
+                throw new NSGetterRuntimeError(
+                    "Slice(index) requires a project image reference.");
+            }
+            var rawSliceIndex = EvalPointer(info.sliceIndexPointer, scope, ctx);
+            if (!TryAsDouble(rawSliceIndex, out double sliceIndex)
+                || double.IsNaN(sliceIndex)
+                || double.IsInfinity(sliceIndex))
+            {
+                throw new NSGetterRuntimeError(
+                    $"Slice index must be numeric; got {ReceiverTypeName(rawSliceIndex)}.");
+            }
+            if (sliceIndex != System.Math.Truncate(sliceIndex))
+            {
+                throw new NSGetterRuntimeError("Slice index must be a whole number.");
+            }
+            if (sliceIndex < 0)
+            {
+                throw new NSGetterRuntimeError("Slice index must be 0 or greater.");
+            }
+            return new Dictionary<string, object?>
+            {
+                ["fileId"] = fileId,
+                ["sliceIndex"] = (int)sliceIndex,
+            };
         }
 
         /// <summary>
@@ -2706,7 +2769,21 @@ namespace NeoCompose.Runtime.NeoScript
             // boxed double after JIT folding). The TS reference-
             // equality lookup only ever fires for record / array
             // values where this is a non-issue.
-            if (unwrapped is IDictionary<string, object?> || unwrapped is object?[])
+            //
+            // P42 §3: `NeoVector2Value` (and its `NeoVector3Value`
+            // subclass) and `NeoColorValue` join that set. They are
+            // reference types materialised per row, so they have exactly
+            // the identity records and arrays have — and on the TS side a
+            // vector/colour row's `.value` IS the plain record the
+            // reference lookup already finds. Without this, a structured
+            // leaf receiver cannot be traced back to its row and
+            // `Foo.Position.y = 0.25` dies at "Assignment receiver is not
+            // backed by a Neo value row." A sprite row needed nothing: it
+            // already unwraps to an `IDictionary`.
+            if (unwrapped is IDictionary<string, object?>
+                || unwrapped is object?[]
+                || unwrapped is NeoVector2Value
+                || unwrapped is NeoColorValue)
             {
                 string? effectiveClassId = row.classId
                     ?? (member as ClassMember)?.classId;
@@ -2829,6 +2906,47 @@ namespace NeoCompose.Runtime.NeoScript
                     spriteRecord["fileId"] = spriteRow.value.fileId;
                     spriteRecord["sliceIndex"] = spriteRow.value.sliceIndex;
                 }
+                return true;
+            }
+            // P42 §3. Vector and colour unwraps are the row's own payload
+            // object, so a clone-on-write shadow leaves existing aliases
+            // pointing at the pre-write instance. Patch them in place for the
+            // same reason the record arms above do — otherwise a NeoScript
+            // field write is invisible to a `this` receiver already bound in
+            // the current frame. Vector3 is checked before Vector2 because
+            // `NeoVector3Value` derives from `NeoVector2Value`.
+            if (row is Vector3MemberValue vector3Row
+                && cached is NeoVector3Value vector3Cached)
+            {
+                NeoVector3Value? vector3Next = vector3Row.value;
+                if (ReferenceEquals(vector3Next, vector3Cached)) return true;
+                if (vector3Next is null) return false;
+                vector3Cached.x = vector3Next.x;
+                vector3Cached.y = vector3Next.y;
+                vector3Cached.z = vector3Next.z;
+                return true;
+            }
+            if (row is Vector2MemberValue vector2Row
+                && cached is NeoVector2Value vector2Cached
+                && cached is not NeoVector3Value)
+            {
+                NeoVector2Value? vector2Next = vector2Row.value;
+                if (ReferenceEquals(vector2Next, vector2Cached)) return true;
+                if (vector2Next is null) return false;
+                vector2Cached.x = vector2Next.x;
+                vector2Cached.y = vector2Next.y;
+                return true;
+            }
+            if (row is ColorMemberValue colorRow
+                && cached is NeoColorValue colorCached)
+            {
+                NeoColorValue? colorNext = colorRow.value;
+                if (ReferenceEquals(colorNext, colorCached)) return true;
+                if (colorNext is null) return false;
+                colorCached.r = colorNext.r;
+                colorCached.g = colorNext.g;
+                colorCached.b = colorNext.b;
+                colorCached.a = colorNext.a;
                 return true;
             }
             return false;
@@ -3135,6 +3253,66 @@ namespace NeoCompose.Runtime.NeoScript
                 return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// P42 §3 / §1.1. Reads one colour channel — <c>r</c>, <c>g</c>,
+        /// <c>b</c>, or <c>a</c> — off whatever CLR shape a Color receiver
+        /// arrived as. The sibling of <see cref="TryReadVectorComponent"/>,
+        /// and deliberately separate from it: a colour is four channels in
+        /// <c>[0, 1]</c>, not a four-component vector, and merging the two
+        /// would make <c>Position.a</c> and <c>Tint.z</c> silently readable.
+        /// </summary>
+        private static bool TryReadColorComponent(
+            object? value,
+            string key,
+            out float component)
+        {
+            component = 0;
+            if (key != "r" && key != "g" && key != "b" && key != "a")
+            {
+                return false;
+            }
+            if (value is Color color)
+            {
+                component = ReadColorChannel(color, key);
+                return true;
+            }
+            if (value is NeoReadOnlyColor wrapper)
+            {
+                component = ReadColorChannel(wrapper.Value, key);
+                return true;
+            }
+            if (value is NeoColorValue colorValue)
+            {
+                component = key switch
+                {
+                    "r" => colorValue.r,
+                    "g" => colorValue.g,
+                    "b" => colorValue.b,
+                    _ => colorValue.a,
+                };
+                return true;
+            }
+            if (value is IDictionary<string, object?> dict && IsColorValue(dict))
+            {
+                if (!dict.TryGetValue(key, out var raw)) return false;
+                if (!TryAsDouble(raw, out double numeric)) return false;
+                component = (float)numeric;
+                return true;
+            }
+            return false;
+        }
+
+        private static float ReadColorChannel(Color color, string key)
+        {
+            return key switch
+            {
+                "r" => color.r,
+                "g" => color.g,
+                "b" => color.b,
+                _ => color.a,
+            };
         }
 
         private static bool IsVector2Value(object? value, bool requireIntegers)

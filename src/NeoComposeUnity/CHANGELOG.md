@@ -2,6 +2,218 @@
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-07-28
+
+### Breaking
+
+- Generated Sprite properties change type. `public virtual Sprite Portrait`
+  becomes `public virtual NeoSprite Portrait`, the optional form becomes
+  `NeoSprite?`, the read-only interface member becomes `NeoReadOnlySprite`,
+  and the fields token becomes `NeoField<NeoSprite>` /
+  `NeoField<NeoSprite?>`. Regenerate `NeoGeneratedTypes.cs` after upgrading;
+  a file generated before P42 does not compile against this version, and this
+  version's generated file does not compile against 0.10.0.
+
+  Sprite joins the wrapper family `NeoVector2/3(Int)` and `NeoColor` already
+  belong to, and the same source-compat rules apply. `Sprite s =
+  obj.Portrait;` still compiles through the implicit
+  `NeoReadOnlySprite → UnityEngine.Sprite` operator, but `var s =
+  obj.Portrait;` now infers `NeoSprite`, and any overload resolved on the
+  property's static type can shift. Constructor parameters are deliberately
+  **unchanged** and still take `Sprite` / `Sprite?`, matching Color's
+  precedent.
+
+  Note that the "required member has no synchronized asset" throw moved off
+  the generated getter and onto `Resolve()` and the implicit conversion. The
+  message is byte-identical, so `catch`/assert text still matches, but it now
+  fires when you resolve rather than when you read — which is the point:
+  `obj.Portrait.SliceIndex` no longer throws for an asset that has not been
+  synchronized into Unity.
+
+- **Optional sprites need `?.` before `Resolve()`.** User-defined implicit
+  conversions do not lift for reference types, so on an optional member
+  `Sprite s = obj.Badge;` compiles and then throws a
+  `NullReferenceException` at runtime whenever `Badge` has no value — the
+  compiler applies the operator to a null `NeoSprite`. Write
+  `obj.Badge?.Resolve()` instead. This hazard is new for sprites: before P42
+  `obj.Badge` was already `Sprite?`, and the assignment simply would not
+  compile. Required sprites are unaffected — the property is non-nullable.
+
+  Every wrapper is a reference type, so the shape is the same on `NeoColor?`
+  and the optional `NeoVector*` properties; it is called out here because
+  sprites are the ones whose property type just changed under existing code.
+  In a `#nullable enable` file the compiler flags the conversion argument
+  (CS8604), but that is a warning, and code compiled without nullable context
+  gets no diagnostic at all.
+
+- **`obj.Sprite == someUnitySprite` no longer compiles.** The sprite wrapper
+  pair deliberately declares only wrapper/wrapper `==` and `!=`. It has no
+  mixed wrapper/native overloads, because `UnityEngine.Sprite` is a reference
+  type and such an overload would make the far more common `wrapper == null`
+  ambiguous. Compare with `obj.Sprite.Resolve() == someUnitySprite`, or
+  compare addressable values with
+  `obj.Sprite == new NeoSprite(fileId, sliceIndex)`. `NeoVector*` and
+  `NeoColor` keep their mixed overloads — their native types are structs, so
+  the ambiguity does not arise.
+
+- The project export schema version moves from 13 to 14. `NeoClient` requires
+  an exact match with no negotiation, so the web app and this SDK ship
+  together: an export produced before P42 is rejected with a clear message,
+  and a P42 export is rejected by 0.10.0.
+
+- **This overturns `specs/color-member.md` §6, decisions 5-6.** That decision
+  made every structured-leaf wrapper get-only on purpose, and
+  `NeoVectorWrapperRetrofitTests` existed specifically to lock the rule in.
+  P42 reverses it deliberately, so those tests were rewritten to the new
+  contract rather than deleted — the file still guards the boundary, it now
+  guards a different one (write-through where the wrapper is bound, local
+  mutation where it is detached, and a runtime throw on a read-only instance).
+
+### Added
+
+- Addressable fields on structured leaf members. A sprite's `FileId` and
+  `SliceIndex`, a vector's `x`/`y`/`z`, and a color's `r`/`g`/`b`/`a` are now
+  readable, writable, and individually addressable.
+
+  **The casing difference is deliberate, not an oversight.** Sprite's fields
+  are PascalCase — `FileId`, `SliceIndex` — while vector components stay `x`,
+  `y`, `z` and color channels stay `r`, `g`, `b`, `a`. Vectors and colors keep
+  lowercase so they read the same as the Unity types they project to
+  (`UnityEngine.Vector3.x`, `UnityEngine.Color.r`); renaming them would break
+  shipped API for nothing. Sprite has no Unity counterpart to match and it
+  already had a PascalCase surface in NeoScript, so it takes the one spelling
+  its own convention implies. There is exactly one name per field on every
+  public surface — C#, NeoScript, and `.neo` source — and no lowercase
+  sprite-field alias exists.
+
+  The **stored record keys are unchanged and stay lowercase everywhere**:
+  `fileId`, `sliceIndex`, `x`, `y`, `z`, `r`, `g`, `b`, `a`. Nothing on the
+  wire moved. `SpriteValue` — the serialization DTO reached through
+  `NeoReadOnlySprite.Value` — therefore still has lowercase `fileId` and
+  `sliceIndex` fields, and `{"$partial": {...}}` override envelopes still
+  carry stored keys.
+
+- Everywhere that accepted a `Sprite` by inspecting its type now also accepts
+  a `NeoSprite`: tile sprite discovery, NeoScript function arguments and their
+  validation, and native function arguments. This matters because the implicit
+  conversion that keeps compiled call sites working is a *user-defined*
+  operator — invisible to `IsAssignableFrom` and to a `value is Sprite`
+  pattern — so a consumer that matched on the type rather than taking one as a
+  parameter silently stopped seeing sprites when the generated property type
+  moved. It cost the tile renderer its sprites with no error of any kind.
+  Passing `obj.Portrait` to an NS or native function works as before.
+
+- `NeoReadOnlySprite` / `NeoSprite`, the wrapper pair Sprite never had.
+  `NeoReadOnlySprite` exposes `FileId`, `SliceIndex`, `Value`, and
+  `Resolve()`; `NeoSprite` adds settable `FileId` / `SliceIndex` and the
+  implicit `UnityEngine.Sprite → NeoSprite` conversion so
+  `obj.Portrait = someUnitySprite;` still reads the same. The
+  `NeoReadOnlySprite → UnityEngine.Sprite` operator is declared on the
+  read-only base, so read-only consumers convert too.
+
+- Write-through setters on every writable wrapper — `NeoVector2`,
+  `NeoVector2Int`, `NeoVector3`, `NeoVector3Int`, `NeoColor`, `NeoSprite`.
+  Binding decides what a field write means. A **bound** wrapper is the one a
+  generated getter hands you: `obj.Position.y = 1f` reads the leaf's current
+  value, patches the one field, and writes the whole leaf straight back. A
+  **detached** wrapper — the implicit operator, `new NeoVector3(...)`, a
+  factory argument — is a value copy, and mutating it stays local until it is
+  assigned. Whole-value assignment is still a copy in both cases, so
+  `a.Position = b.Position` does not link the two members.
+
+  Writing a field on a wrapper obtained from a read-only generated instance
+  throws at runtime rather than failing to compile: a read-only instance still
+  hands out a wrapper over a writable node, so the guard cannot live in the
+  type system. Color channels reject values outside `[0, 1]` rather than
+  clamping them, matching what the JSON converter has always done on the read
+  path.
+
+- `r`, `g`, `b`, and `a` on `NeoReadOnlyColor`, which previously exposed only
+  `Value`. New surface, not a shadow of an inherited member.
+
+- Field-level animation overrides. A frame can override `Sprite.SliceIndex`
+  alone and leave `FileId` as whatever the object currently holds — authored
+  as a default, written at runtime by game code, or synced live. One authored
+  clip then drives every art variant that shares a slice layout, instead of
+  needing one copy of the clip per sheet. The same applies to a single vector
+  component or color channel, so a frame can animate `Position.y` while
+  something else owns `Position.x`.
+
+  A partial structured leaf travels as an explicit `{"$partial": {...}}`
+  envelope and is legal only inside an animation override graph; anywhere else
+  it is rejected by name.
+
+- `NeoGeneratedTypesSupport.SpriteValue` overloads taking
+  `NeoReadOnlySprite?`, which generated sprite setters now bind to. They read
+  the addressable pair off the wrapper directly instead of round-tripping
+  through a resolved `UnityEngine.Sprite`, so writing a sprite whose file is
+  not synchronized into Unity neither throws nor silently loses its slice
+  index. The wrong-sheet template check is preserved and reports identically.
+
+### Fixed
+
+- **An unrecognised `$partial` field could land on the wrong component.** The
+  animation composer matched the first key or two of each leaf kind and let
+  everything else fall through to the last one, so a field write carrying a
+  key the kind does not declare — `z` on a `Vector2`, `q` on a `Color` —
+  composed a value nobody authored (`y = 5`, `a = 0`) rather than being
+  ignored. Export validation already refuses such a key by name, so this was
+  only reachable for a field list that got past it; the composer now drops any
+  key the leaf does not carry, matching the web resolver's
+  `applyStructuredLeafPartial` rule. The cross-runtime frame fixture gained a
+  `partialCompositions` section that pins the composed value, and the
+  authorship of an empty `{"$partial": {}}`, on both runtimes.
+
+- **A leaf write notified subscribers twice.** `NeoMemberColorWritable.Set`
+  and its siblings for every other leaf kind called `NotifyChanged()` after
+  `client.SetWritableValue` — which had already delivered the notification to
+  the same node through `OnWritableValueChanged` → `OnValueIdChainChanged`. So
+  a handler registered with `OnChanged` ran twice per write. This predates
+  P42, but P42 is what makes it visible: `obj.Position.y = 1f` routes through
+  the leaf's `Set` while `obj.Position = v` routes through
+  `NeoMemberClass.SetSerializedValue`, which deliberately leaves notification
+  to the child — so the two spellings of the same write notified a different
+  number of times. The redundant call is gone from all fifteen leaf setters;
+  the `BindNewValue` path still notifies explicitly, because it publishes the
+  row before the node's own resolution chain points at it. If you counted
+  notifications from a direct `node.Set(...)` call, the count halves.
+
+- **A `$partial` structured-leaf envelope in a member declaration default is
+  rejected instead of silently swallowed.** Decision D10 makes the envelope
+  legal only inside an animation override graph, and a declaration default is
+  never one — but nothing enforced it here. A stray
+  `{"$partial": {"sliceIndex": 1}}` under a Sprite declaration was fed
+  straight into `SpriteValue`, came back out with a null `fileId`, and became
+  "no value" with no diagnostic anywhere. `MemberConverter` now names the
+  member and its kind; `MemberValueBaseConverter` raises the same error for a
+  carrier deserialized without member context. The `PartialLeafMemberValueBase`
+  carrier — declared so an envelope could "report a precise error" that no
+  code ever raised — is gone, since the error is now raised before any carrier
+  is built. Whole-value defaults are untouched, and a Dictionary default with
+  a `$partial` *string* entry still resolves exactly as before.
+
+- **`NeoSprite.SliceIndex` rejects a negative index** with
+  `ArgumentOutOfRangeException` rather than writing it through. NeoScript's
+  field-assign path already refused one ("Sprite field 'sliceIndex' must be 0
+  or greater") and the animation apply path skips one, so the C# wrapper was
+  the only way to store a sprite that no resolver can ever resolve and that
+  nothing anywhere reports. The upper bound stays a resolution-time null: how
+  many slices a file has is known only to a synchronized asset database.
+
+- **Reading a vector or color leaf with no value no longer claims the member
+  is "Required".** `NeoVectorValues.ReadVector*` and `NeoColorValues.ReadColor`
+  hardcoded the word regardless of the member, so `obj.Glow.a` on an *optional*
+  colour with no row reported "Required Color 'Glow' has no value." — false,
+  and pointing at the wrong fix. The message now names the field that was read
+  and says nothing about requiredness, matching `NeoSprite`:
+  `Cannot read 'a': Color 'Glow' has no value.` A whole-value read
+  (`obj.Glow.Value`) has no one field to blame and reports
+  `Color 'Glow' has no value.` Required members report exactly the same text —
+  one shape per condition. Generated getters for required members are
+  unaffected; their own `"Required int 'X' has no value."` is accurate and
+  unchanged. This predates P42; assertions matching on the old text need
+  updating.
+
 ## [0.10.0] - 2026-07-28
 
 ### Breaking

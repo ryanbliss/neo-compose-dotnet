@@ -41,6 +41,35 @@ namespace NeoCompose.Runtime
         public string? overrideValueId { get; }
         public MemberValue? value { get; protected set; }
         /// <summary>
+        /// The P42 <c>$partial</c> structured-leaf row bound to this node, or
+        /// null (the overwhelmingly common case).
+        ///
+        /// <para><see cref="Create"/> picks the node CLR type from the member
+        /// <b>declaration</b> kind, and
+        /// <see cref="NeoMember{TMember, TValue}.value"/> is typed to the
+        /// whole-value row for that kind — so a
+        /// <see cref="PartialLeafMemberValue"/> written under a
+        /// <c>Sprite</c> / vector / colour key inside an animation override
+        /// graph can never surface through <see cref="value"/>. It resolves
+        /// as null there, and the row would simply vanish. This untyped
+        /// accessor is how it stays reachable: no cast is involved, so no
+        /// cast can fail.</para>
+        ///
+        /// <para>Kept in sync with <see cref="value"/> — the two are never
+        /// both non-null. The animation compiler reads the
+        /// written field set from
+        /// <c>partialLeafValue.value</c> (a
+        /// <see cref="NeoPartialLeafValue"/>); nothing else should need it.
+        /// </para>
+        /// </summary>
+        public PartialLeafMemberValue? partialLeafValue { get; protected set; }
+
+        /// <summary>
+        /// True when this node's bound row is a P42 <c>$partial</c> envelope
+        /// rather than a whole value.
+        /// </summary>
+        public bool hasPartialLeafValue => partialLeafValue is not null;
+        /// <summary>
         /// Parent <see cref="NeoMember"/> in the wrapper tree, or
         /// null at the root. Set by collection classes
         /// (<see cref="NeoMemberClass"/> /
@@ -484,6 +513,27 @@ namespace NeoCompose.Runtime
         /// becoming null when the shadow is cleared and there is no authored
         /// default). Collection-kind subclasses override to also re-walk
         /// their children.
+        ///
+        /// <para><b>This is where a write to an already-bound row notifies
+        /// from.</b> <c>NeoClient.SetWritableValue</c> always raises
+        /// <c>OnWritableValueChanged</c>, every node subscribes to it in its
+        /// ctor, and a leaf's <c>Set</c> writes at its own
+        /// <see cref="valueId"/> — so the notification is already delivered by
+        /// the time <c>Set</c> returns. A <c>Set</c> that also called
+        /// <see cref="NeoMember.NotifyChanged()"/> after writing therefore
+        /// delivered every leaf write twice; none of them do any more.
+        /// <see cref="BindNewValue"/> is the exception and still notifies
+        /// explicitly: it publishes the row <i>before</i> the node's own
+        /// resolution chain points at it, so this handler filters that raise
+        /// out as "not my value id".</para>
+        ///
+        /// <para>Why it matters beyond tidiness: P42's write-through field
+        /// setters route <c>obj.Position.y = 1f</c> through the leaf's
+        /// <c>Set</c>, while a whole-value <c>obj.Position = v</c> goes
+        /// through <c>NeoMemberClass.SetSerializedValue</c>, which deliberately
+        /// leaves notification to the child (see its <c>ChildSelfNotifies</c>
+        /// check). The duplicate made the two spellings of the same write
+        /// notify a different number of times.</para>
         /// </summary>
         protected virtual void OnValueIdChainChanged()
         {
@@ -492,6 +542,7 @@ namespace NeoCompose.Runtime
             // matching the user-visible "valueId becomes null → value
             // becomes null" semantic.
             value = valueData;
+            RefreshPartialLeafValue(value is null);
             NotifyChanged();
         }
 
@@ -515,8 +566,44 @@ namespace NeoCompose.Runtime
         private void InitFromValueData()
         {
             var data = valueData;
+            RefreshPartialLeafValue(data is null);
             if (data is null) BuildEmptyData();
             else Initialize(data);
+        }
+
+        /// <summary>
+        /// Keeps <see cref="NeoMember.partialLeafValue"/> in step with
+        /// <see cref="value"/>. A P42 <c>$partial</c> envelope row can never
+        /// satisfy this node's <typeparamref name="TValue"/> (the node type
+        /// comes from the member declaration kind, the row type from the JSON
+        /// shape), so <see cref="valueData"/> resolves it as null and the row
+        /// would otherwise be invisible. When the typed resolution came back
+        /// empty we re-probe the same id for a partial row; when it did not,
+        /// there is by definition no partial and the field is cleared.
+        ///
+        /// <para><paramref name="typedResolutionWasEmpty"/> is passed in
+        /// rather than re-read so this costs one extra dictionary lookup only
+        /// on the already-unbound path.</para>
+        /// </summary>
+        private void RefreshPartialLeafValue(bool typedResolutionWasEmpty)
+        {
+            if (!typedResolutionWasEmpty)
+            {
+                partialLeafValue = null;
+                return;
+            }
+            var resolvedValueId = valueId;
+            if (resolvedValueId is null)
+            {
+                partialLeafValue = null;
+                return;
+            }
+            partialLeafValue = client.TryGetOverlaidValue(
+                ownership,
+                resolvedValueId,
+                out PartialLeafMemberValue? partial)
+                ? partial
+                : null;
         }
 
         /// <summary>
@@ -529,7 +616,13 @@ namespace NeoCompose.Runtime
         protected void RefreshFromValueData()
         {
             var data = valueData;
-            if (data is not null) Initialize(data);
+            if (data is not null)
+            {
+                // A whole value now resolves here, so any partial envelope
+                // this node was previously exposing is superseded.
+                partialLeafValue = null;
+                Initialize(data);
+            }
         }
 
         /// <summary>

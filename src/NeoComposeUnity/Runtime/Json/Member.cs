@@ -617,6 +617,11 @@ namespace NeoCompose.Runtime.Json
                 throw new JsonSerializationException(
                     $"Field 'accessModifierKind' on {concrete.Name} has unknown value '{accessModifierValue}'; expected \"public\", \"protected\", or \"private\".");
             }
+            // P42 decision D10 — a declaration default is never an animation
+            // override graph, so a `$partial` envelope in one is invalid.
+            // MemberValueBaseConverter raises the same error, but only this
+            // site can name the member and its kind.
+            PartialLeafPositionGuard.RejectMemberDeclarationDefault(obj, concrete);
         }
 
         protected override Type? ResolveSubclass(JToken discriminator)
