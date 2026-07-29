@@ -60,6 +60,43 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
+    /// P43 §6.1 — one named argument of a declared-constructor call. Unlike
+    /// <see cref="FunctionClassConstructorField"/> this names a <b>parameter</b>
+    /// of the resolved overload, which is not a schema key and not a member.
+    /// </summary>
+    public class DeclaredConstructorArgument
+    {
+        /// <summary>Declared parameter name on the resolved overload.</summary>
+        public string name = null!;
+        public Pointer valuePointer = null!;
+    }
+
+    /// <summary>
+    /// P43 §6.1 payload for <c>new Foo(Named: …) { X = … }</c> against a class
+    /// that declares constructors.
+    /// </summary>
+    public class DeclaredConstructorInfo
+    {
+        public ClassTypeInfo schemaClassInfo = null!;
+
+        /// <summary>
+        /// Resolved overload's constructor record id. <c>null</c> is the
+        /// implicit <c>new()</c> a class keeps even after declaring
+        /// constructors (§6.1.2): member initializers only, no body.
+        /// </summary>
+        public string? constructorId;
+
+        public DeclaredConstructorArgument[] args = null!;
+
+        /// <summary>
+        /// Call-site initializer block, applied <b>last</b> so an explicit
+        /// assignment wins over anything the body wrote (§6.1 step 4). Same
+        /// shape as the <c>classConstructor</c> fields.
+        /// </summary>
+        public FunctionClassConstructorField[] fields = null!;
+    }
+
+    /// <summary>
     /// Info shape for <c>select</c>: collection + projection function.
     /// Mirrors TS-side <c>INSFunctionCollectionSelectInfo</c>.
     /// </summary>
@@ -219,6 +256,11 @@ namespace NeoCompose.Runtime.Json
         public FunctionClassConstructorInfo info = null!;
     }
 
+    public class DeclaredConstructorFunction : Function
+    {
+        public DeclaredConstructorInfo info = null!;
+    }
+
     public class SelectFunction : Function
     {
         public FunctionCollectionSelectInfo info = null!;
@@ -292,6 +334,7 @@ namespace NeoCompose.Runtime.Json
             {
                 case FunctionKind.ClassClone: return typeof(ClassCloneFunction);
                 case FunctionKind.ClassConstructor: return typeof(ClassConstructorFunction);
+                case FunctionKind.DeclaredConstructor: return typeof(DeclaredConstructorFunction);
                 case FunctionKind.Select: return typeof(SelectFunction);
                 case FunctionKind.First: return typeof(FirstFunction);
                 case FunctionKind.FirstOrDefault: return typeof(FirstOrDefaultFunction);

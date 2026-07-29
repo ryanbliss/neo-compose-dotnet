@@ -2,6 +2,88 @@
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-07-28
+
+### Breaking
+
+- **Project export schema version 14 → 15.** The runtime accepts only 15, so
+  a `project.json` exported before this release fails to load with a message
+  telling you to re-export. Re-export the project and regenerate
+  `NeoGeneratedTypes.cs` after upgrading. The bump carries two new payloads
+  the runtime must have in order to construct instances correctly:
+  member/row `init` bodies and the `constructors` collection.
+
+  The compiled-IR gate moves with it: `compilerRevision` 2 → 3. IR compiled
+  at revision 3 does not run on 0.11.0, and this release still runs
+  revisions 1 and 2.
+
+### Added
+
+- **NeoScript initializers (P43 §1).** A member's stored default — and a
+  stored value row — may now carry an `init` instead of a literal `value`:
+  authored NeoScript source plus server-compiled IR. `init` is a *member
+  initializer* in the ordinary sense, so the SDK **evaluates it every time an
+  instance is constructed** rather than reading a value baked at the last
+  push. A runtime-constructed instance therefore reflects live state, which
+  is the whole point of storing the initializer rather than its output.
+
+  Two consequences worth knowing:
+
+  - An `init` on an **optional** member now materializes at construction.
+    `CreateWritableClassValue` previously filled defaults only for required
+    members; an initializer is an explicit statement that the member has a
+    value, so it is no longer subject to that filter.
+  - A value container carries either `value` or `init`, never both. The JSON
+    readers reject a container carrying both rather than silently preferring
+    one.
+
+- **Declared class constructors (P43 §6, §8).** A class may declare
+  constructors with named, non-stored parameters and a NeoScript body.
+  Codegen emits one C# constructor per overload, backed by
+  `NeoGeneratedTypesSupport.EvaluateDeclaredConstructor` and the new public
+  `NeoDeclaredConstructorArgument`:
+
+  ```csharp
+  public EyePart(bool IsRight)
+      : this(
+          client,
+          NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+              client,
+              "class-eye-part",
+              "ctor-eye-part",
+              new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[]
+              {
+                  new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument(
+                      "IsRight", IsRight),
+              }),
+          false,
+          NeoValueOwnership.Session)
+  {
+  }
+  ```
+
+  Construction runs the four steps in order, matching mainstream OO
+  languages: member initializers, the base constructor chain, this
+  constructor's body against `this`, then the call-site initializer block —
+  which wins. An overridden member's initializer still **runs** and is then
+  overwritten, which is observably different from never running it when the
+  initializer throws.
+
+  Classes that declare no constructor keep their member-wise factory
+  constructor unchanged.
+
+- **Construction depth cap.** Nested construction is bounded at 64 — the same
+  limit as the NSFunction call depth — with a diagnostic naming the class
+  chain. It is counted separately from the NSFunction call stack because
+  construction recurses through member initializers and base constructors
+  rather than through calls.
+
+- **Constructor record validation at load.** A class's `constructorIds` and a
+  constructor's own `classId` are checked in both directions, so neither a
+  dangling id nor a disowned record can load. Bodies are checked for the
+  `__this__, __root__, __arg_N__` envelope and a void return, and overloads
+  that would generate two identical C# constructors are rejected by name.
+
 ## [0.12.0] - 2026-07-28
 
 ### Changed

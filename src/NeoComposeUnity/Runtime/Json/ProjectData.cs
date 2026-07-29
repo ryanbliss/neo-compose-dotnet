@@ -46,6 +46,82 @@ namespace NeoCompose.Runtime.Json
         public NeoTimestamp updatedAt;
     }
 
+    /// <summary>
+    /// P43 §6.1 — one named argument of a <c>: base(...)</c> clause. The
+    /// authored expression is compiled over the declaring constructor's
+    /// parameter scope; the compiled getter sits at the same index in
+    /// <see cref="ConstructorRecord.compiledBaseArguments"/>.
+    /// </summary>
+    public sealed class ConstructorBaseArgument
+    {
+        /// <summary>Base constructor parameter name this argument binds.</summary>
+        public string name = null!;
+
+        /// <summary>Authored expression source.</summary>
+        public string code = null!;
+    }
+
+    /// <summary>
+    /// P43 §6.2 — a class's declared constructor. Parameters are typed
+    /// declarations, not members: not stored, not in the schema, and not part
+    /// of the merged schema the constructed value graph is validated against.
+    ///
+    /// <para><see cref="code"/> and <see cref="action"/> are both required. A
+    /// constructor is never abstract, so there is no absent case; an empty
+    /// body is <c>""</c>. There is no <c>bodyMode</c> and no
+    /// <c>returnTypeInfo</c> — a constructor's product is its owning class by
+    /// definition, and its compiled body is void (<c>typeInfo</c> is a
+    /// required Null).</para>
+    /// </summary>
+    public sealed class ConstructorRecord
+    {
+        public string id = null!;
+        public string projectId = null!;
+
+        /// <summary>Owning class.</summary>
+        public string classId = null!;
+
+        /// <summary>
+        /// Ordered parameter declarations, reusing the shape
+        /// <c>Function</c>/<c>NSFunction</c> members already use. The compiled
+        /// <see cref="action"/>'s parameters are
+        /// <c>__this__, __root__, __arg_0__ … __arg_N__</c>, position-aligned
+        /// with this array.
+        /// </summary>
+        public FunctionArgumentTypeInfo[] argumentTypes = null!;
+
+        /// <summary>Authored NeoScript body; <c>""</c> when empty.</summary>
+        public string code = null!;
+
+        /// <summary>Server-compiled executable IR. Never accepted from a client write.</summary>
+        public FunctionWithReturnType action = null!;
+
+        /// <summary>
+        /// The <c>: base(...)</c> clause, by name. Absent means no explicit
+        /// base call — the base's parameterless constructor runs if it declares
+        /// one, and it is an error if the base declares constructors but no
+        /// parameterless one.
+        /// </summary>
+        public ConstructorBaseArgument[]? baseArguments;
+
+        /// <summary>
+        /// Server-compiled base-argument getters, position-aligned with
+        /// <see cref="baseArguments"/> and evaluated in this constructor's
+        /// parameter scope (<c>__this__</c> is null — the instance is not
+        /// usable until the base has run).
+        /// </summary>
+        public FunctionWithReturnType[]? compiledBaseArguments;
+
+        /// <summary>
+        /// Authoring documentation. Stripped from the export; modelled so a
+        /// hydrated record round-trips.
+        /// </summary>
+        public string? docsText;
+
+        public NeoTimestamp createdAt;
+        public NeoTimestamp updatedAt;
+    }
+
     public static class InternalRecordRelationKinds
     {
         public const string WorldGridTileImport = "world.grid.tile-import";
@@ -107,6 +183,15 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public Dictionary<string, JToken>? valuePartitions;
         public Dictionary<string, NeoSchemaClass> classes = null!;
+
+        /// <summary>
+        /// P43 §6.2 — declared constructors keyed by constructor record id.
+        /// Empty for every project that declares none, which is why the field
+        /// defaults to an empty map rather than being required: an export
+        /// written before P43 simply omits it and loads unchanged.
+        /// </summary>
+        public Dictionary<string, ConstructorRecord> constructors = new();
+
         /// <summary>
         /// Declared relation rows keyed by stable relation id. Required by
         /// export schema 9; absent on the explicitly supported schema-8

@@ -135,6 +135,8 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, Member> members => data.members;
         internal IReadOnlyDictionary<string, MemberValue> values => data.values;
         internal IReadOnlyDictionary<string, NeoSchemaClass> classes => data.classes;
+        internal IReadOnlyDictionary<string, ConstructorRecord> constructors =>
+            data.constructors;
         internal IReadOnlyDictionary<string, Interface> interfaces => data.interfaces;
         internal IReadOnlyDictionary<string, Enum> enums => data.enums;
         internal IReadOnlyDictionary<string, Dialogue> dialogues => data.dialogues;
@@ -474,6 +476,7 @@ namespace NeoCompose.Runtime
             ValidateRootClassMember(data.project.rootSaveFileMemberId, nameof(Project.rootSaveFileMemberId));
             ValidateRootClassMember(data.project.rootSessionMemberId, nameof(Project.rootSessionMemberId));
             ValidateCallableMembers();
+            ValidateConstructorRecords();
             bool loadedExistingSave = LoadSaveDataOrDefault(loadedSaveContent);
             sessionData = BuildDefaultSessionData();
             BuildMembershipIndex();
@@ -561,6 +564,23 @@ namespace NeoCompose.Runtime
                 return true;
             }
             schemaClass = null;
+            return false;
+        }
+
+        /// <summary>
+        /// P43 §6.2 — resolves a declared constructor record by id.
+        /// </summary>
+        internal bool TryGetConstructor(
+            string id,
+            [NotNullWhen(true)] out ConstructorRecord? record)
+        {
+            if (data.constructors is not null
+                && data.constructors.TryGetValue(id, out ConstructorRecord idMatch))
+            {
+                record = idMatch;
+                return true;
+            }
+            record = null;
             return false;
         }
 
@@ -1028,7 +1048,11 @@ namespace NeoCompose.Runtime
 
         private static void ValidateExportSchemaVersion(ProjectExportMetadata? metadata)
         {
-            const int currentVersion = 14;
+            // P43 §8 — 15 carries `init` bodies on value containers and the
+            // `constructors` collection, both of which the runtime must
+            // evaluate at construction. A 14 export has neither, so it fails
+            // closed rather than constructing instances with missing values.
+            const int currentVersion = 15;
             if (metadata is null)
             {
                 throw new System.InvalidOperationException(
@@ -1049,7 +1073,7 @@ namespace NeoCompose.Runtime
             if (data.internalRecordRelations is null)
             {
                 throw new System.InvalidOperationException(
-                    "Project export schema version 14 is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
+                    "Project export schema version 15 is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
             }
 
             var knownKinds = new HashSet<string>(System.StringComparer.Ordinal)
@@ -5175,6 +5199,309 @@ namespace NeoCompose.Runtime
             }
             member = null;
             return false;
+        }
+
+        /// <summary>
+        /// P43 §6.6.1 — fails closed on a malformed or orphaned constructor
+        /// record. The class's ordered <c>constructorIds</c> and the record's
+        /// own <c>classId</c> are two representations of one relationship, so
+        /// both directions are checked: an id with no live record is an error,
+        /// and so is a record whose class disowns it.
+        /// </summary>
+        private void ValidateConstructorRecords()
+        {
+            // An export written before P43 omits the collection entirely, and a
+            // hand-built ProjectData may leave it null. Both mean "declares
+            // none", so normalize once instead of null-checking every read.
+            data.constructors ??= new Dictionary<string, ConstructorRecord>();
+            var claimedByClass = new Dictionary<string, string>();
+            foreach (var pair in data.classes)
+            {
+                NeoSchemaClass schemaClass = pair.Value;
+                string[] constructorIds =
+                    schemaClass.constructorIds ?? System.Array.Empty<string>();
+                var seen = new HashSet<string>(System.StringComparer.Ordinal);
+                var positionalSignatures =
+                    new Dictionary<string, string>(System.StringComparer.Ordinal);
+                foreach (string constructorId in constructorIds)
+                {
+                    if (string.IsNullOrEmpty(constructorId))
+                    {
+                        throw new InvalidOperationException(
+                            $"Class '{schemaClass.name}' declares an empty constructor id.");
+                    }
+                    if (!seen.Add(constructorId))
+                    {
+                        throw new InvalidOperationException(
+                            $"Class '{schemaClass.name}' lists constructor '{constructorId}' more than once.");
+                    }
+                    if (!TryGetConstructor(constructorId, out ConstructorRecord? record))
+                    {
+                        throw new InvalidOperationException(
+                            $"Class '{schemaClass.name}' lists constructor '{constructorId}', which is missing from the export. Re-export the project from the current web app.");
+                    }
+                    if (record!.classId != pair.Key)
+                    {
+                        throw new InvalidOperationException(
+                            $"Constructor '{constructorId}' is listed by class '{schemaClass.name}' but names class '{record.classId}' as its owner.");
+                    }
+                    claimedByClass[constructorId] = pair.Key;
+
+                    string signature = ConstructorPositionalSignature(record);
+                    if (positionalSignatures.TryGetValue(
+                            signature,
+                            out string? collidingId))
+                    {
+                        throw new InvalidOperationException(
+                            $"Constructors '{collidingId}' and '{constructorId}' on class '{schemaClass.name}' have the same positional signature and would generate two identical C# constructors. Overloads must differ by arity or parameter type, not only by parameter name.");
+                    }
+                    positionalSignatures[signature] = constructorId;
+                }
+            }
+
+            foreach (var pair in data.constructors)
+            {
+                ConstructorRecord record = pair.Value
+                    ?? throw new InvalidOperationException(
+                        $"Constructor '{pair.Key}' is null.");
+                if (!string.Equals(pair.Key, record.id, System.StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructor dictionary key '{pair.Key}' does not match record id '{record.id}'.");
+                }
+                if (!TryGetClass(record.classId, out NeoSchemaClass? owningClass))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructor '{record.id}' names missing class '{record.classId}'.");
+                }
+                if (!claimedByClass.TryGetValue(record.id, out string? claimingClassId)
+                    || claimingClassId != record.classId)
+                {
+                    throw new InvalidOperationException(
+                        $"Constructor '{record.id}' is not listed in the constructorIds of its class '{owningClass!.name}'; a disowned constructor is unreachable.");
+                }
+                ValidateConstructorRecord(record, owningClass!);
+            }
+        }
+
+        private void ValidateConstructorRecord(
+            ConstructorRecord record,
+            NeoSchemaClass owningClass)
+        {
+            if (record.code is null)
+            {
+                throw new InvalidOperationException(
+                    $"Constructor '{record.id}' on class '{owningClass.name}' is missing its authored code. An empty body stores an empty string, never a missing field.");
+            }
+            if (record.action is null)
+            {
+                throw new InvalidOperationException(
+                    $"Constructor '{record.id}' on class '{owningClass.name}' is missing its compiled action. Re-export the project from the current web app.");
+            }
+            if (record.argumentTypes is null)
+            {
+                throw new InvalidOperationException(
+                    $"Constructor '{record.id}' on class '{owningClass.name}' is missing argumentTypes.");
+            }
+            var argumentNames = new HashSet<string>(System.StringComparer.Ordinal);
+            foreach (FunctionArgumentTypeInfo argument in record.argumentTypes)
+            {
+                if (string.IsNullOrEmpty(argument.name))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructor '{record.id}' on class '{owningClass.name}' declares an unnamed parameter.");
+                }
+                if (!argumentNames.Add(argument.name))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructor '{record.id}' on class '{owningClass.name}' declares parameter '{argument.name}' more than once.");
+                }
+            }
+
+            int expectedParameters = record.argumentTypes.Length + 2;
+            if (record.action.parameters is null
+                || record.action.parameters.Length != expectedParameters)
+            {
+                throw new InvalidOperationException(
+                    $"Constructor '{record.id}' compiled action has {record.action.parameters?.Length ?? 0} parameters; expected {expectedParameters} (__this__, __root__, and {record.argumentTypes.Length} arguments).");
+            }
+            if (record.action.parameters[0].id != "__this__"
+                || record.action.parameters[1].id != "__root__")
+            {
+                throw new InvalidOperationException(
+                    $"Constructor '{record.id}' compiled action must begin with __this__ and __root__ parameters.");
+            }
+            for (int i = 0; i < record.argumentTypes.Length; i++)
+            {
+                string expectedId = $"__arg_{i}__";
+                if (record.action.parameters[i + 2].id != expectedId)
+                {
+                    throw new InvalidOperationException(
+                        $"Constructor '{record.id}' compiled argument {i} must use parameter id '{expectedId}'.");
+                }
+                if (!TypeInfoMatches(
+                        record.argumentTypes[i],
+                        record.action.parameters[i + 2].typeInfo))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructor '{record.id}' compiled argument {i} type does not match its declared signature.");
+                }
+            }
+            // A constructor body is void — `this` IS the product, so there is
+            // nothing to return and the compiled body carries the statement-body
+            // Null marker.
+            Json.TypeInfo? actionReturnType = record.action.typeInfo;
+            if (actionReturnType is null
+                || actionReturnType.type != MemberKind.Null
+                || !actionReturnType.required)
+            {
+                throw new InvalidOperationException(
+                    $"Constructor '{record.id}' compiled action must declare a required Null return type; a constructor body returns nothing.");
+            }
+
+            ConstructorBaseArgument[] baseArguments =
+                record.baseArguments ?? System.Array.Empty<ConstructorBaseArgument>();
+            if (baseArguments.Length == 0)
+            {
+                if (record.compiledBaseArguments is not null
+                    && record.compiledBaseArguments.Length != 0)
+                {
+                    throw new InvalidOperationException(
+                        $"Constructor '{record.id}' has compiled base getters but no base clause.");
+                }
+                return;
+            }
+            if (string.IsNullOrEmpty(owningClass.extendsClassId))
+            {
+                throw new InvalidOperationException(
+                    $"Constructor '{record.id}' has a base clause but class '{owningClass.name}' extends nothing.");
+            }
+            if (record.compiledBaseArguments is null
+                || record.compiledBaseArguments.Length != baseArguments.Length)
+            {
+                throw new InvalidOperationException(
+                    $"Constructor '{record.id}' has {baseArguments.Length} base arguments but {record.compiledBaseArguments?.Length ?? 0} compiled base getters. Re-export the project from the current web app.");
+            }
+            var baseNames = new HashSet<string>(System.StringComparer.Ordinal);
+            foreach (ConstructorBaseArgument argument in baseArguments)
+            {
+                if (string.IsNullOrEmpty(argument.name))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructor '{record.id}' has an unnamed base argument.");
+                }
+                if (!baseNames.Add(argument.name))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructor '{record.id}' binds base argument '{argument.name}' more than once.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// P43 §6.1.1 — the signature C# would see. <c>required</c> is
+        /// deliberately excluded: <c>T</c> and <c>T?</c> are the same positional
+        /// type for a reference type, so two overloads differing only there
+        /// would generate two identical C# constructors.
+        /// </summary>
+        private static string ConstructorPositionalSignature(ConstructorRecord record)
+        {
+            var parts = new List<string>(record.argumentTypes?.Length ?? 0);
+            foreach (FunctionArgumentTypeInfo argument in
+                record.argumentTypes ?? System.Array.Empty<FunctionArgumentTypeInfo>())
+            {
+                parts.Add(ConstructorPositionalTypeKey(argument));
+            }
+            return string.Join(",", parts);
+        }
+
+        /// <summary>
+        /// One parameter's positional identity, recursing exactly as the
+        /// web-side authority <c>neoScriptPositionalTypeKey</c>
+        /// (packages/neoscript-language/src/declared-constructors.ts) does.
+        ///
+        /// <para>Recursion is the whole point: the element type of a
+        /// collection, the key enum of an enum-keyed dictionary, and a closed
+        /// generic's type arguments all reach the generated C# signature, so
+        /// <c>List&lt;int&gt;</c> and <c>List&lt;string&gt;</c> must be two
+        /// keys here for the same reason they are two keys on the push side.
+        /// Flattening them to the outer <c>MemberKind</c> alone rejects
+        /// overload sets the server already accepted, and the rejection lands
+        /// at project load rather than at push.</para>
+        /// </summary>
+        private static string ConstructorPositionalTypeKey(Json.TypeInfo typeInfo)
+        {
+            string discriminator = string.Empty;
+            string keyDiscriminator = string.Empty;
+            Json.TypeInfo? entryTypeInfo = null;
+            Dictionary<string, Json.TypeInfo>? typeArguments = null;
+            switch (typeInfo)
+            {
+                // The argument carrier is flat: it holds every discriminator
+                // the nested subclasses split across their own fields.
+                case FunctionArgumentTypeInfo argument:
+                    discriminator = argument.classId
+                        ?? argument.interfaceId
+                        ?? argument.enumId
+                        ?? argument.genericParamId
+                        ?? argument.collectionMemberId
+                        ?? string.Empty;
+                    keyDiscriminator = argument.keyEnumId ?? string.Empty;
+                    entryTypeInfo = argument.entryTypeInfo;
+                    typeArguments = argument.typeArguments;
+                    break;
+                case ClassTypeInfo classTypeInfo:
+                    discriminator = classTypeInfo.classId;
+                    typeArguments = classTypeInfo.typeArguments;
+                    break;
+                case InterfaceTypeInfo interfaceTypeInfo:
+                    discriminator = interfaceTypeInfo.interfaceId;
+                    break;
+                case EnumTypeInfo enumTypeInfo:
+                    discriminator = enumTypeInfo.enumId;
+                    break;
+                case GenericTypeInfo genericTypeInfo:
+                    discriminator = genericTypeInfo.genericParamId;
+                    break;
+                case CollectionTypeInfo collectionTypeInfo:
+                    keyDiscriminator = collectionTypeInfo.keyEnumId ?? string.Empty;
+                    entryTypeInfo = collectionTypeInfo.entryTypeInfo;
+                    break;
+                case LookupTypeInfo lookupTypeInfo:
+                    discriminator = lookupTypeInfo.collectionMemberId;
+                    entryTypeInfo = lookupTypeInfo.entryTypeInfo;
+                    break;
+            }
+
+            var key = new System.Text.StringBuilder();
+            key.Append((int)typeInfo.type)
+                .Append('|')
+                .Append(discriminator)
+                .Append('|')
+                .Append(keyDiscriminator);
+            if (entryTypeInfo is not null)
+            {
+                key.Append('<')
+                    .Append(ConstructorPositionalTypeKey(entryTypeInfo))
+                    .Append('>');
+            }
+            if (typeArguments is not null && typeArguments.Count != 0)
+            {
+                // Ordered so two identical closed generics key identically
+                // regardless of the JSON's property order.
+                var names = new List<string>(typeArguments.Keys);
+                names.Sort(System.StringComparer.Ordinal);
+                key.Append('{');
+                for (int i = 0; i < names.Count; i++)
+                {
+                    if (i != 0) key.Append(',');
+                    key.Append(names[i])
+                        .Append('=')
+                        .Append(ConstructorPositionalTypeKey(typeArguments[names[i]]));
+                }
+                key.Append('}');
+            }
+            return key.ToString();
         }
 
         private void ValidateCallableMembers()
