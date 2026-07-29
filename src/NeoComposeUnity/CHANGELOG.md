@@ -2,6 +2,41 @@
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-07-28
+
+### Changed
+
+- The "legacy pre-0.7 placement" throw in animation child resolution now fires
+  only when **not one** `Children` row on the node carries `sourceValueId`
+  provenance. Until now a single unstamped row was taken as proof the whole
+  placement predated provenance, and any clip reference that did not match on
+  that node threw instead of taking 0.10.0's warn-and-skip path.
+
+  Mixed nodes — some rows stamped, some not — are a normal steady state as of
+  P44. Rows written by an explicit assignment in Neo source are authored
+  content and deliberately carry no stamp, and the authored-provenance backfill
+  deliberately leaves rows it cannot structurally correspond to a class default
+  unstamped. On such a node an absent slot is an absent slot, so it now skips
+  with the usual single deduped warning rather than failing the clip with a
+  migration message that would not be true. A node where **every** row is
+  unstamped is still genuinely un-migrated data and still throws, with the
+  message reworded to "none of its Children rows carry ...". Ambiguity — one
+  node carrying two rows with the same stamp — is unchanged and still throws.
+
+### Added
+
+- Nested class rows authored on the web or pushed by the CLI now carry
+  `sourceValueId` provenance pointing at the class-default row they were
+  materialized from, so a clip declared on a class finally resolves its
+  `ChildOverrides` and `Tracks` when that class is used as a `Children` row, at
+  any depth. No runtime change was needed for this: `ResolvePlacedChild`
+  already matched stamps scoped to one node's `Children`, `CompileChildTracks`
+  already recursed into the resolved row's own graph, and the placement clone
+  already forwarded `source.sourceValueId ?? source.id`. The stamps are what
+  was missing. Sibling rows materialized from one class default carry identical
+  child stamps and animate independently, because resolution never leaves the
+  node it was asked about.
+
 ## [0.11.0] - 2026-07-28
 
 ### Breaking

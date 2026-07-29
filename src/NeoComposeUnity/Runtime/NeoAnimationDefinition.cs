@@ -1921,12 +1921,13 @@ namespace NeoCompose.Runtime
         /// matching are deliberately unsupported.
         /// </summary>
         /// <returns>
-        /// The matching row, or <c>null</c> when no row matches and every row
-        /// carries provenance. A null return means the reference is for a slot
-        /// this instance does not have — an optional slot on a subclass that
-        /// trimmed its <c>Children</c> — and the caller skips that one
-        /// reference. Ambiguous matches and legacy rows without provenance
-        /// still throw, because those are data errors rather than absent slots.
+        /// The matching row, or <c>null</c> when no row matches and at least one
+        /// row carries provenance. A null return means the reference is for a
+        /// slot this instance does not have — an optional slot on a subclass
+        /// that trimmed its <c>Children</c> — and the caller skips that one
+        /// reference. Ambiguous matches still throw, and so does a node on which
+        /// NO row carries provenance, because those are data errors rather than
+        /// absent slots.
         /// </returns>
         private static NeoMemberClass? ResolvePlacedChild(
             NeoClient client,
@@ -1940,15 +1941,17 @@ namespace NeoCompose.Runtime
                 throw MissingPlacementGraph(clipKey, usage);
             }
             NeoMemberClass? match = null;
-            bool hasLegacyChildWithoutProvenance = false;
+            bool hasChildWithoutProvenance = false;
+            bool hasChildWithProvenance = false;
             foreach (NeoMember child in children)
             {
                 if (child is not NeoMemberClass childClass) continue;
                 if (string.IsNullOrWhiteSpace(childClass.value?.sourceValueId))
                 {
-                    hasLegacyChildWithoutProvenance = true;
+                    hasChildWithoutProvenance = true;
                     continue;
                 }
+                hasChildWithProvenance = true;
                 if (!string.Equals(
                         childClass.value?.sourceValueId,
                         sourceChildId,
@@ -1965,10 +1968,16 @@ namespace NeoCompose.Runtime
             }
             if (match is null)
             {
-                if (hasLegacyChildWithoutProvenance)
+                // Only a node where NOT ONE row carries provenance is legacy
+                // data. A mixed node is a normal P44 steady state — explicitly
+                // authored rows carry no stamp, and the backfill leaves rows it
+                // cannot structurally correspond unstamped — so it falls
+                // through to the absent-slot skip below rather than failing the
+                // whole clip with a migration message that would be untrue.
+                if (hasChildWithoutProvenance && !hasChildWithProvenance)
                 {
                     throw new InvalidOperationException(
-                        $"Animation clip '{clipKey}' {usage} cannot run on legacy pre-0.7 placement '{target.value?.id ?? "<unmaterialized>"}': its Children rows do not carry sourceValueId placement-clone provenance. Migrate or recreate the persisted placement; re-exporting alone cannot upgrade saved placement rows.");
+                        $"Animation clip '{clipKey}' {usage} cannot run on legacy pre-0.7 placement '{target.value?.id ?? "<unmaterialized>"}': none of its Children rows carry sourceValueId placement-clone provenance. Migrate or recreate the persisted placement; re-exporting alone cannot upgrade saved placement rows.");
                 }
                 // Not a data error: the slot is simply absent on this instance.
                 // Logged here, at compile time, so a clip looping at 8 FPS
