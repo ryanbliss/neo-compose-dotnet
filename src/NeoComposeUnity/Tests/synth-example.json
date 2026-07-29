@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 14,
+    "schemaVersion": 15,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -1080,7 +1080,7 @@
       },
       "argumentTypes": [],
       "action": {
-        "compilerRevision": 2,
+        "compilerRevision": 3,
         "parameters": [
           {
             "id": "__this__",
@@ -3678,6 +3678,7 @@
       "updatedAt": 0
     }
   },
+  "constructors": {},
   "internalRecordRelations": {},
   "values": {
     "v-num": {
@@ -4239,7 +4240,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score += 3;",
                 "action": {
-                  "compilerRevision": 2,
+                  "compilerRevision": 3,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -4451,7 +4452,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score -= 3;",
                 "action": {
-                  "compilerRevision": 2,
+                  "compilerRevision": 3,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -4663,7 +4664,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score *= 3;",
                 "action": {
-                  "compilerRevision": 2,
+                  "compilerRevision": 3,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -4875,7 +4876,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score /= 3;",
                 "action": {
-                  "compilerRevision": 2,
+                  "compilerRevision": 3,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -5087,7 +5088,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score %= 3;",
                 "action": {
-                  "compilerRevision": 2,
+                  "compilerRevision": 3,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -5299,7 +5300,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score++;",
                 "action": {
-                  "compilerRevision": 2,
+                  "compilerRevision": 3,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -5511,7 +5512,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score--;",
                 "action": {
-                  "compilerRevision": 2,
+                  "compilerRevision": 3,
                   "parameters": [
                     {
                       "id": "__this__",

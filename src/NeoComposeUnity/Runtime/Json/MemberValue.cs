@@ -112,10 +112,81 @@ namespace NeoCompose.Runtime.Json
     /// JSON shape) extend either this directly (Null) or the typed
     /// <see cref="MemberValueBase{TValue}"/> intermediate.
     /// </summary>
+    /// <summary>
+    /// P43 §1 — a <b>computed</b> default. Mirrors TS-side
+    /// <c>INSInitializerBody</c>: the authored NeoScript source plus the
+    /// server-compiled IR, following the <c>NSFunction</c>
+    /// <c>code</c>+<c>action</c> precedent.
+    ///
+    /// <para><see cref="compiled"/> is optional on the wire only because a
+    /// <b>client write</b> never supplies it (the server compiles). Every
+    /// exported initializer carries one, so the SDK treats its absence as a
+    /// stale export and says so rather than silently producing no value.</para>
+    /// </summary>
+    public sealed class InitializerBody
+    {
+        /// <summary>Authored NeoScript initializer expression source.</summary>
+        public string code = null!;
+
+        /// <summary>Server-compiled IR. Never accepted from a client write.</summary>
+        public FunctionWithReturnType? compiled;
+    }
+
     [JsonConverter(typeof(MemberValueBaseConverter))]
     public abstract class MemberValueBase : IMemberValueBase
     {
         public string? classId { get; set; }
+
+        /// <summary>
+        /// P43 §1 / §1.1a — set iff this container is <b>init-backed</b>: the
+        /// value is produced by evaluating <see cref="InitializerBody.compiled"/>
+        /// at instance construction rather than read from <c>value</c>.
+        /// Mutually exclusive with <c>value</c>/<c>classId</c> — a computed
+        /// default stores no baked value and no concrete class (both come from
+        /// evaluation), and the converters reject a container carrying both.
+        ///
+        /// <para>Declared on the non-generic base rather than on
+        /// <see cref="MemberValueBase{TValue}"/> so it is equally available on
+        /// a stored <see cref="MemberValue"/> row: §1.1a puts an initializer on
+        /// <b>any</b> value container, which is what keeps a literal list's
+        /// entries individually addressable while each entry computes its own
+        /// interior.</para>
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public InitializerBody? init { get; set; }
+    }
+
+    /// <summary>
+    /// P43 §1 — enforces the value-container discriminated union on read.
+    /// Exactly one variant is present: a literal default stores <c>value</c>
+    /// (and optionally <c>classId</c>); a computed default stores <c>init</c>
+    /// and neither of the other two.
+    /// </summary>
+    internal static class InitializerVariantGuard
+    {
+        internal static void RejectConflictingVariant(JObject carrier, string subject)
+        {
+            if (carrier.Property("init") is null) return;
+            if (IsPresent(carrier["value"]))
+            {
+                throw new JsonSerializationException(
+                    $"{subject} carries both 'value' and 'init'. A computed default stores its "
+                    + "initializer and no baked value; re-export the project from the current web app.");
+            }
+            if (IsPresent(carrier["classId"]))
+            {
+                throw new JsonSerializationException(
+                    $"{subject} carries both 'classId' and 'init'. The concrete class of a computed "
+                    + "default comes from evaluating it; re-export the project from the current web app.");
+            }
+        }
+
+        private static bool IsPresent(JToken? token)
+        {
+            return token is not null
+                && token.Type != JTokenType.Null
+                && token.Type != JTokenType.Undefined;
+        }
     }
 
     /// <summary>
@@ -934,6 +1005,9 @@ namespace NeoCompose.Runtime.Json
             PartialLeafPositionGuard.RejectDefaultCarrier(
                 obj,
                 "A member declaration default");
+            InitializerVariantGuard.RejectConflictingVariant(
+                obj,
+                "A member declaration default");
             var concrete =
                 TypedHierarchyMap.ResolveByContext(objectType, typeof(MemberValueBase<>))
                 ?? ResolveByShape(obj["value"]);
@@ -1201,6 +1275,9 @@ namespace NeoCompose.Runtime.Json
             if (reader.TokenType == JsonToken.Null) return null;
             var obj = JObject.Load(reader);
             MemberValueBaseConverter.RejectRemovedClassIdentityField(obj);
+            InitializerVariantGuard.RejectConflictingVariant(
+                obj,
+                "A member value row");
             var concrete =
                 TypedHierarchyMap.ResolveByContext(objectType, typeof(MemberValue<>))
                 ?? ResolveByShape(obj["value"]);

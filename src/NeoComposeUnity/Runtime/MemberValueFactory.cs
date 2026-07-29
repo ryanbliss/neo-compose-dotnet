@@ -127,12 +127,63 @@ namespace NeoCompose.Runtime
             return created;
         }
 
+        /// <summary>
+        /// P43 §1 — the member's <b>computed</b> default, or null when its
+        /// default is literal or absent. Dispatches per kind because the typed
+        /// <c>defaultValue</c> carrier lives on the member subclass, not on the
+        /// base.
+        /// </summary>
+        internal static InitializerBody? InitializerOf(Member schemaMember)
+        {
+            return schemaMember switch
+            {
+                NullMember member => member.defaultValue?.init,
+                BoolMember member => member.defaultValue?.init,
+                IntMember member => member.defaultValue?.init,
+                FloatMember member => member.defaultValue?.init,
+                StringMember member => member.defaultValue?.init,
+                DictionaryMember member => member.defaultValue?.init,
+                ListMember member => member.defaultValue?.init,
+                ClassMember member => member.defaultValue?.init,
+                GenericMember member => member.defaultValue?.init,
+                EnumMember member => member.defaultValue?.init,
+                LookupMember member => member.defaultValue?.init,
+                DialogueLookupMember member => member.defaultValue?.init,
+                SpriteMember member => member.defaultValue?.init,
+                AudioMember member => member.defaultValue?.init,
+                Vector2Member member => member.defaultValue?.init,
+                Vector2IntMember member => member.defaultValue?.init,
+                Vector3Member member => member.defaultValue?.init,
+                Vector3IntMember member => member.defaultValue?.init,
+                ColorMember member => member.defaultValue?.init,
+                DecimalMember member => member.defaultValue?.init,
+                _ => null,
+            };
+        }
+
         public static MemberValue? CreateFromDefault(
             Member schemaMember,
             string id,
             NeoTimestamp createdAt,
             NeoTimestamp updatedAt)
         {
+            // P43 §1.1 — an init-backed default carries no `value` and no
+            // `classId` by construction (the union guard rejects a container
+            // holding both), so reading it as a literal here would hand the
+            // caller a silently empty row: a read-only member declared
+            // `Foo X = new Bar();` would read back as null. Only the
+            // construction path can evaluate an initializer, so this path fails
+            // closed with the same message
+            // NeoGeneratedTypesSupport.CreateDefaultValueRow raises rather than
+            // guessing a value. Evaluating here is not an option: this factory
+            // is handed a member and nothing else — no client, no evaluator
+            // context, and no `createdValues` list to own the rows an
+            // initializer produces.
+            if (InitializerOf(schemaMember) is not null)
+            {
+                throw new System.InvalidOperationException(
+                    $"Member '{schemaMember.name}' has a computed default and cannot be materialized as a literal.");
+            }
             return schemaMember switch
             {
                 NullMember member => member.defaultValue is null ? null : new NullMemberValue

@@ -82,6 +82,13 @@ namespace NeoCompose.Runtime.Json
     {
         public const string ClassClone = "classClone";
         public const string ClassConstructor = "classConstructor";
+        /// <summary>
+        /// P43 §6.1 — <c>new Foo(Named: …)</c> against a class that declares
+        /// constructors. Distinct from <see cref="ClassConstructor"/>, which
+        /// stays the schema-derived positional form used by classes that
+        /// declare none.
+        /// </summary>
+        public const string DeclaredConstructor = "declaredConstructor";
         public const string Select = "select";
         public const string First = "first";
         public const string FirstOrDefault = "firstOrDefault";
@@ -309,9 +316,10 @@ namespace NeoCompose.Runtime.Json
         /// <summary>
         /// Latest NeoScript compiler revision understood by this runtime.
         /// Revision 1 is the legacy unstamped wire shape; revision 2 pins
-        /// declaration member ids on member pointers.
+        /// declaration member ids on member pointers; revision 3 adds the
+        /// P43 <c>declaredConstructor</c> function kind.
         /// </summary>
-        public const int CurrentCompilerRevision = 2;
+        public const int CurrentCompilerRevision = 3;
 
         /// <summary>
         /// Optional for backward compatibility. Absence means legacy

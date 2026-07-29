@@ -60,6 +60,18 @@ namespace NeoCompose.Runtime.Json
         /// after creation (re-binding is a migration, not an edit).
         /// </summary>
         public Dictionary<string, GenericBinding>? extendsGenericBindings;
+        /// <summary>
+        /// P43 §6.3 — ordered ids of this class's declared constructors, in
+        /// declaration order. Absent/empty means the class declares none, in
+        /// which case <c>new()</c> keeps its member-initializers-only meaning
+        /// (§6.1.2). Constructors are <b>not</b> inherited, so a subclass's
+        /// list never repeats its base's; a subclass reaches its base's only
+        /// through a <c>: base(...)</c> clause on a constructor it declares.
+        /// This array is authoritative for membership and order — the
+        /// constructor record's own class edge is a redundant projection
+        /// (§6.2.1), and <see cref="NeoClient"/> asserts the two agree.
+        /// </summary>
+        public string[]? constructorIds;
         public NeoTimestamp createdAt;
         public NeoTimestamp updatedAt;
     }

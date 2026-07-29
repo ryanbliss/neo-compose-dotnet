@@ -207,6 +207,248 @@ namespace NeoCompose.Tests
             Assert.AreEqual("immutableToSessionLookup", WritabilityKind.ImmutableToSessionLookup);
         }
 
+        /// <summary>
+        /// P43 §1 — a computed member default carries source plus compiled IR
+        /// and no baked <c>value</c>.
+        /// </summary>
+        [Test]
+        public void MemberDefault_InitBodyRoundTrips()
+        {
+            const string json = @"{
+  ""id"": ""member-loud"",
+  ""projectId"": ""project"",
+  ""name"": ""Loud"",
+  ""kind"": 3,
+  ""locked"": false,
+  ""required"": true,
+  ""isStatic"": false,
+  ""accessModifierKind"": ""public"",
+  ""defaultValue"": {
+    ""init"": {
+      ""code"": ""StaticFunc(\""bar\"")"",
+      ""compiled"": {
+        ""compilerRevision"": 3,
+        ""parameters"": [],
+        ""instructions"": [],
+        ""typeInfo"": { ""type"": 3, ""required"": true }
+      }
+    }
+  },
+  ""createdAt"": ""x"",
+  ""updatedAt"": ""x""
+}";
+
+            var member = (StringMember)JsonConvert.DeserializeObject<Member>(json)!;
+
+            Assert.IsNotNull(member.defaultValue!.init);
+            Assert.AreEqual("StaticFunc(\"bar\")", member.defaultValue.init!.code);
+            Assert.AreEqual(3, member.defaultValue.init.compiled!.compilerRevision);
+            Assert.IsNull(member.defaultValue.value);
+            Assert.IsNull(member.defaultValue.classId);
+        }
+
+        /// <summary>
+        /// P43 §1.1a — a stored value ROW may carry an initializer too, which
+        /// is what keeps a literal list's entries addressable while each entry
+        /// computes its own interior.
+        /// </summary>
+        [Test]
+        public void MemberValueRow_InitBodyRoundTrips()
+        {
+            const string json = @"{
+  ""id"": ""value-eyes-left"",
+  ""projectId"": ""project"",
+  ""init"": { ""code"": ""new EyePart(IsRight: false)"" },
+  ""createdAt"": ""x"",
+  ""updatedAt"": ""x""
+}";
+
+            var row = JsonConvert.DeserializeObject<MemberValue>(json)!;
+
+            Assert.AreEqual("value-eyes-left", row.id);
+            Assert.AreEqual("new EyePart(IsRight: false)", row.init!.code);
+            Assert.IsNull(row.init.compiled);
+        }
+
+        [Test]
+        public void MemberValueRow_CarryingBothValueAndInitIsRejected()
+        {
+            const string json = @"{
+  ""id"": ""value-conflict"",
+  ""projectId"": ""project"",
+  ""value"": ""literal"",
+  ""init"": { ""code"": ""Compute()"" },
+  ""createdAt"": ""x"",
+  ""updatedAt"": ""x""
+}";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<MemberValue>(json));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("carries both 'value' and 'init'"));
+        }
+
+        [Test]
+        public void MemberValueRow_CarryingBothClassIdAndInitIsRejected()
+        {
+            const string json = @"{
+  ""id"": ""value-conflict"",
+  ""projectId"": ""project"",
+  ""classId"": ""class-foo"",
+  ""init"": { ""code"": ""Compute()"" },
+  ""createdAt"": ""x"",
+  ""updatedAt"": ""x""
+}";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<MemberValue>(json));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("carries both 'classId' and 'init'"));
+        }
+
+        /// <summary>
+        /// P43 §6.2 — the hydrated constructor record, and §6.3's ordered
+        /// <c>constructorIds</c> on the class that owns it.
+        /// </summary>
+        [Test]
+        public void ConstructorRecord_AndClassConstructorIdsRoundTrip()
+        {
+            const string json = @"{
+  ""metadata"": { ""schemaVersion"": 15, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""project"": { ""id"": ""project"", ""name"": ""P"" },
+  ""members"": {},
+  ""values"": {},
+  ""enums"": {},
+  ""classes"": {
+    ""class-foo"": {
+      ""id"": ""class-foo"",
+      ""projectId"": ""project"",
+      ""name"": ""Foo"",
+      ""schema"": {},
+      ""hiddenInMemberSelector"": false,
+      ""isAbstract"": false,
+      ""constructorIds"": [""ctor-foo"", ""ctor-foo-loud""],
+      ""createdAt"": ""x"",
+      ""updatedAt"": ""x""
+    }
+  },
+  ""constructors"": {
+    ""ctor-foo"": {
+      ""id"": ""ctor-foo"",
+      ""projectId"": ""project"",
+      ""classId"": ""class-foo"",
+      ""argumentTypes"": [{ ""name"": ""AllCaps"", ""type"": 1, ""required"": true }],
+      ""code"": ""\t\tif (AllCaps) {\n\t\t\tthis.Bar = \""BAR\"";\n\t\t}"",
+      ""action"": {
+        ""compilerRevision"": 3,
+        ""parameters"": [],
+        ""instructions"": [],
+        ""typeInfo"": { ""type"": 0, ""required"": true }
+      },
+      ""baseArguments"": [{ ""name"": ""Seed"", ""code"": ""AllCaps"" }],
+      ""compiledBaseArguments"": [{
+        ""compilerRevision"": 3,
+        ""parameters"": [],
+        ""instructions"": [],
+        ""typeInfo"": { ""type"": 1, ""required"": true }
+      }],
+      ""createdAt"": ""x"",
+      ""updatedAt"": ""x""
+    }
+  }
+}";
+
+            var data = Deserialize(json);
+
+            Assert.That(
+                data.classes["class-foo"].constructorIds,
+                Is.EqualTo(new[] { "ctor-foo", "ctor-foo-loud" }));
+            ConstructorRecord record = data.constructors["ctor-foo"];
+            Assert.AreEqual("class-foo", record.classId);
+            Assert.AreEqual("AllCaps", record.argumentTypes[0].name);
+            Assert.AreEqual(MemberKind.Bool, record.argumentTypes[0].type);
+            Assert.AreEqual(MemberKind.Null, record.action.typeInfo.type);
+            Assert.IsTrue(record.action.typeInfo.required);
+            Assert.AreEqual("Seed", record.baseArguments![0].name);
+            Assert.AreEqual("AllCaps", record.baseArguments[0].code);
+            Assert.AreEqual(1, record.compiledBaseArguments!.Length);
+        }
+
+        /// <summary>
+        /// P43 §6.1 — the <c>declaredConstructor</c> IR variant, which is
+        /// distinct from the schema-derived <c>classConstructor</c>.
+        /// </summary>
+        [Test]
+        public void DeclaredConstructorFunction_RoundTrips()
+        {
+            const string json = @"{
+  ""type"": ""declaredConstructor"",
+  ""info"": {
+    ""schemaClassInfo"": { ""type"": 7, ""required"": true, ""classId"": ""class-foo"" },
+    ""constructorId"": ""ctor-foo"",
+    ""args"": [{
+      ""name"": ""AllCaps"",
+      ""valuePointer"": {
+        ""type"": ""value"",
+        ""value"": { ""typeInfo"": { ""type"": 1, ""required"": true }, ""value"": true }
+      }
+    }],
+    ""fields"": [{
+      ""schemaKey"": ""Bar"",
+      ""memberId"": ""member-foo-bar"",
+      ""valuePointer"": {
+        ""type"": ""value"",
+        ""value"": { ""typeInfo"": { ""type"": 3, ""required"": true }, ""value"": ""custom"" }
+      }
+    }]
+  }
+}";
+
+            var declared = (DeclaredConstructorFunction)
+                JsonConvert.DeserializeObject<Function>(json)!;
+
+            Assert.AreEqual(FunctionKind.DeclaredConstructor, declared.type);
+            Assert.AreEqual("ctor-foo", declared.info.constructorId);
+            Assert.AreEqual("class-foo", declared.info.schemaClassInfo.classId);
+            Assert.AreEqual("AllCaps", declared.info.args[0].name);
+            Assert.IsInstanceOf<ValuePointer>(declared.info.args[0].valuePointer);
+            Assert.AreEqual("Bar", declared.info.fields[0].schemaKey);
+        }
+
+        /// <summary>
+        /// P43 §6.1.2 — the implicit <c>new()</c> a class keeps even after
+        /// declaring constructors carries a null constructor id.
+        /// </summary>
+        [Test]
+        public void DeclaredConstructorFunction_NullConstructorIdRoundTrips()
+        {
+            const string json = @"{
+  ""type"": ""declaredConstructor"",
+  ""info"": {
+    ""schemaClassInfo"": { ""type"": 7, ""required"": true, ""classId"": ""class-foo"" },
+    ""constructorId"": null,
+    ""args"": [],
+    ""fields"": []
+  }
+}";
+
+            var declared = (DeclaredConstructorFunction)
+                JsonConvert.DeserializeObject<Function>(json)!;
+
+            Assert.IsNull(declared.info.constructorId);
+            Assert.AreEqual(0, declared.info.args.Length);
+        }
+
+        [Test]
+        public void CompilerRevision_ThreeIsTheCurrentCeiling()
+        {
+            Assert.AreEqual(3, FunctionWithReturnType.CurrentCompilerRevision);
+        }
+
         [Test]
         public void Member_MissingIsStaticIsRejected()
         {

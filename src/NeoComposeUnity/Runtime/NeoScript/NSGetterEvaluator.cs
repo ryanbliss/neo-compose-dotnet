@@ -282,6 +282,16 @@ namespace NeoCompose.Runtime.NeoScript
             /// rejected once the runtime depth cap is reached.
             /// </summary>
             public IReadOnlyList<string> functionCallStack { get; }
+            /// <summary>
+            /// P43 §7.2.3 — ordered names of the classes currently under
+            /// construction. Deliberately separate from
+            /// <see cref="functionCallStack"/>: a constructor chain recurses
+            /// through member initializers and nested <c>new</c> expressions
+            /// rather than through NSFunction calls, so the NSFunction cap
+            /// never sees it. Bounded by
+            /// <see cref="NeoGeneratedTypesSupport.MaxConstructionDepth"/>.
+            /// </summary>
+            public IReadOnlyList<string> constructionStack { get; }
             internal NeoValueOwnership valueOwnership { get; }
 
             /// <summary>
@@ -351,7 +361,8 @@ namespace NeoCompose.Runtime.NeoScript
                 Dictionary<
                     string,
                     IReadOnlyDictionary<string, NeoGenericEnvEntry>>?
-                    genericEnvironmentCache = null)
+                    genericEnvironmentCache = null,
+                IReadOnlyList<string>? constructionStack = null)
             {
                 this.client = client;
                 this.thisValue = thisValue;
@@ -376,6 +387,8 @@ namespace NeoCompose.Runtime.NeoScript
                     ?? new Dictionary<
                         string,
                         IReadOnlyDictionary<string, NeoGenericEnvEntry>>();
+                this.constructionStack = constructionStack
+                    ?? System.Array.Empty<string>();
                 allocationTracker = new NeoScriptAllocationTracker();
             }
 
@@ -404,7 +417,8 @@ namespace NeoCompose.Runtime.NeoScript
                     schemaPlacementCache,
                     callableDispatchCache,
                     rowCacheKeysByRow,
-                    genericEnvironmentCache));
+                    genericEnvironmentCache,
+                    constructionStack));
             }
 
             internal Context WithThis(object? newThisValue)
@@ -425,7 +439,8 @@ namespace NeoCompose.Runtime.NeoScript
                     schemaPlacementCache,
                     callableDispatchCache,
                     rowCacheKeysByRow,
-                    genericEnvironmentCache));
+                    genericEnvironmentCache,
+                    constructionStack));
             }
 
             internal Context WithRoot(object? newRootValue)
@@ -446,7 +461,8 @@ namespace NeoCompose.Runtime.NeoScript
                     schemaPlacementCache,
                     callableDispatchCache,
                     rowCacheKeysByRow,
-                    genericEnvironmentCache));
+                    genericEnvironmentCache,
+                    constructionStack));
             }
 
             internal Context WithContext(object? newContextValue)
@@ -467,7 +483,8 @@ namespace NeoCompose.Runtime.NeoScript
                     schemaPlacementCache,
                     callableDispatchCache,
                     rowCacheKeysByRow,
-                    genericEnvironmentCache));
+                    genericEnvironmentCache,
+                    constructionStack));
             }
 
             internal Context WithMemoryStore(INeoDialogueMemoryStore? newMemoryStore)
@@ -488,7 +505,8 @@ namespace NeoCompose.Runtime.NeoScript
                     schemaPlacementCache,
                     callableDispatchCache,
                     rowCacheKeysByRow,
-                    genericEnvironmentCache));
+                    genericEnvironmentCache,
+                    constructionStack));
             }
 
             internal Context WithFunctionCallHandler(
@@ -510,7 +528,8 @@ namespace NeoCompose.Runtime.NeoScript
                     schemaPlacementCache,
                     callableDispatchCache,
                     rowCacheKeysByRow,
-                    genericEnvironmentCache));
+                    genericEnvironmentCache,
+                    constructionStack));
             }
 
             internal Context WithSetterPushed(string memberId)
@@ -532,7 +551,8 @@ namespace NeoCompose.Runtime.NeoScript
                     schemaPlacementCache,
                     callableDispatchCache,
                     rowCacheKeysByRow,
-                    genericEnvironmentCache));
+                    genericEnvironmentCache,
+                    constructionStack));
             }
 
             internal Context WithFunctionPushed(string memberId)
@@ -556,7 +576,40 @@ namespace NeoCompose.Runtime.NeoScript
                     schemaPlacementCache,
                     callableDispatchCache,
                     rowCacheKeysByRow,
-                    genericEnvironmentCache));
+                    genericEnvironmentCache,
+                    constructionStack));
+            }
+
+            /// <summary>
+            /// P43 §7.2.3 — pushes <paramref name="className"/> onto the
+            /// construction chain. Every nested member initializer, base
+            /// constructor, and constructor body runs on the returned context,
+            /// so a cyclic construction trips the depth cap with the chain that
+            /// caused it rather than overflowing the runtime stack.
+            /// </summary>
+            internal Context WithConstructionPushed(string className)
+            {
+                var next = new List<string>(constructionStack.Count + 1);
+                next.AddRange(constructionStack);
+                next.Add(className);
+                return ShareAllocationTracker(new Context(
+                    client,
+                    thisValue,
+                    rootValue,
+                    contextValue,
+                    memoryStore,
+                    getterCallStack,
+                    rowUnwrapCache,
+                    rowReverseIndex,
+                    valueOwnership,
+                    functionCallHandler,
+                    setterCallStack,
+                    functionCallStack,
+                    schemaPlacementCache,
+                    callableDispatchCache,
+                    rowCacheKeysByRow,
+                    genericEnvironmentCache,
+                    next));
             }
         }
 
@@ -1704,6 +1757,125 @@ namespace NeoCompose.Runtime.NeoScript
         // Functions — 6 kinds
         // ---------------------------------------------------------------
 
+        /// <summary>
+        /// P43 §6.1 — evaluates <c>new Foo(Named: …) { X = … }</c> against a
+        /// class that declares constructors.
+        ///
+        /// <para>Every piece of metadata — the class, the merged schema behind
+        /// the call-site fields, the resolved overload, its parameter names,
+        /// and the whole base chain — is validated before a single argument or
+        /// field expression runs, so stale IR cannot trigger argument side
+        /// effects. This is the same ordering invariant the
+        /// <c>classConstructor</c> arm establishes.</para>
+        /// </summary>
+        private static object? EvalDeclaredConstructor(
+            DeclaredConstructorInfo info,
+            Dictionary<string, object?> scope,
+            Context ctx)
+        {
+            var fields = new List<NeoGeneratedTypesSupport.RuntimeConstructorField>(
+                info.fields.Length);
+            foreach (FunctionClassConstructorField field in info.fields)
+            {
+                fields.Add(new NeoGeneratedTypesSupport.RuntimeConstructorField
+                {
+                    schemaKey = field.schemaKey,
+                    memberId = field.memberId,
+                });
+            }
+            var argumentNames = new List<string>(info.args.Length);
+            foreach (DeclaredConstructorArgument argument in info.args)
+            {
+                argumentNames.Add(argument.name);
+            }
+
+            NeoGeneratedTypesSupport.NeoResolvedDeclaredConstructor resolved;
+            try
+            {
+                resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(
+                    ctx.client,
+                    info.schemaClassInfo,
+                    info.constructorId,
+                    argumentNames,
+                    fields);
+            }
+            catch (Exception error)
+                when (error is InvalidOperationException
+                    || error is ArgumentException)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Declared constructor failed: {error.Message}");
+            }
+
+            var argumentValues = new Dictionary<string, object?>(info.args.Length);
+            foreach (DeclaredConstructorArgument argument in info.args)
+            {
+                argumentValues[argument.name] = EvalPointer(
+                    argument.valuePointer,
+                    scope,
+                    ctx);
+            }
+
+            try
+            {
+                NeoMemberClassWritable node =
+                    NeoGeneratedTypesSupport.ConstructDeclaredClassValue(
+                        resolved,
+                        argumentValues,
+                        fields,
+                        ctx,
+                        // P43 §6.1 step 4 — the call-site initializer block is
+                        // evaluated AFTER the body, as in C# where an object
+                        // initializer's expressions run once the constructor
+                        // has returned. Handing construction a thunk instead of
+                        // pre-evaluated values is what keeps that order:
+                        // evaluating here would make a field expression read
+                        // pre-body state.
+                        constructionCtx =>
+                        {
+                            for (int i = 0; i < fields.Count; i++)
+                            {
+                                fields[i].value = EvalPointer(
+                                    info.fields[i].valuePointer,
+                                    scope,
+                                    constructionCtx);
+                            }
+                        });
+                if (node.value is null)
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Declared constructor for '{info.schemaClassInfo.classId}' produced no root row.");
+                }
+                ctx.allocationTracker.RegisterSessionRoot(node.value.id);
+                return UnwrapCached(
+                    node.value,
+                    ctx,
+                    NeoValueOwnership.Session,
+                    node.member);
+            }
+            catch (Exception error)
+                when (error is InvalidOperationException
+                    || error is ArgumentException)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Declared constructor failed: {error.Message}");
+            }
+        }
+
+        /// <summary>
+        /// The construction-frame label for a class id: its schema name, which
+        /// is what the TypeScript evaluator pushes and therefore what the
+        /// shared depth-cap diagnostic prints. Falls back to the id when the
+        /// class is unresolvable, so a diagnostic never becomes a second
+        /// failure.
+        /// </summary>
+        private static string ConstructedClassLabel(Context ctx, string classId)
+        {
+            return ctx.client.TryGetClass(classId, out NeoSchemaClass? schemaClass)
+                ? schemaClass!.name
+                : classId;
+        }
+
         private static object? EvalFunction(
             Function fn,
             Dictionary<string, object?> scope,
@@ -1737,12 +1909,29 @@ namespace NeoCompose.Runtime.NeoScript
                         throw new NSGetterRuntimeError(
                             $"Class constructor failed: {error.Message}");
                     }
+                    // P43 §7.2.3 — the schema-derived arm is a construction
+                    // too, so it opens its own frame before any field runs,
+                    // exactly where `constructClassValue` opens one in
+                    // evaluateNSGetter.ts. The pushed context is then threaded
+                    // into the materializer, so a member initializer met while
+                    // filling defaults counts against the SAME cap instead of
+                    // starting a fresh stack that can never trip.
+                    Context constructionCtx =
+                        NeoGeneratedTypesSupport.PushConstructionFrame(
+                            ctx,
+                            ConstructedClassLabel(
+                                ctx,
+                                constructor.info.schemaClassInfo.classId));
                     for (int i = 0; i < fields.Count; i++)
                     {
+                        // Deliberately eval-first, unlike the declared arm:
+                        // this IR has no body, so there is nothing for a field
+                        // expression to observe, and both runtimes pin the
+                        // legacy order here.
                         fields[i].value = EvalPointer(
                             constructor.info.fields[i].valuePointer,
                             scope,
-                            ctx);
+                            constructionCtx);
                     }
                     try
                     {
@@ -1751,7 +1940,8 @@ namespace NeoCompose.Runtime.NeoScript
                                 ctx.client,
                                 constructor.info.schemaClassInfo,
                                 fields,
-                                value => ConstructorReferenceOf(value, ctx));
+                                value => ConstructorReferenceOf(value, constructionCtx),
+                                constructionCtx);
                         if (node.value is null)
                         {
                             throw new NSGetterRuntimeError(
@@ -1772,6 +1962,8 @@ namespace NeoCompose.Runtime.NeoScript
                             $"Class constructor failed: {error.Message}");
                     }
                 }
+                case DeclaredConstructorFunction declared:
+                    return EvalDeclaredConstructor(declared.info, scope, ctx);
                 case ClassCloneFunction ccf:
                 {
                     var receiver = EvalPointer(ccf.info.receiverPointer, scope, ctx);
@@ -2669,7 +2861,13 @@ namespace NeoCompose.Runtime.NeoScript
             return FindRowIdByReference(value, ctx);
         }
 
-        private static NeoConstructorValueReference?
+        /// <summary>
+        /// Resolves an evaluator-shaped value back to the Neo row it came
+        /// from. Internal so the shared construction path in
+        /// <see cref="NeoGeneratedTypesSupport"/> can attach an initializer's
+        /// product the same way a constructor argument is attached.
+        /// </summary>
+        internal static NeoConstructorValueReference?
             ConstructorReferenceOf(object? value, Context ctx)
         {
             string? valueId = ValueIdOf(value, ctx);

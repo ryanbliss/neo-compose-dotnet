@@ -808,6 +808,28 @@ namespace NeoCompose.Runtime
                 requireKind: MemberKind.NSProperty);
         }
 
+        /// <summary>
+        /// P43 §6.1 step 4 — writes one schema key of a freshly constructed
+        /// class row through the exact target a <c>this.X = …</c> assignment
+        /// resolves to. Sharing the target rather than re-implementing the
+        /// write is what keeps a call-site initializer's replacement of a
+        /// member the body already wrote behaving identically to the body
+        /// writing it twice: the displaced child is unlinked, and an attached
+        /// class value goes through the ordinary import funnel.
+        /// </summary>
+        internal static void WriteConstructedClassMember(
+            NeoClient client,
+            string parentRowId,
+            string schemaKey,
+            JsonMember member,
+            NeoValueOwnership ownership,
+            object? value,
+            NSGetterEvaluator.Context ctx)
+        {
+            new NeoClassMemberWriteTarget(parentRowId, schemaKey, member, ownership)
+                .Write(client, value, ctx);
+        }
+
         private static NeoResolvedWriteTarget ResolveTarget(
             NeoClient client,
             WriteTarget target,
