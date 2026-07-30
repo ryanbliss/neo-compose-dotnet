@@ -110,6 +110,30 @@ namespace HelloWorld.Assets.Tests
             }
         }
 
+        [TestCase(
+            true,
+            false,
+            "This only deletes the save from this device. Sign in again to restore its cloud copy.")]
+        [TestCase(
+            true,
+            true,
+            "Your save file will be recoverable at app.neocompose.com")]
+        [TestCase(
+            false,
+            false,
+            "This permanently deletes the local save file. It has no cloud copy, so it cannot be recovered.")]
+        public void DeleteConfirmationSubtitle_ExplainsLocalAndCloudEffects(
+            bool existsRemotely,
+            bool cloudSessionSignedIn,
+            string expected)
+        {
+            Assert.AreEqual(
+                expected,
+                HelloWorldMenu.DeleteConfirmationSubtitle(
+                    existsRemotely,
+                    cloudSessionSignedIn));
+        }
+
         [Test]
         public void NeoLoader_IsReachableFromSample()
         {
