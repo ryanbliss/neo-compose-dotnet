@@ -7,6 +7,7 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using UnityEditor;
 using UnityEngine;
 
 namespace NeoCompose.Unity.Editor
@@ -41,18 +42,36 @@ namespace NeoCompose.Unity.Editor
     /// </summary>
     public static class NeoComposeTokenSecretBackends
     {
+        private const string FallbackWarningSessionKey =
+            "NeoCompose.Unity.SecretBackendFallbackWarningShown";
+
         public static INeoComposeTokenSecretBackend CreateDefault()
         {
             var native = CreateNativeForPlatform();
-            if (native != null && native.IsAvailable) return native;
+            var fallback = new NeoComposeFileSecretBackend();
+            if (native == null)
+            {
+                WarnFallbackOnce("");
+                return fallback;
+            }
 
+            if (!native.IsAvailable) WarnFallbackOnce(native.Name);
+            return new NeoComposeResilientSecretBackend(
+                native,
+                fallback,
+                () => WarnFallbackOnce(native.Name));
+        }
+
+        private static void WarnFallbackOnce(string nativeName)
+        {
+            if (SessionState.GetBool(FallbackWarningSessionKey, false)) return;
+            SessionState.SetBool(FallbackWarningSessionKey, true);
             Debug.LogWarning(
                 "Neo Compose could not access an OS-native secret store" +
-                (native != null ? $" ({native.Name})" : "") +
+                (nativeName.Length > 0 ? $" ({nativeName})" : "") +
                 ". Falling back to a restricted per-user file outside the project. " +
                 "Your Neo Compose sign-in will be stored less securely until the " +
                 "native secret store is available.");
-            return new NeoComposeFileSecretBackend();
         }
 
         private static INeoComposeTokenSecretBackend? CreateNativeForPlatform()
@@ -67,6 +86,131 @@ namespace NeoCompose.Unity.Editor
                     return new NeoComposeLinuxSecretToolSecretBackend();
                 default:
                     return null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Uses the native credential store when an operation actually succeeds,
+    /// while retaining a restricted file as a resilient fallback. Reads probe
+    /// both stores and opportunistically migrate fallback credentials back into
+    /// the native store when it becomes usable.
+    /// </summary>
+    public sealed class NeoComposeResilientSecretBackend : INeoComposeTokenSecretBackend
+    {
+        private readonly INeoComposeTokenSecretBackend native;
+        private readonly INeoComposeTokenSecretBackend fallback;
+        private readonly Action onFallbackUsed;
+
+        public NeoComposeResilientSecretBackend(
+            INeoComposeTokenSecretBackend native,
+            INeoComposeTokenSecretBackend fallback,
+            Action? onFallbackUsed = null)
+        {
+            this.native = native ?? throw new ArgumentNullException(nameof(native));
+            this.fallback = fallback ?? throw new ArgumentNullException(nameof(fallback));
+            this.onFallbackUsed = onFallbackUsed ?? (() => { });
+        }
+
+        public bool IsAvailable => native.IsAvailable || fallback.IsAvailable;
+
+        public string Name => $"{native.Name} with {fallback.Name} fallback";
+
+        public string? Read(string service, string account)
+        {
+            if (TryReadNative(service, account, out var nativeValue))
+            {
+                TryDeleteFallback(service, account);
+                return nativeValue;
+            }
+
+            var fallbackValue = fallback.Read(service, account);
+            if (string.IsNullOrWhiteSpace(fallbackValue)) return null;
+
+            onFallbackUsed();
+            if (TryWriteNative(service, account, fallbackValue!))
+            {
+                TryDeleteFallback(service, account);
+            }
+
+            return fallbackValue;
+        }
+
+        public void Write(string service, string account, string secret)
+        {
+            if (TryWriteNative(service, account, secret))
+            {
+                TryDeleteFallback(service, account);
+                return;
+            }
+
+            onFallbackUsed();
+            fallback.Write(service, account, secret);
+        }
+
+        public void Delete(string service, string account)
+        {
+            Exception? nativeFailure = null;
+            try
+            {
+                // Availability is only a probe of the native service's current
+                // state. Always attempt deletion so a temporarily locked or
+                // disconnected service cannot leave a credential behind.
+                native.Delete(service, account);
+            }
+            catch (Exception exception)
+            {
+                nativeFailure = exception;
+            }
+
+            fallback.Delete(service, account);
+            if (nativeFailure != null)
+            {
+                Debug.LogWarning(
+                    $"[NeoCompose] Could not delete a credential from {native.Name}: " +
+                    nativeFailure.Message);
+            }
+        }
+
+        private bool TryReadNative(string service, string account, out string? value)
+        {
+            value = null;
+            if (!native.IsAvailable) return false;
+            try
+            {
+                value = native.Read(service, account);
+                return !string.IsNullOrWhiteSpace(value);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        private bool TryWriteNative(string service, string account, string secret)
+        {
+            if (!native.IsAvailable) return false;
+            try
+            {
+                native.Write(service, account, secret);
+                return TryReadNative(service, account, out var written) &&
+                    string.Equals(written, secret, StringComparison.Ordinal);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        private void TryDeleteFallback(string service, string account)
+        {
+            try
+            {
+                fallback.Delete(service, account);
+            }
+            catch (Exception)
+            {
+                // A stale fallback copy is preferable to losing the native value.
             }
         }
     }
@@ -283,11 +427,12 @@ namespace NeoCompose.Unity.Editor
     /// </summary>
     public sealed class NeoComposeFileSecretBackend : INeoComposeTokenSecretBackend
     {
+        private static readonly UTF8Encoding Utf8WithoutBom = new UTF8Encoding(false);
         private readonly string rootDirectory;
 
         public NeoComposeFileSecretBackend(string? rootDirectory = null)
         {
-            this.rootDirectory = rootDirectory ?? DefaultRootDirectory();
+            this.rootDirectory = ValidateRootDirectory(rootDirectory ?? DefaultRootDirectory());
         }
 
         public string Name => "Restricted user file";
@@ -309,8 +454,32 @@ namespace NeoCompose.Unity.Editor
             Directory.CreateDirectory(rootDirectory);
             RestrictDirectory(rootDirectory);
             var path = PathFor(service, account);
-            File.WriteAllText(path, secret, new UTF8Encoding(false));
-            RestrictFile(path);
+            var temporaryPath = Path.Combine(
+                rootDirectory,
+                "." + Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+            try
+            {
+                File.WriteAllText(temporaryPath, secret, Utf8WithoutBom);
+                RestrictFile(temporaryPath);
+                if (File.Exists(path))
+                {
+                    File.Replace(temporaryPath, path, null);
+                }
+                else
+                {
+                    File.Move(temporaryPath, path);
+                }
+
+                RestrictFile(path);
+                if (!string.Equals(Read(service, account), secret, StringComparison.Ordinal))
+                {
+                    throw new IOException("Neo Compose could not verify the restricted credential file after writing it.");
+                }
+            }
+            finally
+            {
+                if (File.Exists(temporaryPath)) File.Delete(temporaryPath);
+            }
         }
 
         public void Delete(string service, string account)
@@ -343,16 +512,64 @@ namespace NeoCompose.Unity.Editor
             return Path.Combine(baseDir, "neocompose", "unity-tokens");
         }
 
+        private static string ValidateRootDirectory(string directory)
+        {
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                throw new ArgumentException("Credential directory cannot be empty.", nameof(directory));
+            }
+
+            if (!Path.IsPathRooted(directory))
+            {
+                throw new ArgumentException(
+                    "Credential directory must be an absolute per-user path.",
+                    nameof(directory));
+            }
+
+            var fullPath = Path.GetFullPath(directory);
+            var pathRoot = Path.GetPathRoot(fullPath);
+            if (string.Equals(
+                fullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                pathRoot?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Credential directory cannot be a filesystem root.", nameof(directory));
+            }
+
+            var assetsPath = Path.GetFullPath(Application.dataPath)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var projectPath = Path.GetDirectoryName(assetsPath) ?? assetsPath;
+            var candidate = fullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            if (string.Equals(candidate, projectPath, StringComparison.OrdinalIgnoreCase) ||
+                candidate.StartsWith(projectPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException(
+                    "Credential directory must be outside the Unity project.",
+                    nameof(directory));
+            }
+
+            return candidate;
+        }
+
         private static void RestrictDirectory(string directory)
         {
             if (Application.platform == RuntimePlatform.WindowsEditor) return;
-            NeoComposeProcess.Run("/bin/chmod", new[] { "700", directory });
+            EnsureChmod("700", directory);
         }
 
         private static void RestrictFile(string path)
         {
             if (Application.platform == RuntimePlatform.WindowsEditor) return;
-            NeoComposeProcess.Run("/bin/chmod", new[] { "600", path });
+            EnsureChmod("600", path);
+        }
+
+        private static void EnsureChmod(string mode, string path)
+        {
+            var result = NeoComposeProcess.Run("/bin/chmod", new[] { mode, path });
+            if (result.ExitCode == 0) return;
+            throw new IOException(
+                $"Neo Compose could not restrict credential permissions for '{path}': " +
+                result.StandardError.Trim());
         }
     }
 

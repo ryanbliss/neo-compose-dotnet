@@ -85,6 +85,7 @@ namespace NeoCompose.Runtime
         Denied,
         Expired,
         Error,
+        Retry,
     }
 
     /// <summary>
@@ -95,22 +96,32 @@ namespace NeoCompose.Runtime
         private NeoComposeDevicePollResult(
             NeoComposeDevicePollStatus status,
             NeoComposeDeviceTokenSuccess? token,
-            string message)
+            string message,
+            int retryAfterSeconds = 0)
         {
             this.status = status;
             this.token = token;
             this.message = message;
+            this.retryAfterSeconds = retryAfterSeconds;
         }
 
         public NeoComposeDevicePollStatus status { get; }
         public NeoComposeDeviceTokenSuccess? token { get; }
         public string message { get; }
+        public int retryAfterSeconds { get; }
 
         public static NeoComposeDevicePollResult Pending() =>
             new NeoComposeDevicePollResult(NeoComposeDevicePollStatus.Pending, null, "");
 
         public static NeoComposeDevicePollResult SlowDown() =>
             new NeoComposeDevicePollResult(NeoComposeDevicePollStatus.SlowDown, null, "");
+
+        public static NeoComposeDevicePollResult Retry(string message, int retryAfterSeconds = 0) =>
+            new NeoComposeDevicePollResult(
+                NeoComposeDevicePollStatus.Retry,
+                null,
+                message,
+                Math.Max(0, retryAfterSeconds));
 
         public static NeoComposeDevicePollResult Success(NeoComposeDeviceTokenSuccess token) =>
             new NeoComposeDevicePollResult(NeoComposeDevicePollStatus.Success, token, "");
@@ -133,6 +144,7 @@ namespace NeoCompose.Runtime
         TimedOut,
         Canceled,
         Failed,
+        PersistenceFailed,
     }
 
     /// <summary>
