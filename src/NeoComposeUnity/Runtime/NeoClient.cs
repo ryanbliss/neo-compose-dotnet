@@ -75,6 +75,14 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, NeoMember> nodesInternal = new();
         private readonly Dictionary<string, NeoGeneratedClassValue> generatedValuesInternal = new();
         private readonly Dictionary<string, object> animationClips = new();
+        /// <summary>
+        /// Compiled definitions, keyed exactly as <see cref="animationClips"/>
+        /// is. Kept apart from the handle dictionary because that one is typed
+        /// <c>object</c> over an open generic; this one is what
+        /// <see cref="System.IDisposable"/> has to reach.
+        /// </summary>
+        private readonly Dictionary<string, NeoAnimationDefinition> animationDefinitions =
+            new();
         private readonly HashSet<string> reportedAnimationChildSkips =
             new(System.StringComparer.Ordinal);
         private readonly HashSet<string> reportedAnimationApplySkips =
@@ -193,6 +201,11 @@ namespace NeoCompose.Runtime
                 definition.PreparePlayback,
                 definition.ApplyFrame);
             animationClips.Add(cacheKey, clip);
+            // The definition is what P48 §3.1's segment sources hang off, and
+            // they hold OnWritableValueChanged handlers. The handle has no
+            // reference to it — only its two delegates — so the cache keeps the
+            // definition beside the handle and disposes the two together.
+            animationDefinitions.Add(cacheKey, definition);
             return clip;
         }
 
@@ -258,7 +271,17 @@ namespace NeoCompose.Runtime
                 }
                 remove.Add(pair.Key);
             }
-            foreach (string key in remove) animationClips.Remove(key);
+            foreach (string key in remove)
+            {
+                animationClips.Remove(key);
+                if (animationDefinitions.TryGetValue(
+                        key,
+                        out NeoAnimationDefinition definition))
+                {
+                    animationDefinitions.Remove(key);
+                    definition.Dispose();
+                }
+            }
             foreach (INeoAnimationPlayer player in players)
             {
                 player.StopFromCoordinator();
@@ -275,8 +298,19 @@ namespace NeoCompose.Runtime
                 }
             }
             animationClips.Clear();
+            DisposeAnimationDefinitions();
             reportedAnimationChildSkips.Clear();
             reportedAnimationApplySkips.Clear();
+        }
+
+        private void DisposeAnimationDefinitions()
+        {
+            foreach (NeoAnimationDefinition definition in
+                new List<NeoAnimationDefinition>(animationDefinitions.Values))
+            {
+                definition.Dispose();
+            }
+            animationDefinitions.Clear();
         }
 
         internal static void InvalidateAllAnimationClips()
@@ -532,6 +566,7 @@ namespace NeoCompose.Runtime
             }
             animationCoordinator.Dispose();
             animationClips.Clear();
+            DisposeAnimationDefinitions();
             reportedAnimationChildSkips.Clear();
             reportedAnimationApplySkips.Clear();
             assets.Dispose();

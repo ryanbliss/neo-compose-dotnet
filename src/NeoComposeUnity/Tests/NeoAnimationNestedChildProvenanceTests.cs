@@ -20,7 +20,7 @@ namespace NeoCompose.Tests
     ///
     /// <para>The runtime already supported this: <c>ResolvePlacedChild</c> scans
     /// one node's <c>Children</c> and matches <c>sourceValueId</c> exactly, and
-    /// <c>CompileChildTracks</c> recurses into the resolved row's own graph.
+    /// <c>CompileTracks</c> recurses into the resolved row's own graph.
     /// What P44 adds is the stamp — the web and CLI materialization paths now
     /// write <c>sourceValueId</c> on every row they copy out of a class default,
     /// so the class-default ids a clip addresses finally exist on nested
@@ -421,6 +421,10 @@ namespace NeoCompose.Tests
                 id = TrackClassId,
                 projectId = ProjectId,
                 name = "Child Track",
+                // P48 §2.2 dispatches a Tracks row by its own class's world
+                // kind, so a child track has to say it is one.
+                system = Newtonsoft.Json.Linq.JObject.Parse(
+                    "{\"worldKind\":\"animationChildTrack\"}"),
                 schema = new Dictionary<string, string>
                 {
                     ["Child"] = "track-child-member",

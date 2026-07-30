@@ -164,4 +164,46 @@ namespace NeoCompose.Runtime
             }
         }
     }
+
+    /// <summary>
+    /// P48 §2.1's <c>NeoPlayDirection</c> enum option ids — the playback order
+    /// a <c>NeoAnimationTrackBase</c> row authors on its <c>Direction</c>
+    /// member. Playback order over the scheduled content, never a world
+    /// direction; the root-level call-site equivalent is
+    /// <see cref="NeoPlaybackDirection"/>.
+    ///
+    /// <para>These exact ids are pinned in the neo-compose repo at
+    /// <c>src/models/classes/world-system-classes.generated.ts</c>
+    /// (<c>WORLD_PLAY_DIRECTION_FORWARD_OPTION_ID</c> /
+    /// <c>..._REVERSE_OPTION_ID</c>), generated from
+    /// <c>system-schema/Enums/*.neo</c> — keep both sides in sync, exactly as
+    /// <see cref="NeoSpriteMaskInteractionIds"/> does.</para>
+    /// </summary>
+    public static class NeoPlayDirectionIds
+    {
+        public const string Forward = "system_2e4ca40e-f305-49c6-a91b-b99d56239ba0";
+        public const string Reverse = "system_6478d195-3905-48db-befe-d276eb5478f0";
+
+        /// <summary>
+        /// Maps one authored option id onto the runtime enum. An unset
+        /// <c>Direction</c> never reaches here — the compiler treats an absent
+        /// selection as <see cref="NeoPlaybackDirection.Forward"/>, matching
+        /// the member's authored default — so an unrecognized id is genuinely
+        /// bad data and says so.
+        /// </summary>
+        public static NeoPlaybackDirection Parse(string optionId)
+        {
+            switch (optionId)
+            {
+                case Forward:
+                    return NeoPlaybackDirection.Forward;
+                case Reverse:
+                    return NeoPlaybackDirection.Reverse;
+                default:
+                    throw new ArgumentException(
+                        $"Unrecognized NeoPlayDirection option id '{optionId}'.",
+                        nameof(optionId));
+            }
+        }
+    }
 }

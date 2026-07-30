@@ -16,10 +16,27 @@ namespace NeoCompose.Runtime
         Boomerang,
     }
 
-    public enum NeoPlayDirection
+    /// <summary>
+    /// Root-level playback order for a <see cref="NeoAnimationClip{T}"/> call
+    /// site: <c>PlayOnce</c>, <c>PlayLoop</c>, and their async / fixed-loop
+    /// siblings.
+    ///
+    /// <para>Named <c>NeoPlaybackDirection</c> rather than
+    /// <c>NeoPlayDirection</c> since P48 §2.1: that name now belongs to the
+    /// system enum a track row authors (see
+    /// <see cref="NeoPlayDirectionIds"/>), which codegen emits as an option-id
+    /// wrapper class into the project's own namespace. Generated files carry
+    /// <c>using NeoCompose.Runtime;</c>, so the nearer project type would have
+    /// shadowed this one at every call site and silently changed what
+    /// <c>clip.PlayLoop(NeoPlayMode.Repeat, NeoPlayDirection.Forward)</c>
+    /// meant. <c>Backward</c> became <c>Reverse</c> for the matching reason:
+    /// one word for one concept across the authored enum, the runtime enum,
+    /// and the spec.</para>
+    /// </summary>
+    public enum NeoPlaybackDirection
     {
         Forward,
-        Backward,
+        Reverse,
     }
 
     internal interface INeoAnimationPlayer
@@ -137,13 +154,13 @@ namespace NeoCompose.Runtime
 
         public void PlayLoop(
             NeoPlayMode mode = NeoPlayMode.Repeat,
-            NeoPlayDirection direction = NeoPlayDirection.Forward)
+            NeoPlaybackDirection direction = NeoPlaybackDirection.Forward)
         {
             Start(mode, direction, loops: -1, once: false, pendingCompletion: null);
         }
 
         public void PlayOnce(
-            NeoPlayDirection direction = NeoPlayDirection.Forward)
+            NeoPlaybackDirection direction = NeoPlaybackDirection.Forward)
         {
             Start(
                 NeoPlayMode.Repeat,
@@ -154,7 +171,7 @@ namespace NeoCompose.Runtime
         }
 
         public Task PlayOnceAsync(
-            NeoPlayDirection direction = NeoPlayDirection.Forward,
+            NeoPlaybackDirection direction = NeoPlaybackDirection.Forward,
             CancellationToken cancellationToken = default)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -172,7 +189,7 @@ namespace NeoCompose.Runtime
         public void PlayFixedLoop(
             int loopCount,
             NeoPlayMode mode = NeoPlayMode.Repeat,
-            NeoPlayDirection direction = NeoPlayDirection.Forward)
+            NeoPlaybackDirection direction = NeoPlaybackDirection.Forward)
         {
             ValidateLoopCount(loopCount);
             Start(mode, direction, loopCount, once: false, pendingCompletion: null);
@@ -181,7 +198,7 @@ namespace NeoCompose.Runtime
         public Task PlayFixedLoopAsync(
             int loopCount,
             NeoPlayMode mode = NeoPlayMode.Repeat,
-            NeoPlayDirection direction = NeoPlayDirection.Forward,
+            NeoPlaybackDirection direction = NeoPlaybackDirection.Forward,
             CancellationToken cancellationToken = default)
         {
             ValidateLoopCount(loopCount);
@@ -290,7 +307,7 @@ namespace NeoCompose.Runtime
 
         private Task StartAsync(
             NeoPlayMode mode,
-            NeoPlayDirection direction,
+            NeoPlaybackDirection direction,
             int loops,
             bool once,
             CancellationToken cancellationToken)
@@ -316,7 +333,7 @@ namespace NeoCompose.Runtime
 
         private long Start(
             NeoPlayMode mode,
-            NeoPlayDirection direction,
+            NeoPlaybackDirection direction,
             int loops,
             bool once,
             TaskCompletionSource<object?>? pendingCompletion)
@@ -325,7 +342,7 @@ namespace NeoCompose.Runtime
             {
                 throw new ArgumentOutOfRangeException(nameof(mode));
             }
-            if (!Enum.IsDefined(typeof(NeoPlayDirection), direction))
+            if (!Enum.IsDefined(typeof(NeoPlaybackDirection), direction))
             {
                 throw new ArgumentOutOfRangeException(nameof(direction));
             }
@@ -338,10 +355,10 @@ namespace NeoCompose.Runtime
             isOnce = once;
             isBoomerang = !once && mode == NeoPlayMode.Boomerang;
             loopsRemaining = loops;
-            initialStep = direction == NeoPlayDirection.Forward ? 1 : -1;
+            initialStep = direction == NeoPlaybackDirection.Forward ? 1 : -1;
             step = initialStep;
             hasTurned = false;
-            CurrentFrame = direction == NeoPlayDirection.Forward ? 0 : duration - 1;
+            CurrentFrame = direction == NeoPlaybackDirection.Forward ? 0 : duration - 1;
             IsPaused = false;
             IsPlaying = true;
             completion = pendingCompletion;
@@ -350,7 +367,7 @@ namespace NeoCompose.Runtime
             {
                 EnterFrame(
                     CurrentFrame,
-                    useResolvedState: direction == NeoPlayDirection.Backward);
+                    useResolvedState: direction == NeoPlaybackDirection.Reverse);
             }
             return generation;
         }

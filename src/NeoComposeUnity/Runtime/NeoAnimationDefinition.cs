@@ -9,12 +9,14 @@ using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
 {
-    internal sealed class NeoAnimationDefinition
+    internal sealed class NeoAnimationDefinition : IDisposable
     {
         private readonly IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> sparseWrites;
         private IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> resolvedWrites;
         private readonly IReadOnlyDictionary<int, Action[]> actions;
         private readonly Action[] prepareActions;
+        private readonly IDisposable[] disposables;
+        private bool disposed;
 
         internal NeoAnimationDefinition(
             int fps,
@@ -22,7 +24,8 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> sparseWrites,
             IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> resolvedWrites,
             IReadOnlyDictionary<int, Action[]> actions,
-            Action[] prepareActions)
+            Action[] prepareActions,
+            IDisposable[] disposables)
         {
             FPS = fps;
             Duration = duration;
@@ -30,10 +33,28 @@ namespace NeoCompose.Runtime
             this.resolvedWrites = resolvedWrites;
             this.actions = actions;
             this.prepareActions = prepareActions;
+            this.disposables = disposables;
         }
 
         internal int FPS { get; }
         internal int Duration { get; }
+
+        /// <summary>
+        /// Releases everything the compile subscribed to. Today that is one
+        /// <see cref="NeoAnimationSegmentSource"/> per segment track — each
+        /// holds a <c>NeoClient.OnWritableValueChanged</c> handler for P48
+        /// §3.1's re-resolution contract — plus every nested child clip
+        /// definition this compile built, which own theirs.
+        /// <para>Owned by the clip cache: <see cref="NeoClient"/> disposes a
+        /// definition when the handle keyed to it is released or invalidated,
+        /// which is the only lifetime the definition has.</para>
+        /// </summary>
+        public void Dispose()
+        {
+            if (disposed) return;
+            disposed = true;
+            foreach (IDisposable disposable in disposables) disposable.Dispose();
+        }
 
         internal void PreparePlayback()
         {
@@ -850,9 +871,434 @@ namespace NeoCompose.Runtime
         }
     }
 
+    /// <summary>
+    /// A half-open crop window over content frames — P48 §2.3's second stage.
+    /// <see cref="Start"/> is inclusive, <see cref="End"/> exclusive.
+    /// </summary>
+    internal readonly struct NeoAnimationCropWindow
+    {
+        internal NeoAnimationCropWindow(int start, int end)
+        {
+            Start = start;
+            End = end;
+        }
+
+        internal int Start { get; }
+        internal int End { get; }
+        internal int Length => End - Start;
+    }
+
+    /// <summary>
+    /// P48 §2.3's playback pipeline, in the four stages the spec names, shared
+    /// by both track kinds:
+    /// <code>
+    /// resolve   content = dense frames of the scheduled thing over [0, BaseDuration)
+    /// crop      window  = content[start, end)   start = OffsetStartIndex ?? 0
+    ///                                           end   = OffsetEndIndex   ?? BaseDuration
+    /// direct    play    = Direction == Forward ? window : reverse(window)
+    /// schedule  clip frame f shows play[f - StartFrame] while that index is in
+    ///           range; outside it, and past the owning clip's Duration, the
+    ///           track writes nothing
+    /// </code>
+    ///
+    /// <para>This is the .NET half of P48 acceptance 7 — the web's
+    /// <c>src/models/animation/animation-playback.ts</c> is the same arithmetic
+    /// over the same table (<c>animation-playback-parity-fixture.json</c>,
+    /// vendored here as <c>NeoAnimationPlaybackParityFixture</c>). Track kind
+    /// enters as a <b>rate</b> rather than as a discriminant:
+    /// <paramref name="contentFramesPerClipFrame"/> is 1 for a segment track,
+    /// which the owning clip's clock drives directly, and
+    /// <c>childFps / parentFps</c> for a child clip track, which keeps its own
+    /// clock. Cropping before scaling then falls out — the window is in content
+    /// frames and the rate maps a clip-frame offset into it.</para>
+    /// </summary>
+    internal static class NeoAnimationPlayback
+    {
+        /// <summary>
+        /// The one "this row contributes nothing at this frame" answer. It
+        /// deliberately covers every reason at once — before
+        /// <c>StartFrame</c>, past the window, past the clip's
+        /// <c>Duration</c>, or a window that resolved empty — because the
+        /// track's obligation is identical in all four: write nothing, and let
+        /// the target member keep whatever it last held.
+        /// </summary>
+        internal const int WritesNothing = -1;
+
+        /// <summary>
+        /// Stage 2. False when the row can never play, which is a data state
+        /// rather than an error: <c>BaseDuration</c> is resolved content, so
+        /// P48 §2.3 clamps crop bounds against it at runtime. An authored
+        /// window that is empty or inverted is rejected earlier, at
+        /// <see cref="NeoAnimationCompiler.ValidateProject"/>.
+        /// </summary>
+        internal static bool TryCropWindow(
+            int baseDuration,
+            int? offsetStartIndex,
+            int? offsetEndIndex,
+            out NeoAnimationCropWindow window)
+        {
+            int length = Math.Max(0, baseDuration);
+            int start = ClampIndex(offsetStartIndex ?? 0, length);
+            int end = ClampIndex(offsetEndIndex ?? length, length);
+            if (end <= start)
+            {
+                window = default;
+                return false;
+            }
+            window = new NeoAnimationCropWindow(start, end);
+            return true;
+        }
+
+        /// <summary>
+        /// Stages 3 and 4. The <b>content</b> index a row plays at one frame of
+        /// the owning clip, or <see cref="WritesNothing"/>.
+        /// </summary>
+        internal static int ContentIndexAtClipFrame(
+            int clipDuration,
+            int clipFrame,
+            int startFrame,
+            double contentFramesPerClipFrame,
+            NeoPlaybackDirection direction,
+            in NeoAnimationCropWindow window)
+        {
+            if (clipFrame < 0) return WritesNothing;
+            if (clipFrame >= clipDuration) return WritesNothing;
+            int offset = clipFrame - startFrame;
+            if (offset < 0) return WritesNothing;
+            int playIndex = (int)Math.Floor(offset * contentFramesPerClipFrame);
+            if (playIndex >= window.Length) return WritesNothing;
+            return direction == NeoPlaybackDirection.Forward
+                ? window.Start + playIndex
+                : window.End - 1 - playIndex;
+        }
+
+        /// <summary>
+        /// The content frame rate for a child clip track: the child's own clock
+        /// read against the parent's. Throws rather than clamping — an
+        /// unplayable clock is a document defect the author should see, not a
+        /// frame to guess at.
+        /// </summary>
+        internal static double ChildClipContentFrameRate(
+            int childFps,
+            int parentFps,
+            string label)
+        {
+            if (childFps < 1)
+            {
+                throw new InvalidOperationException(
+                    $"{label} child clip FPS must be at least 1 to schedule the clip; found {childFps}.");
+            }
+            if (parentFps < 1)
+            {
+                throw new InvalidOperationException(
+                    $"{label} parent clip FPS must be at least 1 to schedule a child clip; found {parentFps}.");
+            }
+            return childFps / (double)parentFps;
+        }
+
+        private static int ClampIndex(int value, int baseDuration)
+        {
+            return Math.Min(baseDuration, Math.Max(0, value));
+        }
+    }
+
+    /// <summary>
+    /// The deferred write source P48 §4 requires for a segment track: the
+    /// compiled definition holds the track <b>row</b>, not expanded values, and
+    /// re-reads the resolved segment whenever a write may have moved it.
+    ///
+    /// <para>P48 §3.1's contract is that the resolved segment is a function of
+    /// the instance's current state, evaluated per applied frame — "an equip
+    /// mid-animation must change the sprite on the next frame". Memoization is
+    /// legal only when invisible, so the dirty flag here is deliberately
+    /// <b>conservative</b>: any writable value change anywhere marks the source
+    /// dirty and the next applied frame re-resolves. A narrower key would have
+    /// to be the getter's read set, which the .NET evaluator does not report
+    /// (unlike the compiler that derives dialogue linked values), and a
+    /// narrower key that is wrong silently breaks the one property the whole
+    /// design leans on.</para>
+    ///
+    /// <para>What the flag still buys: a clip whose frame wrote nothing pays
+    /// nothing, and a re-resolution whose segment row is unchanged reuses the
+    /// node tree rather than rebuilding it — so an equip costs a rebuild and a
+    /// steady frame costs two member reads.</para>
+    /// </summary>
+    internal sealed class NeoAnimationSegmentSource : IDisposable
+    {
+        private readonly NeoClient client;
+        private readonly NeoMemberClass track;
+        private readonly string segmentKey;
+        private readonly string label;
+        private readonly string? trackValueId;
+        private readonly Action<NeoValueOwnership, string> writableValueChanged;
+
+        /// <summary>Non-null only when this source built the node itself.</summary>
+        private NeoMemberClass? ownedSegmentNode;
+        private NeoMemberClass? segmentNode;
+        private string? segmentRowId;
+        private MemberValue?[] contentRows = Array.Empty<MemberValue?>();
+        private bool[] contentAuthored = Array.Empty<bool>();
+        private bool dirty = true;
+        private bool disposed;
+
+        internal NeoAnimationSegmentSource(
+            NeoClient client,
+            NeoMemberClass track,
+            string segmentKey,
+            string label)
+        {
+            this.client = client;
+            this.track = track;
+            this.segmentKey = segmentKey;
+            this.label = label;
+            trackValueId = track.value?.id;
+            writableValueChanged = HandleWritableValueChanged;
+            client.OnWritableValueChanged += writableValueChanged;
+        }
+
+        /// <summary>
+        /// The resolved segment's own length in its own frames — P48 §2.1's
+        /// <c>BaseDuration</c> for a segment track. Zero when the segment
+        /// resolves to nothing (an unequipped lookup, a getter that failed, a
+        /// row that is not a segment), which makes every crop window empty and
+        /// is exactly §3.2's "the track writes nothing".
+        /// </summary>
+        internal int BaseDuration
+        {
+            get
+            {
+                EnsureResolved();
+                return contentRows.Length;
+            }
+        }
+
+        /// <summary>
+        /// The value row one content index plays. False means no segment frame
+        /// has been authored at or before that index — which is <b>not</b>
+        /// "write null": a segment whose first row sits at index 2 genuinely
+        /// has nothing to say about indices 0 and 1, while a row that authored
+        /// a null <c>Value</c> writes null (P42 §6's null-leaf rule applied to
+        /// a new writer).
+        /// </summary>
+        internal bool TryReadContent(int index, out MemberValue? row)
+        {
+            EnsureResolved();
+            if (index < 0 || index >= contentRows.Length)
+            {
+                row = null;
+                return false;
+            }
+            row = contentRows[index];
+            return contentAuthored[index];
+        }
+
+        public void Dispose()
+        {
+            if (disposed) return;
+            disposed = true;
+            client.OnWritableValueChanged -= writableValueChanged;
+            ReleaseOwnedNode();
+            segmentNode = null;
+            contentRows = Array.Empty<MemberValue?>();
+            contentAuthored = Array.Empty<bool>();
+        }
+
+        private void HandleWritableValueChanged(
+            NeoValueOwnership ownership,
+            string valueId)
+        {
+            if (disposed) return;
+            dirty = true;
+        }
+
+        private void EnsureResolved()
+        {
+            if (disposed || !dirty) return;
+            dirty = false;
+            string? rowId = ResolveSegmentRowId();
+            if (rowId is null)
+            {
+                segmentRowId = null;
+                segmentNode = null;
+                ReleaseOwnedNode();
+                contentRows = Array.Empty<MemberValue?>();
+                contentAuthored = Array.Empty<bool>();
+                return;
+            }
+            if (segmentNode is null
+                || !string.Equals(segmentRowId, rowId, StringComparison.Ordinal))
+            {
+                BindSegmentNode(rowId);
+            }
+            ReadContent();
+        }
+
+        /// <summary>
+        /// P48 §2.2's three implementation shapes, resolved to the segment
+        /// <b>row</b> each of them ends at: a stored value is the row the
+        /// schema key binds, a lookup is the row its first selected id names,
+        /// and a getter is the row its result carries a value id for. A getter
+        /// that synthesizes a record no row backs resolves to nothing —
+        /// acceptable, because a synthesized segment has no frame rows to read
+        /// either.
+        /// </summary>
+        private string? ResolveSegmentRowId()
+        {
+            if (!track.TryGet(segmentKey, out NeoMember? member)) return null;
+            switch (member)
+            {
+                case NeoMemberLookup lookup:
+                {
+                    string[] selected = lookup.Selected();
+                    if (selected.Length == 0) return null;
+                    return string.IsNullOrWhiteSpace(selected[0]) ? null : selected[0];
+                }
+                case NeoMemberNSProperty getter:
+                {
+                    if (string.IsNullOrWhiteSpace(trackValueId)) return null;
+                    NeoScript.NSGetterResult result = getter.Compute(trackValueId!);
+                    if (!result.ok)
+                    {
+                        // A getter error is absence, not a crash: §3.2 makes an
+                        // unresolvable segment silent and legal at runtime, and
+                        // throwing here would take down a clip mid-frame.
+                        if (client.ShouldReportAnimationApplySkip(
+                                $"{label}$segmentGetter"))
+                        {
+                            UnityEngine.Debug.LogWarning(
+                                $"{label} Segment getter failed, so the track writes nothing: {result.error}");
+                        }
+                        return null;
+                    }
+                    string? valueId = NeoGeneratedTypesSupport.ValueId(result.value);
+                    return string.IsNullOrWhiteSpace(valueId) ? null : valueId;
+                }
+                case NeoMemberClass stored:
+                    return stored.value?.id;
+                default:
+                    return null;
+            }
+        }
+
+        private void BindSegmentNode(string rowId)
+        {
+            ReleaseOwnedNode();
+            segmentNode = null;
+            segmentRowId = null;
+
+            // A stored Segment is already a live node on the track row. Reusing
+            // it — rather than building a second view over the same record —
+            // keeps one node per (member, value) in the client registry, which
+            // is the key RegisterNode/UnregisterNode is written against.
+            if (track.TryGet(segmentKey, out NeoMemberClass? stored)
+                && string.Equals(stored.value?.id, rowId, StringComparison.Ordinal))
+            {
+                segmentNode = stored;
+                segmentRowId = rowId;
+                return;
+            }
+
+            if (!track.TryGet(segmentKey, out NeoMember? declaration)) return;
+            if (!client.TryGetValueOwnership(rowId, out NeoValueOwnership ownership))
+            {
+                ownership = track.ownership;
+            }
+            if (!client.TryGetOverlaidValue(ownership, rowId, out MemberValue? untyped)
+                || untyped is not ObjectMemberValue row
+                || string.IsNullOrWhiteSpace(row.classId))
+            {
+                return;
+            }
+            // Synthesized so a lookup- or getter-resolved segment reads through
+            // the ordinary node machinery — generic substitution of the frame's
+            // `Value`, storage resolution, and live refresh all come for free.
+            // The id carries a suffix so this view never evicts the declaration
+            // node the track already registered under the real member id.
+            var view = new ClassMember
+            {
+                id = $"{declaration.member.id}$p48segment",
+                projectId = declaration.member.projectId,
+                name = segmentKey,
+                kind = MemberKind.Class,
+                required = true,
+                classId = row.classId!,
+            };
+            ownedSegmentNode = new NeoMemberClass(client, view, rowId, ownership);
+            segmentNode = ownedSegmentNode;
+            segmentRowId = rowId;
+        }
+
+        /// <summary>
+        /// P48 §2.3 stage 1 for a segment: sparse rows addressed by
+        /// <c>Index</c>, each held until the next authored row or the end of
+        /// <c>Duration</c>. Rows are read by <c>Index</c> rather than by list
+        /// order, and a duplicate index is not defended against — push rejects
+        /// duplicates, and silently preferring one would hide it.
+        /// </summary>
+        private void ReadContent()
+        {
+            contentRows = Array.Empty<MemberValue?>();
+            contentAuthored = Array.Empty<bool>();
+            if (segmentNode is null) return;
+            if (!segmentNode.TryGet("Duration", out NeoMemberInt? durationNode)
+                || durationNode.value?.value is not double rawDuration)
+            {
+                return;
+            }
+            int duration = Math.Max(0, (int)Math.Floor(rawDuration));
+            if (duration == 0) return;
+
+            var rows = new MemberValue?[duration];
+            var authored = new bool[duration];
+            if (segmentNode.TryGet("Frames", out NeoMemberList? frames))
+            {
+                var ordered = new List<(int index, MemberValue? row)>();
+                foreach (NeoMember item in frames)
+                {
+                    if (item is not NeoMemberClass frame) continue;
+                    if (!frame.TryGet("Index", out NeoMemberInt? indexNode)
+                        || indexNode.value?.value is not double rawIndex)
+                    {
+                        continue;
+                    }
+                    int index = (int)Math.Floor(rawIndex);
+                    if (index < 0 || index >= duration) continue;
+                    MemberValue? valueRow = null;
+                    if (frame.TryGet("Value", out NeoMember? valueNode))
+                    {
+                        valueRow = valueNode.value;
+                    }
+                    ordered.Add((index, valueRow));
+                }
+                ordered.Sort((left, right) => left.index.CompareTo(right.index));
+                foreach ((int index, MemberValue? row) in ordered)
+                {
+                    for (int position = index; position < duration; position++)
+                    {
+                        rows[position] = row;
+                        authored[position] = true;
+                    }
+                }
+            }
+            contentRows = rows;
+            contentAuthored = authored;
+        }
+
+        private void ReleaseOwnedNode()
+        {
+            if (ownedSegmentNode is null) return;
+            ownedSegmentNode.Dispose();
+            ownedSegmentNode = null;
+        }
+    }
+
     internal static class NeoAnimationCompiler
     {
         private const string AnimationClipWorldKind = "animationClip";
+        private const string AnimationChildTrackWorldKind = "animationChildTrack";
+        private const string AnimationSegmentTrackWorldKind = "animationSegmentTrack";
+        private const string AnimationSegmentWorldKind = "animationSegment";
+        private const string SegmentSchemaKey = "Segment";
 
         internal static void ValidateProject(NeoClient client)
         {
@@ -983,69 +1429,15 @@ namespace NeoCompose.Runtime
                         if (item is not NeoMemberClass track)
                         {
                             throw new InvalidOperationException(
-                                $"Animation clip '{clipKey}' contains a non-Class child track row.");
+                                $"Animation clip '{clipKey}' contains a non-Class track row.");
                         }
-                        string childId = ReadRequiredLookupId(
-                            track,
-                            "Child",
-                            clipKey,
-                            frameIndex: null);
-                        string childClipKey = ReadRequiredString(track, "ClipKey", clipKey);
-                        int startFrame = ReadRequiredInt(track, "StartFrame", clipKey);
-                        if (startFrame < 0)
-                        {
-                            throw new InvalidOperationException(
-                                $"Animation clip '{clipKey}' child track '{childClipKey}' StartFrame must be non-negative; found {startFrame}.");
-                        }
-                        if (client.ResolveEffectiveRow(childId) is not ObjectMemberValue child
-                            || string.IsNullOrWhiteSpace(child.classId)
-                            || !client.TryGetClass(child.classId!, out NeoSchemaClass? childClass))
-                        {
-                            throw new InvalidOperationException(
-                                $"Animation clip '{clipKey}' child track '{childClipKey}' references missing child '{childId}'.");
-                        }
-                        ClassMember? childClipMember = null;
-                        IReadOnlyDictionary<string, NeoGenericEnvEntry> childEnv =
-                            NeoGenericResolution.ResolveEnv(client, childClass.id);
-                        foreach (MergedSchemaEntry entry in
-                            client.ResolveInstanceSurfaceSchema(childClass.id))
-                        {
-                            if (!string.Equals(entry.schemaKey, childClipKey, StringComparison.Ordinal))
-                            {
-                                continue;
-                            }
-                            if (client.TryGetMember(entry.memberId, out Member? childRawMember))
-                            {
-                                childClipMember = NeoGenericResolution.SubstituteMember(
-                                    client,
-                                    childRawMember,
-                                    childEnv) as ClassMember;
-                            }
-                            break;
-                        }
-                        if (childClipMember is null
-                            || !string.Equals(
-                                ResolveWorldKind(client, childClipMember.classId),
-                                AnimationClipWorldKind,
-                                StringComparison.Ordinal))
-                        {
-                            throw new InvalidOperationException(
-                                $"Animation clip '{clipKey}' child track '{childClipKey}' does not resolve to an animation clip on child class '{childClass.name}'.");
-                        }
-                        (int childFps, int childDuration) = ValidateExportClip(
+                        ValidateExportTrack(
                             client,
-                            childClass,
-                            childClipKey,
-                            childClipMember,
+                            track,
+                            clipKey,
+                            duration,
                             validated,
                             stack);
-                        int parentFrameLength = checked((int)Math.Ceiling(
-                            childDuration * (double)fps / childFps));
-                        if (startFrame + parentFrameLength > duration)
-                        {
-                            throw new InvalidOperationException(
-                                $"Animation clip '{clipKey}' child track '{childClipKey}' ends at parent frame {startFrame + parentFrameLength}, past Duration {duration}.");
-                        }
                     }
                 }
                 return (fps, duration);
@@ -1053,6 +1445,189 @@ namespace NeoCompose.Runtime
             finally
             {
                 stack.Remove(validationKey);
+            }
+        }
+
+        /// <summary>
+        /// Load-time validation of one <c>Tracks</c> row, dispatched by the
+        /// row's own class (P48 §2.2). Mirrors the web's
+        /// <c>AnimationValidationContext.validateTracks</c>, message for
+        /// message, so an author sees the same diagnostic from a push and from
+        /// a client load.
+        ///
+        /// <para>P48 §2.3 <b>deletes</b> P29's fit error: content that runs
+        /// past the owning clip's end truncates, because clipping is what a
+        /// clip does, and the compositions that error forbade (the two-row
+        /// yoyo) are exactly the ones the crop window exists to express. What
+        /// survives is a row that can never play at all — a <c>StartFrame</c>
+        /// outside the clip, or a crop window the author wrote empty or
+        /// inverted. Crop bounds against the <i>resolved</i> content are
+        /// runtime-clamped instead, since a lookup-backed segment's length is
+        /// instance data this pass does not have.</para>
+        /// </summary>
+        private static void ValidateExportTrack(
+            NeoClient client,
+            NeoMemberClass track,
+            string clipKey,
+            int duration,
+            HashSet<string> validated,
+            HashSet<string> stack)
+        {
+            NeoAnimationTrackKind kind = ResolveTrackKind(track);
+            string label = kind == NeoAnimationTrackKind.Segment
+                ? $"Animation clip '{clipKey}' segment track '{track.value?.id ?? "<unmaterialized>"}'"
+                : $"Animation clip '{clipKey}' child track '{track.value?.id ?? "<unmaterialized>"}'";
+            if (kind == NeoAnimationTrackKind.Unknown)
+            {
+                throw new InvalidOperationException(
+                    $"Animation clip '{clipKey}' track row '{track.value?.id ?? "<unmaterialized>"}' has class '{TrackClassName(client, track)}', which is neither a child clip track nor a segment track.");
+            }
+
+            string childId = ReadRequiredLookupId(track, "Child", clipKey, frameIndex: null);
+            if (client.ResolveEffectiveRow(childId) is not ObjectMemberValue child
+                || string.IsNullOrWhiteSpace(child.classId)
+                || !client.TryGetClass(child.classId!, out NeoSchemaClass? childClass))
+            {
+                throw new InvalidOperationException(
+                    $"{label} references missing child '{childId}'.");
+            }
+
+            int startFrame = ReadRequiredInt(track, "StartFrame", clipKey);
+            if (startFrame < 0)
+            {
+                throw new InvalidOperationException(
+                    $"{label} StartFrame {startFrame} is negative.");
+            }
+            if (startFrame >= duration)
+            {
+                throw new InvalidOperationException(
+                    $"{label} StartFrame {startFrame} is at or past the owning clip's Duration {duration}, so the row can never play.");
+            }
+            ReadTrackDirection(track, label);
+            ReadTrackCropWindow(track, label);
+
+            if (kind == NeoAnimationTrackKind.Segment)
+            {
+                ValidateExportSegmentTrack(client, track, childClass, label);
+                return;
+            }
+
+            string childClipKey = ReadRequiredString(track, "ClipKey", clipKey);
+            ClassMember? childClipMember = null;
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> childEnv =
+                NeoGenericResolution.ResolveEnv(client, childClass.id);
+            foreach (MergedSchemaEntry entry in
+                client.ResolveInstanceSurfaceSchema(childClass.id))
+            {
+                if (!string.Equals(entry.schemaKey, childClipKey, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                if (client.TryGetMember(entry.memberId, out Member? childRawMember))
+                {
+                    childClipMember = NeoGenericResolution.SubstituteMember(
+                        client,
+                        childRawMember,
+                        childEnv) as ClassMember;
+                }
+                break;
+            }
+            if (childClipMember is null
+                || !string.Equals(
+                    ResolveWorldKind(client, childClipMember.classId),
+                    AnimationClipWorldKind,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"{label} ClipKey '{childClipKey}' does not resolve to an animation clip on child class '{childClass.name}'.");
+            }
+            // Recurses for the child's own frames, tracks, and clock. Its
+            // length is deliberately NOT fitted against this clip's Duration
+            // any more — see the summary above.
+            ValidateExportClip(
+                client,
+                childClass,
+                childClipKey,
+                childClipMember,
+                validated,
+                stack);
+        }
+
+        /// <summary>
+        /// P48 §7's target rule, as much of it as this runtime can answer: the
+        /// concrete track class must name a target member, that member must
+        /// exist on the played child's class, and the abstract <c>Segment</c>
+        /// declaration must be implemented by something the player can read.
+        ///
+        /// <para>The generic-binding half of the web's rule (the target's kind
+        /// equals the bound <c>TValue</c>, and the child descends from the
+        /// bound <c>TChild</c>) stays at push: those are statements about the
+        /// class declaration, which push validates against the whole document
+        /// and which the SDK receives already-checked. What the SDK adds is the
+        /// instance half push cannot see — the child this row actually
+        /// names.</para>
+        /// </summary>
+        private static void ValidateExportSegmentTrack(
+            NeoClient client,
+            NeoMemberClass track,
+            NeoSchemaClass childClass,
+            string label)
+        {
+            string trackClassName = TrackClassName(client, track);
+            string? targetMemberId = ResolveTargetMemberId(client, TrackClassId(track));
+            if (targetMemberId is null)
+            {
+                throw new InvalidOperationException(
+                    $"{label} class '{trackClassName}' declares no target member, so it has nothing to write.");
+            }
+            MergedSchemaEntry? targetEntry = null;
+            foreach (MergedSchemaEntry entry in
+                client.ResolveInstanceSurfaceSchema(childClass.id))
+            {
+                if (MemberDescendsFrom(client, entry.memberId, targetMemberId))
+                {
+                    targetEntry = entry;
+                    break;
+                }
+            }
+            if (targetEntry is null)
+            {
+                throw new InvalidOperationException(
+                    $"{label} class '{trackClassName}' targets member '{targetMemberId}', which '{childClass.name}' does not declare.");
+            }
+            if (!client.TryGetMember(targetEntry.memberId, out Member? targetMember))
+            {
+                throw new InvalidOperationException(
+                    $"{label} target member '{targetEntry.memberId}' is not in this project.");
+            }
+            if (!track.TryGet(SegmentSchemaKey, out NeoMember? segment))
+            {
+                throw new InvalidOperationException(
+                    $"{label} class '{trackClassName}' does not implement the abstract Segment member, so nothing resolves to play.");
+            }
+            if (segment is not (NeoMemberClass or NeoMemberLookup or NeoMemberNSProperty))
+            {
+                throw new InvalidOperationException(
+                    $"{label} implements Segment as a {segment.member.kind} member; P48 §2.2 accepts a stored value, a lookup, or a getter.");
+            }
+            // A stored or lookup implementation names a class the runtime can
+            // check; a getter's return type is checked at push, where the
+            // NeoScript type checker is.
+            if (segment is NeoMemberClass storedSegment
+                && !ClassInheritsWorldKind(
+                    client,
+                    storedSegment.value?.classId ?? storedSegment.member.classId,
+                    AnimationSegmentWorldKind))
+            {
+                throw new InvalidOperationException(
+                    $"{label} implements Segment with a value whose class is not an animation segment.");
+            }
+            if (targetMember.kind == MemberKind.Class
+                || targetMember.kind == MemberKind.List
+                || targetMember.kind == MemberKind.Dictionary)
+            {
+                throw new InvalidOperationException(
+                    $"{label} targets '{childClass.name}.{targetEntry.schemaKey}' of kind {targetMember.kind}, which is a container rather than a value a segment frame can write.");
             }
         }
 
@@ -1468,6 +2043,7 @@ namespace NeoCompose.Runtime
                 var sparseByIndex = new Dictionary<int, List<NeoAnimationCompiledWrite>>();
                 var actionsByIndex = new Dictionary<int, Action[]>();
                 var prepareActions = new List<Action>();
+                var disposables = new List<IDisposable>();
                 var seenFrames = new HashSet<int>();
                 if (clipNode.TryGet("Frames", out NeoMemberList? frames))
                 {
@@ -1522,17 +2098,29 @@ namespace NeoCompose.Runtime
                         }
                     }
                 }
-                if (clipNode.TryGet("Tracks", out NeoMemberList? tracks))
+                try
                 {
-                    CompileChildTracks(
-                        target,
-                        tracks,
-                        fps,
-                        duration,
-                        actionsByIndex,
-                        prepareActions,
-                        schemaKey,
-                        compileStack);
+                    if (clipNode.TryGet("Tracks", out NeoMemberList? tracks))
+                    {
+                        CompileTracks(
+                            target,
+                            tracks,
+                            fps,
+                            duration,
+                            actionsByIndex,
+                            prepareActions,
+                            disposables,
+                            schemaKey,
+                            compileStack);
+                    }
+                }
+                catch
+                {
+                    // A track that throws half-way through the list leaves the
+                    // earlier tracks' subscriptions with no definition to own
+                    // them; nothing else will ever dispose them.
+                    foreach (IDisposable disposable in disposables) disposable.Dispose();
+                    throw;
                 }
 
                 var sparse = new Dictionary<int, NeoAnimationCompiledWrite[]>();
@@ -1546,7 +2134,8 @@ namespace NeoCompose.Runtime
                     sparse,
                     resolved,
                     actionsByIndex,
-                    prepareActions.ToArray());
+                    prepareActions.ToArray(),
+                    disposables.ToArray());
             }
             finally
             {
@@ -1822,13 +2411,32 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static void CompileChildTracks(
+        /// <summary>
+        /// P48 §2.2 / §4 — <c>NeoAnimationClip.Tracks</c> holds
+        /// <c>NeoAnimationTrackBase</c> rows, so a row's kind is a property of
+        /// the row rather than of the list. Everything the base declares
+        /// (<c>Child</c>, <c>StartFrame</c>, <c>Direction</c>, the crop window)
+        /// is read once here; the per-kind compiles below see an already-read
+        /// schedule.
+        ///
+        /// <para>Both kinds compile into the <b>same</b> per-frame action
+        /// stream, appended while iterating <c>Tracks</c> in list order, so
+        /// §2.3's "if two rows write the same member at the same frame, apply
+        /// order is <c>Tracks</c> list order, last write wins" falls out of
+        /// execution order rather than needing a rule of its own. And because
+        /// <see cref="NeoAnimationDefinition.ApplyFrame"/> runs all writes then
+        /// all actions, a track always applies after the owning frame's own
+        /// overrides — which is exactly the web's
+        /// <c>resolveAnimationClipContent</c> fold.</para>
+        /// </summary>
+        private static void CompileTracks(
             NeoGeneratedClassValue target,
             NeoMemberList tracks,
             int parentFps,
             int parentDuration,
             Dictionary<int, Action[]> actionsByIndex,
             List<Action> prepareActions,
+            List<IDisposable> disposables,
             string clipKey,
             HashSet<string> compileStack)
         {
@@ -1837,82 +2445,316 @@ namespace NeoCompose.Runtime
                 if (item is not NeoMemberClass track)
                 {
                     throw new InvalidOperationException(
-                        $"Animation clip '{clipKey}' contains a non-Class child track row.");
+                        $"Animation clip '{clipKey}' contains a non-Class track row.");
                 }
+                NeoAnimationTrackKind kind = ResolveTrackKind(track);
+                string label = kind == NeoAnimationTrackKind.Segment
+                    ? $"Animation clip '{clipKey}' segment track '{track.value?.id ?? "<unmaterialized>"}'"
+                    : $"Animation clip '{clipKey}' child track '{track.value?.id ?? "<unmaterialized>"}'";
+                if (kind == NeoAnimationTrackKind.Unknown)
+                {
+                    throw new InvalidOperationException(
+                        $"Animation clip '{clipKey}' track row '{track.value?.id ?? "<unmaterialized>"}' is neither a child clip track nor a segment track.");
+                }
+                // Read before the absent-slot skip below so the P44 warning
+                // still names the clip a child track was going to play; a
+                // child-track row that cannot state its ClipKey is malformed
+                // whether or not the slot exists.
+                string? childClipKey = kind == NeoAnimationTrackKind.ChildClip
+                    ? ReadRequiredString(track, "ClipKey", clipKey)
+                    : null;
+                string usage = kind == NeoAnimationTrackKind.Segment
+                    ? $"segment track '{track.value?.id ?? "<unmaterialized>"}'"
+                    : $"child track '{childClipKey}'";
+
                 string sourceChildId = ReadRequiredLookupId(
                     track,
                     "Child",
                     clipKey,
                     frameIndex: null);
-                string childClipKey = ReadRequiredString(track, "ClipKey", clipKey);
-                int startFrame = ReadRequiredInt(track, "StartFrame", clipKey);
-                if (startFrame < 0)
-                {
-                    throw new InvalidOperationException(
-                        $"Animation clip '{clipKey}' child track '{childClipKey}' StartFrame must be non-negative; found {startFrame}.");
-                }
                 NeoMemberClass? placedChild = ResolvePlacedChild(
                     target.Client,
                     target.BackingNode,
                     sourceChildId,
                     clipKey,
-                    $"child track '{childClipKey}'");
+                    usage);
                 if (placedChild is null)
                 {
-                    // Absent slot. Skipping before the fit check below is what
-                    // excludes this track from `StartFrame + childLength <=
-                    // Duration`: there is no child clip to fit. Every other
-                    // track on this clip still compiles and plays.
+                    // P48 §3.2's missing-child case, which is P44's absent slot
+                    // unchanged: skip this one reference. Every other track on
+                    // this clip still compiles and plays.
+                    //
+                    // Skipping BEFORE the schedule checks below is deliberate,
+                    // and is where P29 put its fit check: an absent slot has no
+                    // playback to be wrong about, and failing the whole clip
+                    // over a row this instance never plays would make an
+                    // optional slot a liability. The authored graph is still
+                    // checked strictly, once, by ValidateExportClip at load.
                     continue;
                 }
                 if (string.IsNullOrWhiteSpace(placedChild.value?.id))
                 {
-                    throw MissingPlacementGraph(clipKey, $"child track '{childClipKey}'");
+                    throw MissingPlacementGraph(clipKey, usage);
                 }
-                NeoGeneratedClassValue? childTarget =
-                    target.Client.ResolveRegisteredGeneratedClassValue(placedChild.value!.id);
-                if (childTarget is null)
+
+                int startFrame = ReadRequiredInt(track, "StartFrame", clipKey);
+                if (startFrame < 0)
                 {
                     throw new InvalidOperationException(
-                        $"Animation clip '{clipKey}' child track '{childClipKey}' cannot create a generated wrapper for placed child '{placedChild.value.id}'. Regenerate the project's C# types.");
+                        $"{label} StartFrame {startFrame} is negative.");
                 }
-                NeoAnimationDefinition childDefinition = Compile(
-                    childTarget,
-                    childClipKey,
-                    compileStack);
-                int parentFrameLength = checked((int)Math.Ceiling(
-                    childDefinition.Duration * (double)parentFps / childDefinition.FPS));
-                if (startFrame + parentFrameLength > parentDuration)
+                if (startFrame >= parentDuration)
                 {
                     throw new InvalidOperationException(
-                        $"Animation clip '{clipKey}' child track '{childClipKey}' ends at parent frame {startFrame + parentFrameLength}, past Duration {parentDuration}.");
+                        $"{label} StartFrame {startFrame} is at or past the owning clip's Duration {parentDuration}, so the row can never play.");
                 }
-                int lastAppliedChildFrame = -1;
-                prepareActions.Add(() =>
+                NeoPlaybackDirection direction = ReadTrackDirection(track, label);
+                (int? offsetStart, int? offsetEnd) = ReadTrackCropWindow(track, label);
+
+                if (kind == NeoAnimationTrackKind.Segment)
                 {
-                    lastAppliedChildFrame = -1;
-                    childDefinition.PreparePlayback();
-                });
-                for (int parentFrame = startFrame; parentFrame < parentDuration; parentFrame++)
-                {
-                    int elapsed = parentFrame - startFrame;
-                    int childFrame = Math.Min(
-                        childDefinition.Duration - 1,
-                        (int)Math.Floor(elapsed * (double)childDefinition.FPS / parentFps));
-                    int capturedChildFrame = childFrame;
-                    AddFrameAction(
+                    CompileSegmentTrack(
+                        target.Client,
+                        track,
+                        placedChild,
+                        startFrame,
+                        direction,
+                        offsetStart,
+                        offsetEnd,
+                        parentDuration,
                         actionsByIndex,
-                        parentFrame,
-                        () =>
+                        disposables,
+                        label);
+                    continue;
+                }
+
+                CompileChildClipTrack(
+                    target,
+                    childClipKey!,
+                    placedChild,
+                    startFrame,
+                    direction,
+                    offsetStart,
+                    offsetEnd,
+                    parentFps,
+                    parentDuration,
+                    actionsByIndex,
+                    prepareActions,
+                    disposables,
+                    label,
+                    compileStack);
+            }
+        }
+
+        /// <summary>
+        /// P29's child clip track, now under P48 §2.1's authored playback: the
+        /// crop window applies in the <b>child's</b> frame space before the
+        /// existing fps scaling, and <c>Reverse</c> maps
+        /// <c>t → (D − 1) − t</c> over the child's <b>resolved</b> timeline.
+        /// Nested content follows for free — the child is applied through
+        /// <c>ApplyFrame(..., useResolvedState: true)</c>, whose resolved
+        /// frames already carry the hold rule and whose actions already carry
+        /// the child's own tracks, so reversing the index re-reads a timeline
+        /// that is a function of the frame rather than a sequence.
+        ///
+        /// <para>P29's fit error is gone: content past the owning clip's
+        /// <c>Duration</c> truncates silently, which is what the loop bound and
+        /// the window exhaustion below already do.</para>
+        /// </summary>
+        private static void CompileChildClipTrack(
+            NeoGeneratedClassValue target,
+            string childClipKey,
+            NeoMemberClass placedChild,
+            int startFrame,
+            NeoPlaybackDirection direction,
+            int? offsetStart,
+            int? offsetEnd,
+            int parentFps,
+            int parentDuration,
+            Dictionary<int, Action[]> actionsByIndex,
+            List<Action> prepareActions,
+            List<IDisposable> disposables,
+            string label,
+            HashSet<string> compileStack)
+        {
+            NeoGeneratedClassValue? childTarget =
+                target.Client.ResolveRegisteredGeneratedClassValue(placedChild.value!.id);
+            if (childTarget is null)
+            {
+                throw new InvalidOperationException(
+                    $"{label} ClipKey '{childClipKey}' cannot create a generated wrapper for placed child '{placedChild.value.id}'. Regenerate the project's C# types.");
+            }
+            NeoAnimationDefinition childDefinition = Compile(
+                childTarget,
+                childClipKey,
+                compileStack);
+            disposables.Add(childDefinition);
+
+            int lastAppliedChildFrame = -1;
+            prepareActions.Add(() =>
+            {
+                lastAppliedChildFrame = -1;
+                childDefinition.PreparePlayback();
+            });
+
+            if (!NeoAnimationPlayback.TryCropWindow(
+                    childDefinition.Duration,
+                    offsetStart,
+                    offsetEnd,
+                    out NeoAnimationCropWindow window))
+            {
+                // A window the resolved content cannot fill. Runtime-clamped
+                // rather than rejected (P48 §2.3) — the track simply schedules
+                // nothing, and the target member keeps its last value.
+                return;
+            }
+            double rate = NeoAnimationPlayback.ChildClipContentFrameRate(
+                childDefinition.FPS,
+                parentFps,
+                label);
+            for (int parentFrame = startFrame; parentFrame < parentDuration; parentFrame++)
+            {
+                int childFrame = NeoAnimationPlayback.ContentIndexAtClipFrame(
+                    parentDuration,
+                    parentFrame,
+                    startFrame,
+                    rate,
+                    direction,
+                    window);
+                if (childFrame == NeoAnimationPlayback.WritesNothing) break;
+                int capturedChildFrame = childFrame;
+                AddFrameAction(
+                    actionsByIndex,
+                    parentFrame,
+                    () =>
+                    {
+                        // Dedupe when the parent's clock outruns the child's:
+                        // re-applying an unchanged child frame writes the same
+                        // rows again for nothing.
+                        if (capturedChildFrame == lastAppliedChildFrame) return;
+                        lastAppliedChildFrame = capturedChildFrame;
+                        childDefinition.ApplyFrame(
+                            capturedChildFrame,
+                            useResolvedState: true);
+                    });
+            }
+        }
+
+        /// <summary>
+        /// P48 §2.2's segment track: a leaf that writes one member of one child
+        /// directly off the owning clip's clock, one content frame per clip
+        /// frame.
+        ///
+        /// <para>Everything about the <b>content</b> is deferred to apply time
+        /// (§3.1) — <c>BaseDuration</c> is the resolved segment's
+        /// <c>Duration</c>, which a lookup-backed segment changes on equip — so
+        /// unlike the child clip track above, the crop window cannot be
+        /// computed here. What <i>is</i> compile-time is the write itself: the
+        /// child's writable node and the target schema key are resolved once,
+        /// exactly as <see cref="NeoAnimationCompiledWrite"/> does, so the
+        /// per-frame cost is one member read and one SetValue.</para>
+        /// </summary>
+        private static void CompileSegmentTrack(
+            NeoClient client,
+            NeoMemberClass track,
+            NeoMemberClass placedChild,
+            int startFrame,
+            NeoPlaybackDirection direction,
+            int? offsetStart,
+            int? offsetEnd,
+            int parentDuration,
+            Dictionary<int, Action[]> actionsByIndex,
+            List<IDisposable> disposables,
+            string label)
+        {
+            string targetSchemaKey = ResolveSegmentTrackTargetKey(
+                client,
+                track,
+                placedChild,
+                label);
+            var source = new NeoAnimationSegmentSource(
+                client,
+                track,
+                SegmentSchemaKey,
+                label);
+            disposables.Add(source);
+            NeoMemberClassWritable childWritable = placedChild.AsWritableView();
+
+            for (int parentFrame = startFrame; parentFrame < parentDuration; parentFrame++)
+            {
+                int capturedFrame = parentFrame;
+                AddFrameAction(
+                    actionsByIndex,
+                    parentFrame,
+                    () =>
+                    {
+                        if (childWritable.value is null) return;
+                        if (!NeoAnimationPlayback.TryCropWindow(
+                                source.BaseDuration,
+                                offsetStart,
+                                offsetEnd,
+                                out NeoAnimationCropWindow window))
                         {
-                            if (capturedChildFrame == lastAppliedChildFrame) return;
-                            lastAppliedChildFrame = capturedChildFrame;
-                            childDefinition.ApplyFrame(
-                                capturedChildFrame,
-                                useResolvedState: true);
-                        });
+                            return;
+                        }
+                        int index = NeoAnimationPlayback.ContentIndexAtClipFrame(
+                            parentDuration,
+                            capturedFrame,
+                            startFrame,
+                            contentFramesPerClipFrame: 1d,
+                            direction,
+                            window);
+                        if (index == NeoAnimationPlayback.WritesNothing) return;
+                        if (!source.TryReadContent(index, out MemberValue? row)) return;
+                        // A frame that authored an Index but bound no Value row
+                        // has nothing to say, which is §3.2's "writes nothing"
+                        // reached one more way. An EXPLICIT null value is a
+                        // different row and still writes — P42 §6's null leaf.
+                        if (row is null) return;
+                        NeoGeneratedTypesSupport.SetValue(
+                            childWritable,
+                            targetSchemaKey,
+                            Payload(row));
+                    });
+            }
+        }
+
+        /// <summary>
+        /// The schema key on the played child that this track's class names
+        /// with <c>@settings(target:)</c>. Resolved through the class's
+        /// <c>extendsClassId</c> chain (a project's own subclass inherits the
+        /// target rather than restating it) and matched against the child's
+        /// merged schema through each entry's <c>extendsMemberId</c> chain, so
+        /// a child that overrides the targeted member still resolves.
+        /// </summary>
+        private static string ResolveSegmentTrackTargetKey(
+            NeoClient client,
+            NeoMemberClass track,
+            NeoMemberClass placedChild,
+            string label)
+        {
+            string? targetMemberId = ResolveTargetMemberId(client, TrackClassId(track));
+            if (targetMemberId is null)
+            {
+                throw new InvalidOperationException(
+                    $"{label} class '{TrackClassName(client, track)}' declares no target member, so it has nothing to write.");
+            }
+            string? childClassId = placedChild.value?.classId;
+            if (string.IsNullOrWhiteSpace(childClassId))
+            {
+                throw new InvalidOperationException(
+                    $"{label} plays against a child row with no class, so its target member cannot be resolved.");
+            }
+            foreach (MergedSchemaEntry entry in
+                client.ResolveInstanceSurfaceSchema(childClassId!))
+            {
+                if (MemberDescendsFrom(client, entry.memberId, targetMemberId))
+                {
+                    return entry.schemaKey;
                 }
             }
+            throw new InvalidOperationException(
+                $"{label} targets member '{targetMemberId}', which the played child's class '{childClassId}' does not declare.");
         }
 
         /// <summary>
@@ -2333,6 +3175,199 @@ namespace NeoCompose.Runtime
                     $"Animation clip '{clipKey}' Int member '{key}' must be an integer; found {raw}.");
             }
             return checked((int)raw);
+        }
+
+        /// <summary>
+        /// The concrete kind of one <c>Tracks</c> row. Dispatching on the row
+        /// rather than on the list is the whole point of P48 §2.1's base class;
+        /// a row that is neither shipped kind is named rather than reported as
+        /// "not a child track", which was true of every segment track too.
+        /// </summary>
+        private enum NeoAnimationTrackKind
+        {
+            Unknown = 0,
+            ChildClip,
+            Segment,
+        }
+
+        private static NeoAnimationTrackKind ResolveTrackKind(NeoMemberClass track)
+        {
+            foreach (NeoSchemaClass schemaClass in track.inheritanceChain)
+            {
+                string? worldKind = schemaClass.system?["worldKind"]?.ToString();
+                if (string.Equals(
+                        worldKind,
+                        AnimationChildTrackWorldKind,
+                        StringComparison.Ordinal))
+                {
+                    return NeoAnimationTrackKind.ChildClip;
+                }
+                if (string.Equals(
+                        worldKind,
+                        AnimationSegmentTrackWorldKind,
+                        StringComparison.Ordinal))
+                {
+                    return NeoAnimationTrackKind.Segment;
+                }
+            }
+            return NeoAnimationTrackKind.Unknown;
+        }
+
+        private static string TrackClassId(NeoMemberClass track)
+        {
+            if (track.inheritanceChain.Count > 0) return track.inheritanceChain[0].id;
+            return track.value?.classId ?? track.member.classId;
+        }
+
+        private static string TrackClassName(NeoClient client, NeoMemberClass track)
+        {
+            string classId = TrackClassId(track);
+            return client.TryGetClass(classId, out NeoSchemaClass? schemaClass)
+                ? schemaClass.name
+                : classId;
+        }
+
+        /// <summary>
+        /// P48 §2.1's <c>Direction</c>. An unset selection reads as
+        /// <see cref="NeoPlaybackDirection.Forward"/>, matching the member's
+        /// authored default; anything else than exactly one known option id is
+        /// bad data and says so.
+        /// </summary>
+        private static NeoPlaybackDirection ReadTrackDirection(
+            NeoMemberClass track,
+            string label)
+        {
+            if (!track.TryGet("Direction", out NeoMemberEnum? direction))
+            {
+                return NeoPlaybackDirection.Forward;
+            }
+            string[] selected = direction.Selected();
+            if (selected.Length == 0) return NeoPlaybackDirection.Forward;
+            if (selected.Length != 1
+                || (selected[0] != NeoPlayDirectionIds.Forward
+                    && selected[0] != NeoPlayDirectionIds.Reverse))
+            {
+                throw new InvalidOperationException(
+                    $"{label} Direction must be exactly one NeoPlayDirection option.");
+            }
+            return NeoPlayDirectionIds.Parse(selected[0]);
+        }
+
+        /// <summary>
+        /// P48 §2.1's crop window, in content frames. Both offsets are
+        /// optional: a null start means "from the content's start" and a null
+        /// end means "to the content's end", which is the reading that keeps
+        /// playing the whole thing when a longer cosmetic is equipped.
+        /// </summary>
+        private static (int? start, int? end) ReadTrackCropWindow(
+            NeoMemberClass track,
+            string label)
+        {
+            int? start = ReadOptionalInt(track, "OffsetStartIndex", label);
+            int? end = ReadOptionalInt(track, "OffsetEndIndex", label);
+            if (start.HasValue && start.Value < 0)
+            {
+                throw new InvalidOperationException(
+                    $"{label} OffsetStartIndex {start.Value} is negative.");
+            }
+            if (end.HasValue && end.Value < 1)
+            {
+                throw new InvalidOperationException(
+                    $"{label} OffsetEndIndex {end.Value} must be at least 1; a window has to contain a frame.");
+            }
+            if (start.HasValue && end.HasValue && end.Value <= start.Value)
+            {
+                throw new InvalidOperationException(
+                    $"{label} crop window [{start.Value}, {end.Value}) is empty or inverted, so the row can never play.");
+            }
+            return (start, end);
+        }
+
+        private static int? ReadOptionalInt(
+            NeoMemberClass node,
+            string key,
+            string label)
+        {
+            if (!node.TryGet(key, out NeoMemberInt? value)) return null;
+            if (value.value?.value is not double raw) return null;
+            if (raw != Math.Truncate(raw))
+            {
+                throw new InvalidOperationException(
+                    $"{label} Int member '{key}' must be an integer; found {raw}.");
+            }
+            return checked((int)raw);
+        }
+
+        /// <summary>
+        /// The <c>@settings(target:)</c> member a track class or one of its
+        /// bases names (P48 §2.2). Class-level metadata, so it resolves through
+        /// <c>extendsClassId</c> — a project's own subclass of
+        /// <c>NeoSpriteAnimationSegmentTrack</c> inherits the target.
+        /// </summary>
+        private static string? ResolveTargetMemberId(NeoClient client, string classId)
+        {
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            string? cursor = classId;
+            while (!string.IsNullOrWhiteSpace(cursor) && visited.Add(cursor!))
+            {
+                if (!client.TryGetClass(cursor!, out NeoSchemaClass? schemaClass)) return null;
+                if (!string.IsNullOrWhiteSpace(schemaClass.targetMemberId))
+                {
+                    return schemaClass.targetMemberId;
+                }
+                cursor = schemaClass.extendsClassId;
+            }
+            return null;
+        }
+
+        private static bool MemberDescendsFrom(
+            NeoClient client,
+            string memberId,
+            string ancestorMemberId)
+        {
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            string? cursor = memberId;
+            while (!string.IsNullOrWhiteSpace(cursor) && visited.Add(cursor!))
+            {
+                if (string.Equals(cursor, ancestorMemberId, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+                if (!client.TryGetMember(cursor!, out Member? member)) return false;
+                cursor = member.extendsMemberId;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Whether a class or any of its ancestors declares
+        /// <paramref name="worldKind"/> as its own world kind. Different
+        /// question from <see cref="ResolveWorldKind"/>, which answers "the
+        /// nearest world kind": a project subclass of
+        /// <c>NeoSpriteAnimationSegmentTrack</c> resolves
+        /// <c>spriteAnimationSegmentTrack</c> and still <b>is</b> a segment
+        /// track.
+        /// </summary>
+        private static bool ClassInheritsWorldKind(
+            NeoClient client,
+            string? classId,
+            string worldKind)
+        {
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            string? cursor = classId;
+            while (!string.IsNullOrWhiteSpace(cursor) && visited.Add(cursor!))
+            {
+                if (!client.TryGetClass(cursor!, out NeoSchemaClass? schemaClass)) return false;
+                if (string.Equals(
+                        schemaClass.system?["worldKind"]?.ToString(),
+                        worldKind,
+                        StringComparison.Ordinal))
+                {
+                    return true;
+                }
+                cursor = schemaClass.extendsClassId;
+            }
+            return false;
         }
 
         private static string? ResolveWorldKind(NeoClient client, string classId)
