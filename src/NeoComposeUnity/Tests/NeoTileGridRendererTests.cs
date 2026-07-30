@@ -27,7 +27,7 @@ namespace NeoCompose.Tests
         private const string ObjectClassId = "object-class";
         /// <summary>
         /// The real system enum id (P48 §2.1). Pinned rather than synthesized
-        /// because <see cref="NeoPlayDirectionIds"/> pins the option ids, and a
+        /// because <see cref="NeoPlayDirection"/> pins the option ids, and a
         /// fixture that invented its own would test the fixture.
         /// </summary>
         private const string PlayDirectionEnumId =
@@ -1049,7 +1049,7 @@ namespace NeoCompose.Tests
 
             clip.PlayLoop(
                 NeoPlayMode.Boomerang,
-                NeoPlaybackDirection.Reverse);
+                NeoPlayDirection.Reverse);
             Assert.AreEqual(
                 8,
                 ((Vector3MemberValue)client.sessionValues[positionId]).value!.x);
@@ -1082,7 +1082,7 @@ namespace NeoCompose.Tests
             data.values["track-direction-reverse"] = new ArrayMemberValue
             {
                 id = "track-direction-reverse",
-                value = new[] { NeoPlayDirectionIds.Reverse },
+                value = new[] { NeoPlayDirection.Reverse.optionId },
             };
 
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
@@ -5522,13 +5522,13 @@ namespace NeoCompose.Tests
                 name = "NeoPlayDirection",
                 options = new Dictionary<string, EnumOption>
                 {
-                    [NeoPlayDirectionIds.Forward] = new EnumOption { text = "Forward" },
-                    [NeoPlayDirectionIds.Reverse] = new EnumOption { text = "Reverse" },
+                    [NeoPlayDirection.Forward.optionId] = new EnumOption { text = "Forward" },
+                    [NeoPlayDirection.Reverse.optionId] = new EnumOption { text = "Reverse" },
                 },
                 optionKeyOrder = new List<string>
                 {
-                    NeoPlayDirectionIds.Forward,
-                    NeoPlayDirectionIds.Reverse,
+                    NeoPlayDirection.Forward.optionId,
+                    NeoPlayDirection.Reverse.optionId,
                 },
                 createdAt = "x",
                 updatedAt = "x",

@@ -17,26 +17,81 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>
-    /// Root-level playback order for a <see cref="NeoAnimationClip{T}"/> call
-    /// site: <c>PlayOnce</c>, <c>PlayLoop</c>, and their async / fixed-loop
-    /// siblings.
-    ///
-    /// <para>Named <c>NeoPlaybackDirection</c> rather than
-    /// <c>NeoPlayDirection</c> since P48 §2.1: that name now belongs to the
-    /// system enum a track row authors (see
-    /// <see cref="NeoPlayDirectionIds"/>), which codegen emits as an option-id
-    /// wrapper class into the project's own namespace. Generated files carry
-    /// <c>using NeoCompose.Runtime;</c>, so the nearer project type would have
-    /// shadowed this one at every call site and silently changed what
-    /// <c>clip.PlayLoop(NeoPlayMode.Repeat, NeoPlayDirection.Forward)</c>
-    /// meant. <c>Backward</c> became <c>Reverse</c> for the matching reason:
-    /// one word for one concept across the authored enum, the runtime enum,
-    /// and the spec.</para>
+    /// Playback order — the one direction type game code sees, at both
+    /// altitudes: the root call site (<c>PlayOnce</c>, <c>PlayLoop</c>, and
+    /// their async / fixed-loop siblings) and an authored track row's
+    /// <c>Direction</c> member. The P48 §2.1 system enum has contract ids, so
+    /// its generated wrapper would be byte-identical in every project; the SDK
+    /// ships that exact shape once instead, and codegen skips emitting it.
+    /// The body below must stay identical to what the generator would emit —
+    /// the web repo's sdk-runtime-enums binding pins the ids and member names.
+    /// (<c>Backward</c> was renamed <c>Reverse</c> so the authored vocabulary
+    /// and the C# vocabulary are the same word.)
     /// </summary>
-    public enum NeoPlaybackDirection
+    public sealed class NeoPlayDirection : IEquatable<NeoPlayDirection>, INeoEnumOption
     {
-        Forward,
-        Reverse,
+        private static readonly Dictionary<string, NeoPlayDirection> values = new Dictionary<string, NeoPlayDirection>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoPlayDirection(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoPlayDirection Forward = FromOptionId("system_2e4ca40e-f305-49c6-a91b-b99d56239ba0");
+        public static readonly NeoPlayDirection Reverse = FromOptionId("system_6478d195-3905-48db-befe-d276eb5478f0");
+
+        public static NeoPlayDirection FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new NeoPlayDirection(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoPlayDirection>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "system_2e4ca40e-f305-49c6-a91b-b99d56239ba0" => true,
+                "system_6478d195-3905-48db-befe-d276eb5478f0" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "system_2e4ca40e-f305-49c6-a91b-b99d56239ba0" => "Forward",
+                "system_6478d195-3905-48db-befe-d276eb5478f0" => "Reverse",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return client is null ? TextIdForOptionId(optionId) : client.Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoPlayDirection value) => value.optionId;
+        public static implicit operator NeoPlayDirection(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoPlayDirection? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as NeoPlayDirection);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(NeoPlayDirection? left, NeoPlayDirection? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(NeoPlayDirection? left, NeoPlayDirection? right) => !(left == right);
     }
 
     internal interface INeoAnimationPlayer
@@ -154,24 +209,24 @@ namespace NeoCompose.Runtime
 
         public void PlayLoop(
             NeoPlayMode mode = NeoPlayMode.Repeat,
-            NeoPlaybackDirection direction = NeoPlaybackDirection.Forward)
+            NeoPlayDirection? direction = null)
         {
-            Start(mode, direction, loops: -1, once: false, pendingCompletion: null);
+            Start(mode, direction ?? NeoPlayDirection.Forward, loops: -1, once: false, pendingCompletion: null);
         }
 
         public void PlayOnce(
-            NeoPlaybackDirection direction = NeoPlaybackDirection.Forward)
+            NeoPlayDirection? direction = null)
         {
             Start(
                 NeoPlayMode.Repeat,
-                direction,
+                direction ?? NeoPlayDirection.Forward,
                 loops: 1,
                 once: true,
                 pendingCompletion: null);
         }
 
         public Task PlayOnceAsync(
-            NeoPlaybackDirection direction = NeoPlaybackDirection.Forward,
+            NeoPlayDirection? direction = null,
             CancellationToken cancellationToken = default)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -180,7 +235,7 @@ namespace NeoCompose.Runtime
             }
             return StartAsync(
                 NeoPlayMode.Repeat,
-                direction,
+                direction ?? NeoPlayDirection.Forward,
                 loops: 1,
                 once: true,
                 cancellationToken);
@@ -189,16 +244,16 @@ namespace NeoCompose.Runtime
         public void PlayFixedLoop(
             int loopCount,
             NeoPlayMode mode = NeoPlayMode.Repeat,
-            NeoPlaybackDirection direction = NeoPlaybackDirection.Forward)
+            NeoPlayDirection? direction = null)
         {
             ValidateLoopCount(loopCount);
-            Start(mode, direction, loopCount, once: false, pendingCompletion: null);
+            Start(mode, direction ?? NeoPlayDirection.Forward, loopCount, once: false, pendingCompletion: null);
         }
 
         public Task PlayFixedLoopAsync(
             int loopCount,
             NeoPlayMode mode = NeoPlayMode.Repeat,
-            NeoPlaybackDirection direction = NeoPlaybackDirection.Forward,
+            NeoPlayDirection? direction = null,
             CancellationToken cancellationToken = default)
         {
             ValidateLoopCount(loopCount);
@@ -208,7 +263,7 @@ namespace NeoCompose.Runtime
             }
             return StartAsync(
                 mode,
-                direction,
+                direction ?? NeoPlayDirection.Forward,
                 loopCount,
                 once: false,
                 cancellationToken);
@@ -307,7 +362,7 @@ namespace NeoCompose.Runtime
 
         private Task StartAsync(
             NeoPlayMode mode,
-            NeoPlaybackDirection direction,
+            NeoPlayDirection direction,
             int loops,
             bool once,
             CancellationToken cancellationToken)
@@ -333,7 +388,7 @@ namespace NeoCompose.Runtime
 
         private long Start(
             NeoPlayMode mode,
-            NeoPlaybackDirection direction,
+            NeoPlayDirection direction,
             int loops,
             bool once,
             TaskCompletionSource<object?>? pendingCompletion)
@@ -342,7 +397,7 @@ namespace NeoCompose.Runtime
             {
                 throw new ArgumentOutOfRangeException(nameof(mode));
             }
-            if (!Enum.IsDefined(typeof(NeoPlaybackDirection), direction))
+            if (!NeoPlayDirection.IsKnown(direction))
             {
                 throw new ArgumentOutOfRangeException(nameof(direction));
             }
@@ -355,10 +410,10 @@ namespace NeoCompose.Runtime
             isOnce = once;
             isBoomerang = !once && mode == NeoPlayMode.Boomerang;
             loopsRemaining = loops;
-            initialStep = direction == NeoPlaybackDirection.Forward ? 1 : -1;
+            initialStep = direction == NeoPlayDirection.Forward ? 1 : -1;
             step = initialStep;
             hasTurned = false;
-            CurrentFrame = direction == NeoPlaybackDirection.Forward ? 0 : duration - 1;
+            CurrentFrame = direction == NeoPlayDirection.Forward ? 0 : duration - 1;
             IsPaused = false;
             IsPlaying = true;
             completion = pendingCompletion;
@@ -367,7 +422,7 @@ namespace NeoCompose.Runtime
             {
                 EnterFrame(
                     CurrentFrame,
-                    useResolvedState: direction == NeoPlaybackDirection.Reverse);
+                    useResolvedState: direction == NeoPlayDirection.Reverse);
             }
             return generation;
         }

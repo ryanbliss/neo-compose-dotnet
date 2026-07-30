@@ -958,7 +958,7 @@ namespace NeoCompose.Runtime
             int clipFrame,
             int startFrame,
             double contentFramesPerClipFrame,
-            NeoPlaybackDirection direction,
+            NeoPlayDirection direction,
             in NeoAnimationCropWindow window)
         {
             if (clipFrame < 0) return WritesNothing;
@@ -967,7 +967,7 @@ namespace NeoCompose.Runtime
             if (offset < 0) return WritesNothing;
             int playIndex = (int)Math.Floor(offset * contentFramesPerClipFrame);
             if (playIndex >= window.Length) return WritesNothing;
-            return direction == NeoPlaybackDirection.Forward
+            return direction == NeoPlayDirection.Forward
                 ? window.Start + playIndex
                 : window.End - 1 - playIndex;
         }
@@ -2511,7 +2511,7 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"{label} StartFrame {startFrame} is at or past the owning clip's Duration {parentDuration}, so the row can never play.");
                 }
-                NeoPlaybackDirection direction = ReadTrackDirection(track, label);
+                NeoPlayDirection direction = ReadTrackDirection(track, label);
                 (int? offsetStart, int? offsetEnd) = ReadTrackCropWindow(track, label);
 
                 if (kind == NeoAnimationTrackKind.Segment)
@@ -2569,7 +2569,7 @@ namespace NeoCompose.Runtime
             string childClipKey,
             NeoMemberClass placedChild,
             int startFrame,
-            NeoPlaybackDirection direction,
+            NeoPlayDirection direction,
             int? offsetStart,
             int? offsetEnd,
             int parentFps,
@@ -2662,7 +2662,7 @@ namespace NeoCompose.Runtime
             NeoMemberClass track,
             NeoMemberClass placedChild,
             int startFrame,
-            NeoPlaybackDirection direction,
+            NeoPlayDirection direction,
             int? offsetStart,
             int? offsetEnd,
             int parentDuration,
@@ -3232,28 +3232,26 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// P48 §2.1's <c>Direction</c>. An unset selection reads as
-        /// <see cref="NeoPlaybackDirection.Forward"/>, matching the member's
+        /// <see cref="NeoPlayDirection.Forward"/>, matching the member's
         /// authored default; anything else than exactly one known option id is
         /// bad data and says so.
         /// </summary>
-        private static NeoPlaybackDirection ReadTrackDirection(
+        private static NeoPlayDirection ReadTrackDirection(
             NeoMemberClass track,
             string label)
         {
             if (!track.TryGet("Direction", out NeoMemberEnum? direction))
             {
-                return NeoPlaybackDirection.Forward;
+                return NeoPlayDirection.Forward;
             }
             string[] selected = direction.Selected();
-            if (selected.Length == 0) return NeoPlaybackDirection.Forward;
-            if (selected.Length != 1
-                || (selected[0] != NeoPlayDirectionIds.Forward
-                    && selected[0] != NeoPlayDirectionIds.Reverse))
+            if (selected.Length == 0) return NeoPlayDirection.Forward;
+            if (selected.Length != 1 || !NeoPlayDirection.IsKnown(selected[0]))
             {
                 throw new InvalidOperationException(
                     $"{label} Direction must be exactly one NeoPlayDirection option.");
             }
-            return NeoPlayDirectionIds.Parse(selected[0]);
+            return NeoPlayDirection.FromOptionId(selected[0]);
         }
 
         /// <summary>

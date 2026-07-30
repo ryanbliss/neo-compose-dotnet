@@ -20,12 +20,25 @@ namespace NeoCompose.Tests
     {
         private const string PackageRoot = "Packages/com.ryanbliss.neocompose/Tests";
 
-        [TestCase(NeoPlaybackDirection.Forward, new[] { 0, 1, 2, 3 })]
-        [TestCase(NeoPlaybackDirection.Reverse, new[] { 3, 2, 1, 0 })]
+        /// <summary>
+        /// NUnit attribute arguments must be compile-time constants, and
+        /// NeoPlayDirection is the SDK-shipped option-id wrapper class — so
+        /// cases carry the member name and resolve it here.
+        /// </summary>
+        private static NeoPlayDirection DirectionByName(string name)
+        {
+            if (name == "Forward") return NeoPlayDirection.Forward;
+            if (name == "Reverse") return NeoPlayDirection.Reverse;
+            throw new ArgumentException($"Unknown direction name '{name}'.", nameof(name));
+        }
+
+        [TestCase("Forward", new[] { 0, 1, 2, 3 })]
+        [TestCase("Reverse", new[] { 3, 2, 1, 0 })]
         public void PlayOnce_TraversesInRequestedDirection(
-            NeoPlaybackDirection direction,
+            string directionName,
             int[] expected)
         {
+            NeoPlayDirection direction = DirectionByName(directionName);
             using NeoClient client = CreateClient();
             TestTarget target = new(client);
             var entered = new List<int>();
@@ -38,12 +51,13 @@ namespace NeoCompose.Tests
             Assert.IsFalse(clip.IsPlaying);
         }
 
-        [TestCase(NeoPlaybackDirection.Forward, new[] { 0, 1, 2, 3, 0, 1 })]
-        [TestCase(NeoPlaybackDirection.Reverse, new[] { 3, 2, 1, 0, 3, 2 })]
+        [TestCase("Forward", new[] { 0, 1, 2, 3, 0, 1 })]
+        [TestCase("Reverse", new[] { 3, 2, 1, 0, 3, 2 })]
         public void PlayLoop_RepeatWrapsWithoutStopping(
-            NeoPlaybackDirection direction,
+            string directionName,
             int[] expected)
         {
+            NeoPlayDirection direction = DirectionByName(directionName);
             using NeoClient client = CreateClient();
             TestTarget target = new(client);
             var entered = new List<int>();
@@ -56,12 +70,13 @@ namespace NeoCompose.Tests
             Assert.IsTrue(clip.IsPlaying);
         }
 
-        [TestCase(NeoPlaybackDirection.Forward, new[] { 0, 1, 2, 3, 2, 1, 0, 1 })]
-        [TestCase(NeoPlaybackDirection.Reverse, new[] { 3, 2, 1, 0, 1, 2, 3, 2 })]
+        [TestCase("Forward", new[] { 0, 1, 2, 3, 2, 1, 0, 1 })]
+        [TestCase("Reverse", new[] { 3, 2, 1, 0, 1, 2, 3, 2 })]
         public void PlayLoop_BoomerangReversesWithoutDuplicatingEnds(
-            NeoPlaybackDirection direction,
+            string directionName,
             int[] expected)
         {
+            NeoPlayDirection direction = DirectionByName(directionName);
             using NeoClient client = CreateClient();
             TestTarget target = new(client);
             var entered = new List<int>();
@@ -280,7 +295,7 @@ namespace NeoCompose.Tests
 
             clip.PlayOnce();
             clip.Stop();
-            clip.PlayOnce(NeoPlaybackDirection.Reverse);
+            clip.PlayOnce(NeoPlayDirection.Reverse);
 
             Assert.AreEqual(2, refreshes);
             CollectionAssert.AreEqual(
@@ -302,7 +317,7 @@ namespace NeoCompose.Tests
                 target.Client.AnimationCoordinator,
                 (frame, resolved) => entered.Add((frame, resolved)));
 
-            clip.PlayOnce(NeoPlaybackDirection.Reverse);
+            clip.PlayOnce(NeoPlayDirection.Reverse);
 
             CollectionAssert.AreEqual(new[] { (0, true) }, entered);
         }
@@ -345,17 +360,17 @@ namespace NeoCompose.Tests
             JObject traversals = (JObject)fixture["traversals"]!;
 
             AssertTraversalVector(traversals, "onceForward", clip =>
-                clip.PlayOnce(NeoPlaybackDirection.Forward));
+                clip.PlayOnce(NeoPlayDirection.Forward));
             AssertTraversalVector(traversals, "onceBackward", clip =>
-                clip.PlayOnce(NeoPlaybackDirection.Reverse));
+                clip.PlayOnce(NeoPlayDirection.Reverse));
             AssertTraversalVector(traversals, "repeatForwardWrap", clip =>
-                clip.PlayLoop(NeoPlayMode.Repeat, NeoPlaybackDirection.Forward));
+                clip.PlayLoop(NeoPlayMode.Repeat, NeoPlayDirection.Forward));
             AssertTraversalVector(traversals, "repeatBackwardWrap", clip =>
-                clip.PlayLoop(NeoPlayMode.Repeat, NeoPlaybackDirection.Reverse));
+                clip.PlayLoop(NeoPlayMode.Repeat, NeoPlayDirection.Reverse));
             AssertTraversalVector(traversals, "boomerangForward", clip =>
-                clip.PlayLoop(NeoPlayMode.Boomerang, NeoPlaybackDirection.Forward));
+                clip.PlayLoop(NeoPlayMode.Boomerang, NeoPlayDirection.Forward));
             AssertTraversalVector(traversals, "boomerangBackward", clip =>
-                clip.PlayLoop(NeoPlayMode.Boomerang, NeoPlaybackDirection.Reverse));
+                clip.PlayLoop(NeoPlayMode.Boomerang, NeoPlayDirection.Reverse));
         }
 
         [Test]
@@ -773,17 +788,17 @@ namespace NeoCompose.Tests
             JObject traversals = (JObject)fixture["traversals"]!;
 
             AssertResolvedFrameVector(fixture, traversals, rootKey, expectedFramesKey, "onceForward", clip =>
-                clip.PlayOnce(NeoPlaybackDirection.Forward));
+                clip.PlayOnce(NeoPlayDirection.Forward));
             AssertResolvedFrameVector(fixture, traversals, rootKey, expectedFramesKey, "onceBackward", clip =>
-                clip.PlayOnce(NeoPlaybackDirection.Reverse));
+                clip.PlayOnce(NeoPlayDirection.Reverse));
             AssertResolvedFrameVector(fixture, traversals, rootKey, expectedFramesKey, "repeatForwardWrap", clip =>
-                clip.PlayLoop(NeoPlayMode.Repeat, NeoPlaybackDirection.Forward));
+                clip.PlayLoop(NeoPlayMode.Repeat, NeoPlayDirection.Forward));
             AssertResolvedFrameVector(fixture, traversals, rootKey, expectedFramesKey, "repeatBackwardWrap", clip =>
-                clip.PlayLoop(NeoPlayMode.Repeat, NeoPlaybackDirection.Reverse));
+                clip.PlayLoop(NeoPlayMode.Repeat, NeoPlayDirection.Reverse));
             AssertResolvedFrameVector(fixture, traversals, rootKey, expectedFramesKey, "boomerangForward", clip =>
-                clip.PlayLoop(NeoPlayMode.Boomerang, NeoPlaybackDirection.Forward));
+                clip.PlayLoop(NeoPlayMode.Boomerang, NeoPlayDirection.Forward));
             AssertResolvedFrameVector(fixture, traversals, rootKey, expectedFramesKey, "boomerangBackward", clip =>
-                clip.PlayLoop(NeoPlayMode.Boomerang, NeoPlaybackDirection.Reverse));
+                clip.PlayLoop(NeoPlayMode.Boomerang, NeoPlayDirection.Reverse));
         }
 
         [Test]

@@ -1040,13 +1040,13 @@ namespace NeoCompose.Tests
                         name = "NeoPlayDirection",
                         options = new Dictionary<string, EnumOption>
                         {
-                            [NeoPlayDirectionIds.Forward] = new EnumOption { text = "Forward" },
-                            [NeoPlayDirectionIds.Reverse] = new EnumOption { text = "Reverse" },
+                            [NeoPlayDirection.Forward.optionId] = new EnumOption { text = "Forward" },
+                            [NeoPlayDirection.Reverse.optionId] = new EnumOption { text = "Reverse" },
                         },
                         optionKeyOrder = new List<string>
                         {
-                            NeoPlayDirectionIds.Forward,
-                            NeoPlayDirectionIds.Reverse,
+                            NeoPlayDirection.Forward.optionId,
+                            NeoPlayDirection.Reverse.optionId,
                         },
                         createdAt = "x",
                         updatedAt = "x",
@@ -1211,8 +1211,8 @@ namespace NeoCompose.Tests
                 value = new[]
                 {
                     direction == "reverse"
-                        ? NeoPlayDirectionIds.Reverse
-                        : NeoPlayDirectionIds.Forward,
+                        ? NeoPlayDirection.Reverse.optionId
+                        : NeoPlayDirection.Forward.optionId,
                 },
             };
         }
