@@ -300,7 +300,9 @@ namespace NeoCompose.Tests
         public void SegmentTrackTargetingAMemberTheChildDoesNotDeclare_FailsDuringLoad()
         {
             ProjectData data = BuildEquipProjectData();
-            data.classes[SpriteSegmentTrackClassId].targetMemberId = "missing-member";
+            // The clip's row is a LookupSegmentTrackClassId instance, so its
+            // OWN class metadata is what load validation resolves.
+            data.classes[LookupSegmentTrackClassId].targetMemberId = "missing-member";
             data.members["missing-member"] = new SpriteMember
             {
                 id = "missing-member",
@@ -322,7 +324,10 @@ namespace NeoCompose.Tests
         public void SegmentTrackClassWithoutATarget_FailsDuringLoad()
         {
             ProjectData data = BuildEquipProjectData();
-            data.classes[SpriteSegmentTrackClassId].targetMemberId = null;
+            // Null the row's own class AND the base, so nothing on the chain
+            // answers and the "declares no target" error is genuinely earned.
+            data.classes[LookupSegmentTrackClassId].targetMemberId = null;
+            data.classes[SegmentTrackBaseClassId].targetMemberId = null;
 
             var error = Assert.Throws<InvalidOperationException>(
                 () => NeoTestSaveStack.ClientFromSchema(data));
@@ -339,7 +344,9 @@ namespace NeoCompose.Tests
         public void SegmentTrackTarget_IsInheritedThroughTheClassChain()
         {
             ProjectData data = BuildEquipProjectData();
-            data.classes[SpriteSegmentTrackClassId].targetMemberId = null;
+            // The scheduled row's class stops declaring a target of its own,
+            // so resolution must walk to the base to find one.
+            data.classes[LookupSegmentTrackClassId].targetMemberId = null;
             data.classes[SegmentTrackBaseClassId].targetMemberId = "sprite-member";
 
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
@@ -395,12 +402,18 @@ namespace NeoCompose.Tests
 
         private static void WriteLabel(NeoClient client, string valueId, string? label)
         {
+            // Asset ownership on purpose — the same layer the track's own
+            // writes land in. A Session node here would create an overlay row
+            // that shadows every subsequent track write, so the probe would
+            // "survive" frames the track genuinely wrote. The registry is
+            // last-write-wins with a guarded remove, so the transient node is
+            // safe beside the compile's own view of the same row.
             string key = valueId == "c-sprite" ? "c-value" : "g-value";
             var node = new NeoMemberClassWritable(
                 client,
                 "child-entry-member",
                 key,
-                NeoValueOwnership.Session);
+                NeoValueOwnership.Asset);
             NeoGeneratedTypesSupport.SetValue(
                 node,
                 "Sprite",

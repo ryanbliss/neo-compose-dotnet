@@ -1032,10 +1032,6 @@ namespace NeoCompose.Runtime
         private readonly string? trackValueId;
         private readonly Action<NeoValueOwnership, string> writableValueChanged;
 
-        /// <summary>Non-null only when this source built the node itself.</summary>
-        private NeoMemberClass? ownedSegmentNode;
-        private NeoMemberClass? segmentNode;
-        private string? segmentRowId;
         private MemberValue?[] contentRows = Array.Empty<MemberValue?>();
         private bool[] contentAuthored = Array.Empty<bool>();
         private bool dirty = true;
@@ -1097,8 +1093,6 @@ namespace NeoCompose.Runtime
             if (disposed) return;
             disposed = true;
             client.OnWritableValueChanged -= writableValueChanged;
-            ReleaseOwnedNode();
-            segmentNode = null;
             contentRows = Array.Empty<MemberValue?>();
             contentAuthored = Array.Empty<bool>();
         }
@@ -1115,22 +1109,34 @@ namespace NeoCompose.Runtime
         {
             if (disposed || !dirty) return;
             dirty = false;
+            contentRows = Array.Empty<MemberValue?>();
+            contentAuthored = Array.Empty<bool>();
             string? rowId = ResolveSegmentRowId();
-            if (rowId is null)
+            if (rowId is null) return;
+            ReadContent(rowId);
+        }
+
+        /// <summary>
+        /// The member the played row's class binds under the Segment schema
+        /// key — resolved fresh per re-resolution because the row's concrete
+        /// class decides which implementation shape answers.
+        /// </summary>
+        private Member? ResolveSegmentMember(string classId)
+        {
+            foreach (MergedSchemaEntry entry in
+                client.ResolveInstanceSurfaceSchema(classId))
             {
-                segmentRowId = null;
-                segmentNode = null;
-                ReleaseOwnedNode();
-                contentRows = Array.Empty<MemberValue?>();
-                contentAuthored = Array.Empty<bool>();
-                return;
+                if (!string.Equals(entry.schemaKey, segmentKey, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                if (client.TryGetMember(entry.memberId, out Member? member))
+                {
+                    return member;
+                }
+                return null;
             }
-            if (segmentNode is null
-                || !string.Equals(segmentRowId, rowId, StringComparison.Ordinal))
-            {
-                BindSegmentNode(rowId);
-            }
-            ReadContent();
+            return null;
         }
 
         /// <summary>
@@ -1144,18 +1150,45 @@ namespace NeoCompose.Runtime
         /// </summary>
         private string? ResolveSegmentRowId()
         {
-            if (!track.TryGet(segmentKey, out NeoMember? member)) return null;
-            switch (member)
+            // Rows and members are read from the client's value store rather
+            // than through the compile-time node tree: nodes built standalone
+            // by the compiler do not reliably re-resolve their values after a
+            // registry-affecting write, and this source's whole contract is
+            // re-resolution after writes (P48 §3.1). Only the getter shape
+            // still touches a node, because Compute takes an explicit receiver
+            // id and never reads the node's own cached value.
+            if (string.IsNullOrWhiteSpace(trackValueId)) return null;
+            if (client.ResolveEffectiveRow(trackValueId!) is not ObjectMemberValue trackRow
+                || string.IsNullOrWhiteSpace(trackRow.classId))
             {
-                case NeoMemberLookup lookup:
+                return null;
+            }
+            Member? segmentMember = ResolveSegmentMember(trackRow.classId!);
+            switch (segmentMember)
+            {
+                case LookupMember:
                 {
-                    string[] selected = lookup.Selected();
-                    if (selected.Length == 0) return null;
-                    return string.IsNullOrWhiteSpace(selected[0]) ? null : selected[0];
+                    if (trackRow.value is null) return null;
+                    if (!trackRow.value.TryGetValue(segmentKey, out string? slotId)
+                        || string.IsNullOrWhiteSpace(slotId))
+                    {
+                        return null;
+                    }
+                    if (client.ResolveEffectiveRow(slotId!) is not ArrayMemberValue lookupRow
+                        || lookupRow.value is null
+                        || lookupRow.value.Length == 0)
+                    {
+                        return null;
+                    }
+                    string first = lookupRow.value[0];
+                    return string.IsNullOrWhiteSpace(first) ? null : first;
                 }
-                case NeoMemberNSProperty getter:
+                case NSPropertyMember:
                 {
-                    if (string.IsNullOrWhiteSpace(trackValueId)) return null;
+                    if (!track.TryGet(segmentKey, out NeoMemberNSProperty? getter))
+                    {
+                        return null;
+                    }
                     NeoScript.NSGetterResult result = getter.Compute(trackValueId!);
                     if (!result.ok)
                     {
@@ -1173,75 +1206,41 @@ namespace NeoCompose.Runtime
                     string? valueId = NeoGeneratedTypesSupport.ValueId(result.value);
                     return string.IsNullOrWhiteSpace(valueId) ? null : valueId;
                 }
-                case NeoMemberClass stored:
-                    return stored.value?.id;
+                case ClassMember:
+                {
+                    if (trackRow.value is null) return null;
+                    if (!trackRow.value.TryGetValue(segmentKey, out string? slotId)
+                        || string.IsNullOrWhiteSpace(slotId))
+                    {
+                        return null;
+                    }
+                    return slotId;
+                }
                 default:
                     return null;
             }
         }
 
-        private void BindSegmentNode(string rowId)
-        {
-            ReleaseOwnedNode();
-            segmentNode = null;
-            segmentRowId = null;
-
-            // A stored Segment is already a live node on the track row. Reusing
-            // it — rather than building a second view over the same record —
-            // keeps one node per (member, value) in the client registry, which
-            // is the key RegisterNode/UnregisterNode is written against.
-            if (track.TryGet(segmentKey, out NeoMemberClass? stored)
-                && string.Equals(stored.value?.id, rowId, StringComparison.Ordinal))
-            {
-                segmentNode = stored;
-                segmentRowId = rowId;
-                return;
-            }
-
-            if (!track.TryGet(segmentKey, out NeoMember? declaration)) return;
-            if (!client.TryGetValueOwnership(rowId, out NeoValueOwnership ownership))
-            {
-                ownership = track.ownership;
-            }
-            if (!client.TryGetOverlaidValue(ownership, rowId, out MemberValue? untyped)
-                || untyped is not ObjectMemberValue row
-                || string.IsNullOrWhiteSpace(row.classId))
-            {
-                return;
-            }
-            // Synthesized so a lookup- or getter-resolved segment reads through
-            // the ordinary node machinery — generic substitution of the frame's
-            // `Value`, storage resolution, and live refresh all come for free.
-            // The id carries a suffix so this view never evicts the declaration
-            // node the track already registered under the real member id.
-            var view = new ClassMember
-            {
-                id = $"{declaration.member.id}$p48segment",
-                projectId = declaration.member.projectId,
-                name = segmentKey,
-                kind = MemberKind.Class,
-                required = true,
-                classId = row.classId!,
-            };
-            ownedSegmentNode = new NeoMemberClass(client, view, rowId, ownership);
-            segmentNode = ownedSegmentNode;
-            segmentRowId = rowId;
-        }
-
         /// <summary>
         /// P48 §2.3 stage 1 for a segment: sparse rows addressed by
         /// <c>Index</c>, each held until the next authored row or the end of
-        /// <c>Duration</c>. Rows are read by <c>Index</c> rather than by list
-        /// order, and a duplicate index is not defended against — push rejects
-        /// duplicates, and silently preferring one would hide it.
+        /// <c>Duration</c>. Read straight from the client's effective rows so
+        /// a re-resolution after any write sees current state; rows are read
+        /// by <c>Index</c> rather than by list order, and a duplicate index is
+        /// not defended against — push rejects duplicates, and silently
+        /// preferring one would hide it.
         /// </summary>
-        private void ReadContent()
+        private void ReadContent(string rowId)
         {
-            contentRows = Array.Empty<MemberValue?>();
-            contentAuthored = Array.Empty<bool>();
-            if (segmentNode is null) return;
-            if (!segmentNode.TryGet("Duration", out NeoMemberInt? durationNode)
-                || durationNode.value?.value is not double rawDuration)
+            if (client.ResolveEffectiveRow(rowId) is not ObjectMemberValue segmentRow
+                || segmentRow.value is null)
+            {
+                return;
+            }
+            if (!segmentRow.value.TryGetValue("Duration", out string? durationId)
+                || string.IsNullOrWhiteSpace(durationId)
+                || client.ResolveEffectiveRow(durationId!) is not NumberMemberValue durationRow
+                || durationRow.value is not double rawDuration)
             {
                 return;
             }
@@ -1250,23 +1249,34 @@ namespace NeoCompose.Runtime
 
             var rows = new MemberValue?[duration];
             var authored = new bool[duration];
-            if (segmentNode.TryGet("Frames", out NeoMemberList? frames))
+            if (segmentRow.value.TryGetValue("Frames", out string? framesId)
+                && !string.IsNullOrWhiteSpace(framesId)
+                && client.ResolveEffectiveRow(framesId!) is ArrayMemberValue framesRow
+                && framesRow.value is not null)
             {
                 var ordered = new List<(int index, MemberValue? row)>();
-                foreach (NeoMember item in frames)
+                foreach (string frameId in framesRow.value)
                 {
-                    if (item is not NeoMemberClass frame) continue;
-                    if (!frame.TryGet("Index", out NeoMemberInt? indexNode)
-                        || indexNode.value?.value is not double rawIndex)
+                    if (string.IsNullOrWhiteSpace(frameId)) continue;
+                    if (client.ResolveEffectiveRow(frameId) is not ObjectMemberValue frameRow
+                        || frameRow.value is null)
+                    {
+                        continue;
+                    }
+                    if (!frameRow.value.TryGetValue("Index", out string? indexId)
+                        || string.IsNullOrWhiteSpace(indexId)
+                        || client.ResolveEffectiveRow(indexId!) is not NumberMemberValue indexRow
+                        || indexRow.value is not double rawIndex)
                     {
                         continue;
                     }
                     int index = (int)Math.Floor(rawIndex);
                     if (index < 0 || index >= duration) continue;
                     MemberValue? valueRow = null;
-                    if (frame.TryGet("Value", out NeoMember? valueNode))
+                    if (frameRow.value.TryGetValue("Value", out string? valueId)
+                        && !string.IsNullOrWhiteSpace(valueId))
                     {
-                        valueRow = valueNode.value;
+                        valueRow = client.ResolveEffectiveRow(valueId!);
                     }
                     ordered.Add((index, valueRow));
                 }
@@ -1282,13 +1292,6 @@ namespace NeoCompose.Runtime
             }
             contentRows = rows;
             contentAuthored = authored;
-        }
-
-        private void ReleaseOwnedNode()
-        {
-            if (ownedSegmentNode is null) return;
-            ownedSegmentNode.Dispose();
-            ownedSegmentNode = null;
         }
     }
 
