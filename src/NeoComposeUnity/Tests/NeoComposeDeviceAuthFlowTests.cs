@@ -90,6 +90,70 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(new[] { 5, 5, 10, 10 }, transport.requestedDelays);
         }
 
+        [Test]
+        public async Task Authorize_RetriesTransientPollFailureAndRespectsRetryAfter()
+        {
+            var transport = new FakeTransport
+            {
+                code = SampleCode(intervalSeconds: 5),
+                pollResults = new Queue<NeoComposeDevicePollResult>(new[]
+                {
+                    NeoComposeDevicePollResult.Retry("temporarily unavailable", retryAfterSeconds: 12),
+                    NeoComposeDevicePollResult.Success(new NeoComposeDeviceTokenSuccess
+                    {
+                        accessToken = "t",
+                        expiresInSeconds = 3600,
+                        scope = "openid",
+                    }),
+                }),
+            };
+            var flow = NewFlow(transport, new RecordingTokenStore());
+
+            var result = await flow.AuthorizeAsync(ApiBaseUrl, null, CancellationToken.None);
+
+            Assert.AreEqual(NeoComposeDeviceAuthOutcome.Success, result.outcome);
+            CollectionAssert.AreEqual(new[] { 5, 12 }, transport.requestedDelays);
+        }
+
+        [Test]
+        public void PollError_429AndServerErrorsAreRetryable()
+        {
+            var now = DateTimeOffset.Parse("2026-07-29T12:00:00Z");
+            var rateLimited = new NeoComposeWebResponse(
+                429,
+                false,
+                "",
+                "",
+                new Dictionary<string, string> { ["Retry-After"] = "17" });
+            var unavailable = new NeoComposeWebResponse(503, false, "", "");
+
+            var rateLimitResult = NeoComposeDeviceAuthTransport.MapPollError(null, rateLimited, now);
+            var unavailableResult = NeoComposeDeviceAuthTransport.MapPollError(null, unavailable, now);
+
+            Assert.AreEqual(NeoComposeDevicePollStatus.Retry, rateLimitResult.status);
+            Assert.AreEqual(17, rateLimitResult.retryAfterSeconds);
+            Assert.AreEqual(NeoComposeDevicePollStatus.Retry, unavailableResult.status);
+        }
+
+        [Test]
+        public void PollError_PermanentOAuthErrorTerminatesFlow()
+        {
+            var response = new NeoComposeWebResponse(400, false, "", "");
+            var error = new NeoComposeDeviceErrorResponse
+            {
+                error = "invalid_grant",
+                errorDescription = "The device grant is invalid.",
+            };
+
+            var result = NeoComposeDeviceAuthTransport.MapPollError(
+                error,
+                response,
+                DateTimeOffset.UtcNow);
+
+            Assert.AreEqual(NeoComposeDevicePollStatus.Error, result.status);
+            Assert.AreEqual("The device grant is invalid.", result.message);
+        }
+
         // UAUTH-020
         [Test]
         public async Task Authorize_ReturnsDeniedWhenApprovalDenied()
@@ -195,6 +259,33 @@ namespace NeoCompose.Tests
             StringAssert.Contains("origin unreachable", result.message);
         }
 
+        [Test]
+        public async Task Authorize_ReturnsPersistenceFailureWhenFreshStoreCannotReloadToken()
+        {
+            var transport = new FakeTransport
+            {
+                code = SampleCode(),
+                pollResults = new Queue<NeoComposeDevicePollResult>(new[]
+                {
+                    NeoComposeDevicePollResult.Success(new NeoComposeDeviceTokenSuccess
+                    {
+                        accessToken = "issued-token",
+                        expiresInSeconds = 3600,
+                        scope = "openid",
+                    }),
+                }),
+            };
+            var writtenStore = new RecordingTokenStore();
+            var freshStore = new RecordingTokenStore();
+            var flow = NewFlow(transport, writtenStore, verificationStoreFactory: () => freshStore);
+
+            var result = await flow.AuthorizeAsync(ApiBaseUrl, null, CancellationToken.None);
+
+            Assert.AreEqual(NeoComposeDeviceAuthOutcome.PersistenceFailed, result.outcome);
+            StringAssert.Contains("could not securely persist", result.message);
+            Assert.IsNull(writtenStore.saved, "A partially persisted sign-in must be cleared.");
+        }
+
         private static NeoComposeDeviceCodeResponse SampleCode(
             int expiresInSeconds = 600,
             int intervalSeconds = 5) =>
@@ -211,7 +302,8 @@ namespace NeoCompose.Tests
         private static NeoComposeDeviceAuthorizationFlow NewFlow(
             FakeTransport transport,
             INeoComposeTokenStore store,
-            CancellationTokenSource? cts = null)
+            CancellationTokenSource? cts = null,
+            Func<INeoComposeTokenStore>? verificationStoreFactory = null)
         {
             return new NeoComposeDeviceAuthorizationFlow(
                 transport,
@@ -226,7 +318,8 @@ namespace NeoCompose.Tests
                 },
                 _ => transport.openedVerificationCount++,
                 "neo-compose-unity",
-                "openid profile:read");
+                "openid profile:read",
+                verificationStoreFactory);
         }
 
         private sealed class FakeClock

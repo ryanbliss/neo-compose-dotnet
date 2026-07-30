@@ -34,6 +34,7 @@ namespace NeoCompose.Runtime
         private readonly Func<DateTimeOffset> now;
         private readonly Func<int, CancellationToken, Task> delaySeconds;
         private readonly Action<string> openVerificationUri;
+        private readonly Func<INeoComposeTokenStore>? verificationStoreFactory;
 
         public NeoComposeDeviceAuthorizationFlow(
             INeoComposeDeviceAuthTransport transport,
@@ -42,7 +43,8 @@ namespace NeoCompose.Runtime
             Func<int, CancellationToken, Task> delaySeconds,
             Action<string> openVerificationUri,
             string clientId,
-            string scopes)
+            string scopes,
+            Func<INeoComposeTokenStore>? verificationStoreFactory = null)
         {
             this.transport = transport;
             this.tokenStore = tokenStore;
@@ -51,6 +53,7 @@ namespace NeoCompose.Runtime
             this.openVerificationUri = openVerificationUri;
             this.clientId = clientId;
             this.scopes = scopes;
+            this.verificationStoreFactory = verificationStoreFactory;
         }
 
         /// <summary>
@@ -68,6 +71,18 @@ namespace NeoCompose.Runtime
             {
                 code = await transport.RequestDeviceCodeAsync(apiBaseUrl, clientId, scopes, cancellationToken);
             }
+            catch (OperationCanceledException)
+            {
+                return NeoComposeDeviceAuthResult.Failed(
+                    NeoComposeDeviceAuthOutcome.Canceled,
+                    "Sign-in canceled.");
+            }
+            catch (TimeoutException)
+            {
+                return NeoComposeDeviceAuthResult.Failed(
+                    NeoComposeDeviceAuthOutcome.Failed,
+                    "Neo Compose timed out while starting sign-in. Please try again.");
+            }
             catch (NeoComposeDeviceAuthException exception)
             {
                 return NeoComposeDeviceAuthResult.Failed(NeoComposeDeviceAuthOutcome.Failed, exception.Message);
@@ -79,6 +94,7 @@ namespace NeoCompose.Runtime
             var expirySeconds = code.expiresInSeconds > 0 ? code.expiresInSeconds : FallbackExpirySeconds;
             var deadline = now().AddSeconds(expirySeconds);
             var intervalSeconds = Math.Max(code.intervalSeconds, MinimumIntervalSeconds);
+            var nextDelaySeconds = intervalSeconds;
 
             while (true)
             {
@@ -89,7 +105,7 @@ namespace NeoCompose.Runtime
 
                 try
                 {
-                    await delaySeconds(intervalSeconds, cancellationToken);
+                    await delaySeconds(nextDelaySeconds, cancellationToken);
                 }
                 catch (OperationCanceledException)
                 {
@@ -103,13 +119,38 @@ namespace NeoCompose.Runtime
                         "The sign-in request expired before it was approved. Please try again.");
                 }
 
-                var poll = await transport.PollDeviceTokenAsync(apiBaseUrl, clientId, code.deviceCode, cancellationToken);
+                NeoComposeDevicePollResult poll;
+                try
+                {
+                    poll = await transport.PollDeviceTokenAsync(
+                        apiBaseUrl,
+                        clientId,
+                        code.deviceCode,
+                        cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    return NeoComposeDeviceAuthResult.Failed(
+                        NeoComposeDeviceAuthOutcome.Canceled,
+                        "Sign-in canceled.");
+                }
+                catch (TimeoutException)
+                {
+                    nextDelaySeconds = intervalSeconds;
+                    continue;
+                }
+
                 switch (poll.status)
                 {
                     case NeoComposeDevicePollStatus.Pending:
+                        nextDelaySeconds = intervalSeconds;
                         continue;
                     case NeoComposeDevicePollStatus.SlowDown:
                         intervalSeconds += SlowDownIncrementSeconds;
+                        nextDelaySeconds = intervalSeconds;
+                        continue;
+                    case NeoComposeDevicePollStatus.Retry:
+                        nextDelaySeconds = Math.Max(intervalSeconds, poll.retryAfterSeconds);
                         continue;
                     case NeoComposeDevicePollStatus.Denied:
                         return NeoComposeDeviceAuthResult.Failed(
@@ -136,7 +177,17 @@ namespace NeoCompose.Runtime
             NeoComposeDeviceTokenSuccess token,
             CancellationToken cancellationToken)
         {
-            var profile = await transport.GetProfileAsync(apiBaseUrl, token.accessToken, cancellationToken);
+            NeoComposeUserProfile profile;
+            try
+            {
+                profile = await transport.GetProfileAsync(apiBaseUrl, token.accessToken, cancellationToken);
+            }
+            catch (Exception)
+            {
+                // Identity is a display-only enhancement. Once the token endpoint
+                // succeeds, a profile lookup failure must not discard authorization.
+                profile = NeoComposeUserProfile.Empty;
+            }
             var grantedScopes = SplitScopes(token.scope);
             var expirySeconds = token.expiresInSeconds > 0 ? token.expiresInSeconds : FallbackExpirySeconds;
             var issuedAt = now().ToUnixTimeSeconds();
@@ -150,9 +201,55 @@ namespace NeoCompose.Runtime
                 NeoComposeAuthEndpoints.Origin(apiBaseUrl),
                 profile.name,
                 profile.email);
-            tokenStore.Save(stored);
+            INeoComposeTokenStore verificationStore = tokenStore;
+            try
+            {
+                tokenStore.Save(stored);
+                verificationStore = verificationStoreFactory?.Invoke() ?? tokenStore;
+                var loaded = verificationStore.Load();
+                if (loaded == null ||
+                    !string.Equals(loaded.accessToken, stored.accessToken, StringComparison.Ordinal))
+                {
+                    ClearAfterPersistenceFailure(verificationStore);
+                    return PersistenceFailed();
+                }
+            }
+            catch (Exception)
+            {
+                ClearAfterPersistenceFailure(verificationStore);
+                return PersistenceFailed();
+            }
+
             return NeoComposeDeviceAuthResult.Success(stored);
         }
+
+        private void ClearAfterPersistenceFailure(INeoComposeTokenStore verificationStore)
+        {
+            try
+            {
+                tokenStore.Clear();
+            }
+            catch (Exception)
+            {
+                // Best effort: preserve the original persistence failure result.
+            }
+
+            if (ReferenceEquals(verificationStore, tokenStore)) return;
+            try
+            {
+                verificationStore.Clear();
+            }
+            catch (Exception)
+            {
+                // Best effort: preserve the original persistence failure result.
+            }
+        }
+
+        private static NeoComposeDeviceAuthResult PersistenceFailed() =>
+            NeoComposeDeviceAuthResult.Failed(
+                NeoComposeDeviceAuthOutcome.PersistenceFailed,
+                "Authorization succeeded, but Neo Compose could not securely persist the credential. " +
+                "Sign-in was not saved; check the Console for credential-store diagnostics.");
 
         private string[] SplitScopes(string scope)
         {

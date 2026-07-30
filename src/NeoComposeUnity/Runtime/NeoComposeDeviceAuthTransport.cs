@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -95,15 +96,24 @@ namespace NeoCompose.Runtime
                 device_code = deviceCode,
                 client_id = clientId,
             });
-            var response = await NeoComposeWebRequests.SendAsync(
-                NeoComposeAuthEndpoints.DeviceTokenUrl(apiBaseUrl),
-                "POST",
-                body,
-                cancellationToken: cancellationToken);
+            NeoComposeWebResponse response;
+            try
+            {
+                response = await NeoComposeWebRequests.SendAsync(
+                    NeoComposeAuthEndpoints.DeviceTokenUrl(apiBaseUrl),
+                    "POST",
+                    body,
+                    cancellationToken: cancellationToken);
+            }
+            catch (TimeoutException)
+            {
+                return NeoComposeDevicePollResult.Retry(
+                    "The device authorization poll timed out; Neo Compose will retry.");
+            }
 
             if (response.IsConnectionError)
             {
-                return NeoComposeDevicePollResult.Error(
+                return NeoComposeDevicePollResult.Retry(
                     $"Could not reach Neo Compose while waiting for approval: {response.Error}");
             }
 
@@ -119,7 +129,7 @@ namespace NeoCompose.Runtime
             }
 
             var error = TryDeserialize<NeoComposeDeviceErrorResponse>(response.Text);
-            return MapPollError(error, response.StatusCode);
+            return MapPollError(error, response, DateTimeOffset.UtcNow);
         }
 
         public async Task<NeoComposeUserProfile> GetProfileAsync(
@@ -150,10 +160,22 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static NeoComposeDevicePollResult MapPollError(
+        internal static NeoComposeDevicePollResult MapPollError(
             NeoComposeDeviceErrorResponse? error,
-            long statusCode)
+            NeoComposeWebResponse response,
+            DateTimeOffset now)
         {
+            if (response.StatusCode == 429 ||
+                (response.StatusCode >= 500 && response.StatusCode <= 599))
+            {
+                var transientDescription = error != null && error.errorDescription.Length > 0
+                    ? error.errorDescription
+                    : $"Neo Compose returned a transient error ({response.StatusCode}).";
+                return NeoComposeDevicePollResult.Retry(
+                    transientDescription,
+                    ParseRetryAfterSeconds(response, now));
+            }
+
             switch (error?.error)
             {
                 case "authorization_pending":
@@ -167,9 +189,33 @@ namespace NeoCompose.Runtime
                 default:
                     var description = error != null && error.errorDescription.Length > 0
                         ? error.errorDescription
-                        : $"Neo Compose returned an unexpected error ({statusCode}).";
+                        : $"Neo Compose returned an unexpected error ({response.StatusCode}).";
+
                     return NeoComposeDevicePollResult.Error(description);
             }
+        }
+
+        private static int ParseRetryAfterSeconds(
+            NeoComposeWebResponse response,
+            DateTimeOffset now)
+        {
+            var raw = response.GetHeader("Retry-After");
+            if (string.IsNullOrWhiteSpace(raw)) return 0;
+            if (int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds))
+            {
+                return Math.Max(0, seconds);
+            }
+
+            if (DateTimeOffset.TryParse(
+                raw,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out var retryAt))
+            {
+                return Math.Max(0, (int)Math.Ceiling((retryAt - now).TotalSeconds));
+            }
+
+            return 0;
         }
 
         private static T? TryDeserialize<T>(string text)

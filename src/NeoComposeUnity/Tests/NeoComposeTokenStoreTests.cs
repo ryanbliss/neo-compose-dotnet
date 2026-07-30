@@ -144,12 +144,87 @@ namespace NeoCompose.Tests
 
             backend.Write("svc", "acct", "value-1");
             Assert.AreEqual("value-1", backend.Read("svc", "acct"));
+            Assert.IsFalse(
+                Array.Exists(Directory.GetFiles(tempRoot), path => path.EndsWith(".tmp")),
+                "Atomic writes must not leave temporary credential files behind.");
 
             backend.Write("svc", "acct", "value-2");
             Assert.AreEqual("value-2", backend.Read("svc", "acct"), "Write must overwrite in place.");
 
             backend.Delete("svc", "acct");
             Assert.IsNull(backend.Read("svc", "acct"));
+        }
+
+        [Test]
+        public void FileSecretBackend_RejectsRelativeOrProjectAssetRoots()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                new NeoComposeFileSecretBackend("relative/credential-directory"));
+            Assert.Throws<ArgumentException>(() =>
+                new NeoComposeFileSecretBackend(Path.Combine(UnityEngine.Application.dataPath, "Tokens")));
+        }
+
+        [Test]
+        public void ResilientBackend_WritesFallbackWhenNativeOperationFails()
+        {
+            var native = new MemorySecretBackend { throwOnWrite = true };
+            var fallback = new MemorySecretBackend();
+            var fallbackUses = 0;
+            var backend = new NeoComposeResilientSecretBackend(
+                native,
+                fallback,
+                () => fallbackUses++);
+
+            backend.Write("svc", "acct", "secret");
+
+            Assert.AreEqual("secret", fallback.Read("svc", "acct"));
+            Assert.AreEqual(1, fallbackUses);
+        }
+
+        [Test]
+        public void ResilientBackend_MigratesFallbackWhenNativeStoreRecovers()
+        {
+            var native = new MemorySecretBackend { available = false };
+            var fallback = new MemorySecretBackend();
+            var backend = new NeoComposeResilientSecretBackend(native, fallback);
+            backend.Write("svc", "acct", "secret");
+
+            native.available = true;
+            var loaded = backend.Read("svc", "acct");
+
+            Assert.AreEqual("secret", loaded);
+            Assert.AreEqual("secret", native.Read("svc", "acct"));
+            Assert.IsNull(fallback.Read("svc", "acct"), "Migrated fallback copy must be removed.");
+        }
+
+        [Test]
+        public void ResilientBackend_DeleteClearsNativeAndFallbackStores()
+        {
+            var native = new MemorySecretBackend();
+            var fallback = new MemorySecretBackend();
+            native.Write("svc", "acct", "native");
+            fallback.Write("svc", "acct", "fallback");
+            var backend = new NeoComposeResilientSecretBackend(native, fallback);
+
+            backend.Delete("svc", "acct");
+
+            Assert.IsNull(native.Read("svc", "acct"));
+            Assert.IsNull(fallback.Read("svc", "acct"));
+            Assert.AreEqual(1, native.deleteCount);
+            Assert.AreEqual(1, fallback.deleteCount);
+        }
+
+        [Test]
+        public void ResilientBackend_DeleteAttemptsNativeStoreWhenProbeIsUnavailable()
+        {
+            var native = new MemorySecretBackend { available = false };
+            var fallback = new MemorySecretBackend();
+            var backend = new NeoComposeResilientSecretBackend(native, fallback);
+
+            backend.Delete("svc", "acct");
+
+            Assert.AreEqual(1, native.deleteCount);
+            Assert.AreEqual(1, fallback.deleteCount);
         }
 
         [Test]
@@ -185,6 +260,35 @@ namespace NeoCompose.Tests
             public void Write(string key, string value) => values[key] = value;
 
             public void Delete(string key) => values.Remove(key);
+        }
+
+        private sealed class MemorySecretBackend : INeoComposeTokenSecretBackend
+        {
+            private readonly Dictionary<string, string> values = new();
+
+            public bool available = true;
+            public bool throwOnWrite;
+            public int deleteCount;
+
+            public bool IsAvailable => available;
+            public string Name => "Memory";
+
+            public string? Read(string service, string account) =>
+                values.TryGetValue(Key(service, account), out var value) ? value : null;
+
+            public void Write(string service, string account, string secret)
+            {
+                if (throwOnWrite) throw new InvalidOperationException("write failed");
+                values[Key(service, account)] = secret;
+            }
+
+            public void Delete(string service, string account)
+            {
+                deleteCount++;
+                values.Remove(Key(service, account));
+            }
+
+            private static string Key(string service, string account) => service + "::" + account;
         }
     }
 }

@@ -1,0 +1,32 @@
+{
+  "dependencies": {
+    "com.coplaydev.unity-mcp": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main",
+    "com.ryanbliss.convex-dotnet-unity": "https://github.com/ryanbliss/convex-dotnet-unity.git#v0.1.1",
+    "com.ryanbliss.neocompose": "file:../../../src/NeoComposeUnity",
+    "com.ryanbliss.neocompose.convex": "file:../../../src/NeoComposeConvex",
+    "com.unity.feature.2d": "2.0.2",
+    "com.unity.ide.visualstudio": "2.0.27",
+    "com.unity.nuget.newtonsoft-json": "3.2.2",
+    "com.unity.test-framework": "1.7.0",
+    "com.unity.ugui": "2.5.0",
+    "com.unity.modules.adaptiveperformance": "1.0.0",
+    "com.unity.modules.ai": "1.0.0",
+    "com.unity.modules.animation": "1.0.0",
+    "com.unity.modules.audio": "1.0.0",
+    "com.unity.modules.imageconversion": "1.0.0",
+    "com.unity.modules.imgui": "1.0.0",
+    "com.unity.modules.jsonserialize": "1.0.0",
+    "com.unity.modules.physics": "1.0.0",
+    "com.unity.modules.physics2d": "1.0.0",
+    "com.unity.modules.physicscore2d": "1.0.0",
+    "com.unity.modules.screencapture": "1.0.0",
+    "com.unity.modules.ui": "1.0.0",
+    "com.unity.modules.uielements": "1.0.0",
+    "com.unity.modules.unitywebrequest": "1.0.0",
+    "com.unity.modules.vectorgraphics": "1.0.0"
+  },
+  "testables": [
+    "com.ryanbliss.neocompose",
+    "com.ryanbliss.neocompose.convex"
+  ]
+}

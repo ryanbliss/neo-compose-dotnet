@@ -140,6 +140,7 @@ namespace NeoCompose.Unity.Editor
                 var store = storeFactory(apiBaseUrl);
                 var flow = flowFactory(apiBaseUrl, store);
                 var result = await flow.AuthorizeAsync(apiBaseUrl, onCodeReady, signInCancellation.Token);
+                LogAuthorizationResult(result);
                 return result;
             }
             finally
@@ -235,6 +236,23 @@ namespace NeoCompose.Unity.Editor
             DisplayEmail = "";
         }
 
+        private static void LogAuthorizationResult(NeoComposeDeviceAuthResult result)
+        {
+            var summary = $"[NeoCompose] Editor device authorization completed: {result.outcome}.";
+            if (result.message.Length > 0) summary += " " + result.message;
+
+            if (result.IsSuccess)
+            {
+                Debug.Log(summary);
+            }
+            else
+            {
+                // Deliberately log only the outcome and controlled result message.
+                // The result token and device/user codes are never formatted here.
+                Debug.LogWarning(summary);
+            }
+        }
+
         private static NeoComposeDeviceAuthorizationFlow DefaultFlowFactory(
             string apiBaseUrl,
             INeoComposeTokenStore store)
@@ -246,7 +264,8 @@ namespace NeoCompose.Unity.Editor
                 (seconds, token) => Task.Delay(TimeSpan.FromSeconds(seconds), token),
                 Application.OpenURL,
                 NeoComposeEditorDefaults.OAuthClientId,
-                NeoComposeEditorDefaults.OAuthScopes);
+                NeoComposeEditorDefaults.OAuthScopes,
+                () => NeoComposeTokenStore.Create(apiBaseUrl));
         }
     }
 }

@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-07-29
+
+### Fixed
+
+- Editor device authorization now keeps polling through connection failures,
+  HTTP 429 responses, and transient 5xx responses until the device-code
+  deadline. `Retry-After` is honored, while permanent OAuth errors still end
+  the attempt immediately.
+- Editor sign-in now verifies that a freshly constructed token store can read
+  the persisted credential before reporting success, and logs the final flow
+  outcome without logging access tokens or device codes.
+- Linux Secret Service storage now uses a resilient native-plus-file backend:
+  failed native operations fall back safely, reads probe both stores, fallback
+  credentials migrate back when Secret Service recovers, and sign-out clears
+  both stores. The fallback warning is emitted once per editor session.
+- Restricted file credentials now require an absolute path outside the Unity
+  project, use atomic writes, enforce checked directory/file permissions, and
+  verify the stored value after writing.
+- The Hello World sample now tracks its Unity package manifest and lockfile,
+  and its Spanish localization fixture once again covers the generated Planet
+  text used by the downstream test suite.
+
 ## [0.13.0] - 2026-07-28
 
 ### Breaking
