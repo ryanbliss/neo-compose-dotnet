@@ -72,6 +72,20 @@ namespace NeoCompose.Runtime.Json
         /// (§6.2.1), and <see cref="NeoClient"/> asserts the two agree.
         /// </summary>
         public string[]? constructorIds;
+        /// <summary>
+        /// P48 §2.2 — the member id a concrete class names with
+        /// <c>@settings(target: Class.Member)</c>: the member of its bound
+        /// <c>TChild</c> that a segment track writes each applied frame.
+        /// Mirrors the TS-side <c>INeoSchemaClassBase.targetMemberId</c>.
+        ///
+        /// <para>Class-level rather than a row field on purpose: the write
+        /// target is schema metadata, so it is statically validatable and the
+        /// timeline knows a lane's value kind without resolving anything.
+        /// Resolved through <c>extendsClassId</c> — a project's own subclass of
+        /// <c>NeoSpriteAnimationSegmentTrack</c> inherits the target rather
+        /// than restating it.</para>
+        /// </summary>
+        public string? targetMemberId;
         public NeoTimestamp createdAt;
         public NeoTimestamp updatedAt;
     }

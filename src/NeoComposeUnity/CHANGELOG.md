@@ -2,6 +2,115 @@
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-07-30
+
+### Breaking
+
+- **`NeoPlayDirection` is a wrapper class rather than a C# enum, and
+  `Backward` is now `Reverse`.** A track row carries its direction as
+  authored data, so the direction a play call takes and the direction a
+  track stores have to be the same type. The direction enum's option ids are
+  contract ids — identical in every project — so the SDK ships that
+  option-id wrapper once instead of every project generating an equivalent
+  type beside it:
+
+  ```csharp
+  // before
+  clip.PlayLoop(NeoPlayMode.Repeat, NeoPlayDirection.Backward);
+
+  // after
+  clip.PlayLoop(NeoPlayMode.Repeat, NeoPlayDirection.Reverse);
+  track.Direction = NeoPlayDirection.Reverse;   // the same type
+  ```
+
+  The play methods' `direction` parameters now default to `null` and
+  coalesce to `Forward`, because a class instance is not a compile-time
+  constant; `PlayOnce()` and `PlayOnce(NeoPlayDirection.Reverse)` are
+  unaffected. `NeoPlayDirectionIds` is retired — the wrapper carries its own
+  ids, alongside `IsKnown` and `FromOptionId`.
+
+  Two behaviors worth knowing: `FromOptionId` interns an unknown id rather
+  than throwing, because strictness belongs in load validation; and `Text`
+  without a `NeoClient` returns the raw text id, because the SDK cannot
+  reach a project's localization singleton the way generated code can.
+
+- **`NeoSpriteMaskInteractionIds` is replaced by a shipped
+  `NeoSpriteMaskInteraction`.** This enum gets the same treatment for the
+  same reason — it is the other enum the SDK's own API speaks, through
+  `INeoSpriteObjectValue.MaskInteraction` and the renderer — so the two are
+  one pattern rather than two. The Unity mapping moves to
+  `NeoSpriteMaskInteractions.ToUnity`, which takes an option id directly:
+
+  ```csharp
+  // before
+  renderer.maskInteraction =
+      NeoSpriteMaskInteractionIds.Parse(spriteObject.MaskInteraction);
+
+  // after
+  renderer.maskInteraction =
+      NeoSpriteMaskInteractions.ToUnity(spriteObject.MaskInteraction);
+  ```
+
+  It sits beside the type rather than on it because the wrapper's body has
+  to stay byte-identical to what codegen would emit. `MaskInteraction` on
+  the value contract stays a `string` option id — that contract is the
+  renderer's data view, and generated code bridges to it from its own typed
+  member.
+
+  The four smart-tile enums keep being generated per project. They are
+  authored data no SDK API mentions, so nothing forces them to be one shared
+  type.
+
+- **A child track that runs past its parent clip is truncated rather than
+  rejected, and an exhausted window stops writing.** The fit rule that
+  failed such a clip at load is gone, and so is the clamp-and-hold that kept
+  writing a child's last frame after its window ended. Content that leaned
+  on either behavior renders differently. Two validations replace the fit
+  rule: `StartFrame` at or past the clip's `Duration`, and an empty or
+  inverted crop window.
+
+### Added
+
+- **Animation segments (P48 §1).** A segment is a frame-indexed sequence of
+  one member's values — the value-lane counterpart to a clip. Frames are
+  sparse and hold until the next authored row or the end of `Duration`, and
+  a segment carries no fps of its own: the clip that schedules it owns the
+  clock.
+
+- **Segment tracks (P48 §2, §4).** A segment track writes one member of one
+  child, one value per applied frame, where a child track hands off to
+  another clip. The member it writes is the one its class names with
+  `@settings(target:)`, resolved through the class chain, so a project's own
+  subclass inherits the target rather than restating it. Both track kinds
+  append into one per-frame action stream in `Tracks` order, which is what
+  makes last-write-wins the execution order.
+
+  A track resolves its `Segment` **every applied frame** — as a stored
+  value, a lookup dereference, or a getter — so a change made mid-playback
+  shows on the next frame. Equipping a different asset mid-animation
+  re-resolves; a Session-stored `Duration` written at runtime changes the
+  window on the next frame.
+
+- **Scheduled playback on every track (P48 §2.1).** Tracks carry
+  `Direction` and a crop window (`OffsetStartIndex`, `OffsetEndIndex`), so
+  embedding a child clip reversed or cropped is authored composition rather
+  than something a call site has to know. Crop applies in the content's own
+  frame space before fps scaling, and `Reverse` maps `t → (D−1)−t` across
+  the whole resolved timeline, so nested content follows.
+
+- `NeoSchemaClass.targetMemberId` on the wire DTO, mirroring the schema's
+  class-level write target.
+
+- `NeoAnimationDefinition` now implements `IDisposable`.
+
+### Fixed
+
+- A sprite written by a clip or a segment now re-renders. `SpriteRenderer`'s
+  sprite was assigned only at spawn, so sprite-family writes (`Sprite`,
+  `FlipX`, `FlipY`, `MaskInteraction`) updated the data model and never the
+  rendered object. `SortingOrder` remains spawn-only — its rendered value
+  composes with spawn-time layout state.
+
 ## [0.13.1] - 2026-07-29
 
 ### Fixed

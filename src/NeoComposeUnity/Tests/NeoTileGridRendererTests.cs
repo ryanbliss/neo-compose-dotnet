@@ -25,6 +25,13 @@ namespace NeoCompose.Tests
     {
         private const string TileClassId = "tile-class";
         private const string ObjectClassId = "object-class";
+        /// <summary>
+        /// The real system enum id (P48 §2.1). Pinned rather than synthesized
+        /// because <see cref="NeoPlayDirection"/> pins the option ids, and a
+        /// fixture that invented its own would test the fixture.
+        /// </summary>
+        private const string PlayDirectionEnumId =
+            "system_705ccc39-e46e-4c9f-af3e-3ec8fd818709";
         private const string TileLayerLinkClassId = "tile-layer-link-class";
         private const string TileLayerLinkSystemBaseClassId =
             "tile-layer-link-system-base-class";
@@ -720,7 +727,14 @@ namespace NeoCompose.Tests
 
         [TestCase("fps", "FPS must be at least 1")]
         [TestCase("duplicate-frame", "duplicate frame index 0")]
-        [TestCase("child-track-fit", "past Duration 1")]
+        // P48 §2.3 deletes P29's fit error — an overrunning track truncates —
+        // and replaces it with the row that can never play at all.
+        [TestCase(
+            "track-start-frame",
+            "StartFrame 1 is at or past the owning clip's Duration 1")]
+        [TestCase(
+            "track-inverted-crop",
+            "crop window [2, 2) is empty or inverted")]
         public void AnimationExportValidation_FailsDuringClientLoad(
             string invalidCase,
             string expectedMessage)
@@ -750,8 +764,18 @@ namespace NeoCompose.Tests
                             value = 0,
                         };
                     break;
-                case "child-track-fit":
+                case "track-start-frame":
                     ((NumberMemberValue)data.values["track-parent-duration"]).value = 1;
+                    break;
+                case "track-inverted-crop":
+                    ((ObjectMemberValue)data.values["track-parent-child"])
+                        .value!["OffsetStartIndex"] = "track-crop-start";
+                    ((ObjectMemberValue)data.values["track-parent-child"])
+                        .value!["OffsetEndIndex"] = "track-crop-end";
+                    data.values["track-crop-start"] =
+                        new NumberMemberValue { id = "track-crop-start", value = 2 };
+                    data.values["track-crop-end"] =
+                        new NumberMemberValue { id = "track-crop-end", value = 2 };
                     break;
                 default:
                     Assert.Fail($"Unknown invalid case '{invalidCase}'.");
@@ -978,7 +1002,12 @@ namespace NeoCompose.Tests
             ((NumberMemberValue)data.values["child-clip-duration"]).value = 2;
             ((ArrayMemberValue)data.values["child-clip-frames"]).value =
                 new[] { "child-frame-0", "child-frame-1" };
-            ((NumberMemberValue)data.values["track-parent-duration"]).value = 3;
+            // Exactly as long as the child, since P48 §2.3 stops a track
+            // writing once its window is exhausted rather than clamping it to
+            // the child's last frame. A third parent frame would now be a
+            // no-write frame, which is a different assertion (see
+            // AnimationChildTrack_HoldTailDoesNotRewriteUnchangedChildFrame).
+            ((NumberMemberValue)data.values["track-parent-duration"]).value = 2;
             ((NumberMemberValue)data.values["track-parent-child-start"]).value = 0;
             data.values["child-frame-1"] = new ObjectMemberValue
             {
@@ -1020,11 +1049,7 @@ namespace NeoCompose.Tests
 
             clip.PlayLoop(
                 NeoPlayMode.Boomerang,
-                NeoPlayDirection.Backward);
-            Assert.AreEqual(
-                8,
-                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x);
-            clip.Tick(0.1f);
+                NeoPlayDirection.Reverse);
             Assert.AreEqual(
                 8,
                 ((Vector3MemberValue)client.sessionValues[positionId]).value!.x);
@@ -1036,6 +1061,158 @@ namespace NeoCompose.Tests
             Assert.AreEqual(
                 8,
                 ((Vector3MemberValue)client.sessionValues[positionId]).value!.x);
+            clip.Tick(0.1f);
+            Assert.AreEqual(
+                7,
+                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x);
+        }
+
+        /// <summary>
+        /// P48 §2.1 / acceptance 5: a child <b>clip</b> plays reversed inside a
+        /// parent, authored entirely on the track row. The reversal is
+        /// <c>t → (D − 1) − t</c> over the child's resolved timeline, so the
+        /// parent's first frame shows the child's last.
+        /// </summary>
+        [Test]
+        public void AnimationChildTrack_ReversePlaysTheChildTimelineBackwards()
+        {
+            ProjectData data = TwoFrameChildClipAnimationProjectData();
+            ((ObjectMemberValue)data.values["track-parent-child"])
+                .value!["Direction"] = "track-direction-reverse";
+            data.values["track-direction-reverse"] = new ArrayMemberValue
+            {
+                id = "track-direction-reverse",
+                value = new[] { NeoPlayDirection.Reverse.optionId },
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
+            string positionId = PlacedChildPositionId(client, placed.InstanceId.Value);
+            NeoAnimationClip<TestComposedObject> clip =
+                NeoGeneratedTypesSupport.GetAnimationClip(
+                    (TestComposedObject)placed.Info,
+                    "TrackAnimate");
+
+            clip.PlayOnce();
+            Assert.AreEqual(
+                8,
+                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x,
+                "a reversed child clip enters at its LAST frame");
+            clip.Tick(0.1f);
+            Assert.AreEqual(
+                7,
+                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x);
+        }
+
+        /// <summary>
+        /// P48 §2.3 / acceptance 6: the crop window's edges are the two
+        /// offsets, applied in the child's own frame space.
+        /// </summary>
+        [Test]
+        public void AnimationChildTrack_CropWindowTrimsTheChildTimeline()
+        {
+            ProjectData data = TwoFrameChildClipAnimationProjectData();
+            ((ObjectMemberValue)data.values["track-parent-child"])
+                .value!["OffsetStartIndex"] = "track-crop-start";
+            data.values["track-crop-start"] =
+                new NumberMemberValue { id = "track-crop-start", value = 1 };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
+            string positionId = PlacedChildPositionId(client, placed.InstanceId.Value);
+            NeoAnimationClip<TestComposedObject> clip =
+                NeoGeneratedTypesSupport.GetAnimationClip(
+                    (TestComposedObject)placed.Info,
+                    "TrackAnimate");
+
+            clip.PlayOnce();
+            Assert.AreEqual(
+                8,
+                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x,
+                "cropping the first frame out starts the lane on the second");
+            // Frame 1 is past the one-frame window, so the track writes nothing
+            // and the member keeps its last value rather than replaying.
+            ((Vector3MemberValue)client.sessionValues[positionId]).value!.x = 42;
+            clip.Tick(0.1f);
+            Assert.AreEqual(
+                42,
+                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x);
+        }
+
+        /// <summary>
+        /// P48 §2.3 / acceptance 6: P29's fit error is deleted. A child track
+        /// whose content runs past the owning clip's end loads, compiles, and
+        /// plays — the tail simply truncates.
+        /// </summary>
+        [Test]
+        public void AnimationChildTrack_OverrunTruncatesInsteadOfFailingTheLoad()
+        {
+            ProjectData data = TwoFrameChildClipAnimationProjectData();
+            // Two child frames scheduled from parent frame 1 of a 2-frame
+            // parent: the second child frame lands at parent frame 2, past the
+            // end. P29 rejected this document outright.
+            ((NumberMemberValue)data.values["track-parent-child-start"]).value = 1;
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
+            string positionId = PlacedChildPositionId(client, placed.InstanceId.Value);
+            NeoAnimationClip<TestComposedObject> clip =
+                NeoGeneratedTypesSupport.GetAnimationClip(
+                    (TestComposedObject)placed.Info,
+                    "TrackAnimate");
+
+            clip.PlayOnce();
+            Assert.AreEqual(
+                1,
+                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x,
+                "nothing plays before StartFrame");
+            clip.Tick(0.1f);
+            Assert.AreEqual(
+                7,
+                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x,
+                "the first child frame still plays; only the tail truncates");
+        }
+
+        /// <summary>
+        /// The placement fixture with a two-frame child clip and a parent whose
+        /// Duration matches it, so a direction or crop change is the only
+        /// variable between the tests above.
+        /// </summary>
+        private static ProjectData TwoFrameChildClipAnimationProjectData()
+        {
+            ProjectData data = BuildPlacementAnimationProjectData();
+            ((NumberMemberValue)data.values["child-clip-duration"]).value = 2;
+            ((ArrayMemberValue)data.values["child-clip-frames"]).value =
+                new[] { "child-frame-0", "child-frame-1" };
+            ((NumberMemberValue)data.values["track-parent-duration"]).value = 2;
+            ((NumberMemberValue)data.values["track-parent-child-start"]).value = 0;
+            data.values["child-frame-1"] = new ObjectMemberValue
+            {
+                id = "child-frame-1",
+                classId = ((ObjectMemberValue)data.values["child-frame-0"]).classId,
+                value = new Dictionary<string, string>
+                {
+                    ["Index"] = "child-frame-1-index",
+                    ["Overrides"] = "child-frame-1-values",
+                },
+            };
+            data.values["child-frame-1-index"] =
+                new NumberMemberValue { id = "child-frame-1-index", value = 1 };
+            data.values["child-frame-1-values"] = new ObjectMemberValue
+            {
+                id = "child-frame-1-values",
+                classId = ObjectClassId,
+                value = new Dictionary<string, string>
+                {
+                    ["Position"] = "child-frame-1-position",
+                },
+            };
+            data.values["child-frame-1-position"] = new Vector3MemberValue
+            {
+                id = "child-frame-1-position",
+                value = new NeoVector3Value { x = 8, y = 0, z = 0 },
+            };
+            return data;
         }
 
         [Test]
@@ -1213,7 +1390,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void AnimationSkippedChildTrackIsExcludedFromTheParentFitCheck()
+        public void AnimationSkippedChildTrackIsExcludedFromTheParentScheduleChecks()
         {
             ProjectData data = BuildPlacementAnimationProjectData();
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
@@ -1221,9 +1398,10 @@ namespace NeoCompose.Tests
             RepointPlacedChildProvenance(client, placed.InstanceId.Value);
             // Pushed past the end of the parent AFTER load, so the authored-graph
             // export check (which already ran and stays strict, section 2.4) is
-            // not the one under test: the child clip is one parent frame long,
-            // so starting it at frame 5 of a 2-frame parent would fail the
-            // runtime fit check if the skipped track ever reached it.
+            // not the one under test: StartFrame 5 on a 2-frame parent is P48
+            // §2.3's "the row can never play" error, and the skipped track must
+            // never reach it — an optional slot this instance does not have
+            // cannot be a reason to fail the whole clip.
             ((NumberMemberValue)client.values["track-parent-child-start"]).value = 5;
             LogAssert.Expect(
                 LogType.Warning,
@@ -3482,7 +3660,7 @@ namespace NeoCompose.Tests
                     FlipX = true,
                     FlipY = true,
                     MaskInteraction =
-                        NeoSpriteMaskInteractionIds.VisibleInsideMask,
+                        NeoSpriteMaskInteraction.VisibleInsideMask.optionId,
                 },
             };
             var go = new GameObject("NeoTileGridRenderer sprite state test");
@@ -5008,7 +5186,7 @@ namespace NeoCompose.Tests
             public bool FlipX { get; set; }
             public bool FlipY { get; set; }
             public string MaskInteraction { get; set; } =
-                NeoSpriteMaskInteractionIds.None;
+                NeoSpriteMaskInteraction.None.optionId;
             public int? SortingOrder { get; set; }
         }
 
@@ -5034,7 +5212,7 @@ namespace NeoCompose.Tests
             public bool FlipX { get; set; }
             public bool FlipY { get; set; }
             public string MaskInteraction { get; set; } =
-                NeoSpriteMaskInteractionIds.None;
+                NeoSpriteMaskInteraction.None.optionId;
             public int? SortingOrder { get; set; }
         }
 
@@ -5083,7 +5261,7 @@ namespace NeoCompose.Tests
             public bool FlipX { get; set; }
             public bool FlipY { get; set; }
             public string MaskInteraction { get; set; } =
-                NeoSpriteMaskInteractionIds.None;
+                NeoSpriteMaskInteraction.None.optionId;
             public int? SortingOrder { get; set; }
         }
 
@@ -5322,12 +5500,38 @@ namespace NeoCompose.Tests
                 id = trackClassId,
                 projectId = "project-a",
                 name = "Animation Child Track",
+                // P48 §2.2 dispatches a Tracks row by its own class's world
+                // kind, so a child track has to say it is one.
+                system = JObject.FromObject(new { worldKind = "animationChildTrack" }),
                 schema = new Dictionary<string, string>
                 {
                     ["Child"] = "animation-track-child-member",
                     ["ClipKey"] = "animation-track-key-member",
                     ["StartFrame"] = "animation-track-start-member",
+                    // P48 §2.1's authored playback, on the shared base and so
+                    // on this child track too.
+                    ["Direction"] = "animation-track-direction-member",
+                    ["OffsetStartIndex"] = "animation-track-offset-start-member",
+                    ["OffsetEndIndex"] = "animation-track-offset-end-member",
                 },
+            };
+            data.enums[PlayDirectionEnumId] = new NeoCompose.Runtime.Json.Enum
+            {
+                id = PlayDirectionEnumId,
+                projectId = "project-a",
+                name = "NeoPlayDirection",
+                options = new Dictionary<string, EnumOption>
+                {
+                    [NeoPlayDirection.Forward.optionId] = new EnumOption { text = "Forward" },
+                    [NeoPlayDirection.Reverse.optionId] = new EnumOption { text = "Reverse" },
+                },
+                optionKeyOrder = new List<string>
+                {
+                    NeoPlayDirection.Forward.optionId,
+                    NeoPlayDirection.Reverse.optionId,
+                },
+                createdAt = "x",
+                updatedAt = "x",
             };
 
             data.members["animation-fps-member"] = IntMember(
@@ -5342,6 +5546,23 @@ namespace NeoCompose.Tests
             data.members["animation-track-start-member"] = IntMember(
                 "animation-track-start-member",
                 "StartFrame");
+            data.members["animation-track-offset-start-member"] = IntMember(
+                "animation-track-offset-start-member",
+                "OffsetStartIndex");
+            data.members["animation-track-offset-end-member"] = IntMember(
+                "animation-track-offset-end-member",
+                "OffsetEndIndex");
+            data.members["animation-track-direction-member"] = new EnumMember
+            {
+                id = "animation-track-direction-member",
+                projectId = "project-a",
+                name = "Direction",
+                kind = MemberKind.Enum,
+                enumId = PlayDirectionEnumId,
+                multiselect = false,
+                createdAt = "x",
+                updatedAt = "x",
+            };
             data.members["animation-frames-member"] = ListMember(
                 "animation-frames-member",
                 "Frames",

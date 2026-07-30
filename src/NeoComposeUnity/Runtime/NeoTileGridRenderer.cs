@@ -67,6 +67,13 @@ namespace NeoCompose.Runtime
         /// from every other member write on a placement.
         /// </summary>
         private const string EnabledMemberKey = "Enabled";
+        // The NeoSpriteObject members a SpriteRenderer mirrors. Named here so
+        // ChangeCanCarrySpriteState reads as a list of keys rather than as four
+        // string literals in a boolean.
+        private const string SpriteMemberKey = "Sprite";
+        private const string FlipXMemberKey = "FlipX";
+        private const string FlipYMemberKey = "FlipY";
+        private const string MaskInteractionMemberKey = "MaskInteraction";
 
         private readonly Dictionary<Sprite, Tile> spriteTiles = new();
         private readonly Dictionary<NeoGeneratedClassValue, TileBase> generatedTileBases = new();
@@ -98,6 +105,13 @@ namespace NeoCompose.Runtime
         // but they all share the link's single bucket.
         private readonly Dictionary<NeoObjectInstanceId, ObjectVisibilityIndex>
             objectVisibilityByInstanceId = new();
+        // Every SpriteRenderer an instance rendered from a sprite OBJECT,
+        // paired with the value that governs it. Tile-layer-link tiles are
+        // absent on purpose: they are not world objects and their sprite comes
+        // from the tile asset factory, not from a Sprite member anything can
+        // write. See SyncObjectSprites.
+        private readonly Dictionary<NeoObjectInstanceId, List<RenderedObjectSprite>>
+            objectSpritesByInstanceId = new();
         private readonly Dictionary<string, int> objectLayerFallbackSortingOrdersByLayerId = new();
         private RendererSmartTileNeighborMatcher? smartTileMatcher;
         private NeoTileGridRenderSession? liveSession;
@@ -164,6 +178,27 @@ namespace NeoCompose.Runtime
                 }
                 bucket.GameObjects.Add(gameObject);
             }
+        }
+
+        /// <summary>
+        /// One rendered <see cref="SpriteRenderer"/> and the sprite-object
+        /// value it draws. P48 §11.1 needs an equip — a Session write that
+        /// re-resolves a segment track's art — to reach the screen on the next
+        /// applied frame, and before P48 the only assignment of
+        /// <c>renderer.sprite</c> happened at spawn.
+        /// </summary>
+        private readonly struct RenderedObjectSprite
+        {
+            public RenderedObjectSprite(
+                INeoSpriteObjectValue value,
+                SpriteRenderer renderer)
+            {
+                Value = value;
+                Renderer = renderer;
+            }
+
+            public INeoSpriteObjectValue Value { get; }
+            public SpriteRenderer Renderer { get; }
         }
 
         private sealed class TileLayerTargetRegistration
@@ -997,6 +1032,7 @@ namespace NeoCompose.Runtime
         {
             DisposeObjectPositionSubscription(instanceId);
             objectVisibilityByInstanceId.Remove(instanceId);
+            objectSpritesByInstanceId.Remove(instanceId);
             if (!objectRootsByInstanceId.TryGetValue(instanceId, out var root) ||
                 root == null)
             {
@@ -1043,9 +1079,81 @@ namespace NeoCompose.Runtime
                     // a nested part's Enabled arrives here too — but so does
                     // every clip frame's Position or Sprite write, and those
                     // must not cost a visibility reconcile.
-                    if (!ChangeCanCarryEnabled(changedValue, changedMember)) return;
-                    SyncObjectVisibility(instanceId);
+                    if (ChangeCanCarryEnabled(changedValue, changedMember))
+                    {
+                        SyncObjectVisibility(instanceId);
+                    }
+                    // A Sprite write is the one thing this subscription used to
+                    // deliberately drop. P48 makes it load-bearing: an equip is
+                    // a Session lookup write, a segment track re-resolves it on
+                    // the next applied frame and writes the child's Sprite, and
+                    // before this the SpriteRenderer kept whatever it was given
+                    // at spawn.
+                    if (!ChangeCanCarrySpriteState(changedValue, changedMember)) return;
+                    SyncObjectSprites(instanceId);
                 });
+        }
+
+        /// <summary>
+        /// The <see cref="ChangeCanCarryEnabled"/> gate, asked about the three
+        /// members a <see cref="SpriteRenderer"/> mirrors from a sprite object.
+        /// Same shape and same reason: a container write may have bubbled from
+        /// any descendant and has to be honoured, while a scalar leaf the
+        /// placement owns directly under some other key — the common per-frame
+        /// Position override — is safely skipped.
+        /// </summary>
+        private static bool ChangeCanCarrySpriteState(
+            NeoGeneratedClassValue changedValue,
+            NeoMember changedMember)
+        {
+            if (changedMember is NeoMemberClass or NeoMemberList or NeoMemberDictionary)
+            {
+                return true;
+            }
+
+            if (!changedValue.BackingNode.TryGetSchemaKeyForChild(
+                    changedMember,
+                    out string? schemaKey))
+            {
+                return true;
+            }
+
+            return schemaKey is SpriteMemberKey or FlipXMemberKey or FlipYMemberKey
+                or MaskInteractionMemberKey;
+        }
+
+        /// <summary>
+        /// Re-reads every rendered sprite child's <c>Sprite</c>, flips, and mask
+        /// interaction from the value that governs it. The value model is the
+        /// single source of truth for what is drawn, the same way it already is
+        /// for position and visibility.
+        /// <para>
+        /// Sorting order is deliberately not re-derived: the rendered order is
+        /// the object layer's computed base plus the authored offset, and the
+        /// base is spawn-time layout state this walk does not have. A runtime
+        /// SortingOrder write therefore still takes a respawn — a real gap, but
+        /// a different one from P48's.
+        /// </para>
+        /// </summary>
+        private void SyncObjectSprites(NeoObjectInstanceId instanceId)
+        {
+            if (!objectSpritesByInstanceId.TryGetValue(instanceId, out var sprites))
+            {
+                return;
+            }
+            foreach (var binding in sprites)
+            {
+                var renderer = binding.Renderer;
+                if (renderer == null) continue;
+                var sprite = binding.Value.Sprite;
+                // Assigning an unchanged sprite is a native round-trip per
+                // renderer per frame; a rig with six layers plays at 8 FPS.
+                if (!ReferenceEquals(renderer.sprite, sprite))
+                {
+                    renderer.sprite = sprite;
+                }
+                ApplySpriteState(renderer, binding.Value);
+            }
         }
 
         /// <summary>
@@ -1173,6 +1281,7 @@ namespace NeoCompose.Runtime
             DisposeObjectPositionSubscriptions();
             objectRootsByInstanceId.Clear();
             objectVisibilityByInstanceId.Clear();
+            objectSpritesByInstanceId.Clear();
             objectLayerFallbackSortingOrdersByLayerId.Clear();
         }
 
@@ -1585,6 +1694,8 @@ namespace NeoCompose.Runtime
 
             var visibility = new ObjectVisibilityIndex();
             objectVisibilityByInstanceId[instance.InstanceId] = visibility;
+            var sprites = new List<RenderedObjectSprite>();
+            objectSpritesByInstanceId[instance.InstanceId] = sprites;
             // Registered without applying: the whole subtree — placed root and
             // every composition child — stays active until the spawn hook has
             // observed it, so SpawnObject applies the index once Initialize has
@@ -1606,7 +1717,8 @@ namespace NeoCompose.Runtime
                 sortingOrder,
                 new HashSet<string>(),
                 0,
-                visibility);
+                visibility,
+                sprites);
 
             if (instance.Object is INeoColliderSource colliderSource
                 && TryResolveObjectColliderSpec(colliderSource, out var colliderSpec))
@@ -1634,7 +1746,8 @@ namespace NeoCompose.Runtime
                 spriteObject.Sprite,
                 Vector3.zero,
                 CellSpanFromSize(spriteObject.Size),
-                sortingOrder);
+                sortingOrder,
+                sprites);
             return go;
         }
 
@@ -1666,7 +1779,8 @@ namespace NeoCompose.Runtime
             int baseSortingOrder,
             HashSet<string> visitedValueIds,
             int depth,
-            ObjectVisibilityIndex visibility)
+            ObjectVisibilityIndex visibility,
+            List<RenderedObjectSprite> sprites)
         {
             if (depth > MaxObjectCompositionDepth) return 0;
             if (value is not INeoObjectCompositionSource composition) return 0;
@@ -1691,7 +1805,8 @@ namespace NeoCompose.Runtime
                     childIndex++,
                     visitedValueIds,
                     depth + 1,
-                    visibility);
+                    visibility,
+                    sprites);
             }
 
             if (hasValueId)
@@ -1709,7 +1824,8 @@ namespace NeoCompose.Runtime
             int orderOffset,
             HashSet<string> visitedValueIds,
             int depth,
-            ObjectVisibilityIndex visibility)
+            ObjectVisibilityIndex visibility,
+            List<RenderedObjectSprite> sprites)
         {
             var childOffset = CellOffsetToLocalPosition(child.Position);
             var childSortingOrder = baseSortingOrder + orderOffset;
@@ -1732,7 +1848,8 @@ namespace NeoCompose.Runtime
                     spriteChild.Sprite,
                     childOffset,
                     CellSpanFromSize(spriteChild.Size),
-                    childSortingOrder);
+                    childSortingOrder,
+                    sprites);
                 visibility.Register(child, spriteGo);
                 return 1;
             }
@@ -1753,7 +1870,8 @@ namespace NeoCompose.Runtime
                 childSortingOrder,
                 visitedValueIds,
                 depth + 1,
-                visibility);
+                visibility,
+                sprites);
             if (childRendered == 0)
             {
                 DestroyCompositionRoot(childRoot);
@@ -1796,7 +1914,8 @@ namespace NeoCompose.Runtime
                     sprite,
                     linkOffset + CellOffsetToLocalPosition(tileInstance.Cell),
                     Vector3.one,
-                    baseSortingOrder + tileIndex++);
+                    baseSortingOrder + tileIndex++,
+                    sprites: null);
                 if (link is INeoWorldObjectValue linkObject)
                 {
                     visibility.Register(linkObject, tileGo);
@@ -1823,7 +1942,8 @@ namespace NeoCompose.Runtime
             Sprite sprite,
             Vector3 localPosition,
             Vector3 cellSpan,
-            int sortingOrder)
+            int sortingOrder,
+            List<RenderedObjectSprite>? sprites)
         {
             var go = new GameObject(
                 string.IsNullOrWhiteSpace(name) ? sprite.name : name);
@@ -1833,6 +1953,14 @@ namespace NeoCompose.Runtime
             var renderer = go.AddComponent<SpriteRenderer>();
             renderer.sprite = sprite;
             ApplySpriteState(renderer, spriteObject);
+            // Recorded so a later Sprite / FlipX / FlipY write on the same
+            // value reaches this renderer (SyncObjectSprites). Tile-layer-link
+            // tiles pass a null list: they carry no sprite-object value, so
+            // there is nothing to re-read them from.
+            if (spriteObject != null)
+            {
+                sprites?.Add(new RenderedObjectSprite(spriteObject, renderer));
+            }
             // The authored order is an offset on the order derived from the
             // object's layer group, so an object layer's sorting order still
             // moves the sprite with it.
@@ -1861,7 +1989,7 @@ namespace NeoCompose.Runtime
             renderer.flipX = spriteObject.FlipX;
             renderer.flipY = spriteObject.FlipY;
             renderer.maskInteraction =
-                NeoSpriteMaskInteractionIds.Parse(spriteObject.MaskInteraction);
+                NeoSpriteMaskInteractions.ToUnity(spriteObject.MaskInteraction);
         }
 
         private static void ApplySorting(
