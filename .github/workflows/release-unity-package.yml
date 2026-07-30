@@ -1,0 +1,175 @@
+name: Release Unity package
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - src/NeoComposeUnity/package.json
+      - src/NeoComposeUnity/CHANGELOG.md
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-unity-package
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Tag and release
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare release
+        id: prepare
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          manifest="src/NeoComposeUnity/package.json"
+          changelog="src/NeoComposeUnity/CHANGELOG.md"
+          version="$(jq -er '.version' "$manifest")"
+
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error file=$manifest::Package version '$version' is not a stable semantic version."
+            exit 1
+          fi
+
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            version_changed=false
+            changelog_changed=false
+
+            previous_version="$(git show "$BEFORE_SHA:$manifest" | jq -er '.version')"
+            if [[ "$previous_version" != "$version" ]]; then
+              version_changed=true
+            fi
+
+            if git diff --quiet "$BEFORE_SHA" "$GITHUB_SHA" -- "$changelog"; then
+              :
+            else
+              changelog_changed=true
+            fi
+
+            if [[ "$version_changed" == "false" ]]; then
+              echo "The package version did not change; no release is needed."
+              echo "release=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            if [[ "$changelog_changed" == "false" ]]; then
+              echo "::error file=$changelog::The package version changed without a changelog update."
+              exit 1
+            fi
+
+            highest_version="$(
+              printf '%s\n%s\n' "$previous_version" "$version" |
+                sort --version-sort |
+                tail -n 1
+            )"
+            if [[ "$highest_version" != "$version" ]]; then
+              echo "::error file=$manifest::Package version moved backwards from $previous_version to $version."
+              exit 1
+            fi
+          fi
+
+          tag="v$version"
+          notes_file="$RUNNER_TEMP/release-notes.md"
+
+          awk -v version="$version" '
+            $0 == "## [" version "]" ||
+              index($0, "## [" version "] - ") == 1 {
+              found = 1
+              next
+            }
+            found && /^## \[/ {
+              exit
+            }
+            found {
+              lines[++count] = $0
+            }
+            END {
+              if (!found) {
+                exit 2
+              }
+              first = 1
+              while (first <= count && lines[first] == "") {
+                first++
+              }
+              last = count
+              while (last >= first && lines[last] == "") {
+                last--
+              }
+              for (i = first; i <= last; i++) {
+                print lines[i]
+              }
+            }
+          ' "$changelog" > "$notes_file" || {
+            echo "::error file=$changelog::No changelog section exists for version $version."
+            exit 1
+          }
+
+          if [[ ! -s "$notes_file" ]]; then
+            echo "::error file=$changelog::The changelog section for version $version is empty."
+            exit 1
+          fi
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists; nothing to do."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git rev-parse --verify --quiet "refs/tags/$tag" >/dev/null; then
+            tag_commit="$(git rev-list -n 1 "$tag")"
+            if [[ "$EVENT_NAME" == "push" && "$tag_commit" != "$GITHUB_SHA" ]]; then
+              echo "::error::Tag $tag already points to $tag_commit instead of $GITHUB_SHA."
+              exit 1
+            fi
+          fi
+
+          {
+            echo "release=true"
+            echo "tag=$tag"
+            echo "title=NeoCompose Unity $version"
+            echo "notes_file=$notes_file"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create annotated tag
+        if: steps.prepare.outputs.release == 'true'
+        env:
+          TAG: ${{ steps.prepare.outputs.tag }}
+          TITLE: ${{ steps.prepare.outputs.title }}
+        run: |
+          set -euo pipefail
+
+          if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
+            echo "Tag $TAG already exists; reusing it."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag --annotate "$TAG" "$GITHUB_SHA" --message "$TITLE"
+          git push origin "$TAG"
+
+      - name: Create GitHub release
+        if: steps.prepare.outputs.release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTES_FILE: ${{ steps.prepare.outputs.notes_file }}
+          TAG: ${{ steps.prepare.outputs.tag }}
+          TITLE: ${{ steps.prepare.outputs.title }}
+        run: gh release create "$TAG" --verify-tag --title "$TITLE" --notes-file "$NOTES_FILE"
