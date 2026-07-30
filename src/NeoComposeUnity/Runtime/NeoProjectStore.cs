@@ -551,14 +551,20 @@ namespace NeoCompose.Runtime
         /// A stale entry that still claims a cloud copy is tolerated: a
         /// <see cref="NeoComposeNotFoundException"/> (the server copy is already
         /// gone) falls through to the local delete rather than failing the whole
-        /// operation. Other cloud failures (auth/offline) propagate so the local
-        /// file is not dropped while the cloud copy survives.
+        /// operation. When authentication is configured but signed out, the cloud
+        /// archive is deliberately skipped and only the local copy is removed;
+        /// signing in again can restore the surviving cloud copy. Other cloud
+        /// failures while signed in (for example, an offline transport) propagate
+        /// so the local file is not dropped unexpectedly.
         /// </summary>
         public async Awaitable ArchiveAsync(string customId)
         {
             var core = RequireReady();
             bool existsRemotely = core.TryGetEntry(customId, out var entry) && entry.existsRemotely;
-            if (core.ApiClient != null && existsRemotely)
+            bool canArchiveRemotely = core.ApiClient != null
+                && existsRemotely
+                && (core.Authentication == null || core.Authentication.IsSignedIn);
+            if (canArchiveRemotely)
             {
                 try
                 {

@@ -204,9 +204,8 @@ namespace HelloWorld.Assets.Scripts
         {
             bool existsRemotely = store != null
                 && store.Saves.Any(s => s.customId == customId && s.existsRemotely);
-            string subtitle = existsRemotely
-                ? "Your save file will be recoverable at app.neocompose.com"
-                : "This permanently deletes the local save file. It has no cloud copy, so it cannot be recovered.";
+            bool cloudSessionSignedIn = store?.Authentication?.IsSignedIn ?? true;
+            string subtitle = DeleteConfirmationSubtitle(existsRemotely, cloudSessionSignedIn);
             menu.ShowPrompt(
                 "Are you sure you want to do this?",
                 subtitle,
@@ -217,6 +216,20 @@ namespace HelloWorld.Assets.Scripts
                 });
         }
 
+        internal static string DeleteConfirmationSubtitle(
+            bool existsRemotely,
+            bool cloudSessionSignedIn)
+        {
+            if (!existsRemotely)
+            {
+                return "This permanently deletes the local save file. It has no cloud copy, so it cannot be recovered.";
+            }
+
+            return cloudSessionSignedIn
+                ? "Your save file will be recoverable at app.neocompose.com"
+                : "This only deletes the save from this device. Sign in again to restore its cloud copy.";
+        }
+
         /// <summary>The Loop ending: archive the save the player just erased in-fiction.</summary>
         private async Awaitable EraseSaveAsync(string customId)
         {
@@ -225,9 +238,10 @@ namespace HelloWorld.Assets.Scripts
 
         private async Awaitable DeleteAsync(string customId)
         {
-            // ArchiveAsync deletes the local file and (when signed in) archives the
-            // cloud copy so it stays recoverable from the web app. The list event
-            // it raises re-renders the menu — no explicit render needed.
+            // ArchiveAsync always deletes the local file. When signed in it also
+            // archives the cloud copy; when signed out that copy survives and will
+            // layer back in after the next sign-in. The list event it raises
+            // re-renders the menu — no explicit render needed.
             await store.ArchiveAsync(customId);
         }
 

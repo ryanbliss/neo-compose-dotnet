@@ -12,6 +12,14 @@ namespace NeoCompose.Tests
 {
     public class NeoProjectStoreTests
     {
+        private sealed class EmptyTokenStore : INeoComposeTokenStore
+        {
+            public NeoComposeStoredToken? Load() => null;
+            public void Save(NeoComposeStoredToken token) { }
+            public void Clear() { }
+            public NeoComposeTokenHint? PeekHint() => null;
+        }
+
         [Test]
         public async Task LoadAsync_GoesLoadingThenReady_AndGatesOpenUntilReady()
         {
@@ -172,6 +180,49 @@ namespace NeoCompose.Tests
             await store.ArchiveAsync("save-1");
             Assert.That(api.archivedSaves, Does.Contain("save-1"));
             Assert.That(await local.LoadSaveAsync("save-1"), Is.Null);
+        }
+
+        [Test]
+        public async Task ArchiveSave_WhenSignedOut_DeletesOnlyLocalCopy()
+        {
+            var api = new FakeApiClient
+            {
+                list = new NeoSaveFileList
+                {
+                    saves = { NeoSaveTestSupport.Summary("save-1", "snap-1") },
+                },
+                archiveThrows = new NeoComposeNotSignedInException("signed out"),
+            };
+            var local = new NeoInMemoryLocalSaveStore();
+            await local.CommitSaveAsync(
+                "save-1",
+                NeoSaveTestSupport.SyncedSaveContent("Cloud Save"));
+            var authentication = new NeoAuthentication(
+                new NeoAuthenticationOptions(
+                    "https://example.test",
+                    "project-1",
+                    "runtime-client",
+                    "project:project-1:save:write"),
+                new EmptyTokenStore());
+            var store = new NeoProjectStore(
+                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                localStore: local,
+                apiClient: api,
+                authentication: authentication,
+                targetReleaseChannelId: NeoSaveTestSupport.TargetChannel);
+            await store.LoadAsync();
+
+            Assert.That(authentication.IsSignedIn, Is.False);
+            Assert.That(store.Saves[0].existsRemotely, Is.True);
+
+            await store.ArchiveAsync("save-1");
+
+            Assert.That(
+                api.archivedSaves,
+                Is.Empty,
+                "A signed-out delete must not call the authenticated cloud archive.");
+            Assert.That(await local.LoadSaveAsync("save-1"), Is.Null);
+            Assert.That(store.Saves[0].IsArchived, Is.True);
         }
 
         [Test]
