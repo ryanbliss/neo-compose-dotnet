@@ -19,10 +19,10 @@ namespace HelloWorld.Assets.Scripts
     /// </summary>
     public sealed class SystemMapUI
     {
-        private static readonly string[] SolarOrder =
+        private static readonly Planet[] SolarOrder =
         {
-            "mercury", "venus", "earth", "mars", "jupiter",
-            "saturn", "uranus", "neptune", "pluto",
+            Planet.mercury, Planet.venus, Planet.earth, Planet.mars, Planet.jupiter,
+            Planet.saturn, Planet.uranus, Planet.neptune, Planet.pluto,
         };
 
         private RectTransform map;
@@ -203,7 +203,7 @@ namespace HelloWorld.Assets.Scripts
             var orbits = new Dictionary<string, OrbitSpec>();
             parentOrbits = new Dictionary<string, OrbitSpec>();
             var byPlanet = outposts
-                .GroupBy(outpost => outpost.Planet.optionId)
+                .GroupBy(outpost => outpost.Planet)
                 .ToDictionary(group => group.Key, group => group.ToList());
             var present = SolarOrder.Where(byPlanet.ContainsKey).ToArray();
             for (var ring = 0; ring < present.Length; ring++)
@@ -227,7 +227,7 @@ namespace HelloWorld.Assets.Scripts
                 if (locals.Count > 1)
                 {
                     // The world itself rides the ring; its outposts are moons.
-                    parentOrbits[present[ring]] = spec;
+                    parentOrbits[present[ring].optionId] = spec;
                 }
                 for (var i = 0; i < locals.Count; i++)
                 {
