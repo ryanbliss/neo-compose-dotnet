@@ -1989,7 +1989,7 @@ namespace NeoCompose.Runtime
             renderer.flipX = spriteObject.FlipX;
             renderer.flipY = spriteObject.FlipY;
             renderer.maskInteraction =
-                NeoSpriteMaskInteractionIds.Parse(spriteObject.MaskInteraction);
+                NeoSpriteMaskInteractions.ToUnity(spriteObject.MaskInteraction);
         }
 
         private static void ApplySorting(

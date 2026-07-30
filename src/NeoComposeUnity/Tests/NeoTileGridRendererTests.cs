@@ -3660,7 +3660,7 @@ namespace NeoCompose.Tests
                     FlipX = true,
                     FlipY = true,
                     MaskInteraction =
-                        NeoSpriteMaskInteractionIds.VisibleInsideMask,
+                        NeoSpriteMaskInteraction.VisibleInsideMask.optionId,
                 },
             };
             var go = new GameObject("NeoTileGridRenderer sprite state test");
@@ -5186,7 +5186,7 @@ namespace NeoCompose.Tests
             public bool FlipX { get; set; }
             public bool FlipY { get; set; }
             public string MaskInteraction { get; set; } =
-                NeoSpriteMaskInteractionIds.None;
+                NeoSpriteMaskInteraction.None.optionId;
             public int? SortingOrder { get; set; }
         }
 
@@ -5212,7 +5212,7 @@ namespace NeoCompose.Tests
             public bool FlipX { get; set; }
             public bool FlipY { get; set; }
             public string MaskInteraction { get; set; } =
-                NeoSpriteMaskInteractionIds.None;
+                NeoSpriteMaskInteraction.None.optionId;
             public int? SortingOrder { get; set; }
         }
 
@@ -5261,7 +5261,7 @@ namespace NeoCompose.Tests
             public bool FlipX { get; set; }
             public bool FlipY { get; set; }
             public string MaskInteraction { get; set; } =
-                NeoSpriteMaskInteractionIds.None;
+                NeoSpriteMaskInteraction.None.optionId;
             public int? SortingOrder { get; set; }
         }
 

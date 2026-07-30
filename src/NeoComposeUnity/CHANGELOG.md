@@ -34,6 +34,33 @@
   without a `NeoClient` returns the raw text id, because the SDK cannot
   reach a project's localization singleton the way generated code can.
 
+- **`NeoSpriteMaskInteractionIds` is replaced by a shipped
+  `NeoSpriteMaskInteraction`.** This enum gets the same treatment for the
+  same reason — it is the other enum the SDK's own API speaks, through
+  `INeoSpriteObjectValue.MaskInteraction` and the renderer — so the two are
+  one pattern rather than two. The Unity mapping moves to
+  `NeoSpriteMaskInteractions.ToUnity`, which takes an option id directly:
+
+  ```csharp
+  // before
+  renderer.maskInteraction =
+      NeoSpriteMaskInteractionIds.Parse(spriteObject.MaskInteraction);
+
+  // after
+  renderer.maskInteraction =
+      NeoSpriteMaskInteractions.ToUnity(spriteObject.MaskInteraction);
+  ```
+
+  It sits beside the type rather than on it because the wrapper's body has
+  to stay byte-identical to what codegen would emit. `MaskInteraction` on
+  the value contract stays a `string` option id — that contract is the
+  renderer's data view, and generated code bridges to it from its own typed
+  member.
+
+  The four smart-tile enums keep being generated per project. They are
+  authored data no SDK API mentions, so nothing forces them to be one shared
+  type.
+
 - **A child track that runs past its parent clip is truncated rather than
   rejected, and an exhausted window stops writing.** The fit rule that
   failed such a clip at load is gone, and so is the clamp-and-hold that kept
