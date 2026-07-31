@@ -439,10 +439,83 @@ namespace NeoCompose.Tests
                 data.classes["class-bar"].requiredConstructorId);
             Assert.IsNull(data.classes["class-bar"].constructorIds);
             ConstructorRecord record = data.constructors["ctor-bar"];
+            Assert.AreEqual("", record.code);
             Assert.AreEqual("Bar", record.baseInitializerFields![0].name);
             Assert.AreEqual("bar", record.baseInitializerFields[0].code);
             Assert.AreEqual(1, record.compiledBaseInitializerFields!.Length);
             Assert.IsNull(record.baseArguments);
+        }
+
+        /// <summary>
+        /// P49 §1.2 — a required constructor that declares no <c>init</c> block
+        /// exports no authored code, so the field arrives as an explicit JSON
+        /// null (and, from an older writer, not at all). Both mean the same
+        /// thing as the <c>""</c> the test above pins: an empty body.
+        /// </summary>
+        [Test]
+        public void ConstructorCode_IsAbsentWhenNoInitBlockIsDeclared()
+        {
+            const string json = @"{
+  ""metadata"": { ""schemaVersion"": 15, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""project"": { ""id"": ""project"", ""name"": ""P"" },
+  ""members"": {},
+  ""values"": {},
+  ""enums"": {},
+  ""classes"": {
+    ""class-bar"": {
+      ""id"": ""class-bar"",
+      ""projectId"": ""project"",
+      ""name"": ""Bar"",
+      ""schema"": {},
+      ""hiddenInMemberSelector"": false,
+      ""isAbstract"": false,
+      ""requiredConstructorId"": ""ctor-null"",
+      ""createdAt"": ""x"",
+      ""updatedAt"": ""x""
+    }
+  },
+  ""constructors"": {
+    ""ctor-null"": {
+      ""id"": ""ctor-null"",
+      ""projectId"": ""project"",
+      ""classId"": ""class-bar"",
+      ""argumentTypes"": [{ ""name"": ""bar"", ""type"": 3, ""required"": true }],
+      ""code"": null,
+      ""action"": {
+        ""compilerRevision"": 3,
+        ""parameters"": [],
+        ""instructions"": [],
+        ""typeInfo"": { ""type"": 0, ""required"": true }
+      },
+      ""createdAt"": ""x"",
+      ""updatedAt"": ""x""
+    },
+    ""ctor-omitted"": {
+      ""id"": ""ctor-omitted"",
+      ""projectId"": ""project"",
+      ""classId"": ""class-bar"",
+      ""argumentTypes"": [],
+      ""action"": {
+        ""compilerRevision"": 3,
+        ""parameters"": [],
+        ""instructions"": [],
+        ""typeInfo"": { ""type"": 0, ""required"": true }
+      },
+      ""createdAt"": ""x"",
+      ""updatedAt"": ""x""
+    }
+  }
+}";
+
+            var data = Deserialize(json);
+
+            ConstructorRecord explicitNull = data.constructors["ctor-null"];
+            Assert.IsNull(explicitNull.code);
+            // The rest of the record still has to land — a null body is not a
+            // truncated record.
+            Assert.AreEqual("bar", explicitNull.argumentTypes[0].name);
+            Assert.AreEqual(MemberKind.Null, explicitNull.action.typeInfo.type);
+            Assert.IsNull(data.constructors["ctor-omitted"].code);
         }
 
         /// <summary>

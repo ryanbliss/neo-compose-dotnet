@@ -110,8 +110,14 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public FunctionArgumentTypeInfo[] argumentTypes = null!;
 
-        /// <summary>Authored NeoScript body; <c>""</c> when empty.</summary>
-        public string code = null!;
+        /// <summary>
+        /// Authored NeoScript body. Absent means the declaration carries no
+        /// <c>init</c> block at all (P49 §1.2 — a required constructor without
+        /// one); <c>""</c> means a block was declared and left empty. The two
+        /// are interchangeable to the SDK, which executes the compiled
+        /// <see cref="action"/> and never the source.
+        /// </summary>
+        public string? code;
 
         /// <summary>Server-compiled executable IR. Never accepted from a client write.</summary>
         public FunctionWithReturnType action = null!;

@@ -898,6 +898,49 @@ namespace NeoCompose.Tests
             StringAssert.Contains("does not declare", error.Message);
         }
 
+        [Test]
+        public void RequiredConstructor_AbsentAuthoredCodeMatchesAnEmptyBody()
+        {
+            // P49 §1.2 — `class Cog(string Seed) : Gear(Seed) { … }` declares no
+            // `init` block, so its record ships no authored code at all. The
+            // SDK executes the compiled action and never the source, so a null
+            // `code` has to load and construct exactly like the `""` an
+            // explicitly-empty block stores.
+            (string? label, string? tag) absent = ConstructCog(code: null);
+            (string? label, string? tag) empty = ConstructCog(code: "");
+
+            Assert.AreEqual(empty, absent);
+            Assert.AreEqual("seeded", absent.label);
+            Assert.AreEqual("from-base-clause", absent.tag);
+        }
+
+        /// <summary>
+        /// Loads a client whose `Cog` required constructor carries
+        /// <paramref name="code"/> as its authored body and returns the two
+        /// members its base clause settles.
+        /// </summary>
+        private static (string? label, string? tag) ConstructCog(string? code)
+        {
+            ProjectData data = BuildProjectData();
+            data.constructors["ctor-cog"].code = code;
+            NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            NeoMemberClassWritable node =
+                NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client,
+                    "cog-class",
+                    "ctor-cog",
+                    new[]
+                    {
+                        new NeoDeclaredConstructorArgument("Seed", "seeded"),
+                    });
+
+            ObjectMemberValue root = node.value!;
+            return (
+                ReadString(client, root, "Label"),
+                ReadString(client, root, "Tag"));
+        }
+
         // -------------------------------------------------------------------
         // Load-time record validation.
         // -------------------------------------------------------------------

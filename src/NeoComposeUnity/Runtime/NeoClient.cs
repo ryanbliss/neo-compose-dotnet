@@ -5369,15 +5369,18 @@ namespace NeoCompose.Runtime
             claimedByClass[requiredConstructorId] = classId;
         }
 
+        /// <summary>
+        /// <c>record.code</c> is deliberately unchecked: it is authoring
+        /// source, and P49 §1.2 made its absence meaningful (a required
+        /// constructor that declares no <c>init</c> block stores no code at
+        /// all, which is indistinguishable at runtime from a declared but empty
+        /// block). The SDK executes <c>record.action</c>, so that — not the
+        /// source — is what a truncated export has to be caught by.
+        /// </summary>
         private void ValidateConstructorRecord(
             ConstructorRecord record,
             NeoSchemaClass owningClass)
         {
-            if (record.code is null)
-            {
-                throw new InvalidOperationException(
-                    $"Constructor '{record.id}' on class '{owningClass.name}' is missing its authored code. An empty body stores an empty string, never a missing field.");
-            }
             if (record.action is null)
             {
                 throw new InvalidOperationException(
