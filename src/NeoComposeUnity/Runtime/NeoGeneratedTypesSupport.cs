@@ -1521,22 +1521,10 @@ namespace NeoCompose.Runtime
             if (classId is null)
                 throw new ArgumentNullException(nameof(classId));
             suppliedValues ??= Array.Empty<NeoGeneratedConstructorValue>();
-            var fields = new List<RuntimeConstructorField>(suppliedValues.Length);
-            foreach (NeoGeneratedConstructorValue supplied in suppliedValues)
-            {
-                if (supplied is null)
-                {
-                    throw new ArgumentException(
-                        "Generated constructor arguments cannot contain null descriptors.",
-                        nameof(suppliedValues));
-                }
-                fields.Add(new RuntimeConstructorField
-                {
-                    schemaKey = supplied.schemaKey,
-                    memberId = supplied.memberId,
-                    value = supplied.value,
-                });
-            }
+            AssertMemberWiseConstructionIsAvailable(client, classId);
+            List<RuntimeConstructorField> fields = BuildGeneratedConstructorFields(
+                suppliedValues,
+                nameof(suppliedValues));
             return CreateSuppliedClassValue(
                 client,
                 new ClassTypeInfo
@@ -1547,6 +1535,61 @@ namespace NeoCompose.Runtime
                 },
                 fields,
                 value => GeneratedValueReference(client, value));
+        }
+
+        /// <summary>
+        /// Converts generated-C# constructor values into the runtime's field
+        /// shape. Shared by the member-wise factory and the
+        /// declared-constructor seam so the two reject a null descriptor
+        /// identically rather than one of them dereferencing it.
+        /// </summary>
+        private static List<RuntimeConstructorField> BuildGeneratedConstructorFields(
+            NeoGeneratedConstructorValue[] suppliedValues,
+            string parameterName)
+        {
+            var fields = new List<RuntimeConstructorField>(suppliedValues.Length);
+            foreach (NeoGeneratedConstructorValue supplied in suppliedValues)
+            {
+                if (supplied is null)
+                {
+                    throw new ArgumentException(
+                        "Generated constructor arguments cannot contain null descriptors.",
+                        parameterName);
+                }
+                fields.Add(new RuntimeConstructorField
+                {
+                    schemaKey = supplied.schemaKey,
+                    memberId = supplied.memberId,
+                    value = supplied.value,
+                });
+            }
+            return fields;
+        }
+
+        /// <summary>
+        /// Applies the generated-C# "null means omitted" rule, matching the
+        /// same test in <see cref="CreateSuppliedClassValue"/>: an optional
+        /// member handed a null was never supplied by the caller, so its
+        /// ordinary initializer and default behavior stands rather than being
+        /// cleared. A required member keeps its null so the write path reports
+        /// it against the member instead of silently dropping the field.
+        /// </summary>
+        private static List<RuntimeConstructorField> OmitUnsuppliedOptionalFields(
+            IReadOnlyList<RuntimeConstructorField> fields,
+            IReadOnlyDictionary<string, Member> membersBySchemaKey)
+        {
+            var supplied = new List<RuntimeConstructorField>(fields.Count);
+            foreach (RuntimeConstructorField field in fields)
+            {
+                Member member = membersBySchemaKey[field.schemaKey];
+                if (field.value is null
+                    && !RequiresRuntimeConstructorArgument(member))
+                {
+                    continue;
+                }
+                supplied.Add(field);
+            }
+            return supplied;
         }
 
         private static NeoConstructorValueReference?
@@ -2415,12 +2458,65 @@ namespace NeoCompose.Runtime
             Func<object?, NeoConstructorValueReference?> valueReference,
             NeoScript.NSGetterEvaluator.Context constructionCtx)
         {
+            AssertMemberWiseConstructionIsAvailable(
+                client,
+                classTypeInfo.classId);
             return CreateSuppliedClassValue(
                 client,
                 classTypeInfo,
                 fields,
                 valueReference,
                 new NeoConstructionScope(client, constructionCtx));
+        }
+
+        /// <summary>
+        /// P49 §1.3/§1.4 — a class that declares a required constructor cannot
+        /// be materialized member-wise. The header parameter list <i>is</i> the
+        /// statement that those values are not optional, so
+        /// <c>new Foo { Bar = "bar" }</c> and the generated member-wise factory
+        /// — the two paths that settle members without invoking a
+        /// constructor — are both closed. Settling a member is not the same as
+        /// satisfying the constructor, and a class with two construction
+        /// contracts is the incoherence P49 exists to remove.
+        ///
+        /// <para>The compiler rejects both call sites, so reaching here means
+        /// stale generated code or stale IR. An unresolvable class is left to
+        /// the ordinary missing-class diagnostic rather than reported twice.
+        /// </para>
+        /// </summary>
+        private static void AssertMemberWiseConstructionIsAvailable(
+            NeoClient client,
+            string classId)
+        {
+            if (!client.TryGetClass(classId, out NeoSchemaClass? schemaClass))
+            {
+                return;
+            }
+            string? requiredConstructorId = schemaClass!.requiredConstructorId;
+            if (string.IsNullOrEmpty(requiredConstructorId)) return;
+            ConstructorRecord record = RequireConstructorRecord(
+                client,
+                classId,
+                schemaClass.name,
+                requiredConstructorId!);
+            throw new InvalidOperationException(
+                $"Class '{schemaClass.name}' declares a required constructor ({RequiredConstructorParameters(record)}), so it cannot be constructed without one.");
+        }
+
+        /// <summary>
+        /// The required constructor's parameter names, in declaration order —
+        /// the shortest statement of what a caller has to supply, and shared by
+        /// both §1.3 rejections so they name the contract identically.
+        /// </summary>
+        private static string RequiredConstructorParameters(
+            ConstructorRecord record)
+        {
+            var parameters = new List<string>(record.argumentTypes.Length);
+            foreach (FunctionArgumentTypeInfo argument in record.argumentTypes)
+            {
+                parameters.Add(argument.name);
+            }
+            return string.Join(", ", parameters);
         }
 
         private static NeoMemberClassWritable CreateSuppliedClassValue(
@@ -2512,6 +2608,14 @@ namespace NeoCompose.Runtime
             internal NeoSchemaClass schemaClass = null!;
             internal NeoResolvedConstructorLink link = null!;
             internal Dictionary<string, Member> membersBySchemaKey = null!;
+            /// <summary>
+            /// The class's closed generic environment, carried so a value
+            /// supplied by generated C# can be expanded against the same
+            /// substituted entry members the member-wise factory uses
+            /// (P49 §4.4).
+            /// </summary>
+            internal IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
+                null!;
         }
 
         /// <summary>
@@ -2544,6 +2648,7 @@ namespace NeoCompose.Runtime
             NeoResolvedConstructorLink link;
             if (constructorId is null)
             {
+                AssertImplicitConstructionIsAvailable(client, schemaClass!);
                 if (argumentNames.Count != 0)
                 {
                     throw new InvalidOperationException(
@@ -2564,6 +2669,10 @@ namespace NeoCompose.Runtime
                     argumentNames);
                 link = ResolveConstructorLink(client, record, new HashSet<string>());
             }
+            AssertBaseInitializerFieldsResolve(
+                link,
+                metadata.membersBySchemaKey,
+                schemaClass!.name);
 
             return new NeoResolvedDeclaredConstructor
             {
@@ -2572,6 +2681,7 @@ namespace NeoCompose.Runtime
                 schemaClass = schemaClass!,
                 link = link,
                 membersBySchemaKey = metadata.membersBySchemaKey,
+                genericEnv = metadata.genericEnv,
             };
         }
 
@@ -2592,6 +2702,65 @@ namespace NeoCompose.Runtime
                     $"Declared constructor '{constructorId}' belongs to class '{record.classId}', not '{classId}'. Regenerate the NeoScript IR from the current schema.");
             }
             return record;
+        }
+
+        /// <summary>
+        /// P49 §1.3 — a class that declares a required constructor has no
+        /// implicit <c>new()</c>: the parameter list on its header is the
+        /// statement that those values are not optional. The compiler rejects
+        /// the call site too, so reaching this means stale IR or stale
+        /// generated code — and failing here rather than constructing is what
+        /// keeps a half-settled instance from being published.
+        /// </summary>
+        private static void AssertImplicitConstructionIsAvailable(
+            NeoClient client,
+            NeoSchemaClass schemaClass)
+        {
+            string? requiredConstructorId = schemaClass.requiredConstructorId;
+            if (string.IsNullOrEmpty(requiredConstructorId)) return;
+            ConstructorRecord record = RequireConstructorRecord(
+                client,
+                schemaClass.id,
+                schemaClass.name,
+                requiredConstructorId!);
+            throw new InvalidOperationException(
+                $"Class '{schemaClass.name}' declares a required constructor ({RequiredConstructorParameters(record)}) and cannot be constructed with the implicit parameterless new. Regenerate the NeoScript IR from the current schema.");
+        }
+
+        /// <summary>
+        /// P49 §1.5 — every base-clause initializer key must name a stored
+        /// member of the class under construction. Checked here, with the rest
+        /// of the call shape, so a stale block fails before any expression runs
+        /// — the same metadata-before-values ordering the call-site block gets.
+        /// </summary>
+        private static void AssertBaseInitializerFieldsResolve(
+            NeoResolvedConstructorLink link,
+            IReadOnlyDictionary<string, Member> membersBySchemaKey,
+            string className)
+        {
+            for (NeoResolvedConstructorLink? current = link;
+                 current is not null;
+                 current = current.baseLink)
+            {
+                ConstructorRecord? record = current.record;
+                if (record?.baseInitializerFields is null) continue;
+                foreach (ConstructorBaseInitializerField field
+                         in record.baseInitializerFields)
+                {
+                    if (!membersBySchemaKey.TryGetValue(
+                            field.name,
+                            out Member? member))
+                    {
+                        throw new InvalidOperationException(
+                            $"Declared constructor '{record.id}' settles base member '{field.name}', which class '{className}' does not declare. Regenerate the NeoScript IR from the current schema.");
+                    }
+                    if (!IsStoredConstructorMember(member))
+                    {
+                        throw new InvalidOperationException(
+                            $"Declared constructor '{record.id}' settles base member '{field.name}', which is not a stored member.");
+                    }
+                }
+            }
         }
 
         private static void AssertDeclaredArgumentNamesMatch(
@@ -2649,6 +2818,7 @@ namespace NeoCompose.Runtime
             string? baseClassId = owningClass!.extendsClassId;
             ConstructorBaseArgument[] baseArguments =
                 record.baseArguments ?? Array.Empty<ConstructorBaseArgument>();
+            AssertBaseInitializerBlockIsCompiled(record, owningClass, baseClassId);
 
             if (baseArguments.Length == 0)
             {
@@ -2700,6 +2870,36 @@ namespace NeoCompose.Runtime
             return link;
         }
 
+        /// <summary>
+        /// P49 §1.5 — a base initializer block is a base clause in its own
+        /// right, so it is checked even when the clause passes no arguments:
+        /// <c>: Foo { Bar = bar }</c> is the shape a base with no constructor
+        /// at all is settled through.
+        /// </summary>
+        private static void AssertBaseInitializerBlockIsCompiled(
+            ConstructorRecord record,
+            NeoSchemaClass owningClass,
+            string? baseClassId)
+        {
+            ConstructorBaseInitializerField[] baseInitializerFields =
+                record.baseInitializerFields
+                ?? Array.Empty<ConstructorBaseInitializerField>();
+            if (baseInitializerFields.Length == 0) return;
+            if (string.IsNullOrEmpty(baseClassId))
+            {
+                throw new InvalidOperationException(
+                    $"Declared constructor '{record.id}' on class '{owningClass.name}' has a base initializer block but the class extends nothing.");
+            }
+            FunctionWithReturnType[] compiled =
+                record.compiledBaseInitializerFields
+                ?? Array.Empty<FunctionWithReturnType>();
+            if (compiled.Length != baseInitializerFields.Length)
+            {
+                throw new InvalidOperationException(
+                    $"Declared constructor '{record.id}' has {baseInitializerFields.Length} base initializer fields but {compiled.Length} compiled getters. Re-export the project from the current web app.");
+            }
+        }
+
         private static ConstructorRecord? ResolveImplicitBaseConstructor(
             NeoClient client,
             NeoSchemaClass owningClass,
@@ -2712,9 +2912,9 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Declared constructor '{record.id}' extends missing class '{baseClassId}'.");
             }
-            string[] baseConstructorIds =
-                baseClass!.constructorIds ?? Array.Empty<string>();
-            if (baseConstructorIds.Length == 0) return null;
+            IReadOnlyList<string> baseConstructorIds =
+                ResolvableConstructorIds(baseClass!);
+            if (baseConstructorIds.Count == 0) return null;
             foreach (string candidateId in baseConstructorIds)
             {
                 ConstructorRecord candidate = RequireConstructorRecord(
@@ -2739,8 +2939,8 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Declared constructor '{record.id}' extends missing class '{baseClassId}'.");
             }
-            string[] baseConstructorIds =
-                baseClass!.constructorIds ?? Array.Empty<string>();
+            IReadOnlyList<string> baseConstructorIds =
+                ResolvableConstructorIds(baseClass!);
             var supplied = new HashSet<string>(argumentNames, StringComparer.Ordinal);
             if (supplied.Count != argumentNames.Count)
             {
@@ -2769,6 +2969,27 @@ namespace NeoCompose.Runtime
                     $"Declared constructor '{record.id}' base call matches no constructor of class '{baseClass.name}'.");
             }
             return match;
+        }
+
+        /// <summary>
+        /// P49 §1.1 — every constructor a class can be reached through. A
+        /// required constructor is deliberately absent from
+        /// <c>constructorIds</c> because it is the class's only one (§1.3), so
+        /// base resolution has to consult both fields or a subclass could never
+        /// call the base constructor of a class that declares one.
+        /// </summary>
+        private static IReadOnlyList<string> ResolvableConstructorIds(
+            NeoSchemaClass schemaClass)
+        {
+            string[] declared = schemaClass.constructorIds ?? Array.Empty<string>();
+            string? requiredConstructorId = schemaClass.requiredConstructorId;
+            if (string.IsNullOrEmpty(requiredConstructorId)) return declared;
+            var all = new List<string>(declared.Length + 1)
+            {
+                requiredConstructorId!,
+            };
+            all.AddRange(declared);
+            return all;
         }
 
         private static bool ArgumentNameSetMatches(
@@ -2801,14 +3022,20 @@ namespace NeoCompose.Runtime
         /// <list type="number">
         ///   <item><description>member initializers (including computed ones),
         ///   </description></item>
-        ///   <item><description>the base constructor chain,</description></item>
+        ///   <item><description>the base constructor chain, each link followed
+        ///   by its own base-clause initializer block (P49 §1.5),
+        ///   </description></item>
         ///   <item><description>this constructor's body against the constructed
         ///   root,</description></item>
         ///   <item><description>the call-site initializer block, which
         ///   overwrites whatever steps 1–3 wrote.</description></item>
         /// </list>
         /// Step 4 winning is deliberate and matches C#: precedence stays static
-        /// rather than depending on which branch the body took.
+        /// rather than depending on which branch the body took. It is also what
+        /// P49 §2.5 pins for the one collision the two blocks can have — a base
+        /// clause and a call site setting the same inherited member — since the
+        /// call site is the only one of the two visible from where the author
+        /// is standing.
         /// </summary>
         internal static NeoMemberClassWritable ConstructDeclaredClassValue(
             NeoResolvedDeclaredConstructor resolved,
@@ -2862,9 +3089,11 @@ namespace NeoCompose.Runtime
                     argumentValues);
                 RunDeclaredConstructorChain(
                     client,
+                    resolved,
                     resolved.link,
                     positionalArguments,
                     thisValue,
+                    root.id,
                     constructionCtx);
 
                 // Step 4 — the call site wins. Its expressions are evaluated
@@ -2935,9 +3164,11 @@ namespace NeoCompose.Runtime
 
         private static void RunDeclaredConstructorChain(
             NeoClient client,
+            NeoResolvedDeclaredConstructor resolved,
             NeoResolvedConstructorLink link,
             object?[] argumentValues,
             object? thisValue,
+            string rootValueId,
             NeoScript.NSGetterEvaluator.Context ctx)
         {
             ConstructorRecord? record = link.record;
@@ -2973,11 +3204,28 @@ namespace NeoCompose.Runtime
                 }
                 RunDeclaredConstructorChain(
                     client,
+                    resolved,
                     link.baseLink,
                     baseArguments,
                     thisValue,
+                    rootValueId,
                     ctx);
             }
+
+            // P49 §1.5 — the base clause's initializer block, applied once the
+            // base has run and before this constructor's own body, so the body
+            // and then the call site can still refine an inherited member. It
+            // is applied even when the clause passed no arguments: settling the
+            // base's members directly is the shape a base that declares no
+            // constructor at all is reached through.
+            ApplyBaseInitializerFields(
+                client,
+                resolved,
+                record,
+                argumentValues,
+                thisValue,
+                rootValueId,
+                ctx);
 
             ExecuteConstructorBody(
                 client,
@@ -2986,6 +3234,55 @@ namespace NeoCompose.Runtime
                 ctx.WithThis(thisValue),
                 expectValue: false,
                 $"Constructor '{record.id}'");
+        }
+
+        /// <summary>
+        /// Evaluates one base clause's initializer block in the declaring
+        /// constructor's parameter scope and writes it through the same path as
+        /// the call-site block, so a base clause replacing an inherited member
+        /// unlinks the displaced child exactly as any other assignment does.
+        /// </summary>
+        private static void ApplyBaseInitializerFields(
+            NeoClient client,
+            NeoResolvedDeclaredConstructor resolved,
+            ConstructorRecord record,
+            object?[] argumentValues,
+            object? thisValue,
+            string rootValueId,
+            NeoScript.NSGetterEvaluator.Context ctx)
+        {
+            ConstructorBaseInitializerField[] baseInitializerFields =
+                record.baseInitializerFields
+                ?? Array.Empty<ConstructorBaseInitializerField>();
+            if (baseInitializerFields.Length == 0) return;
+            FunctionWithReturnType[] compiled =
+                record.compiledBaseInitializerFields
+                ?? Array.Empty<FunctionWithReturnType>();
+            var fields = new List<RuntimeConstructorField>(
+                baseInitializerFields.Length);
+            for (int i = 0; i < baseInitializerFields.Length; i++)
+            {
+                ConstructorBaseInitializerField field = baseInitializerFields[i];
+                Member member = resolved.membersBySchemaKey[field.name];
+                fields.Add(new RuntimeConstructorField
+                {
+                    schemaKey = field.name,
+                    memberId = member.id,
+                    value = ExecuteConstructorBody(
+                        client,
+                        compiled[i],
+                        BuildConstructorScope(record, argumentValues, thisValue, ctx),
+                        ctx.WithThis(thisValue),
+                        expectValue: true,
+                        $"Base initializer field '{field.name}' of constructor '{record.id}'"),
+                });
+            }
+            ApplyDeclaredConstructorFields(
+                client,
+                resolved,
+                rootValueId,
+                fields,
+                ctx);
         }
 
         private static Dictionary<string, object?> BuildConstructorScope(
@@ -3069,7 +3366,62 @@ namespace NeoCompose.Runtime
                     NeoValueOwnership.Session,
                     field.value,
                     ctx);
+                StampConstructedCollectionRow(
+                    client,
+                    resolved,
+                    rootValueId,
+                    field.schemaKey,
+                    member);
             }
+        }
+
+        /// <summary>
+        /// A List or Dictionary row minted by the write path carries no
+        /// <c>genericBindings</c> stamp, because a write target has no view of
+        /// the class's type environment — and reading that row's entries back
+        /// resolves them through exactly that stamp. It is applied here, the
+        /// one place where the written member and the resolved construction's
+        /// environment are both in hand.
+        ///
+        /// <para>A no-op for a non-collection member, for an entry subtree that
+        /// references no generic parameter, and for a row that already carries
+        /// a stamp — the stamp is immutable.</para>
+        /// </summary>
+        private static void StampConstructedCollectionRow(
+            NeoClient client,
+            NeoResolvedDeclaredConstructor resolved,
+            string rootValueId,
+            string schemaKey,
+            Member member)
+        {
+            if (member is not ListMember && member is not DictionaryMember)
+            {
+                return;
+            }
+            if (!client.TryGetValue(
+                    NeoValueOwnership.Session,
+                    rootValueId,
+                    out ObjectMemberValue? root))
+            {
+                return;
+            }
+            if (root!.value is null) return;
+            if (!root.value.TryGetValue(schemaKey, out string childValueId))
+            {
+                return;
+            }
+            if (!client.TryGetValue(
+                    NeoValueOwnership.Session,
+                    childValueId,
+                    out MemberValue? row))
+            {
+                return;
+            }
+            NeoGenericResolution.StampGenericBindings(
+                client,
+                member,
+                row!,
+                resolved.genericEnv);
         }
 
         /// <summary>
@@ -3122,9 +3474,41 @@ namespace NeoCompose.Runtime
             string? constructorId,
             NeoDeclaredConstructorArgument[] arguments)
         {
+            return EvaluateDeclaredConstructor(
+                client,
+                classId,
+                constructorId,
+                arguments,
+                Array.Empty<NeoGeneratedConstructorValue>());
+        }
+
+        /// <summary>
+        /// P49 §4.4 — the seam a generated C# constructor calls when its class
+        /// carries members the declared parameters do not cover: the declared
+        /// parameters by name in <paramref name="arguments"/>, and the
+        /// remaining optional members as the call-site initializer block in
+        /// <paramref name="suppliedValues"/>. The block is step 4, so a member
+        /// supplied here refines whatever the initializers and the body wrote
+        /// (§2.5).
+        ///
+        /// <para>A null in <paramref name="suppliedValues"/> means the caller
+        /// omitted that optional parameter — it matches the generated
+        /// <c>= null</c> default and is dropped rather than written, exactly as
+        /// in <see cref="CreateWritableClassValue"/>. That is the opposite of a
+        /// null in a NeoScript initializer block, where the author wrote the
+        /// null and it clears the member.</para>
+        /// </summary>
+        public static NeoMemberClassWritable EvaluateDeclaredConstructor(
+            NeoClient client,
+            string classId,
+            string? constructorId,
+            NeoDeclaredConstructorArgument[] arguments,
+            NeoGeneratedConstructorValue[] suppliedValues)
+        {
             if (client is null) throw new ArgumentNullException(nameof(client));
             if (classId is null) throw new ArgumentNullException(nameof(classId));
             arguments ??= Array.Empty<NeoDeclaredConstructorArgument>();
+            suppliedValues ??= Array.Empty<NeoGeneratedConstructorValue>();
 
             var classTypeInfo = new ClassTypeInfo
             {
@@ -3143,13 +3527,19 @@ namespace NeoCompose.Runtime
                 }
                 argumentNames.Add(argument.name);
             }
+            // Resolved against the FULL supplied set so a stale generated field
+            // is rejected before anything is published; the omit rule is
+            // applied only once the members are known.
+            List<RuntimeConstructorField> fields = BuildGeneratedConstructorFields(
+                suppliedValues,
+                nameof(suppliedValues));
 
             NeoResolvedDeclaredConstructor resolved = ResolveDeclaredConstructor(
                 client,
                 classTypeInfo,
                 constructorId,
                 argumentNames,
-                Array.Empty<RuntimeConstructorField>());
+                fields);
 
             var ctx = new NeoScript.NSGetterEvaluator.Context(
                 client,
@@ -3168,11 +3558,133 @@ namespace NeoCompose.Runtime
                     ctx);
             }
 
+            List<RuntimeConstructorField> callSiteFields =
+                OmitUnsuppliedOptionalFields(fields, resolved.membersBySchemaKey);
             return ConstructDeclaredClassValue(
                 resolved,
                 argumentValues,
-                Array.Empty<RuntimeConstructorField>(),
+                callSiteFields,
+                ctx,
+                // Marshalled as a thunk rather than up front because it stages
+                // rows and can import an already-owned reference: running it
+                // inside construction's try block is what puts a failure under
+                // the same reclamation as the body's.
+                constructionCtx => MarshalGeneratedCallSiteValues(
+                    client,
+                    resolved,
+                    callSiteFields,
+                    constructionCtx));
+        }
+
+        /// <summary>
+        /// P49 §4.4 — converts the optional members a generated constructor
+        /// appended after its declared parameters into values
+        /// <see cref="ApplyDeclaredConstructorFields"/> can write.
+        ///
+        /// <para>Without this the seam would only carry the kinds an in-place
+        /// write already understands — scalars and Class references — and a
+        /// generated <c>= null</c> parameter for an enum, a lookup, a dialogue
+        /// lookup, a Sprite/AudioClip or a List/Dictionary member would fail at
+        /// construction instead of at compile time, because those payloads are
+        /// option ids, file records and <b>entry rows</b> rather than the value
+        /// the caller handed over. Computing them here through the same
+        /// <see cref="ComputeRuntimeConstructorPayload"/> the member-wise
+        /// factory uses is what makes the two entry points accept exactly the
+        /// same generated argument types.</para>
+        ///
+        /// <para>Class-typed members are deliberately left alone: the write
+        /// target already routes a Class value through the ordinary import
+        /// funnel, which is the same rule
+        /// <see cref="PrepareConstructedGraph"/> applies on the factory path.
+        /// Class values nested <i>inside</i> a supplied collection have no such
+        /// target, so they are imported here — otherwise the entry row would be
+        /// referenced by a second owner without ever being adopted.</para>
+        /// </summary>
+        private static void MarshalGeneratedCallSiteValues(
+            NeoClient client,
+            NeoResolvedDeclaredConstructor resolved,
+            IReadOnlyList<RuntimeConstructorField> fields,
+            NeoScript.NSGetterEvaluator.Context ctx)
+        {
+            if (fields.Count == 0) return;
+            string nowIso = DateTime.UtcNow.ToString("o");
+            foreach (RuntimeConstructorField field in fields)
+            {
+                Member member = resolved.membersBySchemaKey[field.schemaKey];
+                // A null that survived the omit filter belongs to a required
+                // member; ApplyDeclaredConstructorFields names it. A Class
+                // member is the write target's own business.
+                if (field.value is null) continue;
+                if (member is ClassMember) continue;
+                var stagedRows = new List<MemberValue>();
+                object? payload = ComputeRuntimeConstructorPayload(
+                    client,
+                    member,
+                    field.value,
+                    stagedRows,
+                    nowIso,
+                    value => ImportedConstructorReferenceOf(client, value, ctx),
+                    resolved.genericEnv,
+                    $"{resolved.classTypeInfo.classId}.{field.schemaKey}",
+                    // Deferred-ownership bookkeeping is for
+                    // PrepareConstructedGraph's preflight, which only runs on
+                    // the staged-graph path. Here the adoption already
+                    // happened above, so the map is write-only.
+                    new Dictionary<string, NeoValueOwnership>());
+                field.value = CallSiteWritePayload(payload, stagedRows);
+            }
+        }
+
+        /// <summary>
+        /// Wraps a computed payload for the write path: the staged child rows
+        /// travel in the envelope so the write publishes them alongside the row
+        /// it mints. A payload with no child rows and no <c>classId</c> is
+        /// passed through bare, so a scalar reaches the write target exactly as
+        /// it does today.
+        /// </summary>
+        private static object? CallSiteWritePayload(
+            object? payload,
+            List<MemberValue> stagedRows)
+        {
+            object? value = payload;
+            string? classId = null;
+            if (payload is NeoValuePayload wrapped)
+            {
+                // Its rows are already in `stagedRows`:
+                // ComputeRuntimeConstructorPayload appends them.
+                value = wrapped.value;
+                classId = wrapped.classId;
+            }
+            if (stagedRows.Count == 0 && classId is null) return value;
+            return new NeoValuePayload(value, classId, stagedRows);
+        }
+
+        /// <summary>
+        /// Resolves a generated value nested inside a supplied collection to
+        /// the row the constructed instance will reference, adopting it into
+        /// Session first. The import is what applies the ordinary ownership
+        /// rules — a parentless Session row attaches as-is, an already-parented
+        /// one is rejected by name, and a Save/Asset one is cloned — so a
+        /// collection entry behaves exactly like a Class member assigned at the
+        /// call site.
+        /// </summary>
+        private static NeoConstructorValueReference? ImportedConstructorReferenceOf(
+            NeoClient client,
+            object? value,
+            NeoScript.NSGetterEvaluator.Context ctx)
+        {
+            NeoConstructorValueReference? source =
+                NeoScript.NSGetterEvaluator.ConstructorReferenceOf(value, ctx);
+            if (source is null) return null;
+            if (string.IsNullOrEmpty(source.Value.valueId)) return source;
+            string importedId = NeoScriptExecutor.ImportClassValueReference(
+                client,
+                NeoValueOwnership.Session,
+                source.Value.valueId,
                 ctx);
+            return new NeoConstructorValueReference(
+                importedId,
+                NeoValueOwnership.Session);
         }
 
         private static object? MarshalDeclaredConstructorArgument(
@@ -3563,6 +4075,59 @@ namespace NeoCompose.Runtime
                 return source.Value.valueId;
             }
 
+            string valueId = Guid.NewGuid().ToString();
+            object? payload = ComputeRuntimeConstructorPayload(
+                client,
+                member,
+                runtimeValue,
+                rows,
+                nowIso,
+                valueReference,
+                genericEnv,
+                path,
+                referenceOwnershipByPath);
+            MemberValue row = MemberValueFactory.Create(
+                member,
+                payload,
+                valueId,
+                nowIso,
+                nowIso);
+            NeoGenericResolution.StampGenericBindings(
+                client,
+                member,
+                row,
+                genericEnv);
+            rows.Add(row);
+            return valueId;
+        }
+
+        /// <summary>
+        /// The <b>value</b> half of
+        /// <see cref="MaterializeRuntimeConstructorValue"/>: turns one
+        /// generated-C# constructor value into the payload its member's value
+        /// row stores, appending every child row that payload references to
+        /// <paramref name="rows"/>.
+        ///
+        /// <para>Split out from row creation because P49 §4.4's call-site
+        /// initializer block does not mint a row — it writes through the target
+        /// a <c>this.X = …</c> assignment resolves to, which owns the row's id
+        /// and lifecycle. That path still needs the enum option ids, the lookup
+        /// ids and the entry rows a List or Dictionary value expands into, so
+        /// the computation is shared rather than reimplemented: the member-wise
+        /// factory and the declared-constructor seam cannot drift on what a
+        /// generated value means.</para>
+        /// </summary>
+        private static object? ComputeRuntimeConstructorPayload(
+            NeoClient client,
+            Member member,
+            object? runtimeValue,
+            List<MemberValue> rows,
+            string nowIso,
+            Func<object?, NeoConstructorValueReference?> valueReference,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
+            string path,
+            Dictionary<string, NeoValueOwnership> referenceOwnershipByPath)
+        {
             NeoValuePayload? wrappedPayload = runtimeValue
                 is INeoValuePayloadProvider provider
                     ? provider.ToNeoValuePayload()
@@ -3575,7 +4140,6 @@ namespace NeoCompose.Runtime
             }
             bool materializeExplicitNull = suppliedValue is null;
             object? payload = suppliedValue;
-            string valueId = Guid.NewGuid().ToString();
             if (materializeExplicitNull)
             {
                 // A null optional field is normally omitted. Once it appears
@@ -3719,19 +4283,7 @@ namespace NeoCompose.Runtime
             {
                 rows.AddRange(finalWrappedPayload.valueRows);
             }
-            MemberValue row = MemberValueFactory.Create(
-                member,
-                payload,
-                valueId,
-                nowIso,
-                nowIso);
-            NeoGenericResolution.StampGenericBindings(
-                client,
-                member,
-                row,
-                genericEnv);
-            rows.Add(row);
-            return valueId;
+            return payload;
         }
 
         private static string[] ConstructorEnumOptionIds(

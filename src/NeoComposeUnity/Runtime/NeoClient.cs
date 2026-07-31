@@ -5242,6 +5242,10 @@ namespace NeoCompose.Runtime
         /// own <c>classId</c> are two representations of one relationship, so
         /// both directions are checked: an id with no live record is an error,
         /// and so is a record whose class disowns it.
+        ///
+        /// <para>P49 §1.1 adds a second way for a class to own a record — its
+        /// <c>requiredConstructorId</c> — so ownership is collected from both
+        /// fields before the disowned-record sweep runs.</para>
         /// </summary>
         private void ValidateConstructorRecords()
         {
@@ -5255,6 +5259,11 @@ namespace NeoCompose.Runtime
                 NeoSchemaClass schemaClass = pair.Value;
                 string[] constructorIds =
                     schemaClass.constructorIds ?? System.Array.Empty<string>();
+                ClaimRequiredConstructor(
+                    pair.Key,
+                    schemaClass,
+                    constructorIds,
+                    claimedByClass);
                 var seen = new HashSet<string>(System.StringComparer.Ordinal);
                 var positionalSignatures =
                     new Dictionary<string, string>(System.StringComparer.Ordinal);
@@ -5319,15 +5328,59 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>
+        /// P49 §1.1/§1.3 — records the class's required constructor as owned.
+        /// The record is an ordinary constructor record that is deliberately
+        /// absent from <c>constructorIds</c>, so without this claim the
+        /// disowned-record guard would reject every project containing a class
+        /// with a required constructor. Declaring one alongside member
+        /// constructors is rejected here rather than tolerated: a required
+        /// constructor is the class's only way in, and an overload beside it
+        /// reintroduces the ambiguity the form exists to remove.
+        /// </summary>
+        private void ClaimRequiredConstructor(
+            string classId,
+            NeoSchemaClass schemaClass,
+            string[] constructorIds,
+            Dictionary<string, string> claimedByClass)
+        {
+            string? requiredConstructorId = schemaClass.requiredConstructorId;
+            if (requiredConstructorId is null) return;
+            if (requiredConstructorId.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    $"Class '{schemaClass.name}' declares an empty required constructor id.");
+            }
+            if (constructorIds.Length != 0)
+            {
+                throw new InvalidOperationException(
+                    $"Class '{schemaClass.name}' declares a required constructor and {constructorIds.Length} member constructors; a required constructor is the class's only way in.");
+            }
+            if (!TryGetConstructor(requiredConstructorId, out ConstructorRecord? record))
+            {
+                throw new InvalidOperationException(
+                    $"Class '{schemaClass.name}' names required constructor '{requiredConstructorId}', which is missing from the export. Re-export the project from the current web app.");
+            }
+            if (record!.classId != classId)
+            {
+                throw new InvalidOperationException(
+                    $"Required constructor '{requiredConstructorId}' is named by class '{schemaClass.name}' but names class '{record.classId}' as its owner.");
+            }
+            claimedByClass[requiredConstructorId] = classId;
+        }
+
+        /// <summary>
+        /// <c>record.code</c> is deliberately unchecked: it is authoring
+        /// source, and P49 §1.2 made its absence meaningful (a required
+        /// constructor that declares no <c>init</c> block stores no code at
+        /// all, which is indistinguishable at runtime from a declared but empty
+        /// block). The SDK executes <c>record.action</c>, so that — not the
+        /// source — is what a truncated export has to be caught by.
+        /// </summary>
         private void ValidateConstructorRecord(
             ConstructorRecord record,
             NeoSchemaClass owningClass)
         {
-            if (record.code is null)
-            {
-                throw new InvalidOperationException(
-                    $"Constructor '{record.id}' on class '{owningClass.name}' is missing its authored code. An empty body stores an empty string, never a missing field.");
-            }
             if (record.action is null)
             {
                 throw new InvalidOperationException(
@@ -5396,39 +5449,83 @@ namespace NeoCompose.Runtime
 
             ConstructorBaseArgument[] baseArguments =
                 record.baseArguments ?? System.Array.Empty<ConstructorBaseArgument>();
-            if (baseArguments.Length == 0)
+            // P49 §1.5 — a base clause is a construction expression, so it may
+            // carry arguments, an initializer block, or both. Either half alone
+            // is a base clause.
+            ConstructorBaseInitializerField[] baseInitializerFields =
+                record.baseInitializerFields
+                ?? System.Array.Empty<ConstructorBaseInitializerField>();
+            if (baseArguments.Length == 0
+                && record.compiledBaseArguments is not null
+                && record.compiledBaseArguments.Length != 0)
             {
-                if (record.compiledBaseArguments is not null
-                    && record.compiledBaseArguments.Length != 0)
-                {
-                    throw new InvalidOperationException(
-                        $"Constructor '{record.id}' has compiled base getters but no base clause.");
-                }
-                return;
+                throw new InvalidOperationException(
+                    $"Constructor '{record.id}' has compiled base getters but no base clause.");
             }
+            if (baseInitializerFields.Length == 0
+                && record.compiledBaseInitializerFields is not null
+                && record.compiledBaseInitializerFields.Length != 0)
+            {
+                throw new InvalidOperationException(
+                    $"Constructor '{record.id}' has compiled base initializer getters but no base initializer block.");
+            }
+            if (baseArguments.Length == 0 && baseInitializerFields.Length == 0) return;
             if (string.IsNullOrEmpty(owningClass.extendsClassId))
             {
                 throw new InvalidOperationException(
                     $"Constructor '{record.id}' has a base clause but class '{owningClass.name}' extends nothing.");
             }
-            if (record.compiledBaseArguments is null
-                || record.compiledBaseArguments.Length != baseArguments.Length)
+            if (baseArguments.Length != 0)
             {
-                throw new InvalidOperationException(
-                    $"Constructor '{record.id}' has {baseArguments.Length} base arguments but {record.compiledBaseArguments?.Length ?? 0} compiled base getters. Re-export the project from the current web app.");
-            }
-            var baseNames = new HashSet<string>(System.StringComparer.Ordinal);
-            foreach (ConstructorBaseArgument argument in baseArguments)
-            {
-                if (string.IsNullOrEmpty(argument.name))
+                if (record.compiledBaseArguments is null
+                    || record.compiledBaseArguments.Length != baseArguments.Length)
                 {
                     throw new InvalidOperationException(
-                        $"Constructor '{record.id}' has an unnamed base argument.");
+                        $"Constructor '{record.id}' has {baseArguments.Length} base arguments but {record.compiledBaseArguments?.Length ?? 0} compiled base getters. Re-export the project from the current web app.");
                 }
-                if (!baseNames.Add(argument.name))
+                AssertBaseClauseNamesAreUnique(
+                    record.id,
+                    System.Array.ConvertAll(baseArguments, argument => argument.name),
+                    "base argument");
+            }
+            if (baseInitializerFields.Length != 0)
+            {
+                if (record.compiledBaseInitializerFields is null
+                    || record.compiledBaseInitializerFields.Length
+                        != baseInitializerFields.Length)
                 {
                     throw new InvalidOperationException(
-                        $"Constructor '{record.id}' binds base argument '{argument.name}' more than once.");
+                        $"Constructor '{record.id}' has {baseInitializerFields.Length} base initializer fields but {record.compiledBaseInitializerFields?.Length ?? 0} compiled base initializer getters. Re-export the project from the current web app.");
+                }
+                AssertBaseClauseNamesAreUnique(
+                    record.id,
+                    System.Array.ConvertAll(baseInitializerFields, field => field.name),
+                    "base initializer field");
+            }
+        }
+
+        /// <summary>
+        /// The two halves of a base clause are checked separately because they
+        /// name different things — an argument names a base parameter, a field
+        /// names a base member — so a name may legitimately appear once in each.
+        /// </summary>
+        private static void AssertBaseClauseNamesAreUnique(
+            string constructorId,
+            IReadOnlyList<string> names,
+            string subject)
+        {
+            var seen = new HashSet<string>(System.StringComparer.Ordinal);
+            foreach (string name in names)
+            {
+                if (string.IsNullOrEmpty(name))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructor '{constructorId}' has an unnamed {subject}.");
+                }
+                if (!seen.Add(name))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructor '{constructorId}' binds {subject} '{name}' more than once.");
                 }
             }
         }

@@ -62,6 +62,26 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
+    /// P49 §1.5 — one entry of a base clause's initializer block
+    /// (<c>: Foo { Bar = bar }</c>). Modelled apart from
+    /// <see cref="ConstructorBaseArgument"/> even though the wire shape is the
+    /// same: <see cref="name"/> is a merged schema key of the base, so the
+    /// entry settles a base member directly instead of feeding a base
+    /// constructor parameter. The authored expression is compiled over the
+    /// declaring constructor's parameter scope; the compiled getter sits at the
+    /// same index in
+    /// <see cref="ConstructorRecord.compiledBaseInitializerFields"/>.
+    /// </summary>
+    public sealed class ConstructorBaseInitializerField
+    {
+        /// <summary>Base member schema key this entry settles.</summary>
+        public string name = null!;
+
+        /// <summary>Authored expression source.</summary>
+        public string code = null!;
+    }
+
+    /// <summary>
     /// P43 §6.2 — a class's declared constructor. Parameters are typed
     /// declarations, not members: not stored, not in the schema, and not part
     /// of the merged schema the constructed value graph is validated against.
@@ -90,8 +110,14 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public FunctionArgumentTypeInfo[] argumentTypes = null!;
 
-        /// <summary>Authored NeoScript body; <c>""</c> when empty.</summary>
-        public string code = null!;
+        /// <summary>
+        /// Authored NeoScript body. Absent means the declaration carries no
+        /// <c>init</c> block at all (P49 §1.2 — a required constructor without
+        /// one); <c>""</c> means a block was declared and left empty. The two
+        /// are interchangeable to the SDK, which executes the compiled
+        /// <see cref="action"/> and never the source.
+        /// </summary>
+        public string? code;
 
         /// <summary>Server-compiled executable IR. Never accepted from a client write.</summary>
         public FunctionWithReturnType action = null!;
@@ -111,6 +137,25 @@ namespace NeoCompose.Runtime.Json
         /// usable until the base has run).
         /// </summary>
         public FunctionWithReturnType[]? compiledBaseArguments;
+
+        /// <summary>
+        /// P49 §1.5 — the base clause's initializer block, keyed by base member
+        /// schema key. Absent means the base clause carries no block. It runs
+        /// after the base chain and before this constructor's body, so both the
+        /// body and the call-site block can still refine what it settled
+        /// (§2.5).
+        /// </summary>
+        public ConstructorBaseInitializerField[]? baseInitializerFields;
+
+        /// <summary>
+        /// Server-compiled base-initializer getters, position-aligned with
+        /// <see cref="baseInitializerFields"/> and evaluated in this
+        /// constructor's parameter scope. Unlike
+        /// <see cref="compiledBaseArguments"/> these run against a constructed
+        /// <c>__this__</c>: the base has already run by the time the block
+        /// applies.
+        /// </summary>
+        public FunctionWithReturnType[]? compiledBaseInitializerFields;
 
         /// <summary>
         /// Authoring documentation. Stripped from the export; modelled so a

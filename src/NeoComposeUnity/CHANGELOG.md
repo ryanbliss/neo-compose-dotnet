@@ -2,6 +2,124 @@
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-07-31
+
+### Added
+
+- **Required constructors (P49 §1).** A class may declare its parameter
+  list on the class header rather than as a member, and that list then
+  becomes the class's only way in. `NeoSchemaClass.requiredConstructorId`
+  carries the derived id on the wire. It is held apart from
+  `constructorIds` because the two are mutually exclusive — a class that
+  declares a required constructor declares no member constructors beside
+  it — and because the required constructor is reached through that field
+  alone, never through the ordered list.
+
+  Load-time validation collects a class's ownership from both fields, so
+  the required constructor's record is no longer swept up as disowned. It
+  rejects an export whose class names a missing record, names a record
+  another class owns, or declares a required constructor alongside member
+  constructors.
+
+  Base resolution consults both fields as well. A subclass of a class that
+  declares a required constructor can now reach it — implicitly when the
+  base takes no arguments, or by name from a base clause — where before the
+  base looked as though it declared no constructors at all.
+
+- **Base-clause initializer blocks (P49 §1.5).** A base clause may settle
+  the base's members directly, `: Foo { Bar = bar }`, with or without
+  arguments beside it; either half alone is a base clause, so this is the
+  shape a base that declares no constructor is reached through.
+  `ConstructorRecord.baseInitializerFields` carries the authored entries
+  and `compiledBaseInitializerFields` the compiled getters at matching
+  positions, evaluated in the declaring constructor's parameter scope.
+
+  The block lands between the base chain and the declaring constructor's
+  own body, so construction now runs: member initializers, then each base
+  link followed by that link's base-clause block, then this constructor's
+  body, then the call-site initializer block — which still wins. Where a
+  base clause and a call site settle the same inherited member, the call
+  site takes precedence: it is the one visible from where the author is
+  standing. Every key in the block must name a stored member of the class
+  under construction, and a stale key fails before any expression runs.
+
+- **An `EvaluateDeclaredConstructor` overload that carries call-site
+  values.** A generated constructor whose class has members its declared
+  parameters do not cover appends those members as optional parameters and
+  forwards them in a fifth argument:
+
+  ```csharp
+  public Enemy(int Health, NeoString? Name = null)
+      : this(
+          client,
+          NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+              client,
+              "class-enemy",
+              "ctor-enemy",
+              new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[]
+              {
+                  new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument(
+                      "Health", Health),
+              },
+              new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[]
+              {
+                  new global::NeoCompose.Runtime.NeoGeneratedConstructorValue(
+                      "Name", "member-enemy-name", Name),
+              }),
+          false,
+          NeoValueOwnership.Session)
+  {
+  }
+  ```
+
+  The four-argument form is unchanged and delegates to the new one, so
+  generated code that predates this release keeps compiling. The supplied
+  values arrive as the call-site initializer block — step 4 — so a member
+  supplied here refines whatever the member initializers and the
+  constructor body wrote.
+
+  The appended parameters accept the same value kinds the generated
+  member-wise factory accepts, because the two now share one computation
+  and cannot drift on what a generated value means: an enum member
+  marshals to its option ids, and a List or Dictionary member expands into
+  entry rows stamped with the class's generic bindings rather than being
+  written verbatim. A Class value nested inside a supplied collection is
+  adopted through the ordinary import funnel, so a parentless Session row
+  attaches as-is, an already-parented row is rejected by name, and a Save
+  or Asset row is cloned — the same rules a Class member assigned at the
+  call site follows. A `null` for an appended optional parameter means
+  *omitted*: the member keeps its initializer and its default, matching the
+  generated `= null` and matching `CreateWritableClassValue`. That is the
+  opposite of a `null` written in a NeoScript initializer block, which
+  clears the member.
+
+### Changed
+
+- **A class that declares a required constructor cannot be constructed any
+  other way (P49 §1.3).** The three paths that settle members without
+  invoking a constructor now fail closed rather than publishing a
+  half-settled instance: the implicit parameterless `new`, the generated
+  member-wise factory, and the schema-derived `classConstructor` intrinsic
+  that backs a `Foo { … }` construction expression in NeoScript. The error
+  names the required constructor's parameters in declaration order.
+  Settling a member is not the same as satisfying the constructor, and the
+  header's parameter list is the statement that those values are not
+  optional.
+
+  The compiler rejects all three call sites too, so reaching one of these
+  errors at runtime means stale generated code or stale compiled IR.
+  Re-export the project and regenerate `NeoGeneratedTypes.cs`.
+
+### Fixed
+
+- A constructor record whose authored `code` is absent now loads.
+  `ConstructorRecord.code` is nullable, and the absence is meaningful: a
+  required constructor that declares no `init` block at all stores no
+  source, which is indistinguishable at runtime from a block that was
+  declared and left empty. The SDK executes the compiled `action` and never
+  the source, so a truncated export is still caught — by the missing
+  action rather than by the missing text.
+
 ## [0.14.0] - 2026-07-30
 
 ### Breaking

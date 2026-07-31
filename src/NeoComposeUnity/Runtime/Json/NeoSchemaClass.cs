@@ -73,6 +73,21 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public string[]? constructorIds;
         /// <summary>
+        /// P49 §1.1 — the derived id of this class's required constructor: the
+        /// parameter list authored on the class header rather than as a member.
+        /// Absent means the class declares none, in which case the implicit
+        /// <c>new()</c> stays available.
+        ///
+        /// <para>Held apart from <see cref="constructorIds"/> because the two
+        /// are mutually exclusive — a required constructor is the class's only
+        /// way in (§1.3) — and because the required constructor is reached by
+        /// this field alone, never by the ordered list. The record itself is an
+        /// ordinary constructor record with the same head and the same
+        /// validation; <see cref="NeoClient"/> is what enforces that the two
+        /// fields never both carry ids.</para>
+        /// </summary>
+        public string? requiredConstructorId;
+        /// <summary>
         /// P48 §2.2 — the member id a concrete class names with
         /// <c>@settings(target: Class.Member)</c>: the member of its bound
         /// <c>TChild</c> that a segment track writes each applied frame.
