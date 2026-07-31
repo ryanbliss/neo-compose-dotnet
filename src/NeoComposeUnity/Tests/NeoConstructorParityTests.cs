@@ -44,9 +44,13 @@ namespace NeoCompose.Tests
         public void FixtureDeclaresAtLeastOneCaseOfEveryPinnedBehavior()
         {
             JArray cases = EvaluateCases();
+            // 13 for P43's order and base-chain cases, plus P49 §1.5's three:
+            // the required constructor's base clause and init body, the
+            // call-site block beating the base-clause block, and the implicit
+            // new being rejected.
             Assert.GreaterOrEqual(
                 cases.Count,
-                13,
+                16,
                 "The shared fixture lost evaluate cases; re-vendor it from the web repo.");
 
             int errorCases = 0;
@@ -56,7 +60,7 @@ namespace NeoCompose.Tests
             }
             Assert.GreaterOrEqual(
                 errorCases,
-                3,
+                4,
                 "The shared fixture lost its throwing cases; re-vendor it from the web repo.");
         }
 

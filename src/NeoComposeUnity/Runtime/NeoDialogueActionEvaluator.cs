@@ -1173,7 +1173,15 @@ namespace NeoCompose.Runtime
             return !string.IsNullOrEmpty(valueId);
         }
 
-        private static string ImportClassValueReference(
+        /// <summary>
+        /// Adopts a referenced value into <paramref name="ownership"/> through
+        /// the ordinary import funnel, retargeting cached rows when the import
+        /// moved the source rather than copying it. Shared with the P49 §4.4
+        /// constructor seam, which adopts Class values nested inside a
+        /// call-site-supplied collection the same way an assignment adopts a
+        /// Class member.
+        /// </summary>
+        internal static string ImportClassValueReference(
             NeoClient client,
             NeoValueOwnership ownership,
             string sourceValueId,

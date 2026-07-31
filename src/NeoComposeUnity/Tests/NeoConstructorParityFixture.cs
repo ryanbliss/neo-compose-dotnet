@@ -22,7 +22,7 @@ namespace NeoCompose.Tests
     public static class NeoConstructorParityFixture
     {
         public const string Json = @"{
-  ""$comment"": ""P43 \u00a76.1 cross-runtime declared-constructor parity fixture. Construction is the one place two evaluators can agree on every individual step and still disagree on the ANSWER, because the answer is an ORDER: member initializers, then the base chain, then the body, then the call-site initializer block \u2014 with the last one winning even for a member the body wrote (\u00a71.2, \u00a76.1 step 4). That order is pinned here as executable IR rather than prose. Consumed by src/models/neoscript/neoscript-constructor-parity.test.ts (web) and NeoConstructorParityTests (neo-compose-dotnet, vendored copy at src/NeoComposeUnity/Tests/NeoConstructorParityFixture.cs). Hand-maintained: a fixture generated from one runtime cannot catch a divergence in the other's source of truth. Each evaluateCases entry is a compiled getter whose sole instruction returns a `declaredConstructor` pointer; run it against `document` with `__this__` = null and `__root__` built from the project's three root members, then read the produced record's schemaKey -> row value for `expectedFields`, or assert the thrown message contains `expectedErrorContains`."",
+  ""$comment"": ""P43 \u00a76.1 cross-runtime declared-constructor parity fixture. Construction is the one place two evaluators can agree on every individual step and still disagree on the ANSWER, because the answer is an ORDER: member initializers, then the base chain, then the body, then the call-site initializer block \u2014 with the last one winning even for a member the body wrote (\u00a71.2, \u00a76.1 step 4). That order is pinned here as executable IR rather than prose. Consumed by src/models/neoscript/neoscript-constructor-parity.test.ts (web) and NeoConstructorParityTests (neo-compose-dotnet, vendored copy at src/NeoComposeUnity/Tests/NeoConstructorParityFixture.cs). Hand-maintained: a fixture generated from one runtime cannot catch a divergence in the other's source of truth. Each evaluateCases entry is a compiled getter whose sole instruction returns a `declaredConstructor` pointer; run it against `document` with `__this__` = null and `__root__` built from the project's three root members, then read the produced record's schemaKey -> row value for `expectedFields`, or assert the thrown message contains `expectedErrorContains`. P49 \u00a71 extends it with a required constructor: `Gate` and `Latch` carry `requiredConstructorId` rather than `constructorIds`, and `ctor-latch` is a class header's constructor whose `baseArguments` pass the header parameter to the base's required constructor, whose `baseInitializerFields` settle an inherited member from the base clause, and whose `code` is the `init` block. The three P49 cases pin the stage order that adds (base clause block, then init body, then call-site block) and the implicit `new` \u00a71.3 disables."",
   ""document"": {
     ""project"": {
       ""id"": ""project-p43"",
@@ -194,6 +194,34 @@ namespace NeoCompose.Tests
           ""Maybe"": ""member-maybe"",
           ""Kept"": ""member-kept""
         }
+      },
+      {
+        ""projectId"": ""project-p43"",
+        ""isAbstract"": false,
+        ""hiddenInMemberSelector"": false,
+        ""createdAt"": 1,
+        ""updatedAt"": 1,
+        ""id"": ""class-gate"",
+        ""name"": ""Gate"",
+        ""schema"": {
+          ""Mark"": ""member-gate-mark"",
+          ""Seal"": ""member-gate-seal""
+        },
+        ""requiredConstructorId"": ""ctor-gate""
+      },
+      {
+        ""projectId"": ""project-p43"",
+        ""isAbstract"": false,
+        ""hiddenInMemberSelector"": false,
+        ""createdAt"": 1,
+        ""updatedAt"": 1,
+        ""id"": ""class-latch"",
+        ""name"": ""Latch"",
+        ""extendsClassId"": ""class-gate"",
+        ""schema"": {
+          ""Note"": ""member-latch-note""
+        },
+        ""requiredConstructorId"": ""ctor-latch""
       }
     ],
     ""members"": [
@@ -622,6 +650,51 @@ namespace NeoCompose.Tests
         ""required"": true,
         ""defaultValue"": {
           ""value"": ""kept""
+        }
+      },
+      {
+        ""projectId"": ""project-p43"",
+        ""accessModifierKind"": ""public"",
+        ""locked"": false,
+        ""isStatic"": false,
+        ""createdAt"": 1,
+        ""updatedAt"": 1,
+        ""id"": ""member-gate-mark"",
+        ""name"": ""Mark"",
+        ""kind"": 3,
+        ""required"": true,
+        ""defaultValue"": {
+          ""value"": ""mark-initializer""
+        }
+      },
+      {
+        ""projectId"": ""project-p43"",
+        ""accessModifierKind"": ""public"",
+        ""locked"": false,
+        ""isStatic"": false,
+        ""createdAt"": 1,
+        ""updatedAt"": 1,
+        ""id"": ""member-gate-seal"",
+        ""name"": ""Seal"",
+        ""kind"": 3,
+        ""required"": true,
+        ""defaultValue"": {
+          ""value"": ""seal-initializer""
+        }
+      },
+      {
+        ""projectId"": ""project-p43"",
+        ""accessModifierKind"": ""public"",
+        ""locked"": false,
+        ""isStatic"": false,
+        ""createdAt"": 1,
+        ""updatedAt"": 1,
+        ""id"": ""member-latch-note"",
+        ""name"": ""Note"",
+        ""kind"": 3,
+        ""required"": true,
+        ""defaultValue"": {
+          ""value"": ""note-initializer""
         }
       }
     ],
@@ -1614,6 +1687,464 @@ namespace NeoCompose.Tests
                         ""value"": ""Prefix""
                       }
                     }
+                  }
+                }
+              }
+            ],
+            ""typeInfo"": {
+              ""type"": 3,
+              ""required"": true
+            }
+          }
+        ],
+        ""createdAt"": 1,
+        ""updatedAt"": 1
+      },
+      {
+        ""id"": ""ctor-gate"",
+        ""projectId"": ""project-p43"",
+        ""classId"": ""class-gate"",
+        ""argumentTypes"": [
+          {
+            ""type"": 3,
+            ""required"": true,
+            ""name"": ""Mark""
+          }
+        ],
+        ""code"": ""this.Mark = \""gate:\"" + Mark;"",
+        ""action"": {
+          ""compilerRevision"": 3,
+          ""parameters"": [
+            {
+              ""id"": ""__this__"",
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""class-gate""
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""class-gate""
+                  },
+                  ""value"": null
+                }
+              }
+            },
+            {
+              ""id"": ""__root__"",
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""__root__""
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""__root__""
+                  },
+                  ""value"": null
+                }
+              }
+            },
+            {
+              ""id"": ""__arg_0__"",
+              ""typeInfo"": {
+                ""type"": 3,
+                ""required"": true
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 3,
+                    ""required"": true
+                  },
+                  ""value"": null
+                }
+              }
+            }
+          ],
+          ""instructions"": [
+            {
+              ""type"": ""assign"",
+              ""target"": {
+                ""pointer"": {
+                  ""type"": ""keyOf"",
+                  ""memberId"": ""member-gate-mark"",
+                  ""keyOf"": {
+                    ""pointer"": {
+                      ""type"": ""variable"",
+                      ""variableId"": ""__this__""
+                    },
+                    ""key"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""Mark""
+                      }
+                    }
+                  }
+                },
+                ""typeInfo"": {
+                  ""type"": 3,
+                  ""required"": true
+                },
+                ""writability"": ""runtime""
+              },
+              ""operator"": ""="",
+              ""pointer"": {
+                ""type"": ""operation"",
+                ""operation"": {
+                  ""type"": ""arithmetic"",
+                  ""arithmetic"": {
+                    ""type"": ""+"",
+                    ""pointers"": [
+                      {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          },
+                          ""value"": ""gate:""
+                        }
+                      },
+                      {
+                        ""type"": ""variable"",
+                        ""variableId"": ""__arg_0__""
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          ""typeInfo"": {
+            ""type"": 0,
+            ""required"": true
+          }
+        },
+        ""createdAt"": 1,
+        ""updatedAt"": 1
+      },
+      {
+        ""id"": ""ctor-latch"",
+        ""projectId"": ""project-p43"",
+        ""classId"": ""class-latch"",
+        ""argumentTypes"": [
+          {
+            ""type"": 3,
+            ""required"": true,
+            ""name"": ""Key""
+          }
+        ],
+        ""code"": ""this.Note = \""init:\"" + this.Mark;"",
+        ""action"": {
+          ""compilerRevision"": 3,
+          ""parameters"": [
+            {
+              ""id"": ""__this__"",
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""class-latch""
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""class-latch""
+                  },
+                  ""value"": null
+                }
+              }
+            },
+            {
+              ""id"": ""__root__"",
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""__root__""
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""__root__""
+                  },
+                  ""value"": null
+                }
+              }
+            },
+            {
+              ""id"": ""__arg_0__"",
+              ""typeInfo"": {
+                ""type"": 3,
+                ""required"": true
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 3,
+                    ""required"": true
+                  },
+                  ""value"": null
+                }
+              }
+            }
+          ],
+          ""instructions"": [
+            {
+              ""type"": ""assign"",
+              ""target"": {
+                ""pointer"": {
+                  ""type"": ""keyOf"",
+                  ""memberId"": ""member-latch-note"",
+                  ""keyOf"": {
+                    ""pointer"": {
+                      ""type"": ""variable"",
+                      ""variableId"": ""__this__""
+                    },
+                    ""key"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""Note""
+                      }
+                    }
+                  }
+                },
+                ""typeInfo"": {
+                  ""type"": 3,
+                  ""required"": true
+                },
+                ""writability"": ""runtime""
+              },
+              ""operator"": ""="",
+              ""pointer"": {
+                ""type"": ""operation"",
+                ""operation"": {
+                  ""type"": ""arithmetic"",
+                  ""arithmetic"": {
+                    ""type"": ""+"",
+                    ""pointers"": [
+                      {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          },
+                          ""value"": ""init:""
+                        }
+                      },
+                      {
+                        ""type"": ""keyOf"",
+                        ""memberId"": ""member-gate-mark"",
+                        ""keyOf"": {
+                          ""pointer"": {
+                            ""type"": ""variable"",
+                            ""variableId"": ""__this__""
+                          },
+                          ""key"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 3,
+                                ""required"": true
+                              },
+                              ""value"": ""Mark""
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          ""typeInfo"": {
+            ""type"": 0,
+            ""required"": true
+          }
+        },
+        ""baseArguments"": [
+          {
+            ""name"": ""Mark"",
+            ""code"": ""Key""
+          }
+        ],
+        ""compiledBaseArguments"": [
+          {
+            ""compilerRevision"": 3,
+            ""parameters"": [
+              {
+                ""id"": ""__this__"",
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""class-latch""
+                },
+                ""pointer"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 7,
+                      ""required"": true,
+                      ""classId"": ""class-latch""
+                    },
+                    ""value"": null
+                  }
+                }
+              },
+              {
+                ""id"": ""__root__"",
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""__root__""
+                },
+                ""pointer"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 7,
+                      ""required"": true,
+                      ""classId"": ""__root__""
+                    },
+                    ""value"": null
+                  }
+                }
+              },
+              {
+                ""id"": ""__arg_0__"",
+                ""typeInfo"": {
+                  ""type"": 3,
+                  ""required"": true
+                },
+                ""pointer"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 3,
+                      ""required"": true
+                    },
+                    ""value"": null
+                  }
+                }
+              }
+            ],
+            ""instructions"": [
+              {
+                ""type"": ""return"",
+                ""pointer"": {
+                  ""type"": ""variable"",
+                  ""variableId"": ""__arg_0__""
+                }
+              }
+            ],
+            ""typeInfo"": {
+              ""type"": 3,
+              ""required"": true
+            }
+          }
+        ],
+        ""baseInitializerFields"": [
+          {
+            ""name"": ""Seal"",
+            ""code"": ""\""seal-base-clause\""""
+          }
+        ],
+        ""compiledBaseInitializerFields"": [
+          {
+            ""compilerRevision"": 3,
+            ""parameters"": [
+              {
+                ""id"": ""__this__"",
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""class-latch""
+                },
+                ""pointer"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 7,
+                      ""required"": true,
+                      ""classId"": ""class-latch""
+                    },
+                    ""value"": null
+                  }
+                }
+              },
+              {
+                ""id"": ""__root__"",
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""__root__""
+                },
+                ""pointer"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 7,
+                      ""required"": true,
+                      ""classId"": ""__root__""
+                    },
+                    ""value"": null
+                  }
+                }
+              },
+              {
+                ""id"": ""__arg_0__"",
+                ""typeInfo"": {
+                  ""type"": 3,
+                  ""required"": true
+                },
+                ""pointer"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 3,
+                      ""required"": true
+                    },
+                    ""value"": null
+                  }
+                }
+              }
+            ],
+            ""instructions"": [
+              {
+                ""type"": ""return"",
+                ""pointer"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 3,
+                      ""required"": true
+                    },
+                    ""value"": ""seal-base-clause""
                   }
                 }
               }
@@ -2697,6 +3228,264 @@ namespace NeoCompose.Tests
         ""Maybe"": null,
         ""Kept"": ""kept""
       }
+    },
+    {
+      ""name"": ""a required constructor runs the base clause, then its init body"",
+      ""getter"": {
+        ""compilerRevision"": 3,
+        ""parameters"": [
+          {
+            ""id"": ""__this__"",
+            ""typeInfo"": {
+              ""type"": 0,
+              ""required"": false
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 0,
+                  ""required"": false
+                },
+                ""value"": null
+              }
+            }
+          },
+          {
+            ""id"": ""__root__"",
+            ""typeInfo"": {
+              ""type"": 0,
+              ""required"": false
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 0,
+                  ""required"": false
+                },
+                ""value"": null
+              }
+            }
+          }
+        ],
+        ""instructions"": [
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""function"",
+              ""function"": {
+                ""type"": ""declaredConstructor"",
+                ""info"": {
+                  ""schemaClassInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""class-latch""
+                  },
+                  ""constructorId"": ""ctor-latch"",
+                  ""args"": [
+                    {
+                      ""name"": ""Key"",
+                      ""valuePointer"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          },
+                          ""value"": ""K""
+                        }
+                      }
+                    }
+                  ],
+                  ""fields"": []
+                }
+              }
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 7,
+          ""required"": true,
+          ""classId"": ""class-latch""
+        }
+      },
+      ""expectedFields"": {
+        ""Mark"": ""gate:K"",
+        ""Seal"": ""seal-base-clause"",
+        ""Note"": ""init:gate:K""
+      }
+    },
+    {
+      ""name"": ""the call-site block beats the base clause block on an inherited member"",
+      ""getter"": {
+        ""compilerRevision"": 3,
+        ""parameters"": [
+          {
+            ""id"": ""__this__"",
+            ""typeInfo"": {
+              ""type"": 0,
+              ""required"": false
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 0,
+                  ""required"": false
+                },
+                ""value"": null
+              }
+            }
+          },
+          {
+            ""id"": ""__root__"",
+            ""typeInfo"": {
+              ""type"": 0,
+              ""required"": false
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 0,
+                  ""required"": false
+                },
+                ""value"": null
+              }
+            }
+          }
+        ],
+        ""instructions"": [
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""function"",
+              ""function"": {
+                ""type"": ""declaredConstructor"",
+                ""info"": {
+                  ""schemaClassInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""class-latch""
+                  },
+                  ""constructorId"": ""ctor-latch"",
+                  ""args"": [
+                    {
+                      ""name"": ""Key"",
+                      ""valuePointer"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          },
+                          ""value"": ""K""
+                        }
+                      }
+                    }
+                  ],
+                  ""fields"": [
+                    {
+                      ""schemaKey"": ""Seal"",
+                      ""memberId"": ""member-gate-seal"",
+                      ""valuePointer"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          },
+                          ""value"": ""seal-call-site""
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 7,
+          ""required"": true,
+          ""classId"": ""class-latch""
+        }
+      },
+      ""expectedFields"": {
+        ""Mark"": ""gate:K"",
+        ""Seal"": ""seal-call-site"",
+        ""Note"": ""init:gate:K""
+      }
+    },
+    {
+      ""name"": ""the implicit new is rejected on a class with a required constructor"",
+      ""getter"": {
+        ""compilerRevision"": 3,
+        ""parameters"": [
+          {
+            ""id"": ""__this__"",
+            ""typeInfo"": {
+              ""type"": 0,
+              ""required"": false
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 0,
+                  ""required"": false
+                },
+                ""value"": null
+              }
+            }
+          },
+          {
+            ""id"": ""__root__"",
+            ""typeInfo"": {
+              ""type"": 0,
+              ""required"": false
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 0,
+                  ""required"": false
+                },
+                ""value"": null
+              }
+            }
+          }
+        ],
+        ""instructions"": [
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""function"",
+              ""function"": {
+                ""type"": ""declaredConstructor"",
+                ""info"": {
+                  ""schemaClassInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""class-latch""
+                  },
+                  ""constructorId"": null,
+                  ""args"": [],
+                  ""fields"": []
+                }
+              }
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 7,
+          ""required"": true,
+          ""classId"": ""class-latch""
+        }
+      },
+      ""expectedErrorContains"": ""declares a required constructor""
     }
   ]
 }";

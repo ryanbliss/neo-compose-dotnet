@@ -442,8 +442,536 @@ namespace NeoCompose.Tests
         }
 
         // -------------------------------------------------------------------
+        // P49 §1 — required constructors.
+        // -------------------------------------------------------------------
+
+        [Test]
+        public void RequiredConstructor_EvaluatesThroughTheGeneratedSeam()
+        {
+            NeoClient client = BuildClient();
+
+            // `Gear` declares its parameter on the class header, so its
+            // constructor record is reached through `requiredConstructorId`
+            // rather than `constructorIds` — the seam otherwise behaves
+            // exactly like a declared constructor.
+            NeoMemberClassWritable node =
+                NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client,
+                    "gear-class",
+                    "ctor-gear",
+                    new[]
+                    {
+                        new NeoDeclaredConstructorArgument("Bar", "from-header"),
+                    });
+
+            ObjectMemberValue root = node.value!;
+            Assert.AreEqual("from-header", ReadString(client, root, "Label"));
+            Assert.AreEqual("init-tag", ReadString(client, root, "Tag"));
+        }
+
+        [Test]
+        public void RequiredConstructor_ImplicitNewIsRejected()
+        {
+            NeoClient client = BuildClient();
+
+            // §1.3 — the header parameter list IS the statement that `Bar` is
+            // not optional, so the implicit parameterless `new` is gone.
+            InvalidOperationException error =
+                Assert.Throws<InvalidOperationException>(() =>
+                    NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                        client,
+                        "gear-class",
+                        null,
+                        Array.Empty<NeoDeclaredConstructorArgument>()))!;
+
+            StringAssert.Contains("Gear", error.Message);
+            StringAssert.Contains("Bar", error.Message);
+            StringAssert.Contains(
+                "implicit parameterless new",
+                error.Message);
+        }
+
+        [Test]
+        public void EvaluateDeclaredConstructor_CallSiteValuesWinOverTheBody()
+        {
+            NeoClient client = BuildClient();
+
+            // §4.4 — the optional members a generated constructor appends after
+            // its declared parameters travel as the call-site initializer
+            // block, which is applied last (§2.5).
+            NeoMemberClassWritable node =
+                NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client,
+                    "gear-class",
+                    "ctor-gear",
+                    new[]
+                    {
+                        new NeoDeclaredConstructorArgument("Bar", "from-header"),
+                    },
+                    new[]
+                    {
+                        new NeoGeneratedConstructorValue(
+                            "Label",
+                            "gear-label",
+                            "from-call-site"),
+                        new NeoGeneratedConstructorValue(
+                            "Tag",
+                            "gear-tag",
+                            "call-site-tag"),
+                    });
+
+            ObjectMemberValue root = node.value!;
+            Assert.AreEqual("from-call-site", ReadString(client, root, "Label"));
+            Assert.AreEqual("call-site-tag", ReadString(client, root, "Tag"));
+        }
+
+        [Test]
+        public void EvaluateDeclaredConstructor_NullCallSiteValueOmitsAnOptionalMember()
+        {
+            NeoClient client = BuildClient();
+
+            // A generated `= null` default means the caller omitted the
+            // parameter, so `Tag` keeps what its initializer produced. That is
+            // the opposite of a NeoScript block's explicit `Tag = null`, where
+            // the author wrote the null and it clears the member.
+            NeoMemberClassWritable node =
+                NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client,
+                    "gear-class",
+                    "ctor-gear",
+                    new[]
+                    {
+                        new NeoDeclaredConstructorArgument("Bar", "from-header"),
+                    },
+                    new[]
+                    {
+                        new NeoGeneratedConstructorValue("Tag", "gear-tag", null),
+                    });
+
+            ObjectMemberValue root = node.value!;
+            Assert.AreEqual("init-tag", ReadString(client, root, "Tag"));
+        }
+
+        [Test]
+        public void EvaluateDeclaredConstructor_StaleCallSiteValueIsRejected()
+        {
+            NeoClient client = BuildClient();
+
+            // The omit rule must not swallow a stale generated field: the whole
+            // supplied set is validated against the merged schema before the
+            // nulls are dropped.
+            InvalidOperationException error =
+                Assert.Throws<InvalidOperationException>(() =>
+                    NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                        client,
+                        "gear-class",
+                        "ctor-gear",
+                        new[]
+                        {
+                            new NeoDeclaredConstructorArgument("Bar", "from-header"),
+                        },
+                        new[]
+                        {
+                            new NeoGeneratedConstructorValue(
+                                "LegacyTag",
+                                "gear-tag",
+                                null),
+                        }))!;
+
+            StringAssert.Contains("stale field", error.Message);
+        }
+
+        // -------------------------------------------------------------------
+        // P49 §4.4 — every member kind the member-wise factory accepts must
+        // also travel as the generated call-site initializer block. These are
+        // the kinds whose stored payload is not the value the caller passes:
+        // a list expands into entry ROWS, an enum into option ids, a dictionary
+        // into keyed entry rows, and a class entry has to be adopted.
+        // -------------------------------------------------------------------
+
+        [Test]
+        public void EvaluateDeclaredConstructor_ListCallSiteValueMaterializesEntryRows()
+        {
+            NeoClient client = BuildClient();
+
+            NeoMemberClassWritable node =
+                NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client,
+                    "gear-class",
+                    "ctor-gear",
+                    new[]
+                    {
+                        new NeoDeclaredConstructorArgument("Bar", "from-header"),
+                    },
+                    new[]
+                    {
+                        new NeoGeneratedConstructorValue(
+                            "Parts",
+                            "gear-parts",
+                            new List<string> { "left", "right" }),
+                    });
+
+            ObjectMemberValue root = node.value!;
+            string[] entryIds = ReadArray(client, root, "Parts")!;
+            Assert.AreEqual(2, entryIds.Length);
+            Assert.AreEqual("left", ReadStringRow(client, entryIds[0]));
+            Assert.AreEqual("right", ReadStringRow(client, entryIds[1]));
+        }
+
+        [Test]
+        public void EvaluateDeclaredConstructor_EnumCallSiteValueBecomesOptionIds()
+        {
+            NeoClient client = BuildClient();
+
+            // Generated enum wrappers arrive as INeoEnumOption, not as the
+            // option-id array the row stores.
+            NeoMemberClassWritable node =
+                NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client,
+                    "gear-class",
+                    "ctor-gear",
+                    new[]
+                    {
+                        new NeoDeclaredConstructorArgument("Bar", "from-header"),
+                    },
+                    new[]
+                    {
+                        new NeoGeneratedConstructorValue(
+                            "Mode",
+                            "gear-mode",
+                            new TestEnumOption("option-fast")),
+                    });
+
+            ObjectMemberValue root = node.value!;
+            CollectionAssert.AreEqual(
+                new[] { "option-fast" },
+                ReadArray(client, root, "Mode"));
+        }
+
+        [Test]
+        public void EvaluateDeclaredConstructor_DictionaryCallSiteValueMaterializesEntryRows()
+        {
+            NeoClient client = BuildClient();
+
+            NeoMemberClassWritable node =
+                NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client,
+                    "gear-class",
+                    "ctor-gear",
+                    new[]
+                    {
+                        new NeoDeclaredConstructorArgument("Bar", "from-header"),
+                    },
+                    new[]
+                    {
+                        new NeoGeneratedConstructorValue(
+                            "Slots",
+                            "gear-slots",
+                            new Dictionary<string, string>
+                            {
+                                ["primary"] = "one",
+                            }),
+                    });
+
+            ObjectMemberValue root = node.value!;
+            Dictionary<string, string> entries =
+                ReadObject(client, root, "Slots")!;
+            Assert.AreEqual(1, entries.Count);
+            Assert.AreEqual("one", ReadStringRow(client, entries["primary"]));
+        }
+
+        [Test]
+        public void EvaluateDeclaredConstructor_ListCallSiteValueAdoptsClassEntries()
+        {
+            NeoClient client = BuildClient();
+
+            NeoMemberClassWritable part =
+                NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client,
+                    "part-class",
+                    "ctor-part",
+                    new[]
+                    {
+                        new NeoDeclaredConstructorArgument("Prefix", "linked"),
+                    });
+            string partValueId = part.value!.id;
+
+            // A Class value inside a supplied collection has no write target of
+            // its own, so the seam adopts it: a parentless Session row attaches
+            // at its own id rather than being copied.
+            NeoMemberClassWritable node =
+                NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client,
+                    "gear-class",
+                    "ctor-gear",
+                    new[]
+                    {
+                        new NeoDeclaredConstructorArgument("Bar", "from-header"),
+                    },
+                    new[]
+                    {
+                        new NeoGeneratedConstructorValue(
+                            "Links",
+                            "gear-links",
+                            new List<INeoValueReference>
+                            {
+                                new TestValueReference(partValueId),
+                            }),
+                    });
+
+            ObjectMemberValue root = node.value!;
+            string[] entryIds = ReadArray(client, root, "Links")!;
+            CollectionAssert.AreEqual(new[] { partValueId }, entryIds);
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Session,
+                partValueId,
+                out ObjectMemberValue? linked));
+            Assert.AreEqual("linked", ReadString(client, linked!, "Label"));
+        }
+
+        // -------------------------------------------------------------------
+        // P49 §1.3/§1.4 — the member-wise paths are closed on an S1 class.
+        // -------------------------------------------------------------------
+
+        [Test]
+        public void RequiredConstructor_MemberWiseFactoryIsRejected()
+        {
+            NeoClient client = BuildClient();
+
+            // The generated member-wise factory settles members without
+            // invoking a constructor — the one path a required constructor
+            // exists to disable.
+            InvalidOperationException error =
+                Assert.Throws<InvalidOperationException>(() =>
+                    NeoGeneratedTypesSupport.CreateWritableClassValue(
+                        client,
+                        "gear-class",
+                        new NeoGeneratedConstructorValue(
+                            "Label",
+                            "gear-label",
+                            "member-wise")))!;
+
+            StringAssert.Contains("Gear", error.Message);
+            StringAssert.Contains("Bar", error.Message);
+            StringAssert.Contains(
+                "cannot be constructed without one",
+                error.Message);
+        }
+
+        [Test]
+        public void RequiredConstructor_SchemaDerivedNewIsRejected()
+        {
+            NeoClient client = BuildClient();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+
+            // §1.4's `Foo c = new { Bar = "bar" }`: the schema-derived
+            // `classConstructor` arm, reached when no constructor is named at
+            // all. Settling a member is not the same as satisfying the
+            // constructor.
+            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+                NSGetterEvaluator.Evaluate(
+                    new FunctionWithReturnType
+                    {
+                        compilerRevision =
+                            FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = Array.Empty<Variable>(),
+                        typeInfo = ClassType("gear-class"),
+                        instructions = new Instruction[]
+                        {
+                            new ReturnInstruction
+                            {
+                                type = InstructionKind.Return,
+                                pointer = new FunctionPointer
+                                {
+                                    type = PointerKind.Function,
+                                    function = new ClassConstructorFunction
+                                    {
+                                        type = FunctionKind.ClassConstructor,
+                                        info = new FunctionClassConstructorInfo
+                                        {
+                                            schemaClassInfo =
+                                                ClassType("gear-class"),
+                                            fields = new[]
+                                            {
+                                                new FunctionClassConstructorField
+                                                {
+                                                    schemaKey = "Label",
+                                                    memberId = "gear-label",
+                                                    valuePointer =
+                                                        StringPointer("settled"),
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    ctx))!;
+
+            StringAssert.Contains("Gear", error.Message);
+            StringAssert.Contains("Bar", error.Message);
+            StringAssert.Contains(
+                "cannot be constructed without one",
+                error.Message);
+        }
+
+        [Test]
+        public void RequiredConstructor_BaseClauseSettlesInheritedMembers()
+        {
+            NeoClient client = BuildClient();
+
+            // `class Cog(string Seed) : Gear(Seed) { Tag = "from-base-clause" }`
+            // — the clause's arguments reach the base's required constructor,
+            // which is not listed in `constructorIds`, and its block then
+            // settles an inherited member.
+            NeoMemberClassWritable node =
+                NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client,
+                    "cog-class",
+                    "ctor-cog",
+                    new[]
+                    {
+                        new NeoDeclaredConstructorArgument("Seed", "seeded"),
+                    });
+
+            ObjectMemberValue root = node.value!;
+            Assert.AreEqual("seeded", ReadString(client, root, "Label"));
+            Assert.AreEqual("from-base-clause", ReadString(client, root, "Tag"));
+        }
+
+        [Test]
+        public void RequiredConstructor_CallSiteBlockBeatsTheBaseClauseBlock()
+        {
+            NeoClient client = BuildClient();
+
+            // §2.5's two-block collision: the base clause belongs to the
+            // subclass's declaration, the call site is the only one the author
+            // can see from where they are standing, so the call site wins.
+            NeoMemberClassWritable node =
+                NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client,
+                    "cog-class",
+                    "ctor-cog",
+                    new[]
+                    {
+                        new NeoDeclaredConstructorArgument("Seed", "seeded"),
+                    },
+                    new[]
+                    {
+                        new NeoGeneratedConstructorValue(
+                            "Tag",
+                            "gear-tag",
+                            "from-call-site"),
+                    });
+
+            ObjectMemberValue root = node.value!;
+            Assert.AreEqual("from-call-site", ReadString(client, root, "Tag"));
+        }
+
+        [Test]
+        public void RequiredConstructor_UnknownBaseInitializerKeyFailsClosed()
+        {
+            ProjectData data = BuildProjectData();
+            data.constructors["ctor-cog"].baseInitializerFields = new[]
+            {
+                new ConstructorBaseInitializerField
+                {
+                    name = "Nope",
+                    code = "\"x\"",
+                },
+            };
+            NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            InvalidOperationException error =
+                Assert.Throws<InvalidOperationException>(() =>
+                    NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                        client,
+                        "cog-class",
+                        "ctor-cog",
+                        new[]
+                        {
+                            new NeoDeclaredConstructorArgument("Seed", "seeded"),
+                        }))!;
+
+            StringAssert.Contains("Nope", error.Message);
+            StringAssert.Contains("does not declare", error.Message);
+        }
+
+        // -------------------------------------------------------------------
         // Load-time record validation.
         // -------------------------------------------------------------------
+
+        [Test]
+        public void ConstructorRecords_RequiredConstructorIsOwnedWithoutConstructorIds()
+        {
+            ProjectData data = BuildProjectData();
+
+            // §1.1/§1.3 — the required constructor record is deliberately absent
+            // from its class's `constructorIds`, so the disowned-record guard
+            // has to accept a record claimed through `requiredConstructorId`.
+            Assert.DoesNotThrow(() => NeoTestSaveStack.ClientFromSchema(data));
+        }
+
+        [Test]
+        public void ConstructorRecords_RequiredConstructorBesideOverloadsIsRejected()
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["gear-class"].constructorIds = new[] { "ctor-gear-extra" };
+
+            InvalidOperationException error =
+                Assert.Throws<InvalidOperationException>(() =>
+                    NeoTestSaveStack.ClientFromSchema(data))!;
+
+            StringAssert.Contains("Gear", error.Message);
+            StringAssert.Contains("only way in", error.Message);
+        }
+
+        [Test]
+        public void ConstructorRecords_MissingRequiredConstructorIsRejected()
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["gear-class"].requiredConstructorId = "ctor-gear-missing";
+            data.constructors.Remove("ctor-gear");
+
+            InvalidOperationException error =
+                Assert.Throws<InvalidOperationException>(() =>
+                    NeoTestSaveStack.ClientFromSchema(data))!;
+
+            StringAssert.Contains("ctor-gear-missing", error.Message);
+            StringAssert.Contains("missing from the export", error.Message);
+        }
+
+        [Test]
+        public void ConstructorRecords_RequiredConstructorOfAnotherClassIsRejected()
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["gear-class"].requiredConstructorId = "ctor-part";
+            data.constructors.Remove("ctor-gear");
+
+            InvalidOperationException error =
+                Assert.Throws<InvalidOperationException>(() =>
+                    NeoTestSaveStack.ClientFromSchema(data))!;
+
+            StringAssert.Contains("ctor-part", error.Message);
+            StringAssert.Contains("as its owner", error.Message);
+        }
+
+        [Test]
+        public void ConstructorRecords_BaseInitializerBlockWithoutGettersIsRejected()
+        {
+            ProjectData data = BuildProjectData();
+            data.constructors["ctor-cog"].compiledBaseInitializerFields = null;
+
+            InvalidOperationException error =
+                Assert.Throws<InvalidOperationException>(() =>
+                    NeoTestSaveStack.ClientFromSchema(data))!;
+
+            StringAssert.Contains(
+                "compiled base initializer getters",
+                error.Message);
+            StringAssert.Contains("Re-export", error.Message);
+        }
 
         [Test]
         public void ConstructorRecords_DanglingIdIsRejected()
@@ -702,6 +1230,77 @@ namespace NeoCompose.Tests
                 childId,
                 out StringMemberValue? child));
             return child!.value;
+        }
+
+        private static string[]? ReadArray(
+            NeoClient client,
+            ObjectMemberValue root,
+            string schemaKey)
+        {
+            Assert.IsTrue(
+                root.value!.TryGetValue(schemaKey, out string childId),
+                $"Constructed row has no '{schemaKey}'. Keys: {string.Join(",", root.value.Keys)}");
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Session,
+                childId,
+                out ArrayMemberValue? child));
+            return child!.value;
+        }
+
+        private static Dictionary<string, string>? ReadObject(
+            NeoClient client,
+            ObjectMemberValue root,
+            string schemaKey)
+        {
+            Assert.IsTrue(
+                root.value!.TryGetValue(schemaKey, out string childId),
+                $"Constructed row has no '{schemaKey}'. Keys: {string.Join(",", root.value.Keys)}");
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Session,
+                childId,
+                out ObjectMemberValue? child));
+            return child!.value;
+        }
+
+        private static string? ReadStringRow(NeoClient client, string valueId)
+        {
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Session,
+                valueId,
+                out StringMemberValue? row),
+                $"No string row '{valueId}'.");
+            return row!.value;
+        }
+
+        /// <summary>
+        /// Stands in for a generated enum option wrapper: the seam only ever
+        /// sees <see cref="INeoEnumOption"/>, never the option-id array the
+        /// value row stores.
+        /// </summary>
+        private sealed class TestEnumOption : INeoEnumOption
+        {
+            internal TestEnumOption(string optionId)
+            {
+                this.optionId = optionId;
+            }
+
+            public string optionId { get; }
+        }
+
+        /// <summary>
+        /// Stands in for a generated Class wrapper inside a supplied
+        /// collection: the seam resolves such an entry through
+        /// <see cref="INeoValueReference"/>, which is the one thing every
+        /// generated wrapper is.
+        /// </summary>
+        private sealed class TestValueReference : INeoValueReference
+        {
+            internal TestValueReference(string valueId)
+            {
+                this.valueId = valueId;
+            }
+
+            public string? valueId { get; }
         }
 
         private static double? ReadNumber(
@@ -1097,6 +1696,52 @@ namespace NeoCompose.Tests
             };
         }
 
+        /// <summary>
+        /// A compiled base-clause getter — an argument expression or an
+        /// initializer-block entry. Both run in the DECLARING constructor's
+        /// parameter envelope, so the parameter list mirrors that constructor's
+        /// rather than the base's.
+        /// </summary>
+        private static FunctionWithReturnType BaseClauseGetter(
+            string classId,
+            int argumentCount,
+            Pointer result)
+        {
+            var parameters = new List<Variable>(argumentCount + 2)
+            {
+                EnvelopeParameter("__this__", ClassType(classId)),
+                EnvelopeParameter("__root__", ClassType("root-class")),
+            };
+            for (int i = 0; i < argumentCount; i++)
+            {
+                parameters.Add(EnvelopeParameter(
+                    $"__arg_{i}__",
+                    new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.String,
+                        required = true,
+                    }));
+            }
+            return new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = parameters.ToArray(),
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = MemberKind.String,
+                    required = true,
+                },
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = result,
+                    },
+                },
+            };
+        }
+
         private static Variable EnvelopeParameter(string id, TypeInfo typeInfo)
         {
             return new Variable
@@ -1203,6 +1848,40 @@ namespace NeoCompose.Tests
                     ["Self"] = "cycle-self",
                 },
             };
+            // P49 §1.1 — `class Gear(string Bar)`. The parameter list is on the
+            // header, so the constructor record is reached through
+            // `requiredConstructorId` and `constructorIds` stays empty: a
+            // required constructor is the class's only way in (§1.3).
+            var gearClass = new NeoSchemaClass
+            {
+                id = "gear-class",
+                projectId = ProjectId,
+                name = "Gear",
+                schema = new Dictionary<string, string>
+                {
+                    ["Label"] = "gear-label",
+                    ["Tag"] = "gear-tag",
+                    // P49 §4.4 — the optional members a generated constructor
+                    // appends after its declared parameters. Every one of them
+                    // is a kind whose stored payload is NOT the value the
+                    // caller hands over, which is what makes the seam's
+                    // marshalling observable.
+                    ["Parts"] = "gear-parts",
+                    ["Mode"] = "gear-mode",
+                    ["Slots"] = "gear-slots",
+                    ["Links"] = "gear-links",
+                },
+                requiredConstructorId = "ctor-gear",
+            };
+            var cogClass = new NeoSchemaClass
+            {
+                id = "cog-class",
+                projectId = ProjectId,
+                name = "Cog",
+                extendsClassId = gearClass.id,
+                schema = new Dictionary<string, string>(),
+                requiredConstructorId = "ctor-cog",
+            };
 
             var rootAssets = RootMember("root-assets", "Assets", "immutable", "value-assets");
             var rootSave = RootMember("root-save", "Save", "save", "value-save");
@@ -1292,6 +1971,110 @@ namespace NeoCompose.Tests
                             }),
                     },
                 },
+            };
+            var gearLabel = new StringMember
+            {
+                id = "gear-label",
+                projectId = ProjectId,
+                name = "Label",
+                kind = MemberKind.String,
+                required = true,
+                localizable = false,
+                defaultValue = new StringMemberValueBase { value = "base" },
+            };
+            var gearTag = new StringMember
+            {
+                id = "gear-tag",
+                projectId = ProjectId,
+                name = "Tag",
+                kind = MemberKind.String,
+                required = false,
+                localizable = false,
+                defaultValue = new StringMemberValueBase
+                {
+                    init = new InitializerBody
+                    {
+                        code = "InitTag()",
+                        compiled = InitializerGetter(
+                            new PrimitiveTypeInfo
+                            {
+                                type = MemberKind.String,
+                                required = true,
+                            },
+                            new ReturnInstruction
+                            {
+                                type = InstructionKind.Return,
+                                pointer = StringPointer("init-tag"),
+                            }),
+                    },
+                },
+            };
+            // Optional, default-less collection/selection members: absent
+            // unless the call site supplies them, so a test that reads one back
+            // is reading exactly what the seam marshalled.
+            var gearPartEntry = new StringMember
+            {
+                id = "gear-part-entry",
+                projectId = ProjectId,
+                name = "Part",
+                kind = MemberKind.String,
+                required = true,
+                localizable = false,
+            };
+            var gearParts = new ListMember
+            {
+                id = "gear-parts",
+                projectId = ProjectId,
+                name = "Parts",
+                kind = MemberKind.List,
+                required = false,
+                entryMemberId = gearPartEntry.id,
+            };
+            var gearMode = new EnumMember
+            {
+                id = "gear-mode",
+                projectId = ProjectId,
+                name = "Mode",
+                kind = MemberKind.Enum,
+                required = false,
+                enumId = "gear-mode-enum",
+                multiselect = false,
+            };
+            var gearSlotEntry = new StringMember
+            {
+                id = "gear-slot-entry",
+                projectId = ProjectId,
+                name = "Slot",
+                kind = MemberKind.String,
+                required = true,
+                localizable = false,
+            };
+            var gearSlots = new DictionaryMember
+            {
+                id = "gear-slots",
+                projectId = ProjectId,
+                name = "Slots",
+                kind = MemberKind.Dictionary,
+                required = false,
+                entryMemberId = gearSlotEntry.id,
+            };
+            var gearLinkEntry = new ClassMember
+            {
+                id = "gear-link-entry",
+                projectId = ProjectId,
+                name = "Link",
+                kind = MemberKind.Class,
+                required = true,
+                classId = partClass.id,
+            };
+            var gearLinks = new ListMember
+            {
+                id = "gear-links",
+                projectId = ProjectId,
+                name = "Links",
+                kind = MemberKind.List,
+                required = false,
+                entryMemberId = gearLinkEntry.id,
             };
             var cycleSelf = new ClassMember
             {
@@ -1418,6 +2201,46 @@ namespace NeoCompose.Tests
                 },
             };
 
+            // `class Gear(string Bar) { … }` — the header parameter list is the
+            // whole construction contract, and the body assigns from it.
+            ConstructorRecord gearConstructor = ConstructorFor(
+                "ctor-gear",
+                gearClass.id,
+                new[] { StringArgument("Bar") },
+                LabelAssignment(ArgumentPointer(0)));
+
+            // `class Cog(string Seed) : Gear(Seed) { Tag = "from-base-clause" }`
+            // — a base clause carrying both halves of a construction
+            // expression. The body is empty on purpose: everything the tests
+            // read back then comes from the clause and the call site alone.
+            ConstructorRecord cogConstructor = ConstructorFor(
+                "ctor-cog",
+                cogClass.id,
+                new[] { StringArgument("Seed") });
+            cogConstructor.baseArguments = new[]
+            {
+                new ConstructorBaseArgument { name = "Bar", code = "Seed" },
+            };
+            cogConstructor.compiledBaseArguments = new[]
+            {
+                BaseClauseGetter(cogClass.id, 1, ArgumentPointer(0)),
+            };
+            cogConstructor.baseInitializerFields = new[]
+            {
+                new ConstructorBaseInitializerField
+                {
+                    name = "Tag",
+                    code = "\"from-base-clause\"",
+                },
+            };
+            cogConstructor.compiledBaseInitializerFields = new[]
+            {
+                BaseClauseGetter(
+                    cogClass.id,
+                    1,
+                    StringPointer("from-base-clause")),
+            };
+
             return new ProjectData
             {
                 project = new Project
@@ -1439,6 +2262,15 @@ namespace NeoCompose.Tests
                     [subExtra.id] = subExtra,
                     [boomBad.id] = boomBad,
                     [cycleSelf.id] = cycleSelf,
+                    [gearLabel.id] = gearLabel,
+                    [gearTag.id] = gearTag,
+                    [gearParts.id] = gearParts,
+                    [gearPartEntry.id] = gearPartEntry,
+                    [gearMode.id] = gearMode,
+                    [gearSlots.id] = gearSlots,
+                    [gearSlotEntry.id] = gearSlotEntry,
+                    [gearLinks.id] = gearLinks,
+                    [gearLinkEntry.id] = gearLinkEntry,
                 },
                 values = new Dictionary<string, MemberValue>
                 {
@@ -1453,6 +2285,8 @@ namespace NeoCompose.Tests
                     [subClass.id] = subClass,
                     [boomClass.id] = boomClass,
                     [cycleClass.id] = cycleClass,
+                    [gearClass.id] = gearClass,
+                    [cogClass.id] = cogClass,
                 },
                 constructors = new Dictionary<string, ConstructorRecord>
                 {
@@ -1460,8 +2294,28 @@ namespace NeoCompose.Tests
                     [subConstructor.id] = subConstructor,
                     [throwingConstructor.id] = throwingConstructor,
                     [subReadsThisConstructor.id] = subReadsThisConstructor,
+                    [gearConstructor.id] = gearConstructor,
+                    [cogConstructor.id] = cogConstructor,
                 },
-                enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
+                enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>
+                {
+                    ["gear-mode-enum"] = new NeoCompose.Runtime.Json.Enum
+                    {
+                        id = "gear-mode-enum",
+                        projectId = ProjectId,
+                        name = "GearMode",
+                        options = new Dictionary<string, EnumOption>
+                        {
+                            ["option-fast"] = new EnumOption { text = "Fast" },
+                            ["option-slow"] = new EnumOption { text = "Slow" },
+                        },
+                        optionKeyOrder = new List<string>
+                        {
+                            "option-fast",
+                            "option-slow",
+                        },
+                    },
+                },
             };
         }
 
