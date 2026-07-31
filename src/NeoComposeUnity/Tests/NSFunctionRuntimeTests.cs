@@ -120,6 +120,109 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ExecutionResult_ThenPreservesAnExistingFailure()
+        {
+            var error = new NSGetterRuntimeError("original");
+            NeoScriptExecutionResult failed =
+                NeoScriptExecutionResult.Failed(error);
+            int continuationCalls = 0;
+
+            NeoScriptExecutionResult chained = failed.Then(_ =>
+            {
+                continuationCalls++;
+                return NeoScriptExecutionResult.Completed(
+                    returned: false,
+                    returnValue: null);
+            });
+
+            Assert.AreSame(failed, chained);
+            Assert.AreSame(error, chained.Failure);
+            Assert.AreEqual(0, continuationCalls);
+        }
+
+        [Test]
+        public void Json_TryInstructionRejectsMalformedNestedWireShapes()
+        {
+            JObject valid = ValidTryInstructionJson();
+            Instruction parsed = JsonConvert.DeserializeObject<Instruction>(
+                valid.ToString())!;
+            Assert.IsInstanceOf<TryInstruction>(parsed);
+            Assert.IsInstanceOf<TryInstruction>(
+                JsonConvert.DeserializeObject<Instruction>(
+                    JsonConvert.SerializeObject(parsed)));
+
+            JObject recursive = (JObject)valid.DeepClone();
+            JObject filter = (JObject)recursive["catches"]![0]!["filter"]!;
+            JToken condition = filter["condition"]!.DeepClone();
+            filter["connective"] = new JObject
+            {
+                ["type"] = LogicalOpKind.And,
+                ["to"] = new JObject
+                {
+                    ["condition"] = condition.DeepClone(),
+                    ["connective"] = new JObject
+                    {
+                        ["type"] = LogicalOpKind.Or,
+                        ["to"] = new JObject
+                        {
+                            ["condition"] = condition.DeepClone()
+                        }
+                    }
+                }
+            };
+            Assert.IsInstanceOf<TryInstruction>(
+                JsonConvert.DeserializeObject<Instruction>(
+                    recursive.ToString()));
+
+            JObject malformed = (JObject)valid.DeepClone();
+            malformed["instructions"] = new JObject();
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            malformed["instructions"]![0]!["type"] = "unknownInstruction";
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            malformed["catches"]![0]!["filter"]!["condition"]!["type"] =
+                "unknownComparison";
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)recursive.DeepClone();
+            malformed["catches"]![0]!["filter"]!["connective"]!["type"] =
+                "unknownConnective";
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            malformed["catches"] = new JArray();
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            malformed["catches"]![0]!["binding"]!["readonly"] = false;
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            malformed["catches"]![0]!["binding"]!["typeInfo"]!["type"] =
+                (int)MemberKind.Int;
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            malformed["catches"]![1]!["binding"]!["id"] = "message";
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            malformed["catches"]![0]!["filter"] = null;
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            malformed["catches"]![0]!["filter"] = new JObject();
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            malformed["catches"]![0]!["instructions"] = new JObject();
+            AssertInstructionRejected(malformed);
+        }
+
+        [Test]
         public void Json_SwitchInstructionRejectsMalformedNestedWireShapes()
         {
             JObject valid = ValidSwitchInstructionJson();
@@ -2172,6 +2275,123 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Invoke_LoopBodyUsesAFreshChildScopeForEveryIteration()
+        {
+            FunctionWithReturnType body = LoopAction(
+                new ForInstruction
+                {
+                    type = InstructionKind.For,
+                    initializer = LocalVariable("i", Number(0), IntType()),
+                    condition = Compare(
+                        OperatorKind.LessThan,
+                        Variable("i"),
+                        Number(2)),
+                    iterator = AssignLocal(
+                        "i",
+                        Add(Variable("i"), Number(1)),
+                        IntType()),
+                    instructions = new Instruction[]
+                    {
+                        If(
+                            Compare(
+                                OperatorKind.EqualTo,
+                                Variable("i"),
+                                Number(0)),
+                            VariableDeclaration(
+                                "bodyOnly",
+                                Number(7),
+                                IntType())),
+                        If(
+                            Compare(
+                                OperatorKind.EqualTo,
+                                Variable("i"),
+                                Number(1)),
+                            Return(Variable("bodyOnly"))),
+                    },
+                },
+                Return(Number(0)));
+
+            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+                InvokeTryBody(body, IntType()))!;
+
+            StringAssert.Contains("bodyOnly", error.Message);
+            StringAssert.Contains("not in scope", error.Message);
+        }
+
+        [Test]
+        public void Invoke_RevisionThreeRejectsEveryP50InstructionAtAnyDepth()
+        {
+            CollectionTypeInfo listType = ListType(IntType());
+            FunctionWithReturnType[] bodies =
+            {
+                Action(
+                    IntType(),
+                    Array.Empty<FunctionArgumentTypeInfo>(),
+                    new ForInstruction
+                    {
+                        type = InstructionKind.For,
+                        initializer = LocalVariable("i", Number(0), IntType()),
+                        condition = Compare(
+                            OperatorKind.LessThan,
+                            Variable("i"),
+                            Number(0)),
+                        iterator = AssignLocal(
+                            "i",
+                            Add(Variable("i"), Number(1)),
+                            IntType()),
+                        instructions = Array.Empty<Instruction>(),
+                    },
+                    Return(Number(0))),
+                Action(
+                    IntType(),
+                    Array.Empty<FunctionArgumentTypeInfo>(),
+                    new ForEachInstruction
+                    {
+                        type = InstructionKind.ForEach,
+                        binding = new LoopBinding
+                        {
+                            id = "item",
+                            typeInfo = IntType(),
+                            isReadonly = true,
+                        },
+                        collectionPointer = List(),
+                        collectionTypeInfo = listType,
+                        instructions = Array.Empty<Instruction>(),
+                    },
+                    Return(Number(0))),
+                Action(
+                    IntType(),
+                    Array.Empty<FunctionArgumentTypeInfo>(),
+                    new BreakInstruction { type = InstructionKind.Break },
+                    Return(Number(0))),
+                Action(
+                    IntType(),
+                    Array.Empty<FunctionArgumentTypeInfo>(),
+                    If(
+                        Compare(
+                            OperatorKind.EqualTo,
+                            Number(1),
+                            Number(1)),
+                        new ContinueInstruction
+                        {
+                            type = InstructionKind.Continue,
+                        }),
+                    Return(Number(0))),
+            };
+
+            foreach (FunctionWithReturnType body in bodies)
+            {
+                body.compilerRevision = 3;
+                NeoScriptPreExecutionValidationError error =
+                    Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+                        InvokeTryBody(body, IntType()))!;
+                StringAssert.Contains(
+                    "loop IR requires compiler revision 4",
+                    error.Message);
+            }
+        }
+
+        [Test]
         public void Invoke_ForLoopEnforcesTheSharedIterationBudget()
         {
             FunctionWithReturnType body = LoopAction(
@@ -2266,6 +2486,425 @@ namespace NeoCompose.Tests
             Assert.AreEqual(
                 "NeoScript loop iteration limit of 10000 exceeded.",
                 error.Message);
+        }
+
+        [Test]
+        public void Invoke_TryDoesNotCatchUnavailableInvokersOrHostExceptions()
+        {
+            FunctionMember native = NativeFunction(
+                "fn-host-boundary",
+                "HostBoundary",
+                deferred: false);
+            NSFunctionMember function = ScriptFunction(
+                "fn-try-host-boundary",
+                "TryHostBoundary",
+                deferred: false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                TryAction(
+                    IntType(),
+                    TryBlock(
+                        new Instruction[]
+                        {
+                            new FunctionCallInstruction
+                            {
+                                type = InstructionKind.FunctionCall,
+                                call = Call(native.id, "host-boundary"),
+                            },
+                            Return(Number(0)),
+                        },
+                        Catch("message", null, Return(Number(1))))));
+            NeoClient client = BuildClient(
+                new JsonMember[] { native, function },
+                ReceiverClass(
+                    ("HostBoundary", native.id),
+                    ("TryHostBoundary", function.id)));
+            NSGetterRuntimeError unavailable =
+                Assert.Catch<NSGetterRuntimeError>(() =>
+                    new NeoMemberNSFunction(client, function, null)
+                        .Invoke("receiver-value", Array.Empty<object?>()))!;
+            StringAssert.Contains("requires constructing", unavailable.Message);
+
+            var hostError = new InvalidOperationException("host failure");
+            client.RegisterNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+                {
+                    [native.id] = (_, _, _) => throw hostError,
+                });
+            Assert.AreSame(
+                hostError,
+                Assert.Throws<InvalidOperationException>(() =>
+                    new NeoMemberNSFunction(client, function, null)
+                        .Invoke("receiver-value", Array.Empty<object?>())));
+        }
+
+        [Test]
+        public void Invoke_TryDoesNotCatchCalledBodyValidationFailures()
+        {
+            FunctionWithReturnType futureRevision = Action(
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                Return(Number(0)));
+            futureRevision.compilerRevision =
+                FunctionWithReturnType.CurrentCompilerRevision + 1;
+            AssertCalledValidationBypassesCatch(
+                ScriptFunction(
+                    "fn-future-revision-callee",
+                    "FutureRevisionCallee",
+                    false,
+                    IntType(),
+                    Array.Empty<FunctionArgumentTypeInfo>(),
+                    futureRevision),
+                "Unsupported NeoScript compiler revision");
+
+            FunctionWithReturnType oldLoopRevision = Action(
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                new BreakInstruction { type = InstructionKind.Break },
+                Return(Number(0)));
+            oldLoopRevision.compilerRevision = 3;
+            AssertCalledValidationBypassesCatch(
+                ScriptFunction(
+                    "fn-old-loop-revision-callee",
+                    "OldLoopRevisionCallee",
+                    false,
+                    IntType(),
+                    Array.Empty<FunctionArgumentTypeInfo>(),
+                    oldLoopRevision),
+                "loop IR requires compiler revision 4");
+
+            CollectionTypeInfo listType = ListType(IntType());
+            AssertCalledValidationBypassesCatch(
+                ScriptFunction(
+                    "fn-malformed-loop-callee",
+                    "MalformedLoopCallee",
+                    false,
+                    IntType(),
+                    Array.Empty<FunctionArgumentTypeInfo>(),
+                    LoopAction(
+                        new ForEachInstruction
+                        {
+                            type = InstructionKind.ForEach,
+                            binding = new LoopBinding
+                            {
+                                id = "item",
+                                typeInfo = IntType(),
+                                isReadonly = false,
+                            },
+                            collectionPointer = List(Number(1)),
+                            collectionTypeInfo = listType,
+                            instructions = Array.Empty<Instruction>(),
+                        },
+                        Return(Number(0)))),
+                "foreach loop contains malformed metadata");
+
+            AssertCalledValidationBypassesCatch(
+                ScriptFunction(
+                    "fn-malformed-switch-callee",
+                    "MalformedSwitchCallee",
+                    false,
+                    IntType(),
+                    Array.Empty<FunctionArgumentTypeInfo>(),
+                    SwitchAction(
+                        Switch(
+                            Number(1),
+                            IntType(),
+                            new[]
+                            {
+                                new SwitchSection
+                                {
+                                    labels = Array.Empty<Value>(),
+                                    instructions = Array.Empty<Instruction>(),
+                                },
+                            }),
+                        Return(Number(0)))),
+                "malformed case section");
+
+            AssertCalledValidationBypassesCatch(
+                ScriptFunction(
+                    "fn-malformed-try-callee",
+                    "MalformedTryCallee",
+                    false,
+                    IntType(),
+                    Array.Empty<FunctionArgumentTypeInfo>(),
+                    TryAction(
+                        IntType(),
+                        new TryInstruction
+                        {
+                            type = InstructionKind.Try,
+                            instructions = Array.Empty<Instruction>(),
+                            catches = Array.Empty<CatchClause>(),
+                        },
+                        Return(Number(0)))),
+                "missing its body or catch clauses");
+        }
+
+        [Test]
+        public void Invoke_TryDoesNotCatchMalformedNestedControlFlowMetadata()
+        {
+            Instruction[] malformedInstructions =
+            {
+                Switch(
+                    Number(1),
+                    IntType(),
+                    new[]
+                    {
+                        new SwitchSection
+                        {
+                            labels = Array.Empty<Value>(),
+                            instructions = Array.Empty<Instruction>(),
+                        },
+                    }),
+                new TryInstruction
+                {
+                    type = InstructionKind.Try,
+                    instructions = Array.Empty<Instruction>(),
+                    catches = Array.Empty<CatchClause>(),
+                },
+            };
+
+            foreach (Instruction malformed in malformedInstructions)
+            {
+                FunctionWithReturnType body = TryAction(
+                    IntType(),
+                    TryBlock(
+                        new[] { malformed },
+                        Catch("message", null, Return(Number(1)))),
+                    Return(Number(0)));
+
+                Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+                    InvokeTryBody(body, IntType()));
+            }
+        }
+
+        [Test]
+        public void Invoke_TryStillCatchesDeliberateCalledRuntimeErrors()
+        {
+            NSFunctionMember callee = ScriptFunction(
+                "fn-called-runtime-error",
+                "CalledRuntimeError",
+                false,
+                StringType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                Action(
+                    StringType(),
+                    Array.Empty<FunctionArgumentTypeInfo>(),
+                    Throw(Text("called boom"))));
+            NSFunctionMember caller = ScriptFunction(
+                "fn-catch-called-runtime-error",
+                "CatchCalledRuntimeError",
+                false,
+                StringType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                TryAction(
+                    StringType(),
+                    TryBlock(
+                        new Instruction[]
+                        {
+                            new FunctionCallInstruction
+                            {
+                                type = InstructionKind.FunctionCall,
+                                call = Call(callee.id, "called-runtime-error"),
+                            },
+                            Return(Text("wrong")),
+                        },
+                        Catch(
+                            "message",
+                            null,
+                            Return(Variable("message"))))));
+            NeoClient client = BuildClient(
+                new JsonMember[] { callee, caller },
+                ReceiverClass(
+                    (callee.name, callee.id),
+                    (caller.name, caller.id)));
+
+            object? result = new NeoMemberNSFunction(client, caller, null)
+                .Invoke("receiver-value", Array.Empty<object?>());
+
+            Assert.AreEqual("called boom", result);
+        }
+
+        [Test]
+        public void Invoke_TryCatchFiltersScopesAndSelectedCatchFailures()
+        {
+            object? result = InvokeTryBody(
+                TryAction(
+                    IntType(),
+                    VariableDeclaration("count", Number(0), IntType()),
+                    TryBlock(
+                        new Instruction[]
+                        {
+                            AssignLocal("count", Number(2), IntType()),
+                            Throw(Text("original")),
+                        },
+                        Catch(
+                            "first",
+                            Compare(
+                                OperatorKind.EqualTo,
+                                Variable("first"),
+                                Text("other")),
+                            AssignLocal("count", Number(99), IntType())),
+                        Catch(
+                            "selected",
+                            Compare(
+                                OperatorKind.EqualTo,
+                                Variable("selected"),
+                                Text("original")),
+                            AssignLocal("count", Number(3), IntType())),
+                        Catch(
+                            "fallback",
+                            null,
+                            AssignLocal("count", Number(100), IntType()))),
+                    Return(Variable("count"))),
+                IntType());
+            Assert.AreEqual(3L, Convert.ToInt64(result));
+
+            result = InvokeTryBody(
+                TryAction(
+                    StringType(),
+                    TryBlock(
+                        new Instruction[] { Throw(Text("original")) },
+                        Catch(
+                            "filtered",
+                            Compare(
+                                OperatorKind.EqualTo,
+                                Variable("missing"),
+                                Text("never")),
+                            Return(Text("wrong"))),
+                        Catch(
+                            "fallback",
+                            null,
+                            Return(Variable("fallback"))))),
+                StringType());
+            Assert.AreEqual("original", result);
+
+            FunctionWithReturnType unmatched = TryAction(
+                IntType(),
+                TryBlock(
+                    new Instruction[] { Throw(Text("original")) },
+                    Catch(
+                        "message",
+                        Compare(
+                            OperatorKind.EqualTo,
+                            Variable("message"),
+                            Text("different")),
+                        Return(Number(1)))),
+                Return(Number(0)));
+            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+                InvokeTryBody(unmatched, IntType()))!;
+            Assert.AreEqual("original", error.Message);
+
+            result = InvokeTryBody(
+                TryAction(
+                    StringType(),
+                    TryBlock(
+                        new Instruction[]
+                        {
+                            TryBlock(
+                                new Instruction[] { Throw(Text("original")) },
+                                Catch(
+                                    "inner",
+                                    Compare(
+                                        OperatorKind.EqualTo,
+                                        Variable("inner"),
+                                        Text("original")),
+                                    Throw(Text("selected"))),
+                                Catch(
+                                    "innerFallback",
+                                    null,
+                                    Return(Text("wrong")))),
+                        },
+                        Catch(
+                            "outer",
+                            null,
+                            Return(Variable("outer"))))),
+                StringType());
+            Assert.AreEqual("selected", result);
+
+            FunctionWithReturnType readOnly = TryAction(
+                IntType(),
+                TryBlock(
+                    new Instruction[] { Throw(Text("original")) },
+                    Catch(
+                        "message",
+                        null,
+                        AssignLocal("message", Text("changed"), StringType()),
+                        Return(Number(0)))));
+            error = Assert.Throws<NSGetterRuntimeError>(() =>
+                InvokeTryBody(readOnly, IntType()))!;
+            Assert.AreEqual(
+                "Cannot assign to a read-only catch message binding.",
+                error.Message);
+
+            result = InvokeTryBody(
+                TryAction(
+                    IntType(),
+                    TryBlock(
+                        new Instruction[] { Return(Number(7)) },
+                        Catch("message", null, Return(Number(0))))),
+                IntType());
+            Assert.AreEqual(7L, Convert.ToInt64(result));
+        }
+
+        [Test]
+        public void Invoke_TryPropagatesLoopControlAndRejectsOldRevision()
+        {
+            FunctionWithReturnType body = TryAction(
+                IntType(),
+                VariableDeclaration("sum", Number(0), IntType()),
+                new ForInstruction
+                {
+                    type = InstructionKind.For,
+                    initializer = LocalVariable("i", Number(0), IntType()),
+                    condition = Compare(
+                        OperatorKind.LessThan,
+                        Variable("i"),
+                        Number(4)),
+                    iterator = AssignLocal(
+                        "i",
+                        Add(Variable("i"), Number(1)),
+                        IntType()),
+                    instructions = new Instruction[]
+                    {
+                        TryBlock(
+                            new Instruction[]
+                            {
+                                If(
+                                    Compare(
+                                        OperatorKind.EqualTo,
+                                        Variable("i"),
+                                        Number(1)),
+                                    new ContinueInstruction
+                                    {
+                                        type = InstructionKind.Continue,
+                                    }),
+                                If(
+                                    Compare(
+                                        OperatorKind.EqualTo,
+                                        Variable("i"),
+                                        Number(3)),
+                                    new BreakInstruction
+                                    {
+                                        type = InstructionKind.Break,
+                                    }),
+                                AssignLocal(
+                                    "sum",
+                                    Add(Variable("sum"), Number(1)),
+                                    IntType()),
+                            },
+                            Catch("message", null, Return(Number(99)))),
+                    },
+                },
+                Return(Variable("sum")));
+            Assert.AreEqual(
+                2L,
+                Convert.ToInt64(InvokeTryBody(body, IntType())));
+
+            body.compilerRevision = 5;
+            NeoScriptPreExecutionValidationError error =
+                Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+                    InvokeTryBody(body, IntType()))!;
+            StringAssert.Contains("requires compiler revision 6", error.Message);
         }
 
         [Test]
@@ -2588,7 +3227,7 @@ namespace NeoCompose.Tests
                         },
                     },
                 });
-            error = InvokeSwitchError(mismatchedLabel);
+            error = InvokeSwitchError(mismatchedLabel, validation: true);
             StringAssert.Contains("case label is inconsistent", error.Message);
 
             SwitchInstruction duplicate = Switch(
@@ -2613,7 +3252,7 @@ namespace NeoCompose.Tests
                         },
                     },
                 });
-            error = InvokeSwitchError(duplicate);
+            error = InvokeSwitchError(duplicate, validation: true);
             StringAssert.Contains("duplicate normalized case label", error.Message);
 
             SwitchInstruction fallthrough = Switch(
@@ -2627,7 +3266,7 @@ namespace NeoCompose.Tests
                         instructions = Array.Empty<Instruction>(),
                     },
                 });
-            error = InvokeSwitchError(fallthrough);
+            error = InvokeSwitchError(fallthrough, validation: true);
             StringAssert.Contains("selected section reached its end", error.Message);
 
             FunctionWithReturnType stale = SwitchAction(
@@ -2647,10 +3286,363 @@ namespace NeoCompose.Tests
             NeoClient client = BuildClient(
                 new JsonMember[] { function },
                 ReceiverClass(("SwitchRevision", function.id)));
-            error = Assert.Throws<NSGetterRuntimeError>(() =>
+            error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
                 new NeoMemberNSFunction(client, function, null)
                     .Invoke("receiver-value", Array.Empty<object?>()))!;
             StringAssert.Contains("requires compiler revision 5", error.Message);
+        }
+
+        [Test]
+        public void InvokeAsync_TryBodyFilterAndCatchResumeWithoutReplay()
+        {
+            FunctionMember tryPause = NativeFunction(
+                "fn-try-pause",
+                "TryPause",
+                deferred: true);
+            FunctionMember filterPause = NativeFunction(
+                "fn-filter-pause",
+                "FilterPause",
+                deferred: true);
+            FunctionMember catchPause = NativeFunction(
+                "fn-catch-pause",
+                "CatchPause",
+                deferred: true);
+            NSFunctionMember function = ScriptFunction(
+                "fn-try-resume",
+                "TryResume",
+                deferred: true,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                TryAction(
+                    IntType(),
+                    VariableDeclaration("count", Number(0), IntType()),
+                    TryBlock(
+                        new Instruction[]
+                        {
+                            AssignLocal(
+                                "count",
+                                Add(Variable("count"), Number(1)),
+                                IntType()),
+                            new FunctionCallInstruction
+                            {
+                                type = InstructionKind.FunctionCall,
+                                call = Call(tryPause.id, "try-pause"),
+                            },
+                            Throw(Text("boom")),
+                        },
+                        Catch(
+                            "message",
+                            Compare(
+                                OperatorKind.EqualTo,
+                                Call(filterPause.id, "filter-pause"),
+                                Number(1)),
+                            AssignLocal(
+                                "count",
+                                Add(Variable("count"), Number(1)),
+                                IntType()),
+                            new FunctionCallInstruction
+                            {
+                                type = InstructionKind.FunctionCall,
+                                call = Call(catchPause.id, "catch-pause"),
+                            },
+                            Return(Variable("count"))),
+                        Catch("fallback", null, Return(Number(99))))));
+            NeoClient client = BuildClient(
+                new JsonMember[] { tryPause, filterPause, catchPause, function },
+                ReceiverClass(
+                    ("TryPause", tryPause.id),
+                    ("FilterPause", filterPause.id),
+                    ("CatchPause", catchPause.id),
+                    ("TryResume", function.id)));
+            NeoDeferredFunction<int>? pendingTry = null;
+            NeoDeferredFunction<int>? pendingFilter = null;
+            NeoDeferredFunction<int>? pendingCatch = null;
+            int tryCalls = 0;
+            int filterCalls = 0;
+            int catchCalls = 0;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    [tryPause.id] = (_, _, _, deferred) =>
+                    {
+                        tryCalls++;
+                        pendingTry = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                                deferred,
+                                tryPause.name);
+                    },
+                    [filterPause.id] = (_, _, _, deferred) =>
+                    {
+                        filterCalls++;
+                        pendingFilter = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                                deferred,
+                                filterPause.name);
+                    },
+                    [catchPause.id] = (_, _, _, deferred) =>
+                    {
+                        catchCalls++;
+                        pendingCatch = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                                deferred,
+                                catchPause.name);
+                    },
+                });
+
+            Task<object?> task = new NeoMemberNSFunction(client, function, null)
+                .InvokeAsync("receiver-value", Array.Empty<object?>());
+            Assert.AreEqual(1, tryCalls);
+            pendingTry!.Complete(0);
+            Assert.AreEqual(1, filterCalls);
+            pendingFilter!.Complete(1);
+            Assert.AreEqual(1, catchCalls);
+            pendingCatch!.Complete(0);
+
+            Assert.AreEqual(2L, Convert.ToInt64(task.GetAwaiter().GetResult()));
+            Assert.AreEqual(1, tryCalls);
+            Assert.AreEqual(1, filterCalls);
+            Assert.AreEqual(1, catchCalls);
+        }
+
+        [Test]
+        public void InvokeAsync_TryFailureBoundaryAndFilterFailurePreserveSemantics()
+        {
+            FunctionMember fail = NativeFunction(
+                "fn-try-fail",
+                "TryFail",
+                deferred: true);
+            NSFunctionMember caught = ScriptFunction(
+                "fn-catch-deferred",
+                "CatchDeferred",
+                deferred: true,
+                StringType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                TryAction(
+                    StringType(),
+                    TryBlock(
+                        new Instruction[]
+                        {
+                            new FunctionCallInstruction
+                            {
+                                type = InstructionKind.FunctionCall,
+                                call = Call(fail.id, "try-fail"),
+                            },
+                            Return(Text("wrong")),
+                        },
+                        Catch(
+                            "message",
+                            null,
+                            Return(Variable("message"))))));
+            NeoClient client = BuildClient(
+                new JsonMember[] { fail, caught },
+                ReceiverClass(("TryFail", fail.id), ("CatchDeferred", caught.id)));
+            NeoDeferredFunction<int>? pending = null;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    [fail.id] = (_, _, _, deferred) =>
+                        pending = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                                deferred,
+                                fail.name),
+                });
+            Task<object?> caughtTask =
+                new NeoMemberNSFunction(client, caught, null).InvokeAsync(
+                    "receiver-value",
+                    Array.Empty<object?>());
+            pending!.Fail(new NeoDeferredFunctionRuntimeError("deferred boom"));
+            Assert.AreEqual(
+                "deferred boom",
+                caughtTask.GetAwaiter().GetResult());
+
+            client = BuildClient(
+                new JsonMember[] { fail, caught },
+                ReceiverClass(("TryFail", fail.id), ("CatchDeferred", caught.id)));
+            pending = null;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    [fail.id] = (_, _, _, deferred) =>
+                        pending = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                                deferred,
+                                fail.name),
+                });
+            Task<object?> hostTask =
+                new NeoMemberNSFunction(client, caught, null).InvokeAsync(
+                    "receiver-value",
+                    Array.Empty<object?>());
+            var hostError = new InvalidOperationException("host failure");
+            pending!.Fail(hostError);
+            Assert.AreSame(
+                hostError,
+                Assert.Throws<InvalidOperationException>(() =>
+                    hostTask.GetAwaiter().GetResult()));
+
+            FunctionMember filterFail = NativeFunction(
+                "fn-filter-fail",
+                "FilterFail",
+                deferred: true);
+            NSFunctionMember filterFunction = ScriptFunction(
+                "fn-filter-failure",
+                "FilterFailure",
+                deferred: true,
+                StringType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                TryAction(
+                    StringType(),
+                    TryBlock(
+                        new Instruction[] { Throw(Text("original")) },
+                        Catch(
+                            "filtered",
+                            Compare(
+                                OperatorKind.EqualTo,
+                                Call(filterFail.id, "filter-fail"),
+                                Number(1)),
+                            Return(Text("wrong"))),
+                        Catch(
+                            "fallback",
+                            null,
+                            Return(Variable("fallback"))))));
+            client = BuildClient(
+                new JsonMember[] { filterFail, filterFunction },
+                ReceiverClass(
+                    ("FilterFail", filterFail.id),
+                    ("FilterFailure", filterFunction.id)));
+            pending = null;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    [filterFail.id] = (_, _, _, deferred) =>
+                        pending = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                                deferred,
+                                filterFail.name),
+                });
+            Task<object?> filterTask =
+                new NeoMemberNSFunction(client, filterFunction, null).InvokeAsync(
+                    "receiver-value",
+                    Array.Empty<object?>());
+            pending!.Fail(new NSGetterRuntimeError("filter failure"));
+            Assert.AreEqual("original", filterTask.GetAwaiter().GetResult());
+        }
+
+        [Test]
+        public void InvokeAsync_SelectedCatchFailureSkipsSiblingsAndReachesOuterTry()
+        {
+            FunctionMember fail = NativeFunction(
+                "fn-selected-catch-fail",
+                "SelectedCatchFail",
+                deferred: true);
+            NSFunctionMember function = ScriptFunction(
+                "fn-selected-catch",
+                "SelectedCatch",
+                deferred: true,
+                StringType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                TryAction(
+                    StringType(),
+                    TryBlock(
+                        new Instruction[]
+                        {
+                            TryBlock(
+                                new Instruction[] { Throw(Text("original")) },
+                                Catch(
+                                    "inner",
+                                    Compare(
+                                        OperatorKind.EqualTo,
+                                        Variable("inner"),
+                                        Text("original")),
+                                    new FunctionCallInstruction
+                                    {
+                                        type = InstructionKind.FunctionCall,
+                                        call = Call(fail.id, "selected-fail"),
+                                    },
+                                    Return(Text("wrong-selected"))),
+                                Catch(
+                                    "innerFallback",
+                                    null,
+                                    Return(Text("wrong-sibling")))),
+                        },
+                        Catch(
+                            "outer",
+                            null,
+                            Return(Variable("outer"))))));
+            NeoClient client = BuildClient(
+                new JsonMember[] { fail, function },
+                ReceiverClass(
+                    ("SelectedCatchFail", fail.id),
+                    ("SelectedCatch", function.id)));
+            NeoDeferredFunction<int>? pending = null;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    [fail.id] = (_, _, _, deferred) =>
+                        pending = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                                deferred,
+                                fail.name),
+                });
+
+            Task<object?> task = new NeoMemberNSFunction(client, function, null)
+                .InvokeAsync("receiver-value", Array.Empty<object?>());
+            pending!.Fail(new NSGetterRuntimeError("selected"));
+
+            Assert.AreEqual("selected", task.GetAwaiter().GetResult());
+
+            // Also cover a synchronous selected-catch error thrown while the
+            // inner try is itself recovering from a deferred body failure.
+            function.action = TryAction(
+                StringType(),
+                TryBlock(
+                    new Instruction[]
+                    {
+                        TryBlock(
+                            new Instruction[]
+                            {
+                                new FunctionCallInstruction
+                                {
+                                    type = InstructionKind.FunctionCall,
+                                    call = Call(fail.id, "protected-fail"),
+                                },
+                                Return(Text("wrong-protected")),
+                            },
+                            Catch(
+                                "inner",
+                                Compare(
+                                    OperatorKind.EqualTo,
+                                    Variable("inner"),
+                                    Text("original")),
+                                Throw(Text("selected"))),
+                            Catch(
+                                "innerFallback",
+                                null,
+                                Return(Text("wrong-sibling")))),
+                    },
+                    Catch(
+                        "outer",
+                        null,
+                        Return(Variable("outer")))));
+            client = BuildClient(
+                new JsonMember[] { fail, function },
+                ReceiverClass(
+                    ("SelectedCatchFail", fail.id),
+                    ("SelectedCatch", function.id)));
+            pending = null;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    [fail.id] = (_, _, _, deferred) =>
+                        pending = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                                deferred,
+                                fail.name),
+                });
+            task = new NeoMemberNSFunction(client, function, null)
+                .InvokeAsync("receiver-value", Array.Empty<object?>());
+            pending!.Fail(new NSGetterRuntimeError("original"));
+
+            Assert.AreEqual("selected", task.GetAwaiter().GetResult());
         }
 
         [Test]
@@ -3699,6 +4691,48 @@ namespace NeoCompose.Tests
             return body;
         }
 
+        private static FunctionWithReturnType TryAction(
+            TypeInfo returnType,
+            params Instruction[] instructions)
+        {
+            FunctionWithReturnType body = Action(
+                returnType,
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                instructions);
+            body.compilerRevision = 6;
+            return body;
+        }
+
+        private static TryInstruction TryBlock(
+            Instruction[] instructions,
+            params CatchClause[] catches) => new()
+        {
+            type = InstructionKind.Try,
+            instructions = instructions,
+            catches = catches,
+        };
+
+        private static CatchClause Catch(
+            string bindingId,
+            BooleanExpression? filter,
+            params Instruction[] instructions) => new()
+        {
+            binding = new CatchBinding
+            {
+                id = bindingId,
+                typeInfo = StringType(),
+                isReadonly = true,
+            },
+            filter = filter,
+            instructions = instructions,
+        };
+
+        private static ThrowInstruction Throw(Pointer pointer) => new()
+        {
+            type = InstructionKind.Throw,
+            pointer = pointer,
+        };
+
         private static FunctionWithReturnType SwitchAction(
             params Instruction[] instructions)
         {
@@ -3764,8 +4798,65 @@ namespace NeoCompose.Tests
             return Convert.ToInt64(result);
         }
 
+        private static void AssertCalledValidationBypassesCatch(
+            NSFunctionMember callee,
+            string expectedMessage)
+        {
+            NSFunctionMember caller = ScriptFunction(
+                "fn-validation-caller-" + callee.id,
+                "ValidationCaller" + callee.name,
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                TryAction(
+                    IntType(),
+                    TryBlock(
+                        new Instruction[]
+                        {
+                            new FunctionCallInstruction
+                            {
+                                type = InstructionKind.FunctionCall,
+                                call = Call(
+                                    callee.id,
+                                    "validate-" + callee.id),
+                            },
+                            Return(Number(0)),
+                        },
+                        Catch("message", null, Return(Number(1))))));
+            NeoClient client = BuildClient(
+                new JsonMember[] { callee, caller },
+                ReceiverClass(
+                    (callee.name, callee.id),
+                    (caller.name, caller.id)));
+
+            NeoScriptPreExecutionValidationError error =
+                Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+                    new NeoMemberNSFunction(client, caller, null)
+                        .Invoke("receiver-value", Array.Empty<object?>()))!;
+            StringAssert.Contains(expectedMessage, error.Message);
+        }
+
+        private static object? InvokeTryBody(
+            FunctionWithReturnType body,
+            TypeInfo returnType)
+        {
+            NSFunctionMember function = ScriptFunction(
+                "fn-try-test",
+                "TryTest",
+                false,
+                returnType,
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("TryTest", function.id)));
+            return new NeoMemberNSFunction(client, function, null)
+                .Invoke("receiver-value", Array.Empty<object?>());
+        }
+
         private static NSGetterRuntimeError InvokeSwitchError(
-            SwitchInstruction instruction)
+            SwitchInstruction instruction,
+            bool validation = false)
         {
             NSFunctionMember function = ScriptFunction(
                 "fn-switch-error",
@@ -3777,9 +4868,13 @@ namespace NeoCompose.Tests
             NeoClient client = BuildClient(
                 new JsonMember[] { function },
                 ReceiverClass(("SwitchError", function.id)));
-            return Assert.Throws<NSGetterRuntimeError>(() =>
-                new NeoMemberNSFunction(client, function, null)
-                    .Invoke("receiver-value", Array.Empty<object?>()))!;
+            return validation
+                ? Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+                    new NeoMemberNSFunction(client, function, null)
+                        .Invoke("receiver-value", Array.Empty<object?>()))!
+                : Assert.Throws<NSGetterRuntimeError>(() =>
+                    new NeoMemberNSFunction(client, function, null)
+                        .Invoke("receiver-value", Array.Empty<object?>()))!;
         }
 
         private static Variable LocalVariable(
@@ -4007,6 +5102,40 @@ namespace NeoCompose.Tests
                 'entryTypeInfo':{'type':2,'required':true}
             },
             'instructions':[]
+        }");
+
+        private static JObject ValidTryInstructionJson() => JObject.Parse(@"{
+            ""type"":""try"",
+            ""instructions"":[{
+                ""type"":""throw"",
+                ""pointer"":{""type"":""value"",""value"":{""typeInfo"":{""type"":3,""required"":true},""value"":""boom""}}
+            }],
+            ""catches"":[
+                {
+                    ""binding"":{
+                        ""id"":""message"",
+                        ""typeInfo"":{""type"":3,""required"":true},
+                        ""readonly"":true
+                    },
+                    ""filter"":{
+                        ""condition"":{
+                            ""type"":""equalTo"",
+                            ""operand1"":{""type"":""variable"",""variableId"":""message""},
+                            ""operand2"":{""type"":""value"",""value"":{""typeInfo"":{""type"":3,""required"":true},""value"":""boom""}}
+                        }
+                    },
+                    ""instructions"":[]
+                },
+                {
+                    ""binding"":{
+                        ""id"":""fallbackMessage"",
+                        ""typeInfo"":{""type"":3,""required"":true},
+                        ""readonly"":true
+                    },
+                    ""filter"":null,
+                    ""instructions"":[]
+                }
+            ]
         }");
 
         private static JObject ValidSwitchInstructionJson() => JObject.Parse(@"{

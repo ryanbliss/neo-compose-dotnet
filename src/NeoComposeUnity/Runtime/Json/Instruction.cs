@@ -151,6 +151,30 @@ namespace NeoCompose.Runtime.Json
         public Instruction[]? defaultInstructions;
     }
 
+    /// <summary>Read-only caught-message binding for a P52 catch clause.</summary>
+    public class CatchBinding
+    {
+        public string id = null!;
+        public TypeInfo typeInfo = null!;
+        [JsonProperty("readonly")]
+        public bool isReadonly;
+    }
+
+    /// <summary>One ordered catch clause in a P52 try instruction.</summary>
+    public class CatchClause
+    {
+        public CatchBinding binding = null!;
+        public BooleanExpression? filter;
+        public Instruction[] instructions = null!;
+    }
+
+    /// <summary>Mirror of the P52 <c>try</c> instruction.</summary>
+    public class TryInstruction : Instruction
+    {
+        public Instruction[] instructions = null!;
+        public CatchClause[] catches = null!;
+    }
+
     public class InstructionConverter : DiscriminatedConverter<Instruction>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -169,6 +193,7 @@ namespace NeoCompose.Runtime.Json
                 case InstructionKind.Break: return typeof(BreakInstruction);
                 case InstructionKind.Continue: return typeof(ContinueInstruction);
                 case InstructionKind.Switch: return typeof(SwitchInstruction);
+                case InstructionKind.Try: return typeof(TryInstruction);
                 default: return null;
             }
         }
@@ -198,6 +223,12 @@ namespace NeoCompose.Runtime.Json
             {
                 throw new JsonSerializationException(
                     "SwitchInstruction must contain a scalar or enum selector type, normalized unique labels, instruction sections, and an optional default instruction array.");
+            }
+            if (concrete == typeof(TryInstruction)
+                && !IsValidTryInstruction(obj))
+            {
+                throw new JsonSerializationException(
+                    "TryInstruction must contain an instruction array and ordered catch clauses with unique read-only string bindings, valid optional filters, and at most one final unfiltered catch.");
             }
         }
 
@@ -349,6 +380,58 @@ namespace NeoCompose.Runtime.Json
                     {
                         return false;
                     }
+                }
+            }
+            return true;
+        }
+
+        private static bool IsValidTryInstruction(JObject obj)
+        {
+            if (obj["instructions"]?.Type != JTokenType.Array
+                || obj["catches"] is not JArray catches
+                || catches.Count == 0)
+            {
+                return false;
+            }
+
+            var bindingIds = new System.Collections.Generic.HashSet<string>(
+                StringComparer.Ordinal);
+            bool foundFallback = false;
+            for (int i = 0; i < catches.Count; i++)
+            {
+                if (catches[i] is not JObject clause
+                    || clause["binding"] is not JObject binding
+                    || !IsNonEmptyString(binding["id"])
+                    || !bindingIds.Add(binding["id"]!.Value<string>()!)
+                    || binding["readonly"]?.Type != JTokenType.Boolean
+                    || binding["readonly"]!.Value<bool>() != true
+                    || binding["typeInfo"] is not JObject bindingType
+                    || bindingType["type"]?.Type != JTokenType.Integer
+                    || (MemberKind)bindingType["type"]!.Value<int>()
+                        != MemberKind.String
+                    || bindingType["required"]?.Type != JTokenType.Boolean
+                    || bindingType["required"]!.Value<bool>() != true
+                    || clause["instructions"]?.Type != JTokenType.Array)
+                {
+                    return false;
+                }
+
+                bool unfiltered = !clause.TryGetValue(
+                        "filter",
+                        out JToken? filter)
+                    || filter.Type == JTokenType.Null;
+                if (unfiltered)
+                {
+                    if (foundFallback || i != catches.Count - 1)
+                    {
+                        return false;
+                    }
+                    foundFallback = true;
+                }
+                else if (filter is not JObject expression
+                    || !IsValidBooleanExpression(expression))
+                {
+                    return false;
                 }
             }
             return true;

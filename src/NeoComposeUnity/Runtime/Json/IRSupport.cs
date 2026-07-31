@@ -50,6 +50,7 @@ namespace NeoCompose.Runtime.Json
         public const string Break = "break";
         public const string Continue = "continue";
         public const string Switch = "switch";
+        public const string Try = "try";
     }
 
     public static class OperationKind
@@ -324,9 +325,10 @@ namespace NeoCompose.Runtime.Json
         /// declaration member ids on member pointers; revision 3 adds the
         /// P43 <c>declaredConstructor</c> function kind; revision 4 adds
         /// P50 loop and loop-control instructions; revision 5 adds the P51
-        /// <c>switch</c> instruction.
+        /// <c>switch</c> instruction; revision 6 adds the P52
+        /// <c>try</c> instruction.
         /// </summary>
-        public const int CurrentCompilerRevision = 5;
+        public const int CurrentCompilerRevision = 6;
 
         /// <summary>
         /// Optional for backward compatibility. Absence means legacy

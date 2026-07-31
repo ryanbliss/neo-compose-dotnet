@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-07-31
+
+### Added
+
+- **NeoScript `for` and `foreach` loops (P50).** Compiled scripts can run
+  C#-style `for` loops and `foreach (T item in Items)` loops, including
+  `break` and `continue`. Collection membership is snapshotted at loop
+  entry while values are read live, and every iteration participates in
+  the evaluator's shared execution budget and resumable state machine.
+
+- **NeoScript `switch` statements (P51).** Typed constant cases, nullable
+  selectors, `default`, and switch-local `break` now execute with C#-style
+  first-match semantics and no implicit fallthrough. Nested loops and
+  switches route `break` to the nearest enclosing construct.
+
+- **NeoScript `try`/`catch` blocks (P52).** Runtime failures can be handled
+  as string messages by ordered `catch (string message)` clauses with
+  optional `when` filters. An unmatched failure keeps propagating, while
+  cancellation, execution-budget exhaustion, and malformed compiled IR
+  remain non-catchable evaluator failures.
+
+### Changed
+
+- NeoScript compiler revision 6 is now supported. Revision 4 introduces
+  loops, revision 5 introduces switches, and revision 6 introduces
+  `try`/`catch`; older compiled bodies continue to run unchanged.
+
 ## [0.15.0] - 2026-07-31
 
 ### Added

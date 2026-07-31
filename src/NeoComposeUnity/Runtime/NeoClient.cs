@@ -4684,12 +4684,12 @@ namespace NeoCompose.Runtime
             ValidateNativeFunctionReceiver(member, receiver);
             if (nativeFunctionInvokers is null)
             {
-                throw new NeoScript.NSGetterRuntimeError(
+                throw new NeoScript.NativeFunctionDelegateUnavailableError(
                     "Native Function invocation requires constructing the generated ProjectNeo client wrapper before evaluating NeoScript.");
             }
             if (!nativeFunctionInvokers.TryGetValue(memberId, out var invoker))
             {
-                throw new NeoScript.NSGetterRuntimeError(
+                throw new NeoScript.NativeFunctionDelegateUnavailableError(
                     $"No native Function invoker is registered for member '{memberId}'.");
             }
             return NormalizeNativeFunctionReturn(
@@ -4839,12 +4839,12 @@ namespace NeoCompose.Runtime
             ValidateNativeFunctionReceiver(member, receiver);
             if (deferredNativeFunctionInvokers is null)
             {
-                throw new NeoScript.NSGetterRuntimeError(
+                throw new NeoScript.NativeFunctionDelegateUnavailableError(
                     "Deferred native Function invocation requires constructing the generated ProjectNeo client wrapper before evaluating NeoScript.");
             }
             if (!deferredNativeFunctionInvokers.TryGetValue(memberId, out var invoker))
             {
-                throw new NeoScript.NSGetterRuntimeError(
+                throw new NeoScript.NativeFunctionDelegateUnavailableError(
                     $"No deferred native Function invoker is registered for member '{memberId}'.");
             }
 

@@ -29,4 +29,28 @@ namespace NeoCompose.Runtime.NeoScript
     {
         public NSGetterRuntimeError(string message) : base(message) { }
     }
+
+    /// <summary>
+    /// A persisted-body validation failure raised before that body's first
+    /// instruction executes. Authored try/catch blocks must not intercept
+    /// these compiler/runtime compatibility failures.
+    /// </summary>
+    internal sealed class NeoScriptPreExecutionValidationError
+        : NSGetterRuntimeError
+    {
+        internal NeoScriptPreExecutionValidationError(string message)
+            : base(message) { }
+    }
+
+    /// <summary>
+    /// Infrastructure failure used when generated native Function delegates
+    /// are unavailable. It preserves the existing public runtime-error shape
+    /// while remaining outside authored NeoScript catch clauses.
+    /// </summary>
+    internal sealed class NativeFunctionDelegateUnavailableError
+        : NSGetterRuntimeError
+    {
+        internal NativeFunctionDelegateUnavailableError(string message)
+            : base(message) { }
+    }
 }

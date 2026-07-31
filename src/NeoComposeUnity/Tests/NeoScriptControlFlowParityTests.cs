@@ -6,6 +6,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
@@ -29,7 +31,7 @@ namespace NeoCompose.Tests
             "Packages/com.ryanbliss.neocompose/Tests";
 
         [Test]
-        public void FixturePinsEveryP50AndP51ControlFlowBehavior()
+        public void FixturePinsEveryP50P51AndP52ControlFlowBehavior()
         {
             string[] expectedNames =
             {
@@ -51,17 +53,31 @@ namespace NeoCompose.Tests
                 "switch matches a bool label",
                 "switch matches an enum label by normalized option",
                 "switch matches null for an optional selector",
+                "switch matches null for an optional int selector",
                 "switch runs default when no case matches",
                 "switch without default falls through when no case matches",
                 "switch consumes break and propagates continue to its enclosing for loop",
                 "switch propagates throw from the selected section",
                 "switch evaluates its derived selector exactly once",
+                "switch-in-switch consumes inner break before completing the outer section",
+                "loop-in-switch consumes loop break before completing the selected section",
+                "try-inside-switch catches an authored error before the section breaks",
+                "try selects the first true filter and skips later clauses",
+                "try continues past false filters and the fallback catches",
+                "try propagates the original error when no catch matches",
+                "try treats a catchable filter error as false and preserves the original",
+                "an error in a selected catch escapes siblings to an enclosing try",
+                "return propagates through try without entering catches",
+                "break and continue propagate through try to the enclosing for loop",
+                "writes completed before a caught error remain visible",
+                "try catches a deliberate arithmetic runtime error with its exact message",
+                "try preserves an empty thrown message",
             };
             JArray cases = EvaluateCases();
             Assert.AreEqual(
                 expectedNames.Length,
                 cases.Count,
-                "The shared control-flow fixture must contain the finalized 13 P50 and 10 P51 cases; re-vendor it from the web repo.");
+                "The shared control-flow fixture must contain the finalized 13 P50, 13 P51, and 11 P52 cases; re-vendor it from the web repo.");
 
             var names = new HashSet<string>();
             int errorCases = 0;
@@ -72,14 +88,37 @@ namespace NeoCompose.Tests
                 if (testCase["expectedError"] is not null) errorCases++;
 
                 FunctionWithReturnType getter = Getter((JObject)testCase, name);
+                int caseIndex = Array.IndexOf(expectedNames, name);
                 Assert.AreEqual(
-                    name.StartsWith("switch ", StringComparison.Ordinal) ? 5 : 4,
+                    caseIndex >= 26
+                        ? 6
+                        : caseIndex >= 13
+                            ? 5
+                            : 4,
                     getter.compilerRevision,
                     $"Case '{name}' must remain authored against its feature's wire revision.");
             }
 
             CollectionAssert.AreEquivalent(expectedNames, names);
-            Assert.AreEqual(3, errorCases);
+            Assert.AreEqual(4, errorCases);
+        }
+
+        [Test]
+        public void FixtureBytesMatchTheReviewedWebSource()
+        {
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                byte[] bytes = Encoding.UTF8.GetBytes(
+                    NeoScriptControlFlowParityFixture.Json);
+                string actual = BitConverter.ToString(
+                        sha256.ComputeHash(bytes))
+                    .Replace("-", string.Empty)
+                    .ToLowerInvariant();
+                Assert.AreEqual(
+                    "1f7690413eb59d22af11c68ed603f316b5ea64382d964315a4d0a893aea820b2",
+                    actual,
+                    "The vendored fixture bytes drifted from the reviewed web source.");
+            }
         }
 
         [TestCaseSource(nameof(EvaluateCaseNames))]
