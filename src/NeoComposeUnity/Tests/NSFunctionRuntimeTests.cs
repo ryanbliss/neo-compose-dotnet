@@ -48,6 +48,78 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Json_LoopInstructionsRejectMalformedNestedWireShapes()
+        {
+            JObject validFor = ValidForInstructionJson();
+            Assert.IsInstanceOf<ForInstruction>(
+                JsonConvert.DeserializeObject<Instruction>(validFor.ToString()));
+
+            JObject explicitNullFor = (JObject)validFor.DeepClone();
+            explicitNullFor["iterator"]!["target"]!["writability"] =
+                JValue.CreateNull();
+            var parsedExplicitNullFor = (ForInstruction)
+                JsonConvert.DeserializeObject<Instruction>(
+                    explicitNullFor.ToString())!;
+            Assert.IsNull(parsedExplicitNullFor.iterator.target.writability);
+
+            JObject malformed = (JObject)validFor.DeepClone();
+            malformed["initializer"]!["id"] = "";
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)validFor.DeepClone();
+            ((JObject)malformed["initializer"]!).Remove("pointer");
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)validFor.DeepClone();
+            ((JObject)malformed["condition"]!).Remove("condition");
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)validFor.DeepClone();
+            malformed["iterator"]!["type"] = InstructionKind.FunctionCall;
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)validFor.DeepClone();
+            ((JObject)malformed["iterator"]!).Remove("target");
+            AssertInstructionRejected(malformed);
+
+            JObject validForEach = ValidForEachInstructionJson();
+            Assert.IsInstanceOf<ForEachInstruction>(
+                JsonConvert.DeserializeObject<Instruction>(validForEach.ToString()));
+
+            JObject explicitNullForEach = (JObject)validForEach.DeepClone();
+            explicitNullForEach["binding"]!["writability"] =
+                JValue.CreateNull();
+            var parsedExplicitNullForEach = (ForEachInstruction)
+                JsonConvert.DeserializeObject<Instruction>(
+                    explicitNullForEach.ToString())!;
+            Assert.IsNull(parsedExplicitNullForEach.binding.writability);
+
+            malformed = (JObject)validForEach.DeepClone();
+            malformed["binding"]!["id"] = "";
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)validForEach.DeepClone();
+            malformed["binding"]!["readonly"] = false;
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)validForEach.DeepClone();
+            malformed["collectionTypeInfo"]!["required"] = false;
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)validForEach.DeepClone();
+            malformed["collectionTypeInfo"]!["type"] = (int)MemberKind.Int;
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)validForEach.DeepClone();
+            ((JObject)malformed["collectionTypeInfo"]!).Remove("entryTypeInfo");
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)validForEach.DeepClone();
+            malformed["instructions"] = new JObject();
+            AssertInstructionRejected(malformed);
+        }
+
+        [Test]
         public void Invoke_BindsTypedArgumentsAndReturnsValue()
         {
             FunctionArgumentTypeInfo argument = Argument("RequiredLevel", MemberKind.Int);
@@ -1531,7 +1603,1035 @@ namespace NeoCompose.Tests
             StringAssert.Contains("argument 0 type does not match", error.Message);
         }
 
+        [Test]
+        public void Invoke_ForLoopConsumesContinueAndBreakAtTheNearestLoop()
+        {
+            FunctionWithReturnType body = LoopAction(
+                VariableDeclaration("sum", Number(0), IntType()),
+                new ForInstruction
+                {
+                    type = InstructionKind.For,
+                    initializer = LocalVariable("i", Number(0), IntType()),
+                    condition = Compare(
+                        OperatorKind.LessThan,
+                        Variable("i"),
+                        Number(6)),
+                    iterator = AssignLocal(
+                        "i",
+                        Add(Variable("i"), Number(1)),
+                        IntType()),
+                    instructions = new Instruction[]
+                    {
+                        If(Compare(
+                            OperatorKind.EqualTo,
+                            Variable("i"),
+                            Number(2)),
+                            new ContinueInstruction
+                            {
+                                type = InstructionKind.Continue,
+                            }),
+                        If(Compare(
+                            OperatorKind.EqualTo,
+                            Variable("i"),
+                            Number(5)),
+                            new BreakInstruction
+                            {
+                                type = InstructionKind.Break,
+                            }),
+                        AssignLocal(
+                            "sum",
+                            Add(Variable("sum"), Variable("i")),
+                            IntType()),
+                    },
+                },
+                Return(Variable("sum")));
+            NSFunctionMember function = ScriptFunction(
+                "fn-for-loop",
+                "ForLoop",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("ForLoop", function.id)));
+
+            object? result = new NeoMemberNSFunction(client, function, null)
+                .Invoke("receiver-value", Array.Empty<object?>());
+
+            Assert.AreEqual(8L, Convert.ToInt64(result));
+        }
+
+        [Test]
+        public void Invoke_ForEachSnapshotsMembershipBeforeLocalClear()
+        {
+            CollectionTypeInfo listType = ListType(IntType());
+            FunctionWithReturnType body = LoopAction(
+                VariableDeclaration(
+                    "items",
+                    List(Number(1), Number(2), Number(3)),
+                    listType),
+                VariableDeclaration("sum", Number(0), IntType()),
+                new ForEachInstruction
+                {
+                    type = InstructionKind.ForEach,
+                    binding = new LoopBinding
+                    {
+                        id = "item",
+                        typeInfo = IntType(),
+                        isReadonly = true,
+                        writability = WritabilityKind.ReadOnly,
+                    },
+                    collectionPointer = Variable("items"),
+                    collectionTypeInfo = listType,
+                    instructions = new Instruction[]
+                    {
+                        new CollectionCallInstruction
+                        {
+                            type = InstructionKind.CollectionCall,
+                            target = new WriteTarget
+                            {
+                                pointer = Variable("items"),
+                                typeInfo = listType,
+                                writability = WritabilityKind.Local,
+                            },
+                            mutation = CollectionMutationKind.Clear,
+                            args = Array.Empty<Pointer>(),
+                        },
+                        AssignLocal(
+                            "sum",
+                            Add(Variable("sum"), Variable("item")),
+                            IntType()),
+                    },
+                },
+                Return(Variable("sum")));
+            NSFunctionMember function = ScriptFunction(
+                "fn-foreach-snapshot",
+                "ForEachSnapshot",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("ForEachSnapshot", function.id)));
+
+            object? result = new NeoMemberNSFunction(client, function, null)
+                .Invoke("receiver-value", Array.Empty<object?>());
+
+            Assert.AreEqual(6L, Convert.ToInt64(result));
+        }
+
+        [Test]
+        public void Invoke_ForEachDictionaryMatchesEcmaScriptPropertyOrder()
+        {
+            PrimitiveTypeInfo stringType = StringType();
+            CollectionTypeInfo dictionaryType = DictionaryType(stringType);
+            FunctionWithReturnType body = LoopAction(
+                stringType,
+                VariableDeclaration("seen", Text(""), stringType),
+                new ForEachInstruction
+                {
+                    type = InstructionKind.ForEach,
+                    binding = new LoopBinding
+                    {
+                        id = "item",
+                        typeInfo = stringType,
+                        isReadonly = true,
+                        writability = WritabilityKind.ReadOnly,
+                    },
+                    collectionPointer = Dictionary(
+                        dictionaryType,
+                        ("10", "A"),
+                        ("2", "B"),
+                        ("a", "C"),
+                        ("01", "D"),
+                        ("4294967294", "E"),
+                        ("4294967295", "F"),
+                        ("0", "G")),
+                    collectionTypeInfo = dictionaryType,
+                    instructions = new Instruction[]
+                    {
+                        AssignLocal(
+                            "seen",
+                            Add(Variable("seen"), Variable("item")),
+                            stringType),
+                    },
+                },
+                Return(Variable("seen")));
+            NSFunctionMember function = ScriptFunction(
+                "fn-foreach-ecma-order",
+                "ForEachEcmaOrder",
+                false,
+                stringType,
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("ForEachEcmaOrder", function.id)));
+
+            object? result = new NeoMemberNSFunction(client, function, null)
+                .Invoke("receiver-value", Array.Empty<object?>());
+
+            // Array indices: 0, 2, 10, 4294967294. Remaining string keys
+            // retain insertion order: a, 01, 4294967295.
+            Assert.AreEqual("GBAECDF", result);
+        }
+
+        [Test]
+        public void Invoke_ForEachLookupUsesAndRetainsSessionShadowAfterRemoval()
+        {
+            LookupTypeInfo lookupType = LookupType(IntType());
+            FunctionMember removeShadow = NativeFunction(
+                "fn-remove-lookup-shadow",
+                "RemoveLookupShadow",
+                deferred: false);
+            FunctionWithReturnType body = LoopAction(
+                VariableDeclaration("seen", Number(0), IntType()),
+                new ForEachInstruction
+                {
+                    type = InstructionKind.ForEach,
+                    binding = new LoopBinding
+                    {
+                        id = "item",
+                        typeInfo = IntType(),
+                        isReadonly = true,
+                        writability = WritabilityKind.ReadOnly,
+                    },
+                    collectionPointer = Reference(LookupSelectorValueId),
+                    collectionTypeInfo = lookupType,
+                    instructions = new Instruction[]
+                    {
+                        AssignLocal(
+                            "seen",
+                            Add(
+                                Multiply(Variable("seen"), Number(10)),
+                                Variable("item")),
+                            IntType()),
+                        new FunctionCallInstruction
+                        {
+                            type = InstructionKind.FunctionCall,
+                            call = Call(
+                                removeShadow.id,
+                                "remove-lookup-shadow"),
+                        },
+                    },
+                },
+                Return(Variable("seen")));
+            NSFunctionMember function = ScriptFunction(
+                "fn-foreach-lookup-overlay",
+                "ForEachLookupOverlay",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildLookupOverlayClient(
+                removeShadow,
+                function);
+            int removalCalls = 0;
+            client.RegisterNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+                {
+                    [removeShadow.id] = (currentClient, _, _) =>
+                    {
+                        removalCalls++;
+                        currentClient.RemoveWritableValueAndDescendantsIfUnlinked(
+                            NeoValueOwnership.Session,
+                            LookupTargetValueId,
+                            new IntMember { id = "lookup-target-removal" });
+                        return 0;
+                    },
+                });
+
+            object? result = new NeoMemberNSFunction(client, function, null)
+                .Invoke("receiver-value", Array.Empty<object?>());
+
+            Assert.AreEqual(99L, Convert.ToInt64(result));
+            Assert.AreEqual(2, removalCalls);
+            Assert.IsFalse(client.HasWritableValue(
+                NeoValueOwnership.Session,
+                LookupTargetValueId));
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Asset,
+                LookupTargetValueId,
+                out NumberMemberValue? authored));
+            Assert.AreEqual(1, authored!.value);
+        }
+
+        [Test]
+        public void Invoke_LookupWherePredicateUsesSessionTargetOverlay()
+        {
+            var predicate = new FunctionWithReturnType
+            {
+                parameters = new[]
+                {
+                    Parameter("entry", IntType()),
+                },
+                instructions = new Instruction[]
+                {
+                    Return(EqualTo(Variable("entry"), Number(9))),
+                },
+                typeInfo = BoolType(),
+            };
+            var where = new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new WhereFunction
+                {
+                    type = FunctionKind.Where,
+                    info = new FunctionCollectionBoolInfo
+                    {
+                        collectionPointer = Reference(LookupSelectorValueId),
+                        function = predicate,
+                    },
+                },
+            };
+            var count = new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new CountFunction
+                {
+                    type = FunctionKind.Count,
+                    info = new FunctionCollectionInfo
+                    {
+                        collectionPointer = where,
+                    },
+                },
+            };
+            NSFunctionMember function = ScriptFunction(
+                "fn-lookup-where-overlay",
+                "LookupWhereOverlay",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                LoopAction(Return(count)));
+            NeoClient client = BuildLookupOverlayClient(function);
+
+            object? result = new NeoMemberNSFunction(client, function, null)
+                .Invoke("receiver-value", Array.Empty<object?>());
+
+            Assert.AreEqual(2L, Convert.ToInt64(result));
+        }
+
+        [Test]
+        public void Invoke_ForEachCoercesExplicitIntBindingToDecimal()
+        {
+            PrimitiveTypeInfo decimalType = DecimalType();
+            CollectionTypeInfo listType = ListType(IntType());
+            FunctionWithReturnType body = LoopAction(
+                decimalType,
+                new ForEachInstruction
+                {
+                    type = InstructionKind.ForEach,
+                    binding = new LoopBinding
+                    {
+                        id = "item",
+                        typeInfo = decimalType,
+                        isReadonly = true,
+                        writability = WritabilityKind.ReadOnly,
+                    },
+                    collectionPointer = List(Number(42)),
+                    collectionTypeInfo = listType,
+                    instructions = new Instruction[]
+                    {
+                        Return(Variable("item")),
+                    },
+                },
+                Return(Text("unreachable")));
+            NSFunctionMember function = ScriptFunction(
+                "fn-foreach-decimal-binding",
+                "ForEachDecimalBinding",
+                false,
+                decimalType,
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("ForEachDecimalBinding", function.id)));
+
+            object? result = new NeoMemberNSFunction(client, function, null)
+                .Invoke("receiver-value", Array.Empty<object?>());
+
+            Assert.AreEqual("42", result);
+        }
+
+        [Test]
+        public void Invoke_ThrowEscapesNestedLoopsUnchanged()
+        {
+            CollectionTypeInfo listType = ListType(IntType());
+            NSFunctionMember function = ScriptFunction(
+                "fn-loop-throw",
+                "LoopThrow",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                LoopAction(
+                    new ForInstruction
+                    {
+                        type = InstructionKind.For,
+                        initializer = LocalVariable("i", Number(0), IntType()),
+                        condition = Compare(
+                            OperatorKind.LessThan,
+                            Variable("i"),
+                            Number(1)),
+                        iterator = AssignLocal(
+                            "i",
+                            Add(Variable("i"), Number(1)),
+                            IntType()),
+                        instructions = new Instruction[]
+                        {
+                            new ForEachInstruction
+                            {
+                                type = InstructionKind.ForEach,
+                                binding = new LoopBinding
+                                {
+                                    id = "item",
+                                    typeInfo = IntType(),
+                                    isReadonly = true,
+                                    writability = WritabilityKind.ReadOnly,
+                                },
+                                collectionPointer = List(Number(1)),
+                                collectionTypeInfo = listType,
+                                instructions = new Instruction[]
+                                {
+                                    new ThrowInstruction
+                                    {
+                                        type = InstructionKind.Throw,
+                                        pointer = Text("nested loop failure"),
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    Return(Number(0))));
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("LoopThrow", function.id)));
+
+            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+                new NeoMemberNSFunction(client, function, null)
+                    .Invoke("receiver-value", Array.Empty<object?>()))!;
+
+            Assert.AreEqual("nested loop failure", error.Message);
+        }
+
+        [Test]
+        public void Invoke_ForEachBindingRemainsReadOnlyWithStaleTargetStamp()
+        {
+            CollectionTypeInfo listType = ListType(IntType());
+            NSFunctionMember function = ScriptFunction(
+                "fn-foreach-readonly",
+                "ForEachReadOnly",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                LoopAction(
+                    new ForEachInstruction
+                    {
+                        type = InstructionKind.ForEach,
+                        binding = new LoopBinding
+                        {
+                            id = "item",
+                            typeInfo = IntType(),
+                            isReadonly = true,
+                            writability = WritabilityKind.ReadOnly,
+                        },
+                        collectionPointer = List(Number(1)),
+                        collectionTypeInfo = listType,
+                        instructions = new Instruction[]
+                        {
+                            // Deliberately lie in the target stamp. Runtime
+                            // loop state must still enforce binding readonly.
+                            AssignLocal("item", Number(2), IntType()),
+                        },
+                    },
+                    Return(Number(0))));
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("ForEachReadOnly", function.id)));
+
+            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+                new NeoMemberNSFunction(client, function, null)
+                    .Invoke("receiver-value", Array.Empty<object?>()))!;
+
+            StringAssert.Contains("read-only foreach iterator", error.Message);
+        }
+
+        [Test]
+        public void Invoke_NestedForEachWithReusedBindingIdKeepsOuterBindingReadOnly()
+        {
+            CollectionTypeInfo listType = ListType(IntType());
+            var inner = new ForEachInstruction
+            {
+                type = InstructionKind.ForEach,
+                binding = new LoopBinding
+                {
+                    id = "item",
+                    typeInfo = IntType(),
+                    isReadonly = true,
+                    writability = WritabilityKind.ReadOnly,
+                },
+                collectionPointer = List(Number(2)),
+                collectionTypeInfo = listType,
+                instructions = Array.Empty<Instruction>(),
+            };
+            NSFunctionMember function = ScriptFunction(
+                "fn-nested-foreach-readonly",
+                "NestedForEachReadOnly",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                LoopAction(
+                    new ForEachInstruction
+                    {
+                        type = InstructionKind.ForEach,
+                        binding = new LoopBinding
+                        {
+                            id = "item",
+                            typeInfo = IntType(),
+                            isReadonly = true,
+                            writability = WritabilityKind.ReadOnly,
+                        },
+                        collectionPointer = List(Number(1)),
+                        collectionTypeInfo = listType,
+                        instructions = new Instruction[]
+                        {
+                            inner,
+                            // Malformed nested IR reused the outer binding id.
+                            // Finishing the inner loop must not remove the
+                            // outer loop's runtime read-only registration.
+                            AssignLocal("item", Number(3), IntType()),
+                        },
+                    },
+                    Return(Number(0))));
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("NestedForEachReadOnly", function.id)));
+
+            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+                new NeoMemberNSFunction(client, function, null)
+                    .Invoke("receiver-value", Array.Empty<object?>()))!;
+
+            StringAssert.Contains("read-only foreach iterator", error.Message);
+        }
+
+        [Test]
+        public void Invoke_ForLoopEnforcesTheSharedIterationBudget()
+        {
+            FunctionWithReturnType body = LoopAction(
+                new ForInstruction
+                {
+                    type = InstructionKind.For,
+                    initializer = LocalVariable("i", Number(0), IntType()),
+                    condition = Compare(
+                        OperatorKind.EqualTo,
+                        Number(1),
+                        Number(1)),
+                    iterator = AssignLocal(
+                        "i",
+                        Add(Variable("i"), Number(1)),
+                        IntType()),
+                    instructions = Array.Empty<Instruction>(),
+                },
+                Return(Number(0)));
+            NSFunctionMember function = ScriptFunction(
+                "fn-loop-budget",
+                "LoopBudget",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("LoopBudget", function.id)));
+
+            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+                new NeoMemberNSFunction(client, function, null)
+                    .Invoke("receiver-value", Array.Empty<object?>()))!;
+
+            Assert.AreEqual(
+                "NeoScript loop iteration limit of 10000 exceeded.",
+                error.Message);
+        }
+
+        [Test]
+        public void Invoke_LoopBudgetIsSharedAcrossNestedNSFunctionCalls()
+        {
+            NSFunctionMember inner = ScriptFunction(
+                "fn-loop-budget-inner",
+                "LoopBudgetInner",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                LoopAction(
+                    new ForInstruction
+                    {
+                        type = InstructionKind.For,
+                        initializer = LocalVariable("i", Number(0), IntType()),
+                        condition = Compare(
+                            OperatorKind.LessThan,
+                            Variable("i"),
+                            Number(6000)),
+                        iterator = AssignLocal(
+                            "i",
+                            Add(Variable("i"), Number(1)),
+                            IntType()),
+                        instructions = Array.Empty<Instruction>(),
+                    },
+                    Return(Number(0))));
+            NSFunctionMember outer = ScriptFunction(
+                "fn-loop-budget-outer",
+                "LoopBudgetOuter",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                LoopAction(
+                    new FunctionCallInstruction
+                    {
+                        type = InstructionKind.FunctionCall,
+                        call = Call(inner.id, "loop-budget-inner-first"),
+                    },
+                    new FunctionCallInstruction
+                    {
+                        type = InstructionKind.FunctionCall,
+                        call = Call(inner.id, "loop-budget-inner-second"),
+                    },
+                    Return(Number(0))));
+            NeoClient client = BuildClient(
+                new JsonMember[] { inner, outer },
+                ReceiverClass(
+                    ("LoopBudgetInner", inner.id),
+                    ("LoopBudgetOuter", outer.id)));
+
+            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+                new NeoMemberNSFunction(client, outer, null)
+                    .Invoke("receiver-value", Array.Empty<object?>()))!;
+
+            Assert.AreEqual(
+                "NeoScript loop iteration limit of 10000 exceeded.",
+                error.Message);
+        }
+
+        [Test]
+        public void Invoke_RejectsLeakedBreakAsStaleIr()
+        {
+            NSFunctionMember function = ScriptFunction(
+                "fn-leaked-break",
+                "LeakedBreak",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                LoopAction(new BreakInstruction
+                {
+                    type = InstructionKind.Break,
+                }));
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("LeakedBreak", function.id)));
+
+            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+                new NeoMemberNSFunction(client, function, null)
+                    .Invoke("receiver-value", Array.Empty<object?>()))!;
+
+            StringAssert.Contains("unconsumed break transfer", error.Message);
+            StringAssert.Contains("stale or corrupt", error.Message);
+        }
+
+        [Test]
+        public void InvokeAsync_ForInitializerAndIteratorResumeWithoutReplay()
+        {
+            FunctionMember initialize = NativeFunction(
+                "fn-loop-initialize",
+                "Initialize",
+                deferred: true);
+            FunctionMember iterate = NativeFunction(
+                "fn-loop-iterate",
+                "Iterate",
+                deferred: true);
+            FunctionWithReturnType body = LoopAction(
+                VariableDeclaration("count", Number(0), IntType()),
+                new ForInstruction
+                {
+                    type = InstructionKind.For,
+                    initializer = LocalVariable(
+                        "i",
+                        Call(initialize.id, "loop-initialize"),
+                        IntType()),
+                    condition = Compare(
+                        OperatorKind.LessThan,
+                        Variable("i"),
+                        Number(1)),
+                    iterator = AssignLocal(
+                        "i",
+                        Call(iterate.id, "loop-iterate"),
+                        IntType()),
+                    instructions = new Instruction[]
+                    {
+                        AssignLocal(
+                            "count",
+                            Add(Variable("count"), Number(1)),
+                            IntType()),
+                    },
+                },
+                Return(Variable("count")));
+            NSFunctionMember function = ScriptFunction(
+                "fn-loop-resume-phases",
+                "LoopResumePhases",
+                deferred: true,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { initialize, iterate, function },
+                ReceiverClass(
+                    ("Initialize", initialize.id),
+                    ("Iterate", iterate.id),
+                    ("LoopResumePhases", function.id)));
+            NeoDeferredFunction<int>? pendingInitialize = null;
+            NeoDeferredFunction<int>? pendingIterate = null;
+            int initializeCalls = 0;
+            int iterateCalls = 0;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    [initialize.id] = (_, _, _, deferred) =>
+                    {
+                        initializeCalls++;
+                        pendingInitialize = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                                deferred,
+                                initialize.name);
+                    },
+                    [iterate.id] = (_, _, _, deferred) =>
+                    {
+                        iterateCalls++;
+                        pendingIterate = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                                deferred,
+                                iterate.name);
+                    },
+                });
+            var node = new NeoMemberNSFunction(client, function, null);
+
+            Task<object?> task = node.InvokeAsync(
+                "receiver-value",
+                Array.Empty<object?>());
+            Assert.IsFalse(task.IsCompleted);
+            Assert.AreEqual(1, initializeCalls);
+            pendingInitialize!.Complete(0);
+            Assert.AreEqual(1, iterateCalls);
+            Assert.IsFalse(task.IsCompleted);
+            pendingIterate!.Complete(1);
+
+            Assert.AreEqual(1L, Convert.ToInt64(task.GetAwaiter().GetResult()));
+            Assert.AreEqual(1, initializeCalls);
+            Assert.AreEqual(1, iterateCalls);
+        }
+
+        [Test]
+        public void InvokeAsync_ForBodyResumeDoesNotReplayCompletedWrites()
+        {
+            FunctionMember pause = NativeFunction(
+                "fn-loop-pause-body",
+                "PauseBody",
+                deferred: true);
+            FunctionWithReturnType body = LoopAction(
+                VariableDeclaration("count", Number(0), IntType()),
+                new ForInstruction
+                {
+                    type = InstructionKind.For,
+                    initializer = LocalVariable("i", Number(0), IntType()),
+                    condition = Compare(
+                        OperatorKind.LessThan,
+                        Variable("i"),
+                        Number(2)),
+                    iterator = AssignLocal(
+                        "i",
+                        Add(Variable("i"), Number(1)),
+                        IntType()),
+                    instructions = new Instruction[]
+                    {
+                        AssignLocal(
+                            "count",
+                            Add(Variable("count"), Number(1)),
+                            IntType()),
+                        new FunctionCallInstruction
+                        {
+                            type = InstructionKind.FunctionCall,
+                            call = Call(pause.id, "loop-pause-body"),
+                        },
+                    },
+                },
+                Return(Variable("count")));
+            NSFunctionMember function = ScriptFunction(
+                "fn-loop-resume-body",
+                "LoopResumeBody",
+                deferred: true,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { pause, function },
+                ReceiverClass(
+                    ("PauseBody", pause.id),
+                    ("LoopResumeBody", function.id)));
+            NeoDeferredFunction<int>? pending = null;
+            int invocationCount = 0;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    [pause.id] = (_, _, _, deferred) =>
+                    {
+                        invocationCount++;
+                        pending = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                                deferred,
+                                pause.name);
+                    },
+                });
+            var node = new NeoMemberNSFunction(client, function, null);
+
+            Task<object?> task = node.InvokeAsync(
+                "receiver-value",
+                Array.Empty<object?>());
+            Assert.AreEqual(1, invocationCount);
+            pending!.Complete(0);
+            Assert.AreEqual(2, invocationCount);
+            Assert.IsFalse(task.IsCompleted);
+            pending!.Complete(0);
+
+            Assert.AreEqual(2L, Convert.ToInt64(task.GetAwaiter().GetResult()));
+            Assert.AreEqual(2, invocationCount);
+        }
+
+        [Test]
+        public void InvokeAsync_ForConditionResumeDoesNotReplayTheCheck()
+        {
+            FunctionMember check = NativeFunction(
+                "fn-loop-check-condition",
+                "CheckCondition",
+                deferred: true,
+                BoolType());
+            FunctionWithReturnType body = LoopAction(
+                VariableDeclaration("count", Number(0), IntType()),
+                new ForInstruction
+                {
+                    type = InstructionKind.For,
+                    initializer = LocalVariable("i", Number(0), IntType()),
+                    condition = Compare(
+                        OperatorKind.EqualTo,
+                        Call(check.id, "loop-check-condition"),
+                        Boolean(true)),
+                    iterator = AssignLocal(
+                        "i",
+                        Add(Variable("i"), Number(1)),
+                        IntType()),
+                    instructions = new Instruction[]
+                    {
+                        AssignLocal(
+                            "count",
+                            Add(Variable("count"), Number(1)),
+                            IntType()),
+                    },
+                },
+                Return(Variable("count")));
+            NSFunctionMember function = ScriptFunction(
+                "fn-loop-resume-condition",
+                "LoopResumeCondition",
+                deferred: true,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { check, function },
+                ReceiverClass(
+                    ("CheckCondition", check.id),
+                    ("LoopResumeCondition", function.id)));
+            NeoDeferredFunction<bool>? pending = null;
+            int invocationCount = 0;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    [check.id] = (_, _, _, deferred) =>
+                    {
+                        invocationCount++;
+                        pending = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<bool>>(
+                                deferred,
+                                check.name);
+                    },
+                });
+            var node = new NeoMemberNSFunction(client, function, null);
+
+            Task<object?> task = node.InvokeAsync(
+                "receiver-value",
+                Array.Empty<object?>());
+            Assert.AreEqual(1, invocationCount);
+            Assert.IsFalse(task.IsCompleted);
+            pending!.Complete(true);
+            Assert.AreEqual(2, invocationCount);
+            Assert.IsFalse(task.IsCompleted);
+            pending!.Complete(false);
+
+            Assert.AreEqual(1L, Convert.ToInt64(task.GetAwaiter().GetResult()));
+            Assert.AreEqual(2, invocationCount);
+        }
+
+        [Test]
+        public void InvokeAsync_ForEachReceiverResumeEvaluatesReceiverOnce()
+        {
+            CollectionTypeInfo listType = ListType(IntType());
+            FunctionMember load = NativeFunction(
+                "fn-foreach-load",
+                "LoadItems",
+                deferred: true,
+                listType);
+            FunctionWithReturnType body = LoopAction(
+                VariableDeclaration("sum", Number(0), IntType()),
+                new ForEachInstruction
+                {
+                    type = InstructionKind.ForEach,
+                    binding = new LoopBinding
+                    {
+                        id = "item",
+                        typeInfo = IntType(),
+                        isReadonly = true,
+                        writability = WritabilityKind.ReadOnly,
+                    },
+                    collectionPointer = Call(load.id, "foreach-load"),
+                    collectionTypeInfo = listType,
+                    instructions = new Instruction[]
+                    {
+                        AssignLocal(
+                            "sum",
+                            Add(Variable("sum"), Variable("item")),
+                            IntType()),
+                    },
+                },
+                Return(Variable("sum")));
+            NSFunctionMember function = ScriptFunction(
+                "fn-foreach-resume-receiver",
+                "ForEachResumeReceiver",
+                deferred: true,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { load, function },
+                ReceiverClass(
+                    ("LoadItems", load.id),
+                    ("ForEachResumeReceiver", function.id)));
+            NeoDeferredFunction<object?[]>? pending = null;
+            int invocationCount = 0;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    [load.id] = (_, _, _, deferred) =>
+                    {
+                        invocationCount++;
+                        pending = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<object?[]>>(
+                                deferred,
+                                load.name);
+                    },
+                });
+            var node = new NeoMemberNSFunction(client, function, null);
+
+            Task<object?> task = node.InvokeAsync(
+                "receiver-value",
+                Array.Empty<object?>());
+            Assert.AreEqual(1, invocationCount);
+            Assert.IsFalse(task.IsCompleted);
+            pending!.Complete(new object?[] { 1, 2 });
+
+            Assert.AreEqual(3L, Convert.ToInt64(task.GetAwaiter().GetResult()));
+            Assert.AreEqual(1, invocationCount);
+        }
+
+        [Test]
+        public void InvokeAsync_ForEachBodyResumeDoesNotReplayCompletedWrites()
+        {
+            FunctionMember pause = NativeFunction(
+                "fn-foreach-pause-body",
+                "PauseForEachBody",
+                deferred: true);
+            CollectionTypeInfo listType = ListType(IntType());
+            FunctionWithReturnType body = LoopAction(
+                VariableDeclaration("count", Number(0), IntType()),
+                new ForEachInstruction
+                {
+                    type = InstructionKind.ForEach,
+                    binding = new LoopBinding
+                    {
+                        id = "item",
+                        typeInfo = IntType(),
+                        isReadonly = true,
+                        writability = WritabilityKind.ReadOnly,
+                    },
+                    collectionPointer = List(Number(1), Number(2)),
+                    collectionTypeInfo = listType,
+                    instructions = new Instruction[]
+                    {
+                        AssignLocal(
+                            "count",
+                            Add(Variable("count"), Number(1)),
+                            IntType()),
+                        new FunctionCallInstruction
+                        {
+                            type = InstructionKind.FunctionCall,
+                            call = Call(pause.id, "foreach-pause-body"),
+                        },
+                    },
+                },
+                Return(Variable("count")));
+            NSFunctionMember function = ScriptFunction(
+                "fn-foreach-resume-body",
+                "ForEachResumeBody",
+                deferred: true,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { pause, function },
+                ReceiverClass(
+                    ("PauseForEachBody", pause.id),
+                    ("ForEachResumeBody", function.id)));
+            NeoDeferredFunction<int>? pending = null;
+            int invocationCount = 0;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    [pause.id] = (_, _, _, deferred) =>
+                    {
+                        invocationCount++;
+                        pending = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                                deferred,
+                                pause.name);
+                    },
+                });
+            var node = new NeoMemberNSFunction(client, function, null);
+
+            Task<object?> task = node.InvokeAsync(
+                "receiver-value",
+                Array.Empty<object?>());
+            Assert.AreEqual(1, invocationCount);
+            pending!.Complete(0);
+            Assert.AreEqual(2, invocationCount);
+            Assert.IsFalse(task.IsCompleted);
+            pending!.Complete(0);
+
+            Assert.AreEqual(2L, Convert.ToInt64(task.GetAwaiter().GetResult()));
+            Assert.AreEqual(2, invocationCount);
+        }
+
         private const string ProjectId = "project-function";
+        private const string LookupEntryMemberId = "member-lookup-overlay-entry";
+        private const string LookupSourceMemberId = "member-lookup-overlay-source";
+        private const string LookupSourceListValueId = "value-lookup-overlay-source";
+        private const string LookupSelectorMemberId = "member-lookup-overlay-selector";
+        private const string LookupSelectorValueId = "value-lookup-overlay-selector";
+        private const string LookupTargetValueId = "value-lookup-overlay-target";
 
         private static NeoClient BuildClient(
             JsonMember[] callables,
@@ -1600,6 +2700,111 @@ namespace NeoCompose.Tests
                 classes = classes,
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             });
+        }
+
+        private static NeoClient BuildLookupOverlayClient(
+            params JsonMember[] callables)
+        {
+            var entryMember = new IntMember
+            {
+                id = LookupEntryMemberId,
+                projectId = ProjectId,
+                name = "LookupEntry",
+                kind = MemberKind.Int,
+                required = true,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var sourceMember = new ListMember
+            {
+                id = LookupSourceMemberId,
+                projectId = ProjectId,
+                name = "LookupSource",
+                kind = MemberKind.List,
+                entryMemberId = entryMember.id,
+                valueId = LookupSourceListValueId,
+                required = true,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var selectorMember = new LookupMember
+            {
+                id = LookupSelectorMemberId,
+                projectId = ProjectId,
+                name = "LookupSelector",
+                kind = MemberKind.Lookup,
+                collectionMemberId = sourceMember.id,
+                collectionValueId = sourceMember.valueId,
+                multiselect = true,
+                valueId = LookupSelectorValueId,
+                storage = "save",
+                required = true,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var members = new List<JsonMember>
+            {
+                entryMember,
+                sourceMember,
+                selectorMember,
+            };
+            members.AddRange(callables);
+            NeoClient client = BuildClient(
+                members.ToArray(),
+                ReceiverClass(Array.ConvertAll(
+                    callables,
+                    member => (member.name, member.id))),
+                additionalValues: new MemberValue[]
+                {
+                    new NumberMemberValue
+                    {
+                        id = LookupTargetValueId,
+                        value = 1,
+                        createdAt = "x",
+                        updatedAt = "x",
+                    },
+                    new ArrayMemberValue
+                    {
+                        id = LookupSourceListValueId,
+                        value = new[] { LookupTargetValueId },
+                        createdAt = "x",
+                        updatedAt = "x",
+                    },
+                    new ArrayMemberValue
+                    {
+                        id = LookupSelectorValueId,
+                        value = new[]
+                        {
+                            LookupTargetValueId,
+                            LookupTargetValueId,
+                        },
+                        createdAt = "x",
+                        updatedAt = "x",
+                    },
+                });
+            client.SetWritableValue(
+                NeoValueOwnership.Save,
+                new ArrayMemberValue
+                {
+                    id = LookupSelectorValueId,
+                    value = new[]
+                    {
+                        LookupTargetValueId,
+                        LookupTargetValueId,
+                    },
+                    createdAt = "x",
+                    updatedAt = "x",
+                });
+            client.SetWritableValue(
+                NeoValueOwnership.Session,
+                new NumberMemberValue
+                {
+                    id = LookupTargetValueId,
+                    value = 9,
+                    createdAt = "x",
+                    updatedAt = "x",
+                });
+            return client;
         }
 
         private static NeoClient BuildMutationClient(NSFunctionMember function)
@@ -1895,13 +3100,14 @@ namespace NeoCompose.Tests
         private static FunctionMember NativeFunction(
             string id,
             string name,
-            bool deferred) => new()
+            bool deferred,
+            TypeInfo? returnType = null) => new()
         {
             id = id,
             projectId = ProjectId,
             name = name,
             kind = MemberKind.Function,
-            returnTypeInfo = IntType(),
+            returnTypeInfo = returnType ?? IntType(),
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
             deferred = deferred,
             createdAt = "x",
@@ -1942,6 +3148,137 @@ namespace NeoCompose.Tests
             };
         }
 
+        private static FunctionWithReturnType LoopAction(
+            params Instruction[] instructions)
+        {
+            return LoopAction(IntType(), instructions);
+        }
+
+        private static FunctionWithReturnType LoopAction(
+            TypeInfo returnType,
+            params Instruction[] instructions)
+        {
+            FunctionWithReturnType body = Action(
+                returnType,
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                instructions);
+            body.compilerRevision = 4;
+            return body;
+        }
+
+        private static Variable LocalVariable(
+            string id,
+            Pointer pointer,
+            TypeInfo typeInfo) => new()
+        {
+            id = id,
+            pointer = pointer,
+            typeInfo = typeInfo,
+        };
+
+        private static VariableInstruction VariableDeclaration(
+            string id,
+            Pointer pointer,
+            TypeInfo typeInfo) => new()
+        {
+            type = InstructionKind.Variable,
+            variable = LocalVariable(id, pointer, typeInfo),
+        };
+
+        private static AssignInstruction AssignLocal(
+            string id,
+            Pointer pointer,
+            TypeInfo typeInfo) => new()
+        {
+            type = InstructionKind.Assign,
+            target = new WriteTarget
+            {
+                pointer = Variable(id),
+                typeInfo = typeInfo,
+                writability = WritabilityKind.Local,
+            },
+            operatorValue = "=",
+            pointer = pointer,
+        };
+
+        private static IfInstruction If(
+            BooleanExpression expression,
+            params Instruction[] instructions) => new()
+        {
+            type = InstructionKind.If,
+            branches = new[]
+            {
+                new ConditionalBranch
+                {
+                    expression = expression,
+                    instructions = instructions,
+                },
+            },
+        };
+
+        private static BooleanExpression Compare(
+            string operatorKind,
+            Pointer left,
+            Pointer right) => new()
+        {
+            condition = new Condition
+            {
+                type = operatorKind,
+                operand1 = left,
+                operand2 = right,
+            },
+        };
+
+        private static CollectionTypeInfo ListType(TypeInfo entryTypeInfo) => new()
+        {
+            type = MemberKind.List,
+            required = true,
+            entryTypeInfo = entryTypeInfo,
+        };
+
+        private static CollectionTypeInfo DictionaryType(TypeInfo entryTypeInfo) => new()
+        {
+            type = MemberKind.Dictionary,
+            required = true,
+            entryTypeInfo = entryTypeInfo,
+        };
+
+        private static LookupTypeInfo LookupType(TypeInfo entryTypeInfo) => new()
+        {
+            type = MemberKind.Lookup,
+            required = true,
+            entryTypeInfo = entryTypeInfo,
+            collectionMemberId = LookupSourceMemberId,
+            collectionValueId = LookupSourceListValueId,
+        };
+
+        private static ListLiteralPointer List(params Pointer[] entries) => new()
+        {
+            type = PointerKind.ListLiteral,
+            entries = entries,
+        };
+
+        private static DictLiteralPointer Dictionary(
+            CollectionTypeInfo typeInfo,
+            params (string key, string value)[] entries)
+        {
+            var pairs = new DictLiteralPair[entries.Length];
+            for (int i = 0; i < entries.Length; i++)
+            {
+                pairs[i] = new DictLiteralPair
+                {
+                    key = Text(entries[i].key),
+                    value = Text(entries[i].value),
+                };
+            }
+            return new DictLiteralPointer
+            {
+                type = PointerKind.DictLiteral,
+                typeInfo = typeInfo,
+                entries = pairs,
+            };
+        }
+
         private static Variable Parameter(string id, TypeInfo typeInfo) => new()
         {
             id = id,
@@ -1977,6 +3314,70 @@ namespace NeoCompose.Tests
             required = true,
         };
 
+        private static PrimitiveTypeInfo StringType() => new()
+        {
+            type = MemberKind.String,
+            required = true,
+        };
+
+        private static PrimitiveTypeInfo DecimalType() => new()
+        {
+            type = MemberKind.Decimal,
+            required = true,
+        };
+
+        private static void AssertInstructionRejected(JObject instruction)
+        {
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Instruction>(instruction.ToString()));
+        }
+
+        private static JObject ValidForInstructionJson() => JObject.Parse(@"{
+            'type':'for',
+            'initializer':{
+                'id':'i',
+                'typeInfo':{'type':2,'required':true},
+                'pointer':{'type':'value','value':{'typeInfo':{'type':2,'required':true},'value':0}}
+            },
+            'condition':{'condition':{
+                'type':'lessThan',
+                'operand1':{'type':'variable','variableId':'i'},
+                'operand2':{'type':'value','value':{'typeInfo':{'type':2,'required':true},'value':1}}
+            }},
+            'iterator':{
+                'type':'assign',
+                'target':{
+                    'pointer':{'type':'variable','variableId':'i'},
+                    'typeInfo':{'type':2,'required':true},
+                    'writability':'local'
+                },
+                'operator':'++',
+                'pointer':{'type':'value','value':{'typeInfo':{'type':2,'required':true},'value':1}}
+            },
+            'instructions':[]
+        }");
+
+        private static JObject ValidForEachInstructionJson() => JObject.Parse(@"{
+            'type':'forEach',
+            'binding':{
+                'id':'item',
+                'typeInfo':{'type':2,'required':true},
+                'readonly':true,
+                'writability':'readOnly'
+            },
+            'collectionPointer':{
+                'type':'listLiteral',
+                'typeInfo':{'type':6,'required':true,'entryTypeInfo':{'type':2,'required':true}},
+                'entries':[]
+            },
+            'collectionTypeInfo':{
+                'type':6,
+                'required':true,
+                'entryTypeInfo':{'type':2,'required':true}
+            },
+            'instructions':[]
+        }");
+
         private static ReturnInstruction Return(Pointer pointer) => new()
         {
             type = InstructionKind.Return,
@@ -1987,6 +3388,12 @@ namespace NeoCompose.Tests
         {
             type = PointerKind.Variable,
             variableId = id,
+        };
+
+        private static ReferencePointer Reference(string valueId) => new()
+        {
+            type = PointerKind.Reference,
+            valueId = valueId,
         };
 
         private static ValuePointer Number(int value) => new()
@@ -2070,6 +3477,20 @@ namespace NeoCompose.Tests
                 arithmetic = new ArithmeticOpInfo
                 {
                     type = ArithmeticOpKind.Addition,
+                    pointers = new[] { left, right },
+                },
+            },
+        };
+
+        private static OperationPointer Multiply(Pointer left, Pointer right) => new()
+        {
+            type = PointerKind.Operation,
+            operation = new ArithmeticOperation
+            {
+                type = OperationKind.Arithmetic,
+                arithmetic = new ArithmeticOpInfo
+                {
+                    type = ArithmeticOpKind.Multiplication,
                     pointers = new[] { left, right },
                 },
             },

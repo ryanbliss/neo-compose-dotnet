@@ -45,6 +45,10 @@ namespace NeoCompose.Runtime.Json
         public const string Assign = "assign";
         public const string CollectionCall = "collectionCall";
         public const string FunctionCall = "functionCall";
+        public const string For = "for";
+        public const string ForEach = "forEach";
+        public const string Break = "break";
+        public const string Continue = "continue";
     }
 
     public static class OperationKind
@@ -317,9 +321,10 @@ namespace NeoCompose.Runtime.Json
         /// Latest NeoScript compiler revision understood by this runtime.
         /// Revision 1 is the legacy unstamped wire shape; revision 2 pins
         /// declaration member ids on member pointers; revision 3 adds the
-        /// P43 <c>declaredConstructor</c> function kind.
+        /// P43 <c>declaredConstructor</c> function kind; revision 4 adds
+        /// P50 loop and loop-control instructions.
         /// </summary>
-        public const int CurrentCompilerRevision = 3;
+        public const int CurrentCompilerRevision = 4;
 
         /// <summary>
         /// Optional for backward compatibility. Absence means legacy
