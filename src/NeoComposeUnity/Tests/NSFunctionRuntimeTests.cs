@@ -120,6 +120,62 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Json_SwitchInstructionRejectsMalformedNestedWireShapes()
+        {
+            JObject valid = ValidSwitchInstructionJson();
+            Instruction parsed = JsonConvert.DeserializeObject<Instruction>(
+                valid.ToString())!;
+            Assert.IsInstanceOf<SwitchInstruction>(parsed);
+            Assert.IsInstanceOf<SwitchInstruction>(
+                JsonConvert.DeserializeObject<Instruction>(
+                    JsonConvert.SerializeObject(parsed)));
+
+            JObject malformed = (JObject)valid.DeepClone();
+            ((JObject)malformed).Remove("selector");
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            malformed["selectorTypeInfo"]!["type"] = (int)MemberKind.Float;
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            malformed["sections"] = new JObject();
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            malformed["sections"]![0]!["labels"] = new JArray();
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            malformed["sections"]![0]!["labels"]![0]!["typeInfo"]!["required"] = false;
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            ((JArray)malformed["sections"]![0]!["labels"]!).Add(
+                malformed["sections"]![0]!["labels"]![0]!.DeepClone());
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            malformed["defaultInstructions"] = new JObject();
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            malformed["sections"]![0]!["labels"]![0]!["value"] =
+                9007199254740992L;
+            AssertInstructionRejected(malformed);
+
+            malformed = (JObject)valid.DeepClone();
+            malformed["selectorTypeInfo"]!["required"] = true;
+            malformed["sections"]![0]!["labels"]![0] = JObject.Parse(@"{
+                'typeInfo':{'type':0,'required':true},
+                'value':null
+            }");
+            AssertInstructionRejected(malformed);
+
+            AssertInstructionRejected(JObject.Parse("{'type':'switcheroo'}"));
+        }
+
+        [Test]
         public void Invoke_BindsTypedArgumentsAndReturnsValue()
         {
             FunctionArgumentTypeInfo argument = Argument("RequiredLevel", MemberKind.Int);
@@ -2213,6 +2269,483 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Invoke_SwitchMatchesEverySupportedLabelShape()
+        {
+            Assert.AreEqual(
+                1,
+                InvokeSwitchCase(Number(2), IntType(), SwitchLabel(IntType(), 2)));
+            Assert.AreEqual(
+                1,
+                InvokeSwitchCase(Text("east"), StringType(), SwitchLabel(StringType(), "east")));
+            Assert.AreEqual(
+                1,
+                InvokeSwitchCase(Boolean(true), BoolType(), SwitchLabel(BoolType(), true)));
+
+            EnumTypeInfo enumType = EnumType("enum-direction");
+            Assert.AreEqual(
+                1,
+                InvokeSwitchCase(
+                    Literal(enumType, new JArray("option-east")),
+                    enumType,
+                    SwitchLabel(EnumType("enum-direction"), new JArray("option-east"))));
+
+            PrimitiveTypeInfo optionalInt = IntType(required: false);
+            Assert.AreEqual(
+                1,
+                InvokeSwitchCase(
+                    Literal(optionalInt, JValue.CreateNull()),
+                    optionalInt,
+                    SwitchLabel(NullType(), JValue.CreateNull())));
+        }
+
+        [Test]
+        public void Invoke_SwitchStackedLabelsPrecedeDefaultAndConsumeBreak()
+        {
+            FunctionWithReturnType body = SwitchAction(
+                VariableDeclaration("result", Number(0), IntType()),
+                Switch(
+                    Number(2),
+                    IntType(),
+                    new[]
+                    {
+                        new SwitchSection
+                        {
+                            labels = new[]
+                            {
+                                SwitchLabel(IntType(), 1),
+                                SwitchLabel(IntType(), 2),
+                            },
+                            instructions = new Instruction[]
+                            {
+                                AssignLocal("result", Number(7), IntType()),
+                                new BreakInstruction
+                                {
+                                    type = InstructionKind.Break,
+                                },
+                            },
+                        },
+                    },
+                    new Instruction[]
+                    {
+                        AssignLocal("result", Number(9), IntType()),
+                        new BreakInstruction { type = InstructionKind.Break },
+                    }),
+                Switch(
+                    Number(99),
+                    IntType(),
+                    new[]
+                    {
+                        new SwitchSection
+                        {
+                            labels = new[] { SwitchLabel(IntType(), 1) },
+                            instructions = new Instruction[]
+                            {
+                                AssignLocal("result", Number(99), IntType()),
+                                new BreakInstruction
+                                {
+                                    type = InstructionKind.Break,
+                                },
+                            },
+                        },
+                    }),
+                Return(Variable("result")));
+            NSFunctionMember function = ScriptFunction(
+                "fn-switch-stacked",
+                "SwitchStacked",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("SwitchStacked", function.id)));
+
+            object? result = new NeoMemberNSFunction(client, function, null)
+                .Invoke("receiver-value", Array.Empty<object?>());
+
+            Assert.AreEqual(7L, Convert.ToInt64(result));
+        }
+
+        [Test]
+        public void Invoke_SwitchPropagatesContinueToLoopButConsumesItsOwnBreak()
+        {
+            FunctionWithReturnType body = SwitchAction(
+                VariableDeclaration("sum", Number(0), IntType()),
+                new ForInstruction
+                {
+                    type = InstructionKind.For,
+                    initializer = LocalVariable("i", Number(0), IntType()),
+                    condition = Compare(
+                        OperatorKind.LessThan,
+                        Variable("i"),
+                        Number(4)),
+                    iterator = AssignLocal(
+                        "i",
+                        Add(Variable("i"), Number(1)),
+                        IntType()),
+                    instructions = new Instruction[]
+                    {
+                        Switch(
+                            Variable("i"),
+                            IntType(),
+                            new[]
+                            {
+                                new SwitchSection
+                                {
+                                    labels = new[]
+                                    {
+                                        SwitchLabel(IntType(), 1),
+                                    },
+                                    instructions = new Instruction[]
+                                    {
+                                        new ContinueInstruction
+                                        {
+                                            type = InstructionKind.Continue,
+                                        },
+                                    },
+                                },
+                                new SwitchSection
+                                {
+                                    labels = new[]
+                                    {
+                                        SwitchLabel(IntType(), 3),
+                                    },
+                                    instructions = new Instruction[]
+                                    {
+                                        new BreakInstruction
+                                        {
+                                            type = InstructionKind.Break,
+                                        },
+                                    },
+                                },
+                            }),
+                        AssignLocal(
+                            "sum",
+                            Add(Variable("sum"), Number(10)),
+                            IntType()),
+                    },
+                },
+                Return(Variable("sum")));
+            NSFunctionMember function = ScriptFunction(
+                "fn-switch-loop-control",
+                "SwitchLoopControl",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("SwitchLoopControl", function.id)));
+
+            object? result = new NeoMemberNSFunction(client, function, null)
+                .Invoke("receiver-value", Array.Empty<object?>());
+
+            Assert.AreEqual(30L, Convert.ToInt64(result));
+        }
+
+        [Test]
+        public void Invoke_SwitchSectionLocalsDoNotEscape()
+        {
+            FunctionWithReturnType body = SwitchAction(
+                Switch(
+                    Number(1),
+                    IntType(),
+                    new[]
+                    {
+                        new SwitchSection
+                        {
+                            labels = new[] { SwitchLabel(IntType(), 1) },
+                            instructions = new Instruction[]
+                            {
+                                VariableDeclaration(
+                                    "section-only",
+                                    Number(7),
+                                    IntType()),
+                                new BreakInstruction
+                                {
+                                    type = InstructionKind.Break,
+                                },
+                            },
+                        },
+                    }),
+                Return(Variable("section-only")));
+            NSFunctionMember function = ScriptFunction(
+                "fn-switch-scope",
+                "SwitchScope",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("SwitchScope", function.id)));
+
+            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+                new NeoMemberNSFunction(client, function, null)
+                    .Invoke("receiver-value", Array.Empty<object?>()))!;
+
+            StringAssert.Contains("Variable 'section-only' is not in scope", error.Message);
+        }
+
+        [Test]
+        public void Invoke_SwitchInsideForEachPreservesIteratorReadOnlyBinding()
+        {
+            CollectionTypeInfo listType = ListType(IntType());
+            NSFunctionMember function = ScriptFunction(
+                "fn-switch-foreach-readonly",
+                "SwitchForEachReadOnly",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                SwitchAction(
+                    new ForEachInstruction
+                    {
+                        type = InstructionKind.ForEach,
+                        binding = new LoopBinding
+                        {
+                            id = "item",
+                            typeInfo = IntType(),
+                            isReadonly = true,
+                            writability = WritabilityKind.ReadOnly,
+                        },
+                        collectionPointer = List(Number(1)),
+                        collectionTypeInfo = listType,
+                        instructions = new Instruction[]
+                        {
+                            Switch(
+                                Number(1),
+                                IntType(),
+                                new[]
+                                {
+                                    new SwitchSection
+                                    {
+                                        labels = new[]
+                                        {
+                                            SwitchLabel(IntType(), 1),
+                                        },
+                                        instructions = new Instruction[]
+                                        {
+                                            // Deliberately malformed IR:
+                                            // the switch child scope must
+                                            // retain the enclosing foreach
+                                            // iterator's read-only metadata.
+                                            AssignLocal(
+                                                "item",
+                                                Number(2),
+                                                IntType()),
+                                            new BreakInstruction
+                                            {
+                                                type = InstructionKind.Break,
+                                            },
+                                        },
+                                    },
+                                }),
+                        },
+                    },
+                    Return(Number(0))));
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("SwitchForEachReadOnly", function.id)));
+
+            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+                new NeoMemberNSFunction(client, function, null)
+                    .Invoke("receiver-value", Array.Empty<object?>()))!;
+
+            StringAssert.Contains("read-only foreach iterator", error.Message);
+        }
+
+        [Test]
+        public void Invoke_SwitchRejectsMismatchedSelectorDuplicateLabelsAndOldRevision()
+        {
+            SwitchInstruction mismatch = Switch(
+                Text("1"),
+                IntType(),
+                new[]
+                {
+                    new SwitchSection
+                    {
+                        labels = new[] { SwitchLabel(IntType(), 1) },
+                        instructions = new Instruction[]
+                        {
+                            new BreakInstruction { type = InstructionKind.Break },
+                        },
+                    },
+                });
+            NSGetterRuntimeError error = InvokeSwitchError(mismatch);
+            StringAssert.Contains("selector is inconsistent", error.Message);
+
+            SwitchInstruction mismatchedLabel = Switch(
+                Number(1),
+                IntType(),
+                new[]
+                {
+                    new SwitchSection
+                    {
+                        labels = new[] { SwitchLabel(StringType(), "1") },
+                        instructions = new Instruction[]
+                        {
+                            new BreakInstruction { type = InstructionKind.Break },
+                        },
+                    },
+                });
+            error = InvokeSwitchError(mismatchedLabel);
+            StringAssert.Contains("case label is inconsistent", error.Message);
+
+            SwitchInstruction duplicate = Switch(
+                Number(1),
+                IntType(),
+                new[]
+                {
+                    new SwitchSection
+                    {
+                        labels = new[] { SwitchLabel(IntType(), 1) },
+                        instructions = new Instruction[]
+                        {
+                            new BreakInstruction { type = InstructionKind.Break },
+                        },
+                    },
+                    new SwitchSection
+                    {
+                        labels = new[] { SwitchLabel(IntType(), 1) },
+                        instructions = new Instruction[]
+                        {
+                            new BreakInstruction { type = InstructionKind.Break },
+                        },
+                    },
+                });
+            error = InvokeSwitchError(duplicate);
+            StringAssert.Contains("duplicate normalized case label", error.Message);
+
+            SwitchInstruction fallthrough = Switch(
+                Number(1),
+                IntType(),
+                new[]
+                {
+                    new SwitchSection
+                    {
+                        labels = new[] { SwitchLabel(IntType(), 1) },
+                        instructions = Array.Empty<Instruction>(),
+                    },
+                });
+            error = InvokeSwitchError(fallthrough);
+            StringAssert.Contains("selected section reached its end", error.Message);
+
+            FunctionWithReturnType stale = SwitchAction(
+                Switch(
+                    Number(1),
+                    IntType(),
+                    Array.Empty<SwitchSection>()),
+                Return(Number(0)));
+            stale.compilerRevision = 4;
+            NSFunctionMember function = ScriptFunction(
+                "fn-switch-revision",
+                "SwitchRevision",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                stale);
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("SwitchRevision", function.id)));
+            error = Assert.Throws<NSGetterRuntimeError>(() =>
+                new NeoMemberNSFunction(client, function, null)
+                    .Invoke("receiver-value", Array.Empty<object?>()))!;
+            StringAssert.Contains("requires compiler revision 5", error.Message);
+        }
+
+        [Test]
+        public void InvokeAsync_SwitchSelectorAndBodyResumeWithoutReplay()
+        {
+            FunctionMember selector = NativeFunction(
+                "fn-switch-selector",
+                "SwitchSelector",
+                deferred: true);
+            FunctionMember pause = NativeFunction(
+                "fn-switch-pause",
+                "SwitchPause",
+                deferred: true);
+            FunctionWithReturnType body = SwitchAction(
+                VariableDeclaration("count", Number(0), IntType()),
+                Switch(
+                    Call(selector.id, "switch-selector"),
+                    IntType(),
+                    new[]
+                    {
+                        new SwitchSection
+                        {
+                            labels = new[] { SwitchLabel(IntType(), 2) },
+                            instructions = new Instruction[]
+                            {
+                                AssignLocal(
+                                    "count",
+                                    Add(Variable("count"), Number(1)),
+                                    IntType()),
+                                new FunctionCallInstruction
+                                {
+                                    type = InstructionKind.FunctionCall,
+                                    call = Call(pause.id, "switch-body-pause"),
+                                },
+                                Return(Variable("count")),
+                            },
+                        },
+                    },
+                    new Instruction[] { Return(Number(99)) }));
+            NSFunctionMember function = ScriptFunction(
+                "fn-switch-resume",
+                "SwitchResume",
+                deferred: true,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { selector, pause, function },
+                ReceiverClass(
+                    ("SwitchSelector", selector.id),
+                    ("SwitchPause", pause.id),
+                    ("SwitchResume", function.id)));
+            NeoDeferredFunction<int>? pendingSelector = null;
+            NeoDeferredFunction<int>? pendingBody = null;
+            int selectorCalls = 0;
+            int bodyCalls = 0;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    [selector.id] = (_, _, _, deferred) =>
+                    {
+                        selectorCalls++;
+                        pendingSelector = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                                deferred,
+                                selector.name);
+                    },
+                    [pause.id] = (_, _, _, deferred) =>
+                    {
+                        bodyCalls++;
+                        pendingBody = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                                deferred,
+                                pause.name);
+                    },
+                });
+            var node = new NeoMemberNSFunction(client, function, null);
+
+            Task<object?> task = node.InvokeAsync(
+                "receiver-value",
+                Array.Empty<object?>());
+            Assert.AreEqual(1, selectorCalls);
+            Assert.AreEqual(0, bodyCalls);
+            pendingSelector!.Complete(2);
+            Assert.AreEqual(1, selectorCalls);
+            Assert.AreEqual(1, bodyCalls);
+            Assert.IsFalse(task.IsCompleted);
+            pendingBody!.Complete(0);
+
+            Assert.AreEqual(1L, Convert.ToInt64(task.GetAwaiter().GetResult()));
+            Assert.AreEqual(1, selectorCalls);
+            Assert.AreEqual(1, bodyCalls);
+        }
+
+        [Test]
         public void Invoke_RejectsLeakedBreakAsStaleIr()
         {
             NSFunctionMember function = ScriptFunction(
@@ -3166,6 +3699,89 @@ namespace NeoCompose.Tests
             return body;
         }
 
+        private static FunctionWithReturnType SwitchAction(
+            params Instruction[] instructions)
+        {
+            FunctionWithReturnType body = Action(
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                instructions);
+            body.compilerRevision = 5;
+            return body;
+        }
+
+        private static SwitchInstruction Switch(
+            Pointer selector,
+            TypeInfo selectorTypeInfo,
+            SwitchSection[] sections,
+            Instruction[]? defaultInstructions = null) => new()
+        {
+            type = InstructionKind.Switch,
+            selector = selector,
+            selectorTypeInfo = selectorTypeInfo,
+            sections = sections,
+            defaultInstructions = defaultInstructions,
+        };
+
+        private static Value SwitchLabel(TypeInfo typeInfo, object value) => new()
+        {
+            typeInfo = typeInfo,
+            value = value as JToken ?? JToken.FromObject(value),
+        };
+
+        private static long InvokeSwitchCase(
+            Pointer selector,
+            TypeInfo selectorTypeInfo,
+            Value label)
+        {
+            SwitchInstruction instruction = Switch(
+                selector,
+                selectorTypeInfo,
+                new[]
+                {
+                    new SwitchSection
+                    {
+                        labels = new[] { label },
+                        instructions = new Instruction[]
+                        {
+                            Return(Number(1)),
+                        },
+                    },
+                },
+                new Instruction[] { Return(Number(0)) });
+            NSFunctionMember function = ScriptFunction(
+                "fn-switch-value",
+                "SwitchValue",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                SwitchAction(instruction));
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("SwitchValue", function.id)));
+            object? result = new NeoMemberNSFunction(client, function, null)
+                .Invoke("receiver-value", Array.Empty<object?>());
+            return Convert.ToInt64(result);
+        }
+
+        private static NSGetterRuntimeError InvokeSwitchError(
+            SwitchInstruction instruction)
+        {
+            NSFunctionMember function = ScriptFunction(
+                "fn-switch-error",
+                "SwitchError",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                SwitchAction(instruction, Return(Number(0))));
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("SwitchError", function.id)));
+            return Assert.Throws<NSGetterRuntimeError>(() =>
+                new NeoMemberNSFunction(client, function, null)
+                    .Invoke("receiver-value", Array.Empty<object?>()))!;
+        }
+
         private static Variable LocalVariable(
             string id,
             Pointer pointer,
@@ -3296,10 +3912,25 @@ namespace NeoCompose.Tests
             required = required,
         };
 
-        private static PrimitiveTypeInfo IntType() => new()
+        private static PrimitiveTypeInfo IntType(bool required = true) => new()
         {
             type = MemberKind.Int,
+            required = required,
+        };
+
+        private static PrimitiveTypeInfo NullType() => new()
+        {
+            type = MemberKind.Null,
             required = true,
+        };
+
+        private static EnumTypeInfo EnumType(
+            string enumId,
+            bool required = true) => new()
+        {
+            type = MemberKind.Enum,
+            required = required,
+            enumId = enumId,
         };
 
         private static PrimitiveTypeInfo BoolType() => new()
@@ -3378,6 +4009,30 @@ namespace NeoCompose.Tests
             'instructions':[]
         }");
 
+        private static JObject ValidSwitchInstructionJson() => JObject.Parse(@"{
+            'type':'switch',
+            'selector':{
+                'type':'value',
+                'value':{
+                    'typeInfo':{'type':2,'required':false},
+                    'value':1
+                }
+            },
+            'selectorTypeInfo':{'type':2,'required':false},
+            'sections':[
+                {
+                    'labels':[
+                        {
+                            'typeInfo':{'type':2,'required':true},
+                            'value':1
+                        }
+                    ],
+                    'instructions':[{'type':'break'}]
+                }
+            ],
+            'defaultInstructions':null
+        }");
+
         private static ReturnInstruction Return(Pointer pointer) => new()
         {
             type = InstructionKind.Return,
@@ -3403,6 +4058,16 @@ namespace NeoCompose.Tests
             {
                 typeInfo = IntType(),
                 value = JToken.FromObject(value),
+            },
+        };
+
+        private static ValuePointer Literal(TypeInfo typeInfo, JToken value) => new()
+        {
+            type = PointerKind.Value,
+            value = new Value
+            {
+                typeInfo = typeInfo,
+                value = value,
             },
         };
 

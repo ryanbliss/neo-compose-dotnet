@@ -132,6 +132,25 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Advances the nearest enclosing loop.</summary>
     public class ContinueInstruction : Instruction { }
 
+    /// <summary>
+    /// One normalized case section in the P51 <c>switch</c> instruction.
+    /// Adjacent source labels share one section and one instruction body.
+    /// </summary>
+    public class SwitchSection
+    {
+        public Value[] labels = null!;
+        public Instruction[] instructions = null!;
+    }
+
+    /// <summary>Mirror of the P51 <c>switch</c> instruction.</summary>
+    public class SwitchInstruction : Instruction
+    {
+        public Pointer selector = null!;
+        public TypeInfo selectorTypeInfo = null!;
+        public SwitchSection[] sections = null!;
+        public Instruction[]? defaultInstructions;
+    }
+
     public class InstructionConverter : DiscriminatedConverter<Instruction>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -149,6 +168,7 @@ namespace NeoCompose.Runtime.Json
                 case InstructionKind.ForEach: return typeof(ForEachInstruction);
                 case InstructionKind.Break: return typeof(BreakInstruction);
                 case InstructionKind.Continue: return typeof(ContinueInstruction);
+                case InstructionKind.Switch: return typeof(SwitchInstruction);
                 default: return null;
             }
         }
@@ -172,6 +192,12 @@ namespace NeoCompose.Runtime.Json
             {
                 throw new JsonSerializationException(
                     "ForEachInstruction must contain a read-only binding, collection pointer, required collection type, and instructions array.");
+            }
+            if (concrete == typeof(SwitchInstruction)
+                && !IsValidSwitchInstruction(obj))
+            {
+                throw new JsonSerializationException(
+                    "SwitchInstruction must contain a scalar or enum selector type, normalized unique labels, instruction sections, and an optional default instruction array.");
             }
         }
 
@@ -277,6 +303,173 @@ namespace NeoCompose.Runtime.Json
                 return false;
             }
             return obj["instructions"]?.Type == JTokenType.Array;
+        }
+
+        private static bool IsValidSwitchInstruction(JObject obj)
+        {
+            if (!IsPointerObject(obj["selector"])
+                || obj["selectorTypeInfo"] is not JObject selectorType
+                || !TryGetSwitchType(
+                    selectorType,
+                    out MemberKind selectorKind,
+                    out bool selectorRequired,
+                    out string? selectorEnumId)
+                || obj["sections"] is not JArray sections)
+            {
+                return false;
+            }
+            if (obj.TryGetValue("defaultInstructions", out JToken? defaultBody)
+                && defaultBody.Type != JTokenType.Null
+                && defaultBody.Type != JTokenType.Array)
+            {
+                return false;
+            }
+
+            var normalizedLabels = new System.Collections.Generic.HashSet<string>(
+                StringComparer.Ordinal);
+            foreach (JToken sectionToken in sections)
+            {
+                if (sectionToken is not JObject section
+                    || section["labels"] is not JArray labels
+                    || labels.Count == 0
+                    || section["instructions"]?.Type != JTokenType.Array)
+                {
+                    return false;
+                }
+                foreach (JToken labelToken in labels)
+                {
+                    if (labelToken is not JObject label
+                        || !TryNormalizeSwitchLabel(
+                            label,
+                            selectorKind,
+                            selectorRequired,
+                            selectorEnumId,
+                            out string? key)
+                        || !normalizedLabels.Add(key!))
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        private static bool TryGetSwitchType(
+            JObject typeInfo,
+            out MemberKind kind,
+            out bool required,
+            out string? enumId)
+        {
+            kind = default;
+            required = false;
+            enumId = null;
+            if (typeInfo["type"]?.Type != JTokenType.Integer
+                || typeInfo["required"]?.Type != JTokenType.Boolean)
+            {
+                return false;
+            }
+            kind = (MemberKind)typeInfo["type"]!.Value<int>();
+            required = typeInfo["required"]!.Value<bool>();
+            if (kind != MemberKind.Int
+                && kind != MemberKind.String
+                && kind != MemberKind.Bool
+                && kind != MemberKind.Enum)
+            {
+                return false;
+            }
+            if (kind == MemberKind.Enum)
+            {
+                enumId = typeInfo["enumId"]?.Value<string>();
+                return !string.IsNullOrEmpty(enumId);
+            }
+            return true;
+        }
+
+        private static bool TryNormalizeSwitchLabel(
+            JObject label,
+            MemberKind selectorKind,
+            bool selectorRequired,
+            string? selectorEnumId,
+            out string? key)
+        {
+            key = null;
+            if (label["typeInfo"] is not JObject labelType
+                || !label.TryGetValue("value", out JToken? value))
+            {
+                return false;
+            }
+            if (value.Type == JTokenType.Null)
+            {
+                if (selectorRequired
+                    || labelType["type"]?.Type != JTokenType.Integer
+                    || (MemberKind)labelType["type"]!.Value<int>()
+                        != MemberKind.Null
+                    || labelType["required"]?.Type != JTokenType.Boolean
+                    || labelType["required"]!.Value<bool>() != true)
+                {
+                    return false;
+                }
+                key = "null";
+                return true;
+            }
+            if (!TryGetSwitchType(
+                    labelType,
+                    out MemberKind labelKind,
+                    out bool labelRequired,
+                    out string? labelEnumId)
+                || labelKind != selectorKind
+                || !labelRequired
+                || (selectorKind == MemberKind.Enum
+                    && !string.Equals(
+                        selectorEnumId,
+                        labelEnumId,
+                        StringComparison.Ordinal)))
+            {
+                return false;
+            }
+            switch (selectorKind)
+            {
+                case MemberKind.Int:
+                    if (value.Type != JTokenType.Integer
+                        && value.Type != JTokenType.Float)
+                    {
+                        return false;
+                    }
+                    double integer = value.Value<double>();
+                    if (double.IsNaN(integer)
+                        || double.IsInfinity(integer)
+                        || integer != System.Math.Truncate(integer)
+                        || System.Math.Abs(integer) > 9007199254740991d)
+                    {
+                        return false;
+                    }
+                    if (integer == 0d) integer = 0d;
+                    key = "int:" + integer.ToString(
+                        "R",
+                        System.Globalization.CultureInfo.InvariantCulture);
+                    return true;
+                case MemberKind.String:
+                    if (value.Type != JTokenType.String) return false;
+                    key = "string:" + value.Value<string>();
+                    return true;
+                case MemberKind.Bool:
+                    if (value.Type != JTokenType.Boolean) return false;
+                    key = value.Value<bool>() ? "bool:true" : "bool:false";
+                    return true;
+                case MemberKind.Enum:
+                    if (value is not JArray enumOptions
+                        || enumOptions.Count != 1
+                        || enumOptions[0]?.Type != JTokenType.String
+                        || string.IsNullOrEmpty(enumOptions[0]!.Value<string>()))
+                    {
+                        return false;
+                    }
+                    key = "enum:" + selectorEnumId + ":" +
+                        enumOptions[0]!.Value<string>();
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private static bool IsPointerObject(JToken? token) =>

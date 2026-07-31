@@ -2263,6 +2263,1268 @@ namespace NeoCompose.Tests
         }
       },
       ""expected"": 42
+    },
+    {
+      ""name"": ""switch matches an int stacked label and only the selected section writes"",
+      ""getter"": {
+        ""compilerRevision"": 5,
+        ""parameters"": [],
+        ""instructions"": [
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""result"",
+              ""typeInfo"": {
+                ""type"": 2,
+                ""required"": true
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""value"": 0
+                }
+              }
+            }
+          },
+          {
+            ""type"": ""switch"",
+            ""selector"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""value"": 2
+              }
+            },
+            ""selectorTypeInfo"": {
+              ""type"": 2,
+              ""required"": true
+            },
+            ""sections"": [
+              {
+                ""labels"": [
+                  {
+                    ""typeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""value"": 1
+                  }
+                ],
+                ""instructions"": [
+                  {
+                    ""type"": ""assign"",
+                    ""target"": {
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""result""
+                      },
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
+                      },
+                      ""writability"": ""local""
+                    },
+                    ""operator"": ""="",
+                    ""pointer"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        },
+                        ""value"": 10
+                      }
+                    }
+                  },
+                  {
+                    ""type"": ""break""
+                  }
+                ]
+              },
+              {
+                ""labels"": [
+                  {
+                    ""typeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""value"": 2
+                  },
+                  {
+                    ""typeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""value"": 3
+                  }
+                ],
+                ""instructions"": [
+                  {
+                    ""type"": ""assign"",
+                    ""target"": {
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""result""
+                      },
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
+                      },
+                      ""writability"": ""local""
+                    },
+                    ""operator"": ""="",
+                    ""pointer"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        },
+                        ""value"": 20
+                      }
+                    }
+                  },
+                  {
+                    ""type"": ""break""
+                  }
+                ]
+              }
+            ],
+            ""defaultInstructions"": [
+              {
+                ""type"": ""assign"",
+                ""target"": {
+                  ""pointer"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""result""
+                  },
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""writability"": ""local""
+                },
+                ""operator"": ""="",
+                ""pointer"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""value"": 30
+                  }
+                }
+              },
+              {
+                ""type"": ""break""
+              }
+            ]
+          },
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""variable"",
+              ""variableId"": ""result""
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        }
+      },
+      ""expected"": 20
+    },
+    {
+      ""name"": ""switch matches a string label and propagates return"",
+      ""getter"": {
+        ""compilerRevision"": 5,
+        ""parameters"": [],
+        ""instructions"": [
+          {
+            ""type"": ""switch"",
+            ""selector"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 3,
+                  ""required"": true
+                },
+                ""value"": ""two""
+              }
+            },
+            ""selectorTypeInfo"": {
+              ""type"": 3,
+              ""required"": true
+            },
+            ""sections"": [
+              {
+                ""labels"": [
+                  {
+                    ""typeInfo"": {
+                      ""type"": 3,
+                      ""required"": true
+                    },
+                    ""value"": ""one""
+                  }
+                ],
+                ""instructions"": [
+                  {
+                    ""type"": ""return"",
+                    ""pointer"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""wrong""
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                ""labels"": [
+                  {
+                    ""typeInfo"": {
+                      ""type"": 3,
+                      ""required"": true
+                    },
+                    ""value"": ""two""
+                  }
+                ],
+                ""instructions"": [
+                  {
+                    ""type"": ""return"",
+                    ""pointer"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""matched""
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            ""defaultInstructions"": [
+              {
+                ""type"": ""return"",
+                ""pointer"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 3,
+                      ""required"": true
+                    },
+                    ""value"": ""default""
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 3,
+          ""required"": true
+        }
+      },
+      ""expected"": ""matched""
+    },
+    {
+      ""name"": ""switch matches a bool label"",
+      ""getter"": {
+        ""compilerRevision"": 5,
+        ""parameters"": [],
+        ""instructions"": [
+          {
+            ""type"": ""switch"",
+            ""selector"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 1,
+                  ""required"": true
+                },
+                ""value"": true
+              }
+            },
+            ""selectorTypeInfo"": {
+              ""type"": 1,
+              ""required"": true
+            },
+            ""sections"": [
+              {
+                ""labels"": [
+                  {
+                    ""typeInfo"": {
+                      ""type"": 1,
+                      ""required"": true
+                    },
+                    ""value"": false
+                  }
+                ],
+                ""instructions"": [
+                  {
+                    ""type"": ""return"",
+                    ""pointer"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        },
+                        ""value"": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                ""labels"": [
+                  {
+                    ""typeInfo"": {
+                      ""type"": 1,
+                      ""required"": true
+                    },
+                    ""value"": true
+                  }
+                ],
+                ""instructions"": [
+                  {
+                    ""type"": ""return"",
+                    ""pointer"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        },
+                        ""value"": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            ""defaultInstructions"": [
+              {
+                ""type"": ""return"",
+                ""pointer"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""value"": 2
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        }
+      },
+      ""expected"": 1
+    },
+    {
+      ""name"": ""switch matches an enum label by normalized option"",
+      ""getter"": {
+        ""compilerRevision"": 5,
+        ""parameters"": [],
+        ""instructions"": [
+          {
+            ""type"": ""switch"",
+            ""selector"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 8,
+                  ""required"": true,
+                  ""enumId"": ""direction""
+                },
+                ""value"": [
+                  ""east""
+                ]
+              }
+            },
+            ""selectorTypeInfo"": {
+              ""type"": 8,
+              ""required"": true,
+              ""enumId"": ""direction""
+            },
+            ""sections"": [
+              {
+                ""labels"": [
+                  {
+                    ""typeInfo"": {
+                      ""type"": 8,
+                      ""required"": true,
+                      ""enumId"": ""direction""
+                    },
+                    ""value"": [
+                      ""west""
+                    ]
+                  }
+                ],
+                ""instructions"": [
+                  {
+                    ""type"": ""return"",
+                    ""pointer"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""west""
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                ""labels"": [
+                  {
+                    ""typeInfo"": {
+                      ""type"": 8,
+                      ""required"": true,
+                      ""enumId"": ""direction""
+                    },
+                    ""value"": [
+                      ""east""
+                    ]
+                  }
+                ],
+                ""instructions"": [
+                  {
+                    ""type"": ""return"",
+                    ""pointer"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""east""
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            ""defaultInstructions"": [
+              {
+                ""type"": ""return"",
+                ""pointer"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 3,
+                      ""required"": true
+                    },
+                    ""value"": ""unknown""
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 3,
+          ""required"": true
+        }
+      },
+      ""expected"": ""east""
+    },
+    {
+      ""name"": ""switch matches null for an optional selector"",
+      ""getter"": {
+        ""compilerRevision"": 5,
+        ""parameters"": [],
+        ""instructions"": [
+          {
+            ""type"": ""switch"",
+            ""selector"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 3,
+                  ""required"": false
+                },
+                ""value"": null
+              }
+            },
+            ""selectorTypeInfo"": {
+              ""type"": 3,
+              ""required"": false
+            },
+            ""sections"": [
+              {
+                ""labels"": [
+                  {
+                    ""typeInfo"": {
+                      ""type"": 0,
+                      ""required"": true
+                    },
+                    ""value"": null
+                  }
+                ],
+                ""instructions"": [
+                  {
+                    ""type"": ""return"",
+                    ""pointer"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""null""
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                ""labels"": [
+                  {
+                    ""typeInfo"": {
+                      ""type"": 3,
+                      ""required"": true
+                    },
+                    ""value"": ""value""
+                  }
+                ],
+                ""instructions"": [
+                  {
+                    ""type"": ""return"",
+                    ""pointer"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""value""
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            ""defaultInstructions"": [
+              {
+                ""type"": ""return"",
+                ""pointer"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 3,
+                      ""required"": true
+                    },
+                    ""value"": ""default""
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 3,
+          ""required"": true
+        }
+      },
+      ""expected"": ""null""
+    },
+    {
+      ""name"": ""switch runs default when no case matches"",
+      ""getter"": {
+        ""compilerRevision"": 5,
+        ""parameters"": [],
+        ""instructions"": [
+          {
+            ""type"": ""switch"",
+            ""selector"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 3,
+                  ""required"": true
+                },
+                ""value"": ""other""
+              }
+            },
+            ""selectorTypeInfo"": {
+              ""type"": 3,
+              ""required"": true
+            },
+            ""sections"": [
+              {
+                ""labels"": [
+                  {
+                    ""typeInfo"": {
+                      ""type"": 3,
+                      ""required"": true
+                    },
+                    ""value"": ""known""
+                  }
+                ],
+                ""instructions"": [
+                  {
+                    ""type"": ""return"",
+                    ""pointer"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""case""
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            ""defaultInstructions"": [
+              {
+                ""type"": ""return"",
+                ""pointer"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 3,
+                      ""required"": true
+                    },
+                    ""value"": ""default""
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 3,
+          ""required"": true
+        }
+      },
+      ""expected"": ""default""
+    },
+    {
+      ""name"": ""switch without default falls through when no case matches"",
+      ""getter"": {
+        ""compilerRevision"": 5,
+        ""parameters"": [],
+        ""instructions"": [
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""result"",
+              ""typeInfo"": {
+                ""type"": 2,
+                ""required"": true
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""value"": 7
+                }
+              }
+            }
+          },
+          {
+            ""type"": ""switch"",
+            ""selector"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 3,
+                  ""required"": true
+                },
+                ""value"": ""other""
+              }
+            },
+            ""selectorTypeInfo"": {
+              ""type"": 3,
+              ""required"": true
+            },
+            ""sections"": [
+              {
+                ""labels"": [
+                  {
+                    ""typeInfo"": {
+                      ""type"": 3,
+                      ""required"": true
+                    },
+                    ""value"": ""known""
+                  }
+                ],
+                ""instructions"": [
+                  {
+                    ""type"": ""assign"",
+                    ""target"": {
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""result""
+                      },
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
+                      },
+                      ""writability"": ""local""
+                    },
+                    ""operator"": ""="",
+                    ""pointer"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        },
+                        ""value"": 99
+                      }
+                    }
+                  },
+                  {
+                    ""type"": ""break""
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""variable"",
+              ""variableId"": ""result""
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        }
+      },
+      ""expected"": 7
+    },
+    {
+      ""name"": ""switch consumes break and propagates continue to its enclosing for loop"",
+      ""getter"": {
+        ""compilerRevision"": 5,
+        ""parameters"": [],
+        ""instructions"": [
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""sum"",
+              ""typeInfo"": {
+                ""type"": 2,
+                ""required"": true
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""value"": 0
+                }
+              }
+            }
+          },
+          {
+            ""type"": ""for"",
+            ""initializer"": {
+              ""id"": ""i"",
+              ""typeInfo"": {
+                ""type"": 2,
+                ""required"": true
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""value"": 0
+                }
+              }
+            },
+            ""condition"": {
+              ""condition"": {
+                ""type"": ""lessThan"",
+                ""operand1"": {
+                  ""type"": ""variable"",
+                  ""variableId"": ""i""
+                },
+                ""operand2"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""value"": 4
+                  }
+                }
+              }
+            },
+            ""iterator"": {
+              ""type"": ""assign"",
+              ""target"": {
+                ""pointer"": {
+                  ""type"": ""variable"",
+                  ""variableId"": ""i""
+                },
+                ""typeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""writability"": ""local""
+              },
+              ""operator"": ""++"",
+              ""pointer"": {
+                ""type"": ""operation"",
+                ""operation"": {
+                  ""type"": ""arithmetic"",
+                  ""arithmetic"": {
+                    ""type"": ""+"",
+                    ""pointers"": [
+                      {
+                        ""type"": ""variable"",
+                        ""variableId"": ""i""
+                      },
+                      {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""value"": 1
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            ""instructions"": [
+              {
+                ""type"": ""switch"",
+                ""selector"": {
+                  ""type"": ""variable"",
+                  ""variableId"": ""i""
+                },
+                ""selectorTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""sections"": [
+                  {
+                    ""labels"": [
+                      {
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        },
+                        ""value"": 1
+                      }
+                    ],
+                    ""instructions"": [
+                      {
+                        ""type"": ""continue""
+                      }
+                    ]
+                  },
+                  {
+                    ""labels"": [
+                      {
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        },
+                        ""value"": 2
+                      }
+                    ],
+                    ""instructions"": [
+                      {
+                        ""type"": ""break""
+                      }
+                    ]
+                  }
+                ],
+                ""defaultInstructions"": [
+                  {
+                    ""type"": ""break""
+                  }
+                ]
+              },
+              {
+                ""type"": ""assign"",
+                ""target"": {
+                  ""pointer"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""sum""
+                  },
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""writability"": ""local""
+                },
+                ""operator"": ""="",
+                ""pointer"": {
+                  ""type"": ""operation"",
+                  ""operation"": {
+                    ""type"": ""arithmetic"",
+                    ""arithmetic"": {
+                      ""type"": ""+"",
+                      ""pointers"": [
+                        {
+                          ""type"": ""variable"",
+                          ""variableId"": ""sum""
+                        },
+                        {
+                          ""type"": ""variable"",
+                          ""variableId"": ""i""
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""variable"",
+              ""variableId"": ""sum""
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        }
+      },
+      ""expected"": 5
+    },
+    {
+      ""name"": ""switch propagates throw from the selected section"",
+      ""getter"": {
+        ""compilerRevision"": 5,
+        ""parameters"": [],
+        ""instructions"": [
+          {
+            ""type"": ""switch"",
+            ""selector"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""value"": 1
+              }
+            },
+            ""selectorTypeInfo"": {
+              ""type"": 2,
+              ""required"": true
+            },
+            ""sections"": [
+              {
+                ""labels"": [
+                  {
+                    ""typeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""value"": 1
+                  }
+                ],
+                ""instructions"": [
+                  {
+                    ""type"": ""throw"",
+                    ""pointer"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""switch boom""
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            ""defaultInstructions"": [
+              {
+                ""type"": ""return"",
+                ""pointer"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""value"": 0
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        }
+      },
+      ""expectedError"": ""switch boom""
+    },
+    {
+      ""name"": ""switch evaluates its derived selector exactly once"",
+      ""getter"": {
+        ""compilerRevision"": 5,
+        ""parameters"": [],
+        ""instructions"": [
+          {
+            ""type"": ""switch"",
+            ""selector"": {
+              ""type"": ""function"",
+              ""function"": {
+                ""type"": ""first"",
+                ""info"": {
+                  ""collectionPointer"": {
+                    ""type"": ""function"",
+                    ""function"": {
+                      ""type"": ""select"",
+                      ""info"": {
+                        ""collectionPointer"": {
+                          ""type"": ""listLiteral"",
+                          ""typeInfo"": {
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            }
+                          },
+                          ""entries"": [
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 1
+                              }
+                            }
+                          ]
+                        },
+                        ""function"": {
+                          ""compilerRevision"": 4,
+                          ""parameters"": [
+                            {
+                              ""id"": ""value"",
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""pointer"": {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""value"": 0
+                                }
+                              }
+                            }
+                          ],
+                          ""instructions"": [
+                            {
+                              ""type"": ""for"",
+                              ""initializer"": {
+                                ""id"": ""i"",
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""pointer"": {
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    },
+                                    ""value"": 0
+                                  }
+                                }
+                              },
+                              ""condition"": {
+                                ""condition"": {
+                                  ""type"": ""lessThan"",
+                                  ""operand1"": {
+                                    ""type"": ""variable"",
+                                    ""variableId"": ""i""
+                                  },
+                                  ""operand2"": {
+                                    ""type"": ""value"",
+                                    ""value"": {
+                                      ""typeInfo"": {
+                                        ""type"": 2,
+                                        ""required"": true
+                                      },
+                                      ""value"": 10000
+                                    }
+                                  }
+                                }
+                              },
+                              ""iterator"": {
+                                ""type"": ""assign"",
+                                ""target"": {
+                                  ""pointer"": {
+                                    ""type"": ""variable"",
+                                    ""variableId"": ""i""
+                                  },
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""writability"": ""local""
+                                },
+                                ""operator"": ""++"",
+                                ""pointer"": {
+                                  ""type"": ""operation"",
+                                  ""operation"": {
+                                    ""type"": ""arithmetic"",
+                                    ""arithmetic"": {
+                                      ""type"": ""+"",
+                                      ""pointers"": [
+                                        {
+                                          ""type"": ""variable"",
+                                          ""variableId"": ""i""
+                                        },
+                                        {
+                                          ""type"": ""value"",
+                                          ""value"": {
+                                            ""typeInfo"": {
+                                              ""type"": 2,
+                                              ""required"": true
+                                            },
+                                            ""value"": 1
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              ""instructions"": []
+                            },
+                            {
+                              ""type"": ""return"",
+                              ""pointer"": {
+                                ""type"": ""variable"",
+                                ""variableId"": ""value""
+                              }
+                            }
+                          ],
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            ""selectorTypeInfo"": {
+              ""type"": 2,
+              ""required"": true
+            },
+            ""sections"": [
+              {
+                ""labels"": [
+                  {
+                    ""typeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""value"": 1
+                  }
+                ],
+                ""instructions"": [
+                  {
+                    ""type"": ""return"",
+                    ""pointer"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        },
+                        ""value"": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            ""defaultInstructions"": [
+              {
+                ""type"": ""return"",
+                ""pointer"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""value"": 0
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        }
+      },
+      ""expected"": 1
     }
   ]
 }

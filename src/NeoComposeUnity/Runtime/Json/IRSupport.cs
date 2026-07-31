@@ -49,6 +49,7 @@ namespace NeoCompose.Runtime.Json
         public const string ForEach = "forEach";
         public const string Break = "break";
         public const string Continue = "continue";
+        public const string Switch = "switch";
     }
 
     public static class OperationKind
@@ -322,9 +323,10 @@ namespace NeoCompose.Runtime.Json
         /// Revision 1 is the legacy unstamped wire shape; revision 2 pins
         /// declaration member ids on member pointers; revision 3 adds the
         /// P43 <c>declaredConstructor</c> function kind; revision 4 adds
-        /// P50 loop and loop-control instructions.
+        /// P50 loop and loop-control instructions; revision 5 adds the P51
+        /// <c>switch</c> instruction.
         /// </summary>
-        public const int CurrentCompilerRevision = 4;
+        public const int CurrentCompilerRevision = 5;
 
         /// <summary>
         /// Optional for backward compatibility. Absence means legacy

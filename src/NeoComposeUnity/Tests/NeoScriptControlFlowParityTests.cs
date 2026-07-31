@@ -29,7 +29,7 @@ namespace NeoCompose.Tests
             "Packages/com.ryanbliss.neocompose/Tests";
 
         [Test]
-        public void FixturePinsEveryP50LoopBehavior()
+        public void FixturePinsEveryP50AndP51ControlFlowBehavior()
         {
             string[] expectedNames =
             {
@@ -46,12 +46,22 @@ namespace NeoCompose.Tests
                 "foreach evaluates its derived collection receiver exactly once",
                 "throw escapes a foreach body without visiting later entries",
                 "foreach consumes ordered values through the Lookup collection contract",
+                "switch matches an int stacked label and only the selected section writes",
+                "switch matches a string label and propagates return",
+                "switch matches a bool label",
+                "switch matches an enum label by normalized option",
+                "switch matches null for an optional selector",
+                "switch runs default when no case matches",
+                "switch without default falls through when no case matches",
+                "switch consumes break and propagates continue to its enclosing for loop",
+                "switch propagates throw from the selected section",
+                "switch evaluates its derived selector exactly once",
             };
             JArray cases = EvaluateCases();
             Assert.AreEqual(
                 expectedNames.Length,
                 cases.Count,
-                "The shared control-flow fixture must contain the finalized 13 P50 cases; re-vendor it from the web repo.");
+                "The shared control-flow fixture must contain the finalized 13 P50 and 10 P51 cases; re-vendor it from the web repo.");
 
             var names = new HashSet<string>();
             int errorCases = 0;
@@ -63,13 +73,13 @@ namespace NeoCompose.Tests
 
                 FunctionWithReturnType getter = Getter((JObject)testCase, name);
                 Assert.AreEqual(
-                    4,
+                    name.StartsWith("switch ", StringComparison.Ordinal) ? 5 : 4,
                     getter.compilerRevision,
-                    $"Case '{name}' must remain authored against the P50 wire revision.");
+                    $"Case '{name}' must remain authored against its feature's wire revision.");
             }
 
             CollectionAssert.AreEquivalent(expectedNames, names);
-            Assert.AreEqual(2, errorCases);
+            Assert.AreEqual(3, errorCases);
         }
 
         [TestCaseSource(nameof(EvaluateCaseNames))]
