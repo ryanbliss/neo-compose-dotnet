@@ -28,8 +28,10 @@ namespace NeoCompose.Tests
   ""$inputComment"": ""A case is a clip (Duration + FPS), an initial value per target member, and an ordered Tracks list. A track's `content` is either a segment (sparse rows under the hold rule) or a child clip (its own sparse frames, its own FPS, and its own nested tracks). Segment tracks advance one content frame per clip frame; child clip tracks advance childFps/parentFps, and their crop window is expressed in the CHILD's frames and applied before that scaling."",
   ""$expectationComment"": ""`frames` is the whole assertion. `writes` is the ordered list of writes the pipeline actually performs at that clip frame — an empty list is the load-bearing case, because P48 section 2.3 says a track outside its window writes NOTHING rather than holding its last frame, and the two are only distinguishable when a second track writes the same member. `values` is the resulting member state after last-write-wins, carried forward from the previous frame when nothing wrote, which is how 'the member keeps its last value' is pinned without inventing a hold mode."",
   ""$coverageComment"": ""Every case declares what it `covers`; the coverage test asserts the union equals the list P48 section 10 requires, so a case deleted or narrowed fails loudly instead of quietly reducing the table."",
+  ""$truncationComment"": ""Truncation has two branches and they are not the same fact. `truncation` is WINDOW exhaustion: the crop window runs out of content while the clip is still playing, and the frames that follow are observably empty. `clipEndTruncation` is the CLIP-END branch: the clip's Duration arrives while the track still has content left. That branch cannot be observed by a row in `frames` — a clip has no frame past its Duration, so there is nothing to assert emptiness on. It is asserted instead as a property over this table: some case must still be mid-content at `clipDuration - 1`, which the coverage test checks by asking whether one more clip frame would have written."",
   ""requiredCoverage"": [
     ""childClipTrack"",
+    ""clipEndTruncation"",
     ""coverageEndsEarly"",
     ""cropEnd"",
     ""cropStart"",
@@ -314,6 +316,52 @@ namespace NeoCompose.Tests
           ""clipFrame"": 2,
           ""writes"": [{ ""track"": ""overrun"", ""value"": ""s1"" }],
           ""values"": { ""Sprite"": ""s1"" }
+        }
+      ]
+    },
+    {
+      ""label"": ""a clip that ends mid-content stops at Duration with content left"",
+      ""covers"": [""clipEndTruncation"", ""directionForward""],
+      ""clipDuration"": 3,
+      ""clipFps"": 8,
+      ""initialValues"": { ""Sprite"": null },
+      ""tracks"": [
+        {
+          ""id"": ""long"",
+          ""target"": ""Sprite"",
+          ""startFrame"": 0,
+          ""direction"": ""forward"",
+          ""offsetStartIndex"": 0,
+          ""offsetEndIndex"": null,
+          ""content"": {
+            ""kind"": ""segment"",
+            ""duration"": 6,
+            ""frames"": [
+              { ""index"": 0, ""value"": ""s0"" },
+              { ""index"": 1, ""value"": ""s1"" },
+              { ""index"": 2, ""value"": ""s2"" },
+              { ""index"": 3, ""value"": ""s3"" },
+              { ""index"": 4, ""value"": ""s4"" },
+              { ""index"": 5, ""value"": ""s5"" }
+            ]
+          }
+        }
+      ],
+      ""frames"": [
+        {
+          ""clipFrame"": 0,
+          ""writes"": [{ ""track"": ""long"", ""value"": ""s0"" }],
+          ""values"": { ""Sprite"": ""s0"" }
+        },
+        {
+          ""clipFrame"": 1,
+          ""writes"": [{ ""track"": ""long"", ""value"": ""s1"" }],
+          ""values"": { ""Sprite"": ""s1"" }
+        },
+        {
+          ""clipFrame"": 2,
+          ""writes"": [{ ""track"": ""long"", ""value"": ""s2"" }],
+          ""values"": { ""Sprite"": ""s2"" }
         }
       ]
     },
