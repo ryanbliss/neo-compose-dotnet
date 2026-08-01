@@ -27,10 +27,31 @@ namespace NeoCompose.Runtime.NeoScript
         private readonly HashSet<string> allocatedRootIds = new();
         private readonly HashSet<string> escapedRootIds = new();
         private int activeExecutions;
+        private int loopIterations;
 
         internal void EnterExecution()
         {
+            if (activeExecutions == 0)
+            {
+                loopIterations = 0;
+            }
             activeExecutions++;
+        }
+
+        /// <summary>
+        /// Consumes one iteration from the P50 budget shared by the complete
+        /// nested NeoScript invocation. The allocation tracker already has
+        /// the required lifetime: child contexts share it, deferred execution
+        /// keeps it active, and it resets only after the outermost frame exits.
+        /// </summary>
+        internal void ConsumeLoopIteration()
+        {
+            loopIterations++;
+            if (loopIterations > NeoScriptExecutor.MaxLoopIterations)
+            {
+                throw new NSGetterRuntimeError(
+                    "NeoScript loop iteration limit of 10000 exceeded.");
+            }
         }
 
         internal void RegisterSessionRoot(string valueId)
@@ -2593,18 +2614,164 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
-        private static IEnumerable<object?> CollectionEntries(object? c, Context ctx)
+        private readonly struct OrderedRawCollectionEntry
         {
-            if (c is object?[] arr)
+            internal OrderedRawCollectionEntry(object? raw, object key)
             {
-                var ownership = FindRowOwnershipByReference(c, ctx);
-                foreach (var e in arr) yield return ResolveValueIfId(e, ctx, ownership);
+                Raw = raw;
+                Key = key;
+            }
+
+            internal object? Raw { get; }
+            internal object Key { get; }
+        }
+
+        /// <summary>
+        /// One ordered raw membership retained at <c>foreach</c> entry. A
+        /// removed Save/Session child row is retained by reference so the
+        /// original entry can still be resolved later in the invocation;
+        /// this is a membership snapshot, never a deep value clone.
+        /// </summary>
+        internal sealed class CollectionEntrySnapshot
+        {
+            private readonly object? raw;
+            private readonly NeoValueOwnership? ownership;
+            private readonly MemberValue? retainedRow;
+
+            internal CollectionEntrySnapshot(
+                object? raw,
+                NeoValueOwnership? ownership,
+                MemberValue? retainedRow)
+            {
+                this.raw = raw;
+                this.ownership = ownership;
+                this.retainedRow = retainedRow;
+            }
+
+            internal object? Resolve(Context ctx)
+            {
+                if (raw is not string id)
+                {
+                    return raw;
+                }
+                NeoValueOwnership resolvedOwnership = ownership
+                    ?? ResolveOwnershipForValueId(ctx, id);
+                bool hasExactCurrentRow = resolvedOwnership == NeoValueOwnership.Asset
+                    || ctx.client.HasWritableValue(resolvedOwnership, id);
+                if (hasExactCurrentRow
+                    && ctx.client.TryGetValue(
+                        resolvedOwnership,
+                        id,
+                        out MemberValue? currentRow))
+                {
+                    return UnwrapCached(currentRow, ctx, resolvedOwnership);
+                }
+                return retainedRow is null
+                    ? raw
+                    : UnwrapCached(retainedRow, ctx, resolvedOwnership);
+            }
+        }
+
+        private static IEnumerable<OrderedRawCollectionEntry>
+            OrderedRawCollectionEntries(object? collection)
+        {
+            if (collection is object?[] array)
+            {
+                for (int i = 0; i < array.Length; i++)
+                {
+                    yield return new OrderedRawCollectionEntry(array[i], i);
+                }
                 yield break;
             }
-            if (c is IDictionary<string, object?> dict)
+            if (collection is IDictionary<string, object?> dictionary)
             {
-                var ownership = FindRowOwnershipByReference(c, ctx);
-                foreach (var v in dict.Values) yield return ResolveValueIfId(v, ctx, ownership);
+                // ECMAScript Object.keys/Object.values order: canonical array
+                // indices first in ascending numeric order, then every other
+                // string key in insertion order. Newtonsoft preserves textual
+                // object insertion order in Dictionary, but JavaScript has
+                // already canonicalized its integer-index keys by the time the
+                // web evaluator sees Object.values, so .NET must do the same.
+                var indexed = new SortedDictionary<uint, OrderedRawCollectionEntry>();
+                var strings = new List<OrderedRawCollectionEntry>();
+                foreach (var pair in dictionary)
+                {
+                    var entry = new OrderedRawCollectionEntry(
+                        pair.Value,
+                        pair.Key);
+                    if (TryGetEcmaArrayIndex(pair.Key, out uint index))
+                    {
+                        indexed[index] = entry;
+                    }
+                    else
+                    {
+                        strings.Add(entry);
+                    }
+                }
+                foreach (OrderedRawCollectionEntry entry in indexed.Values)
+                {
+                    yield return entry;
+                }
+                foreach (OrderedRawCollectionEntry entry in strings)
+                {
+                    yield return entry;
+                }
+            }
+        }
+
+        private static bool TryGetEcmaArrayIndex(string key, out uint index)
+        {
+            if (!uint.TryParse(
+                    key,
+                    NumberStyles.None,
+                    CultureInfo.InvariantCulture,
+                    out index)
+                || index == uint.MaxValue)
+            {
+                return false;
+            }
+            return key == index.ToString(CultureInfo.InvariantCulture);
+        }
+
+        internal static CollectionEntrySnapshot[] SnapshotCollectionEntries(
+            object? collection,
+            Context ctx)
+        {
+            if (collection is not object?[]
+                && collection is not IDictionary<string, object?>)
+            {
+                throw new NSGetterRuntimeError(
+                    "foreach receiver must be a List, Dictionary, Set/Lookup, or derived collection view.");
+            }
+
+            var snapshot = new List<CollectionEntrySnapshot>();
+            foreach (OrderedRawCollectionEntry entry in
+                OrderedRawCollectionEntries(collection))
+            {
+                MemberValue? retainedRow = null;
+                NeoValueOwnership? entryOwnership = null;
+                if (entry.Raw is string id)
+                {
+                    NeoValueOwnership resolvedOwnership =
+                        ResolveOwnershipForValueId(ctx, id);
+                    entryOwnership = resolvedOwnership;
+                    ctx.client.TryGetValue(
+                        resolvedOwnership,
+                        id,
+                        out retainedRow);
+                }
+                snapshot.Add(new CollectionEntrySnapshot(
+                    entry.Raw,
+                    entryOwnership,
+                    retainedRow));
+            }
+            return snapshot.ToArray();
+        }
+
+        private static IEnumerable<object?> CollectionEntries(object? c, Context ctx)
+        {
+            foreach (OrderedRawCollectionEntry entry in OrderedRawCollectionEntries(c))
+            {
+                yield return ResolveValueIfId(entry.Raw, ctx);
             }
         }
 
@@ -2613,23 +2780,16 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx,
             Action<object? /*entry*/, object /*key*/, string? /*valueId*/> callback)
         {
-            if (c is object?[] arr)
+            foreach (OrderedRawCollectionEntry rawEntry in
+                OrderedRawCollectionEntries(c))
             {
-                for (int i = 0; i < arr.Length; i++)
-                {
-                    var raw = arr[i];
-                    var entry = ResolveValueIfId(raw, ctx, FindRowOwnershipByReference(c, ctx));
-                    callback(entry, i, raw is string s ? s : null);
-                }
-                return;
-            }
-            if (c is IDictionary<string, object?> dict)
-            {
-                foreach (var kvp in dict)
-                {
-                    var entry = ResolveValueIfId(kvp.Value, ctx, FindRowOwnershipByReference(c, ctx));
-                    callback(entry, kvp.Key, kvp.Value is string s ? s : null);
-                }
+                object? entry = ResolveValueIfId(
+                    rawEntry.Raw,
+                    ctx);
+                callback(
+                    entry,
+                    rawEntry.Key,
+                    rawEntry.Raw as string);
             }
         }
 

@@ -614,7 +614,10 @@ namespace NeoCompose.Tests
                 },
             };
 
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            // Unavailability remains an NSGetterRuntimeError at the
+            // public boundary, with an internal subtype so authored try/catch
+            // can distinguish infrastructure from catchable script failures.
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     getter,
                     new NSGetterEvaluator.Context(client, null, null)));

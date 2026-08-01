@@ -553,12 +553,12 @@ namespace NeoCompose.Tests
             Assert.AreEqual(7d, NSGetterEvaluator.Evaluate(legacy, context));
 
             legacy.compilerRevision = FunctionWithReturnType.CurrentCompilerRevision + 1;
-            var futureError = Assert.Throws<NSGetterRuntimeError>(() =>
+            var futureError = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
                 NSGetterEvaluator.Evaluate(legacy, context));
             StringAssert.Contains("Unsupported NeoScript compiler revision", futureError!.Message);
 
             legacy.compilerRevision = 0;
-            Assert.Throws<NSGetterRuntimeError>(() =>
+            Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
                 NSGetterEvaluator.Evaluate(legacy, context));
         }
 

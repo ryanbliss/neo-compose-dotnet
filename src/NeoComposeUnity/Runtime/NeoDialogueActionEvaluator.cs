@@ -51,6 +51,11 @@ namespace NeoCompose.Runtime
     /// </summary>
     internal static class NeoScriptExecutor
     {
+        internal const int MaxLoopIterations = 10_000;
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
+            Dictionary<string, object?>,
+            Dictionary<string, List<string>>> ReadOnlyBindings = new();
+
         internal static NeoScriptExecutionResult Execute(
             NeoClient client,
             FunctionWithReturnType body,
@@ -64,8 +69,27 @@ namespace NeoCompose.Runtime
             if (compilerRevision < 1
                 || compilerRevision > FunctionWithReturnType.CurrentCompilerRevision)
             {
-                throw new NSGetterRuntimeError(
+                throw new NeoScriptPreExecutionValidationError(
                     $"Unsupported NeoScript compiler revision {compilerRevision}; this runtime supports revisions 1 through {FunctionWithReturnType.CurrentCompilerRevision}.");
+            }
+            ValidateControlFlowInstructionMetadata(body.instructions);
+            if (compilerRevision < 4
+                && ContainsLoopInstruction(body.instructions))
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    $"NeoScript loop IR requires compiler revision 4; body declares revision {compilerRevision}.");
+            }
+            if (compilerRevision < 5
+                && ContainsSwitchInstruction(body.instructions))
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    $"NeoScript switch IR requires compiler revision 5; body declares revision {compilerRevision}.");
+            }
+            if (compilerRevision < 6
+                && ContainsTryInstruction(body.instructions))
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    $"NeoScript try/catch IR requires compiler revision 6; body declares revision {compilerRevision}.");
             }
 
             bool allocationScopeClosed = false;
@@ -102,11 +126,21 @@ namespace NeoCompose.Runtime
             NeoScriptExecutionResult ExitAllocationScopeWhenTerminal(
                 NeoScriptExecutionResult result)
             {
+                if (result.IsFailed)
+                {
+                    CloseAllocationScope(null);
+                    throw result.Failure!;
+                }
                 if (result.IsPaused)
                 {
                     return result
                         .Then(ExitAllocationScopeWhenTerminal)
                         .ObserveFailure(_ => CloseAllocationScope(null));
+                }
+                if (result.IsBreak || result.IsContinue)
+                {
+                    throw new NSGetterRuntimeError(
+                        $"NeoScript body ended with an unconsumed {result.Transfer.ToString().ToLowerInvariant()} transfer; its compiled IR is stale or corrupt.");
                 }
                 // Terminal marshalling may intentionally replace the CLR
                 // value (for example, a receiver-generic Decimal number with
@@ -132,6 +166,243 @@ namespace NeoCompose.Runtime
                 CloseAllocationScope(allocationTerminal);
                 return result;
             }
+        }
+
+        private static bool ContainsLoopInstruction(Instruction[]? instructions)
+        {
+            if (instructions is null) return false;
+            foreach (Instruction instruction in instructions)
+            {
+                switch (instruction)
+                {
+                    case ForInstruction:
+                    case ForEachInstruction:
+                    case BreakInstruction:
+                    case ContinueInstruction:
+                        return true;
+                    case IfInstruction conditional:
+                        foreach (ConditionalBranch branch in conditional.branches
+                            ?? Array.Empty<ConditionalBranch>())
+                        {
+                            if (ContainsLoopInstruction(branch.instructions))
+                            {
+                                return true;
+                            }
+                        }
+                        if (ContainsLoopInstruction(
+                                conditional.elseInstructions))
+                        {
+                            return true;
+                        }
+                        break;
+                    case SwitchInstruction switchInstruction:
+                        foreach (SwitchSection section in switchInstruction.sections
+                            ?? Array.Empty<SwitchSection>())
+                        {
+                            if (ContainsLoopInstruction(section.instructions))
+                            {
+                                return true;
+                            }
+                        }
+                        if (ContainsLoopInstruction(
+                                switchInstruction.defaultInstructions))
+                        {
+                            return true;
+                        }
+                        break;
+                    case TryInstruction tryInstruction:
+                        if (ContainsLoopInstruction(tryInstruction.instructions))
+                        {
+                            return true;
+                        }
+                        foreach (CatchClause clause in tryInstruction.catches
+                            ?? Array.Empty<CatchClause>())
+                        {
+                            if (ContainsLoopInstruction(clause.instructions))
+                            {
+                                return true;
+                            }
+                        }
+                        break;
+                }
+            }
+            return false;
+        }
+
+        private static void ValidateControlFlowInstructionMetadata(
+            Instruction[]? instructions)
+        {
+            if (instructions is null)
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    "NeoScript body is missing its instructions; its compiled IR is stale or corrupt.");
+            }
+            foreach (Instruction? instruction in instructions)
+            {
+                if (instruction is null)
+                {
+                    throw new NeoScriptPreExecutionValidationError(
+                        "NeoScript body contains a null instruction; its compiled IR is stale or corrupt.");
+                }
+                switch (instruction)
+                {
+                    case IfInstruction conditional:
+                        foreach (ConditionalBranch branch in conditional.branches
+                            ?? Array.Empty<ConditionalBranch>())
+                        {
+                            ValidateControlFlowInstructionMetadata(
+                                branch?.instructions);
+                        }
+                        if (conditional.elseInstructions is not null)
+                        {
+                            ValidateControlFlowInstructionMetadata(
+                                conditional.elseInstructions);
+                        }
+                        break;
+                    case ForInstruction loop:
+                        ValidateForInstructionMetadata(loop);
+                        ValidateControlFlowInstructionMetadata(loop.instructions);
+                        break;
+                    case ForEachInstruction loop:
+                        ValidateForEachInstructionMetadata(loop);
+                        ValidateControlFlowInstructionMetadata(loop.instructions);
+                        break;
+                    case SwitchInstruction switchInstruction:
+                        ValidateSwitchInstructionMetadata(switchInstruction);
+                        foreach (SwitchSection section in switchInstruction.sections)
+                        {
+                            ValidateControlFlowInstructionMetadata(
+                                section.instructions);
+                        }
+                        if (switchInstruction.defaultInstructions is not null)
+                        {
+                            ValidateControlFlowInstructionMetadata(
+                                switchInstruction.defaultInstructions);
+                        }
+                        break;
+                    case TryInstruction tryInstruction:
+                        ValidateTryInstructionMetadata(tryInstruction);
+                        ValidateControlFlowInstructionMetadata(
+                            tryInstruction.instructions);
+                        foreach (CatchClause clause in tryInstruction.catches)
+                        {
+                            ValidateControlFlowInstructionMetadata(
+                                clause.instructions);
+                        }
+                        break;
+                }
+            }
+        }
+
+        private static bool ContainsSwitchInstruction(Instruction[]? instructions)
+        {
+            if (instructions is null) return false;
+            foreach (Instruction instruction in instructions)
+            {
+                switch (instruction)
+                {
+                    case SwitchInstruction:
+                        return true;
+                    case IfInstruction conditional:
+                        foreach (ConditionalBranch branch in conditional.branches
+                            ?? Array.Empty<ConditionalBranch>())
+                        {
+                            if (ContainsSwitchInstruction(branch.instructions))
+                            {
+                                return true;
+                            }
+                        }
+                        if (ContainsSwitchInstruction(
+                                conditional.elseInstructions))
+                        {
+                            return true;
+                        }
+                        break;
+                    case ForInstruction loop:
+                        if (ContainsSwitchInstruction(loop.instructions))
+                        {
+                            return true;
+                        }
+                        break;
+                    case ForEachInstruction loop:
+                        if (ContainsSwitchInstruction(loop.instructions))
+                        {
+                            return true;
+                        }
+                        break;
+                    case TryInstruction tryInstruction:
+                        if (ContainsSwitchInstruction(tryInstruction.instructions))
+                        {
+                            return true;
+                        }
+                        foreach (CatchClause clause in tryInstruction.catches
+                            ?? Array.Empty<CatchClause>())
+                        {
+                            if (ContainsSwitchInstruction(clause.instructions))
+                            {
+                                return true;
+                            }
+                        }
+                        break;
+                }
+            }
+            return false;
+        }
+
+        private static bool ContainsTryInstruction(Instruction[]? instructions)
+        {
+            if (instructions is null) return false;
+            foreach (Instruction instruction in instructions)
+            {
+                switch (instruction)
+                {
+                    case TryInstruction:
+                        return true;
+                    case IfInstruction conditional:
+                        foreach (ConditionalBranch branch in conditional.branches
+                            ?? Array.Empty<ConditionalBranch>())
+                        {
+                            if (ContainsTryInstruction(branch.instructions))
+                            {
+                                return true;
+                            }
+                        }
+                        if (ContainsTryInstruction(
+                                conditional.elseInstructions))
+                        {
+                            return true;
+                        }
+                        break;
+                    case ForInstruction loop:
+                        if (ContainsTryInstruction(loop.instructions))
+                        {
+                            return true;
+                        }
+                        break;
+                    case ForEachInstruction loop:
+                        if (ContainsTryInstruction(loop.instructions))
+                        {
+                            return true;
+                        }
+                        break;
+                    case SwitchInstruction switchInstruction:
+                        foreach (SwitchSection section in switchInstruction.sections
+                            ?? Array.Empty<SwitchSection>())
+                        {
+                            if (ContainsTryInstruction(section.instructions))
+                            {
+                                return true;
+                            }
+                        }
+                        if (ContainsTryInstruction(
+                                switchInstruction.defaultInstructions))
+                        {
+                            return true;
+                        }
+                        break;
+                }
+            }
+            return false;
         }
 
         private static NeoScriptExecutionResult ValidateTerminalAgainstBody(
@@ -245,10 +516,11 @@ namespace NeoCompose.Runtime
                                 {
                                     matched = true;
                                     var branchResult = ExecuteInstructions(client, branch.instructions, returnTypeInfo, scope, ctx, 0, null, options);
-                                    if (branchResult.IsPaused || branchResult.Returned)
+                                    if (branchResult.IsPaused
+                                        || !branchResult.IsFallthrough)
                                     {
                                         return ThenWhenCompleted(branchResult, afterBranch =>
-                                            afterBranch.Returned
+                                            !afterBranch.IsFallthrough
                                                 ? afterBranch
                                                 : ExecuteInstructions(client, instructions, returnTypeInfo, scope, ctx, i + 1, null, options));
                                     }
@@ -258,10 +530,11 @@ namespace NeoCompose.Runtime
                             if (!matched && ifInstruction.elseInstructions != null)
                             {
                                 var elseResult = ExecuteInstructions(client, ifInstruction.elseInstructions, returnTypeInfo, scope, ctx, 0, null, options);
-                                if (elseResult.IsPaused || elseResult.Returned)
+                                if (elseResult.IsPaused
+                                    || !elseResult.IsFallthrough)
                                 {
                                     return ThenWhenCompleted(elseResult, afterElse =>
-                                        afterElse.Returned
+                                        !afterElse.IsFallthrough
                                             ? afterElse
                                             : ExecuteInstructions(client, instructions, returnTypeInfo, scope, ctx, i + 1, null, options));
                                 }
@@ -353,12 +626,1275 @@ namespace NeoCompose.Runtime
                             return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
                         }
                         break;
+                    case ForInstruction forInstruction:
+                    {
+                        NeoScriptExecutionResult loopResult = ExecuteFor(
+                            client,
+                            forInstruction,
+                            returnTypeInfo,
+                            scope,
+                            ctx,
+                            options);
+                        if (loopResult.IsPaused || !loopResult.IsFallthrough)
+                        {
+                            return ThenWhenCompleted(loopResult, afterLoop =>
+                                !afterLoop.IsFallthrough
+                                    ? afterLoop
+                                    : ExecuteInstructions(
+                                        client,
+                                        instructions,
+                                        returnTypeInfo,
+                                        scope,
+                                        ctx,
+                                        i + 1,
+                                        null,
+                                        options));
+                        }
+                        break;
+                    }
+                    case ForEachInstruction forEachInstruction:
+                    {
+                        NeoScriptExecutionResult loopResult = ExecuteForEach(
+                            client,
+                            forEachInstruction,
+                            returnTypeInfo,
+                            scope,
+                            ctx,
+                            options);
+                        if (loopResult.IsPaused || !loopResult.IsFallthrough)
+                        {
+                            return ThenWhenCompleted(loopResult, afterLoop =>
+                                !afterLoop.IsFallthrough
+                                    ? afterLoop
+                                    : ExecuteInstructions(
+                                        client,
+                                        instructions,
+                                        returnTypeInfo,
+                                        scope,
+                                        ctx,
+                                        i + 1,
+                                        null,
+                                        options));
+                        }
+                        break;
+                    }
+                    case SwitchInstruction switchInstruction:
+                    {
+                        NeoScriptExecutionResult switchResult = ExecuteSwitch(
+                            client,
+                            switchInstruction,
+                            returnTypeInfo,
+                            scope,
+                            ctx,
+                            options);
+                        if (switchResult.IsPaused || !switchResult.IsFallthrough)
+                        {
+                            return ThenWhenCompleted(switchResult, afterSwitch =>
+                                !afterSwitch.IsFallthrough
+                                    ? afterSwitch
+                                    : ExecuteInstructions(
+                                        client,
+                                        instructions,
+                                        returnTypeInfo,
+                                        scope,
+                                        ctx,
+                                        i + 1,
+                                        null,
+                                        options));
+                        }
+                        break;
+                    }
+                    case TryInstruction tryInstruction:
+                    {
+                        NeoScriptExecutionResult tryResult = ExecuteTry(
+                            client,
+                            tryInstruction,
+                            returnTypeInfo,
+                            scope,
+                            ctx,
+                            options);
+                        if (tryResult.IsPaused || !tryResult.IsFallthrough)
+                        {
+                            return ThenWhenCompleted(tryResult, afterTry =>
+                                !afterTry.IsFallthrough
+                                    ? afterTry
+                                    : ExecuteInstructions(
+                                        client,
+                                        instructions,
+                                        returnTypeInfo,
+                                        scope,
+                                        ctx,
+                                        i + 1,
+                                        null,
+                                        options));
+                        }
+                        break;
+                    }
+                    case BreakInstruction:
+                        return NeoScriptExecutionResult.Control(
+                            NeoScriptControlTransfer.Break);
+                    case ContinueInstruction:
+                        return NeoScriptExecutionResult.Control(
+                            NeoScriptControlTransfer.Continue);
                     default:
                         throw new NSGetterRuntimeError(
                             $"Unknown instruction kind {instruction.GetType().Name}");
                 }
             }
             return NeoScriptExecutionResult.Completed(returned: false, returnValue: null);
+        }
+
+        private static NeoScriptExecutionResult ExecuteFor(
+            NeoClient client,
+            ForInstruction instruction,
+            TypeInfo returnTypeInfo,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options)
+        {
+            ValidateForInstructionMetadata(instruction);
+            var state = new ForExecutionState(instruction, scope);
+            return RunFor(client, returnTypeInfo, scope, ctx, options, state);
+        }
+
+        private static NeoScriptExecutionResult RunFor(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            ForExecutionState state)
+        {
+            try
+            {
+                NeoScriptExecutionResult result = RunForCore(
+                    client,
+                    returnTypeInfo,
+                    scope,
+                    ctx,
+                    options,
+                    state);
+                return result.IsPaused
+                    ? result.ObserveFailure(_ => state.RestoreBinding(scope))
+                    : result;
+            }
+            catch
+            {
+                state.RestoreBinding(scope);
+                throw;
+            }
+        }
+
+        private static NeoScriptExecutionResult RunForCore(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            ForExecutionState state)
+        {
+            while (true)
+            {
+                switch (state.Phase)
+                {
+                    case ForPhase.Initializer:
+                    {
+                        NSGetterEvaluator.Context expressionContext =
+                            BuildExpressionContext(
+                                client,
+                                ctx,
+                                state.ExpressionState,
+                                options);
+                        state.ExpressionState.BeginInstructionAttempt();
+                        try
+                        {
+                            scope[state.Instruction.initializer.id] = Eval(
+                                state.Instruction.initializer.pointer,
+                                scope,
+                                expressionContext);
+                        }
+                        catch (NeoFunctionCallSuspended suspended)
+                        {
+                            return PauseLoopExpression(
+                                suspended,
+                                state.ExpressionState,
+                                options,
+                                () => RunFor(
+                                    client,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
+                                    options,
+                                    state));
+                        }
+                        state.MoveTo(ForPhase.Condition);
+                        continue;
+                    }
+                    case ForPhase.Condition:
+                    {
+                        NSGetterEvaluator.Context expressionContext =
+                            BuildExpressionContext(
+                                client,
+                                ctx,
+                                state.ExpressionState,
+                                options);
+                        state.ExpressionState.BeginInstructionAttempt();
+                        bool shouldEnter;
+                        try
+                        {
+                            shouldEnter = EvaluateBoolean(
+                                state.Instruction.condition,
+                                scope,
+                                expressionContext,
+                                "for condition");
+                        }
+                        catch (NeoFunctionCallSuspended suspended)
+                        {
+                            return PauseLoopExpression(
+                                suspended,
+                                state.ExpressionState,
+                                options,
+                                () => RunFor(
+                                    client,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
+                                    options,
+                                    state));
+                        }
+                        if (!shouldEnter)
+                        {
+                            state.RestoreBinding(scope);
+                            return NeoScriptExecutionResult.Completed(
+                                returned: false,
+                                returnValue: null);
+                        }
+                        ctx.allocationTracker.ConsumeLoopIteration();
+                        state.MoveTo(ForPhase.Body);
+                        continue;
+                    }
+                    case ForPhase.Body:
+                    {
+                        Dictionary<string, object?> bodyScope =
+                            state.EnsureBodyScope(scope);
+                        NeoScriptExecutionResult bodyResult = ExecuteInstructions(
+                            client,
+                            state.Instruction.instructions,
+                            returnTypeInfo,
+                            bodyScope,
+                            ctx,
+                            0,
+                            null,
+                            options);
+                        if (bodyResult.IsPaused)
+                        {
+                            return ThenWhenCompleted(
+                                bodyResult,
+                                afterBody => ResumeForAfterBody(
+                                    client,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
+                                    options,
+                                    state,
+                                    afterBody));
+                        }
+                        state.SynchronizeBodyScope(scope);
+                        NeoScriptExecutionResult? terminal =
+                            ApplyForBodyTransfer(scope, state, bodyResult);
+                        if (terminal is not null) return terminal;
+                        continue;
+                    }
+                    case ForPhase.Iterator:
+                    {
+                        NSGetterEvaluator.Context expressionContext =
+                            BuildExpressionContext(
+                                client,
+                                ctx,
+                                state.ExpressionState,
+                                options);
+                        state.ExpressionState.BeginInstructionAttempt();
+                        NeoScriptExecutionResult? nestedSetter;
+                        try
+                        {
+                            nestedSetter = ExecuteAssign(
+                                client,
+                                state.Instruction.iterator,
+                                scope,
+                                expressionContext,
+                                options);
+                        }
+                        catch (NeoFunctionCallSuspended suspended)
+                        {
+                            return PauseLoopExpression(
+                                suspended,
+                                state.ExpressionState,
+                                options,
+                                () => RunFor(
+                                    client,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
+                                    options,
+                                    state));
+                        }
+                        if (nestedSetter is not null && nestedSetter.IsPaused)
+                        {
+                            return ThenWhenCompleted(nestedSetter, _ =>
+                            {
+                                state.MoveTo(ForPhase.Condition);
+                                return RunFor(
+                                    client,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
+                                    options,
+                                    state);
+                            });
+                        }
+                        state.MoveTo(ForPhase.Condition);
+                        continue;
+                    }
+                    default:
+                        throw new NSGetterRuntimeError(
+                            "Unknown NeoScript for-loop execution phase.");
+                }
+            }
+        }
+
+        private static NeoScriptExecutionResult ResumeForAfterBody(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            ForExecutionState state,
+            NeoScriptExecutionResult bodyResult)
+        {
+            state.SynchronizeBodyScope(scope);
+            NeoScriptExecutionResult? terminal =
+                ApplyForBodyTransfer(scope, state, bodyResult);
+            return terminal ?? RunFor(
+                client,
+                returnTypeInfo,
+                scope,
+                ctx,
+                options,
+                state);
+        }
+
+        private static NeoScriptExecutionResult? ApplyForBodyTransfer(
+            Dictionary<string, object?> scope,
+            ForExecutionState state,
+            NeoScriptExecutionResult bodyResult)
+        {
+            if (bodyResult.Returned || bodyResult.IsFailed)
+            {
+                state.RestoreBinding(scope);
+                return bodyResult;
+            }
+            if (bodyResult.IsBreak)
+            {
+                state.RestoreBinding(scope);
+                return NeoScriptExecutionResult.Completed(
+                    returned: false,
+                    returnValue: null);
+            }
+            state.MoveTo(ForPhase.Iterator);
+            return null;
+        }
+
+        private static NeoScriptExecutionResult ExecuteForEach(
+            NeoClient client,
+            ForEachInstruction instruction,
+            TypeInfo returnTypeInfo,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options)
+        {
+            ValidateForEachInstructionMetadata(instruction);
+            var state = new ForEachExecutionState(instruction, scope);
+            return RunForEach(
+                client,
+                returnTypeInfo,
+                scope,
+                ctx,
+                options,
+                state);
+        }
+
+        private static NeoScriptExecutionResult RunForEach(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            ForEachExecutionState state)
+        {
+            try
+            {
+                NeoScriptExecutionResult result = RunForEachCore(
+                    client,
+                    returnTypeInfo,
+                    scope,
+                    ctx,
+                    options,
+                    state);
+                return result.IsPaused
+                    ? result.ObserveFailure(_ => state.RestoreBinding(scope))
+                    : result;
+            }
+            catch
+            {
+                state.RestoreBinding(scope);
+                throw;
+            }
+        }
+
+        private static NeoScriptExecutionResult RunForEachCore(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            ForEachExecutionState state)
+        {
+            while (true)
+            {
+                if (state.Snapshot is null)
+                {
+                    NSGetterEvaluator.Context expressionContext =
+                        BuildExpressionContext(
+                            client,
+                            ctx,
+                            state.ExpressionState,
+                            options);
+                    state.ExpressionState.BeginInstructionAttempt();
+                    object? collection;
+                    try
+                    {
+                        collection = Eval(
+                            state.Instruction.collectionPointer,
+                            scope,
+                            expressionContext);
+                    }
+                    catch (NeoFunctionCallSuspended suspended)
+                    {
+                        return PauseLoopExpression(
+                            suspended,
+                            state.ExpressionState,
+                            options,
+                            () => RunForEach(
+                                client,
+                                returnTypeInfo,
+                                scope,
+                                ctx,
+                                options,
+                                state));
+                    }
+                    state.Snapshot =
+                        NSGetterEvaluator.SnapshotCollectionEntries(
+                            collection,
+                            ctx);
+                }
+
+                if (state.Index >= state.Snapshot.Length)
+                {
+                    state.RestoreBinding(scope);
+                    return NeoScriptExecutionResult.Completed(
+                        returned: false,
+                        returnValue: null);
+                }
+
+                ctx.allocationTracker.ConsumeLoopIteration();
+                scope[state.Instruction.binding.id] =
+                    CoerceSetterValue(
+                        state.Snapshot[state.Index].Resolve(ctx),
+                        state.Instruction.binding.typeInfo);
+                Dictionary<string, object?> bodyScope =
+                    state.EnsureBodyScope(scope);
+                NeoScriptExecutionResult bodyResult = ExecuteInstructions(
+                    client,
+                    state.Instruction.instructions,
+                    returnTypeInfo,
+                    bodyScope,
+                    ctx,
+                    0,
+                    null,
+                    options);
+                if (bodyResult.IsPaused)
+                {
+                    return ThenWhenCompleted(
+                        bodyResult,
+                        afterBody => ResumeForEachAfterBody(
+                            client,
+                            returnTypeInfo,
+                            scope,
+                            ctx,
+                            options,
+                            state,
+                            afterBody));
+                }
+                state.SynchronizeBodyScope(scope);
+                NeoScriptExecutionResult? terminal =
+                    ApplyForEachBodyTransfer(scope, state, bodyResult);
+                if (terminal is not null) return terminal;
+            }
+        }
+
+        private static NeoScriptExecutionResult ResumeForEachAfterBody(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            ForEachExecutionState state,
+            NeoScriptExecutionResult bodyResult)
+        {
+            state.SynchronizeBodyScope(scope);
+            NeoScriptExecutionResult? terminal =
+                ApplyForEachBodyTransfer(scope, state, bodyResult);
+            return terminal ?? RunForEach(
+                client,
+                returnTypeInfo,
+                scope,
+                ctx,
+                options,
+                state);
+        }
+
+        private static NeoScriptExecutionResult? ApplyForEachBodyTransfer(
+            Dictionary<string, object?> scope,
+            ForEachExecutionState state,
+            NeoScriptExecutionResult bodyResult)
+        {
+            if (bodyResult.Returned || bodyResult.IsFailed)
+            {
+                state.RestoreBinding(scope);
+                return bodyResult;
+            }
+            if (bodyResult.IsBreak)
+            {
+                state.RestoreBinding(scope);
+                return NeoScriptExecutionResult.Completed(
+                    returned: false,
+                    returnValue: null);
+            }
+            state.Index++;
+            return null;
+        }
+
+        private static void ValidateForInstructionMetadata(
+            ForInstruction? instruction)
+        {
+            if (instruction?.initializer is null
+                || string.IsNullOrEmpty(instruction.initializer.id)
+                || instruction.initializer.typeInfo is null
+                || instruction.initializer.pointer is null
+                || instruction.condition?.condition is null
+                || instruction.iterator?.target is null
+                || instruction.iterator.target.pointer is null
+                || instruction.iterator.target.typeInfo is null
+                || string.IsNullOrEmpty(instruction.iterator.operatorValue)
+                || instruction.iterator.pointer is null
+                || instruction.instructions is null)
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    "NeoScript for loop contains malformed metadata; its compiled IR is stale or corrupt.");
+            }
+        }
+
+        private static void ValidateForEachInstructionMetadata(
+            ForEachInstruction? instruction)
+        {
+            bool validCollectionType = instruction?.collectionTypeInfo switch
+            {
+                CollectionTypeInfo collection =>
+                    collection.required
+                    && collection.entryTypeInfo is not null
+                    && (collection.type == MemberKind.List
+                        || collection.type == MemberKind.Dictionary),
+                LookupTypeInfo lookup =>
+                    lookup.required
+                    && lookup.entryTypeInfo is not null
+                    && lookup.type == MemberKind.Lookup,
+                _ => false,
+            };
+            if (instruction?.binding is null
+                || string.IsNullOrEmpty(instruction.binding.id)
+                || instruction.binding.typeInfo is null
+                || !instruction.binding.isReadonly
+                || instruction.collectionPointer is null
+                || !validCollectionType
+                || instruction.instructions is null)
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    "NeoScript foreach loop contains malformed metadata; its compiled IR is stale or corrupt.");
+            }
+        }
+
+        private static void ValidateSwitchInstructionMetadata(
+            SwitchInstruction? instruction)
+        {
+            if (instruction?.selector is null
+                || instruction.sections is null)
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    "NeoScript switch is missing its selector or sections; its compiled IR is stale or corrupt.");
+            }
+            ValidateSwitchSelectorType(instruction.selectorTypeInfo);
+            var labels = new HashSet<string>(StringComparer.Ordinal);
+            foreach (SwitchSection? section in instruction.sections)
+            {
+                if (section?.labels is null
+                    || section.labels.Length == 0
+                    || section.instructions is null)
+                {
+                    throw new NeoScriptPreExecutionValidationError(
+                        "NeoScript switch contains a malformed case section; its compiled IR is stale or corrupt.");
+                }
+                foreach (Value label in section.labels)
+                {
+                    if (!labels.Add(NormalizeSwitchLabel(
+                            label,
+                            instruction.selectorTypeInfo)))
+                    {
+                        throw new NeoScriptPreExecutionValidationError(
+                            "NeoScript switch contains a duplicate normalized case label; its compiled IR is stale or corrupt.");
+                    }
+                }
+            }
+        }
+
+        private static void ValidateTryInstructionMetadata(
+            TryInstruction? instruction)
+        {
+            if (instruction?.instructions is null
+                || instruction.catches is null
+                || instruction.catches.Length == 0)
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    "NeoScript try/catch is missing its body or catch clauses; its compiled IR is stale or corrupt.");
+            }
+            var bindingIds = new HashSet<string>(StringComparer.Ordinal);
+            for (int i = 0; i < instruction.catches.Length; i++)
+            {
+                CatchClause? clause = instruction.catches[i];
+                if (clause?.binding is null
+                    || string.IsNullOrEmpty(clause.binding.id)
+                    || !bindingIds.Add(clause.binding.id)
+                    || !clause.binding.isReadonly
+                    || clause.binding.typeInfo is null
+                    || clause.binding.typeInfo.type != MemberKind.String
+                    || !clause.binding.typeInfo.required
+                    || clause.instructions is null
+                    || (clause.filter is null
+                        && i != instruction.catches.Length - 1))
+                {
+                    throw new NeoScriptPreExecutionValidationError(
+                        "NeoScript try/catch contains malformed or unordered catch metadata; its compiled IR is stale or corrupt.");
+                }
+            }
+        }
+
+        private static NeoScriptExecutionResult ExecuteSwitch(
+            NeoClient client,
+            SwitchInstruction instruction,
+            TypeInfo returnTypeInfo,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options)
+        {
+            var state = new SwitchExecutionState(instruction);
+            return RunSwitch(
+                client,
+                returnTypeInfo,
+                scope,
+                ctx,
+                options,
+                state);
+        }
+
+        private static NeoScriptExecutionResult RunSwitch(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            SwitchExecutionState state)
+        {
+            if (!state.SelectorCompleted)
+            {
+                NSGetterEvaluator.Context expressionContext =
+                    BuildExpressionContext(
+                        client,
+                        ctx,
+                        state.ExpressionState,
+                        options);
+                state.ExpressionState.BeginInstructionAttempt();
+                object? selectorValue;
+                try
+                {
+                    selectorValue = Eval(
+                        state.Instruction.selector,
+                        scope,
+                        expressionContext);
+                }
+                catch (NeoFunctionCallSuspended suspended)
+                {
+                    return PauseLoopExpression(
+                        suspended,
+                        state.ExpressionState,
+                        options,
+                        () => RunSwitch(
+                            client,
+                            returnTypeInfo,
+                            scope,
+                            ctx,
+                            options,
+                            state));
+                }
+                state.CompleteSelector(selectorValue);
+            }
+
+            Instruction[]? selectedInstructions = state.SelectedInstructions;
+            if (selectedInstructions is null)
+            {
+                return NeoScriptExecutionResult.Completed(
+                    returned: false,
+                    returnValue: null);
+            }
+
+            Dictionary<string, object?> sectionScope =
+                state.EnsureSectionScope(scope);
+            NeoScriptExecutionResult bodyResult;
+            try
+            {
+                bodyResult = ExecuteInstructions(
+                    client,
+                    selectedInstructions,
+                    returnTypeInfo,
+                    sectionScope,
+                    ctx,
+                    0,
+                    null,
+                    options);
+            }
+            catch
+            {
+                state.SynchronizeSectionScope(scope);
+                throw;
+            }
+            if (bodyResult.IsPaused)
+            {
+                return ThenWhenCompleted(bodyResult, CompleteSwitchBody)
+                    .ObserveFailure(_ => state.SynchronizeSectionScope(scope));
+            }
+            return CompleteSwitchBody(bodyResult);
+
+            NeoScriptExecutionResult CompleteSwitchBody(
+                NeoScriptExecutionResult completedBody)
+            {
+                state.SynchronizeSectionScope(scope);
+                return ApplySwitchBodyTransfer(completedBody);
+            }
+        }
+
+        private static NeoScriptExecutionResult ApplySwitchBodyTransfer(
+            NeoScriptExecutionResult bodyResult)
+        {
+            if (bodyResult.IsBreak)
+            {
+                return NeoScriptExecutionResult.Completed(
+                    returned: false,
+                    returnValue: null);
+            }
+            if (bodyResult.IsFallthrough)
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    "Corrupt NeoScript switch IR: selected section reached its end.");
+            }
+            return bodyResult;
+        }
+
+        private static bool IsAuthoredCatchableError(Exception exception) =>
+            exception is NSGetterRuntimeError
+            && exception is not NeoScriptPreExecutionValidationError
+            && exception is not NativeFunctionDelegateUnavailableError;
+
+        private static NeoScriptExecutionResult ExecuteTry(
+            NeoClient client,
+            TryInstruction instruction,
+            TypeInfo returnTypeInfo,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options)
+        {
+            var state = new TryExecutionState(instruction);
+            return RunTry(
+                client,
+                returnTypeInfo,
+                scope,
+                ctx,
+                options,
+                state);
+        }
+
+        private static NeoScriptExecutionResult RunTry(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            TryExecutionState state)
+        {
+            while (true)
+            {
+                switch (state.Phase)
+                {
+                    case TryPhase.Body:
+                        return RunProtectedTryBody(
+                            client,
+                            returnTypeInfo,
+                            scope,
+                            ctx,
+                            options,
+                            state);
+                    case TryPhase.Filter:
+                    {
+                        CatchClause clause = state.CurrentClause;
+                        Dictionary<string, object?> catchScope =
+                            state.EnsureCatchScope(scope);
+                        NSGetterEvaluator.Context expressionContext =
+                            BuildExpressionContext(
+                                client,
+                                ctx,
+                                state.ExpressionState,
+                                options);
+                        state.ExpressionState.BeginInstructionAttempt();
+                        bool matched;
+                        try
+                        {
+                            matched = EvaluateBoolean(
+                                clause.filter!,
+                                catchScope,
+                                expressionContext,
+                                "catch filter");
+                        }
+                        catch (NeoFunctionCallSuspended suspended)
+                        {
+                            NeoScriptExecutionResult paused =
+                                PauseLoopExpression(
+                                    suspended,
+                                    state.ExpressionState,
+                                    options,
+                                    () => RunTry(
+                                        client,
+                                        returnTypeInfo,
+                                        scope,
+                                        ctx,
+                                        options,
+                                        state));
+                            return paused
+                                .RecoverFailure(exception =>
+                                {
+                                    if (state.Phase != TryPhase.Filter
+                                        || !IsAuthoredCatchableError(exception))
+                                    {
+                                        return null;
+                                    }
+                                    state.RejectCurrentClause(scope);
+                                    return RunTry(
+                                        client,
+                                        returnTypeInfo,
+                                        scope,
+                                        ctx,
+                                        options,
+                                        state);
+                                })
+                                .ObserveFailure(_ =>
+                                    state.SynchronizeCatchScope(scope));
+                        }
+                        catch (NSGetterRuntimeError exception) when (IsAuthoredCatchableError(exception))
+                        {
+                            state.RejectCurrentClause(scope);
+                            continue;
+                        }
+                        catch
+                        {
+                            state.SynchronizeCatchScope(scope);
+                            throw;
+                        }
+                        if (!matched)
+                        {
+                            state.RejectCurrentClause(scope);
+                            continue;
+                        }
+                        state.SelectCurrentClause();
+                        continue;
+                    }
+                    case TryPhase.CatchBody:
+                    {
+                        Dictionary<string, object?> catchScope =
+                            state.EnsureCatchScope(scope);
+                        NeoScriptExecutionResult catchResult;
+                        try
+                        {
+                            catchResult = ExecuteInstructions(
+                                client,
+                                state.CurrentClause.instructions,
+                                returnTypeInfo,
+                                catchScope,
+                                ctx,
+                                0,
+                                null,
+                                options);
+                        }
+                        catch
+                        {
+                            state.SynchronizeCatchScope(scope);
+                            throw;
+                        }
+                        if (catchResult.IsPaused)
+                        {
+                            return ThenWhenCompleted(
+                                    catchResult,
+                                    CompleteCatchBody)
+                                .ObserveFailure(_ =>
+                                    state.SynchronizeCatchScope(scope));
+                        }
+                        return CompleteCatchBody(catchResult);
+
+                        NeoScriptExecutionResult CompleteCatchBody(
+                            NeoScriptExecutionResult completed)
+                        {
+                            state.SynchronizeCatchScope(scope);
+                            state.Complete();
+                            return completed;
+                        }
+                    }
+                    case TryPhase.NoMatch:
+                        return NeoScriptExecutionResult.Failed(
+                            state.CompleteWithoutMatch());
+                    case TryPhase.Completed:
+                        throw new NSGetterRuntimeError(
+                            "NeoScript try/catch execution resumed after completion; its compiled IR is stale or corrupt.");
+                    default:
+                        throw new NSGetterRuntimeError(
+                            "Unknown NeoScript try/catch execution phase.");
+                }
+            }
+        }
+
+        private static NeoScriptExecutionResult RunProtectedTryBody(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            TryExecutionState state)
+        {
+            Dictionary<string, object?> tryScope =
+                state.EnsureTryScope(scope);
+            NeoScriptExecutionResult bodyResult;
+            try
+            {
+                bodyResult = ExecuteInstructions(
+                    client,
+                    state.Instruction.instructions,
+                    returnTypeInfo,
+                    tryScope,
+                    ctx,
+                    0,
+                    null,
+                    options);
+            }
+            catch (NSGetterRuntimeError exception) when (IsAuthoredCatchableError(exception))
+            {
+                state.SynchronizeTryScope(scope);
+                state.BeginCatches(exception);
+                return RunTry(
+                    client,
+                    returnTypeInfo,
+                    scope,
+                    ctx,
+                    options,
+                    state);
+            }
+            catch
+            {
+                state.SynchronizeTryScope(scope);
+                throw;
+            }
+
+            if (bodyResult.IsPaused)
+            {
+                return ThenWhenCompleted(
+                        bodyResult.RecoverFailure(exception =>
+                        {
+                            if (state.Phase != TryPhase.Body
+                                || !IsAuthoredCatchableError(exception))
+                            {
+                                return null;
+                            }
+                            var error = (NSGetterRuntimeError)exception;
+                            state.SynchronizeTryScope(scope);
+                            state.BeginCatches(error);
+                            return RunTry(
+                                client,
+                                returnTypeInfo,
+                                scope,
+                                ctx,
+                                options,
+                                state);
+                        }),
+                        CompleteTryBody)
+                    .ObserveFailure(_ => state.SynchronizeTryScope(scope));
+            }
+            return CompleteTryBody(bodyResult);
+
+            NeoScriptExecutionResult CompleteTryBody(
+                NeoScriptExecutionResult completed)
+            {
+                state.SynchronizeTryScope(scope);
+                if (state.Phase == TryPhase.Body
+                    && completed.IsFailed
+                    && completed.Failure is NSGetterRuntimeError error
+                    && IsAuthoredCatchableError(error))
+                {
+                    state.BeginCatches(error);
+                    return RunTry(
+                        client,
+                        returnTypeInfo,
+                        scope,
+                        ctx,
+                        options,
+                        state);
+                }
+                state.Complete();
+                return completed;
+            }
+        }
+
+        private static string NormalizeSwitchSelector(
+            TypeInfo selectorTypeInfo,
+            object? value)
+        {
+            ValidateSwitchSelectorType(selectorTypeInfo);
+            if (value is null)
+            {
+                if (selectorTypeInfo.required)
+                {
+                    throw new NSGetterRuntimeError(
+                        "NeoScript switch selector evaluated to null for a required selector type; its compiled IR is stale or corrupt.");
+                }
+                return "null";
+            }
+
+            switch (selectorTypeInfo.type)
+            {
+                case MemberKind.Int:
+                    if (!TryNormalizeSwitchInteger(value, out string? integerKey))
+                    {
+                        throw SwitchValueTypeError("selector", selectorTypeInfo);
+                    }
+                    return "int:" + integerKey;
+                case MemberKind.String:
+                    if (value is not string text)
+                    {
+                        throw SwitchValueTypeError("selector", selectorTypeInfo);
+                    }
+                    return "string:" + text;
+                case MemberKind.Bool:
+                    if (value is not bool boolean)
+                    {
+                        throw SwitchValueTypeError("selector", selectorTypeInfo);
+                    }
+                    return boolean ? "bool:true" : "bool:false";
+                case MemberKind.Enum:
+                    if (value is not object?[] options
+                        || options.Length != 1
+                        || options[0] is not string optionId
+                        || string.IsNullOrEmpty(optionId))
+                    {
+                        throw SwitchValueTypeError("selector", selectorTypeInfo);
+                    }
+                    return "enum:" + ((EnumTypeInfo)selectorTypeInfo).enumId
+                        + ":" + optionId;
+                default:
+                    throw SwitchValueTypeError("selector", selectorTypeInfo);
+            }
+        }
+
+        private static string NormalizeSwitchLabel(
+            Value label,
+            TypeInfo selectorTypeInfo)
+        {
+            if (label?.typeInfo is null)
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    "NeoScript switch case label is missing type information; its compiled IR is stale or corrupt.");
+            }
+            TypeInfo labelTypeInfo = label.typeInfo;
+            if (labelTypeInfo.type == MemberKind.Null)
+            {
+                if (!labelTypeInfo.required
+                    || label.value?.Type != Newtonsoft.Json.Linq.JTokenType.Null
+                    || selectorTypeInfo.required)
+                {
+                    throw SwitchMetadataTypeError(selectorTypeInfo);
+                }
+                return "null";
+            }
+
+            if (!labelTypeInfo.required
+                || labelTypeInfo.type != selectorTypeInfo.type
+                || selectorTypeInfo.type == MemberKind.Enum
+                    && (labelTypeInfo is not EnumTypeInfo labelEnum
+                        || selectorTypeInfo is not EnumTypeInfo selectorEnum
+                        || !string.Equals(
+                            labelEnum.enumId,
+                            selectorEnum.enumId,
+                            StringComparison.Ordinal)))
+            {
+                throw SwitchMetadataTypeError(selectorTypeInfo);
+            }
+
+            Newtonsoft.Json.Linq.JToken? token = label.value;
+            switch (selectorTypeInfo.type)
+            {
+                case MemberKind.Int:
+                    if ((token?.Type != Newtonsoft.Json.Linq.JTokenType.Integer
+                            && token?.Type != Newtonsoft.Json.Linq.JTokenType.Float)
+                        || !TryNormalizeSwitchInteger(
+                            token.ToObject<double>(),
+                            out string? integerKey))
+                    {
+                        throw SwitchMetadataTypeError(selectorTypeInfo);
+                    }
+                    return "int:" + integerKey;
+                case MemberKind.String:
+                    if (token?.Type != Newtonsoft.Json.Linq.JTokenType.String)
+                    {
+                        throw SwitchMetadataTypeError(selectorTypeInfo);
+                    }
+                    return "string:" + token.ToObject<string>();
+                case MemberKind.Bool:
+                    if (token?.Type != Newtonsoft.Json.Linq.JTokenType.Boolean)
+                    {
+                        throw SwitchMetadataTypeError(selectorTypeInfo);
+                    }
+                    return token.ToObject<bool>() ? "bool:true" : "bool:false";
+                case MemberKind.Enum:
+                    if (token is not Newtonsoft.Json.Linq.JArray enumOptions
+                        || enumOptions.Count != 1
+                        || enumOptions[0]?.Type
+                            != Newtonsoft.Json.Linq.JTokenType.String
+                        || string.IsNullOrEmpty(enumOptions[0]!.ToObject<string>()))
+                    {
+                        throw SwitchMetadataTypeError(selectorTypeInfo);
+                    }
+                    return "enum:" + ((EnumTypeInfo)selectorTypeInfo).enumId
+                        + ":" + enumOptions[0]!.ToObject<string>();
+                default:
+                    throw SwitchMetadataTypeError(selectorTypeInfo);
+            }
+        }
+
+        private static void ValidateSwitchSelectorType(TypeInfo? selectorTypeInfo)
+        {
+            if (selectorTypeInfo is null
+                || selectorTypeInfo.type != MemberKind.Int
+                    && selectorTypeInfo.type != MemberKind.String
+                    && selectorTypeInfo.type != MemberKind.Bool
+                    && selectorTypeInfo.type != MemberKind.Enum
+                || selectorTypeInfo.type == MemberKind.Enum
+                    && (selectorTypeInfo is not EnumTypeInfo enumType
+                        || string.IsNullOrEmpty(enumType.enumId)))
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    "NeoScript switch selector type must be int, string, bool, or enum; its compiled IR is stale or corrupt.");
+            }
+        }
+
+        private static bool TryNormalizeSwitchInteger(
+            object value,
+            out string? key)
+        {
+            key = null;
+            double number;
+            switch (value)
+            {
+                case int integer: number = integer; break;
+                case long integer: number = integer; break;
+                case short integer: number = integer; break;
+                case double floating: number = floating; break;
+                case float floating: number = floating; break;
+                default: return false;
+            }
+            if (double.IsNaN(number)
+                || double.IsInfinity(number)
+                || number != Math.Truncate(number)
+                || Math.Abs(number) > 9007199254740991d)
+            {
+                return false;
+            }
+            if (number == 0d) number = 0d;
+            key = number.ToString(
+                "R",
+                System.Globalization.CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        private static NSGetterRuntimeError SwitchValueTypeError(
+            string subject,
+            TypeInfo selectorTypeInfo) => new(
+                $"NeoScript switch {subject} is inconsistent with declared " +
+                $"{selectorTypeInfo.type} selector type; its compiled IR is stale or corrupt.");
+
+        private static NeoScriptPreExecutionValidationError SwitchMetadataTypeError(
+            TypeInfo selectorTypeInfo) => new(
+                "NeoScript switch case label is inconsistent with declared " +
+                $"{selectorTypeInfo.type} selector type; its compiled IR is stale or corrupt.");
+
+        private static NSGetterEvaluator.Context BuildExpressionContext(
+            NeoClient client,
+            NSGetterEvaluator.Context ctx,
+            ExpressionResumeState expressionState,
+            NeoScriptExecutionOptions? options)
+        {
+            return ctx.WithFunctionCallHandler(
+                (pointer, currentScope, currentCtx) =>
+                    EvalFunctionCall(
+                        client,
+                        pointer,
+                        currentScope,
+                        currentCtx,
+                        expressionState,
+                        options));
+        }
+
+        private static NeoScriptExecutionResult PauseLoopExpression(
+            NeoFunctionCallSuspended suspended,
+            ExpressionResumeState expressionState,
+            NeoScriptExecutionOptions? options,
+            Func<NeoScriptExecutionResult> resume)
+        {
+            options?.WarnDeferred(suspended.MemberId);
+            return ResumeAfterNestedCall(suspended.Execution);
+
+            NeoScriptExecutionResult ResumeAfterNestedCall(
+                NeoScriptExecutionResult nestedResult)
+            {
+                if (nestedResult.IsPaused)
+                {
+                    return nestedResult.Then(ResumeAfterNestedCall);
+                }
+                expressionState.StoreValue(
+                    suspended.ResumeKey,
+                    nestedResult.ReturnValue);
+                return resume();
+            }
         }
 
         private static NeoScriptExecutionResult PauseAtInstruction(
@@ -418,6 +1954,18 @@ namespace NeoCompose.Runtime
             object? rhs = Eval(instruction.pointer, scope, ctx);
             if (instruction.target.pointer is VariablePointer variablePointer)
             {
+                if (instruction.target.writability == WritabilityKind.ReadOnly)
+                {
+                    throw new NSGetterRuntimeError(
+                        "Cannot assign to a read-only NeoScript binding.");
+                }
+                if (TryGetReadOnlyBindingError(
+                        scope,
+                        variablePointer.variableId,
+                        out string? readOnlyError))
+                {
+                    throw new NSGetterRuntimeError(readOnlyError!);
+                }
                 scope[variablePointer.variableId] = CoerceSetterValue(
                     rhs,
                     instruction.target.typeInfo);
@@ -444,6 +1992,77 @@ namespace NeoCompose.Runtime
             return null;
         }
 
+        private static bool TryGetReadOnlyBindingError(
+            Dictionary<string, object?> scope,
+            string variableId,
+            out string? error)
+        {
+            error = null;
+            if (!ReadOnlyBindings.TryGetValue(
+                    scope,
+                    out Dictionary<string, List<string>>? bindings)
+                || !bindings.TryGetValue(
+                    variableId,
+                    out List<string>? errors)
+                || errors.Count == 0)
+            {
+                return false;
+            }
+            error = errors[errors.Count - 1];
+            return true;
+        }
+
+        private static void MarkReadOnlyBinding(
+            Dictionary<string, object?> scope,
+            string variableId,
+            string error)
+        {
+            Dictionary<string, List<string>> bindings =
+                ReadOnlyBindings.GetOrCreateValue(scope);
+            if (!bindings.TryGetValue(variableId, out List<string>? errors))
+            {
+                errors = new List<string>();
+                bindings[variableId] = errors;
+            }
+            errors.Add(error);
+        }
+
+        private static void UnmarkReadOnlyBinding(
+            Dictionary<string, object?> scope,
+            string variableId)
+        {
+            if (!ReadOnlyBindings.TryGetValue(
+                    scope,
+                    out Dictionary<string, List<string>>? bindings)
+                || !bindings.TryGetValue(
+                    variableId,
+                    out List<string>? errors))
+            {
+                return;
+            }
+            if (errors.Count > 0) errors.RemoveAt(errors.Count - 1);
+            if (errors.Count == 0) bindings.Remove(variableId);
+            if (bindings.Count == 0) ReadOnlyBindings.Remove(scope);
+        }
+
+        private static Dictionary<string, object?> CreateChildScope(
+            Dictionary<string, object?> parentScope)
+        {
+            var childScope = new Dictionary<string, object?>(parentScope);
+            if (ReadOnlyBindings.TryGetValue(
+                    parentScope,
+                    out Dictionary<string, List<string>>? readOnlyBindings)
+                && readOnlyBindings.Count > 0)
+            {
+                ReadOnlyBindings.Add(
+                    childScope,
+                    readOnlyBindings.ToDictionary(
+                        pair => pair.Key,
+                        pair => new List<string>(pair.Value)));
+            }
+            return childScope;
+        }
+
         private static void ExecuteCollectionCall(
             NeoClient client,
             CollectionCallInstruction instruction,
@@ -463,8 +2082,10 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError(
                         $"Variable '{variablePointer.variableId}' is not in scope");
                 }
-                MutateLocalCollection(local, instruction.mutation, args);
-                scope[variablePointer.variableId] = local;
+                scope[variablePointer.variableId] = MutateLocalCollection(
+                    local,
+                    instruction.mutation,
+                    args);
                 return;
             }
 
@@ -629,7 +2250,8 @@ namespace NeoCompose.Runtime
         private static bool EvaluateBoolean(
             BooleanExpression expression,
             Dictionary<string, object?> scope,
-            NSGetterEvaluator.Context ctx)
+            NSGetterEvaluator.Context ctx,
+            string subject = "If condition")
         {
             object? result = Eval(new OperationPointer
             {
@@ -641,7 +2263,8 @@ namespace NeoCompose.Runtime
                 },
             }, scope, ctx);
             if (result is bool b) return b;
-            throw new NSGetterRuntimeError("If condition did not evaluate to bool.");
+            throw new NSGetterRuntimeError(
+                $"{subject} did not evaluate to bool.");
         }
 
         private static NeoScriptExecutionResult ExecuteSetterAssignment(
@@ -1488,7 +3111,7 @@ namespace NeoCompose.Runtime
             return Equals(a, b);
         }
 
-        private static void MutateLocalCollection(
+        private static object? MutateLocalCollection(
             object? local,
             string mutation,
             object?[] args)
@@ -1497,17 +3120,17 @@ namespace NeoCompose.Runtime
             {
                 var arrayList = new List<object?>(array);
                 MutateLocalList(arrayList, mutation, args);
-                return;
+                return arrayList.ToArray();
             }
             if (local is List<object?> list)
             {
                 MutateLocalList(list, mutation, args);
-                return;
+                return list;
             }
             if (local is IDictionary<string, object?> dict)
             {
                 MutateLocalDictionary(dict, mutation, args);
-                return;
+                return dict;
             }
             throw new NSGetterRuntimeError("Collection mutation target must be a list or dictionary.");
         }
@@ -2655,6 +4278,373 @@ namespace NeoCompose.Runtime
             }
         }
 
+        private enum TryPhase
+        {
+            Body,
+            Filter,
+            CatchBody,
+            NoMatch,
+            Completed,
+        }
+
+        private enum ForPhase
+        {
+            Initializer,
+            Condition,
+            Body,
+            Iterator,
+        }
+
+        private abstract class LoopExecutionState
+        {
+            private readonly string bindingId;
+            private readonly bool hadPreviousBinding;
+            private readonly object? previousBinding;
+            private readonly bool readOnly;
+            private Dictionary<string, object?>? bodyScope;
+            private string[]? bodyParentBindingIds;
+            private bool bindingRestored;
+
+            protected LoopExecutionState(
+                string bindingId,
+                Dictionary<string, object?> scope,
+                bool readOnly = false)
+            {
+                this.bindingId = bindingId;
+                hadPreviousBinding = scope.TryGetValue(
+                    bindingId,
+                    out previousBinding);
+                this.readOnly = readOnly;
+                if (readOnly)
+                {
+                    MarkReadOnlyBinding(
+                        scope,
+                        bindingId,
+                        "Cannot assign to a read-only foreach iterator binding.");
+                }
+            }
+
+            internal Dictionary<string, object?> EnsureBodyScope(
+                Dictionary<string, object?> parentScope)
+            {
+                if (bodyScope is not null) return bodyScope;
+                bodyParentBindingIds = parentScope.Keys.ToArray();
+                bodyScope = CreateChildScope(parentScope);
+                return bodyScope;
+            }
+
+            internal void SynchronizeBodyScope(
+                Dictionary<string, object?> parentScope)
+            {
+                if (bodyScope is null) return;
+                foreach (string parentBindingId in bodyParentBindingIds
+                    ?? Array.Empty<string>())
+                {
+                    parentScope[parentBindingId] = bodyScope.TryGetValue(
+                        parentBindingId,
+                        out object? value)
+                            ? value
+                            : null;
+                }
+                bodyScope = null;
+                bodyParentBindingIds = null;
+            }
+
+            internal void RestoreBinding(Dictionary<string, object?> scope)
+            {
+                if (bindingRestored) return;
+                bindingRestored = true;
+                SynchronizeBodyScope(scope);
+                if (readOnly)
+                {
+                    UnmarkReadOnlyBinding(scope, bindingId);
+                }
+                if (hadPreviousBinding)
+                {
+                    scope[bindingId] = previousBinding;
+                }
+                else
+                {
+                    scope.Remove(bindingId);
+                }
+            }
+        }
+
+        private sealed class ForExecutionState : LoopExecutionState
+        {
+            internal ForExecutionState(
+                ForInstruction instruction,
+                Dictionary<string, object?> scope)
+                : base(instruction.initializer.id, scope)
+            {
+                Instruction = instruction;
+                Phase = ForPhase.Initializer;
+                ExpressionState = new ExpressionResumeState();
+            }
+
+            internal ForInstruction Instruction { get; }
+            internal ForPhase Phase { get; private set; }
+            internal ExpressionResumeState ExpressionState { get; private set; }
+
+            internal void MoveTo(ForPhase phase)
+            {
+                Phase = phase;
+                ExpressionState = new ExpressionResumeState();
+            }
+        }
+
+        private sealed class ForEachExecutionState : LoopExecutionState
+        {
+            internal ForEachExecutionState(
+                ForEachInstruction instruction,
+                Dictionary<string, object?> scope)
+                : base(instruction.binding.id, scope, readOnly: true)
+            {
+                Instruction = instruction;
+                ExpressionState = new ExpressionResumeState();
+            }
+
+            internal ForEachInstruction Instruction { get; }
+            internal ExpressionResumeState ExpressionState { get; }
+            internal NSGetterEvaluator.CollectionEntrySnapshot[]? Snapshot
+            {
+                get;
+                set;
+            }
+            internal int Index { get; set; }
+        }
+
+        private sealed class TryExecutionState
+        {
+            private Dictionary<string, object?>? tryScope;
+            private string[]? tryParentBindingIds;
+            private bool tryScopeSynchronized;
+            private Dictionary<string, object?>? catchScope;
+            private string[]? catchParentBindingIds;
+            private bool catchScopeSynchronized;
+            private int catchIndex;
+            private NSGetterRuntimeError? originalFailure;
+
+            internal TryExecutionState(TryInstruction instruction)
+            {
+                Instruction = instruction ?? throw new NeoScriptPreExecutionValidationError(
+                    "NeoScript try instruction is missing; its compiled IR is stale or corrupt.");
+                ValidateTryInstructionMetadata(instruction);
+                Phase = TryPhase.Body;
+                ExpressionState = new ExpressionResumeState();
+            }
+
+            internal TryInstruction Instruction { get; }
+            internal TryPhase Phase { get; private set; }
+            internal ExpressionResumeState ExpressionState { get; private set; }
+            internal CatchClause CurrentClause =>
+                catchIndex >= 0 && catchIndex < Instruction.catches.Length
+                    ? Instruction.catches[catchIndex]
+                    : throw new NSGetterRuntimeError(
+                        "NeoScript try/catch selected an invalid catch clause; its compiled IR is stale or corrupt.");
+
+            internal Dictionary<string, object?> EnsureTryScope(
+                Dictionary<string, object?> parentScope)
+            {
+                if (tryScope is not null) return tryScope;
+                tryParentBindingIds = parentScope.Keys.ToArray();
+                tryScope = CreateChildScope(parentScope);
+                return tryScope;
+            }
+
+            internal void SynchronizeTryScope(
+                Dictionary<string, object?> parentScope)
+            {
+                if (tryScopeSynchronized || tryScope is null) return;
+                tryScopeSynchronized = true;
+                foreach (string bindingId in tryParentBindingIds
+                    ?? Array.Empty<string>())
+                {
+                    parentScope[bindingId] = tryScope.TryGetValue(
+                        bindingId,
+                        out object? value)
+                            ? value
+                            : null;
+                }
+            }
+
+            internal void BeginCatches(NSGetterRuntimeError failure)
+            {
+                originalFailure = failure;
+                catchIndex = 0;
+                PrepareCurrentClause();
+            }
+
+            internal Dictionary<string, object?> EnsureCatchScope(
+                Dictionary<string, object?> parentScope)
+            {
+                if (catchScope is not null) return catchScope;
+                CatchClause clause = CurrentClause;
+                catchParentBindingIds = parentScope.Keys.ToArray();
+                catchScope = CreateChildScope(parentScope);
+                catchScope[clause.binding.id] = originalFailure?.Message
+                    ?? throw new NSGetterRuntimeError(
+                        "NeoScript catch clause is missing its original error.");
+                MarkReadOnlyBinding(
+                    catchScope,
+                    clause.binding.id,
+                    "Cannot assign to a read-only catch message binding.");
+                catchScopeSynchronized = false;
+                return catchScope;
+            }
+
+            internal void SynchronizeCatchScope(
+                Dictionary<string, object?> parentScope)
+            {
+                if (catchScopeSynchronized || catchScope is null) return;
+                catchScopeSynchronized = true;
+                string catchBindingId = CurrentClause.binding.id;
+                foreach (string bindingId in catchParentBindingIds
+                    ?? Array.Empty<string>())
+                {
+                    if (string.Equals(
+                        bindingId,
+                        catchBindingId,
+                        StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+                    parentScope[bindingId] = catchScope.TryGetValue(
+                        bindingId,
+                        out object? value)
+                            ? value
+                            : null;
+                }
+                UnmarkReadOnlyBinding(catchScope, catchBindingId);
+            }
+
+            internal void RejectCurrentClause(
+                Dictionary<string, object?> parentScope)
+            {
+                SynchronizeCatchScope(parentScope);
+                catchScope = null;
+                catchParentBindingIds = null;
+                catchScopeSynchronized = false;
+                catchIndex++;
+                PrepareCurrentClause();
+            }
+
+            internal void SelectCurrentClause()
+            {
+                Phase = TryPhase.CatchBody;
+                ExpressionState = new ExpressionResumeState();
+            }
+
+            internal Exception CompleteWithoutMatch()
+            {
+                Exception failure = originalFailure
+                    ?? new NSGetterRuntimeError(
+                        "NeoScript try/catch is missing its original error.");
+                Complete();
+                return failure;
+            }
+
+            internal void Complete()
+            {
+                Phase = TryPhase.Completed;
+            }
+
+            private void PrepareCurrentClause()
+            {
+                ExpressionState = new ExpressionResumeState();
+                Phase = catchIndex >= Instruction.catches.Length
+                    ? TryPhase.NoMatch
+                    : CurrentClause.filter is null
+                        ? TryPhase.CatchBody
+                        : TryPhase.Filter;
+            }
+        }
+
+        private sealed class SwitchExecutionState
+        {
+            private readonly string[][] normalizedLabels;
+            private Dictionary<string, object?>? sectionScope;
+            private string[]? parentBindingIds;
+            private bool sectionScopeSynchronized;
+
+            internal SwitchExecutionState(SwitchInstruction instruction)
+            {
+                Instruction = instruction ?? throw new NeoScriptPreExecutionValidationError(
+                    "NeoScript switch instruction is missing; its compiled IR is stale or corrupt.");
+                ValidateSwitchInstructionMetadata(instruction);
+                normalizedLabels = new string[instruction.sections.Length][];
+                for (int i = 0; i < instruction.sections.Length; i++)
+                {
+                    SwitchSection section = instruction.sections[i];
+                    normalizedLabels[i] = new string[section.labels.Length];
+                    for (int j = 0; j < section.labels.Length; j++)
+                    {
+                        normalizedLabels[i][j] = NormalizeSwitchLabel(
+                            section.labels[j],
+                            instruction.selectorTypeInfo);
+                    }
+                }
+                ExpressionState = new ExpressionResumeState();
+            }
+
+            internal SwitchInstruction Instruction { get; }
+            internal ExpressionResumeState ExpressionState { get; }
+            internal bool SelectorCompleted { get; private set; }
+            internal object? SelectorValue { get; private set; }
+            internal int? SelectedSectionIndex { get; private set; }
+            internal bool SelectedDefault { get; private set; }
+            internal Instruction[]? SelectedInstructions =>
+                SelectedSectionIndex is int index
+                    ? Instruction.sections[index].instructions
+                    : SelectedDefault
+                        ? Instruction.defaultInstructions
+                        : null;
+
+            internal Dictionary<string, object?> EnsureSectionScope(
+                Dictionary<string, object?> parentScope)
+            {
+                if (sectionScope is not null) return sectionScope;
+                parentBindingIds = parentScope.Keys.ToArray();
+                sectionScope = CreateChildScope(parentScope);
+                return sectionScope;
+            }
+
+            internal void SynchronizeSectionScope(
+                Dictionary<string, object?> parentScope)
+            {
+                if (sectionScopeSynchronized || sectionScope is null) return;
+                sectionScopeSynchronized = true;
+                foreach (string bindingId in parentBindingIds
+                    ?? Array.Empty<string>())
+                {
+                    parentScope[bindingId] = sectionScope.TryGetValue(
+                        bindingId,
+                        out object? value)
+                            ? value
+                            : null;
+                }
+            }
+
+            internal void CompleteSelector(object? value)
+            {
+                SelectorValue = value;
+                SelectorCompleted = true;
+                string selectorKey = NormalizeSwitchSelector(
+                    Instruction.selectorTypeInfo,
+                    value);
+                for (int i = 0; i < normalizedLabels.Length; i++)
+                {
+                    if (Array.IndexOf(normalizedLabels[i], selectorKey) < 0)
+                    {
+                        continue;
+                    }
+                    SelectedSectionIndex = i;
+                    return;
+                }
+                SelectedDefault = Instruction.defaultInstructions is not null;
+            }
+        }
+
         private sealed class ExpressionResumeState
         {
             private readonly Dictionary<string, CachedFunctionResult> results = new();
@@ -2838,34 +4828,59 @@ namespace NeoCompose.Runtime
         }
     }
 
+    internal enum NeoScriptControlTransfer
+    {
+        Fallthrough,
+        Return,
+        Break,
+        Continue,
+    }
+
     internal sealed class NeoScriptExecutionResult
     {
         private readonly Func<object?, NeoScriptExecutionResult>? resume;
         private readonly DeferredNativeFunctionSuspension? suspension;
         private readonly Action<Exception>? failureObserver;
+        private readonly Action<Exception>? abandonmentObserver;
+        private readonly Func<Exception, NeoScriptExecutionResult?>?
+            failureRecovery;
 
         private NeoScriptExecutionResult(
             bool isPaused,
-            bool returned,
+            NeoScriptControlTransfer transfer,
             object? returnValue,
             string? suspendedMemberId,
             NeoDeferredFunctionBase? deferred,
             DeferredNativeFunctionSuspension? suspension,
             Func<object?, NeoScriptExecutionResult>? resume,
-            Action<Exception>? failureObserver)
+            Action<Exception>? failureObserver,
+            Action<Exception>? abandonmentObserver,
+            Func<Exception, NeoScriptExecutionResult?>? failureRecovery,
+            Exception? failure)
         {
             IsPaused = isPaused;
-            Returned = returned;
+            Transfer = transfer;
             ReturnValue = returnValue;
             SuspendedMemberId = suspendedMemberId;
             Deferred = deferred;
             this.suspension = suspension;
             this.resume = resume;
             this.failureObserver = failureObserver;
+            this.abandonmentObserver = abandonmentObserver;
+            this.failureRecovery = failureRecovery;
+            Failure = failure;
         }
 
         internal bool IsPaused { get; }
-        internal bool Returned { get; }
+        internal NeoScriptControlTransfer Transfer { get; }
+        internal bool Returned => Transfer == NeoScriptControlTransfer.Return;
+        internal bool IsBreak => Transfer == NeoScriptControlTransfer.Break;
+        internal bool IsContinue => Transfer == NeoScriptControlTransfer.Continue;
+        internal bool IsFallthrough =>
+            Failure is null
+            && Transfer == NeoScriptControlTransfer.Fallthrough;
+        internal bool IsFailed => Failure is not null;
+        internal Exception? Failure { get; }
         internal object? ReturnValue { get; }
         internal string? SuspendedMemberId { get; }
         internal NeoDeferredFunctionBase? Deferred { get; }
@@ -2876,13 +4891,57 @@ namespace NeoCompose.Runtime
         {
             return new NeoScriptExecutionResult(
                 false,
-                returned,
+                returned
+                    ? NeoScriptControlTransfer.Return
+                    : NeoScriptControlTransfer.Fallthrough,
                 returnValue,
                 null,
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
                 null);
+        }
+
+        internal static NeoScriptExecutionResult Control(
+            NeoScriptControlTransfer transfer)
+        {
+            if (transfer == NeoScriptControlTransfer.Return)
+            {
+                throw new ArgumentException(
+                    "Return control must carry its value through Completed.",
+                    nameof(transfer));
+            }
+            return new NeoScriptExecutionResult(
+                false,
+                transfer,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+        }
+
+        internal static NeoScriptExecutionResult Failed(Exception failure)
+        {
+            return new NeoScriptExecutionResult(
+                false,
+                NeoScriptControlTransfer.Fallthrough,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                failure ?? throw new ArgumentNullException(nameof(failure)));
         }
 
         internal static NeoScriptExecutionResult Paused(
@@ -2893,12 +4952,15 @@ namespace NeoCompose.Runtime
         {
             return new NeoScriptExecutionResult(
                 true,
-                false,
+                NeoScriptControlTransfer.Fallthrough,
                 null,
                 suspendedMemberId,
                 deferred,
                 suspension,
                 resume,
+                null,
+                null,
+                null,
                 null);
         }
 
@@ -2913,6 +4975,31 @@ namespace NeoCompose.Runtime
             }
             void FailObserved(Exception exception)
             {
+                if (failureRecovery is not null)
+                {
+                    NeoScriptExecutionResult? recovered;
+                    try
+                    {
+                        recovered = failureRecovery(exception);
+                    }
+                    catch (Exception recoveryException)
+                    {
+                        exception = recoveryException;
+                        recovered = null;
+                    }
+                    if (recovered is not null)
+                    {
+                        try
+                        {
+                            complete(recovered);
+                        }
+                        catch (Exception completionException)
+                        {
+                            fail(completionException);
+                        }
+                        return;
+                    }
+                }
                 try
                 {
                     failureObserver?.Invoke(exception);
@@ -2955,7 +5042,7 @@ namespace NeoCompose.Runtime
             {
                 try
                 {
-                    failureObserver?.Invoke(exception);
+                    abandonmentObserver?.Invoke(exception);
                 }
                 catch (Exception observerException)
                 {
@@ -2967,6 +5054,9 @@ namespace NeoCompose.Runtime
         internal NeoScriptExecutionResult Then(
             Func<NeoScriptExecutionResult, NeoScriptExecutionResult> next)
         {
+            // A failed recovery is already terminal. Advancing it could let a
+            // later continuation replace the original failure with success.
+            if (IsFailed) return this;
             if (!IsPaused) return next(this);
             if (Deferred == null || suspension == null || resume == null)
             {
@@ -2975,7 +5065,7 @@ namespace NeoCompose.Runtime
             }
             return new NeoScriptExecutionResult(
                 true,
-                false,
+                NeoScriptControlTransfer.Fallthrough,
                 null,
                 SuspendedMemberId
                     ?? throw new InvalidOperationException(
@@ -2983,7 +5073,17 @@ namespace NeoCompose.Runtime
                 Deferred,
                 suspension,
                 value => next(resume(value)),
-                failureObserver);
+                failureObserver,
+                abandonmentObserver,
+                failureRecovery is null
+                    ? null
+                    : exception =>
+                    {
+                        NeoScriptExecutionResult? recovered =
+                            failureRecovery(exception);
+                        return recovered?.Then(next);
+                    },
+                null);
         }
 
         internal NeoScriptExecutionResult ObserveFailure(
@@ -2995,22 +5095,88 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     "Paused action result is missing deferred continuation state.");
             }
-            Action<Exception> combined = failureObserver is null
+            Action<Exception> combinedFailure = failureObserver is null
                 ? observer
                 : exception =>
                 {
                     failureObserver(exception);
                     observer(exception);
                 };
+            Action<Exception> combinedAbandonment = abandonmentObserver is null
+                ? observer
+                : exception =>
+                {
+                    abandonmentObserver(exception);
+                    observer(exception);
+                };
             return new NeoScriptExecutionResult(
                 true,
-                false,
+                NeoScriptControlTransfer.Fallthrough,
                 null,
                 SuspendedMemberId,
                 Deferred,
                 suspension,
                 resume,
-                combined);
+                combinedFailure,
+                combinedAbandonment,
+                failureRecovery,
+                null);
+        }
+
+        internal NeoScriptExecutionResult RecoverFailure(
+            Func<Exception, NeoScriptExecutionResult?> recovery)
+        {
+            if (!IsPaused) return this;
+            if (Deferred == null || suspension == null || resume == null)
+            {
+                throw new InvalidOperationException(
+                    "Paused action result is missing deferred continuation state.");
+            }
+
+            Func<Exception, NeoScriptExecutionResult?> combinedRecovery =
+                exception =>
+                {
+                    if (failureRecovery is not null)
+                    {
+                        NeoScriptExecutionResult? recovered;
+                        try
+                        {
+                            recovered = failureRecovery(exception);
+                        }
+                        catch (Exception recoveryException)
+                        {
+                            failureObserver?.Invoke(recoveryException);
+                            return recovery(recoveryException)
+                                ?? NeoScriptExecutionResult.Failed(
+                                    recoveryException);
+                        }
+                        if (recovered is not null)
+                        {
+                            if (recovered.IsFailed)
+                            {
+                                return recovery(recovered.Failure!)
+                                    ?? recovered;
+                            }
+                            return recovered.IsPaused
+                                ? recovered.RecoverFailure(recovery)
+                                : recovered;
+                        }
+                    }
+                    failureObserver?.Invoke(exception);
+                    return recovery(exception);
+                };
+            return new NeoScriptExecutionResult(
+                true,
+                NeoScriptControlTransfer.Fallthrough,
+                null,
+                SuspendedMemberId,
+                Deferred,
+                suspension,
+                value => resume(value).RecoverFailure(recovery),
+                null,
+                abandonmentObserver,
+                combinedRecovery,
+                null);
         }
     }
 
