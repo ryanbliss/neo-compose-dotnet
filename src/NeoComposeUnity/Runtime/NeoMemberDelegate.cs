@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using System.Runtime.CompilerServices;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
 
@@ -13,6 +14,9 @@ namespace NeoCompose.Runtime
     public class NeoMemberDelegate
         : NeoMember<DelegateMember, DelegateMemberValue>
     {
+        private static readonly ConditionalWeakTable<Delegate, NeoDelegateValue>
+            PersistedBindings = new();
+
         public NeoMemberDelegate(
             NeoClient client,
             string memberId,
@@ -95,16 +99,38 @@ namespace NeoCompose.Runtime
             object?[]? args,
             NSGetterEvaluator.Context ctx)
         {
-            NeoDelegateValue delegateValue = value?.value
-                ?? member.defaultValue?.value
-                ?? throw new NSGetterRuntimeError(
-                    $"NeoDelegate '{member.name}' has no bound value.");
+            NeoDelegateValue delegateValue = ResolveDelegateValue();
             return (
                 NSGetterEvaluator.InvokeDelegate(
                     delegateValue,
                     args ?? Array.Empty<object?>(),
                     ctx),
                 ctx);
+        }
+
+        private NeoDelegateValue ResolveDelegateValue() =>
+            value?.value
+                ?? member.defaultValue?.value
+                ?? throw new NSGetterRuntimeError(
+                    $"NeoDelegate '{member.name}' has no bound value.");
+
+        private TDelegate TrackBinding<TDelegate>(TDelegate bound)
+            where TDelegate : Delegate
+        {
+            PersistedBindings.Add(bound, ResolveDelegateValue().PersistedCopy());
+            return bound;
+        }
+
+        internal static NeoDelegateValue? PersistedBindingOf(Delegate? value)
+        {
+            if (value is null) return null;
+            if (!PersistedBindings.TryGetValue(value, out NeoDelegateValue binding))
+            {
+                throw new ArgumentException(
+                    "This delegate was not loaded from a NeoDelegate member and cannot be serialized. Assign a delegate obtained from generated Neo data, or author the binding in Neo Compose.",
+                    nameof(value));
+            }
+            return binding.PersistedCopy();
         }
 
         private object? ResolveLexicalThis(NSGetterEvaluator.Context ctx)
@@ -126,42 +152,42 @@ namespace NeoCompose.Runtime
         }
 
         public NeoDelegate<TReturn> Bind<TReturn>(Func<object?, TReturn> convert) =>
-            () => convert(Invoke());
+            TrackBinding<NeoDelegate<TReturn>>(() => convert(Invoke()));
         public NeoDelegate<TReturn, P1> Bind<TReturn, P1>(Func<object?, TReturn> convert) =>
-            p1 => convert(Invoke(p1));
+            TrackBinding<NeoDelegate<TReturn, P1>>(p1 => convert(Invoke(p1)));
         public NeoDelegate<TReturn, P1, P2> Bind<TReturn, P1, P2>(Func<object?, TReturn> convert) =>
-            (p1, p2) => convert(Invoke(p1, p2));
+            TrackBinding<NeoDelegate<TReturn, P1, P2>>((p1, p2) => convert(Invoke(p1, p2)));
         public NeoDelegate<TReturn, P1, P2, P3> Bind<TReturn, P1, P2, P3>(Func<object?, TReturn> convert) =>
-            (p1, p2, p3) => convert(Invoke(p1, p2, p3));
+            TrackBinding<NeoDelegate<TReturn, P1, P2, P3>>((p1, p2, p3) => convert(Invoke(p1, p2, p3)));
         public NeoDelegate<TReturn, P1, P2, P3, P4> Bind<TReturn, P1, P2, P3, P4>(Func<object?, TReturn> convert) =>
-            (p1, p2, p3, p4) => convert(Invoke(p1, p2, p3, p4));
+            TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4>>((p1, p2, p3, p4) => convert(Invoke(p1, p2, p3, p4)));
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5> Bind<TReturn, P1, P2, P3, P4, P5>(Func<object?, TReturn> convert) =>
-            (p1, p2, p3, p4, p5) => convert(Invoke(p1, p2, p3, p4, p5));
+            TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5>>((p1, p2, p3, p4, p5) => convert(Invoke(p1, p2, p3, p4, p5)));
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6> Bind<TReturn, P1, P2, P3, P4, P5, P6>(Func<object?, TReturn> convert) =>
-            (p1, p2, p3, p4, p5, p6) => convert(Invoke(p1, p2, p3, p4, p5, p6));
+            TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6>>((p1, p2, p3, p4, p5, p6) => convert(Invoke(p1, p2, p3, p4, p5, p6)));
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7>(Func<object?, TReturn> convert) =>
-            (p1, p2, p3, p4, p5, p6, p7) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7));
+            TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7>>((p1, p2, p3, p4, p5, p6, p7) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7)));
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8>(Func<object?, TReturn> convert) =>
-            (p1, p2, p3, p4, p5, p6, p7, p8) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8));
+            TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8>>((p1, p2, p3, p4, p5, p6, p7, p8) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8)));
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9>(Func<object?, TReturn> convert) =>
-            (p1, p2, p3, p4, p5, p6, p7, p8, p9) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9));
+            TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9>>((p1, p2, p3, p4, p5, p6, p7, p8, p9) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9)));
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10>(Func<object?, TReturn> convert) =>
-            (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10));
+            TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10>>((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10)));
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11>(Func<object?, TReturn> convert) =>
-            (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11));
+            TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11>>((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11)));
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12>(Func<object?, TReturn> convert) =>
-            (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12));
+            TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12>>((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12)));
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13>(Func<object?, TReturn> convert) =>
-            (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13));
+            TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13>>((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13)));
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14>(Func<object?, TReturn> convert) =>
-            (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14));
+            TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14>>((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14)));
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15>(Func<object?, TReturn> convert) =>
-            (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15));
+            TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15>>((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15)));
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16>(Func<object?, TReturn> convert) =>
-            (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16));
+            TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16>>((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16)));
     }
 
-    /// <summary>Writable raw-value wrapper for runtime-authored bindings.</summary>
+    /// <summary>Writable wrapper for first-class NeoScript delegate values.</summary>
     public sealed class NeoMemberDelegateWritable : NeoMemberDelegate
     {
         public NeoMemberDelegateWritable(
@@ -171,9 +197,11 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership = NeoValueOwnership.Asset)
             : base(client, member, overrideValueId, ownership) { }
 
-        public void Set(NeoDelegateValue newValue)
+        public void Set(Delegate? newValue) =>
+            Set(NeoMemberDelegate.PersistedBindingOf(newValue));
+
+        internal void Set(NeoDelegateValue? newValue)
         {
-            if (newValue is null) throw new ArgumentNullException(nameof(newValue));
             string nowIso = DateTime.UtcNow.ToString("o");
             DelegateMemberValue? writable = EnsureWritableValue();
             if (writable is not null)

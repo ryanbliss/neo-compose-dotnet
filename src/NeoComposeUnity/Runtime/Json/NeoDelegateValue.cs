@@ -49,6 +49,14 @@ namespace NeoCompose.Runtime.Json
             hasLexicalEnvironment = true;
             return this;
         }
+
+        internal NeoDelegateValue PersistedCopy() => new()
+        {
+            memberId = memberId,
+            valueId = valueId,
+            code = code,
+            action = action,
+        };
     }
 
     /// <summary>Strict reader for the NeoDelegate persisted-value union.</summary>

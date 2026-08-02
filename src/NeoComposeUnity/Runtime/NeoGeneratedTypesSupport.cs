@@ -118,6 +118,14 @@ namespace NeoCompose.Runtime
     /// </summary>
     public static class NeoGeneratedTypesSupport
     {
+        /// <summary>
+        /// Returns the persisted Neo binding carried by a typed delegate from
+        /// a generated member getter. Used by generated static setters when a
+        /// value row must be materialized before the assignment is applied.
+        /// </summary>
+        public static NeoDelegateValue? DelegateValue(Delegate? value) =>
+            NeoMemberDelegate.PersistedBindingOf(value);
+
         private sealed class ConstructorKeyValuePairAccessors
         {
             internal System.Reflection.PropertyInfo key = null!;

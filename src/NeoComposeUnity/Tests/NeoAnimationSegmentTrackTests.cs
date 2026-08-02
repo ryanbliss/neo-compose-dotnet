@@ -296,6 +296,63 @@ namespace NeoCompose.Tests
             Assert.AreEqual("a0", ReadLabel(client, "c-sprite"));
         }
 
+        [Test]
+        public void TypedDelegateBinding_RoundTripsToItsPersistedNeoValue()
+        {
+            ProjectData data = BuildEquipProjectData();
+            var member = new DelegateMember
+            {
+                id = "track-selector-member",
+                projectId = ProjectId,
+                name = "Selector",
+                kind = MemberKind.NSDelegate,
+                required = true,
+                returnTypeInfo = new ClassTypeInfo
+                {
+                    type = MemberKind.Class,
+                    required = true,
+                    classId = RigClassId,
+                },
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                createdAt = "x",
+                updatedAt = "x",
+                defaultValue = new DelegateMemberValueBase
+                {
+                    value = new NeoDelegateValue
+                    {
+                        memberId = "callable-member",
+                        valueId = "c-value",
+                    },
+                },
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            using var source = new NeoMemberDelegate(client, member, null);
+            NeoDelegate<object?> bound = source.Bind<object?>(result => result);
+
+            NeoDelegateValue? persisted =
+                NeoGeneratedTypesSupport.DelegateValue(bound);
+
+            Assert.NotNull(persisted);
+            Assert.AreEqual("callable-member", persisted!.memberId);
+            Assert.AreEqual("c-value", persisted.valueId);
+            Assert.AreNotSame(
+                member.defaultValue.value,
+                persisted,
+                "typed assignment must copy only the persisted binding shape");
+        }
+
+        [Test]
+        public void NativeDelegate_CannotBePersistedAsANeoBinding()
+        {
+            NeoDelegate<object?> native = () => new object();
+
+            var error = Assert.Throws<ArgumentException>(
+                () => NeoGeneratedTypesSupport.DelegateValue(native));
+
+            StringAssert.Contains("was not loaded from a NeoDelegate member", error!.Message);
+        }
+
         /// <summary>
         /// P48 §3.2: an unequipped layer resolves nothing, so the track writes
         /// nothing and the member keeps its last value. Silent and legal at
