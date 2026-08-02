@@ -21,7 +21,7 @@ namespace NeoCompose.Tests
         private const string PackageRoot = "Packages/com.ryanbliss.neocompose/Tests";
 
         /// <summary>
-        /// NUnit attribute arguments must be compile-time constants, and
+        /// NUnit test-case metadata only accepts literal values, and
         /// NeoPlayDirection is the SDK-shipped option-id wrapper class — so
         /// cases carry the member name and resolve it here.
         /// </summary>
