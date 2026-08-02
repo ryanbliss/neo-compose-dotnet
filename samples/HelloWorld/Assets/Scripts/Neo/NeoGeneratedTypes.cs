@@ -80,6 +80,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["system_b3a94a53-8cb8-4df1-95f4-597bca10dac2"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, node),
                 ["system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, node),
                 ["system_d48b66ab-4d59-47e7-a25a-591fe97062de"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteObject.Create(client, node),
+                ["system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteAnimationSegment.Create(client, node),
             };
 
         internal static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory> NeoReadOnlyValueFactories =>
@@ -138,6 +139,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["system_b3a94a53-8cb8-4df1-95f4-597bca10dac2"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.CreateWritable(client, node),
                 ["system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.CreateWritable(client, node),
                 ["system_d48b66ab-4d59-47e7-a25a-591fe97062de"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteObject.CreateWritable(client, node),
+                ["system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteAnimationSegment.CreateWritable(client, node),
             };
 
         internal static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableClassFactory> NeoWritableValueFactories =>
@@ -196,6 +198,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer)] = "system_b3a94a53-8cb8-4df1-95f4-597bca10dac2",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile)] = "system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoSpriteObject)] = "system_d48b66ab-4d59-47e7-a25a-591fe97062de",
+                [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoSpriteAnimationSegment)] = "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3",
             };
 
         internal object? ResolveDialogueValue(string valueId) =>
@@ -800,74 +803,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         public static bool operator ==(WorldEnding? left, WorldEnding? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(WorldEnding? left, WorldEnding? right) => !(left == right);
     }
-    public sealed class NeoSpriteMaskInteraction : IEquatable<NeoSpriteMaskInteraction>, global::NeoCompose.Runtime.INeoEnumOption
-    {
-        private static readonly Dictionary<string, NeoSpriteMaskInteraction> values = new Dictionary<string, NeoSpriteMaskInteraction>();
-        public string optionId { get; }
-        public string Text => TextForOptionId(optionId);
-        public string TextId => TextIdForOptionId(optionId);
-
-        private NeoSpriteMaskInteraction(string optionId)
-        {
-            this.optionId = optionId;
-        }
-
-        public static readonly NeoSpriteMaskInteraction None = FromOptionId("system_9d607a4f-60c3-4347-94fc-f24b538bf468");
-        public static readonly NeoSpriteMaskInteraction VisibleInsideMask = FromOptionId("system_4c670ac9-78a4-44e9-9833-94e1c69dca97");
-        public static readonly NeoSpriteMaskInteraction VisibleOutsideMask = FromOptionId("system_a0aeb200-7216-49e2-aad2-e151ff35c336");
-
-        public static NeoSpriteMaskInteraction FromOptionId(string optionId)
-        {
-            if (values.TryGetValue(optionId, out var known)) return known;
-            var created = new NeoSpriteMaskInteraction(optionId);
-            values[optionId] = created;
-            return created;
-        }
-
-        public static string[] ToOptionIds(IEnumerable<NeoSpriteMaskInteraction>? options)
-        {
-            if (options is null) return Array.Empty<string>();
-            var ids = new List<string>();
-            foreach (var option in options) ids.Add(option.optionId);
-            return ids.ToArray();
-        }
-
-        public static bool IsKnown(string id)
-        {
-            return id switch
-            {
-                "system_9d607a4f-60c3-4347-94fc-f24b538bf468" => true,
-                "system_4c670ac9-78a4-44e9-9833-94e1c69dca97" => true,
-                "system_a0aeb200-7216-49e2-aad2-e151ff35c336" => true,
-                _ => false,
-            };
-        }
-
-        public static string TextIdForOptionId(string optionId)
-        {
-            return optionId switch
-            {
-                "system_9d607a4f-60c3-4347-94fc-f24b538bf468" => "None",
-                "system_4c670ac9-78a4-44e9-9833-94e1c69dca97" => "Visible inside mask",
-                "system_a0aeb200-7216-49e2-aad2-e151ff35c336" => "Visible outside mask",
-                _ => optionId,
-            };
-        }
-
-        public static string TextForOptionId(string optionId, NeoClient? client = null)
-        {
-            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
-        }
-
-        public static implicit operator string(NeoSpriteMaskInteraction value) => value.optionId;
-        public static implicit operator NeoSpriteMaskInteraction(string optionId) => FromOptionId(optionId);
-        public override string ToString() => optionId;
-        public bool Equals(NeoSpriteMaskInteraction? other) => other is not null && optionId == other.optionId;
-        public override bool Equals(object? obj) => Equals(obj as NeoSpriteMaskInteraction);
-        public override int GetHashCode() => optionId.GetHashCode();
-        public static bool operator ==(NeoSpriteMaskInteraction? left, NeoSpriteMaskInteraction? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
-        public static bool operator !=(NeoSpriteMaskInteraction? left, NeoSpriteMaskInteraction? right) => !(left == right);
-    }
     public sealed class NeoSmartTileOutput : IEquatable<NeoSmartTileOutput>, global::NeoCompose.Runtime.INeoEnumOption
     {
         private static readonly Dictionary<string, NeoSmartTileOutput> values = new Dictionary<string, NeoSmartTileOutput>();
@@ -1151,6 +1086,71 @@ namespace HelloWorld.Assets.Scripts.Neo
         public override int GetHashCode() => optionId.GetHashCode();
         public static bool operator ==(NeoSmartTileTransform? left, NeoSmartTileTransform? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(NeoSmartTileTransform? left, NeoSmartTileTransform? right) => !(left == right);
+    }
+    public sealed class NeoSelectorRefreshKind : IEquatable<NeoSelectorRefreshKind>, global::NeoCompose.Runtime.INeoEnumOption
+    {
+        private static readonly Dictionary<string, NeoSelectorRefreshKind> values = new Dictionary<string, NeoSelectorRefreshKind>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoSelectorRefreshKind(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoSelectorRefreshKind OnLoad = FromOptionId("system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200");
+        public static readonly NeoSelectorRefreshKind PerFrame = FromOptionId("system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f");
+
+        public static NeoSelectorRefreshKind FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new NeoSelectorRefreshKind(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoSelectorRefreshKind>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200" => true,
+                "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200" => "OnLoad",
+                "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f" => "PerFrame",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoSelectorRefreshKind value) => value.optionId;
+        public static implicit operator NeoSelectorRefreshKind(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoSelectorRefreshKind? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as NeoSelectorRefreshKind);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(NeoSelectorRefreshKind? left, NeoSelectorRefreshKind? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(NeoSelectorRefreshKind? left, NeoSelectorRefreshKind? right) => !(left == right);
     }
 
     public interface IHasName
@@ -2740,19 +2740,19 @@ namespace HelloWorld.Assets.Scripts.Neo
             set => FunctionHandlerObject = value;
         }
 
-        public BlockedPath(string Name, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoDialogueReference? BootGlyphSealLocked = null, NeoDialogueReference? BootGlyphSealReady = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Enabled, Position, Size, Tiles, BootGlyphSealLocked, BootGlyphSealReady), false, NeoValueOwnership.Session)
+        public BlockedPath(bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoDialogueReference? BootGlyphSealLocked = null, NeoDialogueReference? BootGlyphSealReady = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Enabled, Name, Position, Size, Tiles, BootGlyphSealLocked, BootGlyphSealReady), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string Name, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoDialogueReference? BootGlyphSealLocked = null, NeoDialogueReference? BootGlyphSealReady = null)
+        private static NeoMemberClassWritable CreateFactoryNode(bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoDialogueReference? BootGlyphSealLocked = null, NeoDialogueReference? BootGlyphSealReady = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tiles", "system_98655d2b-ad0b-45e2-a901-62600b4d3a22", Tiles),
@@ -7629,20 +7629,20 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public Assets(Worlds Worlds, Art? Art = null, Audio? Audio = null, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, OldConsoleLandingGrid? ScreenshotEmptyGrid = null, IEnumerable<NeoSortingLayer>? SortingLayers = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Worlds, Art, Audio, Computed, Items, LookupContainer, Outposts, ScreenshotEmptyGrid, SortingLayers), false, NeoValueOwnership.Session)
+        public Assets(Art Art, Audio Audio, Worlds Worlds, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, OldConsoleLandingGrid? ScreenshotEmptyGrid = null, IEnumerable<NeoSortingLayer>? SortingLayers = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Art, Audio, Worlds, Computed, Items, LookupContainer, Outposts, ScreenshotEmptyGrid, SortingLayers), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(Worlds Worlds, Art? Art = null, Audio? Audio = null, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, OldConsoleLandingGrid? ScreenshotEmptyGrid = null, IEnumerable<NeoSortingLayer>? SortingLayers = null)
+        private static NeoMemberClassWritable CreateFactoryNode(Art Art, Audio Audio, Worlds Worlds, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, OldConsoleLandingGrid? ScreenshotEmptyGrid = null, IEnumerable<NeoSortingLayer>? SortingLayers = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "dd0bbe5a-47ef-4164-9421-caea07f6f56f",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Worlds", "80d05ad2-08ff-4e17-8b29-8b185562b2c6", Worlds),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Art", "3b73b328-9a9d-4ee3-955c-9cc573170346", Art),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Audio", "6cc17e87-3907-4f96-84a2-b0b5a32bac25", Audio),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Worlds", "80d05ad2-08ff-4e17-8b29-8b185562b2c6", Worlds),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Computed", "92fe2bbb-e542-40a7-9d5e-7a7ad5b9abca", Computed),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "214df1a1-abca-4141-987b-380a5417c70a", Items),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("LookupContainer", "2c57948b-7479-47e0-b97c-242f6d543ae0", LookupContainer),
@@ -7866,19 +7866,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public ObjectLayerLink(string Name, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Objects = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Enabled, Position, Size, Objects), false, NeoValueOwnership.Session)
+        public ObjectLayerLink(bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Objects = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Enabled, Name, Position, Size, Objects), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string Name, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Objects = null)
+        private static NeoMemberClassWritable CreateFactoryNode(bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Objects = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "f1b08825-2ad0-4666-acf1-3df7ffbda64e",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Objects", "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2", Objects)
@@ -8666,19 +8666,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public BackgroundTileLayerLink(string Name, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Enabled, Position, Size, Tiles), false, NeoValueOwnership.Session)
+        public BackgroundTileLayerLink(bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Enabled, Name, Position, Size, Tiles), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string Name, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
+        private static NeoMemberClassWritable CreateFactoryNode(bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tiles", "system_98655d2b-ad0b-45e2-a901-62600b4d3a22", Tiles)
@@ -9059,19 +9059,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public CollisionsTileLayerLink(string Name, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Enabled, Position, Size, Tiles), false, NeoValueOwnership.Session)
+        public CollisionsTileLayerLink(bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Enabled, Name, Position, Size, Tiles), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string Name, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
+        private static NeoMemberClassWritable CreateFactoryNode(bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "neo-tile-grid-record-relations-v1-class-c0ae01529031e2de38dc078687d59140",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tiles", "system_98655d2b-ad0b-45e2-a901-62600b4d3a22", Tiles)
@@ -10165,6 +10165,341 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
+    /// <summary>
+    /// Plays a sprite segment onto a sprite child's Sprite member — the lane that
+    /// animates a sprite over time. Derive from it to say where the segment comes
+    /// from; Segment is left for you to fill in, so every lane that plays is one of
+    /// your own classes.
+    /// </summary>
+    public interface IReadOnlyNeoSpriteAnimationSegmentTrack<TChild> : IReadOnlyNeoAnimationSegmentTrack<TChild, Sprite>
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoSpriteAnimationSegmentTrack<TChild> Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+    }
+
+    /// <summary>
+    /// Plays a sprite segment onto a sprite child's Sprite member — the lane that
+    /// animates a sprite over time. Derive from it to say where the segment comes
+    /// from; Segment is left for you to fill in, so every lane that plays is one of
+    /// your own classes.
+    /// </summary>
+    public abstract partial class NeoSpriteAnimationSegmentTrack<TChild> : NeoAnimationSegmentTrack<TChild, Sprite>, IReadOnlyNeoSpriteAnimationSegmentTrack<TChild>
+    {
+        internal NeoSpriteAnimationSegmentTrack(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal new static NeoSpriteAnimationSegmentTrack<TChild> Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegmentTrack<TChild>>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoSpriteAnimationSegmentTrack' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal new static NeoSpriteAnimationSegmentTrack<TChild> CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegmentTrack<TChild>>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoSpriteAnimationSegmentTrack' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new NeoSpriteAnimationSegmentTrack<TChild> Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoSpriteAnimationSegmentTrack<TChild> IReadOnlyNeoSpriteAnimationSegmentTrack<TChild>.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoSpriteAnimationSegmentTrack<TChild> writable)
+        {
+            return TryWritable<NeoSpriteAnimationSegmentTrack<TChild>>(out writable);
+        }
+
+        IReadOnlyNeoAnimationSegment<Sprite> IReadOnlyNeoAnimationSegmentTrack<TChild, Sprite>.Segment
+        {
+            get
+            {
+                return (IReadOnlyNeoAnimationSegment<Sprite>)(object)((NeoAnimationSegmentTrack<TChild, Sprite>)this).Segment!;
+            }
+        }
+
+        IReadOnlyNeoObjectBase IReadOnlyNeoAnimationTrackBase.Child
+        {
+            get
+            {
+                return (IReadOnlyNeoObjectBase)(object)((NeoAnimationTrackBase)this).Child!;
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            internal static readonly NeoField<int> BaseDuration = new("BaseDuration");
+
+            public static readonly NeoField<TChild> Child = new("Child");
+
+            public static readonly NeoField<NeoPlayDirection> Direction = new("Direction");
+
+            public static readonly NeoField<int?> OffsetEndIndex = new("OffsetEndIndex");
+
+            public static readonly NeoField<int?> OffsetStartIndex = new("OffsetStartIndex");
+
+            public static readonly NeoField<NeoSelectorRefreshKind> Refresh = new("Refresh");
+
+            public static readonly NeoField<NeoDelegate<TChild>> Selector = new("Selector");
+
+            public static readonly NeoField<int> StartFrame = new("StartFrame");
+
+            public static readonly NeoField<NeoAnimationSegment<Sprite>> Segment = new("Segment");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.BaseDuration] = () => null,
+                [Fields.Child] = () => null,
+                [Fields.Direction] = () => null,
+                [Fields.OffsetEndIndex] = () => null,
+                [Fields.OffsetStartIndex] = () => null,
+                [Fields.Refresh] = () => null,
+                [Fields.Selector] = () => null,
+                [Fields.StartFrame] = () => null,
+                [Fields.Segment] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.BaseDuration] = () => BaseDuration,
+                [Fields.Child] = () => Child,
+                [Fields.Direction] = () => Direction,
+                [Fields.OffsetEndIndex] = () => OffsetEndIndex,
+                [Fields.OffsetStartIndex] = () => OffsetStartIndex,
+                [Fields.Refresh] = () => Refresh,
+                [Fields.Selector] = () => Selector,
+                [Fields.StartFrame] = () => StartFrame,
+                [Fields.Segment] = () => Segment,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    /// <summary>
+    /// A sequence of one member's values over a frame index. Frames are sparse and
+    /// each one holds until the next row or the end of Duration. A segment has no
+    /// fps of its own — the clip that schedules it owns the clock.
+    ///
+    /// A segment can live anywhere: immutable catalog data, a save, or session
+    /// state a game writes at runtime. Its frames and its Duration are re-read on
+    /// every frame that plays, so a change made mid-playback shows on the next
+    /// frame.
+    /// </summary>
+    public interface IReadOnlyNeoAnimationSegment<T> : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        IReadOnlyNeoAnimationSegment<T> Clone();
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        int Duration { get; }
+
+        NeoReadOnlyList<IReadOnlyNeoAnimationSegmentFrame<T>> Frames { get; }
+    }
+
+    /// <summary>
+    /// A sequence of one member's values over a frame index. Frames are sparse and
+    /// each one holds until the next row or the end of Duration. A segment has no
+    /// fps of its own — the clip that schedules it owns the clock.
+    ///
+    /// A segment can live anywhere: immutable catalog data, a save, or session
+    /// state a game writes at runtime. Its frames and its Duration are re-read on
+    /// every frame that plays, so a change made mid-playback shows on the next
+    /// frame.
+    /// </summary>
+    public abstract partial class NeoAnimationSegment<T> : NeoGeneratedClassValue, IReadOnlyNeoAnimationSegment<T>
+    {
+        internal NeoAnimationSegment(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "system_2866011d-30fe-410a-8a04-d2ff291b77cd", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal static NeoAnimationSegment<T> Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegment<T>>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3" => (NeoAnimationSegment<T>)(object)new NeoSpriteAnimationSegment(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoAnimationSegment' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal static NeoAnimationSegment<T> CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegment<T>>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3" => (NeoAnimationSegment<T>)(object)new NeoSpriteAnimationSegment(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoAnimationSegment' without a concrete client type id."),
+                };
+            });
+        }
+
+        public NeoAnimationSegment<T> Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoAnimationSegment<T> IReadOnlyNeoAnimationSegment<T>.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoAnimationSegment<T> writable)
+        {
+            return TryWritable<NeoAnimationSegment<T>>(out writable);
+        }
+
+        public virtual int Duration
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Duration")) ?? throw new InvalidOperationException("Required int 'Duration' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoAnimationSegment.Duration");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Duration", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public virtual NeoList<NeoAnimationSegmentFrame<T>> Frames
+        {
+            get
+            {
+                return new NeoList<NeoAnimationSegmentFrame<T>>(client, writableNode.Get<NeoMemberListWritable>("Frames"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Frames"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoAnimationSegmentFrame<T>.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoAnimationSegmentFrame<T>.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoAnimationSegment.Frames"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoAnimationSegmentFrame<T>> IReadOnlyNeoAnimationSegment<T>.Frames
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoAnimationSegmentFrame<T>>(client, node.Get<NeoMemberList>("Frames"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoAnimationSegmentFrame<T>.Create(client, (NeoMemberClass)child));
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<int> Duration = new("Duration");
+
+            public static readonly NeoField<NeoList<NeoAnimationSegmentFrame<T>>> Frames = new("Frames");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Duration] = () => null,
+                [Fields.Frames] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Duration] = () => Duration,
+                [Fields.Frames] = () => Frames,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
     public interface IReadOnlyNeoCollider : INeoValueReference, INeoCollider
     {
         bool IsReadOnly { get; }
@@ -10356,6 +10691,302 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.size] = () => size,
                 [Fields.offset] = () => offset,
                 [Fields.isTrigger] = () => isTrigger,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    /// <summary>
+    /// A lane on a clip's timeline: which child it plays against, when it starts,
+    /// which way it runs, and which slice of the content to use. Both kinds of
+    /// track derive from this, so playing a child clip reversed or cropped is
+    /// something you author on the lane rather than pass in when you play it.
+    /// </summary>
+    public interface IReadOnlyNeoAnimationTrackBase : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        IReadOnlyNeoAnimationTrackBase Clone();
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoAnimationTrackBase writable);
+
+        IReadOnlyNeoObjectBase Child { get; }
+
+
+        /// <summary>
+        /// Which way the scheduled content plays: forward, or last frame first. This is playback order, not a direction in the world.
+        /// </summary>
+        NeoPlayDirection Direction { get; }
+
+
+        /// <summary>
+        /// Where to stop, counted in the scheduled content's own frames. The frame at this index is not played. Leave it empty to run to the end. Dragging the right edge of a lane edits this.
+        /// </summary>
+        int? OffsetEndIndex { get; }
+
+
+        /// <summary>
+        /// The first frame of the scheduled content to play, counted in that content's own frames. Dragging the left edge of a lane edits this.
+        /// </summary>
+        int? OffsetStartIndex { get; }
+
+        NeoSelectorRefreshKind Refresh { get; }
+
+        NeoDelegate<IReadOnlyNeoObjectBase> Selector { get; }
+
+        int StartFrame { get; }
+    }
+
+    /// <summary>
+    /// A lane on a clip's timeline: which child it plays against, when it starts,
+    /// which way it runs, and which slice of the content to use. Both kinds of
+    /// track derive from this, so playing a child clip reversed or cropped is
+    /// something you author on the lane rather than pass in when you play it.
+    /// </summary>
+    public abstract partial class NeoAnimationTrackBase : NeoGeneratedClassValue, IReadOnlyNeoAnimationTrackBase
+    {
+        internal NeoAnimationTrackBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "system_45755778-ecfe-4a6c-b65f-a08017a7fb56", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal static NeoAnimationTrackBase Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationTrackBase>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    "system_8dc78ecf-15b8-4b8a-86f3-7691a5b487d0" => new NeoAnimationChildTrack(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoAnimationTrackBase' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal static NeoAnimationTrackBase CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationTrackBase>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    "system_8dc78ecf-15b8-4b8a-86f3-7691a5b487d0" => new NeoAnimationChildTrack(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoAnimationTrackBase' without a concrete client type id."),
+                };
+            });
+        }
+
+        public NeoAnimationTrackBase Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoAnimationTrackBase IReadOnlyNeoAnimationTrackBase.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoAnimationTrackBase writable)
+        {
+            return TryWritable<NeoAnimationTrackBase>(out writable);
+        }
+
+        /// <summary>
+        /// How long the scheduled content runs, in its own frames — the referenced clip's Duration on a child track, the segment's Duration on a segment track. Neo answers this for you; it is not a value you author.
+        /// </summary>
+        protected abstract int BaseDuration { get; }
+
+        public virtual NeoObjectBase Child
+        {
+            get
+            {
+                var selected = node.Get<NeoMemberLookup>("Child").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : selected[0] is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)selected[0]);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoAnimationTrackBase.Child");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Child", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
+            }
+        }
+
+        IReadOnlyNeoObjectBase IReadOnlyNeoAnimationTrackBase.Child
+        {
+            get
+            {
+                var selected = node.Get<NeoMemberLookup>("Child").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)selected[0]);
+            }
+        }
+
+        /// <summary>
+        /// Which way the scheduled content plays: forward, or last frame first. This is playback order, not a direction in the world.
+        /// </summary>
+        public virtual NeoPlayDirection Direction
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Direction"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Direction' has no selected option.") : NeoPlayDirection.FromOptionId(selected);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoAnimationTrackBase.Direction");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Direction", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+            }
+        }
+
+        /// <summary>
+        /// Where to stop, counted in the scheduled content's own frames. The frame at this index is not played. Leave it empty to run to the end. Dragging the right edge of a lane edits this.
+        /// </summary>
+        public virtual int? OffsetEndIndex
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("OffsetEndIndex"));
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoAnimationTrackBase.OffsetEndIndex");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "OffsetEndIndex", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        /// <summary>
+        /// The first frame of the scheduled content to play, counted in that content's own frames. Dragging the left edge of a lane edits this.
+        /// </summary>
+        public virtual int? OffsetStartIndex
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("OffsetStartIndex"));
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoAnimationTrackBase.OffsetStartIndex");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "OffsetStartIndex", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public virtual NeoSelectorRefreshKind Refresh
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Refresh"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Refresh' has no selected option.") : NeoSelectorRefreshKind.FromOptionId(selected);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoAnimationTrackBase.Refresh");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Refresh", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+            }
+        }
+
+        public virtual NeoDelegate<IReadOnlyNeoObjectBase> Selector
+        {
+            get
+            {
+                var child = node.Get<NeoMemberDelegate>("Selector");
+                return child.Bind<IReadOnlyNeoObjectBase>(result => NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<IReadOnlyNeoObjectBase>(client, result, true, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, "Selector delegate result"));
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoAnimationTrackBase.Selector");
+                writableNode.Get<NeoMemberDelegateWritable>("Selector").Set(value);
+            }
+        }
+
+        public virtual int StartFrame
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("StartFrame")) ?? throw new InvalidOperationException("Required int 'StartFrame' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoAnimationTrackBase.StartFrame");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "StartFrame", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            internal static readonly NeoField<int> BaseDuration = new("BaseDuration");
+
+            public static readonly NeoField<NeoObjectBase> Child = new("Child");
+
+            public static readonly NeoField<NeoPlayDirection> Direction = new("Direction");
+
+            public static readonly NeoField<int?> OffsetEndIndex = new("OffsetEndIndex");
+
+            public static readonly NeoField<int?> OffsetStartIndex = new("OffsetStartIndex");
+
+            public static readonly NeoField<NeoSelectorRefreshKind> Refresh = new("Refresh");
+
+            public static readonly NeoField<NeoDelegate<IReadOnlyNeoObjectBase>> Selector = new("Selector");
+
+            public static readonly NeoField<int> StartFrame = new("StartFrame");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.BaseDuration] = () => null,
+                [Fields.Child] = () => null,
+                [Fields.Direction] = () => null,
+                [Fields.OffsetEndIndex] = () => null,
+                [Fields.OffsetStartIndex] = () => null,
+                [Fields.Refresh] = () => null,
+                [Fields.Selector] = () => null,
+                [Fields.StartFrame] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.BaseDuration] = () => BaseDuration,
+                [Fields.Child] = () => Child,
+                [Fields.Direction] = () => Direction,
+                [Fields.OffsetEndIndex] = () => OffsetEndIndex,
+                [Fields.OffsetStartIndex] = () => OffsetStartIndex,
+                [Fields.Refresh] = () => Refresh,
+                [Fields.Selector] = () => Selector,
+                [Fields.StartFrame] = () => StartFrame,
             };
         }
 
@@ -11467,6 +12098,141 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
+    /// <summary>
+    /// A row at a frame index. Rows are sparse: each one holds from its index
+    /// until the next row you author, so you only author the frames where
+    /// something changes.
+    /// </summary>
+    public interface IReadOnlyNeoAnimationFrameBase : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        IReadOnlyNeoAnimationFrameBase Clone();
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoAnimationFrameBase writable);
+
+        int Index { get; }
+    }
+
+    /// <summary>
+    /// A row at a frame index. Rows are sparse: each one holds from its index
+    /// until the next row you author, so you only author the frames where
+    /// something changes.
+    /// </summary>
+    public abstract partial class NeoAnimationFrameBase : NeoGeneratedClassValue, IReadOnlyNeoAnimationFrameBase
+    {
+        internal NeoAnimationFrameBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "system_6529416a-f68b-49a3-b3d2-2af8fda60cb4", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal static NeoAnimationFrameBase Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationFrameBase>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoAnimationFrameBase' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal static NeoAnimationFrameBase CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationFrameBase>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoAnimationFrameBase' without a concrete client type id."),
+                };
+            });
+        }
+
+        public NeoAnimationFrameBase Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoAnimationFrameBase IReadOnlyNeoAnimationFrameBase.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoAnimationFrameBase writable)
+        {
+            return TryWritable<NeoAnimationFrameBase>(out writable);
+        }
+
+        public virtual int Index
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Index")) ?? throw new InvalidOperationException("Required int 'Index' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoAnimationFrameBase.Index");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Index", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<int> Index = new("Index");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Index] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Index] = () => Index,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
     public interface IReadOnlyNeoTextNodeMemory : INeoValueReference
     {
         bool IsReadOnly { get; }
@@ -12136,6 +12902,147 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    /// <summary>
+    /// One value at a frame index inside a segment. It holds until the next row
+    /// you author, or until the segment's Duration runs out.
+    /// </summary>
+    public interface IReadOnlyNeoAnimationSegmentFrame<T> : IReadOnlyNeoAnimationFrameBase
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoAnimationSegmentFrame<T> Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        T Value { get; }
+    }
+
+    /// <summary>
+    /// One value at a frame index inside a segment. It holds until the next row
+    /// you author, or until the segment's Duration runs out.
+    /// </summary>
+    public partial class NeoAnimationSegmentFrame<T> : NeoAnimationFrameBase, IReadOnlyNeoAnimationSegmentFrame<T>
+    {
+        internal NeoAnimationSegmentFrame(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal new static NeoAnimationSegmentFrame<T> Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegmentFrame<T>>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoAnimationSegmentFrame' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal new static NeoAnimationSegmentFrame<T> CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegmentFrame<T>>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoAnimationSegmentFrame' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new NeoAnimationSegmentFrame<T> Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoAnimationSegmentFrame<T> IReadOnlyNeoAnimationSegmentFrame<T>.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoAnimationSegmentFrame<T> writable)
+        {
+            return TryWritable<NeoAnimationSegmentFrame<T>>(out writable);
+        }
+
+        private NeoGenericBinding<T>? _valueGenericBinding;
+
+        public virtual T Value
+        {
+            get
+            {
+                var child = node.Get<NeoMember>("Value");
+                _valueGenericBinding ??= NeoGenericBindings.Resolve<T>(client, child);
+                return _valueGenericBinding.Read(child);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoAnimationSegmentFrame.Value");
+                var child = writableNode.Get<NeoMember>("Value");
+                _valueGenericBinding ??= NeoGenericBindings.Resolve<T>(client, child);
+                _valueGenericBinding.Write(child, value);
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<int> Index = new("Index");
+
+            public static readonly NeoField<T> Value = new("Value");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Index] = () => null,
+                [Fields.Value] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Index] = () => Index,
+                [Fields.Value] = () => Value,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -14034,6 +14941,367 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => Children,
                 [Fields.Collider] = () => Collider,
                 [Fields.PlacementTiles] = () => PlacementTiles,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    /// <summary>
+    /// Plays a sequence of values onto one member of one child, on the owning
+    /// clip's clock. Where a child track hands off to another clip, this lane is a
+    /// leaf: it writes one value per frame to the member its subclass targets.
+    ///
+    /// Derive from it with the child type you author against, so that a Segment
+    /// getter can reach that child's own members.
+    /// </summary>
+    public interface IReadOnlyNeoAnimationSegmentTrack<TChild, TValue> : IReadOnlyNeoAnimationTrackBase
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoAnimationSegmentTrack<TChild, TValue> Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+
+        /// <summary>
+        /// The child this lane plays against, typed as the child class you derived with, so a Segment getter can read that child's own members.
+        /// </summary>
+        new TChild Child { get; }
+
+
+        /// <summary>
+        /// The sequence of values this lane plays. Your subclass decides where it comes from — a value you store, a lookup, or a getter you write — and it is resolved again on every frame that plays.
+        /// </summary>
+        IReadOnlyNeoAnimationSegment<TValue> Segment { get; }
+
+
+        /// <summary>
+        /// The child this lane plays against, typed as the child class you derived with, so a Segment getter can read that child's own members.
+        /// </summary>
+        new NeoDelegate<TChild> Selector { get; }
+    }
+
+    /// <summary>
+    /// Plays a sequence of values onto one member of one child, on the owning
+    /// clip's clock. Where a child track hands off to another clip, this lane is a
+    /// leaf: it writes one value per frame to the member its subclass targets.
+    ///
+    /// Derive from it with the child type you author against, so that a Segment
+    /// getter can reach that child's own members.
+    /// </summary>
+    public abstract partial class NeoAnimationSegmentTrack<TChild, TValue> : NeoAnimationTrackBase, IReadOnlyNeoAnimationSegmentTrack<TChild, TValue>
+    {
+        internal NeoAnimationSegmentTrack(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal new static NeoAnimationSegmentTrack<TChild, TValue> Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegmentTrack<TChild, TValue>>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoAnimationSegmentTrack' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal new static NeoAnimationSegmentTrack<TChild, TValue> CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegmentTrack<TChild, TValue>>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoAnimationSegmentTrack' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new NeoAnimationSegmentTrack<TChild, TValue> Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoAnimationSegmentTrack<TChild, TValue> IReadOnlyNeoAnimationSegmentTrack<TChild, TValue>.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoAnimationSegmentTrack<TChild, TValue> writable)
+        {
+            return TryWritable<NeoAnimationSegmentTrack<TChild, TValue>>(out writable);
+        }
+
+        /// <summary>
+        /// The child this lane plays against, typed as the child class you derived with, so a Segment getter can read that child's own members.
+        /// </summary>
+        public new abstract TChild Child { get; set; }
+
+        /// <summary>
+        /// The sequence of values this lane plays. Your subclass decides where it comes from — a value you store, a lookup, or a getter you write — and it is resolved again on every frame that plays.
+        /// </summary>
+        public abstract NeoAnimationSegment<TValue> Segment { get; }
+
+        IReadOnlyNeoAnimationSegment<TValue> IReadOnlyNeoAnimationSegmentTrack<TChild, TValue>.Segment => Segment;
+
+        /// <summary>
+        /// The child this lane plays against, typed as the child class you derived with, so a Segment getter can read that child's own members.
+        /// </summary>
+        public new virtual NeoDelegate<TChild> Selector
+        {
+            get
+            {
+                var child = node.Get<NeoMemberDelegate>("Selector");
+                return child.Bind<TChild>(result => (TChild)result!);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoAnimationSegmentTrack.Selector");
+                writableNode.Get<NeoMemberDelegateWritable>("Selector").Set(value);
+            }
+        }
+
+        IReadOnlyNeoObjectBase IReadOnlyNeoAnimationTrackBase.Child
+        {
+            get
+            {
+                return (IReadOnlyNeoObjectBase)(object)((NeoAnimationTrackBase)this).Child!;
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            internal static readonly NeoField<int> BaseDuration = new("BaseDuration");
+
+            public static readonly NeoField<TChild> Child = new("Child");
+
+            public static readonly NeoField<NeoPlayDirection> Direction = new("Direction");
+
+            public static readonly NeoField<int?> OffsetEndIndex = new("OffsetEndIndex");
+
+            public static readonly NeoField<int?> OffsetStartIndex = new("OffsetStartIndex");
+
+            public static readonly NeoField<NeoSelectorRefreshKind> Refresh = new("Refresh");
+
+            public static readonly NeoField<NeoDelegate<TChild>> Selector = new("Selector");
+
+            public static readonly NeoField<int> StartFrame = new("StartFrame");
+
+            public static readonly NeoField<NeoAnimationSegment<TValue>> Segment = new("Segment");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.BaseDuration] = () => null,
+                [Fields.Child] = () => null,
+                [Fields.Direction] = () => null,
+                [Fields.OffsetEndIndex] = () => null,
+                [Fields.OffsetStartIndex] = () => null,
+                [Fields.Refresh] = () => null,
+                [Fields.Selector] = () => null,
+                [Fields.StartFrame] = () => null,
+                [Fields.Segment] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.BaseDuration] = () => BaseDuration,
+                [Fields.Child] = () => Child,
+                [Fields.Direction] = () => Direction,
+                [Fields.OffsetEndIndex] = () => OffsetEndIndex,
+                [Fields.OffsetStartIndex] = () => OffsetStartIndex,
+                [Fields.Refresh] = () => Refresh,
+                [Fields.Selector] = () => Selector,
+                [Fields.StartFrame] = () => StartFrame,
+                [Fields.Segment] = () => Segment,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    /// <summary>
+    /// A sprite flipbook: which sprite to show at each frame index. This is the
+    /// segment to reach for when animating a sprite. To animate any other kind of
+    /// value — a Vector3 bounce, a Color flash — declare your own segment class
+    /// deriving from NeoAnimationSegment.
+    /// </summary>
+    public interface IReadOnlyNeoSpriteAnimationSegment : IReadOnlyNeoAnimationSegment<Sprite>
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoSpriteAnimationSegment Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoSpriteAnimationSegment writable);
+    }
+
+    /// <summary>
+    /// A sprite flipbook: which sprite to show at each frame index. This is the
+    /// segment to reach for when animating a sprite. To animate any other kind of
+    /// value — a Vector3 bounce, a Color flash — declare your own segment class
+    /// deriving from NeoAnimationSegment.
+    /// </summary>
+    public partial class NeoSpriteAnimationSegment : NeoAnimationSegment<Sprite>, IReadOnlyNeoSpriteAnimationSegment
+    {
+        internal NeoSpriteAnimationSegment(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public NeoSpriteAnimationSegment(int? Duration = null, IEnumerable<NeoAnimationSegmentFrame<Sprite>>? Frames = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Duration, Frames), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoMemberClassWritable CreateFactoryNode(int? Duration = null, IEnumerable<NeoAnimationSegmentFrame<Sprite>>? Frames = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
+                client,
+                "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Duration", "system_8a159870-36a4-40e4-98bf-15919410650a", Duration),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Frames", "system_40658ad2-b4a5-4404-bb6d-ed778088a772", Frames)
+            );
+        }
+
+        internal new static NeoSpriteAnimationSegment Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegment>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => new NeoSpriteAnimationSegment(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static NeoSpriteAnimationSegment CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegment>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => new NeoSpriteAnimationSegment(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new NeoSpriteAnimationSegment Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoSpriteAnimationSegment IReadOnlyNeoSpriteAnimationSegment.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoSpriteAnimationSegment writable)
+        {
+            return TryWritable<NeoSpriteAnimationSegment>(out writable);
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoAnimationSegmentFrame<Sprite>> IReadOnlyNeoAnimationSegment<Sprite>.Frames
+        {
+            get
+            {
+                return (NeoReadOnlyList<IReadOnlyNeoAnimationSegmentFrame<Sprite>>)(object)((NeoAnimationSegment<Sprite>)this).Frames!;
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<int> Duration = new("Duration");
+
+            public static readonly NeoField<NeoList<NeoAnimationSegmentFrame<Sprite>>> Frames = new("Frames");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Duration] = () => null,
+                [Fields.Frames] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Duration] = () => Duration,
+                [Fields.Frames] = () => Frames,
             };
         }
 
