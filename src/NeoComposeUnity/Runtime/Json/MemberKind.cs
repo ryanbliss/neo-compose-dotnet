@@ -54,6 +54,12 @@ namespace NeoCompose.Runtime.Json
         /// payload is an object containing <c>functionMemberId</c>.
         /// </summary>
         FunctionRef = 24,
+        /// <summary>
+        /// First-class NeoScript delegate value. The stored payload is either
+        /// a compiled closure or a bound Function/NSFunction/NSDelegate
+        /// member target.
+        /// </summary>
+        NSDelegate = 25,
         Unknown = -1,
         Void = -2,
     }

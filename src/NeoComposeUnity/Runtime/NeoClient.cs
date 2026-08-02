@@ -5567,6 +5567,8 @@ namespace NeoCompose.Runtime
             string keyDiscriminator = string.Empty;
             Json.TypeInfo? entryTypeInfo = null;
             Dictionary<string, Json.TypeInfo>? typeArguments = null;
+            Json.TypeInfo? delegateReturnType = null;
+            IReadOnlyList<Json.TypeInfo>? delegateArgumentTypes = null;
             switch (typeInfo)
             {
                 // The argument carrier is flat: it holds every discriminator
@@ -5581,6 +5583,8 @@ namespace NeoCompose.Runtime
                     keyDiscriminator = argument.keyEnumId ?? string.Empty;
                     entryTypeInfo = argument.entryTypeInfo;
                     typeArguments = argument.typeArguments;
+                    delegateReturnType = argument.returnTypeInfo;
+                    delegateArgumentTypes = argument.argumentTypes;
                     break;
                 case ClassTypeInfo classTypeInfo:
                     discriminator = classTypeInfo.classId;
@@ -5602,6 +5606,10 @@ namespace NeoCompose.Runtime
                 case LookupTypeInfo lookupTypeInfo:
                     discriminator = lookupTypeInfo.collectionMemberId;
                     entryTypeInfo = lookupTypeInfo.entryTypeInfo;
+                    break;
+                case DelegateTypeInfo delegateTypeInfo:
+                    delegateReturnType = delegateTypeInfo.returnTypeInfo;
+                    delegateArgumentTypes = delegateTypeInfo.argumentTypes;
                     break;
             }
 
@@ -5633,6 +5641,22 @@ namespace NeoCompose.Runtime
                 }
                 key.Append('}');
             }
+            if (delegateReturnType is not null)
+            {
+                key.Append("->")
+                    .Append(ConstructorPositionalTypeKey(delegateReturnType))
+                    .Append('(');
+                if (delegateArgumentTypes is not null)
+                {
+                    for (int i = 0; i < delegateArgumentTypes.Count; i++)
+                    {
+                        if (i != 0) key.Append(',');
+                        key.Append(ConstructorPositionalTypeKey(
+                            delegateArgumentTypes[i]));
+                    }
+                }
+                key.Append(')');
+            }
             return key.ToString();
         }
 
@@ -5640,6 +5664,11 @@ namespace NeoCompose.Runtime
         {
             foreach (var pair in data.members)
             {
+                if (pair.Value is DelegateMember delegateMember)
+                {
+                    ValidateDelegateMember(delegateMember);
+                    continue;
+                }
                 if (pair.Value is FunctionMember function)
                 {
                     ValidateCallableSignature(
@@ -5660,6 +5689,56 @@ namespace NeoCompose.Runtime
                     "NSFunction",
                     rejectOverrideFields: true);
                 ValidateNSFunctionMember(nsFunction);
+            }
+        }
+
+        private static void ValidateDelegateMember(DelegateMember member)
+        {
+            if (member.returnTypeInfo is null)
+            {
+                throw new System.InvalidOperationException(
+                    $"NSDelegate member '{member.id}' is missing returnTypeInfo.");
+            }
+            if (member.argumentTypes is null)
+            {
+                throw new System.InvalidOperationException(
+                    $"NSDelegate member '{member.id}' is missing argumentTypes.");
+            }
+            if (member.argumentTypes.Length > 16)
+            {
+                throw new System.InvalidOperationException(
+                    $"NSDelegate member '{member.id}' exceeds the 16-argument arity cap.");
+            }
+            FunctionWithReturnType? action = member.defaultValue?.value?.action;
+            if (action is null) return;
+            int expectedParameters = member.argumentTypes.Length + 2;
+            if (action.parameters is null
+                || action.parameters.Length != expectedParameters)
+            {
+                throw new System.InvalidOperationException(
+                    $"NSDelegate member '{member.id}' closure has {action.parameters?.Length ?? 0} parameters; expected {expectedParameters} (__this__, __root__, and {member.argumentTypes.Length} arguments).");
+            }
+            if (action.parameters[0].id != "__this__"
+                || action.parameters[1].id != "__root__")
+            {
+                throw new System.InvalidOperationException(
+                    $"NSDelegate member '{member.id}' closure must begin with __this__ and __root__ parameters.");
+            }
+            for (int i = 0; i < member.argumentTypes.Length; i++)
+            {
+                if (action.parameters[i + 2].id != $"__arg_{i}__"
+                    || !TypeInfoMatches(
+                        member.argumentTypes[i],
+                        action.parameters[i + 2].typeInfo))
+                {
+                    throw new System.InvalidOperationException(
+                        $"NSDelegate member '{member.id}' closure parameter {i} does not match its declared signature.");
+                }
+            }
+            if (!TypeInfoMatches(member.returnTypeInfo, action.typeInfo))
+            {
+                throw new System.InvalidOperationException(
+                    $"NSDelegate member '{member.id}' closure return type does not match its declared signature.");
             }
         }
 
@@ -5838,7 +5917,9 @@ namespace NeoCompose.Runtime
                     && a.collectionMemberId == b.collectionMemberId
                     && a.collectionValueId == b.collectionValueId
                     && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo)
-                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
+                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments)
+                    && TypeInfoMatches(a.returnTypeInfo, b.returnTypeInfo)
+                    && TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
                 (ClassTypeInfo a, ClassTypeInfo b) =>
                     a.classId == b.classId
                     && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
@@ -5885,8 +5966,32 @@ namespace NeoCompose.Runtime
                     a.collectionMemberId == b.collectionMemberId
                     && a.collectionValueId == b.collectionValueId
                     && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
+                (DelegateTypeInfo a, DelegateTypeInfo b) =>
+                    TypeInfoMatches(a.returnTypeInfo, b.returnTypeInfo)
+                    && TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
+                (FunctionArgumentTypeInfo a, DelegateTypeInfo b)
+                    when a.type == MemberKind.NSDelegate =>
+                    TypeInfoMatches(a.returnTypeInfo, b.returnTypeInfo)
+                    && TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
+                (DelegateTypeInfo a, FunctionArgumentTypeInfo b)
+                    when b.type == MemberKind.NSDelegate =>
+                    TypeInfoMatches(a.returnTypeInfo, b.returnTypeInfo)
+                    && TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
                 _ => true,
             };
+        }
+
+        private static bool TypeInfoListsMatch(
+            IReadOnlyList<Json.TypeInfo>? left,
+            IReadOnlyList<Json.TypeInfo>? right)
+        {
+            if (left is null || right is null) return left is null && right is null;
+            if (left.Count != right.Count) return false;
+            for (int i = 0; i < left.Count; i++)
+            {
+                if (!TypeInfoMatches(left[i], right[i])) return false;
+            }
+            return true;
         }
 
         private static bool TypeArgumentsMatch(

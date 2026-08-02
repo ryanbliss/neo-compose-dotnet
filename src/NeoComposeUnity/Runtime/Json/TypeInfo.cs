@@ -75,6 +75,18 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
+    /// First-class callable type info. The return type is declared first and
+    /// the positional argument types follow, matching NeoDelegate's generic
+    /// parameter order.
+    /// </summary>
+    public class DelegateTypeInfo : TypeInfo
+    {
+        [JsonConverter(typeof(FunctionReturnTypeInfoConverter))]
+        public TypeInfo returnTypeInfo = null!;
+        public TypeInfo[] argumentTypes = null!;
+    }
+
+    /// <summary>
     /// Enum type info. Carries the referenced enum id. Mirrors the
     /// TS-side <c>ITypeInfoEnum</c>.
     /// </summary>
@@ -155,6 +167,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(PrimitiveTypeInfo);
                 case MemberKind.Generic:
                     return typeof(GenericTypeInfo);
+                case MemberKind.NSDelegate:
+                    return typeof(DelegateTypeInfo);
                 default:
                     return null;
             }
@@ -212,6 +226,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(PrimitiveTypeInfo);
                 case MemberKind.Generic:
                     return typeof(GenericTypeInfo);
+                case MemberKind.NSDelegate:
+                    return typeof(DelegateTypeInfo);
                 default:
                     return null;
             }

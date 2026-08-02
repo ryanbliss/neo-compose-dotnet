@@ -304,6 +304,12 @@ namespace NeoCompose.Runtime.NeoScript
             /// </summary>
             public IReadOnlyList<string> functionCallStack { get; }
             /// <summary>
+            /// Ordered bound-delegate targets currently executing. This is a
+            /// shared mutable stack so nested evaluator contexts retain cycle
+            /// detection across closure and member-target boundaries.
+            /// </summary>
+            internal List<string> delegateCallStack { get; }
+            /// <summary>
             /// P43 §7.2.3 — ordered names of the classes currently under
             /// construction. Deliberately separate from
             /// <see cref="functionCallStack"/>: a constructor chain recurses
@@ -383,7 +389,8 @@ namespace NeoCompose.Runtime.NeoScript
                     string,
                     IReadOnlyDictionary<string, NeoGenericEnvEntry>>?
                     genericEnvironmentCache = null,
-                IReadOnlyList<string>? constructionStack = null)
+                IReadOnlyList<string>? constructionStack = null,
+                List<string>? delegateCallStack = null)
             {
                 this.client = client;
                 this.thisValue = thisValue;
@@ -410,6 +417,7 @@ namespace NeoCompose.Runtime.NeoScript
                         IReadOnlyDictionary<string, NeoGenericEnvEntry>>();
                 this.constructionStack = constructionStack
                     ?? System.Array.Empty<string>();
+                this.delegateCallStack = delegateCallStack ?? new List<string>();
                 allocationTracker = new NeoScriptAllocationTracker();
             }
 
@@ -439,7 +447,8 @@ namespace NeoCompose.Runtime.NeoScript
                     callableDispatchCache,
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
-                    constructionStack));
+                    constructionStack,
+                    delegateCallStack));
             }
 
             internal Context WithThis(object? newThisValue)
@@ -461,7 +470,8 @@ namespace NeoCompose.Runtime.NeoScript
                     callableDispatchCache,
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
-                    constructionStack));
+                    constructionStack,
+                    delegateCallStack));
             }
 
             internal Context WithRoot(object? newRootValue)
@@ -483,7 +493,8 @@ namespace NeoCompose.Runtime.NeoScript
                     callableDispatchCache,
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
-                    constructionStack));
+                    constructionStack,
+                    delegateCallStack));
             }
 
             internal Context WithContext(object? newContextValue)
@@ -505,7 +516,8 @@ namespace NeoCompose.Runtime.NeoScript
                     callableDispatchCache,
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
-                    constructionStack));
+                    constructionStack,
+                    delegateCallStack));
             }
 
             internal Context WithMemoryStore(INeoDialogueMemoryStore? newMemoryStore)
@@ -527,7 +539,8 @@ namespace NeoCompose.Runtime.NeoScript
                     callableDispatchCache,
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
-                    constructionStack));
+                    constructionStack,
+                    delegateCallStack));
             }
 
             internal Context WithFunctionCallHandler(
@@ -550,7 +563,8 @@ namespace NeoCompose.Runtime.NeoScript
                     callableDispatchCache,
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
-                    constructionStack));
+                    constructionStack,
+                    delegateCallStack));
             }
 
             internal Context WithSetterPushed(string memberId)
@@ -573,7 +587,8 @@ namespace NeoCompose.Runtime.NeoScript
                     callableDispatchCache,
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
-                    constructionStack));
+                    constructionStack,
+                    delegateCallStack));
             }
 
             internal Context WithFunctionPushed(string memberId)
@@ -598,7 +613,8 @@ namespace NeoCompose.Runtime.NeoScript
                     callableDispatchCache,
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
-                    constructionStack));
+                    constructionStack,
+                    delegateCallStack));
             }
 
             /// <summary>
@@ -630,7 +646,8 @@ namespace NeoCompose.Runtime.NeoScript
                     callableDispatchCache,
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
-                    next));
+                    next,
+                    delegateCallStack));
             }
         }
 
@@ -743,7 +760,15 @@ namespace NeoCompose.Runtime.NeoScript
             switch (pointer)
             {
                 case ValuePointer vp:
+                {
+                    if (NeoDelegateValueConverter.LooksLikeValue(vp.value.value))
+                    {
+                        NeoDelegateValue closure = vp.value.value!
+                            .ToObject<NeoDelegateValue>()!;
+                        return closure.Capture(ctx.thisValue, ctx.rootValue);
+                    }
                     return UnwrapJToken(vp.value.value);
+                }
                 case VariablePointer vrp:
                 {
                     if (!scope.TryGetValue(vrp.variableId, out var v))
@@ -889,6 +914,22 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 case CallFunctionPointer functionCall:
                     return EvalFunctionCall(functionCall, scope, ctx);
+                case CallDelegatePointer delegateCall:
+                {
+                    object? callable = EvalPointer(delegateCall.@delegate, scope, ctx);
+                    if (callable is null)
+                    {
+                        if (delegateCall.optional == true) return null;
+                        throw new NSGetterRuntimeError(
+                            "Cannot invoke a null NeoDelegate value.");
+                    }
+                    var args = new object?[delegateCall.args.Length];
+                    for (int i = 0; i < args.Length; i++)
+                    {
+                        args[i] = EvalPointer(delegateCall.args[i], scope, ctx);
+                    }
+                    return InvokeDelegate(callable, args, ctx);
+                }
                 case FunctionErrorCheckPointer functionErrorCheck:
                     return EvalFunctionErrorCheck(functionErrorCheck, scope, ctx);
                 default:
@@ -918,6 +959,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return $"staticMember {staticMember.memberId}";
                 case CallFunctionPointer functionCall:
                     return $"functionCall {functionCall.memberId ?? functionCall.memberKey}";
+                case CallDelegatePointer:
+                    return "delegateCall";
                 default:
                     return pointer.GetType().Name;
             }
@@ -976,6 +1019,212 @@ namespace NeoCompose.Runtime.NeoScript
             }
             throw new NSGetterRuntimeError(
                 $"Member '{memberId}' is not a callable Function member.");
+        }
+
+        /// <summary>
+        /// Invokes a closure or bound callable-member target. Public so
+        /// generated SDK surfaces and animation runtime code use the same
+        /// dispatch as the <c>callDelegate</c> IR pointer.
+        /// </summary>
+        public static object? InvokeDelegate(
+            object value,
+            object?[] args,
+            Context ctx)
+        {
+            NeoDelegateValue delegateValue = value switch
+            {
+                NeoDelegateValue typed => typed,
+                JObject json => json.ToObject<NeoDelegateValue>()!,
+                _ => throw new NSGetterRuntimeError(
+                    "NeoDelegate value is neither a closure nor a bound member target."),
+            };
+            args ??= Array.Empty<object?>();
+            if (delegateValue.IsClosure)
+            {
+                return InvokeDelegateClosure(delegateValue, args, ctx);
+            }
+            if (!delegateValue.IsMemberTarget)
+            {
+                throw new NSGetterRuntimeError(
+                    "NeoDelegate value is neither a closure nor a bound member target.");
+            }
+            return InvokeDelegateMemberTarget(delegateValue, args, ctx);
+        }
+
+        private static object? InvokeDelegateClosure(
+            NeoDelegateValue value,
+            object?[] args,
+            Context ctx)
+        {
+            FunctionWithReturnType action = value.action
+                ?? throw new NSGetterRuntimeError(
+                    "NeoDelegate closure has source code but no compiled action.");
+            if (action.parameters is null || action.parameters.Length != args.Length + 2)
+            {
+                throw new NSGetterRuntimeError(
+                    $"NeoDelegate closure expects {Math.Max(0, action.parameters?.Length - 2 ?? 0)} arguments but received {args.Length}.");
+            }
+            object? lexicalThis = value.hasLexicalEnvironment
+                ? value.lexicalThis
+                : ctx.thisValue;
+            object? lexicalRoot = value.hasLexicalEnvironment
+                ? value.lexicalRoot
+                : ctx.rootValue;
+            var nestedCtx = ctx.WithThis(lexicalThis).WithRoot(lexicalRoot);
+            var scope = new Dictionary<string, object?>(action.parameters.Length)
+            {
+                [action.parameters[0].id] = lexicalThis,
+                [action.parameters[1].id] = lexicalRoot,
+            };
+            for (int i = 0; i < args.Length; i++)
+            {
+                scope[action.parameters[i + 2].id] =
+                    NeoScriptValueMarshaller.Normalize(
+                        ctx.client,
+                        ctx.valueOwnership,
+                        args[i],
+                        action.parameters[i + 2].typeInfo,
+                        nestedCtx,
+                        $"argument {i} of NeoDelegate closure");
+            }
+            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
+                ctx.client,
+                action,
+                scope,
+                nestedCtx,
+                NeoScriptExecutionOptions.ForImmediate(ctx.client));
+            if (result.IsPaused)
+            {
+                result.Deferred?.DisposeFromOwner("NeoDelegate closure suspended");
+                throw new NSGetterRuntimeError(
+                    "NeoDelegate closure suspended; delegate calls require an immediate callable target.");
+            }
+            return result.ReturnValue;
+        }
+
+        private static object? InvokeDelegateMemberTarget(
+            NeoDelegateValue target,
+            object?[] args,
+            Context ctx)
+        {
+            string memberId = target.memberId!;
+            if (!ctx.client.TryGetMember(memberId, out JsonMember? member))
+            {
+                throw new NSGetterRuntimeError(
+                    $"NeoDelegate target member '{memberId}' does not exist.");
+            }
+            string frame = $"{member.name}[{target.valueId ?? "default"}]";
+            if (ctx.delegateCallStack.Contains(frame))
+            {
+                throw new NSGetterRuntimeError(
+                    $"NeoDelegate target cycle: {string.Join(" -> ", ctx.delegateCallStack.Concat(new[] { frame }))}.");
+            }
+            if (ctx.delegateCallStack.Count >= 64)
+            {
+                throw new NSGetterRuntimeError(
+                    $"NeoDelegate call stack exceeded 64 frames: {string.Join(" -> ", ctx.delegateCallStack.Concat(new[] { frame }))}.");
+            }
+
+            object? receiver = null;
+            if (target.valueId is not null)
+            {
+                NeoValueOwnership ownership = ResolveOwnershipForValueId(
+                    ctx,
+                    target.valueId);
+                if (!ctx.client.TryGetValue(
+                        ownership,
+                        target.valueId,
+                        out MemberValue? row))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"NeoDelegate target '{member.name}' has missing receiver value '{target.valueId}'.");
+                }
+                receiver = UnwrapCached(row, ctx, ownership);
+            }
+
+            ctx.delegateCallStack.Add(frame);
+            try
+            {
+                if (member is FunctionMember)
+                {
+                    if (ctx.client.IsNativeFunctionDeferred(memberId))
+                    {
+                        throw new NeoDeferredFunctionRuntimeError(
+                            $"NeoDelegate target Function '{member.name}' is deferred; delegates require an immediate callable target.");
+                    }
+                    return ctx.client.InvokeNativeFunction(memberId, receiver, args);
+                }
+                if (member is NSFunctionMember)
+                {
+                    return NeoNSFunctionRuntime.InvokeImmediate(
+                        ctx.client,
+                        memberId,
+                        receiver,
+                        args,
+                        ctx);
+                }
+                if (member is DelegateMember delegateMember)
+                {
+                    NeoDelegateValue nested = ResolveDelegateTargetValue(
+                        delegateMember,
+                        receiver,
+                        ctx);
+                    return InvokeDelegate(nested, args, ctx);
+                }
+                throw new NSGetterRuntimeError(
+                    $"NeoDelegate target '{member.name}' resolves to non-callable member kind {member.kind}.");
+            }
+            finally
+            {
+                ctx.delegateCallStack.RemoveAt(ctx.delegateCallStack.Count - 1);
+            }
+        }
+
+        private static NeoDelegateValue ResolveDelegateTargetValue(
+            DelegateMember member,
+            object? receiver,
+            Context ctx)
+        {
+            if (receiver is not null)
+            {
+                SchemaPlacement? placement = FindSchemaPlacementCached(
+                    member.id,
+                    ctx);
+                if (placement is null
+                    || receiver is not IDictionary<string, object?> record
+                    || !record.TryGetValue(placement.schemaKey, out object? raw))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"NeoDelegate target '{member.name}' is missing from its receiver.");
+                }
+                object? resolved = ResolveValueIfId(
+                    raw,
+                    ctx,
+                    member: member);
+                if (resolved is NeoDelegateValue target) return target;
+                throw new NSGetterRuntimeError(
+                    $"NeoDelegate target '{member.name}' has an invalid stored value.");
+            }
+
+            var visited = new HashSet<string>();
+            DelegateMember? cursor = member;
+            while (cursor is not null && visited.Add(cursor.id))
+            {
+                if (cursor.defaultValue?.value is NeoDelegateValue value)
+                {
+                    return value;
+                }
+                if (string.IsNullOrEmpty(cursor.extendsMemberId)
+                    || !ctx.client.TryGetMember(
+                        cursor.extendsMemberId,
+                        out DelegateMember? parent))
+                {
+                    break;
+                }
+                cursor = parent;
+            }
+            throw new NSGetterRuntimeError(
+                $"NeoDelegate target '{member.name}' has no declaration default.");
         }
 
         internal static string ResolveFunctionMemberId(
@@ -3069,6 +3318,7 @@ namespace NeoCompose.Runtime.NeoScript
                 ObjectMemberValue o => o.value is null
                     ? null
                     : ToObjectDict(row.id, ownership, o.value),
+                DelegateMemberValue d => d.value,
                 FileMemberValue f => f.value is null
                     ? null
                     : new Dictionary<string, object?> { ["fileId"] = f.value.fileId },

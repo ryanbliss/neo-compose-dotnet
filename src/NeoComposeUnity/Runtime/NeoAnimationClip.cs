@@ -94,6 +94,100 @@ namespace NeoCompose.Runtime
         public static bool operator !=(NeoPlayDirection? left, NeoPlayDirection? right) => !(left == right);
     }
 
+    /// <summary>
+    /// Controls how often an animation selector delegate is evaluated. The
+    /// contract ids mirror the authored system enum so generated projects use
+    /// this SDK-owned type consistently.
+    /// </summary>
+    public sealed class NeoSelectorRefreshKind
+        : IEquatable<NeoSelectorRefreshKind>, INeoEnumOption
+    {
+        private static readonly Dictionary<string, NeoSelectorRefreshKind> values =
+            new Dictionary<string, NeoSelectorRefreshKind>();
+
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoSelectorRefreshKind(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoSelectorRefreshKind OnLoad = FromOptionId(
+            "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200");
+        public static readonly NeoSelectorRefreshKind PerFrame = FromOptionId(
+            "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f");
+
+        public static NeoSelectorRefreshKind FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out NeoSelectorRefreshKind known))
+            {
+                return known;
+            }
+            var created = new NeoSelectorRefreshKind(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(
+            IEnumerable<NeoSelectorRefreshKind>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (NeoSelectorRefreshKind option in options)
+            {
+                ids.Add(option.optionId);
+            }
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id) =>
+            string.Equals(id, OnLoad.optionId, StringComparison.Ordinal)
+            || string.Equals(id, PerFrame.optionId, StringComparison.Ordinal);
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            if (string.Equals(optionId, OnLoad.optionId, StringComparison.Ordinal))
+            {
+                return "OnLoad";
+            }
+            if (string.Equals(optionId, PerFrame.optionId, StringComparison.Ordinal))
+            {
+                return "PerFrame";
+            }
+            return optionId;
+        }
+
+        public static string TextForOptionId(
+            string optionId,
+            NeoClient? client = null)
+        {
+            return client is null
+                ? TextIdForOptionId(optionId)
+                : client.Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoSelectorRefreshKind value) =>
+            value.optionId;
+        public static implicit operator NeoSelectorRefreshKind(string optionId) =>
+            FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoSelectorRefreshKind? other) =>
+            other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) =>
+            Equals(obj as NeoSelectorRefreshKind);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(
+            NeoSelectorRefreshKind? left,
+            NeoSelectorRefreshKind? right) =>
+            ReferenceEquals(left, right)
+            || (left is not null && left.Equals(right));
+        public static bool operator !=(
+            NeoSelectorRefreshKind? left,
+            NeoSelectorRefreshKind? right) => !(left == right);
+    }
+
     internal interface INeoAnimationPlayer
     {
         string InstanceIdentity { get; }
