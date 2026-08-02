@@ -165,6 +165,7 @@ namespace NeoCompose.Runtime
             NeoScript.NSGetterEvaluator.Context ctx,
             string label)
         {
+            ctx.allocationTracker.ConsumeWorkUnit();
             if (ctx.constructionStack.Count >= MaxConstructionDepth)
             {
                 var chain = new List<string>(ctx.constructionStack) { label };
@@ -214,6 +215,9 @@ namespace NeoCompose.Runtime
             internal Dictionary<string, NeoValueOwnership>
                 referenceOwnershipByPath { get; } =
                     new Dictionary<string, NeoValueOwnership>();
+
+            internal NeoScript.NSGetterEvaluator.Context? ExistingEvaluationContext =>
+                evaluationContext;
 
             /// <summary>
             /// The context initializer bodies evaluate on. When construction
@@ -1478,6 +1482,12 @@ namespace NeoCompose.Runtime
                 rows,
                 scope.referenceOwnershipByPath,
                 requireCompleteRoot);
+
+            if (scope.ExistingEvaluationContext is { } evaluationContext)
+            {
+                evaluationContext.allocationTracker
+                    .ConsumeCreatedSessionRows(rows);
+            }
 
             foreach (var row in rows)
             {
