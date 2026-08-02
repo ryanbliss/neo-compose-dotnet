@@ -67,11 +67,48 @@ namespace NeoCompose.Tests
             Assert.AreEqual(9, typeof(NeoDelegate<,,,,,,,,>).GetGenericArguments().Length);
             Assert.AreEqual(17, typeof(NeoDelegate<,,,,,,,,,,,,,,,,>).GetGenericArguments().Length);
             Assert.AreEqual(
+                System.Reflection.GenericParameterAttributes.Covariant,
+                typeof(NeoDelegate<>).GetGenericArguments()[0].GenericParameterAttributes);
+            Assert.AreEqual(
+                System.Reflection.GenericParameterAttributes.Contravariant,
+                typeof(NeoDelegate<,>).GetGenericArguments()[1].GenericParameterAttributes);
+            Type[] sixteenParameterDelegateArguments =
+                typeof(NeoDelegate<,,,,,,,,,,,,,,,,>).GetGenericArguments();
+            Assert.AreEqual(
+                System.Reflection.GenericParameterAttributes.Covariant,
+                sixteenParameterDelegateArguments[0].GenericParameterAttributes);
+            for (int index = 1; index < sixteenParameterDelegateArguments.Length; index++)
+            {
+                Assert.AreEqual(
+                    System.Reflection.GenericParameterAttributes.Contravariant,
+                    sixteenParameterDelegateArguments[index].GenericParameterAttributes);
+            }
+
+            SelectorBase selector = new SelectorChild();
+            Assert.AreEqual("child", selector.Selector());
+
+            NeoDelegate<string, object> acceptsObject = _ => "input";
+            NeoDelegate<string, string> acceptsString = acceptsObject;
+            Assert.AreEqual("input", acceptsString("child"));
+
+            Assert.AreEqual(
                 "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200",
                 NeoSelectorRefreshKind.OnLoad.optionId);
             Assert.AreEqual(
                 "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f",
                 NeoSelectorRefreshKind.PerFrame.optionId);
+        }
+
+        private abstract class SelectorBase
+        {
+            public abstract NeoDelegate<object> Selector { get; }
+        }
+
+        private sealed class SelectorChild : SelectorBase
+        {
+            private static readonly NeoDelegate<string> ChildSelector = () => "child";
+
+            public override NeoDelegate<object> Selector => ChildSelector;
         }
 
         [Test]
