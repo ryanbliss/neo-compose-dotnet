@@ -231,6 +231,9 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Carrier for a Dictionary / Class <see cref="Member.defaultValue"/>.</summary>
     public class ObjectMemberValueBase : MemberValueBase<Dictionary<string, string>?> { }
 
+    /// <summary>Carrier for an NSDelegate declaration default.</summary>
+    public class DelegateMemberValueBase : MemberValueBase<NeoDelegateValue?> { }
+
     /// <summary>Carrier for an Audio file <see cref="Member.defaultValue"/>.</summary>
     public class FileMemberValueBase : MemberValueBase<FileValue?> { }
 
@@ -1059,6 +1062,7 @@ namespace NeoCompose.Runtime.Json
                     // each probe below still matters: it keeps a
                     // {"$partial":{"fileId":"…"}} from being mistaken for a
                     // whole File value should any other caller reuse them.
+                    if (NeoDelegateValueConverter.LooksLikeValue(token)) return typeof(DelegateMemberValueBase);
                     if (NeoVector3ValueConverter.LooksLikeVector3Value(token)) return typeof(Vector3MemberValueBase);
                     if (NeoVector2ValueConverter.LooksLikeVector2Value(token)) return typeof(Vector2MemberValueBase);
                     if (NeoColorValueConverter.LooksLikeColorValue(token)) return typeof(ColorMemberValueBase);
@@ -1217,6 +1221,9 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Stored value for a Dictionary / Class member.</summary>
     public class ObjectMemberValue : MemberValue<Dictionary<string, string>?> { }
 
+    /// <summary>Stored value for an NSDelegate member.</summary>
+    public class DelegateMemberValue : MemberValue<NeoDelegateValue?> { }
+
     /// <summary>Stored value for an Audio file member.</summary>
     public class FileMemberValue : MemberValue<FileValue?> { }
 
@@ -1319,6 +1326,7 @@ namespace NeoCompose.Runtime.Json
                     // P42: the `$partial` envelope probe MUST come first —
                     // see MemberValueBaseConverter.ResolveByShape.
                     if (NeoPartialLeafValue.IsEnvelope(token)) return typeof(PartialLeafMemberValue);
+                    if (NeoDelegateValueConverter.LooksLikeValue(token)) return typeof(DelegateMemberValue);
                     if (NeoVector3ValueConverter.LooksLikeVector3Value(token)) return typeof(Vector3MemberValue);
                     if (NeoVector2ValueConverter.LooksLikeVector2Value(token)) return typeof(Vector2MemberValue);
                     if (NeoColorValueConverter.LooksLikeColorValue(token)) return typeof(ColorMemberValue);

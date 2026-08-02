@@ -388,6 +388,11 @@ namespace NeoCompose.Runtime.Json
         public string? ownerClassId;
         public string? genericParamId;
         public Dictionary<string, TypeInfo>? typeArguments;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonConverter(typeof(FunctionReturnTypeInfoConverter))]
+        public TypeInfo? returnTypeInfo;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo[]? argumentTypes;
     }
 
     public class FunctionArgumentTypeInfoConverter : JsonConverter
@@ -440,6 +445,10 @@ namespace NeoCompose.Runtime.Json
                 ownerClassId = json.Value<string>("ownerClassId"),
                 genericParamId = json.Value<string>("genericParamId"),
                 typeArguments = json["typeArguments"]?.ToObject<Dictionary<string, TypeInfo>>(serializer),
+                returnTypeInfo = ReadDelegateReturnType(
+                    json["returnTypeInfo"],
+                    serializer),
+                argumentTypes = json["argumentTypes"]?.ToObject<TypeInfo[]>(serializer),
             };
         }
 
@@ -466,6 +475,28 @@ namespace NeoCompose.Runtime.Json
                 };
             }
             return (MemberKind)typeToken.Value<int>();
+        }
+
+        private static TypeInfo? ReadDelegateReturnType(
+            JToken? token,
+            JsonSerializer serializer)
+        {
+            if (token is null || token.Type == JTokenType.Null) return null;
+            if (token is not JObject obj)
+            {
+                throw new JsonSerializationException(
+                    "Delegate returnTypeInfo must be an object when present.");
+            }
+            if (obj["type"]?.Type == JTokenType.String
+                && obj["type"]!.Value<string>() == "Void")
+            {
+                return new VoidTypeInfo
+                {
+                    type = MemberKind.Void,
+                    required = obj.Value<bool?>("required") ?? true,
+                };
+            }
+            return obj.ToObject<TypeInfo>(serializer);
         }
     }
 
@@ -506,6 +537,17 @@ namespace NeoCompose.Runtime.Json
         public FunctionArgumentTypeInfo[] argumentTypes = null!;
         public bool? deferred;
         public FunctionWithReturnType action = null!;
+    }
+
+    /// <summary>
+    /// First-class callable value with a persisted positional signature.
+    /// Values are either compiled closures or bound callable-member targets.
+    /// </summary>
+    public sealed class DelegateMember : Member<NeoDelegateValue?>
+    {
+        [JsonConverter(typeof(FunctionReturnTypeInfoConverter))]
+        public TypeInfo returnTypeInfo = null!;
+        public FunctionArgumentTypeInfo[] argumentTypes = null!;
     }
 
     /// <summary>
@@ -649,6 +691,7 @@ namespace NeoCompose.Runtime.Json
                 case MemberKind.Function: return typeof(FunctionMember);
                 case MemberKind.NSFunction: return typeof(NSFunctionMember);
                 case MemberKind.FunctionRef: return typeof(FunctionRefMember);
+                case MemberKind.NSDelegate: return typeof(DelegateMember);
                 case MemberKind.Vector2: return typeof(Vector2Member);
                 case MemberKind.Vector2Int: return typeof(Vector2IntMember);
                 case MemberKind.Vector3: return typeof(Vector3Member);

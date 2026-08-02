@@ -553,6 +553,26 @@ namespace NeoCompose.Runtime
         private static bool ContainsGeneric(TypeInfo typeInfo)
         {
             if (typeInfo.type == MemberKind.Generic) return true;
+            TypeInfo? delegateReturn = typeInfo switch
+            {
+                DelegateTypeInfo delegateType => delegateType.returnTypeInfo,
+                FunctionArgumentTypeInfo argument
+                    when argument.type == MemberKind.NSDelegate => argument.returnTypeInfo,
+                _ => null,
+            };
+            if (delegateReturn is not null && ContainsGeneric(delegateReturn)) return true;
+            TypeInfo[]? delegateArguments = typeInfo switch
+            {
+                DelegateTypeInfo delegateType => delegateType.argumentTypes,
+                FunctionArgumentTypeInfo argument
+                    when argument.type == MemberKind.NSDelegate => argument.argumentTypes,
+                _ => null,
+            };
+            if (delegateArguments is not null
+                && Array.Exists(delegateArguments, ContainsGeneric))
+            {
+                return true;
+            }
             TypeInfo? entryTypeInfo = typeInfo switch
             {
                 FunctionArgumentTypeInfo argument => argument.entryTypeInfo,
@@ -717,6 +737,49 @@ namespace NeoCompose.Runtime
                         typeArguments,
                         genericEnv,
                         visitingMembers),
+                };
+            }
+
+            if (typeInfo.type == MemberKind.NSDelegate)
+            {
+                TypeInfo? delegateReturn = typeInfo switch
+                {
+                    DelegateTypeInfo delegateType => delegateType.returnTypeInfo,
+                    FunctionArgumentTypeInfo argument => argument.returnTypeInfo,
+                    _ => null,
+                };
+                TypeInfo[]? delegateArguments = typeInfo switch
+                {
+                    DelegateTypeInfo delegateType => delegateType.argumentTypes,
+                    FunctionArgumentTypeInfo argument => argument.argumentTypes,
+                    _ => null,
+                };
+                if (delegateReturn is null || delegateArguments is null)
+                {
+                    throw new NSGetterRuntimeError(
+                        "NeoDelegate NSFunction type is missing its signature.");
+                }
+                var resolvedArguments = new TypeInfo[delegateArguments.Length];
+                for (int i = 0; i < delegateArguments.Length; i++)
+                {
+                    resolvedArguments[i] = ResolveInvocationTypeInfo(
+                        client,
+                        delegateArguments[i],
+                        genericEnv,
+                        visitingMembers);
+                }
+                return new DelegateTypeInfo
+                {
+                    type = MemberKind.NSDelegate,
+                    required = typeInfo.required,
+                    returnTypeInfo = delegateReturn is VoidTypeInfo
+                        ? delegateReturn
+                        : ResolveInvocationTypeInfo(
+                            client,
+                            delegateReturn,
+                            genericEnv,
+                            visitingMembers),
+                    argumentTypes = resolvedArguments,
                 };
             }
 
@@ -889,6 +952,31 @@ namespace NeoCompose.Runtime
                                 entryMember,
                                 genericEnv,
                                 visitingMembers),
+                        };
+                    }
+                    case DelegateMember delegateMember:
+                    {
+                        var arguments = new TypeInfo[delegateMember.argumentTypes.Length];
+                        for (int i = 0; i < arguments.Length; i++)
+                        {
+                            arguments[i] = ResolveInvocationTypeInfo(
+                                client,
+                                delegateMember.argumentTypes[i],
+                                genericEnv,
+                                visitingMembers);
+                        }
+                        return new DelegateTypeInfo
+                        {
+                            type = MemberKind.NSDelegate,
+                            required = delegateMember.required,
+                            returnTypeInfo = delegateMember.returnTypeInfo is VoidTypeInfo
+                                ? delegateMember.returnTypeInfo
+                                : ResolveInvocationTypeInfo(
+                                    client,
+                                    delegateMember.returnTypeInfo,
+                                    genericEnv,
+                                    visitingMembers),
+                            argumentTypes = arguments,
                         };
                     }
                     case NullMember:
@@ -1308,6 +1396,7 @@ namespace NeoCompose.Runtime
                 MemberKind.Audio => value is FileValue
                     || value is AudioClip
                     || HasDictionaryString(value, "fileId"),
+                MemberKind.NSDelegate => value is NeoDelegateValue,
                 MemberKind.Unknown or MemberKind.Generic => true,
                 _ => true,
             };

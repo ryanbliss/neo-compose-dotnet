@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
+using Newtonsoft.Json.Linq;
 using JsonMember = NeoCompose.Runtime.Json.Member;
 
 namespace NeoCompose.Runtime
@@ -91,6 +92,12 @@ namespace NeoCompose.Runtime
                 throw new NeoScriptPreExecutionValidationError(
                     $"NeoScript try/catch IR requires compiler revision 6; body declares revision {compilerRevision}.");
             }
+            if (compilerRevision < 7
+                && ContainsDelegateCall(body.instructions))
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    $"NeoScript delegate-call IR requires compiler revision 7; body declares revision {compilerRevision}.");
+            }
 
             bool allocationScopeClosed = false;
             ctx.allocationTracker.EnterExecution();
@@ -167,6 +174,20 @@ namespace NeoCompose.Runtime
                 CloseAllocationScope(allocationTerminal);
                 return result;
             }
+        }
+
+        private static bool ContainsDelegateCall(Instruction[]? instructions)
+        {
+            if (instructions is null || instructions.Length == 0) return false;
+            JContainer body = (JContainer)JToken.FromObject(instructions);
+            return body
+                .Descendants()
+                .Prepend(body)
+                .OfType<JObject>()
+                .Any(pointer => string.Equals(
+                    pointer["type"]?.Value<string>(),
+                    PointerKind.CallDelegate,
+                    StringComparison.Ordinal));
         }
 
         private static bool ContainsLoopInstruction(Instruction[]? instructions)

@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-08-02
+
+### Added
+
+- **First-class NeoScript delegates (P60).** The SDK now mirrors the
+  `NSDelegate` wire member and callable type-info shapes, ships
+  `NeoDelegate<TReturn, ...>` variants through 16 parameters, and exposes
+  typed binding support through `NeoMemberDelegate`.
+- Compiled `callDelegate` pointers execute inline closures with lexical
+  `this`/`root` capture or dispatch bound native, NeoScript, and nested
+  delegate member targets with cycle diagnostics.
+- Animation tracks and child overrides resolve `Selector` delegates with the
+  authored `OnLoad` or `PerFrame` refresh policy.
+
+### Changed
+
+- NeoScript compiler revision 7 is now supported for first-class delegate
+  invocation IR. Older compiled bodies continue to run unchanged.
+
 ## [0.16.0] - 2026-07-31
 
 ### Added

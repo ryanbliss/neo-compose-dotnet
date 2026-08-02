@@ -68,6 +68,11 @@ namespace NeoCompose.Runtime
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = Cast<Dictionary<string, string>?>(rawPayload, member),
                 },
+                DelegateMember => new DelegateMemberValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = Cast<NeoDelegateValue?>(rawPayload, member),
+                },
                 ListMember or EnumMember or LookupMember or DialogueLookupMember => new ArrayMemberValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
@@ -157,6 +162,7 @@ namespace NeoCompose.Runtime
                 Vector3IntMember member => member.defaultValue?.init,
                 ColorMember member => member.defaultValue?.init,
                 DecimalMember member => member.defaultValue?.init,
+                DelegateMember member => member.defaultValue?.init,
                 _ => null,
             };
         }
@@ -320,6 +326,12 @@ namespace NeoCompose.Runtime
                     classId = member.defaultValue.classId,
                 },
                 DecimalMember member => member.defaultValue is null ? null : new StringMemberValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = member.defaultValue.value,
+                    classId = member.defaultValue.classId,
+                },
+                DelegateMember member => member.defaultValue is null ? null : new DelegateMemberValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = member.defaultValue.value,

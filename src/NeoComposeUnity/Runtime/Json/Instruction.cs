@@ -95,7 +95,7 @@ namespace NeoCompose.Runtime.Json
 
     public class FunctionCallInstruction : Instruction
     {
-        public CallFunctionPointer call = null!;
+        public Pointer call = null!;
     }
 
     /// <summary>Loop-local binding metadata shared by loop instructions.</summary>

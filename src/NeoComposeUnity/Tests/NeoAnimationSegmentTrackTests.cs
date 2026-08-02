@@ -192,6 +192,174 @@ namespace NeoCompose.Tests
                 "an equip mid-animation must change the art on the next applied frame");
         }
 
+        [Test]
+        public void DelegateSelector_ReplacesLegacyChildLookupAtRuntime()
+        {
+            ProjectData data = BuildEquipProjectData();
+            data.classes[TrackBaseClassId].schema.Remove("Child");
+            data.classes[TrackBaseClassId].schema["Selector"] =
+                "track-selector-member";
+            data.members["track-selector-member"] = new DelegateMember
+            {
+                id = "track-selector-member",
+                projectId = ProjectId,
+                name = "Selector",
+                kind = MemberKind.NSDelegate,
+                required = true,
+                returnTypeInfo = new ClassTypeInfo
+                {
+                    type = MemberKind.Class,
+                    required = true,
+                    classId = RigClassId,
+                },
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            ObjectMemberValue track = (ObjectMemberValue)data.values["track-0"];
+            track.value!.Remove("Child");
+            track.value["Selector"] = "track-selector-value";
+            data.values["track-selector-value"] = new DelegateMemberValue
+            {
+                id = "track-selector-value",
+                createdAt = "x",
+                updatedAt = "x",
+                value = new NeoDelegateValue
+                {
+                    code = "() => this.Children[0]",
+                    action = new FunctionWithReturnType
+                    {
+                        compilerRevision = 7,
+                        parameters = new[]
+                        {
+                            new Variable
+                            {
+                                id = "__this__",
+                                typeInfo = new ClassTypeInfo
+                                {
+                                    type = MemberKind.Class,
+                                    required = true,
+                                    classId = RigClassId,
+                                },
+                                pointer = new VariablePointer
+                                {
+                                    type = PointerKind.Variable,
+                                    variableId = "__this__",
+                                },
+                            },
+                            new Variable
+                            {
+                                id = "__root__",
+                                typeInfo = new ClassTypeInfo
+                                {
+                                    type = MemberKind.Class,
+                                    required = true,
+                                    classId = RootClassId,
+                                },
+                                pointer = new VariablePointer
+                                {
+                                    type = PointerKind.Variable,
+                                    variableId = "__root__",
+                                },
+                            },
+                        },
+                        instructions = new Instruction[]
+                        {
+                            new ReturnInstruction
+                            {
+                                type = InstructionKind.Return,
+                                pointer = new ReferencePointer
+                                {
+                                    type = PointerKind.Reference,
+                                    valueId = "c-value",
+                                },
+                            },
+                        },
+                        typeInfo = new ClassTypeInfo
+                        {
+                            type = MemberKind.Class,
+                            required = true,
+                            classId = RigClassId,
+                        },
+                    },
+                },
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            using var target = OpenRig(client);
+            using NeoAnimationDefinition definition =
+                NeoAnimationCompiler.Compile(target, "Clip");
+
+            definition.PreparePlayback();
+            definition.ApplyFrame(0, useResolvedState: false);
+
+            Assert.AreEqual("a0", ReadLabel(client, "c-sprite"));
+        }
+
+        [Test]
+        public void TypedDelegateSetter_PersistsTheBoundNeoValue()
+        {
+            ProjectData data = BuildEquipProjectData();
+            var member = new DelegateMember
+            {
+                id = "track-selector-member",
+                projectId = ProjectId,
+                name = "Selector",
+                kind = MemberKind.NSDelegate,
+                required = true,
+                returnTypeInfo = new ClassTypeInfo
+                {
+                    type = MemberKind.Class,
+                    required = true,
+                    classId = RigClassId,
+                },
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                createdAt = "x",
+                updatedAt = "x",
+                defaultValue = new DelegateMemberValueBase
+                {
+                    value = new NeoDelegateValue
+                    {
+                        memberId = "callable-member",
+                        valueId = "c-value",
+                    },
+                },
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            using var source = new NeoMemberDelegate(client, member, null);
+            using var destination = new NeoMemberDelegateWritable(
+                client,
+                member,
+                null,
+                NeoValueOwnership.Session);
+            NeoDelegate<object?> bound = source.Bind<object?>(result => result);
+
+            destination.Set(bound);
+            NeoDelegateValue? persisted =
+                NeoGeneratedTypesSupport.DelegateValue(
+                    destination.Bind<object?>(result => result));
+
+            Assert.NotNull(persisted);
+            Assert.AreEqual("callable-member", persisted!.memberId);
+            Assert.AreEqual("c-value", persisted.valueId);
+            Assert.AreNotSame(
+                member.defaultValue.value,
+                persisted,
+                "typed assignment must copy only the persisted binding shape");
+        }
+
+        [Test]
+        public void NativeDelegate_CannotBePersistedAsANeoBinding()
+        {
+            NeoDelegate<object?> native = () => new object();
+
+            var error = Assert.Throws<ArgumentException>(
+                () => NeoGeneratedTypesSupport.DelegateValue(native));
+
+            StringAssert.Contains("was not loaded from a NeoDelegate member", error!.Message);
+        }
+
         /// <summary>
         /// P48 §3.2: an unequipped layer resolves nothing, so the track writes
         /// nothing and the member keeps its last value. Silent and legal at

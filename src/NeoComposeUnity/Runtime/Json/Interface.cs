@@ -236,6 +236,37 @@ namespace NeoCompose.Runtime.Json
             {
                 RejectUnsupportedTypeInfo(argument.entryTypeInfo, subject);
             }
+            if (typeInfo is DelegateTypeInfo delegateType)
+            {
+                if (delegateType.returnTypeInfo is null
+                    || delegateType.argumentTypes is null)
+                {
+                    throw new JsonSerializationException(
+                        $"{subject} delegate type is missing its signature.");
+                }
+                RejectUnsupportedTypeInfo(delegateType.returnTypeInfo, subject);
+                foreach (TypeInfo argumentType in delegateType.argumentTypes)
+                {
+                    RejectUnsupportedTypeInfo(argumentType, subject);
+                }
+            }
+            if (typeInfo is FunctionArgumentTypeInfo delegateArgument
+                && delegateArgument.type == MemberKind.NSDelegate)
+            {
+                if (delegateArgument.returnTypeInfo is null
+                    || delegateArgument.argumentTypes is null)
+                {
+                    throw new JsonSerializationException(
+                        $"{subject} delegate type is missing its signature.");
+                }
+                RejectUnsupportedTypeInfo(
+                    delegateArgument.returnTypeInfo,
+                    subject);
+                foreach (TypeInfo argumentType in delegateArgument.argumentTypes)
+                {
+                    RejectUnsupportedTypeInfo(argumentType, subject);
+                }
+            }
             if (typeInfo is ClassTypeInfo classType && classType.typeArguments is not null)
             {
                 foreach (TypeInfo typeArgument in classType.typeArguments.Values)

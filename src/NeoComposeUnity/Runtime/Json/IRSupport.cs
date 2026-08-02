@@ -32,6 +32,7 @@ namespace NeoCompose.Runtime.Json
         public const string ToBool = "toBool";
         public const string Stringify = "stringify";
         public const string CallFunction = "callFunction";
+        public const string CallDelegate = "callDelegate";
         public const string FunctionErrorCheck = "functionErrorCheck";
         public const string StaticMember = "staticMember";
     }
@@ -326,9 +327,9 @@ namespace NeoCompose.Runtime.Json
         /// P43 <c>declaredConstructor</c> function kind; revision 4 adds
         /// P50 loop and loop-control instructions; revision 5 adds the P51
         /// <c>switch</c> instruction; revision 6 adds the P52
-        /// <c>try</c> instruction.
+        /// <c>try</c> instruction; revision 7 adds first-class delegate calls.
         /// </summary>
-        public const int CurrentCompilerRevision = 6;
+        public const int CurrentCompilerRevision = 7;
 
         /// <summary>
         /// Optional for backward compatibility. Absence means legacy

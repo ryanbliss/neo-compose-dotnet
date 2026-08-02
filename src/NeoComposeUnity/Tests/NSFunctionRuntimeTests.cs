@@ -19,6 +19,307 @@ namespace NeoCompose.Tests
     public class NSFunctionRuntimeTests
     {
         [Test]
+        public void DelegateDto_UsesOrdinal25RecursiveSignatureAndCallIr()
+        {
+            const string json = @"{
+                'id':'selector','projectId':'project-function','name':'Selector','kind':25,
+                'isStatic':false,'accessModifierKind':'public','required':true,
+                'returnTypeInfo':{'type':21,'required':true,'ownerClassId':'track','genericParamId':'child'},
+                'argumentTypes':[{'name':'amount','type':2,'required':true}],
+                'defaultValue':{'value':{'code':'amount => amount','action':{
+                    'compilerRevision':7,
+                    'parameters':[
+                        {'id':'__this__','typeInfo':{'type':7,'required':true,'classId':'receiver-class'},'pointer':{'type':'variable','variableId':'__this__'}},
+                        {'id':'__root__','typeInfo':{'type':7,'required':true,'classId':'root-class'},'pointer':{'type':'variable','variableId':'__root__'}},
+                        {'id':'__arg_0__','typeInfo':{'type':2,'required':true},'pointer':{'type':'variable','variableId':'__arg_0__'}}
+                    ],
+                    'instructions':[{'type':'return','pointer':{'type':'variable','variableId':'__arg_0__'}}],
+                    'typeInfo':{'type':21,'required':true,'ownerClassId':'track','genericParamId':'child'}
+                }}},'createdAt':'x','updatedAt':'x'
+            }";
+
+            var member = (DelegateMember)JsonConvert.DeserializeObject<JsonMember>(json)!;
+
+            Assert.AreEqual(25, (int)member.kind);
+            Assert.IsInstanceOf<GenericTypeInfo>(member.returnTypeInfo);
+            Assert.AreEqual("amount", member.argumentTypes[0].name);
+            Assert.AreEqual(7, member.defaultValue!.value!.action!.compilerRevision);
+
+            const string callJson = @"{
+                'type':'functionCall','call':{
+                    'type':'callDelegate',
+                    'delegate':{'type':'variable','variableId':'selector'},
+                    'args':[{'type':'value','value':{'typeInfo':{'type':2,'required':true},'value':3}}],
+                    'callSiteId':'delegate-0'
+                }
+            }";
+            var instruction = (FunctionCallInstruction)
+                JsonConvert.DeserializeObject<Instruction>(callJson)!;
+            var call = (CallDelegatePointer)instruction.call;
+            Assert.AreEqual("delegate-0", call.callSiteId);
+            Assert.AreEqual(1, call.args.Length);
+        }
+
+        [Test]
+        public void DelegateApi_EnumeratesVariantsThroughSixteenParameters()
+        {
+            Assert.AreEqual(1, typeof(NeoDelegate<>).GetGenericArguments().Length);
+            Assert.AreEqual(9, typeof(NeoDelegate<,,,,,,,,>).GetGenericArguments().Length);
+            Assert.AreEqual(17, typeof(NeoDelegate<,,,,,,,,,,,,,,,,>).GetGenericArguments().Length);
+            Assert.AreEqual(
+                System.Reflection.GenericParameterAttributes.Covariant,
+                typeof(NeoDelegate<>).GetGenericArguments()[0].GenericParameterAttributes);
+            Assert.AreEqual(
+                System.Reflection.GenericParameterAttributes.Contravariant,
+                typeof(NeoDelegate<,>).GetGenericArguments()[1].GenericParameterAttributes);
+            Type[] sixteenParameterDelegateArguments =
+                typeof(NeoDelegate<,,,,,,,,,,,,,,,,>).GetGenericArguments();
+            Assert.AreEqual(
+                System.Reflection.GenericParameterAttributes.Covariant,
+                sixteenParameterDelegateArguments[0].GenericParameterAttributes);
+            for (int index = 1; index < sixteenParameterDelegateArguments.Length; index++)
+            {
+                Assert.AreEqual(
+                    System.Reflection.GenericParameterAttributes.Contravariant,
+                    sixteenParameterDelegateArguments[index].GenericParameterAttributes);
+            }
+
+            SelectorBase selector = new SelectorChild();
+            Assert.AreEqual("child", selector.Selector());
+
+            NeoDelegate<string, object> acceptsObject = _ => "input";
+            NeoDelegate<string, string> acceptsString = acceptsObject;
+            Assert.AreEqual("input", acceptsString("child"));
+
+            Assert.AreEqual(
+                "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200",
+                NeoSelectorRefreshKind.OnLoad.optionId);
+            Assert.AreEqual(
+                "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f",
+                NeoSelectorRefreshKind.PerFrame.optionId);
+        }
+
+        private abstract class SelectorBase
+        {
+            public abstract NeoDelegate<object> Selector { get; }
+        }
+
+        private sealed class SelectorChild : SelectorBase
+        {
+            private static readonly NeoDelegate<string> ChildSelector = () => "child";
+
+            public override NeoDelegate<object> Selector => ChildSelector;
+        }
+
+        [Test]
+        public void DelegateCall_RequiresCompilerRevisionSeven()
+        {
+            NeoClient client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var body = new FunctionWithReturnType
+            {
+                compilerRevision = 6,
+                parameters = new[]
+                {
+                    Parameter("__this__", new ClassTypeInfo
+                    {
+                        type = MemberKind.Class,
+                        required = true,
+                        classId = "receiver-class",
+                    }),
+                    Parameter("__root__", new ClassTypeInfo
+                    {
+                        type = MemberKind.Class,
+                        required = true,
+                        classId = "root-class",
+                    }),
+                },
+                instructions = new Instruction[]
+                {
+                    new FunctionCallInstruction
+                    {
+                        type = InstructionKind.FunctionCall,
+                        call = new CallDelegatePointer
+                        {
+                            type = PointerKind.CallDelegate,
+                            @delegate = Variable("selector"),
+                            args = Array.Empty<Pointer>(),
+                            callSiteId = "delegate-revision",
+                        },
+                    },
+                    Return(Literal(IntType(), new JValue(0))),
+                },
+                typeInfo = IntType(),
+            };
+
+            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+                NSGetterEvaluator.Evaluate(
+                    body,
+                    new NSGetterEvaluator.Context(
+                        client,
+                        new Dictionary<string, object?>(),
+                        new Dictionary<string, object?>())));
+
+            StringAssert.Contains("requires compiler revision 7", error!.Message);
+        }
+
+        [Test]
+        public void DelegateClosure_CapturesLexicalThisAndBindsArguments()
+        {
+            NeoClient client = BuildClient(
+                Array.Empty<JsonMember>(),
+                ReceiverClass(),
+                additionalValues: new MemberValue[]
+                {
+                    new NumberMemberValue
+                    {
+                        id = "count-a", value = 7, createdAt = "x", updatedAt = "x",
+                    },
+                    new NumberMemberValue
+                    {
+                        id = "count-b", value = 100, createdAt = "x", updatedAt = "x",
+                    },
+                });
+            FunctionWithReturnType closureAction = Action(
+                IntType(),
+                new[] { Argument("amount", MemberKind.Int) },
+                Return(Add(Key(Variable("__this__"), "Count"), Variable("__arg_0__"))));
+            closureAction.compilerRevision = 7;
+            var delegateType = new DelegateTypeInfo
+            {
+                type = MemberKind.NSDelegate,
+                required = true,
+                returnTypeInfo = IntType(),
+                argumentTypes = new TypeInfo[] { IntType() },
+            };
+            var getter = new FunctionWithReturnType
+            {
+                compilerRevision = 7,
+                parameters = new[]
+                {
+                    Parameter("__this__", new ClassTypeInfo
+                    {
+                        type = MemberKind.Class, required = true, classId = "receiver-class",
+                    }),
+                    Parameter("__root__", new ClassTypeInfo
+                    {
+                        type = MemberKind.Class, required = true, classId = "root-class",
+                    }),
+                },
+                instructions = new Instruction[]
+                {
+                    Return(Literal(
+                        delegateType,
+                        JObject.FromObject(new NeoDelegateValue
+                        {
+                            action = closureAction,
+                        }))),
+                },
+                typeInfo = delegateType,
+            };
+            var authoredThis = new Dictionary<string, object?> { ["Count"] = "count-a" };
+            var callerThis = new Dictionary<string, object?> { ["Count"] = "count-b" };
+            var authoredContext = new NSGetterEvaluator.Context(
+                client, authoredThis, new Dictionary<string, object?>());
+            object? closure = NSGetterEvaluator.Evaluate(getter, authoredContext);
+
+            object? result = NSGetterEvaluator.InvokeDelegate(
+                closure!,
+                new object?[] { 5 },
+                new NSGetterEvaluator.Context(
+                    client,
+                    callerThis,
+                    new Dictionary<string, object?>()));
+
+            Assert.AreEqual(12L, Convert.ToInt64(result));
+        }
+
+        [Test]
+        public void DelegateMemberTarget_InvokesBoundNSFunctionReceiver()
+        {
+            FunctionArgumentTypeInfo amount = Argument("amount", MemberKind.Int);
+            FunctionWithReturnType action = Action(
+                IntType(),
+                new[] { amount },
+                Return(Add(Key(Variable("__this__"), "Count"), Variable("__arg_0__"))));
+            var function = ScriptFunction(
+                "delegate-target-function",
+                "Compute",
+                deferred: false,
+                IntType(),
+                new[] { amount },
+                action);
+            var count = new IntMember
+            {
+                id = "delegate-target-count",
+                projectId = ProjectId,
+                name = "Count",
+                kind = MemberKind.Int,
+                required = true,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            ObjectMemberValue receiver = ObjectValue("receiver-value", "receiver-class");
+            receiver.value!["Count"] = "delegate-target-count-value";
+            NeoClient client = BuildClient(
+                new JsonMember[] { function, count },
+                ReceiverClass(("Count", count.id), ("Compute", function.id)),
+                additionalValues: new MemberValue[]
+                {
+                    receiver,
+                    new NumberMemberValue
+                    {
+                        id = "delegate-target-count-value",
+                        value = 9,
+                        createdAt = "x",
+                        updatedAt = "x",
+                    },
+                });
+            var ctx = new NSGetterEvaluator.Context(
+                client,
+                thisValue: null,
+                rootValue: new Dictionary<string, object?>());
+
+            object? result = NSGetterEvaluator.InvokeDelegate(
+                new NeoDelegateValue
+                {
+                    memberId = function.id,
+                    valueId = "receiver-value",
+                },
+                new object?[] { 4 },
+                ctx);
+
+            Assert.AreEqual(13L, Convert.ToInt64(result));
+        }
+
+        [Test]
+        public void DelegateMemberTarget_ReportsRecursiveTargetChain()
+        {
+            DelegateMember first = DelegateMemberTarget(
+                "delegate-a", "First", "delegate-b");
+            DelegateMember second = DelegateMemberTarget(
+                "delegate-b", "Second", "delegate-a");
+            NeoClient client = BuildClient(
+                new JsonMember[] { first, second },
+                ReceiverClass());
+            var ctx = new NSGetterEvaluator.Context(
+                client,
+                thisValue: null,
+                rootValue: new Dictionary<string, object?>());
+
+            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+                NSGetterEvaluator.InvokeDelegate(
+                    new NeoDelegateValue
+                    {
+                        memberId = first.id,
+                        valueId = null,
+                    },
+                    Array.Empty<object?>(),
+                    ctx))!;
+
+            StringAssert.Contains("First[default] -> Second[default] -> First[default]", error.Message);
+        }
+
+        [Test]
         public void MemberDto_UsesOrdinal23AndGeneralFunctionCallIr()
         {
             const string json = @"{
@@ -4618,6 +4919,30 @@ namespace NeoCompose.Tests
             argumentTypes = arguments,
             deferred = deferred,
             action = action,
+            createdAt = "x",
+            updatedAt = "x",
+        };
+
+        private static DelegateMember DelegateMemberTarget(
+            string id,
+            string name,
+            string targetMemberId) => new()
+        {
+            id = id,
+            projectId = ProjectId,
+            name = name,
+            kind = MemberKind.NSDelegate,
+            required = true,
+            returnTypeInfo = IntType(),
+            argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+            defaultValue = new DelegateMemberValueBase
+            {
+                value = new NeoDelegateValue
+                {
+                    memberId = targetMemberId,
+                    valueId = null,
+                },
+            },
             createdAt = "x",
             updatedAt = "x",
         };

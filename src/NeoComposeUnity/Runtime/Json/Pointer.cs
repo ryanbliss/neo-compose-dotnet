@@ -20,6 +20,15 @@ namespace NeoCompose.Runtime.Json
     {
         /// <summary>One of <see cref="PointerKind"/>.</summary>
         public string type = null!;
+
+        /// <summary>
+        /// Stable source location for call pointers. Kept on the base shape so
+        /// instruction consumers can resume either a statically resolved
+        /// function call or a runtime delegate call without narrowing first.
+        /// Non-call pointers leave it null and omit it from JSON.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public virtual string? callSiteId { get; set; }
     }
 
     /// <summary>Mirror of <c>INSPointerReference</c>.</summary>
@@ -208,7 +217,19 @@ namespace NeoCompose.Runtime.Json
         public CallReceiver receiver = null!;
         public Pointer[] args = null!;
         public bool? optional;
-        public string callSiteId = null!;
+        public override string? callSiteId { get; set; }
+    }
+
+    /// <summary>
+    /// Invokes a delegate value resolved at runtime. Unlike
+    /// <see cref="CallFunctionPointer"/>, the callable itself is a pointer.
+    /// </summary>
+    public class CallDelegatePointer : Pointer
+    {
+        public Pointer @delegate = null!;
+        public Pointer[] args = null!;
+        public bool? optional;
+        public override string? callSiteId { get; set; }
     }
 
     public class FunctionErrorCheckPointer : Pointer
@@ -238,6 +259,7 @@ namespace NeoCompose.Runtime.Json
                 case PointerKind.ToBool: return typeof(ToBoolPointer);
                 case PointerKind.Stringify: return typeof(StringifyPointer);
                 case PointerKind.CallFunction: return typeof(CallFunctionPointer);
+                case PointerKind.CallDelegate: return typeof(CallDelegatePointer);
                 case PointerKind.FunctionErrorCheck: return typeof(FunctionErrorCheckPointer);
                 case PointerKind.StaticMember: return typeof(StaticMemberPointer);
                 default: return null;
@@ -267,6 +289,25 @@ namespace NeoCompose.Runtime.Json
             if (concrete == typeof(CallGetterPointer))
             {
                 ValidateReceiver(obj);
+                return;
+            }
+            if (concrete == typeof(CallDelegatePointer))
+            {
+                if (obj["delegate"]?.Type != JTokenType.Object)
+                {
+                    throw new JsonSerializationException(
+                        "CallDelegatePointer must contain a 'delegate' pointer.");
+                }
+                if (obj["args"]?.Type != JTokenType.Array)
+                {
+                    throw new JsonSerializationException(
+                        "CallDelegatePointer must contain an 'args' array.");
+                }
+                if (!HasNonEmptyString(obj, "callSiteId"))
+                {
+                    throw new JsonSerializationException(
+                        "CallDelegatePointer must contain a non-empty 'callSiteId'.");
+                }
                 return;
             }
             if (concrete != typeof(CallFunctionPointer)) return;
