@@ -200,7 +200,7 @@ namespace NeoCompose.Runtime
         public void Set(Delegate? newValue) =>
             Set(NeoMemberDelegate.PersistedBindingOf(newValue));
 
-        internal void Set(NeoDelegateValue? newValue)
+        public void Set(NeoDelegateValue? newValue)
         {
             string nowIso = DateTime.UtcNow.ToString("o");
             DelegateMemberValue? writable = EnsureWritableValue();
