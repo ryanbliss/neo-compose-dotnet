@@ -297,7 +297,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void TypedDelegateBinding_RoundTripsToItsPersistedNeoValue()
+        public void TypedDelegateSetter_PersistsTheBoundNeoValue()
         {
             ProjectData data = BuildEquipProjectData();
             var member = new DelegateMember
@@ -328,10 +328,17 @@ namespace NeoCompose.Tests
 
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
             using var source = new NeoMemberDelegate(client, member, null);
+            using var destination = new NeoMemberDelegateWritable(
+                client,
+                member,
+                null,
+                NeoValueOwnership.Session);
             NeoDelegate<object?> bound = source.Bind<object?>(result => result);
 
+            destination.Set(bound);
             NeoDelegateValue? persisted =
-                NeoGeneratedTypesSupport.DelegateValue(bound);
+                NeoGeneratedTypesSupport.DelegateValue(
+                    destination.Bind<object?>(result => result));
 
             Assert.NotNull(persisted);
             Assert.AreEqual("callable-member", persisted!.memberId);
