@@ -1,4 +1,5 @@
 # Build results
+/.worktrees/
 bin/
 obj/
 # IDE shim csprojs (Directory.Build.props redirects bin/obj here so the
