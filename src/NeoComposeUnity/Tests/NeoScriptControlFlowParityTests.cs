@@ -151,6 +151,138 @@ namespace NeoCompose.Tests
                 caseName);
         }
 
+        [Test]
+        public void P54BoundsStraightLineWorkAndResetsEachInvocation()
+        {
+            FunctionWithReturnType getter = SimpleIntGetter();
+            NeoClient client = LoadClient();
+            var ctx = new NSGetterEvaluator.Context(
+                client,
+                null,
+                null,
+                executionBudgetLimits: new NeoScriptExecutionBudgetLimits(
+                    workUnits: 2));
+
+            Assert.AreEqual(1d, NSGetterEvaluator.Evaluate(getter, ctx));
+            Assert.AreEqual(1d, NSGetterEvaluator.Evaluate(getter, ctx));
+
+            var exhausted = new NSGetterEvaluator.Context(
+                client,
+                null,
+                null,
+                executionBudgetLimits: new NeoScriptExecutionBudgetLimits(
+                    workUnits: 1));
+            NeoScriptResourceLimitError error =
+                Assert.Throws<NeoScriptResourceLimitError>(
+                    () => NSGetterEvaluator.Evaluate(getter, exhausted))!;
+            Assert.AreEqual(
+                "NeoScript work unit limit of 1 exceeded.",
+                error.Message);
+        }
+
+        [Test]
+        public void P54ResourceFaultEscapesAuthoredTryCatch()
+        {
+            JObject testCase = RequireCase(
+                "try catches a deliberate arithmetic runtime error with its exact message");
+            FunctionWithReturnType getter = Getter(testCase, "resource limit");
+            var ctx = new NSGetterEvaluator.Context(
+                LoadClient(),
+                null,
+                null,
+                executionBudgetLimits: new NeoScriptExecutionBudgetLimits(
+                    workUnits: 1));
+
+            Assert.Throws<NeoScriptResourceLimitError>(
+                () => NSGetterEvaluator.Evaluate(getter, ctx));
+        }
+
+        [Test]
+        public void P54BoundsEvaluatorCreatedCollectionEntries()
+        {
+            const string json = @"{
+              ""compilerRevision"": 1,
+              ""parameters"": [],
+              ""instructions"": [{
+                ""type"": ""return"",
+                ""pointer"": {
+                  ""type"": ""listLiteral"",
+                  ""typeInfo"": {
+                    ""type"": 6,
+                    ""required"": true,
+                    ""entryTypeInfo"": { ""type"": 2, ""required"": true }
+                  },
+                  ""entries"": [
+                    { ""type"": ""value"", ""value"": {
+                      ""typeInfo"": { ""type"": 2, ""required"": true },
+                      ""value"": 1
+                    }},
+                    { ""type"": ""value"", ""value"": {
+                      ""typeInfo"": { ""type"": 2, ""required"": true },
+                      ""value"": 2
+                    }}
+                  ]
+                }
+              }],
+              ""typeInfo"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": { ""type"": 2, ""required"": true }
+              }
+            }";
+            FunctionWithReturnType getter =
+                JsonConvert.DeserializeObject<FunctionWithReturnType>(json)!;
+            var ctx = new NSGetterEvaluator.Context(
+                LoadClient(),
+                null,
+                null,
+                executionBudgetLimits: new NeoScriptExecutionBudgetLimits(
+                    producedCollectionEntries: 1));
+
+            NeoScriptResourceLimitError error =
+                Assert.Throws<NeoScriptResourceLimitError>(
+                    () => NSGetterEvaluator.Evaluate(getter, ctx))!;
+            Assert.AreEqual(
+                "NeoScript produced collection entry limit of 1 exceeded.",
+                error.Message);
+        }
+
+        [Test]
+        public void P54BoundsCollectionVisits()
+        {
+            const string caseName =
+                "foreach snapshots list membership and preserves order under remove";
+            FunctionWithReturnType getter = Getter(
+                RequireCase(caseName),
+                caseName);
+            var ctx = new NSGetterEvaluator.Context(
+                LoadClient(),
+                null,
+                null,
+                executionBudgetLimits: new NeoScriptExecutionBudgetLimits(
+                    collectionVisits: 1));
+
+            NeoScriptResourceLimitError error =
+                Assert.Throws<NeoScriptResourceLimitError>(
+                    () => NSGetterEvaluator.Evaluate(getter, ctx))!;
+            Assert.AreEqual(
+                "NeoScript collection visit limit of 1 exceeded.",
+                error.Message);
+        }
+
+        [Test]
+        public void P54RejectsHostLimitsAboveTheSafetyCeiling()
+        {
+            ArgumentOutOfRangeException error =
+                Assert.Throws<ArgumentOutOfRangeException>(
+                    () => new NeoScriptExecutionBudgetLimits(
+                        workUnits:
+                            NeoScriptExecutionBudgetLimits.DefaultWorkUnits + 1))!;
+            StringAssert.Contains(
+                "cannot exceed the safety ceiling of 100000",
+                error.Message);
+        }
+
         private static void AssertTokenMatches(
             JToken expected,
             JToken actual,
@@ -226,6 +358,26 @@ namespace NeoCompose.Tests
             return JsonConvert.DeserializeObject<FunctionWithReturnType>(getter.ToString())
                 ?? throw new InvalidOperationException(
                     $"Case '{caseName}' declares a getter that did not deserialize.");
+        }
+
+        private static FunctionWithReturnType SimpleIntGetter()
+        {
+            const string json = @"{
+              ""compilerRevision"": 1,
+              ""parameters"": [],
+              ""instructions"": [{
+                ""type"": ""return"",
+                ""pointer"": {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": { ""type"": 2, ""required"": true },
+                    ""value"": 1
+                  }
+                }
+              }],
+              ""typeInfo"": { ""type"": 2, ""required"": true }
+            }";
+            return JsonConvert.DeserializeObject<FunctionWithReturnType>(json)!;
         }
 
         private static JObject Fixture() =>

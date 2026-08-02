@@ -24,16 +24,33 @@ namespace NeoCompose.Runtime.NeoScript
     /// </summary>
     internal sealed class NeoScriptAllocationTracker
     {
+        private readonly NeoScriptExecutionBudgetLimits limits;
         private readonly HashSet<string> allocatedRootIds = new();
         private readonly HashSet<string> escapedRootIds = new();
         private int activeExecutions;
         private int loopIterations;
+        private int workUnits;
+        private int collectionVisits;
+        private int producedCollectionEntries;
+        private int constructedSessionRows;
+        private int producedStringCharacters;
+
+        internal NeoScriptAllocationTracker(
+            NeoScriptExecutionBudgetLimits? limits = null)
+        {
+            this.limits = limits ?? new NeoScriptExecutionBudgetLimits();
+        }
 
         internal void EnterExecution()
         {
             if (activeExecutions == 0)
             {
                 loopIterations = 0;
+                workUnits = 0;
+                collectionVisits = 0;
+                producedCollectionEntries = 0;
+                constructedSessionRows = 0;
+                producedStringCharacters = 0;
             }
             activeExecutions++;
         }
@@ -49,9 +66,78 @@ namespace NeoCompose.Runtime.NeoScript
             loopIterations++;
             if (loopIterations > NeoScriptExecutor.MaxLoopIterations)
             {
-                throw new NSGetterRuntimeError(
+                throw new NeoScriptResourceLimitError(
                     "NeoScript loop iteration limit of 10000 exceeded.");
             }
+            ConsumeWorkUnit();
+        }
+
+        internal void ConsumeWorkUnit(int amount = 1) =>
+            Consume(
+                ref workUnits,
+                amount,
+                limits.WorkUnits,
+                "work unit");
+
+        internal void ConsumeCollectionVisit(int amount = 1) =>
+            Consume(
+                ref collectionVisits,
+                amount,
+                limits.CollectionVisits,
+                "collection visit");
+
+        internal void ConsumeProducedCollectionEntry(int amount = 1) =>
+            Consume(
+                ref producedCollectionEntries,
+                amount,
+                limits.ProducedCollectionEntries,
+                "produced collection entry");
+
+        internal void ConsumeConstructedSessionRow(int amount = 1) =>
+            Consume(
+                ref constructedSessionRows,
+                amount,
+                limits.ConstructedSessionRows,
+                "constructed Session row");
+
+        internal void ConsumeProducedStringCharacters(int amount) =>
+            Consume(
+                ref producedStringCharacters,
+                amount,
+                limits.ProducedStringCharacters,
+                "produced string character");
+
+        internal void ConsumeCreatedSessionRows(
+            IReadOnlyCollection<MemberValue> rows)
+        {
+            ConsumeConstructedSessionRow(rows.Count);
+            int entryCount = 0;
+            foreach (MemberValue row in rows)
+            {
+                if (row is ArrayMemberValue arrayRow)
+                {
+                    entryCount += arrayRow.value?.Length ?? 0;
+                }
+                else if (row is ObjectMemberValue objectRow)
+                {
+                    entryCount += objectRow.value?.Count ?? 0;
+                }
+            }
+            ConsumeProducedCollectionEntry(entryCount);
+        }
+
+        private static void Consume(
+            ref int consumed,
+            int amount,
+            int limit,
+            string label)
+        {
+            if (amount < 0 || amount > limit - consumed)
+            {
+                throw new NeoScriptResourceLimitError(
+                    $"NeoScript {label} limit of {limit} exceeded.");
+            }
+            consumed += amount;
         }
 
         internal void RegisterSessionRoot(string valueId)
@@ -390,7 +476,8 @@ namespace NeoCompose.Runtime.NeoScript
                     IReadOnlyDictionary<string, NeoGenericEnvEntry>>?
                     genericEnvironmentCache = null,
                 IReadOnlyList<string>? constructionStack = null,
-                List<string>? delegateCallStack = null)
+                List<string>? delegateCallStack = null,
+                NeoScriptExecutionBudgetLimits? executionBudgetLimits = null)
             {
                 this.client = client;
                 this.thisValue = thisValue;
@@ -418,7 +505,8 @@ namespace NeoCompose.Runtime.NeoScript
                 this.constructionStack = constructionStack
                     ?? System.Array.Empty<string>();
                 this.delegateCallStack = delegateCallStack ?? new List<string>();
-                allocationTracker = new NeoScriptAllocationTracker();
+                allocationTracker = new NeoScriptAllocationTracker(
+                    executionBudgetLimits);
             }
 
             private Context ShareAllocationTracker(Context child)
@@ -835,6 +923,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return EvalFunction(fp.function, scope, ctx);
                 case ListLiteralPointer llp:
                 {
+                    ctx.allocationTracker.ConsumeProducedCollectionEntry(
+                        llp.entries.Length);
                     var arr = new object?[llp.entries.Length];
                     for (int i = 0; i < llp.entries.Length; i++)
                     {
@@ -844,6 +934,8 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 case DictLiteralPointer dlp:
                 {
+                    ctx.allocationTracker.ConsumeProducedCollectionEntry(
+                        dlp.entries.Length);
                     var dict = new Dictionary<string, object?>();
                     foreach (var entry in dlp.entries)
                     {
@@ -910,7 +1002,10 @@ namespace NeoCompose.Runtime.NeoScript
                 case StringifyPointer sp:
                 {
                     var v = EvalPointer(sp.pointer, scope, ctx);
-                    return FormatForInterp(v, sp.sourceType, ctx);
+                    string result = FormatForInterp(v, sp.sourceType, ctx);
+                    ctx.allocationTracker.ConsumeProducedStringCharacters(
+                        result.Length);
+                    return result;
                 }
                 case CallFunctionPointer functionCall:
                     return EvalFunctionCall(functionCall, scope, ctx);
@@ -1006,6 +1101,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (member is FunctionMember)
             {
+                ctx.allocationTracker.ConsumeWorkUnit();
                 return ctx.client.InvokeNativeFunction(memberId, receiver, args);
             }
             if (member is NSFunctionMember)
@@ -1376,6 +1472,10 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 throw;
             }
+            catch (NeoScriptResourceLimitError)
+            {
+                throw;
+            }
             catch
             {
                 return pointer.mode == FunctionErrorCheckKind.Throws;
@@ -1741,7 +1841,11 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         operands[i] = EvalPointer(info.pointers[i], scope, ctx);
                     }
-                    return ApplyArithmetic(info.type, operands, info.isDecimal == true);
+                    return ApplyArithmetic(
+                        info.type,
+                        operands,
+                        info.isDecimal == true,
+                        ctx);
                 }
                 case BooleanOperation boolOp:
                     return EvalBooleanExpression(boolOp.expression, scope, ctx);
@@ -1751,7 +1855,11 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
-        private static object? ApplyArithmetic(string op, object?[] operands, bool isDecimal)
+        private static object? ApplyArithmetic(
+            string op,
+            object?[] operands,
+            bool isDecimal,
+            Context ctx)
         {
             if (operands.Length == 0)
             {
@@ -1773,7 +1881,10 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     var sb = new System.Text.StringBuilder();
                     foreach (var o in operands) sb.Append((string)o!);
-                    return sb.ToString();
+                    string result = sb.ToString();
+                    ctx.allocationTracker.ConsumeProducedStringCharacters(
+                        result.Length);
+                    return result;
                 }
                 bool anyString = false;
                 foreach (var o in operands) { if (o is string) { anyString = true; break; } }
@@ -1781,7 +1892,10 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     var sb = new System.Text.StringBuilder();
                     foreach (var o in operands) sb.Append(StringifyForInterp(o));
-                    return sb.ToString();
+                    string result = sb.ToString();
+                    ctx.allocationTracker.ConsumeProducedStringCharacters(
+                        result.Length);
+                    return result;
                 }
             }
             // Numeric path. Coerce every operand to double; ints round-trip.
@@ -2249,9 +2363,22 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                     try
                     {
+                        var existingSessionIds = new HashSet<string>(
+                            ctx.client.sessionValues.Keys);
                         string cloneId = ctx.client.CloneValueReference(
                             source.valueId,
                             source.ownership);
+                        ctx.allocationTracker.RegisterSessionRoot(cloneId);
+                        var createdRows = new List<MemberValue>();
+                        foreach (var pair in ctx.client.sessionValues)
+                        {
+                            if (!existingSessionIds.Contains(pair.Key))
+                            {
+                                createdRows.Add(pair.Value);
+                            }
+                        }
+                        ctx.allocationTracker.ConsumeCreatedSessionRows(
+                            createdRows);
                         if (!ctx.client.TryGetValue(
                                 NeoValueOwnership.Session,
                                 cloneId,
@@ -2313,6 +2440,7 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         foreach (var entry in raw)
                         {
+                            ctx.allocationTracker.ConsumeCollectionVisit();
                             if (entry is string selectedId && selectedId == targetId)
                             {
                                 return true;
@@ -2324,6 +2452,7 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         foreach (var entry in rawWithReference)
                         {
+                            ctx.allocationTracker.ConsumeCollectionVisit();
                             if (entry is string selectedId && selectedId == targetReferenceId)
                             {
                                 return true;
@@ -2354,6 +2483,8 @@ namespace NeoCompose.Runtime.NeoScript
                             ctx);
                         if (result.Returned && result.ReturnValue is bool b && b)
                         {
+                            ctx.allocationTracker
+                                .ConsumeProducedCollectionEntry();
                             // Re-emit valueId references rather than dereferenced
                             // entries when we have them — matches TS semantic.
                             object? emit = valueId is null ? entry : valueId;
@@ -2420,6 +2551,8 @@ namespace NeoCompose.Runtime.NeoScript
                             ctx);
                         if (result.Returned)
                         {
+                            ctx.allocationTracker
+                                .ConsumeProducedCollectionEntry();
                             acc.Add(result.ReturnValue);
                         }
                     });
@@ -2814,11 +2947,26 @@ namespace NeoCompose.Runtime.NeoScript
             switch (info.op)
             {
                 case StringOpKind.ToLower:
-                    return receiverText.ToLowerInvariant();
+                {
+                    string result = receiverText.ToLowerInvariant();
+                    ctx.allocationTracker.ConsumeProducedStringCharacters(
+                        result.Length);
+                    return result;
+                }
                 case StringOpKind.ToUpper:
-                    return receiverText.ToUpperInvariant();
+                {
+                    string result = receiverText.ToUpperInvariant();
+                    ctx.allocationTracker.ConsumeProducedStringCharacters(
+                        result.Length);
+                    return result;
+                }
                 case StringOpKind.Trim:
-                    return receiverText.Trim();
+                {
+                    string result = receiverText.Trim();
+                    ctx.allocationTracker.ConsumeProducedStringCharacters(
+                        result.Length);
+                    return result;
+                }
                 case StringOpKind.StartsWith:
                 case StringOpKind.EndsWith:
                 {
@@ -2996,6 +3144,7 @@ namespace NeoCompose.Runtime.NeoScript
             foreach (OrderedRawCollectionEntry entry in
                 OrderedRawCollectionEntries(collection))
             {
+                ctx.allocationTracker.ConsumeCollectionVisit();
                 MemberValue? retainedRow = null;
                 NeoValueOwnership? entryOwnership = null;
                 if (entry.Raw is string id)
@@ -3020,6 +3169,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             foreach (OrderedRawCollectionEntry entry in OrderedRawCollectionEntries(c))
             {
+                ctx.allocationTracker.ConsumeCollectionVisit();
                 yield return ResolveValueIfId(entry.Raw, ctx);
             }
         }
@@ -3032,6 +3182,7 @@ namespace NeoCompose.Runtime.NeoScript
             foreach (OrderedRawCollectionEntry rawEntry in
                 OrderedRawCollectionEntries(c))
             {
+                ctx.allocationTracker.ConsumeCollectionVisit();
                 object? entry = ResolveValueIfId(
                     rawEntry.Raw,
                     ctx);
