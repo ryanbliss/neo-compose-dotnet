@@ -745,16 +745,7 @@ namespace NeoCompose.Runtime
             }
             return Adapt<T, Sprite?>(new NeoGenericBinding<Sprite?>(
                 MemberKind.Sprite,
-                node =>
-                {
-                    var resolved = RequireNode<NeoMemberSprite>(node, member).Resolve();
-                    if (resolved is null && member.required)
-                    {
-                        throw new InvalidOperationException(
-                            $"Required Sprite '{member.name}' ({member.id}) has no synchronized asset.");
-                    }
-                    return resolved;
-                },
+                node => RequireNode<NeoMemberSprite>(node, member).Resolve(),
                 (node, v) => RequireWritable<NeoMemberSpriteWritable>(node, member).Set(v),
                 v => NeoValueWritePayload.FromValue(
                     NeoGeneratedTypesSupport.SpriteValue(client, v, null, member.name))));

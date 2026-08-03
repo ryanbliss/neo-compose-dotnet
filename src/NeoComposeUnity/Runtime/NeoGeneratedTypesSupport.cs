@@ -5734,6 +5734,22 @@ namespace NeoCompose.Runtime
                 ToSpriteValue(value));
         }
 
+        /// <summary>
+        /// Resolves a required SpriteInfo runtime value. SpriteInfo.Empty is a
+        /// present value whose Unity projection is null; every other null or
+        /// unresolved value remains a hard contract error.
+        /// </summary>
+        public static Sprite? ReadRequiredSprite(
+            NeoClient client,
+            object? value,
+            string unresolvedMessage)
+        {
+            var spriteValue = ToSpriteValue(value);
+            if (NeoReadOnlySprite.IsEmptyValue(spriteValue)) return null;
+            return NeoAssetResolver.ResolveSprite(client.assetDatabase, spriteValue)
+                ?? throw new InvalidOperationException(unresolvedMessage);
+        }
+
         public static AudioClip? ReadAudioClip(NeoClient client, object? value)
         {
             return NeoAssetResolver.ResolveAudioClip(
@@ -5749,7 +5765,7 @@ namespace NeoCompose.Runtime
             {
                 var fileId = obj["fileId"]?.Value<string>();
                 var sliceIndex = obj["sliceIndex"]?.Value<int?>();
-                return string.IsNullOrWhiteSpace(fileId) || sliceIndex == null
+                return fileId == null || sliceIndex == null
                     ? null
                     : new SpriteValue { fileId = fileId!, sliceIndex = sliceIndex.Value };
             }
