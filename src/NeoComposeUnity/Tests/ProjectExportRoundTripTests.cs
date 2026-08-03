@@ -4,6 +4,7 @@
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
+using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -38,6 +39,18 @@ namespace NeoCompose.Tests
         private const string PackageRoot =
             "Packages/com.ryanbliss.neocompose/Tests";
 
+        private const string P61MaterializedTrackId =
+            "a03e2c7d-7fe5-5efc-8a6f-12a8484e3a8e";
+
+        private const string P61MaterializedSegmentId =
+            "be79664a-a0ae-53f6-9a45-97360120f919";
+
+        private const string P61FirstUnorderedFrameId =
+            "bbbb0005-0000-4000-8000-000000000005";
+
+        private const string P61SecondUnorderedFrameId =
+            "bbbb0006-0000-4000-8000-000000000006";
+
         private static string LoadFixture(string fileName)
         {
             return File.ReadAllText(Path.Combine(PackageRoot, fileName));
@@ -46,6 +59,55 @@ namespace NeoCompose.Tests
         private static ProjectData Deserialize(string json)
         {
             return JsonConvert.DeserializeObject<ProjectData>(json);
+        }
+
+        /// <summary>
+        /// P61 section 10 cross-repository fixture. The Neo CLI generates this
+        /// export from the segment rig after materializing a required-constructor
+        /// track, its nested required-constructor segment, and two constructed
+        /// entries in a genuine unordered list. Unity must consume that exact
+        /// schema-16 wire shape without retaining executable row initializers.
+        /// </summary>
+        [Test]
+        public void P61SegmentRig_MaterializedConstructorRowsLoadAtSchemaSixteen()
+        {
+            string json = LoadFixture("p61-segment-rig-schema16.json");
+            ProjectData data = Deserialize(json);
+
+            Assert.AreEqual(
+                NeoProjectExportContract.CurrentSchemaVersion,
+                data.metadata?.schemaVersion);
+            AssertMaterializedConstructorRow(data, P61MaterializedTrackId);
+            AssertMaterializedConstructorRow(data, P61MaterializedSegmentId);
+
+            var first = AssertMaterializedConstructorRow(
+                data,
+                P61FirstUnorderedFrameId);
+            var second = AssertMaterializedConstructorRow(
+                data,
+                P61SecondUnorderedFrameId);
+            Assert.IsNotNull(first.containerId);
+            Assert.AreEqual(first.containerId, second.containerId);
+
+            NeoClient? client = null;
+            Assert.DoesNotThrow(() => client = NeoTestSaveStack.LoadClient(json));
+            Assert.IsNotNull(client);
+            Assert.IsEmpty(
+                client!.sessionValues,
+                "Declaration validation must reclaim its temporary Session graph.");
+        }
+
+        private static MemberValue AssertMaterializedConstructorRow(
+            ProjectData data,
+            string valueId)
+        {
+            Assert.IsTrue(data.values.TryGetValue(valueId, out MemberValue? row));
+            Assert.IsNotNull(row);
+            Assert.IsNull(row!.init);
+            Assert.IsNotNull(row.constructorArgs);
+            Assert.IsNotEmpty(row.constructorArgs!);
+            Assert.IsNotNull(row.classId);
+            return row;
         }
 
         [Test]
@@ -248,12 +310,11 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
-        /// P43 §1.1a — a stored value ROW may carry an initializer too, which
-        /// is what keeps a literal list's entries addressable while each entry
-        /// computes its own interior.
+        /// P43 §1.1a / P61 §3 — a row inside a member-default declaration
+        /// graph may carry an initializer. An instance row may not.
         /// </summary>
         [Test]
-        public void MemberValueRow_InitBodyRoundTrips()
+        public void MemberDefaultGraphRow_InitBodyRoundTrips()
         {
             const string json = @"{
   ""id"": ""value-eyes-left"",
@@ -268,6 +329,117 @@ namespace NeoCompose.Tests
             Assert.AreEqual("value-eyes-left", row.id);
             Assert.AreEqual("new EyePart(IsRight: false)", row.init!.code);
             Assert.IsNull(row.init.compiled);
+        }
+
+        /// <summary>
+        /// P61 §3 / §5.1 — a materialized instance exposes its concrete
+        /// graph as <c>value</c> and preserves evaluated constructor arguments
+        /// as heterogeneous data. Unity reads the graph and never evaluates
+        /// the creation record.
+        /// </summary>
+        [Test]
+        public void MaterializedInstance_ConstructorArgsRoundTripAsData()
+        {
+            const string json = @"{
+  ""id"": ""value-foo"",
+  ""projectId"": ""project"",
+  ""classId"": ""class-foo"",
+  ""value"": {
+    ""Bar"": ""value-bar"",
+    ""Selector"": ""value-selector""
+  },
+  ""constructorArgs"": {
+    ""param-bar"": ""bar"",
+    ""param-count"": 3,
+    ""param-child"": ""value-child"",
+    ""param-selector"": {
+      ""kind"": ""inline"",
+      ""code"": ""() => this.Bar""
+    }
+  },
+  ""createdAt"": ""x"",
+  ""updatedAt"": ""x""
+}";
+
+            var row = (ObjectMemberValue)JsonConvert
+                .DeserializeObject<MemberValue>(json)!;
+
+            Assert.AreEqual("class-foo", row.classId);
+            Assert.AreEqual("value-bar", row.value!["Bar"]);
+            Assert.IsNull(row.init);
+            Assert.AreEqual("bar", row.constructorArgs!["param-bar"]!.Value<string>());
+            Assert.AreEqual(3, row.constructorArgs["param-count"]!.Value<int>());
+            Assert.AreEqual(
+                "value-child",
+                row.constructorArgs["param-child"]!.Value<string>());
+            Assert.AreEqual(
+                "() => this.Bar",
+                row.constructorArgs["param-selector"]!["code"]!.Value<string>());
+
+            JObject serialized = JObject.Parse(JsonConvert.SerializeObject(row));
+            Assert.IsNull(serialized["init"]);
+            Assert.IsTrue(JToken.DeepEquals(
+                JObject.Parse(json)["constructorArgs"],
+                serialized["constructorArgs"]));
+        }
+
+        [Test]
+        public void DeclarationRow_CarryingInitAndConstructorArgsIsRejected()
+        {
+            const string json = @"{
+  ""id"": ""value-conflict"",
+  ""projectId"": ""project"",
+  ""init"": { ""code"": ""new Foo(bar: \""bar\"")"" },
+  ""constructorArgs"": { ""param-bar"": ""bar"" },
+  ""createdAt"": ""x"",
+  ""updatedAt"": ""x""
+}";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<MemberValue>(json));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("carries both 'constructorArgs' and 'init'"));
+        }
+
+        [Test]
+        public void ConstructorArgs_WithoutMaterializedClassValueIsRejected()
+        {
+            const string json = @"{
+  ""id"": ""value-conflict"",
+  ""projectId"": ""project"",
+  ""constructorArgs"": { ""param-bar"": ""bar"" },
+  ""createdAt"": ""x"",
+  ""updatedAt"": ""x""
+}";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<MemberValue>(json));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("without a materialized class 'value' object"));
+        }
+
+        [Test]
+        public void ConstructorArgs_WithoutConcreteClassIdIsRejected()
+        {
+            const string json = @"{
+  ""id"": ""value-conflict"",
+  ""projectId"": ""project"",
+  ""value"": {},
+  ""constructorArgs"": { ""param-bar"": ""bar"" },
+  ""createdAt"": ""x"",
+  ""updatedAt"": ""x""
+}";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<MemberValue>(json));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("without a concrete 'classId'"));
         }
 
         [Test]
@@ -318,7 +490,7 @@ namespace NeoCompose.Tests
         public void ConstructorRecord_AndClassConstructorIdsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 15, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 16, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -387,7 +559,7 @@ namespace NeoCompose.Tests
         public void RequiredConstructorId_AndBaseInitializerFieldsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 15, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 16, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -456,7 +628,7 @@ namespace NeoCompose.Tests
         public void ConstructorCode_IsAbsentWhenNoInitBlockIsDeclared()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 15, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 16, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},

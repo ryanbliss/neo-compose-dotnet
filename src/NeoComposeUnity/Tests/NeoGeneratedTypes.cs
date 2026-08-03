@@ -221,7 +221,7 @@ namespace Assets.Scripts.Neo
                     DialogueWritableValueFactories,
                     "Transform",
                     "member-generic-function-transform");
-                var value = NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<Hero>(client, args[0], true, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, "value");
+                var value = NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<Hero>(client, args[0], true, TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories, "value");
                 return target.Transform(value);
                 },
                 ["member-generic-function-transform-box"] = (client, receiver, args) =>
@@ -233,7 +233,7 @@ namespace Assets.Scripts.Neo
                     DialogueWritableValueFactories,
                     "TransformBox",
                     "member-generic-function-transform-box");
-                var value = NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<IReadOnlyGenericFunctionBox<Hero>>(client, args[0], true, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, "value");
+                var value = NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<IReadOnlyGenericFunctionBox<Hero>>(client, args[0], true, TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories, "value");
                 return target.TransformBox(value);
                 },
             };
@@ -285,7 +285,7 @@ namespace Assets.Scripts.Neo
                     DialogueWritableValueFactories,
                     "TransformLater",
                     "member-generic-function-transform-later");
-                var value = NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<Hero>(client, args[0], true, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, "value");
+                var value = NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<Hero>(client, args[0], true, TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories, "value");
                 if (target.FunctionHandler is null)
                 {
                     throw new NeoFunctionHandlerMissingException(
@@ -778,74 +778,6 @@ namespace Assets.Scripts.Neo
         public override int GetHashCode() => optionId.GetHashCode();
         public static bool operator ==(NeoSmartTileTransform? left, NeoSmartTileTransform? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(NeoSmartTileTransform? left, NeoSmartTileTransform? right) => !(left == right);
-    }
-    public sealed class NeoSpriteMaskInteraction : IEquatable<NeoSpriteMaskInteraction>, global::NeoCompose.Runtime.INeoEnumOption
-    {
-        private static readonly Dictionary<string, NeoSpriteMaskInteraction> values = new Dictionary<string, NeoSpriteMaskInteraction>();
-        public string optionId { get; }
-        public string Text => TextForOptionId(optionId);
-        public string TextId => TextIdForOptionId(optionId);
-
-        private NeoSpriteMaskInteraction(string optionId)
-        {
-            this.optionId = optionId;
-        }
-
-        public static readonly NeoSpriteMaskInteraction None = FromOptionId("system_9d607a4f-60c3-4347-94fc-f24b538bf468");
-        public static readonly NeoSpriteMaskInteraction VisibleInsideMask = FromOptionId("system_4c670ac9-78a4-44e9-9833-94e1c69dca97");
-        public static readonly NeoSpriteMaskInteraction VisibleOutsideMask = FromOptionId("system_a0aeb200-7216-49e2-aad2-e151ff35c336");
-
-        public static NeoSpriteMaskInteraction FromOptionId(string optionId)
-        {
-            if (values.TryGetValue(optionId, out var known)) return known;
-            var created = new NeoSpriteMaskInteraction(optionId);
-            values[optionId] = created;
-            return created;
-        }
-
-        public static string[] ToOptionIds(IEnumerable<NeoSpriteMaskInteraction>? options)
-        {
-            if (options is null) return Array.Empty<string>();
-            var ids = new List<string>();
-            foreach (var option in options) ids.Add(option.optionId);
-            return ids.ToArray();
-        }
-
-        public static bool IsKnown(string id)
-        {
-            return id switch
-            {
-                "system_9d607a4f-60c3-4347-94fc-f24b538bf468" => true,
-                "system_4c670ac9-78a4-44e9-9833-94e1c69dca97" => true,
-                "system_a0aeb200-7216-49e2-aad2-e151ff35c336" => true,
-                _ => false,
-            };
-        }
-
-        public static string TextIdForOptionId(string optionId)
-        {
-            return optionId switch
-            {
-                "system_9d607a4f-60c3-4347-94fc-f24b538bf468" => "None",
-                "system_4c670ac9-78a4-44e9-9833-94e1c69dca97" => "Visible inside mask",
-                "system_a0aeb200-7216-49e2-aad2-e151ff35c336" => "Visible outside mask",
-                _ => optionId,
-            };
-        }
-
-        public static string TextForOptionId(string optionId, NeoClient? client = null)
-        {
-            return (client ?? TestProjectNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
-        }
-
-        public static implicit operator string(NeoSpriteMaskInteraction value) => value.optionId;
-        public static implicit operator NeoSpriteMaskInteraction(string optionId) => FromOptionId(optionId);
-        public override string ToString() => optionId;
-        public bool Equals(NeoSpriteMaskInteraction? other) => other is not null && optionId == other.optionId;
-        public override bool Equals(object? obj) => Equals(obj as NeoSpriteMaskInteraction);
-        public override int GetHashCode() => optionId.GetHashCode();
-        public static bool operator ==(NeoSpriteMaskInteraction? left, NeoSpriteMaskInteraction? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
-        public static bool operator !=(NeoSpriteMaskInteraction? left, NeoSpriteMaskInteraction? right) => !(left == right);
     }
 
     public interface IContract
@@ -5288,14 +5220,7 @@ namespace Assets.Scripts.Neo
 
         public abstract GenericPayload<T>? Payload { get; set; }
 
-        IReadOnlyGenericPayload<T>? IReadOnlyGenericContract<T>.Payload
-        {
-            get
-            {
-                var child = node.Get<NeoMemberClass>("Payload");
-                return child.value?.value is null ? null : global::Assets.Scripts.Neo.GenericPayload<T>.Create(client, child);
-            }
-        }
+        IReadOnlyGenericPayload<T>? IReadOnlyGenericContract<T>.Payload => Payload;
 
         public abstract T Computed { get; }
 

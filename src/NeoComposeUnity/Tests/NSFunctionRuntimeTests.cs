@@ -2722,7 +2722,7 @@ namespace NeoCompose.Tests
                 new JsonMember[] { function },
                 ReceiverClass(("LoopBudget", function.id)));
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NeoScriptResourceLimitError error = Assert.Throws<NeoScriptResourceLimitError>(() =>
                 new NeoMemberNSFunction(client, function, null)
                     .Invoke("receiver-value", Array.Empty<object?>()))!;
 
@@ -2780,7 +2780,7 @@ namespace NeoCompose.Tests
                     ("LoopBudgetInner", inner.id),
                     ("LoopBudgetOuter", outer.id)));
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NeoScriptResourceLimitError error = Assert.Throws<NeoScriptResourceLimitError>(() =>
                 new NeoMemberNSFunction(client, outer, null)
                     .Invoke("receiver-value", Array.Empty<object?>()))!;
 

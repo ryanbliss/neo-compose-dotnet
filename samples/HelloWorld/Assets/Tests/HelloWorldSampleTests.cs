@@ -233,15 +233,17 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void GeneratedSampleTypes_ExplicitSpanishLocalizationResolvesGeneratedText()
+        public void GeneratedSampleTypes_ExplicitSpanishLocalizationResolvesLocalizableTextAndPreservesEnumLiterals()
         {
             var client = LoadSampleClient(SpanishLocalizationOptions());
 
             Assert.AreEqual("es-ES", client.Localization.CurrentLocale);
             Assert.AreEqual("Hola", client.Assets.Computed.baseText);
-            Assert.AreEqual("Tierra", Planet.earth.Text);
-            Assert.AreEqual("Tierra", client.Save.Visited[0].World.Text);
-            Assert.AreEqual("Hola Tierra!", client.Assets.Computed.fullText);
+            // P39 de-localized enum option display text; only authored
+            // localizable-text records flow through the locale bundle.
+            Assert.AreEqual("Earth", Planet.earth.Text);
+            Assert.AreEqual("Earth", client.Save.Visited[0].World.Text);
+            Assert.AreEqual("Hola Earth!", client.Assets.Computed.fullText);
         }
 
         [Test]

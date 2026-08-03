@@ -1385,11 +1385,17 @@ namespace NeoCompose.Runtime
                 {
                     foreach (NeoMember item in frames)
                     {
-                        if (item is not NeoMemberClass frame)
+                        if (item is not NeoMemberClass declarationFrame)
                         {
                             throw new InvalidOperationException(
                                 $"Animation clip '{clipKey}' contains a non-Class frame row.");
                         }
+                        using var validation = NeoGeneratedTypesSupport
+                            .TryResolveDeclarationForValidation(
+                                client,
+                                declarationFrame);
+                        if (validation is null) continue;
+                        NeoMemberClass frame = validation.Value;
                         int frameIndex = ReadRequiredInt(frame, "Index", clipKey);
                         if (frameIndex < 0 || frameIndex >= duration)
                         {
@@ -1429,14 +1435,19 @@ namespace NeoCompose.Runtime
                 {
                     foreach (NeoMember item in tracks)
                     {
-                        if (item is not NeoMemberClass track)
+                        if (item is not NeoMemberClass declarationTrack)
                         {
                             throw new InvalidOperationException(
                                 $"Animation clip '{clipKey}' contains a non-Class track row.");
                         }
+                        using var validation = NeoGeneratedTypesSupport
+                            .TryResolveDeclarationForValidation(
+                                client,
+                                declarationTrack);
+                        if (validation is null) continue;
                         ValidateExportTrack(
                             client,
-                            track,
+                            validation.Value,
                             clipKey,
                             duration,
                             validated,

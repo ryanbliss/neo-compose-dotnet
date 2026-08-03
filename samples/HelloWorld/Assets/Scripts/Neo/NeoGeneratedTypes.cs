@@ -10165,12 +10165,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    /// <summary>
-    /// Plays a sprite segment onto a sprite child's Sprite member — the lane that
-    /// animates a sprite over time. Derive from it to say where the segment comes
-    /// from; Segment is left for you to fill in, so every lane that plays is one of
-    /// your own classes.
-    /// </summary>
     public interface IReadOnlyNeoSpriteAnimationSegmentTrack<TChild> : IReadOnlyNeoAnimationSegmentTrack<TChild, Sprite>
     {
         new bool IsReadOnly { get; }
@@ -10180,12 +10174,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
     }
 
-    /// <summary>
-    /// Plays a sprite segment onto a sprite child's Sprite member — the lane that
-    /// animates a sprite over time. Derive from it to say where the segment comes
-    /// from; Segment is left for you to fill in, so every lane that plays is one of
-    /// your own classes.
-    /// </summary>
     public abstract partial class NeoSpriteAnimationSegmentTrack<TChild> : NeoAnimationSegmentTrack<TChild, Sprite>, IReadOnlyNeoSpriteAnimationSegmentTrack<TChild>
     {
         internal NeoSpriteAnimationSegmentTrack(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
@@ -10333,16 +10321,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    /// <summary>
-    /// A sequence of one member's values over a frame index. Frames are sparse and
-    /// each one holds until the next row or the end of Duration. A segment has no
-    /// fps of its own — the clip that schedules it owns the clock.
-    ///
-    /// A segment can live anywhere: immutable catalog data, a save, or session
-    /// state a game writes at runtime. Its frames and its Duration are re-read on
-    /// every frame that plays, so a change made mid-playback shows on the next
-    /// frame.
-    /// </summary>
     public interface IReadOnlyNeoAnimationSegment<T> : INeoValueReference
     {
         bool IsReadOnly { get; }
@@ -10356,16 +10334,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         NeoReadOnlyList<IReadOnlyNeoAnimationSegmentFrame<T>> Frames { get; }
     }
 
-    /// <summary>
-    /// A sequence of one member's values over a frame index. Frames are sparse and
-    /// each one holds until the next row or the end of Duration. A segment has no
-    /// fps of its own — the clip that schedules it owns the clock.
-    ///
-    /// A segment can live anywhere: immutable catalog data, a save, or session
-    /// state a game writes at runtime. Its frames and its Duration are re-read on
-    /// every frame that plays, so a change made mid-playback shows on the next
-    /// frame.
-    /// </summary>
     public abstract partial class NeoAnimationSegment<T> : NeoGeneratedClassValue, IReadOnlyNeoAnimationSegment<T>
     {
         internal NeoAnimationSegment(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
@@ -10512,10 +10480,6 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool? isTrigger { get; }
 
-
-        /// <summary>
-        /// Offset from the object's origin-cell corner, measured in cells, matching Unity's BoxCollider2D model. (0.5, 0.5) centers a 1x1 collider on the origin cell.
-        /// </summary>
         NeoReadOnlyVector2? offset { get; }
 
         NeoReadOnlyVector2 size { get; }
@@ -10606,9 +10570,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        /// <summary>
-        /// Offset from the object's origin-cell corner, measured in cells, matching Unity's BoxCollider2D model. (0.5, 0.5) centers a 1x1 collider on the origin cell.
-        /// </summary>
         public virtual NeoVector2? offset
         {
             get
@@ -10709,12 +10670,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    /// <summary>
-    /// A lane on a clip's timeline: which child it plays against, when it starts,
-    /// which way it runs, and which slice of the content to use. Both kinds of
-    /// track derive from this, so playing a child clip reversed or cropped is
-    /// something you author on the lane rather than pass in when you play it.
-    /// </summary>
     public interface IReadOnlyNeoAnimationTrackBase : INeoValueReference
     {
         bool IsReadOnly { get; }
@@ -10727,22 +10682,10 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         IReadOnlyNeoObjectBase Child { get; }
 
-
-        /// <summary>
-        /// Which way the scheduled content plays: forward, or last frame first. This is playback order, not a direction in the world.
-        /// </summary>
         NeoPlayDirection Direction { get; }
 
-
-        /// <summary>
-        /// Where to stop, counted in the scheduled content's own frames. The frame at this index is not played. Leave it empty to run to the end. Dragging the right edge of a lane edits this.
-        /// </summary>
         int? OffsetEndIndex { get; }
 
-
-        /// <summary>
-        /// The first frame of the scheduled content to play, counted in that content's own frames. Dragging the left edge of a lane edits this.
-        /// </summary>
         int? OffsetStartIndex { get; }
 
         NeoSelectorRefreshKind Refresh { get; }
@@ -10752,12 +10695,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         int StartFrame { get; }
     }
 
-    /// <summary>
-    /// A lane on a clip's timeline: which child it plays against, when it starts,
-    /// which way it runs, and which slice of the content to use. Both kinds of
-    /// track derive from this, so playing a child clip reversed or cropped is
-    /// something you author on the lane rather than pass in when you play it.
-    /// </summary>
     public abstract partial class NeoAnimationTrackBase : NeoGeneratedClassValue, IReadOnlyNeoAnimationTrackBase
     {
         internal NeoAnimationTrackBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
@@ -10772,7 +10709,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var clientClassId = node.value?.classId;
                 return clientClassId switch
                 {
-                    "system_8dc78ecf-15b8-4b8a-86f3-7691a5b487d0" => new NeoAnimationChildTrack(client, node, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoAnimationTrackBase' without a concrete client type id."),
                 };
             });
@@ -10785,7 +10721,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var clientClassId = node.value?.classId;
                 return clientClassId switch
                 {
-                    "system_8dc78ecf-15b8-4b8a-86f3-7691a5b487d0" => new NeoAnimationChildTrack(client, node, false, node.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoAnimationTrackBase' without a concrete client type id."),
                 };
             });
@@ -10811,9 +10746,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoAnimationTrackBase>(out writable);
         }
 
-        /// <summary>
-        /// How long the scheduled content runs, in its own frames — the referenced clip's Duration on a child track, the segment's Duration on a segment track. Neo answers this for you; it is not a value you author.
-        /// </summary>
         protected abstract int BaseDuration { get; }
 
         public virtual NeoObjectBase Child
@@ -10839,9 +10771,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        /// <summary>
-        /// Which way the scheduled content plays: forward, or last frame first. This is playback order, not a direction in the world.
-        /// </summary>
         public virtual NeoPlayDirection Direction
         {
             get
@@ -10856,9 +10785,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        /// <summary>
-        /// Where to stop, counted in the scheduled content's own frames. The frame at this index is not played. Leave it empty to run to the end. Dragging the right edge of a lane edits this.
-        /// </summary>
         public virtual int? OffsetEndIndex
         {
             get
@@ -10872,9 +10798,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        /// <summary>
-        /// The first frame of the scheduled content to play, counted in that content's own frames. Dragging the left edge of a lane edits this.
-        /// </summary>
         public virtual int? OffsetStartIndex
         {
             get
@@ -10907,7 +10830,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 var child = node.Get<NeoMemberDelegate>("Selector");
-                return child.Bind<IReadOnlyNeoObjectBase>(result => NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<IReadOnlyNeoObjectBase>(client, result, true, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, "Selector delegate result"));
+                return child.Bind<IReadOnlyNeoObjectBase>(result => NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<IReadOnlyNeoObjectBase>(client, result, true, HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories, "Selector delegate result"));
             }
             set
             {
@@ -11914,10 +11837,6 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoObjectBase writable);
 
-
-        /// <summary>
-        /// When false, this object and its children are neither rendered nor collided with. The value stays live: member writes still apply and a running animation clip keeps playing. Disabling an object hides its whole subtree regardless of each child's own value, and re-enabling it restores exactly what was there.
-        /// </summary>
         new bool Enabled { get; }
 
         new string Name { get; }
@@ -12003,9 +11922,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         NeoReadOnlyVector3 INeoWorldObjectValue.Position => Position;
         NeoReadOnlyVector3 INeoWorldObjectValue.Size => Size;
 
-        /// <summary>
-        /// When false, this object and its children are neither rendered nor collided with. The value stays live: member writes still apply and a running animation clip keeps playing. Disabling an object hides its whole subtree regardless of each child's own value, and re-enabling it restores exactly what was there.
-        /// </summary>
         public virtual bool Enabled
         {
             get
@@ -12098,11 +12014,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    /// <summary>
-    /// A row at a frame index. Rows are sparse: each one holds from its index
-    /// until the next row you author, so you only author the frames where
-    /// something changes.
-    /// </summary>
     public interface IReadOnlyNeoAnimationFrameBase : INeoValueReference
     {
         bool IsReadOnly { get; }
@@ -12116,11 +12027,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         int Index { get; }
     }
 
-    /// <summary>
-    /// A row at a frame index. Rows are sparse: each one holds from its index
-    /// until the next row you author, so you only author the frames where
-    /// something changes.
-    /// </summary>
     public abstract partial class NeoAnimationFrameBase : NeoGeneratedClassValue, IReadOnlyNeoAnimationFrameBase
     {
         internal NeoAnimationFrameBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
@@ -12451,10 +12357,6 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoSortingGroup writable);
 
-
-        /// <summary>
-        /// Sort this group against the scene root, ignoring any enclosing sorting group. Maps to SortingGroup.sortAtRoot.
-        /// </summary>
         new bool SortAtRoot { get; }
     }
 
@@ -12524,9 +12426,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoSortingGroup>(out writable);
         }
 
-        /// <summary>
-        /// Sort this group against the scene root, ignoring any enclosing sorting group. Maps to SortingGroup.sortAtRoot.
-        /// </summary>
         public virtual bool SortAtRoot
         {
             get
@@ -12916,10 +12815,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    /// <summary>
-    /// One value at a frame index inside a segment. It holds until the next row
-    /// you author, or until the segment's Duration runs out.
-    /// </summary>
     public interface IReadOnlyNeoAnimationSegmentFrame<T> : IReadOnlyNeoAnimationFrameBase
     {
         new bool IsReadOnly { get; }
@@ -12931,10 +12826,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         T Value { get; }
     }
 
-    /// <summary>
-    /// One value at a frame index inside a segment. It holds until the next row
-    /// you author, or until the segment's Duration runs out.
-    /// </summary>
     public partial class NeoAnimationSegmentFrame<T> : NeoAnimationFrameBase, IReadOnlyNeoAnimationSegmentFrame<T>
     {
         internal NeoAnimationSegmentFrame(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
@@ -13975,30 +13866,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoSpriteObject writable);
 
-
-        /// <summary>
-        /// Mirrors the sprite horizontally about its own centre. Maps to SpriteRenderer.flipX.
-        /// </summary>
         new bool FlipX { get; }
 
-
-        /// <summary>
-        /// Mirrors the sprite vertically about its own centre. Maps to SpriteRenderer.flipY.
-        /// </summary>
         new bool FlipY { get; }
 
-
-        /// <summary>
-        /// How this sprite reacts to sprite masks. Maps to SpriteRenderer.maskInteraction. The web canvas has no real sprite mask, so anything other than None previews as a distinguishable treatment rather than as the mask itself — only Unity renders the real thing.
-        /// </summary>
         new NeoSpriteMaskInteraction MaskInteraction { get; }
 
         new string Name { get; }
 
-
-        /// <summary>
-        /// Nudges this sprite's draw order within its object. Added to the order derived from the object's layer group — it does not replace it. Leave unset for the default order.
-        /// </summary>
         new int? SortingOrder { get; }
 
         new NeoReadOnlySprite Sprite { get; }
@@ -14081,9 +13956,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         Sprite INeoSpriteObjectValue.Sprite => Sprite;
         string INeoSpriteObjectValue.MaskInteraction => MaskInteraction.optionId;
 
-        /// <summary>
-        /// Mirrors the sprite horizontally about its own centre. Maps to SpriteRenderer.flipX.
-        /// </summary>
         public virtual bool FlipX
         {
             get
@@ -14097,9 +13969,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        /// <summary>
-        /// Mirrors the sprite vertically about its own centre. Maps to SpriteRenderer.flipY.
-        /// </summary>
         public virtual bool FlipY
         {
             get
@@ -14113,9 +13982,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        /// <summary>
-        /// How this sprite reacts to sprite masks. Maps to SpriteRenderer.maskInteraction. The web canvas has no real sprite mask, so anything other than None previews as a distinguishable treatment rather than as the mask itself — only Unity renders the real thing.
-        /// </summary>
         public virtual NeoSpriteMaskInteraction MaskInteraction
         {
             get
@@ -14143,9 +14009,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        /// <summary>
-        /// Nudges this sprite's draw order within its object. Added to the order derived from the object's layer group — it does not replace it. Leave unset for the default order.
-        /// </summary>
         public virtual int? SortingOrder
         {
             get
@@ -14959,14 +14822,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    /// <summary>
-    /// Plays a sequence of values onto one member of one child, on the owning
-    /// clip's clock. Where a child track hands off to another clip, this lane is a
-    /// leaf: it writes one value per frame to the member its subclass targets.
-    ///
-    /// Derive from it with the child type you author against, so that a Segment
-    /// getter can reach that child's own members.
-    /// </summary>
     public interface IReadOnlyNeoAnimationSegmentTrack<TChild, TValue> : IReadOnlyNeoAnimationTrackBase
     {
         new bool IsReadOnly { get; }
@@ -14975,33 +14830,13 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
-
-        /// <summary>
-        /// The child this lane plays against, typed as the child class you derived with, so a Segment getter can read that child's own members.
-        /// </summary>
         new TChild Child { get; }
 
-
-        /// <summary>
-        /// The sequence of values this lane plays. Your subclass decides where it comes from — a value you store, a lookup, or a getter you write — and it is resolved again on every frame that plays.
-        /// </summary>
         IReadOnlyNeoAnimationSegment<TValue> Segment { get; }
 
-
-        /// <summary>
-        /// The child this lane plays against, typed as the child class you derived with, so a Segment getter can read that child's own members.
-        /// </summary>
         new NeoDelegate<TChild> Selector { get; }
     }
 
-    /// <summary>
-    /// Plays a sequence of values onto one member of one child, on the owning
-    /// clip's clock. Where a child track hands off to another clip, this lane is a
-    /// leaf: it writes one value per frame to the member its subclass targets.
-    ///
-    /// Derive from it with the child type you author against, so that a Segment
-    /// getter can reach that child's own members.
-    /// </summary>
     public abstract partial class NeoAnimationSegmentTrack<TChild, TValue> : NeoAnimationTrackBase, IReadOnlyNeoAnimationSegmentTrack<TChild, TValue>
     {
         internal NeoAnimationSegmentTrack(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
@@ -15053,21 +14888,12 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoAnimationSegmentTrack<TChild, TValue>>(out writable);
         }
 
-        /// <summary>
-        /// The child this lane plays against, typed as the child class you derived with, so a Segment getter can read that child's own members.
-        /// </summary>
         public new abstract TChild Child { get; set; }
 
-        /// <summary>
-        /// The sequence of values this lane plays. Your subclass decides where it comes from — a value you store, a lookup, or a getter you write — and it is resolved again on every frame that plays.
-        /// </summary>
         public abstract NeoAnimationSegment<TValue> Segment { get; }
 
         IReadOnlyNeoAnimationSegment<TValue> IReadOnlyNeoAnimationSegmentTrack<TChild, TValue>.Segment => Segment;
 
-        /// <summary>
-        /// The child this lane plays against, typed as the child class you derived with, so a Segment getter can read that child's own members.
-        /// </summary>
         public new virtual NeoDelegate<TChild> Selector
         {
             get
@@ -15170,12 +14996,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    /// <summary>
-    /// A sprite flipbook: which sprite to show at each frame index. This is the
-    /// segment to reach for when animating a sprite. To animate any other kind of
-    /// value — a Vector3 bounce, a Color flash — declare your own segment class
-    /// deriving from NeoAnimationSegment.
-    /// </summary>
     public interface IReadOnlyNeoSpriteAnimationSegment : IReadOnlyNeoAnimationSegment<Sprite>
     {
         new bool IsReadOnly { get; }
@@ -15187,12 +15007,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         bool TryWritable(out NeoSpriteAnimationSegment writable);
     }
 
-    /// <summary>
-    /// A sprite flipbook: which sprite to show at each frame index. This is the
-    /// segment to reach for when animating a sprite. To animate any other kind of
-    /// value — a Vector3 bounce, a Color flash — declare your own segment class
-    /// deriving from NeoAnimationSegment.
-    /// </summary>
     public partial class NeoSpriteAnimationSegment : NeoAnimationSegment<Sprite>, IReadOnlyNeoSpriteAnimationSegment
     {
         internal NeoSpriteAnimationSegment(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)

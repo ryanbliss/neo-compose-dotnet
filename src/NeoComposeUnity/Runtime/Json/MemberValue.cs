@@ -138,19 +138,20 @@ namespace NeoCompose.Runtime.Json
         public string? classId { get; set; }
 
         /// <summary>
-        /// P43 §1 / §1.1a — set iff this container is <b>init-backed</b>: the
-        /// value is produced by evaluating <see cref="InitializerBody.compiled"/>
-        /// at instance construction rather than read from <c>value</c>.
+        /// P43 §1 / P61 §3 — set iff this container is an
+        /// <b>init-backed declaration</b>: the value is produced by evaluating
+        /// <see cref="InitializerBody.compiled"/> when an enclosing instance is
+        /// constructed rather than read from <c>value</c>.
         /// Mutually exclusive with <c>value</c>/<c>classId</c> — a computed
         /// default stores no baked value and no concrete class (both come from
         /// evaluation), and the converters reject a container carrying both.
         ///
         /// <para>Declared on the non-generic base rather than on
         /// <see cref="MemberValueBase{TValue}"/> so it is equally available on
-        /// a stored <see cref="MemberValue"/> row: §1.1a puts an initializer on
-        /// <b>any</b> value container, which is what keeps a literal list's
-        /// entries individually addressable while each entry computes its own
-        /// interior.</para>
+        /// a stored <see cref="MemberValue"/> row inside a member-default
+        /// declaration graph. P61 forbids <c>init</c> on instance rows: those
+        /// rows arrive with their materialized <c>value</c>, concrete
+        /// <c>classId</c>, and (when needed) <c>constructorArgs</c>.</para>
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public InitializerBody? init { get; set; }
@@ -179,6 +180,12 @@ namespace NeoCompose.Runtime.Json
                     $"{subject} carries both 'classId' and 'init'. The concrete class of a computed "
                     + "default comes from evaluating it; re-export the project from the current web app.");
             }
+            if (IsPresent(carrier["constructorArgs"]))
+            {
+                throw new JsonSerializationException(
+                    $"{subject} carries both 'constructorArgs' and 'init'. Constructor arguments "
+                    + "belong only to a materialized instance; re-export the project from the current web app.");
+            }
         }
 
         private static bool IsPresent(JToken? token)
@@ -186,6 +193,44 @@ namespace NeoCompose.Runtime.Json
             return token is not null
                 && token.Type != JTokenType.Null
                 && token.Type != JTokenType.Undefined;
+        }
+    }
+
+    /// <summary>
+    /// P61 §3 — validates the creation-data half of a materialized class
+    /// instance. <c>constructorArgs</c> is never an alternative value variant:
+    /// it supplements an already-materialized object row with a concrete class.
+    /// </summary>
+    internal static class ConstructorArgsGuard
+    {
+        internal static void Validate(JObject carrier, string subject)
+        {
+            JProperty? property = carrier.Property("constructorArgs");
+            if (property is null || property.Value.Type == JTokenType.Null) return;
+            if (property.Value is not JObject args)
+            {
+                throw new JsonSerializationException(
+                    $"{subject} has invalid 'constructorArgs'. Evaluated constructor arguments must be an object keyed by parameter id.");
+            }
+            if (carrier["value"] is not JObject)
+            {
+                throw new JsonSerializationException(
+                    $"{subject} carries 'constructorArgs' without a materialized class 'value' object. Re-export the project from the current web app.");
+            }
+            if (carrier["classId"]?.Type != JTokenType.String
+                || string.IsNullOrWhiteSpace(carrier.Value<string>("classId")))
+            {
+                throw new JsonSerializationException(
+                    $"{subject} carries 'constructorArgs' without a concrete 'classId'. Re-export the project from the current web app.");
+            }
+            foreach (JProperty argument in args.Properties())
+            {
+                if (string.IsNullOrWhiteSpace(argument.Name))
+                {
+                    throw new JsonSerializationException(
+                        $"{subject} has an empty constructor parameter id in 'constructorArgs'. Re-export the project from the current web app.");
+                }
+            }
         }
     }
 
@@ -1110,6 +1155,19 @@ namespace NeoCompose.Runtime.Json
         public NeoTimestamp updatedAt { get; set; }
 
         /// <summary>
+        /// P61 §3 / §5.1 — evaluated arguments used to create a
+        /// materialized class instance, keyed by constructor parameter id.
+        /// These are creation data, not executable source: literals remain
+        /// literals, a constructed argument is the id of its materialized row,
+        /// and an NSDelegate argument retains its ordinary delegate-value
+        /// object. The row's <c>value</c> remains authoritative for every
+        /// runtime read; Unity preserves this field so exports round-trip but
+        /// never replays construction from it.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Dictionary<string, JToken?>? constructorArgs { get; set; }
+
+        /// <summary>
         /// Set iff this row is an entry of an <b>unordered</b> List value
         /// (<see cref="ListMember.listKind"/> == "unordered"): the list
         /// VALUE id the row belongs to. Stamped at creation and immutable
@@ -1285,6 +1343,7 @@ namespace NeoCompose.Runtime.Json
             InitializerVariantGuard.RejectConflictingVariant(
                 obj,
                 "A member value row");
+            ConstructorArgsGuard.Validate(obj, "A member value row");
             var concrete =
                 TypedHierarchyMap.ResolveByContext(objectType, typeof(MemberValue<>))
                 ?? ResolveByShape(obj["value"]);

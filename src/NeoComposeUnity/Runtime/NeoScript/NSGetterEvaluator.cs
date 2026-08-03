@@ -27,6 +27,7 @@ namespace NeoCompose.Runtime.NeoScript
         private readonly NeoScriptExecutionBudgetLimits limits;
         private readonly HashSet<string> allocatedRootIds = new();
         private readonly HashSet<string> escapedRootIds = new();
+        private readonly HashSet<string> completedAllocationRootIds = new();
         private int activeExecutions;
         private int loopIterations;
         private int workUnits;
@@ -45,6 +46,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (activeExecutions == 0)
             {
+                completedAllocationRootIds.Clear();
                 loopIterations = 0;
                 workUnits = 0;
                 collectionVisits = 0;
@@ -145,6 +147,11 @@ namespace NeoCompose.Runtime.NeoScript
             if (!string.IsNullOrEmpty(valueId)) allocatedRootIds.Add(valueId);
         }
 
+        internal bool IsAllocatedSessionRoot(string valueId) =>
+            !string.IsNullOrEmpty(valueId)
+            && (allocatedRootIds.Contains(valueId)
+                || completedAllocationRootIds.Contains(valueId));
+
         /// <summary>
         /// A value crossing a function-call boundary is no longer owned by
         /// the current NeoScript frame. Mark its complete constructed graph as
@@ -239,6 +246,8 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 MarkEscaped(terminalResult.ReturnValue, ctx);
             }
+
+            completedAllocationRootIds.UnionWith(allocatedRootIds);
 
             foreach (string valueId in allocatedRootIds.ToArray())
             {
@@ -778,7 +787,20 @@ namespace NeoCompose.Runtime.NeoScript
         /// value. Throws <see cref="NSGetterRuntimeError"/> if the
         /// function falls off the end without an explicit return.
         /// </summary>
-        public static object? Evaluate(FunctionWithReturnType getter, Context ctx)
+        public static object? Evaluate(FunctionWithReturnType getter, Context ctx) =>
+            Evaluate(getter, ctx, Array.Empty<object?>());
+
+        /// <summary>
+        /// Evaluates a getter-shaped initializer with its optional class-header
+        /// constructor parameters bound after <c>__this__</c>/<c>__root__</c>.
+        /// P61 keeps these parameterized bodies only in declaration graphs;
+        /// the declared-constructor path supplies the values when it creates a
+        /// concrete instance.
+        /// </summary>
+        internal static object? Evaluate(
+            FunctionWithReturnType getter,
+            Context ctx,
+            IReadOnlyList<object?> argumentValues)
         {
             var scope = new Dictionary<string, object?>
             {
@@ -786,6 +808,17 @@ namespace NeoCompose.Runtime.NeoScript
                 ["__root__"] = ctx.rootValue,
                 ["__context__"] = ctx.contextValue,
             };
+            Variable[] parameters = getter.parameters ?? Array.Empty<Variable>();
+            if (argumentValues.Count > 0
+                && parameters.Length != argumentValues.Count + 2)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Initializer declares {Math.Max(0, parameters.Length - 2)} constructor parameter(s), but received {argumentValues.Count} value(s).");
+            }
+            for (int i = 0; i < argumentValues.Count; i++)
+            {
+                scope[parameters[i + 2].id] = argumentValues[i];
+            }
             // Getters, actions, setters, and NSFunctions now share the same
             // effect-capable executor. Writability is a compile/runtime target
             // property, not a reason to maintain a second pure interpreter.
