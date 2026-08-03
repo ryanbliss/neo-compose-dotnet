@@ -197,14 +197,18 @@ namespace NeoCompose.Runtime
         internal sealed class NeoConstructionScope
         {
             private readonly NeoClient client;
+            private readonly IReadOnlyList<object?> initializerArguments;
             private NeoScript.NSGetterEvaluator.Context? evaluationContext;
 
             internal NeoConstructionScope(
                 NeoClient client,
-                NeoScript.NSGetterEvaluator.Context? evaluationContext)
+                NeoScript.NSGetterEvaluator.Context? evaluationContext,
+                IReadOnlyList<object?>? initializerArguments = null)
             {
                 this.client = client;
                 this.evaluationContext = evaluationContext;
+                this.initializerArguments = initializerArguments
+                    ?? Array.Empty<object?>();
             }
 
             /// <summary>
@@ -286,9 +290,14 @@ namespace NeoCompose.Runtime
                     PushConstructionFrame(
                         EvaluationContext,
                         $"{member.name} initializer");
+                IReadOnlyList<object?> arguments =
+                    init.compiled.parameters is { Length: > 2 }
+                        ? initializerArguments
+                        : Array.Empty<object?>();
                 return NeoScript.NSGetterEvaluator.Evaluate(
                     init.compiled,
-                    initializerContext.WithThis(null));
+                    initializerContext.WithThis(null),
+                    arguments);
             }
         }
 
@@ -1457,6 +1466,95 @@ namespace NeoCompose.Runtime
                 value,
                 valueRows,
                 new NeoConstructionScope(client, null));
+        }
+
+        /// <summary>
+        /// P61 declaration-only validation seam. Animation definitions are
+        /// validated before a concrete owner instance exists, but a
+        /// declaration list may contain an init-backed Class row. Evaluate a
+        /// self-contained initializer into a temporary Session graph so the
+        /// validator sees the same concrete class and fields a real instance
+        /// would receive. Parameterized declaration rows cannot be invoked
+        /// honestly without their enclosing constructor arguments, so callers
+        /// defer those rows until a real instance supplies the parameters.
+        /// </summary>
+        internal static bool TryMaterializeDeclarationInitializerForValidation(
+            NeoClient client,
+            NeoMemberClass declaration,
+            out NeoMemberClass resolved,
+            out string? temporarySessionRootId)
+        {
+            resolved = declaration;
+            temporarySessionRootId = null;
+            if (string.IsNullOrEmpty(declaration.overrideValueId)
+                || !client.TryGetValue(
+                    declaration.overrideValueId!,
+                    out MemberValue? declarationRow)
+                || declarationRow.init is null)
+            {
+                return true;
+            }
+
+            InitializerBody init = declarationRow.init;
+            if (init.compiled?.parameters is { Length: > 2 })
+            {
+                return false;
+            }
+            if (declaration.member is not ClassMember classMember)
+            {
+                throw new InvalidOperationException(
+                    $"Initializer-backed declaration row '{declarationRow.id}' is not owned by a Class member.");
+            }
+
+            var preexistingSessionIds = new HashSet<string>(
+                client.sessionValues.Keys,
+                StringComparer.Ordinal);
+            var scope = new NeoConstructionScope(client, null);
+            object? produced = scope.EvaluateInitializer(classMember, init);
+            NeoConstructorValueReference? reference = scope.ValueReference(produced);
+            if (reference is null || string.IsNullOrEmpty(reference.Value.valueId))
+            {
+                throw new InvalidOperationException(
+                    $"Initializer-backed Class declaration row '{declarationRow.id}' produced no Neo value.");
+            }
+            NeoValueOwnership ownership = reference.Value.ownership
+                ?? (client.TryGetValueOwnership(
+                    reference.Value.valueId,
+                    out NeoValueOwnership inferred)
+                        ? inferred
+                        : throw new InvalidOperationException(
+                            $"Initializer-backed Class declaration row '{declarationRow.id}' produced missing value '{reference.Value.valueId}'."));
+            resolved = new NeoMemberClassWritable(
+                client,
+                classMember,
+                reference.Value.valueId,
+                ownership);
+            if (ownership == NeoValueOwnership.Session
+                && !preexistingSessionIds.Contains(reference.Value.valueId))
+            {
+                temporarySessionRootId = reference.Value.valueId;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Reclaims a graph created solely for declaration validation. Existing
+        /// Asset/Save/Session references never receive a cleanup id and are
+        /// therefore left untouched.
+        /// </summary>
+        internal static void ReleaseValidationMaterialization(
+            NeoClient client,
+            string? temporarySessionRootId)
+        {
+            if (string.IsNullOrEmpty(temporarySessionRootId)) return;
+            IReadOnlyCollection<string> removed =
+                client.RemoveTemporaryWritableValueGraph(
+                    NeoValueOwnership.Session,
+                    temporarySessionRootId!);
+            if (removed.Count > 0)
+            {
+                client.DisposeWrappersTouchingRows(removed);
+            }
         }
 
         private static NeoMemberClassWritable CreateWritableClassValueCore(
@@ -3065,7 +3163,13 @@ namespace NeoCompose.Runtime
             NeoClient client = resolved.client;
             NeoScript.NSGetterEvaluator.Context constructionCtx =
                 PushConstructionFrame(ctx, resolved.schemaClass.name);
-            var scope = new NeoConstructionScope(client, constructionCtx);
+            object?[] positionalArguments = OrderDeclaredArguments(
+                resolved.link.record,
+                argumentValues);
+            var scope = new NeoConstructionScope(
+                client,
+                constructionCtx,
+                positionalArguments);
 
             // Step 1 — member initializers. No fields are supplied here: an
             // overridden member's initializer still RUNS and is then overwritten
@@ -3102,9 +3206,6 @@ namespace NeoCompose.Runtime
                     root,
                     constructionCtx,
                     NeoValueOwnership.Session);
-                object?[] positionalArguments = OrderDeclaredArguments(
-                    resolved.link.record,
-                    argumentValues);
                 RunDeclaredConstructorChain(
                     client,
                     resolved,
@@ -3130,6 +3231,7 @@ namespace NeoCompose.Runtime
                     constructionCtx);
 
                 AssertDeclaredConstructorRootIsComplete(client, resolved, root.id);
+                node.RefreshChildrenAfterConstruction();
             }
             catch
             {

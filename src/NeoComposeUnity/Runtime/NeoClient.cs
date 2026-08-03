@@ -1083,11 +1083,12 @@ namespace NeoCompose.Runtime
 
         private static void ValidateExportSchemaVersion(ProjectExportMetadata? metadata)
         {
-            // P43 §8 — 15 carries `init` bodies on value containers and the
-            // `constructors` collection, both of which the runtime must
-            // evaluate at construction. A 14 export has neither, so it fails
-            // closed rather than constructing instances with missing values.
-            const int currentVersion = 15;
+            // P61 §3 / §4 — 16 materializes every instance initializer at
+            // the push trust boundary. A 15 export may still carry an
+            // unmaterialized instance row whose `init` this runtime would
+            // incorrectly treat like declaration code, so it fails closed
+            // rather than constructing a second, divergent graph in-game.
+            const int currentVersion = 16;
             if (metadata is null)
             {
                 throw new System.InvalidOperationException(
@@ -1108,7 +1109,7 @@ namespace NeoCompose.Runtime
             if (data.internalRecordRelations is null)
             {
                 throw new System.InvalidOperationException(
-                    "Project export schema version 15 is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
+                    "Project export schema version 16 is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
             }
 
             var knownKinds = new HashSet<string>(System.StringComparer.Ordinal)
@@ -3637,7 +3638,6 @@ namespace NeoCompose.Runtime
             if (!visited.Add(valueId)) return;
             var store = GetWritableStore(ownership);
             if (!store.values.TryGetValue(valueId, out MemberValue val)) return;
-
             // Follow only authoritative owned edges. Lookup selections and
             // other reference payloads deliberately survive deletion. A
             // defensive visited set prevents malformed cyclic data from

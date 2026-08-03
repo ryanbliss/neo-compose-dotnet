@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-08-02
+
+### Added
+
+- **Initializer materialization (P61).** Materialized instance rows now
+  preserve their evaluated `constructorArgs` creation data while the runtime
+  continues to read the stored `value` graph as authority.
+
+### Changed
+
+- Row-level `init` is documented and validated as a declaration-graph shape;
+  an exported instance carries `value`, its concrete `classId`, and optional
+  `constructorArgs` instead of executable initializer code.
+
 ## [0.17.0] - 2026-08-02
 
 ### Added

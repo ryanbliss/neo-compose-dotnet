@@ -778,7 +778,20 @@ namespace NeoCompose.Runtime.NeoScript
         /// value. Throws <see cref="NSGetterRuntimeError"/> if the
         /// function falls off the end without an explicit return.
         /// </summary>
-        public static object? Evaluate(FunctionWithReturnType getter, Context ctx)
+        public static object? Evaluate(FunctionWithReturnType getter, Context ctx) =>
+            Evaluate(getter, ctx, Array.Empty<object?>());
+
+        /// <summary>
+        /// Evaluates a getter-shaped initializer with its optional class-header
+        /// constructor parameters bound after <c>__this__</c>/<c>__root__</c>.
+        /// P61 keeps these parameterized bodies only in declaration graphs;
+        /// the declared-constructor path supplies the values when it creates a
+        /// concrete instance.
+        /// </summary>
+        internal static object? Evaluate(
+            FunctionWithReturnType getter,
+            Context ctx,
+            IReadOnlyList<object?> argumentValues)
         {
             var scope = new Dictionary<string, object?>
             {
@@ -786,6 +799,17 @@ namespace NeoCompose.Runtime.NeoScript
                 ["__root__"] = ctx.rootValue,
                 ["__context__"] = ctx.contextValue,
             };
+            Variable[] parameters = getter.parameters ?? Array.Empty<Variable>();
+            if (argumentValues.Count > 0
+                && parameters.Length != argumentValues.Count + 2)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Initializer declares {Math.Max(0, parameters.Length - 2)} constructor parameter(s), but received {argumentValues.Count} value(s).");
+            }
+            for (int i = 0; i < argumentValues.Count; i++)
+            {
+                scope[parameters[i + 2].id] = argumentValues[i];
+            }
             // Getters, actions, setters, and NSFunctions now share the same
             // effect-capable executor. Writability is a compile/runtime target
             // property, not a reason to maintain a second pure interpreter.

@@ -291,6 +291,15 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// Rebinds children after a declared constructor has finished. The
+        /// wrapper is created before constructor bodies run so NeoScript can
+        /// bind <c>this</c>; a body may then introduce a previously absent
+        /// required row, which must become visible through this same wrapper.
+        /// </summary>
+        internal void RefreshChildrenAfterConstruction() =>
+            ReinitializeChildren();
+
+        /// <summary>
         /// Walks <c>value.value</c> and rebuilds the
         /// <see cref="childMembers"/> dict from scratch using the
         /// current <see cref="schemaClass"/>'s schema. Called after the
