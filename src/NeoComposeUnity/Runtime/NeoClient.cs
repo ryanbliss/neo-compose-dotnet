@@ -1088,7 +1088,8 @@ namespace NeoCompose.Runtime
             // unmaterialized instance row whose `init` this runtime would
             // incorrectly treat like declaration code, so it fails closed
             // rather than constructing a second, divergent graph in-game.
-            const int currentVersion = 16;
+            const int currentVersion =
+                NeoProjectExportContract.CurrentSchemaVersion;
             if (metadata is null)
             {
                 throw new System.InvalidOperationException(
@@ -1109,7 +1110,7 @@ namespace NeoCompose.Runtime
             if (data.internalRecordRelations is null)
             {
                 throw new System.InvalidOperationException(
-                    "Project export schema version 16 is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
+                    $"Project export schema version {NeoProjectExportContract.CurrentSchemaVersion} is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
             }
 
             var knownKinds = new HashSet<string>(System.StringComparer.Ordinal)

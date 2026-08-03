@@ -27,6 +27,7 @@ namespace NeoCompose.Runtime.NeoScript
         private readonly NeoScriptExecutionBudgetLimits limits;
         private readonly HashSet<string> allocatedRootIds = new();
         private readonly HashSet<string> escapedRootIds = new();
+        private readonly HashSet<string> completedAllocationRootIds = new();
         private int activeExecutions;
         private int loopIterations;
         private int workUnits;
@@ -45,6 +46,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (activeExecutions == 0)
             {
+                completedAllocationRootIds.Clear();
                 loopIterations = 0;
                 workUnits = 0;
                 collectionVisits = 0;
@@ -145,6 +147,11 @@ namespace NeoCompose.Runtime.NeoScript
             if (!string.IsNullOrEmpty(valueId)) allocatedRootIds.Add(valueId);
         }
 
+        internal bool IsAllocatedSessionRoot(string valueId) =>
+            !string.IsNullOrEmpty(valueId)
+            && (allocatedRootIds.Contains(valueId)
+                || completedAllocationRootIds.Contains(valueId));
+
         /// <summary>
         /// A value crossing a function-call boundary is no longer owned by
         /// the current NeoScript frame. Mark its complete constructed graph as
@@ -239,6 +246,8 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 MarkEscaped(terminalResult.ReturnValue, ctx);
             }
+
+            completedAllocationRootIds.UnionWith(allocatedRootIds);
 
             foreach (string valueId in allocatedRootIds.ToArray())
             {

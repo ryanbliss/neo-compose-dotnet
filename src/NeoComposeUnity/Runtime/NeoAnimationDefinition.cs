@@ -1390,56 +1390,44 @@ namespace NeoCompose.Runtime
                             throw new InvalidOperationException(
                                 $"Animation clip '{clipKey}' contains a non-Class frame row.");
                         }
-                        if (!NeoGeneratedTypesSupport
-                            .TryMaterializeDeclarationInitializerForValidation(
+                        using var validation = NeoGeneratedTypesSupport
+                            .TryResolveDeclarationForValidation(
                                 client,
-                                declarationFrame,
-                                out NeoMemberClass frame,
-                                out string? temporaryFrameRootId))
+                                declarationFrame);
+                        if (validation is null) continue;
+                        NeoMemberClass frame = validation.Value;
+                        int frameIndex = ReadRequiredInt(frame, "Index", clipKey);
+                        if (frameIndex < 0 || frameIndex >= duration)
                         {
-                            continue;
+                            throw new InvalidOperationException(
+                                $"Animation clip '{clipKey}' frame index {frameIndex} is outside [0, {duration - 1}].");
                         }
-                        try
+                        if (!frameIndexes.Add(frameIndex))
                         {
-                            int frameIndex = ReadRequiredInt(frame, "Index", clipKey);
-                            if (frameIndex < 0 || frameIndex >= duration)
-                            {
-                                throw new InvalidOperationException(
-                                    $"Animation clip '{clipKey}' frame index {frameIndex} is outside [0, {duration - 1}].");
-                            }
-                            if (!frameIndexes.Add(frameIndex))
-                            {
-                                throw new InvalidOperationException(
-                                    $"Animation clip '{clipKey}' has duplicate frame index {frameIndex}.");
-                            }
-                            if (frame.TryGet("Overrides", out NeoMemberClass? overrides)
-                                && overrides.value is not null)
-                            {
-                                // No instance in hand at whole-clip validation, so
-                                // definition presence resolves from declarations
-                                // only; see ResolveDefinitionPresence.
-                                ValidateExportOverrides(
-                                    client,
-                                    overrides,
-                                    targetRow: null,
-                                    Array.Empty<string>(),
-                                    clipKey,
-                                    frameIndex);
-                            }
-                            ValidateExportActions(
+                            throw new InvalidOperationException(
+                                $"Animation clip '{clipKey}' has duplicate frame index {frameIndex}.");
+                        }
+                        if (frame.TryGet("Overrides", out NeoMemberClass? overrides)
+                            && overrides.value is not null)
+                        {
+                            // No instance in hand at whole-clip validation, so
+                            // definition presence resolves from declarations
+                            // only; see ResolveDefinitionPresence.
+                            ValidateExportOverrides(
                                 client,
-                                targetClass.id,
-                                frame,
+                                overrides,
+                                targetRow: null,
+                                Array.Empty<string>(),
                                 clipKey,
                                 frameIndex);
-                            ValidateExportChildOverrides(client, frame, clipKey, frameIndex);
                         }
-                        finally
-                        {
-                            NeoGeneratedTypesSupport.ReleaseValidationMaterialization(
-                                client,
-                                temporaryFrameRootId);
-                        }
+                        ValidateExportActions(
+                            client,
+                            targetClass.id,
+                            frame,
+                            clipKey,
+                            frameIndex);
+                        ValidateExportChildOverrides(client, frame, clipKey, frameIndex);
                     }
                 }
 
@@ -1452,31 +1440,18 @@ namespace NeoCompose.Runtime
                             throw new InvalidOperationException(
                                 $"Animation clip '{clipKey}' contains a non-Class track row.");
                         }
-                        if (!NeoGeneratedTypesSupport
-                            .TryMaterializeDeclarationInitializerForValidation(
+                        using var validation = NeoGeneratedTypesSupport
+                            .TryResolveDeclarationForValidation(
                                 client,
-                                declarationTrack,
-                                out NeoMemberClass track,
-                                out string? temporaryTrackRootId))
-                        {
-                            continue;
-                        }
-                        try
-                        {
-                            ValidateExportTrack(
-                                client,
-                                track,
-                                clipKey,
-                                duration,
-                                validated,
-                                stack);
-                        }
-                        finally
-                        {
-                            NeoGeneratedTypesSupport.ReleaseValidationMaterialization(
-                                client,
-                                temporaryTrackRootId);
-                        }
+                                declarationTrack);
+                        if (validation is null) continue;
+                        ValidateExportTrack(
+                            client,
+                            validation.Value,
+                            clipKey,
+                            duration,
+                            validated,
+                            stack);
                     }
                 }
                 return (fps, duration);

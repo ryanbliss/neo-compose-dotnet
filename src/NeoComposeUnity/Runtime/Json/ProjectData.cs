@@ -10,6 +10,11 @@ using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Runtime.Json
 {
+    public static class NeoProjectExportContract
+    {
+        public const int CurrentSchemaVersion = 16;
+    }
+
     public class ProjectExportMetadataSemver
     {
         public string label = null!;

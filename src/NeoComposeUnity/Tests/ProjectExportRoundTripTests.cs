@@ -4,6 +4,7 @@
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
+using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -73,7 +74,9 @@ namespace NeoCompose.Tests
             string json = LoadFixture("p61-segment-rig-schema16.json");
             ProjectData data = Deserialize(json);
 
-            Assert.AreEqual(16, data.metadata?.schemaVersion);
+            Assert.AreEqual(
+                NeoProjectExportContract.CurrentSchemaVersion,
+                data.metadata?.schemaVersion);
             AssertMaterializedConstructorRow(data, P61MaterializedTrackId);
             AssertMaterializedConstructorRow(data, P61MaterializedSegmentId);
 
@@ -86,7 +89,12 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(first.containerId);
             Assert.AreEqual(first.containerId, second.containerId);
 
-            Assert.DoesNotThrow(() => NeoTestSaveStack.LoadClient(json));
+            NeoClient? client = null;
+            Assert.DoesNotThrow(() => client = NeoTestSaveStack.LoadClient(json));
+            Assert.IsNotNull(client);
+            Assert.IsEmpty(
+                client!.sessionValues,
+                "Declaration validation must reclaim its temporary Session graph.");
         }
 
         private static MemberValue AssertMaterializedConstructorRow(

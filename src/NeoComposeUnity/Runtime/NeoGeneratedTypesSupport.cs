@@ -266,6 +266,9 @@ namespace NeoCompose.Runtime
                     value,
                     EvaluationContext);
 
+            internal bool IsAllocatedSessionRoot(string valueId) =>
+                EvaluationContext.allocationTracker.IsAllocatedSessionRoot(valueId);
+
             /// <summary>
             /// P43 §1.1 — runs a computed default. <c>__this__</c> is null: an
             /// initializer produces the member's value and has no instance to
@@ -1478,27 +1481,55 @@ namespace NeoCompose.Runtime
         /// honestly without their enclosing constructor arguments, so callers
         /// defer those rows until a real instance supplies the parameters.
         /// </summary>
-        internal static bool TryMaterializeDeclarationInitializerForValidation(
-            NeoClient client,
-            NeoMemberClass declaration,
-            out NeoMemberClass resolved,
-            out string? temporarySessionRootId)
+        internal sealed class DeclarationValidationMaterialization : IDisposable
         {
-            resolved = declaration;
-            temporarySessionRootId = null;
+            private NeoClient? client;
+            private readonly string? temporarySessionRootId;
+
+            internal DeclarationValidationMaterialization(
+                NeoClient client,
+                NeoMemberClass value,
+                string? temporarySessionRootId)
+            {
+                this.client = client;
+                this.temporarySessionRootId = temporarySessionRootId;
+                Value = value;
+            }
+
+            internal NeoMemberClass Value { get; }
+
+            public void Dispose()
+            {
+                NeoClient? activeClient = client;
+                if (activeClient is null) return;
+                client = null;
+                ReleaseValidationMaterialization(
+                    activeClient,
+                    temporarySessionRootId);
+            }
+        }
+
+        internal static DeclarationValidationMaterialization?
+            TryResolveDeclarationForValidation(
+                NeoClient client,
+                NeoMemberClass declaration)
+        {
             if (string.IsNullOrEmpty(declaration.overrideValueId)
                 || !client.TryGetValue(
                     declaration.overrideValueId!,
                     out MemberValue? declarationRow)
                 || declarationRow.init is null)
             {
-                return true;
+                return new DeclarationValidationMaterialization(
+                    client,
+                    declaration,
+                    temporarySessionRootId: null);
             }
 
             InitializerBody init = declarationRow.init;
             if (init.compiled?.parameters is { Length: > 2 })
             {
-                return false;
+                return null;
             }
             if (declaration.member is not ClassMember classMember)
             {
@@ -1506,9 +1537,6 @@ namespace NeoCompose.Runtime
                     $"Initializer-backed declaration row '{declarationRow.id}' is not owned by a Class member.");
             }
 
-            var preexistingSessionIds = new HashSet<string>(
-                client.sessionValues.Keys,
-                StringComparer.Ordinal);
             var scope = new NeoConstructionScope(client, null);
             object? produced = scope.EvaluateInitializer(classMember, init);
             NeoConstructorValueReference? reference = scope.ValueReference(produced);
@@ -1524,17 +1552,20 @@ namespace NeoCompose.Runtime
                         ? inferred
                         : throw new InvalidOperationException(
                             $"Initializer-backed Class declaration row '{declarationRow.id}' produced missing value '{reference.Value.valueId}'."));
-            resolved = new NeoMemberClassWritable(
+            var resolved = new NeoMemberClassWritable(
                 client,
                 classMember,
                 reference.Value.valueId,
                 ownership);
-            if (ownership == NeoValueOwnership.Session
-                && !preexistingSessionIds.Contains(reference.Value.valueId))
-            {
-                temporarySessionRootId = reference.Value.valueId;
-            }
-            return true;
+            string? temporarySessionRootId =
+                ownership == NeoValueOwnership.Session
+                && scope.IsAllocatedSessionRoot(reference.Value.valueId)
+                    ? reference.Value.valueId
+                    : null;
+            return new DeclarationValidationMaterialization(
+                client,
+                resolved,
+                temporarySessionRootId);
         }
 
         /// <summary>
@@ -1542,7 +1573,7 @@ namespace NeoCompose.Runtime
         /// Asset/Save/Session references never receive a cleanup id and are
         /// therefore left untouched.
         /// </summary>
-        internal static void ReleaseValidationMaterialization(
+        private static void ReleaseValidationMaterialization(
             NeoClient client,
             string? temporarySessionRootId)
         {
