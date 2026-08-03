@@ -118,6 +118,11 @@ namespace NeoCompose.Runtime
         /// </summary>
         public Sprite? Resolve()
         {
+            // SpriteInfo.Empty is a real non-null addressable value whose
+            // native projection is intentionally no Unity sprite. Required
+            // means the value row must exist; it does not turn Empty into a
+            // missing asset error.
+            if (IsEmptyValue(CurrentValue())) return null;
             var resolved = ResolveOrNull();
             if (resolved == null && memberNode is not null && memberNode.member.required)
             {
@@ -126,6 +131,11 @@ namespace NeoCompose.Runtime
             }
             return resolved;
         }
+
+        internal static bool IsEmptyValue(SpriteValue? value)
+            => value is not null
+                && string.IsNullOrEmpty(value.fileId)
+                && value.sliceIndex == 0;
 
         /// <summary>
         /// <see cref="Resolve()"/> without the required-member throw — the

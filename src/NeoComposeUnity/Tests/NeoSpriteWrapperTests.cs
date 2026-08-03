@@ -113,6 +113,44 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Resolve_RequiredSpriteInfoEmptyIsNullWithoutThrowing()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var empty = new NeoSprite(client.save.Get<NeoMemberSpriteWritable>("Empty"));
+
+            Assert.AreEqual(string.Empty, empty.FileId);
+            Assert.AreEqual(0, empty.SliceIndex);
+            Assert.IsNull(empty.Resolve());
+        }
+
+        [Test]
+        public void ReadRequiredSprite_DistinguishesEmptyFromMissingAsset()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var empty = new Dictionary<string, object?>
+            {
+                ["fileId"] = string.Empty,
+                ["sliceIndex"] = 0,
+            };
+            var missing = new Dictionary<string, object?>
+            {
+                ["fileId"] = "missing-file",
+                ["sliceIndex"] = 0,
+            };
+
+            Assert.IsNull(NeoGeneratedTypesSupport.ReadRequiredSprite(
+                client,
+                empty,
+                "missing"));
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                NeoGeneratedTypesSupport.ReadRequiredSprite(
+                    client,
+                    missing,
+                    "missing"));
+            Assert.AreEqual("missing", error!.Message);
+        }
+
+        [Test]
         public void DetachedFromSprite_ResolvesBackToTheSameSprite()
         {
             var sprite = MakeSprite();
@@ -392,6 +430,7 @@ namespace NeoCompose.Tests
                 {
                     ["Portrait"] = "portrait-member",
                     ["Icon"] = "icon-member",
+                    ["Empty"] = "empty-member",
                     ["Badge"] = "badge-member",
                 },
             };
@@ -414,6 +453,7 @@ namespace NeoCompose.Tests
                     ["root-session"] = RootMember("root-session", "root-session-value", rootClass.id),
                     ["portrait-member"] = SpriteMemberDefinition("portrait-member", "Portrait", required: true),
                     ["icon-member"] = SpriteMemberDefinition("icon-member", "Icon", required: true),
+                    ["empty-member"] = SpriteMemberDefinition("empty-member", "Empty", required: true),
                     ["badge-member"] = SpriteMemberDefinition("badge-member", "Badge", required: false),
                 },
                 values = new Dictionary<string, MemberValue>
@@ -426,10 +466,12 @@ namespace NeoCompose.Tests
                         {
                             ["Portrait"] = "portrait-value",
                             ["Icon"] = "icon-value",
+                            ["Empty"] = "empty-value",
                         }),
                     ["root-session-value"] = ObjectValue("root-session-value", rootClass.id, new()),
                     ["portrait-value"] = SpriteValueRow("portrait-value", "file-a", 3),
                     ["icon-value"] = SpriteValueRow("icon-value", "file-b", 0),
+                    ["empty-value"] = SpriteValueRow("empty-value", string.Empty, 0),
                 },
                 classes = new Dictionary<string, NeoSchemaClass>
                 {
