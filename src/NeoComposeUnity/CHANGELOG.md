@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-08-03
+
+### Added
+
+- `NeoGeneratedTypesSupport.ReadRequiredSprite` preserves the distinction
+  between the canonical non-null `SpriteInfo.Empty` value and a missing or
+  unresolved required sprite asset.
+
+### Changed
+
+- Required sprite wrappers and generic bindings project `SpriteInfo.Empty` to
+  no Unity `Sprite` without throwing. Non-empty unresolved required assets
+  continue to fail closed.
+
 ## [0.18.0] - 2026-08-02
 
 ### Added
