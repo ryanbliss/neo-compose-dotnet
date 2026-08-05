@@ -48,7 +48,7 @@ namespace NeoCompose.Runtime.NeoScript
         public const int DefaultWorkUnits = 100_000;
         public const int DefaultCollectionVisits = 100_000;
         public const int DefaultProducedCollectionEntries = 10_000;
-        public const int DefaultConstructedSessionRows = 1_000;
+        public const int DefaultConstructedSessionRows = 4_096;
         public const int DefaultProducedStringCharacters = 1024 * 1024;
 
         public int WorkUnits { get; }
