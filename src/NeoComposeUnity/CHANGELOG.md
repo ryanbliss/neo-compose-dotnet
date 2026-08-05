@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.19.1] - 2026-08-05
+
+### Changed
+
+- NeoScript constructor evaluation now budgets each materialized Session row
+  and collection entry once when nested constructor graphs are republished by
+  their ancestors.
+- The default constructed-Session-row ceiling is 4,096, matching the web
+  evaluator and supporting large authored preview graphs.
+
 ## [0.19.0] - 2026-08-03
 
 ### Added

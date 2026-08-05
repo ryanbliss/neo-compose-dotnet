@@ -28,6 +28,8 @@ namespace NeoCompose.Runtime.NeoScript
         private readonly HashSet<string> allocatedRootIds = new();
         private readonly HashSet<string> escapedRootIds = new();
         private readonly HashSet<string> completedAllocationRootIds = new();
+        private readonly HashSet<string> budgetedConstructedRowIds = new();
+        private readonly Dictionary<string, int> budgetedProducedEntriesByRowId = new();
         private int activeExecutions;
         private int loopIterations;
         private int workUnits;
@@ -53,6 +55,8 @@ namespace NeoCompose.Runtime.NeoScript
                 producedCollectionEntries = 0;
                 constructedSessionRows = 0;
                 producedStringCharacters = 0;
+                budgetedConstructedRowIds.Clear();
+                budgetedProducedEntriesByRowId.Clear();
             }
             activeExecutions++;
         }
@@ -112,19 +116,28 @@ namespace NeoCompose.Runtime.NeoScript
         internal void ConsumeCreatedSessionRows(
             IReadOnlyCollection<MemberValue> rows)
         {
-            ConsumeConstructedSessionRow(rows.Count);
+            int rowCount = 0;
             int entryCount = 0;
             foreach (MemberValue row in rows)
             {
+                if (budgetedConstructedRowIds.Add(row.id)) rowCount++;
+                int currentEntryCount = 0;
                 if (row is ArrayMemberValue arrayRow)
                 {
-                    entryCount += arrayRow.value?.Length ?? 0;
+                    currentEntryCount = arrayRow.value?.Length ?? 0;
                 }
                 else if (row is ObjectMemberValue objectRow)
                 {
-                    entryCount += objectRow.value?.Count ?? 0;
+                    currentEntryCount = objectRow.value?.Count ?? 0;
                 }
+                budgetedProducedEntriesByRowId.TryGetValue(
+                    row.id,
+                    out int priorEntryCount);
+                if (currentEntryCount <= priorEntryCount) continue;
+                entryCount += currentEntryCount - priorEntryCount;
+                budgetedProducedEntriesByRowId[row.id] = currentEntryCount;
             }
+            ConsumeConstructedSessionRow(rowCount);
             ConsumeProducedCollectionEntry(entryCount);
         }
 
