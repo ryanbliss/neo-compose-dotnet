@@ -31,6 +31,13 @@ authoring and synchronization workflow.
 
 ## Tests
 
+- **Compilation preflight** — before opening the sample, verify that its
+  generated code and local package compile together:
+
+  ```bash
+  UNITY_EDITOR=/path/to/Unity scripts/verify-unity-compile.sh
+  ```
+
 - **Package tests** — open the sample in Unity, then **Window → General →
   Test Runner**. The package's `NeoCompose.Unity.Tests` assembly shows up
   alongside the sample's `Tests` assembly.
