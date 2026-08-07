@@ -1,0 +1,16 @@
+describe("QuestState", () => {
+  test("starts with the arrival hint", () => {
+    var quest = new QuestState();
+
+    expect(quest.NextHint).toBe(
+      "Rumors ride the flare-wakes. Start with the greeter at Capitol OG."
+    );
+  });
+
+  test("adds urgency when the flare clock reaches six", () => {
+    var quest = new QuestState();
+    quest.FlareClock = 6;
+
+    expect(quest.NextHint).toContain("The storms are stacking — hurry.");
+  });
+});

@@ -1,0 +1,16 @@
+describe("Outpost", () => {
+  test("formats its display text", () => {
+    var outpost = root.Assets.Outposts[0];
+
+    expect(outpost.FullDisplayText).toBe("Mercurial, Mercury");
+  });
+
+  test("can mock a native Function", () => {
+    var outpost = root.Assets.Outposts[0];
+    var debugLog = mock.native(outpost.DebugLog);
+    debugLog.returns("captured");
+
+    expect(outpost.DebugLog("hello from a test")).toBe("captured");
+    expect(debugLog).toHaveBeenCalledWith("hello from a test");
+  });
+});

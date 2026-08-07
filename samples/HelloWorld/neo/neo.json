@@ -3,5 +3,6 @@
   "apiBaseUrl": "http://localhost:3000",
   "profile": "editor",
   "convexUrl": "https://enduring-mouse-881.convex.cloud",
-  "unityConfigPath": "../Assets/Resources/Neo/NeoComposeConfig.asset"
+  "unityConfigPath": "../Assets/Resources/Neo/NeoComposeConfig.asset",
+  "prePushHook": "neo test"
 }
