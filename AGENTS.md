@@ -13,11 +13,11 @@ NeoCompose is a Unity 6 C# package. Package source in `/src/NeoComposeUnity` (Ru
 
 <!-- BEGIN:testing -->
 
-- Always test your changes to verify no regressions.
-- There should not be any pre-existing failures, so don't blame anybody else.
-- Fix root causes of failures.
-- Tests live in two places — `src/NeoComposeUnity/Tests/` (package's own Unity Test Framework tests) and `samples/HelloWorld/Assets/Tests/` (downstream-consumer demonstration). Both run from the sample's Unity Test Runner.
-- `dotnet build` doesn't work due to Unity dependencies. Use Unity MCP to test SDK + sample builds.
+- Test your changes.
+- Fix root causes of failures, even if not yours.
+- Tests live in — `src/NeoComposeUnity/Tests/` (package) and `samples/HelloWorld/Assets/Tests/` (sample). Both run from the sample's Unity Test Runner.
+- `dotnet build` doesn't work due to Unity dependencies. Use Unity CLI to run tests `unity test` from `samples/HelloWorld`, or use MCP if Unity is open (e.g., after `unity open`).
+- `unity help` for commands.
 
 <!-- END:testing -->
 
