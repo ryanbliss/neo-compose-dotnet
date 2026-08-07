@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.19.2] - 2026-08-07
+
+### Fixed
+
+- Trusted read-only projection no longer tries to materialize initializer-backed
+  aggregate defaults as literal value rows before constructor evaluation.
+
 ## [0.19.1] - 2026-08-05
 
 ### Changed

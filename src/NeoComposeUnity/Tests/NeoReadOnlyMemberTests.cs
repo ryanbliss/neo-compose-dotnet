@@ -860,6 +860,43 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SchemaValidation_SkipsComputedAggregateDefaultsDuringTrustedProjection()
+        {
+            ProjectData data = BuildProjectData();
+            var computedDetails = new ClassMember
+            {
+                id = "member-computed-details",
+                projectId = ProjectId,
+                name = "ComputedDetails",
+                kind = MemberKind.Class,
+                classId = "class-details",
+                required = true,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    init = new InitializerBody { code = "CreateDetails()" },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.members[computedDetails.id] = computedDetails;
+            data.classes["class-computed-default-owner"] = new NeoSchemaClass
+            {
+                id = "class-computed-default-owner",
+                projectId = ProjectId,
+                name = "ComputedDefaultOwner",
+                schema = new Dictionary<string, string>
+                {
+                    ["ComputedDetails"] = computedDetails.id,
+                },
+                isAbstract = true,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+
+            Assert.DoesNotThrow(() => LoadClient(data));
+        }
+
+        [Test]
         public void SchemaValidation_RejectsUnrelatedClassIdLessPlacementConflict()
         {
             ProjectData data = BuildProjectData();
