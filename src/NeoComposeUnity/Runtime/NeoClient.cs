@@ -2023,6 +2023,15 @@ namespace NeoCompose.Runtime
                 {
                     continue;
                 }
+                // Trusted projection can traverse only declaration defaults
+                // that already carry literal value-row links. An initializer
+                // creates its rows later, in a constructor evaluation context;
+                // trying to materialize it here both lacks that context and
+                // incorrectly rejects otherwise valid computed defaults.
+                if (MemberValueFactory.InitializerOf(member) is not null)
+                {
+                    continue;
+                }
                 MemberValue? declarationDefault = CreateDeclarationDefaultValue(
                     member,
                     $"__neo_readonly_default_projection:{member.RuntimeDeclarationIdentity}");
