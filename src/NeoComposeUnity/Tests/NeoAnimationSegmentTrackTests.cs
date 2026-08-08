@@ -349,6 +349,124 @@ namespace NeoCompose.Tests
                 "typed assignment must copy only the persisted binding shape");
         }
 
+        /// <summary>
+        /// The first Session write over an <b>authored</b> NSDelegate row is
+        /// a clone-on-write shadow: the setter must clone the row instead of
+        /// throwing, write the new binding onto the shadow, and leave the
+        /// shared authored row untouched. The cloned <i>payload</i> is not
+        /// this test's subject — <c>Set</c> overwrites it immediately after
+        /// shadowing — see
+        /// <see cref="ShadowClone_OfAnAuthoredDelegateRow_CopiesThePayload"/>.
+        /// </summary>
+        [Test]
+        public void TypedDelegateSetter_ShadowsAnAuthoredRowWithAPersistedCopy()
+        {
+            ProjectData data = BuildEquipProjectData();
+            var authored = new DelegateMemberValue
+            {
+                id = "track-selector-value",
+                createdAt = "x",
+                updatedAt = "x",
+                value = new NeoDelegateValue
+                {
+                    memberId = "callable-member",
+                    valueId = "c-value",
+                },
+            };
+            data.values[authored.id] = authored;
+            var member = new DelegateMember
+            {
+                id = "track-selector-member",
+                projectId = ProjectId,
+                name = "Selector",
+                kind = MemberKind.NSDelegate,
+                required = true,
+                returnTypeInfo = new ClassTypeInfo
+                {
+                    type = MemberKind.Class,
+                    required = true,
+                    classId = RigClassId,
+                },
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                valueId = authored.id,
+                storage = "session",
+                createdAt = "x",
+                updatedAt = "x",
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            using var source = new NeoMemberDelegate(client, member, null);
+            using var destination = new NeoMemberDelegateWritable(
+                client,
+                member,
+                null,
+                NeoValueOwnership.Session);
+            NeoDelegate<object?> bound = source.Bind<object?>(result => result);
+
+            destination.Set(bound);
+
+            Assert.IsTrue(
+                client.TryGetWritableValue(
+                    NeoValueOwnership.Session,
+                    authored.id,
+                    out DelegateMemberValue? shadow),
+                "the first Session write over an authored delegate row is a clone-on-write shadow");
+            Assert.AreEqual("callable-member", shadow!.value!.memberId);
+            Assert.AreEqual("c-value", shadow.value.valueId);
+            Assert.AreNotSame(
+                authored,
+                shadow,
+                "the write lands on a cloned row, never on the authored row");
+            // The authored asset row is untouched by the write.
+            Assert.AreSame(authored, data.values[authored.id]);
+            Assert.AreEqual("callable-member", authored.value!.memberId);
+        }
+
+        /// <summary>
+        /// The delegate clone arm itself must copy the payload, not alias
+        /// it. <c>NeoMemberDelegateWritable.Set</c> overwrites the cloned
+        /// row's payload right after shadowing, so the setter test above
+        /// cannot see an aliasing clone — this one shadows through
+        /// <c>EnsureWritableShadow</c>, which leaves the cloned payload
+        /// exactly as the arm produced it.
+        /// </summary>
+        [Test]
+        public void ShadowClone_OfAnAuthoredDelegateRow_CopiesThePayload()
+        {
+            ProjectData data = BuildEquipProjectData();
+            var authored = new DelegateMemberValue
+            {
+                id = "track-selector-value",
+                createdAt = "x",
+                updatedAt = "x",
+                value = new NeoDelegateValue
+                {
+                    memberId = "callable-member",
+                    valueId = "c-value",
+                },
+            };
+            data.values[authored.id] = authored;
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            Assert.IsTrue(
+                client.EnsureWritableShadow(NeoValueOwnership.Session, authored.id),
+                "an authored delegate row must shadow instead of throwing");
+            Assert.IsTrue(
+                client.TryGetWritableValue(
+                    NeoValueOwnership.Session,
+                    authored.id,
+                    out DelegateMemberValue? shadow));
+
+            // Same row identity, independent payload.
+            Assert.AreEqual(authored.id, shadow!.id);
+            Assert.AreNotSame(
+                authored.value,
+                shadow.value,
+                "the clone arm persists a copy, never the shared authored payload");
+            Assert.AreEqual("callable-member", shadow.value!.memberId);
+            Assert.AreEqual("c-value", shadow.value.valueId);
+        }
+
         [Test]
         public void NativeDelegate_CannotBePersistedAsANeoBinding()
         {

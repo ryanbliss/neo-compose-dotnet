@@ -3540,6 +3540,23 @@ namespace NeoCompose.Runtime
                 {
                     value = a.value?.PersistedCopy() ?? new NeoActionValue(),
                 },
+                // A delegate payload may carry a transient lexical capture,
+                // so the shadow takes a persisted copy: only the wire union
+                // (member target or closure) crosses into the Save/Session
+                // row. An unbound row stays null — there is no empty value
+                // in the strict NeoDelegate union.
+                DelegateMemberValue d => new DelegateMemberValue
+                {
+                    value = d.value?.PersistedCopy(),
+                },
+                // A P42 '$partial' envelope is plain scalar field tokens, so
+                // the shadow deep-copies them: a later field write on the
+                // Save/Session row must not reach the authored envelope it
+                // was cloned from.
+                PartialLeafMemberValue p => new PartialLeafMemberValue
+                {
+                    value = p.value?.Clone(),
+                },
                 _ => throw new System.InvalidOperationException(
                     $"Unsupported save value row type '{row.GetType().Name}'."),
             };

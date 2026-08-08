@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- The first Save/Session write shadowing an authored NSDelegate row now
+  clones the row (persisted-copying its payload) instead of throwing
+  `Unsupported save value row type 'DelegateMemberValue'`.
+- Shadowing a P42 `$partial` structured-leaf row into a Save/Session
+  overlay now clones the row (deep-copying its envelope) instead of
+  throwing `Unsupported save value row type 'PartialLeafMemberValue'`.
+
 ## [0.20.0] - 2026-08-07
 
 ### Added
