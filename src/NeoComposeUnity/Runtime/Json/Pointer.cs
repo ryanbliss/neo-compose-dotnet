@@ -232,6 +232,20 @@ namespace NeoCompose.Runtime.Json
         public override string? callSiteId { get; set; }
     }
 
+    /// <summary>
+    /// Fires every listener of an NSAction value (P62 §3.1). Mirrors
+    /// <c>INSPointerCallAction</c>. Unlike <see cref="CallDelegatePointer"/>
+    /// there is no <c>optional</c> field: an action is never nullable, so
+    /// <c>?.</c> invocation cannot arise, and an empty listener set is a
+    /// successful no-op rather than a null-target throw.
+    /// </summary>
+    public class CallActionPointer : Pointer
+    {
+        public Pointer action = null!;
+        public Pointer[] args = null!;
+        public override string? callSiteId { get; set; }
+    }
+
     public class FunctionErrorCheckPointer : Pointer
     {
         public CallFunctionPointer call = null!;
@@ -260,6 +274,7 @@ namespace NeoCompose.Runtime.Json
                 case PointerKind.Stringify: return typeof(StringifyPointer);
                 case PointerKind.CallFunction: return typeof(CallFunctionPointer);
                 case PointerKind.CallDelegate: return typeof(CallDelegatePointer);
+                case PointerKind.CallAction: return typeof(CallActionPointer);
                 case PointerKind.FunctionErrorCheck: return typeof(FunctionErrorCheckPointer);
                 case PointerKind.StaticMember: return typeof(StaticMemberPointer);
                 default: return null;
@@ -307,6 +322,30 @@ namespace NeoCompose.Runtime.Json
                 {
                     throw new JsonSerializationException(
                         "CallDelegatePointer must contain a non-empty 'callSiteId'.");
+                }
+                return;
+            }
+            if (concrete == typeof(CallActionPointer))
+            {
+                if (obj["action"]?.Type != JTokenType.Object)
+                {
+                    throw new JsonSerializationException(
+                        "CallActionPointer must contain an 'action' pointer.");
+                }
+                if (obj["args"]?.Type != JTokenType.Array)
+                {
+                    throw new JsonSerializationException(
+                        "CallActionPointer must contain an 'args' array.");
+                }
+                if (!HasNonEmptyString(obj, "callSiteId"))
+                {
+                    throw new JsonSerializationException(
+                        "CallActionPointer must contain a non-empty 'callSiteId'.");
+                }
+                if (obj.Property("optional") is not null)
+                {
+                    throw new JsonSerializationException(
+                        "CallActionPointer cannot contain 'optional'; an NSAction is never nullable.");
                 }
                 return;
             }

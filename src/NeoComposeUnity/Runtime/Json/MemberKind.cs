@@ -60,6 +60,12 @@ namespace NeoCompose.Runtime.Json
         /// member target.
         /// </summary>
         NSDelegate = 25,
+        /// <summary>
+        /// Multicast void NeoScript member (P62). The stored payload is an
+        /// insertion-ordered listener set — member targets only, never a
+        /// closure — and the empty set, not null, is its rest state.
+        /// </summary>
+        NSAction = 26,
         Unknown = -1,
         Void = -2,
     }

@@ -166,13 +166,15 @@ namespace NeoCompose.Tests
             var data = BuildStorageProjectData();
             data.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 17,
+                schemaVersion = NeoProjectExportContract.CurrentSchemaVersion + 1,
                 projectId = ProjectId,
                 versionId = "version-1",
             };
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 NeoTestSaveStack.ClientFromSchema(data));
-            StringAssert.Contains("schema version 17", error!.Message);
+            StringAssert.Contains(
+                $"schema version {NeoProjectExportContract.CurrentSchemaVersion + 1}",
+                error!.Message);
             StringAssert.Contains(
                 $"schema version {NeoProjectExportContract.CurrentSchemaVersion}",
                 error.Message);

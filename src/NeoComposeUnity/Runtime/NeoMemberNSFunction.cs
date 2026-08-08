@@ -564,8 +564,12 @@ namespace NeoCompose.Runtime
             TypeInfo[]? delegateArguments = typeInfo switch
             {
                 DelegateTypeInfo delegateType => delegateType.argumentTypes,
+                // An action carries arguments and no return slot, so it joins
+                // only this scan (P62 §2.1).
+                ActionTypeInfo actionType => actionType.argumentTypes,
                 FunctionArgumentTypeInfo argument
-                    when argument.type == MemberKind.NSDelegate => argument.argumentTypes,
+                    when argument.type is MemberKind.NSDelegate
+                        or MemberKind.NSAction => argument.argumentTypes,
                 _ => null,
             };
             if (delegateArguments is not null
@@ -783,6 +787,38 @@ namespace NeoCompose.Runtime
                 };
             }
 
+            if (typeInfo.type == MemberKind.NSAction)
+            {
+                TypeInfo[]? actionArguments = typeInfo switch
+                {
+                    ActionTypeInfo actionType => actionType.argumentTypes,
+                    FunctionArgumentTypeInfo argument => argument.argumentTypes,
+                    _ => null,
+                };
+                if (actionArguments is null)
+                {
+                    throw new NSGetterRuntimeError(
+                        "NeoAction NSFunction type is missing its signature.");
+                }
+                var resolvedActionArguments = new TypeInfo[actionArguments.Length];
+                for (int i = 0; i < actionArguments.Length; i++)
+                {
+                    resolvedActionArguments[i] = ResolveInvocationTypeInfo(
+                        client,
+                        actionArguments[i],
+                        genericEnv,
+                        visitingMembers);
+                }
+                // No return slot to substitute: void is structural for an
+                // action, so the delegate arm's void carve-outs do not exist.
+                return new ActionTypeInfo
+                {
+                    type = MemberKind.NSAction,
+                    required = typeInfo.required,
+                    argumentTypes = resolvedActionArguments,
+                };
+            }
+
             TypeInfo? entryTypeInfo = typeInfo switch
             {
                 FunctionArgumentTypeInfo argument => argument.entryTypeInfo,
@@ -976,6 +1012,24 @@ namespace NeoCompose.Runtime
                                     delegateMember.returnTypeInfo,
                                     genericEnv,
                                     visitingMembers),
+                            argumentTypes = arguments,
+                        };
+                    }
+                    case ActionMember actionMember:
+                    {
+                        var arguments = new TypeInfo[actionMember.argumentTypes.Length];
+                        for (int i = 0; i < arguments.Length; i++)
+                        {
+                            arguments[i] = ResolveInvocationTypeInfo(
+                                client,
+                                actionMember.argumentTypes[i],
+                                genericEnv,
+                                visitingMembers);
+                        }
+                        return new ActionTypeInfo
+                        {
+                            type = MemberKind.NSAction,
+                            required = actionMember.required,
                             argumentTypes = arguments,
                         };
                     }
@@ -1397,6 +1451,7 @@ namespace NeoCompose.Runtime
                     || value is AudioClip
                     || HasDictionaryString(value, "fileId"),
                 MemberKind.NSDelegate => value is NeoDelegateValue,
+                MemberKind.NSAction => value is NeoActionValue,
                 MemberKind.Unknown or MemberKind.Generic => true,
                 _ => true,
             };

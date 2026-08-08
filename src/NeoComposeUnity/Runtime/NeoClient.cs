@@ -3533,6 +3533,13 @@ namespace NeoCompose.Runtime
                             a = c.value.a,
                         },
                 },
+                // A listener set is mutable, so the shadow deep-copies it:
+                // a runtime `+=` on the Save/Session row must not reach the
+                // authored asset row it was cloned from (P62 §3.3).
+                ActionMemberValue a => new ActionMemberValue
+                {
+                    value = a.value?.PersistedCopy() ?? new NeoActionValue(),
+                },
                 _ => throw new System.InvalidOperationException(
                     $"Unsupported save value row type '{row.GetType().Name}'."),
             };
@@ -5621,6 +5628,12 @@ namespace NeoCompose.Runtime
                     delegateReturnType = delegateTypeInfo.returnTypeInfo;
                     delegateArgumentTypes = delegateTypeInfo.argumentTypes;
                     break;
+                // An action contributes its parameter list and no return
+                // type; the leading MemberKind ordinal already separates it
+                // from a delegate with the same parameters.
+                case ActionTypeInfo actionTypeInfo:
+                    delegateArgumentTypes = actionTypeInfo.argumentTypes;
+                    break;
             }
 
             var key = new System.Text.StringBuilder();
@@ -5651,11 +5664,14 @@ namespace NeoCompose.Runtime
                 }
                 key.Append('}');
             }
-            if (delegateReturnType is not null)
+            if (delegateReturnType is not null || delegateArgumentTypes is not null)
             {
-                key.Append("->")
-                    .Append(ConstructorPositionalTypeKey(delegateReturnType))
-                    .Append('(');
+                key.Append("->");
+                if (delegateReturnType is not null)
+                {
+                    key.Append(ConstructorPositionalTypeKey(delegateReturnType));
+                }
+                key.Append('(');
                 if (delegateArgumentTypes is not null)
                 {
                     for (int i = 0; i < delegateArgumentTypes.Count; i++)
@@ -5677,6 +5693,11 @@ namespace NeoCompose.Runtime
                 if (pair.Value is DelegateMember delegateMember)
                 {
                     ValidateDelegateMember(delegateMember);
+                    continue;
+                }
+                if (pair.Value is ActionMember actionMember)
+                {
+                    ValidateActionMember(actionMember);
                     continue;
                 }
                 if (pair.Value is FunctionMember function)
@@ -5749,6 +5770,56 @@ namespace NeoCompose.Runtime
             {
                 throw new System.InvalidOperationException(
                     $"NSDelegate member '{member.id}' closure return type does not match its declared signature.");
+            }
+        }
+
+        /// <summary>
+        /// P62 §5.3 load validation. Mirrors
+        /// <see cref="ValidateDelegateMember"/> minus every closure check —
+        /// an action holds member targets only, so there is no closure
+        /// envelope to validate — and minus the return slot, because void is
+        /// structural. It adds the two rules the listener <i>set</i> brings:
+        /// each entry is a member target, and no two entries share a
+        /// <c>(memberId, valueId)</c> identity.
+        /// </summary>
+        private static void ValidateActionMember(ActionMember member)
+        {
+            if (member.argumentTypes is null)
+            {
+                throw new System.InvalidOperationException(
+                    $"NSAction member '{member.id}' is missing argumentTypes.");
+            }
+            if (member.argumentTypes.Length > 16)
+            {
+                throw new System.InvalidOperationException(
+                    $"NSAction member '{member.id}' exceeds the 16-argument arity cap.");
+            }
+            if (member.required)
+            {
+                throw new System.InvalidOperationException(
+                    $"NSAction member '{member.id}' declares required; an action is never nullable, and its rest state is an empty listener set.");
+            }
+            NeoActionValue? value = member.defaultValue?.value;
+            if (value is null) return;
+            var identities = new HashSet<string>(System.StringComparer.Ordinal);
+            for (int index = 0; index < value.listeners.Count; index++)
+            {
+                NeoDelegateValue listener = value.listeners[index];
+                if (listener is null || !listener.IsMemberTarget)
+                {
+                    throw new System.InvalidOperationException(
+                        $"NSAction member '{member.id}' listener {index} is not a member target; only member references are listeners.");
+                }
+                if (listener.IsClosure)
+                {
+                    throw new System.InvalidOperationException(
+                        $"NSAction member '{member.id}' listener {index} carries a closure; a listener must be a member reference so it can be deduplicated and removed by identity.");
+                }
+                if (!identities.Add(NeoActionValue.ListenerIdentity(listener)))
+                {
+                    throw new System.InvalidOperationException(
+                        $"NSAction member '{member.id}' listener {index} duplicates an earlier listener identity; a listener set holds each (memberId, valueId) once.");
+                }
             }
         }
 
@@ -5987,6 +6058,16 @@ namespace NeoCompose.Runtime
                     when b.type == MemberKind.NSDelegate =>
                     TypeInfoMatches(a.returnTypeInfo, b.returnTypeInfo)
                     && TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
+                // Actions compare on parameters alone — there is no return
+                // slot, because void is structural for them (P62 §2).
+                (ActionTypeInfo a, ActionTypeInfo b) =>
+                    TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
+                (FunctionArgumentTypeInfo a, ActionTypeInfo b)
+                    when a.type == MemberKind.NSAction =>
+                    TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
+                (ActionTypeInfo a, FunctionArgumentTypeInfo b)
+                    when b.type == MemberKind.NSAction =>
+                    TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
                 _ => true,
             };
         }

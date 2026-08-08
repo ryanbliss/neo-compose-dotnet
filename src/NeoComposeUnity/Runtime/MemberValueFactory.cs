@@ -73,6 +73,15 @@ namespace NeoCompose.Runtime
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = Cast<NeoDelegateValue?>(rawPayload, member),
                 },
+                ActionMember => new ActionMemberValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    // An action's rest state is the empty set, never null, so
+                    // an absent payload materializes as an empty listener list
+                    // rather than an unbound value.
+                    value = Cast<NeoActionValue?>(rawPayload, member)
+                        ?? new NeoActionValue(),
+                },
                 ListMember or EnumMember or LookupMember or DialogueLookupMember => new ArrayMemberValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
@@ -163,6 +172,7 @@ namespace NeoCompose.Runtime
                 ColorMember member => member.defaultValue?.init,
                 DecimalMember member => member.defaultValue?.init,
                 DelegateMember member => member.defaultValue?.init,
+                ActionMember member => member.defaultValue?.init,
                 _ => null,
             };
         }
@@ -335,6 +345,17 @@ namespace NeoCompose.Runtime
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = member.defaultValue.value,
+                    classId = member.defaultValue.classId,
+                },
+                // The listener set is mutable and every subscription writes
+                // it back, so the declaration default is deep-copied: handing
+                // the schema object over by reference would let a runtime
+                // `+=` on one row edit the default every other row reads.
+                ActionMember member => member.defaultValue is null ? null : new ActionMemberValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = member.defaultValue.value?.PersistedCopy()
+                        ?? new NeoActionValue(),
                     classId = member.defaultValue.classId,
                 },
                 _ => null,

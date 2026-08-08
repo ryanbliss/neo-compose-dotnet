@@ -126,6 +126,167 @@ namespace NeoCompose.Runtime
         public static NeoDelegateValue? DelegateValue(Delegate? value) =>
             NeoMemberDelegate.PersistedBindingOf(value);
 
+        /// <summary>
+        /// Resolves the listener a C# <c>+=</c> supplied to the member target
+        /// NeoScript's <c>+=</c> lowers to (P62 §5.2), so identity,
+        /// deduplication and removal are byte-identical across the two
+        /// languages.
+        ///
+        /// <para>A method group over a generated member carries exactly the
+        /// two facts a target needs: the delegate's
+        /// <see cref="Delegate.Target"/> is the generated instance, which
+        /// knows its own <c>valueId</c> (a static member method has none, and
+        /// maps to null), and its <see cref="Delegate.Method"/> is stamped
+        /// with <see cref="NeoMemberMethodAttribute"/>. A delegate previously
+        /// read from an <c>NSDelegate</c> member resolves through the
+        /// persisted-bindings table instead. Anything else — a lambda, a
+        /// native method group, a combined multicast delegate — throws here,
+        /// at the subscribing line, rather than silently at invoke.</para>
+        /// </summary>
+        /// <param name="ownerValueId">
+        /// The row that owns the action being subscribed, when the caller
+        /// knows it. A target resolving to that row is stored with a null
+        /// <c>valueId</c>, the identity NeoScript mints for the same
+        /// subscription; pass null to keep the resolved row id verbatim.
+        /// </param>
+        public static NeoDelegateValue ListenerTargetOf(
+            Delegate listener,
+            string? ownerValueId = null)
+        {
+            if (listener is null)
+            {
+                throw new NeoActionListenerException(
+                    "Cannot subscribe a null listener to an NSAction member. A listener must be a generated Neo member method or a Neo-obtained delegate.");
+            }
+            if (listener.GetInvocationList().Length != 1)
+            {
+                throw new NeoActionListenerException(
+                    "Cannot subscribe a combined multicast delegate to an NSAction member; subscribe each Neo member method on its own so every listener keeps a removable identity.");
+            }
+            var stamp = (NeoMemberMethodAttribute?)Attribute.GetCustomAttribute( // neo-terminology-audit: allow-line legacy-attribute-domain-word -- System.Attribute reflection over the C# [NeoMemberMethod] attribute, not a Neo domain concept
+                listener.Method,
+                typeof(NeoMemberMethodAttribute));
+            if (stamp is not null)
+            {
+                return OwnerCanonicalListener(
+                    new NeoDelegateValue
+                    {
+                        memberId = stamp.memberId,
+                        valueId = ListenerValueIdOf(listener, stamp.memberId),
+                    },
+                    ownerValueId);
+            }
+            NeoDelegateValue? persisted = PersistedListenerBindingOf(listener);
+            if (persisted is not null && persisted.IsMemberTarget)
+            {
+                return OwnerCanonicalListener(persisted, ownerValueId);
+            }
+            if (persisted is not null)
+            {
+                throw new NeoActionListenerException(
+                    $"Delegate '{listener.Method.Name}' was read from an NSDelegate member holding a closure, which has no identity to deduplicate or remove by. Subscribe the NSDelegate member itself so the action indirects through it.");
+            }
+            throw new NeoActionListenerException(
+                $"Delegate '{listener.Method.Name}' is not a Neo listener. A listener must be a generated Function/NSFunction method group or a delegate obtained from Neo data — a native lambda has no data representation and cannot be persisted as a subscription.");
+        }
+
+        /// <summary>
+        /// Identity check behind a generated action property's setter
+        /// (P62 §5.2). <c>obj.OnX += h</c> compiles to get →
+        /// <c>operator+</c> → set, and the operator returns the same
+        /// instance, so the only legal assignment is the member's own live
+        /// action; every other one is a reassignment of a listener set that
+        /// is subscribed to, never replaced.
+        /// </summary>
+        public static void RequireSameAction(
+            object? value,
+            NeoActionBase expected,
+            string memberLabel)
+        {
+            if (expected is null)
+            {
+                throw new ArgumentNullException(
+                    nameof(expected),
+                    $"'{memberLabel}' has no bound action to compare against; the generated getter always returns one.");
+            }
+            if (value is null)
+            {
+                throw new NeoActionReassignmentException(
+                    $"'{memberLabel}' cannot be assigned null. An NSAction member's rest state is an empty listener set, so subscribe with += and unsubscribe with -=.");
+            }
+            if (!ReferenceEquals(value, expected))
+            {
+                // Reference identity is the whole check (§5.2). `obj.OnX += h`
+                // compiles to get → operator+ → set and the operator returns
+                // the very instance the getter handed out, so anything else —
+                // another row's action, another member's action, a stale
+                // instance — is a reassignment of a listener set that is
+                // subscribed to, never replaced. `memberLabel` is error text
+                // only; comparing names would reject a member whose display
+                // name and schema key differ, which is ordinary.
+                throw new NeoActionReassignmentException(
+                    $"'{memberLabel}' was assigned an action other than its own. Actions subscribe with += and -=; they are never reassigned from one member or row to another.");
+            }
+        }
+
+        private static string? ListenerValueIdOf(Delegate listener, string memberId)
+        {
+            // A static generated member method has no receiver, which is the
+            // declaration-default target: valueId null.
+            if (listener.Target is null) return null;
+            if (listener.Target is NeoGeneratedClassValue generated)
+            {
+                return generated.valueId;
+            }
+            throw new NeoActionListenerException(
+                $"Method group for Neo member '{memberId}' is bound to a '{listener.Target.GetType().Name}' receiver rather than a generated Neo value, so it has no valueId to subscribe with.");
+        }
+
+        /// <summary>
+        /// Canonicalizes a listener identity against the row that owns the
+        /// action being subscribed (P62 §5.2). A target resolving to that
+        /// very row is spelled with a null <c>valueId</c> — byte-identical to
+        /// what NeoScript's <c>this.OnX += this.Handler</c> and an authored
+        /// <c>= [Handler]</c> default lower to — so identity, deduplication
+        /// and removal are interchangeable across the two languages. A
+        /// genuinely foreign row keeps its id.
+        /// </summary>
+        private static NeoDelegateValue OwnerCanonicalListener(
+            NeoDelegateValue target,
+            string? ownerValueId)
+        {
+            if (target.valueId is null) return target;
+            if (ownerValueId is null) return target;
+            if (!string.Equals(target.valueId, ownerValueId, StringComparison.Ordinal))
+            {
+                return target;
+            }
+            return new NeoDelegateValue
+            {
+                memberId = target.memberId,
+                valueId = null,
+            };
+        }
+
+        /// <summary>
+        /// Probes the delegate persisted-bindings table without adopting its
+        /// throw: an unseen method group is the common case here (it resolves
+        /// through the attribute path), and the failure this helper's callers <!-- neo-terminology-audit: allow-line legacy-attribute-domain-word -- "attribute path" is dispatch via the C# [NeoMemberMethod] attribute, not a Neo domain concept -->
+        /// must raise is <see cref="NeoActionListenerException"/>, not the
+        /// delegate setter's serialization error.
+        /// </summary>
+        private static NeoDelegateValue? PersistedListenerBindingOf(Delegate listener)
+        {
+            try
+            {
+                return NeoMemberDelegate.PersistedBindingOf(listener);
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+        }
+
         private sealed class ConstructorKeyValuePairAccessors
         {
             internal System.Reflection.PropertyInfo key = null!;

@@ -895,6 +895,12 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 case ValuePointer vp:
                 {
+                    // Deliberately delegate-scoped: only a closure needs its
+                    // lexical environment captured at the literal site. An
+                    // NSAction holds no closures and is statement-only, so an
+                    // action value literal never reaches expression position
+                    // and no NeoActionValueConverter sniff belongs here
+                    // (P62 §2, §3.1).
                     if (NeoDelegateValueConverter.LooksLikeValue(vp.value.value))
                     {
                         NeoDelegateValue closure = vp.value.value!
@@ -1071,6 +1077,28 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                     return InvokeDelegate(callable, args, ctx);
                 }
+                case CallActionPointer actionCall:
+                {
+                    object? actionValue = ReadActionWithOwner(
+                        actionCall.action,
+                        scope,
+                        ctx,
+                        out object? owner);
+                    var args = new object?[actionCall.args.Length];
+                    for (int i = 0; i < args.Length; i++)
+                    {
+                        args[i] = EvalPointer(actionCall.args[i], scope, ctx);
+                    }
+                    InvokeAction(
+                        actionValue,
+                        args,
+                        ctx,
+                        owner,
+                        () => ActionInvocationFrame(actionCall.action, owner, ctx));
+                    // An NSAction is void by construction; the enclosing
+                    // functionCall instruction discards this (P62 §3.1).
+                    return null;
+                }
                 case FunctionErrorCheckPointer functionErrorCheck:
                     return EvalFunctionErrorCheck(functionErrorCheck, scope, ctx);
                 default:
@@ -1102,6 +1130,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return $"functionCall {functionCall.memberId ?? functionCall.memberKey}";
                 case CallDelegatePointer:
                     return "delegateCall";
+                case CallActionPointer:
+                    return "actionCall";
                 default:
                     return pointer.GetType().Name;
             }
@@ -1193,6 +1223,99 @@ namespace NeoCompose.Runtime.NeoScript
             return InvokeDelegateMemberTarget(delegateValue, args, ctx);
         }
 
+        /// <summary>
+        /// Fires every listener of an NSAction value in stored order
+        /// (P62 §3.1). Public so generated SDK surfaces invoke actions
+        /// through the same dispatch as the <c>callAction</c> IR pointer.
+        /// An empty — or absent — listener set is a successful no-op, never
+        /// the null-target throw a delegate raises; a throwing listener stops
+        /// the invocation fail-fast with its frame named in the error.
+        /// </summary>
+        /// <param name="ownerReceiver">
+        /// The row this action was read off, when the caller can name it. A
+        /// listener stored with a null <c>valueId</c> runs against it
+        /// (P62 §3.3); pass null and those listeners stay receiver-less.
+        /// </param>
+        /// <param name="actionFrame">
+        /// The <c>{actionMemberName}[{owningRowId ?? "default"}]</c> frame a
+        /// failing listener is reported under. Built lazily and identically
+        /// on both runtimes: naming the owning row is wasted work — and an
+        /// extra chance to throw — on the path where nothing fails.
+        /// </param>
+        public static void InvokeAction(
+            object? value,
+            object?[] args,
+            Context ctx,
+            object? ownerReceiver = null,
+            Func<string>? actionFrame = null)
+        {
+            NeoActionValue actionValue = CoerceActionValue(value);
+            args ??= Array.Empty<object?>();
+            Func<string> frame = actionFrame ?? UnnamedActionFrame;
+            for (int index = 0; index < actionValue.listeners.Count; index++)
+            {
+                NeoDelegateValue listener = actionValue.listeners[index];
+                if (listener is null || !listener.IsMemberTarget)
+                {
+                    throw new NSGetterRuntimeError(
+                        $"{frame()} listener {index} is not a member target; only member targets are valid listeners.");
+                }
+                try
+                {
+                    InvokeDelegateMemberTarget(
+                        listener,
+                        args,
+                        ctx,
+                        ownerReceiver);
+                }
+                catch (Exception error)
+                    when (NeoScriptErrorClassification.IsRewrappable(error))
+                {
+                    // Fail-fast: the remaining listeners do not run, and the
+                    // error names the frame that failed. A nested action
+                    // fan-out wraps again, so the message spells the whole
+                    // listener path (P62 §3.1).
+                    //
+                    // Only an ordinary authored-catchable error is renamed. A
+                    // budget fault, a pre-execution validation failure, a
+                    // native-unavailable fault and a deferred-Function fault
+                    // propagate as themselves, so the host handling that keys
+                    // on their class still applies.
+                    throw new NSGetterRuntimeError(
+                        $"{frame()} listener {index} threw: {error.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// The frame for an action invoked through a caller that cannot name
+        /// the member or the owning row — the same fallback label the TS
+        /// evaluator uses for a non-member action pointer.
+        /// </summary>
+        private static string UnnamedActionFrame() => "action[default]";
+
+        /// <summary>
+        /// Normalizes an evaluated NSAction value. A missing value is the
+        /// rest state — the empty listener set — because an action is never
+        /// nullable (P62 §2.1).
+        /// </summary>
+        private static NeoActionValue CoerceActionValue(object? value)
+        {
+            switch (value)
+            {
+                case null:
+                    return new NeoActionValue();
+                case NeoActionValue typed:
+                    return typed;
+                case JObject json:
+                    return json.ToObject<NeoActionValue>()
+                        ?? new NeoActionValue();
+                default:
+                    throw new NSGetterRuntimeError(
+                        $"NSAction value is not a listener set; received {value.GetType().Name}.");
+            }
+        }
+
         private static object? InvokeDelegateClosure(
             NeoDelegateValue value,
             object?[] args,
@@ -1244,10 +1367,16 @@ namespace NeoCompose.Runtime.NeoScript
             return result.ReturnValue;
         }
 
+        /// <param name="ownerReceiver">
+        /// The row that owns the NSAction being fanned out, when this call is
+        /// one of its listeners. Only an action passes it: a delegate holds
+        /// exactly one target and always spells its own receiver.
+        /// </param>
         private static object? InvokeDelegateMemberTarget(
             NeoDelegateValue target,
             object?[] args,
-            Context ctx)
+            Context ctx,
+            object? ownerReceiver = null)
         {
             string memberId = target.memberId!;
             if (!ctx.client.TryGetMember(memberId, out JsonMember? member))
@@ -1255,6 +1384,10 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     $"NeoDelegate target member '{memberId}' does not exist.");
             }
+            // The cycle key is the bare target frame. A listener position is
+            // reported in the fan-out's message, never folded into the key:
+            // the same (member, row) re-entered at a different listener index
+            // is the same frame, and the TS evaluator keys it that way too.
             string frame = $"{member.name}[{target.valueId ?? "default"}]";
             if (ctx.delegateCallStack.Contains(frame))
             {
@@ -1282,6 +1415,23 @@ namespace NeoCompose.Runtime.NeoScript
                         $"NeoDelegate target '{member.name}' has missing receiver value '{target.valueId}'.");
                 }
                 receiver = UnwrapCached(row, ctx, ownership);
+            }
+            else if (ownerReceiver is not null)
+            {
+                // P62 §3.3. A listener stored with a null `valueId` names no
+                // row of its own, and both authored forms produce exactly
+                // that: a declaration default cannot name a row, and
+                // `this.OnX += this.Handler` lowers to it because the
+                // resolver has no static row identity for `this`. Such a
+                // listener runs against the row that owns the action —
+                // otherwise the spec's `= [PlayHitFlash]` example would
+                // execute `this.FlashFrames = 4` against a null `this`.
+                //
+                // Bound only when the listener member really is on that row's
+                // class, so an action fanned out on one class can never
+                // smuggle a foreign row in as `this`; anything else stays
+                // receiver-less, the pre-P62 behavior.
+                receiver = ListenerReceiverOnOwner(memberId, ownerReceiver, ctx);
             }
 
             ctx.delegateCallStack.Add(frame);
@@ -1312,6 +1462,22 @@ namespace NeoCompose.Runtime.NeoScript
                         receiver,
                         ctx);
                     return InvokeDelegate(nested, args, ctx);
+                }
+                if (member is ActionMember actionMember)
+                {
+                    // An NSAction listener target is fan-out, not a single
+                    // callable: invoking it invokes its own listeners
+                    // (P62 §2.1), guarded by the same cycle detection and
+                    // 64-frame cap this frame already pushed.
+                    // The nested action's own owner is the receiver this
+                    // member target resolved against, not the outer action's.
+                    InvokeAction(
+                        ResolveActionTargetValue(actionMember, receiver, ctx),
+                        args,
+                        ctx,
+                        receiver,
+                        () => frame);
+                    return null;
                 }
                 throw new NSGetterRuntimeError(
                     $"NeoDelegate target '{member.name}' resolves to non-callable member kind {member.kind}.");
@@ -1367,6 +1533,230 @@ namespace NeoCompose.Runtime.NeoScript
             }
             throw new NSGetterRuntimeError(
                 $"NeoDelegate target '{member.name}' has no declaration default.");
+        }
+
+        /// <summary>
+        /// Evaluates an action call pointer and reports the row it read the
+        /// action off (P62 §3.3), mirroring the TS
+        /// <c>readActionWithOwner</c>.
+        ///
+        /// <para>Null-<c>valueId</c> listeners bind to that row (see
+        /// <see cref="InvokeDelegateMemberTarget"/>) and it also names the
+        /// invocation frame, so it must be identified without evaluating the
+        /// receiver subexpression a second time: re-deriving it from the
+        /// pointer shape would double every side effect on the way to the
+        /// action and would drop the owner entirely for a deeper chain
+        /// (<c>this.Child.OnEnter()</c>, <c>this.Rooms[0].OnEnter()</c>).
+        /// The receiver is therefore reported out of the one evaluation that
+        /// already happens. A pointer that is not a key access — a static
+        /// action, a variable holding one — has no owning row to lend, and
+        /// reports null.</para>
+        /// </summary>
+        private static object? ReadActionWithOwner(
+            Pointer pointer,
+            Dictionary<string, object?> scope,
+            Context ctx,
+            out object? owner)
+        {
+            if (pointer is not KeyOfPointer keyOfPointer)
+            {
+                owner = null;
+                return EvalPointer(pointer, scope, ctx);
+            }
+            object? captured = null;
+            object? action = EvalKeyOf(
+                keyOfPointer.keyOf,
+                scope,
+                ctx,
+                keyOfPointer.optional == true,
+                keyOfPointer.memberId,
+                receiver => captured = receiver);
+            owner = captured;
+            return action;
+        }
+
+        /// <summary>
+        /// The action member's display name for a call pointer, or the
+        /// generic label when the pointer names no member (a variable or a
+        /// computed expression). Mirrors the TS <c>actionPointerLabel</c>.
+        /// </summary>
+        private static string ActionPointerLabel(Pointer pointer, Context ctx)
+        {
+            string? memberId = pointer switch
+            {
+                StaticMemberPointer staticPointer => staticPointer.memberId,
+                KeyOfPointer keyOfPointer => keyOfPointer.memberId,
+                _ => null,
+            };
+            if (string.IsNullOrEmpty(memberId)) return "action";
+            return ctx.client.TryGetMember(memberId!, out JsonMember? member)
+                ? member.name
+                : memberId!;
+        }
+
+        /// <summary>
+        /// The <c>{actionMemberName}[{owningRowId ?? "default"}]</c> frame a
+        /// failing listener is reported under — the <i>action</i> member and
+        /// the row it fanned out from, never the listener's own identity, so
+        /// both entry points and both runtimes name the same frame for the
+        /// same failure (P62 §3.1).
+        ///
+        /// <para>Built lazily from the owner
+        /// <see cref="ReadActionWithOwner"/> captured: naming the row is pure
+        /// bookkeeping that the overwhelmingly common no-failure path should
+        /// not pay for.</para>
+        /// </summary>
+        private static string ActionInvocationFrame(
+            Pointer pointer,
+            object? owner,
+            Context ctx)
+        {
+            string name = ActionPointerLabel(pointer, ctx);
+            if (owner is null) return $"{name}[default]";
+            return TryFindRowReferenceByReference(owner, ctx, out RowReference row)
+                ? $"{name}[{row.valueId}]"
+                : $"{name}[default]";
+        }
+
+        /// <summary>
+        /// The receiver a null-<c>valueId</c> listener binds to, or null when
+        /// it must stay receiver-less.
+        ///
+        /// <paramref name="ownerReceiver"/> is the row the fanning-out action
+        /// was read from. It is only a valid <c>this</c> for the listener when
+        /// the listener member is reachable through that row's own runtime
+        /// class surface — the same merged-schema lookup
+        /// <see cref="DispatchSchemaMember"/> uses. A listener naming a member
+        /// of some other class is a target the owner row cannot supply, so it
+        /// runs with no receiver rather than with the wrong one.
+        /// </summary>
+        private static object? ListenerReceiverOnOwner(
+            string memberId,
+            object ownerReceiver,
+            Context ctx)
+        {
+            if (!TryAsObjectRecord(ownerReceiver, out _)) return null;
+            SchemaPlacement? placement = FindSchemaPlacementCached(memberId, ctx);
+            if (placement is null) return null;
+            string? runtimeClassId = FindRowClassIdByReference(ownerReceiver, ctx);
+            if (string.IsNullOrEmpty(runtimeClassId)) return null;
+            try
+            {
+                foreach (MergedSchemaEntry entry in
+                    ctx.client.ResolveInstanceSurfaceSchema(runtimeClassId!))
+                {
+                    if (entry.schemaKey != placement.schemaKey) continue;
+                    return ctx.client.TryGetMember(entry.memberId, out JsonMember? _)
+                        ? ownerReceiver
+                        : null;
+                }
+            }
+            catch (CircularInheritanceError)
+            {
+                return null;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Reads the listener set an NSAction member target resolves to —
+        /// the receiver's stored row when there is one, otherwise the nearest
+        /// declaration default up the override chain. Unlike
+        /// <see cref="ResolveDelegateTargetValue"/> an absent value is not an
+        /// error: the empty set is an action's rest state (P62 §2.1).
+        /// </summary>
+        private static NeoActionValue ResolveActionTargetValue(
+            ActionMember member,
+            object? receiver,
+            Context ctx)
+        {
+            if (receiver is not null)
+            {
+                SchemaPlacement? placement = FindSchemaPlacementCached(
+                    member.id,
+                    ctx);
+                if (placement is null
+                    || receiver is not IDictionary<string, object?> record
+                    || !record.TryGetValue(placement.schemaKey, out object? raw))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"NSAction target '{member.name}' is missing from its receiver.");
+                }
+                object? resolved = ResolveValueIfId(
+                    raw,
+                    ctx,
+                    member: member);
+                if (resolved is null) return new NeoActionValue();
+                if (resolved is NeoActionValue target) return target;
+                throw new NSGetterRuntimeError(
+                    $"NSAction target '{member.name}' has an invalid stored value.");
+            }
+
+            if (member.isStatic)
+            {
+                // A static action has no receiver to read through, but it
+                // does have a live row: subscriptions write to it, so the
+                // declaration default is not what a fan-out through it means.
+                // Read it exactly as a staticMember pointer would, and mirror
+                // the TS ordering — receiver, then static, then declaration
+                // default.
+                return StaticActionListeners(member, ctx);
+            }
+
+            var visited = new HashSet<string>();
+            ActionMember? cursor = member;
+            while (cursor is not null && visited.Add(cursor.id))
+            {
+                if (cursor.defaultValue?.value is NeoActionValue value)
+                {
+                    return value;
+                }
+                if (string.IsNullOrEmpty(cursor.extendsMemberId)
+                    || !ctx.client.TryGetMember(
+                        cursor.extendsMemberId,
+                        out ActionMember? parent))
+                {
+                    break;
+                }
+                cursor = parent;
+            }
+            return new NeoActionValue();
+        }
+
+        /// <summary>
+        /// The listener set bound to a static NSAction member. An unbound
+        /// static member is the rest state — the empty set — the same answer
+        /// the TS <c>evalStaticMember</c> gives a non-required member with no
+        /// active binding.
+        /// </summary>
+        private static NeoActionValue StaticActionListeners(
+            ActionMember member,
+            Context ctx)
+        {
+            NeoValueOwnership ownership =
+                ctx.client.ResolveStaticOwnership(member);
+            if (!ctx.client.TryResolveStaticBinding(
+                    member.id,
+                    out _,
+                    out _,
+                    out string? staticValueId))
+            {
+                return new NeoActionValue();
+            }
+            if (!ctx.client.TryGetOverlaidValue(
+                    ownership,
+                    staticValueId,
+                    out MemberValue? staticRow))
+            {
+                throw new NSGetterRuntimeError(
+                    $"NSAction target '{member.name}' is bound to missing static value '{staticValueId}'.");
+            }
+            if (staticRow is not ActionMemberValue actionRow)
+            {
+                throw new NSGetterRuntimeError(
+                    $"NSAction target '{member.name}' is bound to value '{staticValueId}', which is not a listener set.");
+            }
+            return actionRow.value ?? new NeoActionValue();
         }
 
         internal static string ResolveFunctionMemberId(
@@ -1569,16 +1959,25 @@ namespace NeoCompose.Runtime.NeoScript
         // KeyOf — schema-key dispatch with runtime-classId override hook
         // ---------------------------------------------------------------
 
+        /// <param name="onReceiver">
+        /// Reports the evaluated receiver to the caller (P62 §3.3). An action
+        /// call needs the row it read the action off, and this is the only
+        /// way to get it without evaluating the receiver subexpression a
+        /// second time. Reported after unwrapping, so the caller sees the
+        /// same row the key access dispatched against.
+        /// </param>
         private static object? EvalKeyOf(
             KeyOf keyOf,
             Dictionary<string, object?> scope,
             Context ctx,
             bool optional,
-            string? pinnedMemberId)
+            string? pinnedMemberId,
+            Action<object?>? onReceiver = null)
         {
             var receiver = EvalPointer(keyOf.pointer, scope, ctx);
             if (optional && receiver is null) return null;
             receiver = UnwrapGeneratedValue(receiver, ctx);
+            onReceiver?.Invoke(receiver);
             var key = EvalPointer(keyOf.key, scope, ctx);
             if (receiver is null)
             {
@@ -3516,6 +3915,7 @@ namespace NeoCompose.Runtime.NeoScript
                     ? null
                     : ToObjectDict(row.id, ownership, o.value),
                 DelegateMemberValue d => d.value,
+                ActionMemberValue a => a.value,
                 FileMemberValue f => f.value is null
                     ? null
                     : new Dictionary<string, object?> { ["fileId"] = f.value.fileId },

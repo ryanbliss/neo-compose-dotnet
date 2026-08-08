@@ -33,6 +33,13 @@ namespace NeoCompose.Runtime.Json
         public const string Stringify = "stringify";
         public const string CallFunction = "callFunction";
         public const string CallDelegate = "callDelegate";
+        /// <summary>
+        /// P62 §3.1 — fires every listener of an NSAction value in stored
+        /// order. Statement-only: an action is void by construction, so this
+        /// pointer only ever appears as a function-call instruction's
+        /// <c>call</c>.
+        /// </summary>
+        public const string CallAction = "callAction";
         public const string FunctionErrorCheck = "functionErrorCheck";
         public const string StaticMember = "staticMember";
     }
@@ -52,6 +59,10 @@ namespace NeoCompose.Runtime.Json
         public const string Continue = "continue";
         public const string Switch = "switch";
         public const string Try = "try";
+        /// <summary>P62 §3.2 — <c>action += listener</c>.</summary>
+        public const string AddActionListener = "addActionListener";
+        /// <summary>P62 §3.2 — <c>action -= listener</c>.</summary>
+        public const string RemoveActionListener = "removeActionListener";
     }
 
     public static class OperationKind
@@ -327,9 +338,11 @@ namespace NeoCompose.Runtime.Json
         /// P43 <c>declaredConstructor</c> function kind; revision 4 adds
         /// P50 loop and loop-control instructions; revision 5 adds the P51
         /// <c>switch</c> instruction; revision 6 adds the P52
-        /// <c>try</c> instruction; revision 7 adds first-class delegate calls.
+        /// <c>try</c> instruction; revision 7 adds first-class delegate calls;
+        /// revision 8 adds the P62 NSAction listener instructions and the
+        /// <c>callAction</c> pointer.
         /// </summary>
-        public const int CurrentCompilerRevision = 7;
+        public const int CurrentCompilerRevision = 8;
 
         /// <summary>
         /// Optional for backward compatibility. Absence means legacy
