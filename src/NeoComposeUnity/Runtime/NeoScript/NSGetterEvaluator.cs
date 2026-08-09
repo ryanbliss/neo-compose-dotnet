@@ -2881,34 +2881,20 @@ namespace NeoCompose.Runtime.NeoScript
                         }
                         return s.Contains(ts);
                     }
-                    if (c is object?[] raw && target is string targetId)
+                    string? targetReferenceId = target as string
+                        ?? ValueIdOf(target, ctx);
+                    bool contains = false;
+                    IterateCollection(c, ctx, (entry, _, valueId) =>
                     {
-                        foreach (var entry in raw)
+                        if ((valueId is not null && valueId == targetReferenceId)
+                            || JsEqual(entry, target))
                         {
-                            ctx.allocationTracker.ConsumeCollectionVisit();
-                            if (entry is string selectedId && selectedId == targetId)
-                            {
-                                return true;
-                            }
+                            contains = true;
+                            return CollectionIterationControl.Break;
                         }
-                    }
-                    if (c is object?[] rawWithReference
-                        && ValueIdOf(target, ctx) is string targetReferenceId)
-                    {
-                        foreach (var entry in rawWithReference)
-                        {
-                            ctx.allocationTracker.ConsumeCollectionVisit();
-                            if (entry is string selectedId && selectedId == targetReferenceId)
-                            {
-                                return true;
-                            }
-                        }
-                    }
-                    foreach (var entry in CollectionEntries(c, ctx))
-                    {
-                        if (JsEqual(entry, target)) return true;
-                    }
-                    return false;
+                        return CollectionIterationControl.Continue;
+                    });
+                    return contains;
                 }
                 case WhereFunction wf:
                 {
@@ -2936,6 +2922,7 @@ namespace NeoCompose.Runtime.NeoScript
                             if (isList) ((List<object?>)outAcc).Add(emit);
                             else ((Dictionary<string, object?>)outAcc)[key.ToString()!] = emit;
                         }
+                        return CollectionIterationControl.Continue;
                     });
                     if (isList) return ((List<object?>)outAcc).ToArray();
                     return outAcc;
@@ -2956,8 +2943,12 @@ namespace NeoCompose.Runtime.NeoScript
                     object? foundValue = null;
                     IterateCollection(c, ctx, (entry, key, _) =>
                     {
-                        if (found) return;
-                        if (inner is null) { found = true; foundValue = entry; return; }
+                        if (inner is null)
+                        {
+                            found = true;
+                            foundValue = entry;
+                            return CollectionIterationControl.Break;
+                        }
                         var innerScope = PushParams(scope, inner.parameters,
                             keyOrIndex: key, entry: entry, isList: isList);
                         NeoScriptExecutionResult result = ExecuteCollectionCallback(
@@ -2968,7 +2959,9 @@ namespace NeoCompose.Runtime.NeoScript
                         {
                             found = true;
                             foundValue = entry;
+                            return CollectionIterationControl.Break;
                         }
+                        return CollectionIterationControl.Continue;
                     });
                     if (found) return foundValue;
                     if (isFirst)
@@ -3000,6 +2993,7 @@ namespace NeoCompose.Runtime.NeoScript
                                 .ConsumeProducedCollectionEntry();
                             acc.Add(result.ReturnValue);
                         }
+                        return CollectionIterationControl.Continue;
                     });
                     return acc.ToArray();
                 }
@@ -3610,19 +3604,17 @@ namespace NeoCompose.Runtime.NeoScript
             return snapshot.ToArray();
         }
 
-        private static IEnumerable<object?> CollectionEntries(object? c, Context ctx)
+        private enum CollectionIterationControl
         {
-            foreach (OrderedRawCollectionEntry entry in OrderedRawCollectionEntries(c))
-            {
-                ctx.allocationTracker.ConsumeCollectionVisit();
-                yield return ResolveValueIfId(entry.Raw, ctx);
-            }
+            Continue,
+            Break,
         }
 
         private static void IterateCollection(
             object? c,
             Context ctx,
-            Action<object? /*entry*/, object /*key*/, string? /*valueId*/> callback)
+            Func<object? /*entry*/, object /*key*/, string? /*valueId*/,
+                CollectionIterationControl> callback)
         {
             foreach (OrderedRawCollectionEntry rawEntry in
                 OrderedRawCollectionEntries(c))
@@ -3631,10 +3623,11 @@ namespace NeoCompose.Runtime.NeoScript
                 object? entry = ResolveValueIfId(
                     rawEntry.Raw,
                     ctx);
-                callback(
+                CollectionIterationControl control = callback(
                     entry,
                     rawEntry.Key,
                     rawEntry.Raw as string);
+                if (control == CollectionIterationControl.Break) break;
             }
         }
 

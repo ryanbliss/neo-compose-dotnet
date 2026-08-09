@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.20.1] - 2026-08-09
+
+### Changed
+
+- Stop `First`, `FirstOrDefault`, and collection `Contains` scans as soon as their result is known. Terminal scans resolve and charge only visited entries while preserving list/dictionary order and stored value-reference identity (P55).
+
 ### Fixed
 
 - The first Save/Session write shadowing an authored NSDelegate row now
