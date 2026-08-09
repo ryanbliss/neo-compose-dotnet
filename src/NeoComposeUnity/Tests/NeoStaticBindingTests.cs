@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
@@ -215,7 +216,15 @@ namespace NeoCompose.Tests
             string callbackKind)
         {
             NeoClient client = BuildClient();
-            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            bool terminal = callbackKind is FunctionKind.First
+                or FunctionKind.FirstOrDefault;
+            var ctx = new NSGetterEvaluator.Context(
+                client,
+                null,
+                null,
+                executionBudgetLimits: terminal
+                    ? new NeoScriptExecutionBudgetLimits(collectionVisits: 1)
+                    : null);
             var staticCount = new StaticMemberPointer
             {
                 type = PointerKind.StaticMember,
@@ -258,17 +267,53 @@ namespace NeoCompose.Tests
                     },
                 },
             };
-            Pointer collection = new ListLiteralPointer
-            {
-                type = PointerKind.ListLiteral,
-                typeInfo = new CollectionTypeInfo
+            Pointer collection = callbackKind == FunctionKind.FirstOrDefault
+                ? new DictLiteralPointer
                 {
-                    type = MemberKind.List,
-                    required = true,
-                    entryTypeInfo = intType,
-                },
-                entries = new Pointer[] { IntPointer(1) },
-            };
+                    type = PointerKind.DictLiteral,
+                    typeInfo = new CollectionTypeInfo
+                    {
+                        type = MemberKind.Dictionary,
+                        required = true,
+                        entryTypeInfo = intType,
+                    },
+                    entries = new[]
+                    {
+                        new DictLiteralPair
+                        {
+                            key = StringPointer("first"),
+                            value = IntPointer(1),
+                        },
+                        new DictLiteralPair
+                        {
+                            key = StringPointer("second"),
+                            value = IntPointer(2),
+                        },
+                        new DictLiteralPair
+                        {
+                            key = StringPointer("third"),
+                            value = IntPointer(3),
+                        },
+                    },
+                }
+                : new ListLiteralPointer
+                {
+                    type = PointerKind.ListLiteral,
+                    typeInfo = new CollectionTypeInfo
+                    {
+                        type = MemberKind.List,
+                        required = true,
+                        entryTypeInfo = intType,
+                    },
+                    entries = callbackKind == FunctionKind.First
+                        ? new Pointer[]
+                        {
+                            IntPointer(1),
+                            IntPointer(2),
+                            IntPointer(3),
+                        }
+                        : new Pointer[] { IntPointer(1) },
+                };
             Function callback = callbackKind switch
             {
                 FunctionKind.Where => new WhereFunction
@@ -349,6 +394,219 @@ namespace NeoCompose.Tests
                 "static-count-authored",
                 out NumberMemberValue? value));
             Assert.AreEqual(27, value!.value);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void P55FirstOrDefaultWithoutPredicate_StopsAfterOneVisit(
+            bool dictionary)
+        {
+            var optionalString = new PrimitiveTypeInfo
+            {
+                type = MemberKind.String,
+                required = false,
+            };
+            Pointer collection = dictionary
+                ? new DictLiteralPointer
+                {
+                    type = PointerKind.DictLiteral,
+                    typeInfo = new CollectionTypeInfo
+                    {
+                        type = MemberKind.Dictionary,
+                        required = true,
+                        entryTypeInfo = optionalString,
+                    },
+                    entries = new[]
+                    {
+                        new DictLiteralPair
+                        {
+                            key = StringPointer("first"),
+                            value = StringPointer("alpha"),
+                        },
+                        new DictLiteralPair
+                        {
+                            key = StringPointer("second"),
+                            value = StringPointer("beta"),
+                        },
+                    },
+                }
+                : new ListLiteralPointer
+                {
+                    type = PointerKind.ListLiteral,
+                    typeInfo = new CollectionTypeInfo
+                    {
+                        type = MemberKind.List,
+                        required = true,
+                        entryTypeInfo = optionalString,
+                    },
+                    entries = new Pointer[]
+                    {
+                        NullPointer(),
+                        StringPointer("later"),
+                    },
+                };
+            var getter = new FunctionWithReturnType
+            {
+                parameters = Array.Empty<Variable>(),
+                typeInfo = optionalString,
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new FunctionPointer
+                        {
+                            type = PointerKind.Function,
+                            function = new FirstOrDefaultFunction
+                            {
+                                type = FunctionKind.FirstOrDefault,
+                                info = new FunctionCollectionOptionalBoolInfo
+                                {
+                                    collectionPointer = collection,
+                                    function = null,
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+            var ctx = new NSGetterEvaluator.Context(
+                BuildClient(),
+                null,
+                null,
+                executionBudgetLimits: new NeoScriptExecutionBudgetLimits(
+                    collectionVisits: 1));
+
+            Assert.AreEqual(
+                dictionary ? "alpha" : null,
+                NSGetterEvaluator.Evaluate(getter, ctx));
+        }
+
+        [Test, Explicit("P55 10,000-entry performance benchmark")]
+        public void P55First_BenchmarksTerminalMatchPositions()
+        {
+            const int size = 10_000;
+            var stringType = new PrimitiveTypeInfo
+            {
+                type = MemberKind.String,
+                required = true,
+            };
+            Pointer[] entries = new Pointer[size];
+            for (int index = 0; index < size; index++)
+                entries[index] = StringPointer($"entry-{index}");
+            var collection = new ListLiteralPointer
+            {
+                type = PointerKind.ListLiteral,
+                typeInfo = new CollectionTypeInfo
+                {
+                    type = MemberKind.List,
+                    required = true,
+                    entryTypeInfo = stringType,
+                },
+                entries = entries,
+            };
+            FunctionWithReturnType Getter(string? target)
+            {
+                FunctionWithReturnType? predicate = null;
+                if (target is not null)
+                {
+                    var parameter = new Variable
+                    {
+                        id = "entry",
+                        typeInfo = stringType,
+                        pointer = new VariablePointer
+                        {
+                            type = PointerKind.Variable,
+                            variableId = "entry",
+                        },
+                    };
+                    predicate = new FunctionWithReturnType
+                    {
+                        parameters = new[] { parameter },
+                        typeInfo = new PrimitiveTypeInfo
+                        {
+                            type = MemberKind.Bool,
+                            required = true,
+                        },
+                        instructions = new Instruction[]
+                        {
+                            new ReturnInstruction
+                            {
+                                type = InstructionKind.Return,
+                                pointer = new OperationPointer
+                                {
+                                    type = PointerKind.Operation,
+                                    operation = new BooleanOperation
+                                    {
+                                        type = OperationKind.Boolean,
+                                        expression = new BooleanExpression
+                                        {
+                                            condition = new Condition
+                                            {
+                                                type = OperatorKind.EqualTo,
+                                                operand1 = parameter.pointer,
+                                                operand2 = StringPointer(target),
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    };
+                }
+                return new FunctionWithReturnType
+                {
+                    parameters = Array.Empty<Variable>(),
+                    typeInfo = stringType,
+                    instructions = new Instruction[]
+                    {
+                        new ReturnInstruction
+                        {
+                            type = InstructionKind.Return,
+                            pointer = new FunctionPointer
+                            {
+                                type = PointerKind.Function,
+                                function = new FirstFunction
+                                {
+                                    type = FunctionKind.First,
+                                    info = new FunctionCollectionOptionalBoolInfo
+                                    {
+                                        collectionPointer = collection,
+                                        function = predicate,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                };
+            }
+            var cases = new (string Name, string? Target)[]
+            {
+                ("First()", null),
+                ("beginning", "entry-0"),
+                ("middle", $"entry-{size / 2}"),
+                ("end", $"entry-{size - 1}"),
+                ("no-match", "missing"),
+            };
+            foreach ((string name, string? target) in cases)
+            {
+                FunctionWithReturnType getter = Getter(target);
+                var ctx = new NSGetterEvaluator.Context(BuildClient(), null, null);
+                for (int warmup = 0; warmup < 5; warmup++)
+                {
+                    try { NSGetterEvaluator.Evaluate(getter, ctx); }
+                    catch (NSGetterRuntimeError) when (name == "no-match") { }
+                }
+                var stopwatch = Stopwatch.StartNew();
+                for (int iteration = 0; iteration < 25; iteration++)
+                {
+                    try { NSGetterEvaluator.Evaluate(getter, ctx); }
+                    catch (NSGetterRuntimeError) when (name == "no-match") { }
+                }
+                stopwatch.Stop();
+                TestContext.WriteLine(
+                    $"{name}: {stopwatch.Elapsed.TotalMilliseconds / 25:F4} ms");
+            }
         }
 
         [Test]
