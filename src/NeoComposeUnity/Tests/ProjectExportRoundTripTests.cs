@@ -66,12 +66,12 @@ namespace NeoCompose.Tests
         /// export from the segment rig after materializing a required-constructor
         /// track, its nested required-constructor segment, and two constructed
         /// entries in a genuine unordered list. Unity must consume that exact
-        /// schema-16 wire shape without retaining executable row initializers.
+        /// schema-17 wire shape without retaining executable row initializers.
         /// </summary>
         [Test]
-        public void P61SegmentRig_MaterializedConstructorRowsLoadAtSchemaSixteen()
+        public void P61SegmentRig_MaterializedConstructorRowsLoadAtSchemaSeventeen()
         {
-            string json = LoadFixture("p61-segment-rig-schema16.json");
+            string json = LoadFixture("p61-segment-rig-schema17.json");
             ProjectData data = Deserialize(json);
 
             Assert.AreEqual(
@@ -490,7 +490,7 @@ namespace NeoCompose.Tests
         public void ConstructorRecord_AndClassConstructorIdsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 16, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 17, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -559,7 +559,7 @@ namespace NeoCompose.Tests
         public void RequiredConstructorId_AndBaseInitializerFieldsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 16, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 17, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -628,7 +628,7 @@ namespace NeoCompose.Tests
         public void ConstructorCode_IsAbsentWhenNoInitBlockIsDeclared()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 16, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 17, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -756,9 +756,9 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CompilerRevision_SixIsTheCurrentCeiling()
+        public void CompilerRevision_EightIsTheCurrentCeiling()
         {
-            Assert.AreEqual(7, FunctionWithReturnType.CurrentCompilerRevision);
+            Assert.AreEqual(8, FunctionWithReturnType.CurrentCompilerRevision);
         }
 
         [Test]

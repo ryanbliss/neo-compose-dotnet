@@ -250,6 +250,33 @@ namespace NeoCompose.Runtime.Json
                     RejectUnsupportedTypeInfo(argumentType, subject);
                 }
             }
+            if (typeInfo is ActionTypeInfo actionType)
+            {
+                // An action has no return slot — void-ness is structural
+                // (P62 §2.1) — so only the argument list is required.
+                if (actionType.argumentTypes is null)
+                {
+                    throw new JsonSerializationException(
+                        $"{subject} action type is missing its signature.");
+                }
+                foreach (TypeInfo argumentType in actionType.argumentTypes)
+                {
+                    RejectUnsupportedTypeInfo(argumentType, subject);
+                }
+            }
+            if (typeInfo is FunctionArgumentTypeInfo actionArgument
+                && actionArgument.type == MemberKind.NSAction)
+            {
+                if (actionArgument.argumentTypes is null)
+                {
+                    throw new JsonSerializationException(
+                        $"{subject} action type is missing its signature.");
+                }
+                foreach (TypeInfo argumentType in actionArgument.argumentTypes)
+                {
+                    RejectUnsupportedTypeInfo(argumentType, subject);
+                }
+            }
             if (typeInfo is FunctionArgumentTypeInfo delegateArgument
                 && delegateArgument.type == MemberKind.NSDelegate)
             {

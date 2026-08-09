@@ -1,6 +1,6 @@
 {
     "name": "com.ryanbliss.neocompose",
-    "version": "0.19.2",
+    "version": "0.20.0",
     "displayName": "NeoCompose",
     "description": "NeoCompose Unity package.",
     "unity": "6000.0",

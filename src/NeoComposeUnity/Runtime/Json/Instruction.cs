@@ -175,6 +175,33 @@ namespace NeoCompose.Runtime.Json
         public CatchClause[] catches = null!;
     }
 
+    /// <summary>
+    /// Shared shape of the two NSAction subscription instructions
+    /// (P62 §3.2). <see cref="target"/> is the same
+    /// <see cref="WriteTarget"/> an ordinary member assign carries — a
+    /// subscription <em>is</em> a member-value write, so it rides the same
+    /// writability plumbing — and <see cref="listener"/> is the pointer a
+    /// method group lowers to at a delegate position: one evaluating to a
+    /// member target (<c>{ memberId, valueId }</c>), never to a closure.
+    /// </summary>
+    public abstract class ActionListenerInstruction : Instruction
+    {
+        public WriteTarget target = null!;
+        public Pointer listener = null!;
+    }
+
+    /// <summary>
+    /// Mirror of <c>INSInstructionAddActionListener</c>. Adding an identity
+    /// the set already holds is a no-op (P62 §3.2).
+    /// </summary>
+    public class AddActionListenerInstruction : ActionListenerInstruction { }
+
+    /// <summary>
+    /// Mirror of <c>INSInstructionRemoveActionListener</c>. Removing an
+    /// absent identity is a no-op (P62 §3.2).
+    /// </summary>
+    public class RemoveActionListenerInstruction : ActionListenerInstruction { }
+
     public class InstructionConverter : DiscriminatedConverter<Instruction>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -194,6 +221,10 @@ namespace NeoCompose.Runtime.Json
                 case InstructionKind.Continue: return typeof(ContinueInstruction);
                 case InstructionKind.Switch: return typeof(SwitchInstruction);
                 case InstructionKind.Try: return typeof(TryInstruction);
+                case InstructionKind.AddActionListener:
+                    return typeof(AddActionListenerInstruction);
+                case InstructionKind.RemoveActionListener:
+                    return typeof(RemoveActionListenerInstruction);
                 default: return null;
             }
         }
@@ -230,6 +261,21 @@ namespace NeoCompose.Runtime.Json
                 throw new JsonSerializationException(
                     "TryInstruction must contain an instruction array and ordered catch clauses with unique read-only string bindings, valid optional filters, and at most one final unfiltered catch.");
             }
+            if (typeof(ActionListenerInstruction).IsAssignableFrom(concrete)
+                && !IsValidActionListenerInstruction(obj))
+            {
+                throw new JsonSerializationException(
+                    "Action listener instruction must contain a write target with a pointer, a type info, an optional writability, and a 'listener' pointer.");
+            }
+        }
+
+        private static bool IsValidActionListenerInstruction(JObject obj)
+        {
+            return obj["target"] is JObject target
+                && IsPointerObject(target["pointer"])
+                && target["typeInfo"]?.Type == JTokenType.Object
+                && IsOptionalWritability(target["writability"])
+                && IsPointerObject(obj["listener"]);
         }
 
         private static bool IsValidForInstruction(JObject obj)

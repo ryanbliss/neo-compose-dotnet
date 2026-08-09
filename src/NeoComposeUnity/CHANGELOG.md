@@ -2,6 +2,57 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- The first Save/Session write shadowing an authored NSDelegate row now
+  clones the row (persisted-copying its payload) instead of throwing
+  `Unsupported save value row type 'DelegateMemberValue'`.
+- Shadowing a P42 `$partial` structured-leaf row into a Save/Session
+  overlay now clones the row (deep-copying its envelope) instead of
+  throwing `Unsupported save value row type 'PartialLeafMemberValue'`.
+
+## [0.20.0] - 2026-08-07
+
+### Added
+
+- **NSAction multicast members (P62).** `MemberKind.NSAction` (ordinal 26)
+  declares a void member holding an insertion-ordered set of member-target
+  listeners. Invoking one fires every listener in stored order; an empty set
+  is a successful no-op.
+- `NeoAction` and `NeoAction<P1>` … `NeoAction<P1, …, P16>` registry classes
+  with `AddListener` / `RemoveListener` (over `System.Action<…>` and
+  `NeoDelegateValue`), `Invoke`, a read-only `Listeners` list, and
+  `operator +` / `operator -` that perform the durable write and return the
+  same instance. Subscriptions are ordinary member-value writes, deduplicated
+  by `(memberId, valueId)` identity.
+- `NeoMemberAction` member nodes with `Bind()` … `Bind<P1, …, P16>()`
+  returning a reference-stable `NeoAction` per member node. A C# `Invoke`
+  runs the same fan-out a NeoScript call runs: it supplies the owning row as
+  the receiver for null-`valueId` listeners, and a throwing listener stops
+  the invocation with `{action}[{owningRowId ?? "default"}] listener {index}
+  threw: …`. Control faults (budget, deferred Function, native-unavailable)
+  propagate as themselves rather than as listener errors.
+- `NeoGeneratedTypesSupport.RequireSameAction(object? value,
+  NeoActionBase expected, string memberLabel)` — the generated setter's
+  identity check, which is pure reference identity against the action the
+  member's own getter returns; `memberLabel` is error text only.
+- `NeoGeneratedTypesSupport.ListenerTargetOf(Delegate listener,
+  string? ownerValueId = null)`, plus the `[NeoMemberMethod]` attribute <!-- neo-terminology-audit: allow-line legacy-attribute-domain-word -- names the C# [NeoMemberMethod] attribute, not a Neo domain concept -->
+  generated code uses to resolve a method group back to its declaring
+  member. A listener whose receiver is the row that owns the action is
+  stored with a null `valueId` — byte-identical to the identity NeoScript's
+  `this.OnX += this.Handler` lowers to — so subscriptions, deduplication and
+  removal are interchangeable across the two languages.
+- `NeoActionValue` wire value (`{ listeners: [{ memberId, valueId }] }`), the
+  `callAction` IR pointer, and the `addActionListener` /
+  `removeActionListener` IR instructions (compiler revision 8).
+
+### Changed
+
+- **Breaking:** the project export schema version is now 17. Exports must be
+  regenerated from a web app of the same release; the SDK enforces exact
+  equality.
+
 ## [0.19.2] - 2026-08-07
 
 ### Fixed

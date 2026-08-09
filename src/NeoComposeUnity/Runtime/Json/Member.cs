@@ -551,6 +551,18 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
+    /// Multicast void callable with a persisted positional signature (P62
+    /// §2.1). There is no return slot — an action is always void — and the
+    /// value is an insertion-ordered listener set of member targets. An
+    /// omitted <see cref="Member{TValue}.defaultValue"/> means the empty
+    /// set, never null.
+    /// </summary>
+    public sealed class ActionMember : Member<NeoActionValue?>
+    {
+        public FunctionArgumentTypeInfo[] argumentTypes = null!;
+    }
+
+    /// <summary>
     /// Reference to a callable member. Only locked system declarations may
     /// use this value-bearing kind in schema 12.
     /// </summary>
@@ -692,6 +704,7 @@ namespace NeoCompose.Runtime.Json
                 case MemberKind.NSFunction: return typeof(NSFunctionMember);
                 case MemberKind.FunctionRef: return typeof(FunctionRefMember);
                 case MemberKind.NSDelegate: return typeof(DelegateMember);
+                case MemberKind.NSAction: return typeof(ActionMember);
                 case MemberKind.Vector2: return typeof(Vector2Member);
                 case MemberKind.Vector2Int: return typeof(Vector2IntMember);
                 case MemberKind.Vector3: return typeof(Vector3Member);

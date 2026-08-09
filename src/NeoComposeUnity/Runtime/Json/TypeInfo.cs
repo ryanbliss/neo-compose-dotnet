@@ -87,6 +87,17 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
+    /// Multicast void callable type info (P62 §2.1, TS-side
+    /// <c>INSTypeInfoAction</c>). Mirrors <see cref="DelegateTypeInfo"/>
+    /// minus the return slot: an action is always void, so void-ness is
+    /// structural rather than declared.
+    /// </summary>
+    public class ActionTypeInfo : TypeInfo
+    {
+        public TypeInfo[] argumentTypes = null!;
+    }
+
+    /// <summary>
     /// Enum type info. Carries the referenced enum id. Mirrors the
     /// TS-side <c>ITypeInfoEnum</c>.
     /// </summary>
@@ -169,6 +180,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(GenericTypeInfo);
                 case MemberKind.NSDelegate:
                     return typeof(DelegateTypeInfo);
+                case MemberKind.NSAction:
+                    return typeof(ActionTypeInfo);
                 default:
                     return null;
             }
@@ -228,6 +241,10 @@ namespace NeoCompose.Runtime.Json
                     return typeof(GenericTypeInfo);
                 case MemberKind.NSDelegate:
                     return typeof(DelegateTypeInfo);
+                // MemberKind.NSAction is deliberately absent: an action is
+                // statement-only and can never be a return type (P62 §3.1),
+                // so an NSAction discriminator in return position is invalid
+                // data and hard-fails here rather than resolving.
                 default:
                     return null;
             }

@@ -125,4 +125,37 @@ namespace NeoCompose.Runtime.NeoScript
         internal NativeFunctionDelegateUnavailableError(string message)
             : base(message) { }
     }
+
+    /// <summary>
+    /// The one place that says which runtime errors are ordinary authored
+    /// failures and which are control faults. Mirrors the TS
+    /// <c>isCatchableNeoScriptRuntimeError</c> predicate: a control fault
+    /// must neither be intercepted by an authored <c>catch</c> nor be
+    /// re-wrapped into a plain <see cref="NSGetterRuntimeError"/> by a
+    /// framing helper, because both erase the class its host handling keys
+    /// on.
+    /// </summary>
+    internal static class NeoScriptErrorClassification
+    {
+        /// <summary>
+        /// True when an authored <c>try/catch</c> may intercept the error.
+        /// </summary>
+        internal static bool IsAuthoredCatchable(System.Exception exception) =>
+            exception is NSGetterRuntimeError
+            && exception is not NeoScriptPreExecutionValidationError
+            && exception is not NativeFunctionDelegateUnavailableError
+            && exception is not NeoScriptResourceLimitError;
+
+        /// <summary>
+        /// True when a framing helper may replace the error with a renamed
+        /// <see cref="NSGetterRuntimeError"/>. Strictly narrower than
+        /// <see cref="IsAuthoredCatchable"/>: a deferred-Function fault stays
+        /// authored-catchable but keeps its class, because
+        /// <c>functionErrorCheck</c> and the deferred machinery dispatch on
+        /// the type rather than the message.
+        /// </summary>
+        internal static bool IsRewrappable(System.Exception exception) =>
+            IsAuthoredCatchable(exception)
+            && exception is not NeoDeferredFunctionRuntimeError;
+    }
 }

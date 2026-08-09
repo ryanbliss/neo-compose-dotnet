@@ -445,6 +445,49 @@ namespace NeoCompose.Tests
         }
 
         // ------------------------------------------------------------------
+        // Clone-on-write — shadowing a partial row deep-copies the envelope.
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// The row-level clone-on-write primitive must know the partial row
+        /// kind by name: shadowing an authored '$partial' row into an overlay
+        /// store deep-copies the envelope, so a later field write on the
+        /// shadow never reaches the shared authored payload.
+        /// </summary>
+        [Test]
+        public void SessionShadow_OfAPartialRow_DeepCopiesTheEnvelope()
+        {
+            ProjectData data = BuildProjectData();
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var authored = (PartialLeafMemberValue)data.values["portrait-value"];
+
+            Assert.IsTrue(
+                client.EnsureWritableShadow(
+                    NeoValueOwnership.Session,
+                    "portrait-value"),
+                "an authored partial row must shadow instead of throwing");
+            Assert.IsTrue(
+                client.TryGetWritableValue(
+                    NeoValueOwnership.Session,
+                    "portrait-value",
+                    out PartialLeafMemberValue? shadow));
+
+            // Same row identity, independent payload.
+            Assert.AreEqual(authored.id, shadow!.id);
+            Assert.AreNotSame(
+                authored.value,
+                shadow.value,
+                "the shadow deep-copies the envelope, never aliases it");
+            Assert.IsTrue(shadow.value!.TryGetInt32("sliceIndex", out var copied));
+            Assert.AreEqual(3, copied);
+
+            // A field write on the shadow leaves the authored envelope alone.
+            shadow.value.SetInt32("sliceIndex", 9);
+            Assert.IsTrue(authored.value!.TryGetInt32("sliceIndex", out var original));
+            Assert.AreEqual(3, original);
+        }
+
+        // ------------------------------------------------------------------
         // Fixture.
         // ------------------------------------------------------------------
 

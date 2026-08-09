@@ -98,6 +98,12 @@ namespace NeoCompose.Runtime
                 throw new NeoScriptPreExecutionValidationError(
                     $"NeoScript delegate-call IR requires compiler revision 7; body declares revision {compilerRevision}.");
             }
+            if (compilerRevision < 8
+                && ContainsActionIr(body.instructions))
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    $"NeoScript NSAction IR requires compiler revision 8; body declares revision {compilerRevision}.");
+            }
 
             bool allocationScopeClosed = false;
             ctx.allocationTracker.EnterExecution();
@@ -176,18 +182,96 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static bool ContainsDelegateCall(Instruction[]? instructions)
+        private static bool ContainsDelegateCall(Instruction[]? instructions) =>
+            IrDiscriminatorVerdictFor(instructions).containsDelegateCall;
+
+        /// <summary>
+        /// True when the body carries any P62 NSAction IR: either
+        /// subscription instruction, or a <c>callAction</c> pointer nested
+        /// anywhere inside an expression.
+        /// </summary>
+        private static bool ContainsActionIr(Instruction[]? instructions) =>
+            IrDiscriminatorVerdictFor(instructions).containsActionIr;
+
+        /// <summary>
+        /// What one JToken pass over a compiled body found. Every stale-body
+        /// revision gate reads it, and it is computed once per instruction
+        /// array: a body is deserialized once and then invoked arbitrarily
+        /// often — per frame, for an animation setter — so re-serializing the
+        /// whole IR tree on each call would be pure allocation churn. Spec §7
+        /// promises no fleet recompile, so the pre-revision-8 bodies that trip
+        /// these gates are the common case, not an edge case.
+        /// </summary>
+        private sealed class IrDiscriminatorVerdict
         {
-            if (instructions is null || instructions.Length == 0) return false;
+            internal bool containsDelegateCall;
+            internal bool containsActionIr;
+        }
+
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
+            Instruction[],
+            IrDiscriminatorVerdict> IrDiscriminatorVerdicts = new();
+
+        /// <summary>
+        /// How many JToken passes an instruction array has paid. Zero until
+        /// the first gated execution; never more than one thereafter.
+        /// </summary>
+        internal static int IrDiscriminatorScanCount(Instruction[] instructions) =>
+            IrDiscriminatorVerdicts.TryGetValue(instructions, out _) ? 1 : 0;
+
+        private static IrDiscriminatorVerdict IrDiscriminatorVerdictFor(
+            Instruction[]? instructions)
+        {
+            if (instructions is null || instructions.Length == 0)
+            {
+                return EmptyIrDiscriminatorVerdict;
+            }
+            if (IrDiscriminatorVerdicts.TryGetValue(
+                    instructions,
+                    out IrDiscriminatorVerdict? cached))
+            {
+                return cached;
+            }
+            var verdict = new IrDiscriminatorVerdict();
             JContainer body = (JContainer)JToken.FromObject(instructions);
-            return body
-                .Descendants()
-                .Prepend(body)
-                .OfType<JObject>()
-                .Any(pointer => string.Equals(
-                    pointer["type"]?.Value<string>(),
-                    PointerKind.CallDelegate,
-                    StringComparison.Ordinal));
+            foreach (JObject node in body.Descendants().Prepend(body).OfType<JObject>())
+            {
+                string? type = node["type"]?.Value<string>();
+                if (string.Equals(
+                        type,
+                        PointerKind.CallDelegate,
+                        StringComparison.Ordinal))
+                {
+                    verdict.containsDelegateCall = true;
+                }
+                else if (IsActionIrNode(type))
+                {
+                    verdict.containsActionIr = true;
+                }
+            }
+            // A concurrent first execution of the same body may have raced us
+            // here; either verdict is the same answer, so keep whichever
+            // landed first.
+            return IrDiscriminatorVerdicts.GetValue(instructions, _ => verdict);
+        }
+
+        private static readonly IrDiscriminatorVerdict EmptyIrDiscriminatorVerdict =
+            new();
+
+        private static bool IsActionIrNode(string? type)
+        {
+            return string.Equals(
+                    type,
+                    PointerKind.CallAction,
+                    StringComparison.Ordinal)
+                || string.Equals(
+                    type,
+                    InstructionKind.AddActionListener,
+                    StringComparison.Ordinal)
+                || string.Equals(
+                    type,
+                    InstructionKind.RemoveActionListener,
+                    StringComparison.Ordinal);
         }
 
         private static bool ContainsLoopInstruction(Instruction[]? instructions)
@@ -623,6 +707,20 @@ namespace NeoCompose.Runtime
                                             null,
                                             options));
                             }
+                        }
+                        catch (NeoFunctionCallSuspended suspended)
+                        {
+                            return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
+                        }
+                        break;
+                    case ActionListenerInstruction listenerInstruction:
+                        try
+                        {
+                            ExecuteActionListener(
+                                client,
+                                listenerInstruction,
+                                scope,
+                                actionCtx);
                         }
                         catch (NeoFunctionCallSuspended suspended)
                         {
@@ -1441,10 +1539,7 @@ namespace NeoCompose.Runtime
         }
 
         private static bool IsAuthoredCatchableError(Exception exception) =>
-            exception is NSGetterRuntimeError
-            && exception is not NeoScriptPreExecutionValidationError
-            && exception is not NativeFunctionDelegateUnavailableError
-            && exception is not NeoScriptResourceLimitError;
+            NeoScriptErrorClassification.IsAuthoredCatchable(exception);
 
         private static NeoScriptExecutionResult ExecuteTry(
             NeoClient client,
@@ -2085,6 +2180,109 @@ namespace NeoCompose.Runtime
                         pair => new List<string>(pair.Value)));
             }
             return childScope;
+        }
+
+        /// <summary>
+        /// Executes <c>action += listener</c> / <c>action -= listener</c>
+        /// (P62 §3.2). A subscription is an ordinary member-value write: read
+        /// the current listener set, apply the set operation keyed by the
+        /// listener's <c>(memberId, valueId)</c> identity, then write the full
+        /// post-mutation value back through the same target an assign uses.
+        /// Adding a present identity and removing an absent one are both
+        /// no-ops, so a re-executed subscription path cannot double-subscribe.
+        /// </summary>
+        private static void ExecuteActionListener(
+            NeoClient client,
+            ActionListenerInstruction instruction,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx)
+        {
+            bool add = instruction is AddActionListenerInstruction;
+            string operatorLabel = add ? "+=" : "-=";
+            NeoDelegateValue listener = ResolveListenerTarget(
+                Eval(instruction.listener, scope, ctx),
+                operatorLabel);
+            string identity = NeoActionValue.ListenerIdentity(listener);
+
+            NeoResolvedWriteTarget target = ResolveTarget(
+                client,
+                instruction.target,
+                scope,
+                ctx);
+            NeoActionValue current = ReadActionValue(
+                target.ReadCurrentValue(client, ctx),
+                operatorLabel);
+
+            var next = new NeoActionValue();
+            bool present = false;
+            foreach (NeoDelegateValue existing in current.listeners)
+            {
+                bool matches = string.Equals(
+                    NeoActionValue.ListenerIdentity(existing),
+                    identity,
+                    StringComparison.Ordinal);
+                if (matches) present = true;
+                if (matches && !add) continue;
+                next.listeners.Add(existing);
+            }
+            if (add)
+            {
+                if (present) return;
+                // The evaluated pointer may be a live captured value carrying
+                // the subscribing row's lexical environment. Persist the
+                // identity fields only, exactly as every other write path does
+                // (NeoMemberActionWritable.AddListener, MemberValueFactory,
+                // NeoClient.CloneValueRow).
+                next.listeners.Add(listener.PersistedCopy());
+            }
+            else if (!present)
+            {
+                return;
+            }
+            target.Write(client, next, ctx);
+        }
+
+        private static NeoDelegateValue ResolveListenerTarget(
+            object? evaluated,
+            string operatorLabel)
+        {
+            NeoDelegateValue? listener = evaluated switch
+            {
+                NeoDelegateValue typed => typed,
+                JObject json => json.ToObject<NeoDelegateValue>(),
+                _ => null,
+            };
+            if (listener is null)
+            {
+                throw new NSGetterRuntimeError(
+                    $"NSAction '{operatorLabel}' requires a member-target listener; the right-hand side evaluated to {evaluated?.GetType().Name ?? "null"}.");
+            }
+            if (listener.IsClosure || !listener.IsMemberTarget)
+            {
+                throw new NSGetterRuntimeError(
+                    $"NSAction '{operatorLabel}' requires a member-target listener; a closure has no identity to deduplicate or remove by.");
+            }
+            return listener;
+        }
+
+        private static NeoActionValue ReadActionValue(
+            object? current,
+            string operatorLabel)
+        {
+            switch (current)
+            {
+                case null:
+                    // The empty set is an action's rest state, so an absent
+                    // stored value subscribes onto a fresh listener set.
+                    return new NeoActionValue();
+                case NeoActionValue typed:
+                    return typed;
+                case JObject json:
+                    return json.ToObject<NeoActionValue>() ?? new NeoActionValue();
+                default:
+                    throw new NSGetterRuntimeError(
+                        $"NSAction '{operatorLabel}' target holds {current.GetType().Name}, which is not a listener set.");
+            }
         }
 
         private static void ExecuteCollectionCall(
@@ -2963,6 +3161,16 @@ namespace NeoCompose.Runtime
                         kind = MemberKind.Lookup,
                         collectionMemberId = id,
                     };
+                case MemberKind.NSAction:
+                    // A `+=`/`-=` subscription writes the whole listener set
+                    // through this path (P62 §3.3); the signature is not part
+                    // of the row, so the synthetic member carries none.
+                    return new ActionMember
+                    {
+                        id = id,
+                        kind = MemberKind.NSAction,
+                        argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                    };
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unsupported write target type '{typeInfo.type}'.");
@@ -3012,6 +3220,7 @@ namespace NeoCompose.Runtime
                 StringMemberValue s => s.value,
                 ArrayMemberValue a => a.value,
                 ObjectMemberValue o => o.value,
+                ActionMemberValue a => a.value,
                 Vector2MemberValue v => v.value,
                 Vector3MemberValue v => v.value,
                 ColorMemberValue c => c.value,
