@@ -78,6 +78,17 @@ namespace NeoCompose.Runtime.NeoScript
             readOnlyBindings.Clear();
         }
 
+        /// <summary>
+        /// Clears locals created by the previous callback body while retaining
+        /// the callback's fixed parameter slots for overwrite on the next
+        /// entry. The parameter layout is prepared once per operator.
+        /// </summary>
+        internal void ResetInvocationLocals(int parameterCount)
+        {
+            if (bindings.Count > parameterCount) bindings.Clear();
+            if (readOnlyBindings.Count > 0) readOnlyBindings.Clear();
+        }
+
         internal bool Remove(string bindingId) => bindings.Remove(bindingId);
 
         internal bool TryGetValue(string bindingId, out object? value)

@@ -362,6 +362,16 @@ namespace NeoCompose.Runtime.NeoScript
     }
 
     /// <summary>
+    /// Optional P58 proof counters. Production contexts leave this unset;
+    /// performance fixtures attach one to verify operator-local preparation.
+    /// </summary>
+    internal sealed class CollectionCallbackPreparationMetrics
+    {
+        internal int BodyValidations { get; set; }
+        internal int BindingPlanCreations { get; set; }
+    }
+
+    /// <summary>
     /// Pure, stateless walker that evaluates a compiled
     /// <see cref="FunctionWithReturnType"/> NSProperty. C# port of the TS
     /// <c>evaluateNSGetter</c> in
@@ -491,6 +501,8 @@ namespace NeoCompose.Runtime.NeoScript
                 IReadOnlyDictionary<string, NeoGenericEnvEntry>>
                 genericEnvironmentCache { get; }
             internal NeoScriptAllocationTracker allocationTracker { get; private set; }
+            internal CollectionCallbackPreparationMetrics?
+                collectionCallbackPreparationMetrics { get; set; }
 
             public Context(
                 NeoClient client,
@@ -550,6 +562,8 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 child.allocationTracker = allocationTracker;
                 child.linkedFunctionCallHandler = linkedFunctionCallHandler;
+                child.collectionCallbackPreparationMetrics =
+                    collectionCallbackPreparationMetrics;
                 return child;
             }
 
@@ -2934,14 +2948,18 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     var c = EvalPointer(wf.info.collectionPointer, scope, ctx);
                     var inner = wf.info.function;
-                    bool isList = c is object?[];
+                    bool isList = CollectionIsList(c);
                     int capacity = ctx.allocationTracker.SafeResultCapacity(
                         CollectionEntryCount(c));
                     object outAcc = isList
                         ? (object)new List<object?>(capacity)
                         : new Dictionary<string, object?>(capacity);
                     using var callback = new PreparedCollectionCallback(
-                        inner, scope, ctx, isList);
+                        inner,
+                        scope,
+                        ctx,
+                        isList,
+                        CollectionCallbackReturnContract.Predicate);
                     IterateCollection(c, ctx, (entry, key, valueId) =>
                     {
                         NeoScriptExecutionResult result = callback.Execute(
@@ -2976,13 +2994,17 @@ namespace NeoCompose.Runtime.NeoScript
                         : ((FirstOrDefaultFunction)fn).info;
                     var c = EvalPointer(info.collectionPointer, scope, ctx);
                     var inner = info.function;
-                    bool isList = c is object?[];
+                    bool isList = CollectionIsList(c);
                     bool found = false;
                     object? foundValue = null;
                     using PreparedCollectionCallback? callback = inner is null
                         ? null
                         : new PreparedCollectionCallback(
-                            inner, scope, ctx, isList);
+                            inner,
+                            scope,
+                            ctx,
+                            isList,
+                            CollectionCallbackReturnContract.Predicate);
                     IterateCollection(c, ctx, (entry, key, _) =>
                     {
                         if (callback is null)
@@ -3020,12 +3042,16 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     var c = EvalPointer(sf.info.collectionPointer, scope, ctx);
                     var inner = sf.info.function;
-                    bool isList = c is object?[];
+                    bool isList = CollectionIsList(c);
                     int capacity = ctx.allocationTracker.SafeResultCapacity(
                         CollectionEntryCount(c));
                     var acc = new List<object?>(capacity);
                     using var callback = new PreparedCollectionCallback(
-                        inner, scope, ctx, isList);
+                        inner,
+                        scope,
+                        ctx,
+                        isList,
+                        CollectionCallbackReturnContract.Projection);
                     IterateCollection(c, ctx, (entry, key, _) =>
                     {
                         NeoScriptExecutionResult result = callback.Execute(
@@ -3054,22 +3080,97 @@ namespace NeoCompose.Runtime.NeoScript
         /// collection operator. Locals and expression replay state are reset
         /// independently before each callback entry.
         /// </summary>
+        private enum CollectionCallbackReturnContract
+        {
+            Predicate,
+            Projection,
+        }
+
         private sealed class PreparedCollectionCallback : IDisposable
         {
-            private readonly FunctionWithReturnType callback;
             private readonly NeoScriptScope scope;
-            private readonly bool isList;
+            private readonly Action<object, object?> bindParameters;
+            private readonly int parameterCount;
+            private readonly Context ctx;
+            private readonly TypeInfo returnTypeInfo;
+            private readonly CollectionCallbackReturnContract returnContract;
             private readonly NeoScriptExecutor.PreparedCallback execution;
 
             internal PreparedCollectionCallback(
                 FunctionWithReturnType callback,
                 NeoScriptScope parentScope,
                 Context ctx,
-                bool isList)
+                bool isList,
+                CollectionCallbackReturnContract returnContract)
             {
-                this.callback = callback;
-                this.isList = isList;
-                scope = parentScope.CreateChild(callback.parameters.Length);
+                Variable[] parameters = callback.parameters
+                    ?? throw new NSGetterRuntimeError(
+                        "Collection callback is missing its parameter metadata.");
+                if (parameters.Length < 1)
+                {
+                    throw new NSGetterRuntimeError(
+                        "Collection callback requires at least one parameter.");
+                }
+                if (parameters.Length > 2)
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Collection callback supports at most two parameters, but received {parameters.Length}.");
+                }
+                TypeInfo callbackReturnType = callback.typeInfo
+                    ?? throw new NSGetterRuntimeError(
+                        "Collection callback is missing its compiled return type.");
+                if (returnContract == CollectionCallbackReturnContract.Predicate
+                    && callbackReturnType.type != MemberKind.Bool)
+                {
+                    throw new NSGetterRuntimeError(
+                        "Collection predicate callback must declare a Bool return type.");
+                }
+                if (returnContract == CollectionCallbackReturnContract.Predicate
+                    && !callbackReturnType.required)
+                {
+                    throw new NSGetterRuntimeError(
+                        "Collection predicate callback must declare a required return type.");
+                }
+
+                this.ctx = ctx;
+                this.returnContract = returnContract;
+                returnTypeInfo = callbackReturnType;
+                parameterCount = parameters.Length;
+                scope = parentScope.CreateChild(parameterCount);
+                if (parameterCount == 1)
+                {
+                    string entryParameterId = parameters[0].id;
+                    bindParameters = (_, entry) =>
+                        scope[entryParameterId] = entry;
+                }
+                else if (isList)
+                {
+                    string keyParameterId = parameters[0].id;
+                    string entryParameterId = parameters[1].id;
+                    bindParameters = (key, entry) =>
+                    {
+                        scope[keyParameterId] = System.Convert.ToInt32(
+                            key,
+                            CultureInfo.InvariantCulture);
+                        scope[entryParameterId] = entry;
+                    };
+                }
+                else
+                {
+                    string keyParameterId = parameters[0].id;
+                    string entryParameterId = parameters[1].id;
+                    bindParameters = (key, entry) =>
+                    {
+                        scope[keyParameterId] = key.ToString();
+                        scope[entryParameterId] = entry;
+                    };
+                }
+                if (ctx.collectionCallbackPreparationMetrics is not null)
+                {
+                    ctx.collectionCallbackPreparationMetrics
+                        .BindingPlanCreations++;
+                    ctx.collectionCallbackPreparationMetrics.BodyValidations++;
+                }
                 execution = NeoScriptExecutor.PrepareCallback(
                     ctx.client,
                     callback,
@@ -3081,19 +3182,42 @@ namespace NeoCompose.Runtime.NeoScript
                 object keyOrIndex,
                 object? entry)
             {
-                scope.ResetLocals();
-                BindParams(
-                    scope,
-                    callback.parameters,
-                    keyOrIndex,
-                    entry,
-                    isList);
+                scope.ResetInvocationLocals(parameterCount);
+                bindParameters(keyOrIndex, entry);
                 NeoScriptExecutionResult result = execution.Execute(scope);
-                if (!result.IsPaused) return result;
-                result.Deferred?.DisposeFromOwner(
-                    "collection callback cannot suspend");
-                throw new NSGetterRuntimeError(
-                    "Collection callbacks cannot call deferred Functions.");
+                if (result.IsPaused)
+                {
+                    result.Deferred?.DisposeFromOwner(
+                        "collection callback cannot suspend");
+                    throw new NSGetterRuntimeError(
+                        "Collection callbacks cannot call deferred Functions.");
+                }
+                if (returnContract == CollectionCallbackReturnContract.Predicate)
+                {
+                    if (result.ReturnValue is not bool)
+                    {
+                        throw new NSGetterRuntimeError(
+                            "Collection predicate callback returned a value that does not match its required Bool contract.");
+                    }
+                    return result;
+                }
+                const string subject = "collection projection callback return value";
+                object? normalized = NeoScriptValueMarshaller.Normalize(
+                    ctx.client,
+                    ctx.valueOwnership,
+                    result.ReturnValue,
+                    returnTypeInfo,
+                    ctx,
+                    subject);
+                NeoScriptValueMarshaller.ValidateResolvedRuntimeValue(
+                    ctx.client,
+                    normalized,
+                    returnTypeInfo,
+                    ctx,
+                    subject);
+                return NeoScriptExecutionResult.Completed(
+                    returned: true,
+                    normalized);
             }
 
             internal void CompleteOperator(object? returnValue) =>
@@ -3689,6 +3813,14 @@ namespace NeoCompose.Runtime.NeoScript
             Break,
         }
 
+        private static bool CollectionIsList(object? collection)
+        {
+            if (collection is object?[]) return true;
+            if (collection is IDictionary<string, object?>) return false;
+            throw new NSGetterRuntimeError(
+                "Collection callback receiver must be a present List or Dictionary value.");
+        }
+
         private static void IterateCollection(
             object? c,
             Context ctx,
@@ -3707,27 +3839,6 @@ namespace NeoCompose.Runtime.NeoScript
                     rawEntry.Key,
                     rawEntry.Raw as string);
                 if (control == CollectionIterationControl.Break) break;
-            }
-        }
-
-        private static void BindParams(
-            NeoScriptScope scope,
-            Variable[] parameters,
-            object keyOrIndex,
-            object? entry,
-            bool isList)
-        {
-            if (parameters.Length == 1)
-            {
-                scope[parameters[0].id] = entry;
-            }
-            else if (parameters.Length == 2)
-            {
-                object first = isList
-                    ? (object)System.Convert.ToInt32(keyOrIndex, CultureInfo.InvariantCulture)
-                    : keyOrIndex.ToString()!;
-                scope[parameters[0].id] = first;
-                scope[parameters[1].id] = entry;
             }
         }
 
