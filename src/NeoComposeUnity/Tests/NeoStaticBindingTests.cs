@@ -238,7 +238,19 @@ namespace NeoCompose.Tests
             bool select = callbackKind == FunctionKind.Select;
             var predicate = new FunctionWithReturnType
             {
-                parameters = Array.Empty<Variable>(),
+                parameters = new[]
+                {
+                    new Variable
+                    {
+                        id = "entry",
+                        typeInfo = intType,
+                        pointer = new VariablePointer
+                        {
+                            type = PointerKind.Variable,
+                            variableId = "entry",
+                        },
+                    },
+                },
                 typeInfo = select
                     ? intType
                     : new PrimitiveTypeInfo

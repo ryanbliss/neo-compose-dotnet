@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Prepare NeoScript collection callback validation, return contracts, and
+  parameter binding plans once per operator. Callback invocation now retains
+  its parameter slots while still clearing body-local state (P58).
+
 ## [0.20.3] - 2026-08-10
 
 ### Changed
