@@ -386,6 +386,11 @@ namespace NeoCompose.Runtime.NeoScript
                 Dictionary<string, object?> scope,
                 Context ctx);
 
+            internal delegate object? LinkedFunctionCallHandler(
+                CallFunctionPointer pointer,
+                NeoScriptScope scope,
+                Context ctx);
+
             public NeoClient client { get; }
             public object? thisValue { get; }
             public object? rootValue { get; }
@@ -469,6 +474,7 @@ namespace NeoCompose.Runtime.NeoScript
             internal Dictionary<object, RowReference> rowReverseIndex { get; }
             internal Dictionary<string, HashSet<string>> rowCacheKeysByRow { get; }
             internal FunctionCallHandler? functionCallHandler { get; }
+            internal LinkedFunctionCallHandler? linkedFunctionCallHandler { get; private set; }
             internal Dictionary<string, SchemaPlacement?> schemaPlacementCache { get; }
             internal Dictionary<string, string?> callableDispatchCache { get; }
             internal Dictionary<
@@ -534,6 +540,7 @@ namespace NeoCompose.Runtime.NeoScript
             private Context ShareAllocationTracker(Context child)
             {
                 child.allocationTracker = allocationTracker;
+                child.linkedFunctionCallHandler = linkedFunctionCallHandler;
                 return child;
             }
 
@@ -654,9 +661,9 @@ namespace NeoCompose.Runtime.NeoScript
             }
 
             internal Context WithFunctionCallHandler(
-                FunctionCallHandler handler)
+                LinkedFunctionCallHandler handler)
             {
-                return ShareAllocationTracker(new Context(
+                Context child = ShareAllocationTracker(new Context(
                     client,
                     thisValue,
                     rootValue,
@@ -666,7 +673,7 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    handler,
+                    functionCallHandler,
                     setterCallStack,
                     functionCallStack,
                     schemaPlacementCache,
@@ -675,6 +682,8 @@ namespace NeoCompose.Runtime.NeoScript
                     genericEnvironmentCache,
                     constructionStack,
                     delegateCallStack));
+                child.linkedFunctionCallHandler = handler;
+                return child;
             }
 
             internal Context WithSetterPushed(string memberId)
@@ -879,6 +888,14 @@ namespace NeoCompose.Runtime.NeoScript
             Dictionary<string, object?> scope,
             Context ctx)
         {
+            return EvalPointer(pointer, new NeoScriptScope(scope), ctx);
+        }
+
+        internal static object? EvaluatePointer(
+            Pointer pointer,
+            NeoScriptScope scope,
+            Context ctx)
+        {
             return EvalPointer(pointer, scope, ctx);
         }
 
@@ -888,7 +905,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static object? EvalPointer(
             Pointer pointer,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx)
         {
             switch (pointer)
@@ -1149,12 +1166,20 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static object? EvalFunctionCall(
             CallFunctionPointer pointer,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx)
         {
+            if (ctx.linkedFunctionCallHandler is not null)
+            {
+                return ctx.linkedFunctionCallHandler(pointer, scope, ctx);
+            }
             if (ctx.functionCallHandler is not null)
             {
-                return ctx.functionCallHandler(pointer, scope, ctx);
+                // The public compatibility handler predates linked frames.
+                // Internal collection callbacks never materialize at their
+                // execution boundary; only this legacy handler seam does.
+                return ctx.functionCallHandler(
+                    pointer, scope.Materialize(), ctx);
             }
             var receiver = EvalCallReceiver(pointer.receiver, scope, ctx);
             if (pointer.optional == true && receiver is null)
@@ -1554,7 +1579,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         private static object? ReadActionWithOwner(
             Pointer pointer,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx,
             out object? owner)
         {
@@ -1848,7 +1873,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static object? EvalCallReceiver(
             CallReceiver receiver,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx)
         {
             if (receiver is null)
@@ -1892,7 +1917,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static bool EvalFunctionErrorCheck(
             FunctionErrorCheckPointer pointer,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx)
         {
             try
@@ -1968,7 +1993,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// </param>
         private static object? EvalKeyOf(
             KeyOf keyOf,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx,
             bool optional,
             string? pinnedMemberId,
@@ -2273,7 +2298,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static object? EvalOperation(
             Operation operation,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx)
         {
             switch (operation)
@@ -2510,7 +2535,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static bool EvalBooleanExpression(
             BooleanExpression expression,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx)
         {
             bool head = EvalCondition(expression.condition, scope, ctx);
@@ -2528,7 +2553,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static bool EvalCondition(
             Condition condition,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx)
         {
             var a = EvalPointer(condition.operand1, scope, ctx);
@@ -2599,7 +2624,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         private static object? EvalDeclaredConstructor(
             DeclaredConstructorInfo info,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx)
         {
             var fields = new List<NeoGeneratedTypesSupport.RuntimeConstructorField>(
@@ -2707,7 +2732,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static object? EvalFunction(
             Function fn,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx)
         {
             switch (fn)
@@ -3013,7 +3038,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         private static NeoScriptExecutionResult ExecuteCollectionCallback(
             FunctionWithReturnType callback,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx)
         {
             NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
@@ -3033,7 +3058,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static object? EvalListIndex(
             FunctionListIndexInfo info,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx)
         {
             object? collection = EvalPointer(info.collectionPointer, scope, ctx);
@@ -3166,7 +3191,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static object EvalVectorConstructor(
             FunctionVectorConstructorInfo info,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx)
         {
             var components = new float[info.componentPointers.Length];
@@ -3227,7 +3252,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         private static object EvalImageSlice(
             FunctionImageSliceInfo info,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx)
         {
             var fileId = EvalPointer(info.filePointer, scope, ctx) as string;
@@ -3270,7 +3295,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         private static object? EvalDecimalOp(
             FunctionDecimalOpInfo info,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx)
         {
             var receiverRaw = EvalPointer(info.receiverPointer, scope, ctx);
@@ -3347,7 +3372,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         private static int EvalDecimalOpDigits(
             FunctionDecimalOpInfo info,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx)
         {
             if (info.digitsPointer is null)
@@ -3374,7 +3399,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         private static object EvalStringOp(
             FunctionStringOpInfo info,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             Context ctx)
         {
             var receiver = EvalPointer(info.receiverPointer, scope, ctx);
@@ -3631,14 +3656,14 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
-        private static Dictionary<string, object?> PushParams(
-            Dictionary<string, object?> parent,
+        private static NeoScriptScope PushParams(
+            NeoScriptScope parent,
             Variable[] parameters,
             object keyOrIndex,
             object? entry,
             bool isList)
         {
-            var child = new Dictionary<string, object?>(parent);
+            NeoScriptScope child = parent.CreateChild(parameters.Length);
             if (parameters.Length == 1)
             {
                 child[parameters[0].id] = entry;

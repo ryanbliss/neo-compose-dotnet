@@ -53,14 +53,22 @@ namespace NeoCompose.Runtime
     internal static class NeoScriptExecutor
     {
         internal const int MaxLoopIterations = 10_000;
-        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
-            Dictionary<string, object?>,
-            Dictionary<string, List<string>>> ReadOnlyBindings = new();
 
         internal static NeoScriptExecutionResult Execute(
             NeoClient client,
             FunctionWithReturnType body,
             Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options = null,
+            Func<NeoScriptExecutionResult, NeoScriptExecutionResult>?
+                normalizeTerminal = null) =>
+            Execute(client, body, new NeoScriptScope(scope), ctx, options,
+                normalizeTerminal);
+
+        internal static NeoScriptExecutionResult Execute(
+            NeoClient client,
+            FunctionWithReturnType body,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options = null,
             Func<NeoScriptExecutionResult, NeoScriptExecutionResult>?
@@ -575,7 +583,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             Instruction[] instructions,
             TypeInfo returnTypeInfo,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             int startIndex,
             ExpressionResumeState? resumeState,
@@ -869,7 +877,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             ForInstruction instruction,
             TypeInfo returnTypeInfo,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options)
         {
@@ -881,7 +889,7 @@ namespace NeoCompose.Runtime
         private static NeoScriptExecutionResult RunFor(
             NeoClient client,
             TypeInfo returnTypeInfo,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options,
             ForExecutionState state)
@@ -909,7 +917,7 @@ namespace NeoCompose.Runtime
         private static NeoScriptExecutionResult RunForCore(
             NeoClient client,
             TypeInfo returnTypeInfo,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options,
             ForExecutionState state)
@@ -996,7 +1004,7 @@ namespace NeoCompose.Runtime
                     }
                     case ForPhase.Body:
                     {
-                        Dictionary<string, object?> bodyScope =
+                        NeoScriptScope bodyScope =
                             state.EnsureBodyScope(scope);
                         NeoScriptExecutionResult bodyResult = ExecuteInstructions(
                             client,
@@ -1086,7 +1094,7 @@ namespace NeoCompose.Runtime
         private static NeoScriptExecutionResult ResumeForAfterBody(
             NeoClient client,
             TypeInfo returnTypeInfo,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options,
             ForExecutionState state,
@@ -1105,7 +1113,7 @@ namespace NeoCompose.Runtime
         }
 
         private static NeoScriptExecutionResult? ApplyForBodyTransfer(
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             ForExecutionState state,
             NeoScriptExecutionResult bodyResult)
         {
@@ -1129,7 +1137,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             ForEachInstruction instruction,
             TypeInfo returnTypeInfo,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options)
         {
@@ -1147,7 +1155,7 @@ namespace NeoCompose.Runtime
         private static NeoScriptExecutionResult RunForEach(
             NeoClient client,
             TypeInfo returnTypeInfo,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options,
             ForEachExecutionState state)
@@ -1175,7 +1183,7 @@ namespace NeoCompose.Runtime
         private static NeoScriptExecutionResult RunForEachCore(
             NeoClient client,
             TypeInfo returnTypeInfo,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options,
             ForEachExecutionState state)
@@ -1232,7 +1240,7 @@ namespace NeoCompose.Runtime
                     CoerceSetterValue(
                         state.Snapshot[state.Index].Resolve(ctx),
                         state.Instruction.binding.typeInfo);
-                Dictionary<string, object?> bodyScope =
+                NeoScriptScope bodyScope =
                     state.EnsureBodyScope(scope);
                 NeoScriptExecutionResult bodyResult = ExecuteInstructions(
                     client,
@@ -1266,7 +1274,7 @@ namespace NeoCompose.Runtime
         private static NeoScriptExecutionResult ResumeForEachAfterBody(
             NeoClient client,
             TypeInfo returnTypeInfo,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options,
             ForEachExecutionState state,
@@ -1285,7 +1293,7 @@ namespace NeoCompose.Runtime
         }
 
         private static NeoScriptExecutionResult? ApplyForEachBodyTransfer(
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             ForEachExecutionState state,
             NeoScriptExecutionResult bodyResult)
         {
@@ -1422,7 +1430,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             SwitchInstruction instruction,
             TypeInfo returnTypeInfo,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options)
         {
@@ -1439,7 +1447,7 @@ namespace NeoCompose.Runtime
         private static NeoScriptExecutionResult RunSwitch(
             NeoClient client,
             TypeInfo returnTypeInfo,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options,
             SwitchExecutionState state)
@@ -1486,7 +1494,7 @@ namespace NeoCompose.Runtime
                     returnValue: null);
             }
 
-            Dictionary<string, object?> sectionScope =
+            NeoScriptScope sectionScope =
                 state.EnsureSectionScope(scope);
             NeoScriptExecutionResult bodyResult;
             try
@@ -1545,7 +1553,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             TryInstruction instruction,
             TypeInfo returnTypeInfo,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options)
         {
@@ -1562,7 +1570,7 @@ namespace NeoCompose.Runtime
         private static NeoScriptExecutionResult RunTry(
             NeoClient client,
             TypeInfo returnTypeInfo,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options,
             TryExecutionState state)
@@ -1582,7 +1590,7 @@ namespace NeoCompose.Runtime
                     case TryPhase.Filter:
                     {
                         CatchClause clause = state.CurrentClause;
-                        Dictionary<string, object?> catchScope =
+                        NeoScriptScope catchScope =
                             state.EnsureCatchScope(scope);
                         NSGetterEvaluator.Context expressionContext =
                             BuildExpressionContext(
@@ -1654,7 +1662,7 @@ namespace NeoCompose.Runtime
                     }
                     case TryPhase.CatchBody:
                     {
-                        Dictionary<string, object?> catchScope =
+                        NeoScriptScope catchScope =
                             state.EnsureCatchScope(scope);
                         NeoScriptExecutionResult catchResult;
                         try
@@ -1708,12 +1716,12 @@ namespace NeoCompose.Runtime
         private static NeoScriptExecutionResult RunProtectedTryBody(
             NeoClient client,
             TypeInfo returnTypeInfo,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options,
             TryExecutionState state)
         {
-            Dictionary<string, object?> tryScope =
+            NeoScriptScope tryScope =
                 state.EnsureTryScope(scope);
             NeoScriptExecutionResult bodyResult;
             try
@@ -2020,7 +2028,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             Instruction[] instructions,
             TypeInfo returnTypeInfo,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             int instructionIndex,
             ExpressionResumeState expressionState,
@@ -2066,7 +2074,7 @@ namespace NeoCompose.Runtime
         private static NeoScriptExecutionResult? ExecuteAssign(
             NeoClient client,
             AssignInstruction instruction,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options)
         {
@@ -2112,74 +2120,32 @@ namespace NeoCompose.Runtime
         }
 
         private static bool TryGetReadOnlyBindingError(
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             string variableId,
             out string? error)
         {
-            error = null;
-            if (!ReadOnlyBindings.TryGetValue(
-                    scope,
-                    out Dictionary<string, List<string>>? bindings)
-                || !bindings.TryGetValue(
-                    variableId,
-                    out List<string>? errors)
-                || errors.Count == 0)
-            {
-                return false;
-            }
-            error = errors[errors.Count - 1];
-            return true;
+            return scope.TryGetReadOnlyError(variableId, out error);
         }
 
         private static void MarkReadOnlyBinding(
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             string variableId,
             string error)
         {
-            Dictionary<string, List<string>> bindings =
-                ReadOnlyBindings.GetOrCreateValue(scope);
-            if (!bindings.TryGetValue(variableId, out List<string>? errors))
-            {
-                errors = new List<string>();
-                bindings[variableId] = errors;
-            }
-            errors.Add(error);
+            scope.MarkReadOnly(variableId, error);
         }
 
         private static void UnmarkReadOnlyBinding(
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             string variableId)
         {
-            if (!ReadOnlyBindings.TryGetValue(
-                    scope,
-                    out Dictionary<string, List<string>>? bindings)
-                || !bindings.TryGetValue(
-                    variableId,
-                    out List<string>? errors))
-            {
-                return;
-            }
-            if (errors.Count > 0) errors.RemoveAt(errors.Count - 1);
-            if (errors.Count == 0) bindings.Remove(variableId);
-            if (bindings.Count == 0) ReadOnlyBindings.Remove(scope);
+            scope.UnmarkReadOnly(variableId);
         }
 
-        private static Dictionary<string, object?> CreateChildScope(
-            Dictionary<string, object?> parentScope)
+        private static NeoScriptScope CreateChildScope(
+            NeoScriptScope parentScope)
         {
-            var childScope = new Dictionary<string, object?>(parentScope);
-            if (ReadOnlyBindings.TryGetValue(
-                    parentScope,
-                    out Dictionary<string, List<string>>? readOnlyBindings)
-                && readOnlyBindings.Count > 0)
-            {
-                ReadOnlyBindings.Add(
-                    childScope,
-                    readOnlyBindings.ToDictionary(
-                        pair => pair.Key,
-                        pair => new List<string>(pair.Value)));
-            }
-            return childScope;
+            return parentScope.CreateChild();
         }
 
         /// <summary>
@@ -2194,7 +2160,7 @@ namespace NeoCompose.Runtime
         private static void ExecuteActionListener(
             NeoClient client,
             ActionListenerInstruction instruction,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx)
         {
             bool add = instruction is AddActionListenerInstruction;
@@ -2288,7 +2254,7 @@ namespace NeoCompose.Runtime
         private static void ExecuteCollectionCall(
             NeoClient client,
             CollectionCallInstruction instruction,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx)
         {
             object?[] args = new object?[instruction.args.Length];
@@ -2322,7 +2288,7 @@ namespace NeoCompose.Runtime
 
         private static object? Eval(
             Pointer pointer,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx)
         {
             return NSGetterEvaluator.EvaluatePointer(pointer, scope, ctx);
@@ -2331,7 +2297,7 @@ namespace NeoCompose.Runtime
         private static object? EvalFunctionCall(
             NeoClient client,
             CallFunctionPointer pointer,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             ExpressionResumeState expressionState,
             NeoScriptExecutionOptions? options)
@@ -2477,7 +2443,7 @@ namespace NeoCompose.Runtime
 
         private static bool EvaluateBoolean(
             BooleanExpression expression,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             string subject = "If condition")
         {
@@ -2499,7 +2465,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             AssignInstruction instruction,
             object? rhs,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options)
         {
@@ -2684,7 +2650,7 @@ namespace NeoCompose.Runtime
         private static NeoResolvedWriteTarget ResolveTarget(
             NeoClient client,
             WriteTarget target,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx)
         {
             switch (target.pointer)
@@ -2716,7 +2682,7 @@ namespace NeoCompose.Runtime
         private static NeoResolvedCollectionTarget ResolveCollectionTarget(
             NeoClient client,
             WriteTarget target,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx)
         {
             NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx);
@@ -2791,7 +2757,7 @@ namespace NeoCompose.Runtime
             KeyOf keyOf,
             TypeInfo targetType,
             NeoValueOwnership ownership,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx)
         {
             object? receiver = Eval(keyOf.pointer, scope, ctx);
@@ -2857,7 +2823,7 @@ namespace NeoCompose.Runtime
         private static NeoValueOwnership TargetOwnership(
             NeoClient client,
             WriteTarget target,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx)
         {
             if (target.writability is null)
@@ -2884,7 +2850,7 @@ namespace NeoCompose.Runtime
         private static NeoValueOwnership ResolveRuntimeTargetOwnership(
             NeoClient client,
             Pointer pointer,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx)
         {
             if (!TryResolveTargetOwnership(client, pointer, scope, ctx, out NeoValueOwnership ownership))
@@ -2903,7 +2869,7 @@ namespace NeoCompose.Runtime
         private static bool TryInferTargetOwnership(
             NeoClient client,
             Pointer pointer,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             out NeoValueOwnership ownership)
         {
@@ -2914,7 +2880,7 @@ namespace NeoCompose.Runtime
         private static bool TryResolveTargetOwnership(
             NeoClient client,
             Pointer pointer,
-            Dictionary<string, object?> scope,
+            NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             out NeoValueOwnership ownership)
         {
@@ -4570,13 +4536,13 @@ namespace NeoCompose.Runtime
             private readonly bool hadPreviousBinding;
             private readonly object? previousBinding;
             private readonly bool readOnly;
-            private Dictionary<string, object?>? bodyScope;
+            private NeoScriptScope? bodyScope;
             private string[]? bodyParentBindingIds;
             private bool bindingRestored;
 
             protected LoopExecutionState(
                 string bindingId,
-                Dictionary<string, object?> scope,
+                NeoScriptScope scope,
                 bool readOnly = false)
             {
                 this.bindingId = bindingId;
@@ -4593,8 +4559,8 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            internal Dictionary<string, object?> EnsureBodyScope(
-                Dictionary<string, object?> parentScope)
+            internal NeoScriptScope EnsureBodyScope(
+                NeoScriptScope parentScope)
             {
                 if (bodyScope is not null) return bodyScope;
                 bodyParentBindingIds = parentScope.Keys.ToArray();
@@ -4603,7 +4569,7 @@ namespace NeoCompose.Runtime
             }
 
             internal void SynchronizeBodyScope(
-                Dictionary<string, object?> parentScope)
+                NeoScriptScope parentScope)
             {
                 if (bodyScope is null) return;
                 foreach (string parentBindingId in bodyParentBindingIds
@@ -4619,7 +4585,7 @@ namespace NeoCompose.Runtime
                 bodyParentBindingIds = null;
             }
 
-            internal void RestoreBinding(Dictionary<string, object?> scope)
+            internal void RestoreBinding(NeoScriptScope scope)
             {
                 if (bindingRestored) return;
                 bindingRestored = true;
@@ -4643,7 +4609,7 @@ namespace NeoCompose.Runtime
         {
             internal ForExecutionState(
                 ForInstruction instruction,
-                Dictionary<string, object?> scope)
+                NeoScriptScope scope)
                 : base(instruction.initializer.id, scope)
             {
                 Instruction = instruction;
@@ -4666,7 +4632,7 @@ namespace NeoCompose.Runtime
         {
             internal ForEachExecutionState(
                 ForEachInstruction instruction,
-                Dictionary<string, object?> scope)
+                NeoScriptScope scope)
                 : base(instruction.binding.id, scope, readOnly: true)
             {
                 Instruction = instruction;
@@ -4685,10 +4651,10 @@ namespace NeoCompose.Runtime
 
         private sealed class TryExecutionState
         {
-            private Dictionary<string, object?>? tryScope;
+            private NeoScriptScope? tryScope;
             private string[]? tryParentBindingIds;
             private bool tryScopeSynchronized;
-            private Dictionary<string, object?>? catchScope;
+            private NeoScriptScope? catchScope;
             private string[]? catchParentBindingIds;
             private bool catchScopeSynchronized;
             private int catchIndex;
@@ -4712,8 +4678,8 @@ namespace NeoCompose.Runtime
                     : throw new NSGetterRuntimeError(
                         "NeoScript try/catch selected an invalid catch clause; its compiled IR is stale or corrupt.");
 
-            internal Dictionary<string, object?> EnsureTryScope(
-                Dictionary<string, object?> parentScope)
+            internal NeoScriptScope EnsureTryScope(
+                NeoScriptScope parentScope)
             {
                 if (tryScope is not null) return tryScope;
                 tryParentBindingIds = parentScope.Keys.ToArray();
@@ -4722,7 +4688,7 @@ namespace NeoCompose.Runtime
             }
 
             internal void SynchronizeTryScope(
-                Dictionary<string, object?> parentScope)
+                NeoScriptScope parentScope)
             {
                 if (tryScopeSynchronized || tryScope is null) return;
                 tryScopeSynchronized = true;
@@ -4744,8 +4710,8 @@ namespace NeoCompose.Runtime
                 PrepareCurrentClause();
             }
 
-            internal Dictionary<string, object?> EnsureCatchScope(
-                Dictionary<string, object?> parentScope)
+            internal NeoScriptScope EnsureCatchScope(
+                NeoScriptScope parentScope)
             {
                 if (catchScope is not null) return catchScope;
                 CatchClause clause = CurrentClause;
@@ -4763,7 +4729,7 @@ namespace NeoCompose.Runtime
             }
 
             internal void SynchronizeCatchScope(
-                Dictionary<string, object?> parentScope)
+                NeoScriptScope parentScope)
             {
                 if (catchScopeSynchronized || catchScope is null) return;
                 catchScopeSynchronized = true;
@@ -4788,7 +4754,7 @@ namespace NeoCompose.Runtime
             }
 
             internal void RejectCurrentClause(
-                Dictionary<string, object?> parentScope)
+                NeoScriptScope parentScope)
             {
                 SynchronizeCatchScope(parentScope);
                 catchScope = null;
@@ -4832,7 +4798,7 @@ namespace NeoCompose.Runtime
         private sealed class SwitchExecutionState
         {
             private readonly string[][] normalizedLabels;
-            private Dictionary<string, object?>? sectionScope;
+            private NeoScriptScope? sectionScope;
             private string[]? parentBindingIds;
             private bool sectionScopeSynchronized;
 
@@ -4869,8 +4835,8 @@ namespace NeoCompose.Runtime
                         ? Instruction.defaultInstructions
                         : null;
 
-            internal Dictionary<string, object?> EnsureSectionScope(
-                Dictionary<string, object?> parentScope)
+            internal NeoScriptScope EnsureSectionScope(
+                NeoScriptScope parentScope)
             {
                 if (sectionScope is not null) return sectionScope;
                 parentBindingIds = parentScope.Keys.ToArray();
@@ -4879,7 +4845,7 @@ namespace NeoCompose.Runtime
             }
 
             internal void SynchronizeSectionScope(
-                Dictionary<string, object?> parentScope)
+                NeoScriptScope parentScope)
             {
                 if (sectionScopeSynchronized || sectionScope is null) return;
                 sectionScopeSynchronized = true;
