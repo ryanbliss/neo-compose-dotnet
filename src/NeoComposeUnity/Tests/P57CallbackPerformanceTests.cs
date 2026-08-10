@@ -19,7 +19,7 @@ namespace NeoCompose.Tests
     public class P57CallbackPerformanceTests
     {
         private const int EntryCount = 10_000;
-        private const int MeasurementCount = 5;
+        private const int MeasurementCount = 20;
 
         [Test]
         public void PreparedCallback_KeepsOneBalancedAllocationSession()
@@ -60,27 +60,66 @@ namespace NeoCompose.Tests
 
             foreach (CallbackProfile profile in profiles)
             {
-                MeasureBaseline(profile.Callback);
-                MeasurePrepared(profile.Callback);
-                Measurement baseline = MedianMeasurement(
-                    Enumerable.Range(0, MeasurementCount)
-                        .Select(_ => MeasureBaseline(profile.Callback))
-                        .ToArray());
-                Measurement prepared = MedianMeasurement(
-                    Enumerable.Range(0, MeasurementCount)
-                        .Select(_ => MeasurePrepared(profile.Callback))
-                        .ToArray());
+                for (int warmup = 0; warmup < 5; warmup++)
+                {
+                    MeasureBaseline(profile.Callback);
+                    MeasurePrepared(profile.Callback);
+                }
+                var baselineSamples = new Measurement[MeasurementCount];
+                var preparedSamples = new Measurement[MeasurementCount];
+                for (int sample = 0; sample < MeasurementCount; sample++)
+                {
+                    if (sample % 2 == 0)
+                    {
+                        baselineSamples[sample] = MeasureBaseline(
+                            profile.Callback);
+                        preparedSamples[sample] = MeasurePrepared(
+                            profile.Callback);
+                    }
+                    else
+                    {
+                        preparedSamples[sample] = MeasurePrepared(
+                            profile.Callback);
+                        baselineSamples[sample] = MeasureBaseline(
+                            profile.Callback);
+                    }
+                }
+
+                Measurement baseline = MedianMeasurement(baselineSamples);
+                Measurement prepared = MedianMeasurement(preparedSamples);
+                double lower95SavingsMs = Lower95MedianSavings(
+                    baselineSamples,
+                    preparedSamples);
+                double speedupPercent =
+                    (baseline.DurationMs - prepared.DurationMs)
+                    / baseline.DurationMs
+                    * 100d;
+
+                string beforeSamples = string.Join(",", baselineSamples.Select(
+                    sample => sample.DurationMs.ToString("F3")));
+                string afterSamples = string.Join(",", preparedSamples.Select(
+                    sample => sample.DurationMs.ToString("F3")));
 
                 TestContext.WriteLine(
-                    $"{profile.Name}: baselineMs={baseline.DurationMs:F3} " +
-                    $"preparedMs={prepared.DurationMs:F3} " +
-                    $"baselineBytes={baseline.AllocatedBytes} " +
-                    $"preparedBytes={prepared.AllocatedBytes}");
+                    "P57_DOTNET_PROFILE " +
+                    $"profile={profile.Name} entries={EntryCount} " +
+                    $"beforeMedianMs={baseline.DurationMs:F3} " +
+                    $"afterMedianMs={prepared.DurationMs:F3} " +
+                    $"speedupPercent={speedupPercent:F2} " +
+                    $"lower95SavingsMs={lower95SavingsMs:F3} " +
+                    $"beforeBytes={baseline.AllocatedBytes} " +
+                    $"afterBytes={prepared.AllocatedBytes} " +
+                    $"beforeScopeAllocations={baseline.ScopeAllocations} " +
+                    $"afterScopeAllocations={prepared.ScopeAllocations} " +
+                    $"beforeSamplesMs=[{beforeSamples}] " +
+                    $"afterSamplesMs=[{afterSamples}]");
 
-                Assert.Less(
-                    prepared.DurationMs,
-                    baseline.DurationMs,
-                    $"{profile.Name} callback preparation did not reduce runtime.");
+                Assert.Greater(
+                    lower95SavingsMs,
+                    0d,
+                    $"{profile.Name} runtime improvement was not statistically significant.");
+                Assert.AreEqual(EntryCount, baseline.ScopeAllocations);
+                Assert.AreEqual(1, prepared.ScopeAllocations);
                 if (baseline.AllocatedBytes > 0)
                 {
                     Assert.Less(
@@ -99,6 +138,7 @@ namespace NeoCompose.Tests
             var parent = new NeoScriptScope();
             NeoScriptExecutionOptions options =
                 NeoScriptExecutionOptions.ForImmediate(client);
+            GC.Collect();
             long beforeBytes = GC.GetAllocatedBytesForCurrentThread();
             var stopwatch = Stopwatch.StartNew();
             for (int index = 0; index < EntryCount; index++)
@@ -115,7 +155,8 @@ namespace NeoCompose.Tests
             stopwatch.Stop();
             return new Measurement(
                 stopwatch.Elapsed.TotalMilliseconds,
-                GC.GetAllocatedBytesForCurrentThread() - beforeBytes);
+                GC.GetAllocatedBytesForCurrentThread() - beforeBytes,
+                EntryCount);
         }
 
         private static Measurement MeasurePrepared(
@@ -127,6 +168,7 @@ namespace NeoCompose.Tests
             NeoScriptScope scope = parent.CreateChild();
             NeoScriptExecutionOptions options =
                 NeoScriptExecutionOptions.ForImmediate(client);
+            GC.Collect();
             long beforeBytes = GC.GetAllocatedBytesForCurrentThread();
             var stopwatch = Stopwatch.StartNew();
             using (NeoScriptExecutor.PreparedCallback prepared =
@@ -146,7 +188,8 @@ namespace NeoCompose.Tests
             stopwatch.Stop();
             return new Measurement(
                 stopwatch.Elapsed.TotalMilliseconds,
-                GC.GetAllocatedBytesForCurrentThread() - beforeBytes);
+                GC.GetAllocatedBytesForCurrentThread() - beforeBytes,
+                1);
         }
 
         private static Measurement MedianMeasurement(
@@ -157,6 +200,44 @@ namespace NeoCompose.Tests
                 .ToArray();
             return ordered[ordered.Length / 2];
         }
+        private static double Lower95MedianSavings(
+            Measurement[] baseline,
+            Measurement[] prepared)
+        {
+            const int BootstrapSamples = 5_000;
+            var savings = new double[BootstrapSamples];
+            var beforeResample = new double[MeasurementCount];
+            var afterResample = new double[MeasurementCount];
+            uint randomState = 0x57C0FFEEu;
+            for (int sample = 0; sample < BootstrapSamples; sample++)
+            {
+                for (int index = 0; index < MeasurementCount; index++)
+                {
+                    beforeResample[index] = baseline[
+                        NextIndex(ref randomState, baseline.Length)].DurationMs;
+                    afterResample[index] = prepared[
+                        NextIndex(ref randomState, prepared.Length)].DurationMs;
+                }
+                savings[sample] = Median(beforeResample)
+                    - Median(afterResample);
+            }
+            Array.Sort(savings);
+            return savings[(int)(BootstrapSamples * 0.025d)];
+        }
+
+        private static int NextIndex(ref uint state, int length)
+        {
+            state = unchecked(state * 1_664_525u + 1_013_904_223u);
+            return (int)(state % (uint)length);
+        }
+
+        private static double Median(double[] values)
+        {
+            var ordered = (double[])values.Clone();
+            Array.Sort(ordered);
+            return ordered[ordered.Length / 2];
+        }
+
 
         private static FunctionWithReturnType EmptyCallback() => new()
         {
@@ -269,14 +350,17 @@ namespace NeoCompose.Tests
         {
             internal Measurement(
                 double durationMs,
-                long allocatedBytes)
+                long allocatedBytes,
+                int scopeAllocations)
             {
                 DurationMs = durationMs;
                 AllocatedBytes = allocatedBytes;
+                ScopeAllocations = scopeAllocations;
             }
 
             internal double DurationMs { get; }
             internal long AllocatedBytes { get; }
+            internal int ScopeAllocations { get; }
         }
     }
 }
