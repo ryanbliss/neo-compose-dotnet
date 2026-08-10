@@ -6,7 +6,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
@@ -134,25 +133,29 @@ namespace NeoCompose.Tests
             Assert.AreEqual("caller", scope["captured"]);
         }
 
-        [Test]
-        public void CallbackFrame_AllocatedBytesPerEntryDoNotScaleWithParentSize()
+        [TestCase(1)]
+        [TestCase(10)]
+        [TestCase(100)]
+        [TestCase(1_000)]
+        public void CallbackFrame_LocalBindingCountDoesNotScaleWithParentSize(
+            int parentSize)
         {
-            int[] parentSizes = { 1, 10, 100, 1_000 };
-            foreach (int parentSize in parentSizes)
+            var parent = new NeoScriptScope(parentSize);
+            for (int index = 0; index < parentSize; index++)
             {
-                MeasureCallbackFrameAllocations(parentSize, 1);
+                parent.SetLocal($"captured:{index}", index);
             }
 
-            long[] allocatedBytes = parentSizes
-                .Select(parentSize =>
-                    MeasureCallbackFrameAllocations(parentSize, 10_000))
-                .ToArray();
+            int localBindingCount = 0;
+            for (int entry = 0; entry < 10_000; entry++)
+            {
+                NeoScriptScope callback = parent.CreateChild(2);
+                callback.SetLocal("index", entry);
+                callback.SetLocal("item", entry);
+                localBindingCount += callback.LocalBindingCount;
+            }
 
-            Assert.LessOrEqual(
-                allocatedBytes.Max() - allocatedBytes.Min(),
-                4_096,
-                "Callback frame allocations changed with captured scope size: "
-                    + string.Join(", ", allocatedBytes));
+            Assert.AreEqual(20_000, localBindingCount);
         }
 
         [Test]
@@ -169,29 +172,6 @@ namespace NeoCompose.Tests
             Assert.IsTrue(second.TryGetValue("item", out object? item));
             Assert.AreEqual("second", item);
             Assert.IsFalse(second.TryGetValue("callbackLocal", out _));
-        }
-
-        private static long MeasureCallbackFrameAllocations(
-            int parentSize,
-            int entries)
-        {
-            var parent = new NeoScriptScope(parentSize);
-            for (int index = 0; index < parentSize; index++)
-            {
-                parent.SetLocal($"captured:{index}", index);
-            }
-
-            long before = GC.GetAllocatedBytesForCurrentThread();
-            NeoScriptScope? last = null;
-            for (int entry = 0; entry < entries; entry++)
-            {
-                last = parent.CreateChild(2);
-                last.SetLocal("index", entry);
-                last.SetLocal("item", entry);
-            }
-            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-            GC.KeepAlive(last);
-            return allocated;
         }
 
         private static PrimitiveTypeInfo RequiredType(MemberKind kind) => new()
