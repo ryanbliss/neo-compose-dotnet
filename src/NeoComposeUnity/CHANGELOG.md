@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.20.2] - 2026-08-09
+
+### Changed
+
+- Replace copied NeoScript callback scopes with parent-linked frames so callback setup scales with parameter count instead of captured caller bindings, while preserving lexical isolation and read-only diagnostics (P56).
+
 ## [0.20.1] - 2026-08-09
 
 ### Changed
