@@ -38,6 +38,8 @@ namespace NeoCompose.Runtime.NeoScript
         private int constructedSessionRows;
         private int producedStringCharacters;
 
+        internal int ActiveExecutionCount => activeExecutions;
+
         internal NeoScriptAllocationTracker(
             NeoScriptExecutionBudgetLimits? limits = null)
         {
@@ -2929,14 +2931,13 @@ namespace NeoCompose.Runtime.NeoScript
                     object outAcc = isList
                         ? (object)new List<object?>()
                         : new Dictionary<string, object?>();
+                    using var callback = new PreparedCollectionCallback(
+                        inner, scope, ctx, isList);
                     IterateCollection(c, ctx, (entry, key, valueId) =>
                     {
-                        var innerScope = PushParams(scope, inner.parameters,
-                            keyOrIndex: key, entry: entry, isList: isList);
-                        NeoScriptExecutionResult result = ExecuteCollectionCallback(
-                            inner,
-                            innerScope,
-                            ctx);
+                        NeoScriptExecutionResult result = callback.Execute(
+                            key,
+                            entry);
                         if (result.Returned && result.ReturnValue is bool b && b)
                         {
                             ctx.allocationTracker
@@ -2949,8 +2950,11 @@ namespace NeoCompose.Runtime.NeoScript
                         }
                         return CollectionIterationControl.Continue;
                     });
-                    if (isList) return ((List<object?>)outAcc).ToArray();
-                    return outAcc;
+                    object result = isList
+                        ? ((List<object?>)outAcc).ToArray()
+                        : outAcc;
+                    callback.CompleteOperator(result);
+                    return result;
                 }
                 case FirstFunction _:
                 case FirstOrDefaultFunction _:
@@ -2966,20 +2970,21 @@ namespace NeoCompose.Runtime.NeoScript
                     bool isList = c is object?[];
                     bool found = false;
                     object? foundValue = null;
+                    using PreparedCollectionCallback? callback = inner is null
+                        ? null
+                        : new PreparedCollectionCallback(
+                            inner, scope, ctx, isList);
                     IterateCollection(c, ctx, (entry, key, _) =>
                     {
-                        if (inner is null)
+                        if (callback is null)
                         {
                             found = true;
                             foundValue = entry;
                             return CollectionIterationControl.Break;
                         }
-                        var innerScope = PushParams(scope, inner.parameters,
-                            keyOrIndex: key, entry: entry, isList: isList);
-                        NeoScriptExecutionResult result = ExecuteCollectionCallback(
-                            inner,
-                            innerScope,
-                            ctx);
+                        NeoScriptExecutionResult result = callback.Execute(
+                            key,
+                            entry);
                         if (result.Returned && result.ReturnValue is bool b && b)
                         {
                             found = true;
@@ -2988,7 +2993,11 @@ namespace NeoCompose.Runtime.NeoScript
                         }
                         return CollectionIterationControl.Continue;
                     });
-                    if (found) return foundValue;
+                    if (found)
+                    {
+                        callback?.CompleteOperator(foundValue);
+                        return foundValue;
+                    }
                     if (isFirst)
                     {
                         throw new NSGetterRuntimeError(
@@ -3004,14 +3013,13 @@ namespace NeoCompose.Runtime.NeoScript
                     var inner = sf.info.function;
                     bool isList = c is object?[];
                     var acc = new List<object?>();
+                    using var callback = new PreparedCollectionCallback(
+                        inner, scope, ctx, isList);
                     IterateCollection(c, ctx, (entry, key, _) =>
                     {
-                        var innerScope = PushParams(scope, inner.parameters,
-                            keyOrIndex: key, entry: entry, isList: isList);
-                        NeoScriptExecutionResult result = ExecuteCollectionCallback(
-                            inner,
-                            innerScope,
-                            ctx);
+                        NeoScriptExecutionResult result = callback.Execute(
+                            key,
+                            entry);
                         if (result.Returned)
                         {
                             ctx.allocationTracker
@@ -3020,7 +3028,9 @@ namespace NeoCompose.Runtime.NeoScript
                         }
                         return CollectionIterationControl.Continue;
                     });
-                    return acc.ToArray();
+                    object?[] result = acc.ToArray();
+                    callback.CompleteOperator(result);
+                    return result;
                 }
                 default:
                     throw new NSGetterRuntimeError(
@@ -3029,31 +3039,56 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// Collection callbacks are ordinary synchronous NeoScript frames.
-        /// They inherit the ambient context, allocation tracker, write
-        /// targets, and call-cycle state; only deferred suspension remains
-        /// illegal. Keeping this seam on the shared executor prevents
-        /// Where/First/FirstOrDefault/Select from silently falling back to
-        /// the legacy read-only getter instruction walker.
+        /// Retains immutable executor configuration and one entry scope for a
+        /// collection operator. Locals and expression replay state are reset
+        /// independently before each callback entry.
         /// </summary>
-        private static NeoScriptExecutionResult ExecuteCollectionCallback(
-            FunctionWithReturnType callback,
-            NeoScriptScope scope,
-            Context ctx)
+        private sealed class PreparedCollectionCallback : IDisposable
         {
-            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
-                ctx.client,
-                callback,
-                scope,
-                ctx);
-            if (result.IsPaused)
+            private readonly FunctionWithReturnType callback;
+            private readonly NeoScriptScope scope;
+            private readonly bool isList;
+            private readonly NeoScriptExecutor.PreparedCallback execution;
+
+            internal PreparedCollectionCallback(
+                FunctionWithReturnType callback,
+                NeoScriptScope parentScope,
+                Context ctx,
+                bool isList)
             {
+                this.callback = callback;
+                this.isList = isList;
+                scope = parentScope.CreateChild(callback.parameters.Length);
+                execution = NeoScriptExecutor.PrepareCallback(
+                    ctx.client,
+                    callback,
+                    ctx,
+                    NeoScriptExecutionOptions.ForImmediate(ctx.client));
+            }
+
+            internal NeoScriptExecutionResult Execute(
+                object keyOrIndex,
+                object? entry)
+            {
+                scope.ResetLocals();
+                BindParams(
+                    scope,
+                    callback.parameters,
+                    keyOrIndex,
+                    entry,
+                    isList);
+                NeoScriptExecutionResult result = execution.Execute(scope);
+                if (!result.IsPaused) return result;
                 result.Deferred?.DisposeFromOwner(
                     "collection callback cannot suspend");
                 throw new NSGetterRuntimeError(
                     "Collection callbacks cannot call deferred Functions.");
             }
-            return result;
+
+            internal void CompleteOperator(object? returnValue) =>
+                execution.CompleteOwner(returnValue);
+
+            public void Dispose() => execution.Dispose();
         }
 
         private static object? EvalListIndex(
@@ -3656,27 +3691,25 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
-        private static NeoScriptScope PushParams(
-            NeoScriptScope parent,
+        private static void BindParams(
+            NeoScriptScope scope,
             Variable[] parameters,
             object keyOrIndex,
             object? entry,
             bool isList)
         {
-            NeoScriptScope child = parent.CreateChild(parameters.Length);
             if (parameters.Length == 1)
             {
-                child[parameters[0].id] = entry;
+                scope[parameters[0].id] = entry;
             }
             else if (parameters.Length == 2)
             {
                 object first = isList
                     ? (object)System.Convert.ToInt32(keyOrIndex, CultureInfo.InvariantCulture)
                     : keyOrIndex.ToString()!;
-                child[parameters[0].id] = first;
-                child[parameters[1].id] = entry;
+                scope[parameters[0].id] = first;
+                scope[parameters[1].id] = entry;
             }
-            return child;
         }
 
         // ---------------------------------------------------------------

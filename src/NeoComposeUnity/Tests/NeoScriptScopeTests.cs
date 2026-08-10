@@ -159,19 +159,23 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NewCallbackFrame_DoesNotDisclosePriorInvocationBindings()
+        public void ReusedCallbackFrame_DoesNotDisclosePriorInvocationBindings()
         {
             var parent = new NeoScriptScope();
-            NeoScriptScope first = parent.CreateChild(2);
-            first.SetLocal("item", "first");
-            first.SetLocal("callbackLocal", "private");
+            parent.SetLocal("captured", "parent");
+            NeoScriptScope callback = parent.CreateChild(2);
+            callback.SetLocal("item", "first");
+            callback.SetLocal("callbackLocal", "private");
+            callback.MarkReadOnly("item", "first-only marker");
 
-            NeoScriptScope second = parent.CreateChild(2);
-            second.SetLocal("item", "second");
+            callback.ResetLocals();
+            callback.SetLocal("item", "second");
 
-            Assert.IsTrue(second.TryGetValue("item", out object? item));
+            Assert.IsTrue(callback.TryGetValue("item", out object? item));
             Assert.AreEqual("second", item);
-            Assert.IsFalse(second.TryGetValue("callbackLocal", out _));
+            Assert.IsFalse(callback.TryGetValue("callbackLocal", out _));
+            Assert.IsFalse(callback.TryGetReadOnlyError("item", out _));
+            Assert.AreEqual("parent", callback.Materialize()["captured"]);
         }
 
         private static PrimitiveTypeInfo RequiredType(MemberKind kind) => new()

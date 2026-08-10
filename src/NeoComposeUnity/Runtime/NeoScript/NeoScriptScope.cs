@@ -72,6 +72,12 @@ namespace NeoCompose.Runtime.NeoScript
         internal void SetLocal(string bindingId, object? value) =>
             bindings[bindingId] = value;
 
+        internal void ResetLocals()
+        {
+            bindings.Clear();
+            readOnlyBindings.Clear();
+        }
+
         internal bool Remove(string bindingId) => bindings.Remove(bindingId);
 
         internal bool TryGetValue(string bindingId, out object? value)

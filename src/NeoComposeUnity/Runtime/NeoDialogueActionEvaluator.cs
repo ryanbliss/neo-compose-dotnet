@@ -74,45 +74,7 @@ namespace NeoCompose.Runtime
             Func<NeoScriptExecutionResult, NeoScriptExecutionResult>?
                 normalizeTerminal = null)
         {
-            int compilerRevision = body.compilerRevision ?? 1;
-            if (compilerRevision < 1
-                || compilerRevision > FunctionWithReturnType.CurrentCompilerRevision)
-            {
-                throw new NeoScriptPreExecutionValidationError(
-                    $"Unsupported NeoScript compiler revision {compilerRevision}; this runtime supports revisions 1 through {FunctionWithReturnType.CurrentCompilerRevision}.");
-            }
-            ValidateControlFlowInstructionMetadata(body.instructions);
-            if (compilerRevision < 4
-                && ContainsLoopInstruction(body.instructions))
-            {
-                throw new NeoScriptPreExecutionValidationError(
-                    $"NeoScript loop IR requires compiler revision 4; body declares revision {compilerRevision}.");
-            }
-            if (compilerRevision < 5
-                && ContainsSwitchInstruction(body.instructions))
-            {
-                throw new NeoScriptPreExecutionValidationError(
-                    $"NeoScript switch IR requires compiler revision 5; body declares revision {compilerRevision}.");
-            }
-            if (compilerRevision < 6
-                && ContainsTryInstruction(body.instructions))
-            {
-                throw new NeoScriptPreExecutionValidationError(
-                    $"NeoScript try/catch IR requires compiler revision 6; body declares revision {compilerRevision}.");
-            }
-            if (compilerRevision < 7
-                && ContainsDelegateCall(body.instructions))
-            {
-                throw new NeoScriptPreExecutionValidationError(
-                    $"NeoScript delegate-call IR requires compiler revision 7; body declares revision {compilerRevision}.");
-            }
-            if (compilerRevision < 8
-                && ContainsActionIr(body.instructions))
-            {
-                throw new NeoScriptPreExecutionValidationError(
-                    $"NeoScript NSAction IR requires compiler revision 8; body declares revision {compilerRevision}.");
-            }
-
+            ValidateBodyForExecution(body);
             bool allocationScopeClosed = false;
             ctx.allocationTracker.EnterExecution();
             try
@@ -187,6 +149,141 @@ namespace NeoCompose.Runtime
                 }
                 CloseAllocationScope(allocationTerminal);
                 return result;
+            }
+        }
+
+        internal static PreparedCallback PrepareCallback(
+            NeoClient client,
+            FunctionWithReturnType body,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options = null)
+        {
+            ValidateBodyForExecution(body);
+            return new PreparedCallback(client, body, ctx, options);
+        }
+
+        private static void ValidateBodyForExecution(
+            FunctionWithReturnType body)
+        {
+            int compilerRevision = body.compilerRevision ?? 1;
+            if (compilerRevision < 1
+                || compilerRevision > FunctionWithReturnType.CurrentCompilerRevision)
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    $"Unsupported NeoScript compiler revision {compilerRevision}; this runtime supports revisions 1 through {FunctionWithReturnType.CurrentCompilerRevision}.");
+            }
+            ValidateControlFlowInstructionMetadata(body.instructions);
+            if (compilerRevision < 4
+                && ContainsLoopInstruction(body.instructions))
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    $"NeoScript loop IR requires compiler revision 4; body declares revision {compilerRevision}.");
+            }
+            if (compilerRevision < 5
+                && ContainsSwitchInstruction(body.instructions))
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    $"NeoScript switch IR requires compiler revision 5; body declares revision {compilerRevision}.");
+            }
+            if (compilerRevision < 6
+                && ContainsTryInstruction(body.instructions))
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    $"NeoScript try/catch IR requires compiler revision 6; body declares revision {compilerRevision}.");
+            }
+            if (compilerRevision < 7
+                && ContainsDelegateCall(body.instructions))
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    $"NeoScript delegate-call IR requires compiler revision 7; body declares revision {compilerRevision}.");
+            }
+            if (compilerRevision < 8
+                && ContainsActionIr(body.instructions))
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    $"NeoScript NSAction IR requires compiler revision 8; body declares revision {compilerRevision}.");
+            }
+        }
+
+        /// <summary>
+        /// One collection-operator callback session. Immutable body/options
+        /// setup and allocation tracking are retained across entries, while
+        /// Execute creates fresh expression replay state for every entry.
+        /// </summary>
+        internal sealed class PreparedCallback : IDisposable
+        {
+            private readonly NeoClient client;
+            private readonly FunctionWithReturnType body;
+            private readonly NSGetterEvaluator.Context ctx;
+            private readonly NeoScriptExecutionOptions? options;
+            private bool disposed;
+            private NeoScriptExecutionResult? ownerTerminal;
+
+            internal PreparedCallback(
+                NeoClient client,
+                FunctionWithReturnType body,
+                NSGetterEvaluator.Context ctx,
+                NeoScriptExecutionOptions? options)
+            {
+                this.client = client;
+                this.body = body;
+                this.ctx = ctx;
+                this.options = options;
+                ctx.allocationTracker.EnterExecution();
+            }
+
+            internal NeoScriptExecutionResult Execute(NeoScriptScope scope)
+            {
+                if (disposed)
+                {
+                    throw new ObjectDisposedException(
+                        nameof(PreparedCallback));
+                }
+                ctx.allocationTracker.ConsumeWorkUnit();
+                NeoScriptExecutionResult result = ExecuteInstructions(
+                    client,
+                    body.instructions,
+                    body.typeInfo,
+                    scope,
+                    ctx,
+                    0,
+                    null,
+                    options);
+                if (result.IsFailed)
+                {
+                    throw result.Failure!;
+                }
+                if (result.IsPaused)
+                {
+                    return result;
+                }
+                if (result.IsBreak || result.IsContinue)
+                {
+                    throw new NSGetterRuntimeError(
+                        $"NeoScript body ended with an unconsumed {result.Transfer.ToString().ToLowerInvariant()} transfer; its compiled IR is stale or corrupt.");
+                }
+                return ValidateTerminalAgainstBody(body, result);
+            }
+
+            internal void CompleteOwner(object? returnValue)
+            {
+                if (disposed)
+                {
+                    throw new ObjectDisposedException(
+                        nameof(PreparedCallback));
+                }
+                ownerTerminal = NeoScriptExecutionResult.Completed(
+                    returned: true, returnValue);
+            }
+
+            public void Dispose()
+            {
+                if (disposed) return;
+                disposed = true;
+                ctx.allocationTracker.ExitExecution(
+                    client,
+                    ctx,
+                    ownerTerminal);
             }
         }
 
