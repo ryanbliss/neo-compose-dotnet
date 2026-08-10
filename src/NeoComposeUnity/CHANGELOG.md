@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.20.3] - 2026-08-10
+
+### Changed
+
+- Pre-size NeoScript `Where` and `Select` result builders from the source
+  collection count, capped by the remaining P54 produced-entry budget, to
+  reduce backing-store growth and copying without weakening resource limits
+  (P59).
+
 ## [0.20.2] - 2026-08-09
 
 ### Changed
