@@ -101,6 +101,13 @@ namespace NeoCompose.Runtime.NeoScript
                 limits.ProducedCollectionEntries,
                 "produced collection entry");
 
+        internal int SafeResultCapacity(int sourceCount)
+        {
+            int remaining = limits.ProducedCollectionEntries
+                - producedCollectionEntries;
+            return Math.Min(sourceCount, Math.Max(0, remaining));
+        }
+
         internal void ConsumeConstructedSessionRow(int amount = 1) =>
             Consume(
                 ref constructedSessionRows,
@@ -2928,9 +2935,11 @@ namespace NeoCompose.Runtime.NeoScript
                     var c = EvalPointer(wf.info.collectionPointer, scope, ctx);
                     var inner = wf.info.function;
                     bool isList = c is object?[];
+                    int capacity = ctx.allocationTracker.SafeResultCapacity(
+                        CollectionEntryCount(c));
                     object outAcc = isList
-                        ? (object)new List<object?>()
-                        : new Dictionary<string, object?>();
+                        ? (object)new List<object?>(capacity)
+                        : new Dictionary<string, object?>(capacity);
                     using var callback = new PreparedCollectionCallback(
                         inner, scope, ctx, isList);
                     IterateCollection(c, ctx, (entry, key, valueId) =>
@@ -3012,7 +3021,9 @@ namespace NeoCompose.Runtime.NeoScript
                     var c = EvalPointer(sf.info.collectionPointer, scope, ctx);
                     var inner = sf.info.function;
                     bool isList = c is object?[];
-                    var acc = new List<object?>();
+                    int capacity = ctx.allocationTracker.SafeResultCapacity(
+                        CollectionEntryCount(c));
+                    var acc = new List<object?>(capacity);
                     using var callback = new PreparedCollectionCallback(
                         inner, scope, ctx, isList);
                     IterateCollection(c, ctx, (entry, key, _) =>
@@ -3222,6 +3233,14 @@ namespace NeoCompose.Runtime.NeoScript
             if (c is string s) return s.Length;
             throw new NSGetterRuntimeError(
                 $"Cannot Count() {ReceiverTypeName(c)}; expected list, dictionary, or string");
+        }
+
+        private static int CollectionEntryCount(object? collection)
+        {
+            if (collection is object?[] list) return list.Length;
+            if (collection is IDictionary<string, object?> dictionary)
+                return dictionary.Count;
+            return 0;
         }
 
         private static object EvalVectorConstructor(
