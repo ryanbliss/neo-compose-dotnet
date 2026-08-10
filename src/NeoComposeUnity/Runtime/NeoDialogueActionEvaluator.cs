@@ -3717,6 +3717,9 @@ namespace NeoCompose.Runtime
                             existingId);
                         if (importedId == existingId) return;
                         parent.value[key] = importedId;
+                        ctx.allocationTracker.RegisterConstructedParent(
+                            importedId,
+                            writableParentRowId);
                         parent.updatedAt = now;
                         StoreWritableRow(client, ownership, parent, ctx);
                         client.RemoveWritableValueAndDescendantsIfUnlinked(
@@ -3740,6 +3743,9 @@ namespace NeoCompose.Runtime
                             ownership,
                             referenceId!,
                             ctx);
+                        ctx.allocationTracker.RegisterConstructedParent(
+                            parent.value[key],
+                            writableParentRowId);
                         parent.updatedAt = now;
                         StoreWritableRow(client, ownership, parent, ctx);
                         return;
@@ -4184,6 +4190,9 @@ namespace NeoCompose.Runtime
                         childId);
                     if (importedId == childId) return;
                     parent.value[index] = importedId;
+                    ctx.allocationTracker.RegisterConstructedParent(
+                        importedId,
+                        parentRowId);
                     parent.updatedAt = DateTime.UtcNow.ToString("o");
                     StoreWritableRow(client, ownership, parent, ctx);
                     client.RemoveWritableValueAndDescendantsIfUnlinked(
@@ -4259,6 +4268,9 @@ namespace NeoCompose.Runtime
                                 ownership,
                                 referenceId!,
                                 ctx);
+                            ctx.allocationTracker.RegisterConstructedParent(
+                                referencedNext[row.value.Length],
+                                rowId);
                             row.value = referencedNext;
                             row.updatedAt = now;
                             StoreWritableRow(client, ownership, row, ctx);
@@ -4518,6 +4530,9 @@ namespace NeoCompose.Runtime
                             existingId);
                         if (importedId == existingId) return;
                         row.value[key] = importedId;
+                        ctx.allocationTracker.RegisterConstructedParent(
+                            importedId,
+                            rowId);
                         row.updatedAt = now;
                         StoreWritableRow(client, ownership, row, ctx);
                         client.RemoveWritableValueAndDescendantsIfUnlinked(
@@ -4548,6 +4563,9 @@ namespace NeoCompose.Runtime
                             ownership,
                             referenceId!,
                             ctx);
+                        ctx.allocationTracker.RegisterConstructedParent(
+                            row.value[key],
+                            rowId);
                         row.updatedAt = now;
                         StoreWritableRow(client, ownership, row, ctx);
                         return;

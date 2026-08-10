@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -28,6 +29,9 @@ namespace NeoCompose.Runtime.NeoScript
         private readonly HashSet<string> allocatedRootIds = new();
         private readonly HashSet<string> escapedRootIds = new();
         private readonly HashSet<string> completedAllocationRootIds = new();
+        private readonly Dictionary<string, string> constructedParentByChildId =
+            new();
+        private readonly HashSet<string> parentlessAllocatedRootIds = new();
         private readonly HashSet<string> budgetedConstructedRowIds = new();
         private readonly Dictionary<string, int> budgetedProducedEntriesByRowId = new();
         private int activeExecutions;
@@ -37,6 +41,7 @@ namespace NeoCompose.Runtime.NeoScript
         private int producedCollectionEntries;
         private int constructedSessionRows;
         private int producedStringCharacters;
+        private string? constructionTimestamp;
 
         internal int ActiveExecutionCount => activeExecutions;
 
@@ -50,6 +55,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (activeExecutions == 0)
             {
+                constructionTimestamp = null;
                 completedAllocationRootIds.Clear();
                 loopIterations = 0;
                 workUnits = 0;
@@ -59,9 +65,14 @@ namespace NeoCompose.Runtime.NeoScript
                 producedStringCharacters = 0;
                 budgetedConstructedRowIds.Clear();
                 budgetedProducedEntriesByRowId.Clear();
+                constructedParentByChildId.Clear();
+                parentlessAllocatedRootIds.Clear();
             }
             activeExecutions++;
         }
+
+        internal string ConstructionTimestamp =>
+            constructionTimestamp ??= DateTime.UtcNow.ToString("o");
 
         /// <summary>
         /// Consumes one iteration from the P50 budget shared by the complete
@@ -166,13 +177,62 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal void RegisterSessionRoot(string valueId)
         {
-            if (!string.IsNullOrEmpty(valueId)) allocatedRootIds.Add(valueId);
+            if (string.IsNullOrEmpty(valueId)) return;
+            allocatedRootIds.Add(valueId);
+            if (!constructedParentByChildId.ContainsKey(valueId))
+            {
+                parentlessAllocatedRootIds.Add(valueId);
+            }
         }
 
         internal bool IsAllocatedSessionRoot(string valueId) =>
             !string.IsNullOrEmpty(valueId)
             && (allocatedRootIds.Contains(valueId)
                 || completedAllocationRootIds.Contains(valueId));
+
+        /// <summary>
+        /// Records the owned edges a constructor graph already validated. The
+        /// allocation tracker needs these only until the outermost NeoScript
+        /// frame exits; retaining them lets escape/cleanup walk the just-built
+        /// graph directly instead of rediscovering every parent by scanning the
+        /// complete and continually growing Session store.
+        /// </summary>
+        internal void RegisterConstructedParents(
+            IReadOnlyDictionary<string, string> parentByChildId)
+        {
+            foreach (var pair in parentByChildId)
+            {
+                RegisterConstructedParent(pair.Key, pair.Value);
+            }
+        }
+
+        internal void RegisterConstructedParent(
+            string childValueId,
+            string parentValueId)
+        {
+            constructedParentByChildId[childValueId] = parentValueId;
+            parentlessAllocatedRootIds.Remove(childValueId);
+        }
+
+        internal bool IsKnownParentlessAllocatedRoot(string valueId) =>
+            parentlessAllocatedRootIds.Contains(valueId);
+
+        /// <summary>
+        /// A fresh parentless constructor root was already validated and
+        /// partition-stamped together with every owned descendant before it
+        /// was published. Synchronous NeoScript mutation preserves those
+        /// storage invariants, so attaching it without moving its root to a
+        /// different partition/container can reuse that proof instead of
+        /// walking the complete graph again.
+        /// </summary>
+        internal bool IsKnownNormalizedParentlessGraph(
+            string valueId,
+            MemberValue row,
+            string? expectedMapKey,
+            string? expectedContainerId) =>
+            parentlessAllocatedRootIds.Contains(valueId)
+            && row.mapKey == expectedMapKey
+            && row.containerId == expectedContainerId;
 
         /// <summary>
         /// A value crossing a function-call boundary is no longer owned by
@@ -237,8 +297,8 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     escapedRootIds.Add(cursor);
                 }
-                if (!ctx.client.TryFindOwnedParent(
-                        NeoValueOwnership.Session,
+                if (!TryFindConstructedOrStoredParent(
+                        ctx.client,
                         cursor,
                         out string? parentValueId)
                     || string.IsNullOrEmpty(parentValueId)
@@ -273,23 +333,19 @@ namespace NeoCompose.Runtime.NeoScript
 
             foreach (string valueId in allocatedRootIds.ToArray())
             {
+                // Strict construction ownership is a tree. A constructor root
+                // with any live owned parent is therefore reclaimed or kept as
+                // part of that parent's top-level graph; evaluating its whole
+                // ancestor chain again would duplicate the same decision for
+                // every nested constructor in an eager initializer.
+                if (TryFindConstructedOrStoredParent(
+                        client,
+                        valueId,
+                        out string? _))
+                {
+                    continue;
+                }
                 if (escapedRootIds.Contains(valueId)) continue;
-                // Unwrapping a Class row exposes schema values as stable-id
-                // strings, so MarkEscaped cannot discover a nested constructed
-                // Class by recursively walking the CLR return object. Preserve
-                // it when its authoritative owned-parent chain reaches an
-                // escaped constructed root instead. This is also the exact
-                // tree-ownership signal used by assignment/import code.
-                if (IsOwnedByEscapedRoot(client, valueId)) continue;
-                // A constructor may be attached beneath a parentless Session
-                // aggregate supplied by the host or retained from an earlier
-                // NeoScript invocation. Such a parent is intentionally not a
-                // global Session reachability root, but its authoritative
-                // owned edge still transfers the constructor out of this
-                // invocation's temporary allocation group. Follow only the
-                // client's schema-aware owned-parent relation here: Lookup and
-                // other reference payloads must never keep a constructor alive.
-                if (IsOwnedByExternalSessionRoot(client, valueId)) continue;
                 // External/global owners were ruled out above. Force-reclaim
                 // the invocation-minted owned graph instead of ordinary
                 // reachability GC: storage-key rows in unloaded partitions
@@ -308,56 +364,31 @@ namespace NeoCompose.Runtime.NeoScript
             }
             allocatedRootIds.Clear();
             escapedRootIds.Clear();
+            constructedParentByChildId.Clear();
+            parentlessAllocatedRootIds.Clear();
         }
 
-        private bool IsOwnedByEscapedRoot(
+        private bool TryFindConstructedOrStoredParent(
             NeoClient client,
-            string valueId)
+            string childValueId,
+            out string? parentValueId)
         {
-            var visited = new HashSet<string> { valueId };
-            string cursor = valueId;
-            while (client.TryFindOwnedParent(
-                NeoValueOwnership.Session,
-                cursor,
-                out string? parentValueId))
+            if (constructedParentByChildId.TryGetValue(
+                    childValueId,
+                    out string constructedParent)
+                && client.StillHasOwnedChildReference(
+                    NeoValueOwnership.Session,
+                    constructedParent,
+                    childValueId))
             {
-                if (escapedRootIds.Contains(parentValueId)) return true;
-                if (!visited.Add(parentValueId)) return false;
-                cursor = parentValueId;
+                parentValueId = constructedParent;
+                return true;
             }
-            return false;
-        }
-
-        private bool IsOwnedByExternalSessionRoot(
-            NeoClient client,
-            string valueId)
-        {
-            var visited = new HashSet<string> { valueId };
-            string cursor = valueId;
-            while (client.TryFindOwnedParent(
+            constructedParentByChildId.Remove(childValueId);
+            return client.TryFindOwnedParent(
                 NeoValueOwnership.Session,
-                cursor,
-                out string? parentValueId))
-            {
-                if (parentValueId.StartsWith("member:", StringComparison.Ordinal)
-                    || parentValueId.StartsWith("static:", StringComparison.Ordinal))
-                {
-                    return true;
-                }
-                if (!visited.Add(parentValueId))
-                {
-                    // Malformed owned cycles are not an escape route. The
-                    // ordinary defensive cleanup traversal will terminate on
-                    // its own visited set.
-                    return false;
-                }
-                cursor = parentValueId;
-            }
-
-            // A terminal current-invocation constructor root is still a
-            // temporary. Any other terminal row belongs to a graph that
-            // predates this allocation tracker and therefore owns the value.
-            return cursor != valueId && !allocatedRootIds.Contains(cursor);
+                childValueId,
+                out parentValueId);
         }
     }
 
@@ -400,6 +431,37 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         public class Context
         {
+            private sealed class ConstructionFrameStack : IReadOnlyList<string>
+            {
+                private readonly IReadOnlyList<string> parent;
+                private readonly string value;
+
+                internal ConstructionFrameStack(
+                    IReadOnlyList<string> parent,
+                    string value)
+                {
+                    this.parent = parent;
+                    this.value = value;
+                    Count = parent.Count + 1;
+                }
+
+                public int Count { get; }
+
+                public string this[int index] => index == Count - 1
+                    ? value
+                    : parent[index];
+
+                public IEnumerator<string> GetEnumerator()
+                {
+                    for (int index = 0; index < Count; index++)
+                    {
+                        yield return this[index];
+                    }
+                }
+
+                IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+            }
+
             public delegate object? FunctionCallHandler(
                 CallFunctionPointer pointer,
                 Dictionary<string, object?> scope,
@@ -527,6 +589,54 @@ namespace NeoCompose.Runtime.NeoScript
                 IReadOnlyList<string>? constructionStack = null,
                 List<string>? delegateCallStack = null,
                 NeoScriptExecutionBudgetLimits? executionBudgetLimits = null)
+                : this(
+                    client,
+                    thisValue,
+                    rootValue,
+                    contextValue,
+                    memoryStore,
+                    getterCallStack,
+                    rowUnwrapCache,
+                    rowReverseIndex,
+                    valueOwnership,
+                    functionCallHandler,
+                    setterCallStack,
+                    functionCallStack,
+                    schemaPlacementCache,
+                    callableDispatchCache,
+                    rowCacheKeysByRow,
+                    genericEnvironmentCache,
+                    constructionStack,
+                    delegateCallStack,
+                    executionBudgetLimits,
+                    sharedAllocationTracker: null)
+            {
+            }
+
+            private Context(
+                NeoClient client,
+                object? thisValue,
+                object? rootValue,
+                object? contextValue,
+                INeoDialogueMemoryStore? memoryStore,
+                IReadOnlyCollection<string>? getterCallStack,
+                Dictionary<string, object?>? rowUnwrapCache,
+                Dictionary<object, RowReference>? rowReverseIndex,
+                NeoValueOwnership valueOwnership,
+                FunctionCallHandler? functionCallHandler,
+                IReadOnlyCollection<string>? setterCallStack,
+                IReadOnlyList<string>? functionCallStack,
+                Dictionary<string, SchemaPlacement?>? schemaPlacementCache,
+                Dictionary<string, string?>? callableDispatchCache,
+                Dictionary<string, HashSet<string>>? rowCacheKeysByRow,
+                Dictionary<
+                    string,
+                    IReadOnlyDictionary<string, NeoGenericEnvEntry>>?
+                    genericEnvironmentCache,
+                IReadOnlyList<string>? constructionStack,
+                List<string>? delegateCallStack,
+                NeoScriptExecutionBudgetLimits? executionBudgetLimits,
+                NeoScriptAllocationTracker? sharedAllocationTracker)
             {
                 this.client = client;
                 this.thisValue = thisValue;
@@ -554,8 +664,8 @@ namespace NeoCompose.Runtime.NeoScript
                 this.constructionStack = constructionStack
                     ?? System.Array.Empty<string>();
                 this.delegateCallStack = delegateCallStack ?? new List<string>();
-                allocationTracker = new NeoScriptAllocationTracker(
-                    executionBudgetLimits);
+                allocationTracker = sharedAllocationTracker
+                    ?? new NeoScriptAllocationTracker(executionBudgetLimits);
             }
 
             private Context ShareAllocationTracker(Context child)
@@ -588,7 +698,9 @@ namespace NeoCompose.Runtime.NeoScript
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
                     constructionStack,
-                    delegateCallStack));
+                    delegateCallStack,
+                    executionBudgetLimits: null,
+                    sharedAllocationTracker: allocationTracker));
             }
 
             internal Context WithThis(object? newThisValue)
@@ -611,7 +723,9 @@ namespace NeoCompose.Runtime.NeoScript
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
                     constructionStack,
-                    delegateCallStack));
+                    delegateCallStack,
+                    executionBudgetLimits: null,
+                    sharedAllocationTracker: allocationTracker));
             }
 
             internal Context WithRoot(object? newRootValue)
@@ -634,7 +748,9 @@ namespace NeoCompose.Runtime.NeoScript
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
                     constructionStack,
-                    delegateCallStack));
+                    delegateCallStack,
+                    executionBudgetLimits: null,
+                    sharedAllocationTracker: allocationTracker));
             }
 
             internal Context WithContext(object? newContextValue)
@@ -657,7 +773,9 @@ namespace NeoCompose.Runtime.NeoScript
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
                     constructionStack,
-                    delegateCallStack));
+                    delegateCallStack,
+                    executionBudgetLimits: null,
+                    sharedAllocationTracker: allocationTracker));
             }
 
             internal Context WithMemoryStore(INeoDialogueMemoryStore? newMemoryStore)
@@ -680,7 +798,9 @@ namespace NeoCompose.Runtime.NeoScript
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
                     constructionStack,
-                    delegateCallStack));
+                    delegateCallStack,
+                    executionBudgetLimits: null,
+                    sharedAllocationTracker: allocationTracker));
             }
 
             internal Context WithFunctionCallHandler(
@@ -704,7 +824,9 @@ namespace NeoCompose.Runtime.NeoScript
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
                     constructionStack,
-                    delegateCallStack));
+                    delegateCallStack,
+                    executionBudgetLimits: null,
+                    sharedAllocationTracker: allocationTracker));
                 child.linkedFunctionCallHandler = handler;
                 return child;
             }
@@ -730,7 +852,9 @@ namespace NeoCompose.Runtime.NeoScript
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
                     constructionStack,
-                    delegateCallStack));
+                    delegateCallStack,
+                    executionBudgetLimits: null,
+                    sharedAllocationTracker: allocationTracker));
             }
 
             internal Context WithFunctionPushed(string memberId)
@@ -756,7 +880,9 @@ namespace NeoCompose.Runtime.NeoScript
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
                     constructionStack,
-                    delegateCallStack));
+                    delegateCallStack,
+                    executionBudgetLimits: null,
+                    sharedAllocationTracker: allocationTracker));
             }
 
             /// <summary>
@@ -768,9 +894,9 @@ namespace NeoCompose.Runtime.NeoScript
             /// </summary>
             internal Context WithConstructionPushed(string className)
             {
-                var next = new List<string>(constructionStack.Count + 1);
-                next.AddRange(constructionStack);
-                next.Add(className);
+                var next = new ConstructionFrameStack(
+                    constructionStack,
+                    className);
                 return ShareAllocationTracker(new Context(
                     client,
                     thisValue,
@@ -789,7 +915,9 @@ namespace NeoCompose.Runtime.NeoScript
                     rowCacheKeysByRow,
                     genericEnvironmentCache,
                     next,
-                    delegateCallStack));
+                    delegateCallStack,
+                    executionBudgetLimits: null,
+                    sharedAllocationTracker: allocationTracker));
             }
         }
 
@@ -2718,17 +2846,28 @@ namespace NeoCompose.Runtime.NeoScript
                                     constructionCtx);
                             }
                         });
-                if (node.value is null)
+                try
                 {
-                    throw new NSGetterRuntimeError(
-                        $"Declared constructor for '{info.schemaClassInfo.classId}' produced no root row.");
+                    if (node.value is null)
+                    {
+                        throw new NSGetterRuntimeError(
+                            $"Declared constructor for '{info.schemaClassInfo.classId}' produced no root row.");
+                    }
+                    ctx.allocationTracker.RegisterSessionRoot(node.value.id);
+                    return UnwrapCached(
+                        node.value,
+                        ctx,
+                        NeoValueOwnership.Session,
+                        node.member);
                 }
-                ctx.allocationTracker.RegisterSessionRoot(node.value.id);
-                return UnwrapCached(
-                    node.value,
-                    ctx,
-                    NeoValueOwnership.Session,
-                    node.member);
+                finally
+                {
+                    // NeoScript returns the stable row-backed CLR value, not
+                    // the generated wrapper. Keeping this temporary wrapper
+                    // alive would retain it and every child as writable-value
+                    // subscribers for the rest of the evaluation.
+                    node.Dispose();
+                }
             }
             catch (Exception error)
                 when (error is InvalidOperationException
@@ -2762,19 +2901,28 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 case ClassConstructorFunction constructor:
                 {
-                    var fields = new List<NeoGeneratedTypesSupport.RuntimeConstructorField>(
-                        constructor.info.fields.Length);
-                    foreach (FunctionClassConstructorField field in constructor.info.fields)
+                    NeoGeneratedTypesSupport.RuntimeConstructorField[] fields =
+                        constructor.info.fields.Length == 0
+                            ? Array.Empty<NeoGeneratedTypesSupport
+                                .RuntimeConstructorField>()
+                            : new NeoGeneratedTypesSupport
+                                .RuntimeConstructorField[constructor.info.fields.Length];
+                    for (int index = 0; index < constructor.info.fields.Length; index++)
                     {
-                        fields.Add(new NeoGeneratedTypesSupport.RuntimeConstructorField
+                        FunctionClassConstructorField field =
+                            constructor.info.fields[index];
+                        fields[index] =
+                            new NeoGeneratedTypesSupport.RuntimeConstructorField
                         {
                             schemaKey = field.schemaKey,
                             memberId = field.memberId,
-                        });
+                        };
                     }
+                    NeoGeneratedTypesSupport.RuntimeConstructorMetadata metadata;
                     try
                     {
-                        NeoGeneratedTypesSupport.ValidateRuntimeClassConstructorMetadata(
+                        metadata = NeoGeneratedTypesSupport
+                            .ValidateRuntimeClassConstructorMetadata(
                             ctx.client,
                             constructor.info.schemaClassInfo,
                             fields);
@@ -2799,7 +2947,7 @@ namespace NeoCompose.Runtime.NeoScript
                             ConstructedClassLabel(
                                 ctx,
                                 constructor.info.schemaClassInfo.classId));
-                    for (int i = 0; i < fields.Count; i++)
+                    for (int i = 0; i < fields.Length; i++)
                     {
                         // Deliberately eval-first, unlike the declared arm:
                         // this IR has no body, so there is nothing for a field
@@ -2812,24 +2960,21 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                     try
                     {
-                        NeoMemberClassWritable node =
+                        NeoGeneratedTypesSupport.RuntimeConstructedClassValue node =
                             NeoGeneratedTypesSupport.CreateRuntimeClassValue(
                                 ctx.client,
                                 constructor.info.schemaClassInfo,
                                 fields,
+                                metadata,
                                 value => ConstructorReferenceOf(value, constructionCtx),
                                 constructionCtx);
-                        if (node.value is null)
-                        {
-                            throw new NSGetterRuntimeError(
-                                $"Class constructor for '{constructor.info.schemaClassInfo.classId}' produced no root row.");
-                        }
                         ctx.allocationTracker.RegisterSessionRoot(node.value.id);
-                        return UnwrapCached(
+                        object? unwrapped = UnwrapCached(
                             node.value,
                             ctx,
                             NeoValueOwnership.Session,
                             node.member);
+                        return unwrapped;
                     }
                     catch (Exception error)
                         when (error is InvalidOperationException

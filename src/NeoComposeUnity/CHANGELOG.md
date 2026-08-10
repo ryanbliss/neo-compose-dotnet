@@ -2,11 +2,17 @@
 
 ## [Unreleased]
 
+## [0.20.4] - 2026-08-10
+
 ### Changed
 
 - Prepare NeoScript collection callback validation, return contracts, and
   parameter binding plans once per operator. Callback invocation now retains
   its parameter slots while still clearing body-local state (P58).
+- Make animation-sized NeoScript Class construction incremental by reusing
+  validated ownership edges, cached runtime Class plans, atomic Session graph
+  publication, and lightweight row-backed evaluation results. The 259-Class,
+  1,166-row PlayMode fixture now measures 8.067ms median, down from 1,325.913ms.
 
 ## [0.20.3] - 2026-08-10
 

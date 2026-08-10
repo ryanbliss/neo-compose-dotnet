@@ -849,7 +849,9 @@ namespace NeoCompose.Runtime
                 member,
                 id => data.members.TryGetValue(id, out Member? value) ? value : null,
                 current => current.storageKey);
-            return storageKey is null ? "inherit" : NormalizeStorageKey(storageKey);
+            return storageKey is null
+                ? "inherit"
+                : NormalizeStorageKey(storageKey);
         }
 
         /// <summary>
@@ -863,6 +865,11 @@ namespace NeoCompose.Runtime
             string? parentMapKey,
             string? parentClassId)
         {
+            if (member.extendsMemberId is null
+                && member.storageKey is null)
+            {
+                return NormalizeMapKey(parentMapKey);
+            }
             string declaration = DeclaredStorageKey(member);
             if (declaration == "inherit") return NormalizeMapKey(parentMapKey);
             if (declaration == "main") return null;
@@ -2491,6 +2498,43 @@ namespace NeoCompose.Runtime
             IndexStoreWrite(ownership, value);
         }
 
+        /// <summary>
+        /// Publishes one constructor graph after its complete row set has been
+        /// collision-, ownership-, shape-, and partition-validated. Every id
+        /// is fresh, so ordinary overlay stamping and replacement-index checks
+        /// are redundant. Rows become visible as one graph before callbacks
+        /// run; subscribers therefore cannot observe a partially published
+        /// constructor result.
+        /// </summary>
+        internal void PublishConstructedSessionRows(
+            IReadOnlyList<MemberValue> values)
+        {
+            foreach (MemberValue value in values)
+            {
+                sessionData.values.Add(value.id, value);
+                if (!string.IsNullOrEmpty(value.containerId))
+                {
+                    AddMembership(
+                        sessionEntriesByContainer,
+                        sessionContainerByRow,
+                        value.id,
+                        value.containerId!);
+                }
+            }
+            foreach (MemberValue value in values)
+            {
+                OnWritableValueChanged?.Invoke(
+                    NeoValueOwnership.Session,
+                    value.id);
+                if (!string.IsNullOrEmpty(value.containerId))
+                {
+                    RaiseContainerChanged(
+                        NeoValueOwnership.Session,
+                        value.containerId!);
+                }
+            }
+        }
+
         private void TouchWritableStoreUpdatedAt(NeoValueOwnership ownership)
         {
             if (ownership == NeoValueOwnership.Save)
@@ -2999,6 +3043,35 @@ namespace NeoCompose.Runtime
 
             parentValueId = null;
             return false;
+        }
+
+        /// <summary>
+        /// Verifies one already schema-validated owned edge without performing
+        /// the global parent search. Constructor allocation cleanup uses this
+        /// to guard its short-lived parent links against subsequent mutation:
+        /// a stale link falls back to <see cref="TryFindOwnedParent"/>.
+        /// </summary>
+        internal bool StillHasOwnedChildReference(
+            NeoValueOwnership ownership,
+            string parentValueId,
+            string childValueId)
+        {
+            if (!TryGetValue(
+                    ownership,
+                    parentValueId,
+                    out MemberValue? parent))
+            {
+                return false;
+            }
+            if (TryGetValue(
+                    ownership,
+                    childValueId,
+                    out MemberValue? child)
+                && child.containerId == parentValueId)
+            {
+                return true;
+            }
+            return DirectlyReferencesValueId(parent!, childValueId);
         }
 
         private static bool DirectlyReferencesValueId(

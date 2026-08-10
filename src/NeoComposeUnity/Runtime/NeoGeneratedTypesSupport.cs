@@ -299,6 +299,83 @@ namespace NeoCompose.Runtime
         private static readonly Dictionary<Type, ConstructorKeyValuePairAccessors?>
             ConstructorKeyValuePairAccessorsCache = new();
 
+        private sealed class ConstructorSchemaCache
+        {
+            internal readonly object gate = new();
+            internal readonly Dictionary<string, IList<MergedSchemaEntry>>
+                mergedSchemas = new();
+            internal readonly Dictionary<
+                string,
+                IReadOnlyDictionary<string, NeoGenericEnvEntry>>
+                genericEnvironments = new();
+            internal readonly Dictionary<
+                ConstructorMetadataCacheKey,
+                RuntimeConstructorMetadata> emptyFieldMetadata = new();
+            internal readonly Dictionary<string, RuntimeClassPlan>
+                classPlans = new();
+        }
+
+        internal sealed class RuntimeClassPlan
+        {
+            internal IList<MergedSchemaEntry> schema = null!;
+            internal IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
+                null!;
+            internal Dictionary<string, MergedSchemaEntry> schemaByKey = null!;
+            internal Dictionary<string, Member> membersBySchemaKey = null!;
+            internal ClassMember factoryMember = null!;
+        }
+
+        private readonly struct ConstructorMetadataCacheKey :
+            IEquatable<ConstructorMetadataCacheKey>
+        {
+            internal ConstructorMetadataCacheKey(
+                ClassTypeInfo classTypeInfo,
+                bool requireSuppliedRequiredFields)
+            {
+                classId = classTypeInfo.classId;
+                type = classTypeInfo.type;
+                required = classTypeInfo.required;
+                this.requireSuppliedRequiredFields =
+                    requireSuppliedRequiredFields;
+            }
+
+            private readonly string classId;
+            private readonly MemberKind type;
+            private readonly bool required;
+            private readonly bool requireSuppliedRequiredFields;
+
+            public bool Equals(ConstructorMetadataCacheKey other) =>
+                classId == other.classId
+                && type == other.type
+                && required == other.required
+                && requireSuppliedRequiredFields
+                    == other.requireSuppliedRequiredFields;
+
+            public override bool Equals(object? obj) =>
+                obj is ConstructorMetadataCacheKey other && Equals(other);
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    int hash = classId?.GetHashCode() ?? 0;
+                    hash = (hash * 397) ^ (int)type;
+                    hash = (hash * 397) ^ required.GetHashCode();
+                    return (hash * 397)
+                        ^ requireSuppliedRequiredFields.GetHashCode();
+                }
+            }
+        }
+
+        // NeoClient already treats schema inheritance and generic binding
+        // resolution as stable after their first per-client lookup. Constructor-
+        // heavy animation data commonly creates the same handful of runtime
+        // classes hundreds of times, so extend that cache boundary to the
+        // constructor-specific merged plan. Weak keys retain no disposed client.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
+            NeoClient,
+            ConstructorSchemaCache> ConstructorSchemaCaches = new();
+
         internal sealed class RuntimeConstructorField
         {
             internal string schemaKey = null!;
@@ -306,10 +383,25 @@ namespace NeoCompose.Runtime
             internal object? value;
         }
 
-        private sealed class RuntimeConstructorMetadata
+        internal sealed class RuntimeConstructorMetadata
         {
             internal Dictionary<string, Member> membersBySchemaKey = null!;
             internal IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv = null!;
+            internal RuntimeClassPlan classPlan = null!;
+        }
+
+        internal readonly struct RuntimeConstructedClassValue
+        {
+            internal RuntimeConstructedClassValue(
+                ObjectMemberValue value,
+                ClassMember member)
+            {
+                this.value = value;
+                this.member = member;
+            }
+
+            internal ObjectMemberValue value { get; }
+            internal ClassMember member { get; }
         }
 
         /// <summary>
@@ -460,7 +552,9 @@ namespace NeoCompose.Runtime
                         : Array.Empty<object?>();
                 return NeoScript.NSGetterEvaluator.Evaluate(
                     init.compiled,
-                    initializerContext.WithThis(null),
+                    initializerContext.thisValue is null
+                        ? initializerContext
+                        : initializerContext.WithThis(null),
                     arguments);
             }
         }
@@ -1757,8 +1851,39 @@ namespace NeoCompose.Runtime
             NeoConstructionScope scope,
             bool requireCompleteRoot = true)
         {
-            ValidateConstructibleNeoSchemaClass(client, classId);
-            var nowIso = DateTime.UtcNow.ToString("o");
+            RuntimeConstructedClassValue constructed =
+                CreateWritableClassValueDataCore(
+                    client,
+                    classId,
+                    value,
+                    valueRows,
+                    scope,
+                    requireCompleteRoot);
+            return new NeoMemberClassWritable(
+                client,
+                constructed.member,
+                constructed.value.id,
+                NeoValueOwnership.Session);
+        }
+
+        private static RuntimeConstructedClassValue
+            CreateWritableClassValueDataCore(
+            NeoClient client,
+            string classId,
+            Dictionary<string, string> value,
+            IReadOnlyList<MemberValue> valueRows,
+            NeoConstructionScope scope,
+            bool requireCompleteRoot = true,
+            bool trustedRuntimeRows = false,
+            RuntimeClassPlan? trustedRootPlan = null)
+        {
+            if (!trustedRuntimeRows)
+            {
+                ValidateConstructibleNeoSchemaClass(client, classId);
+            }
+            string nowIso = scope.ExistingEvaluationContext is { } timestampContext
+                ? timestampContext.allocationTracker.ConstructionTimestamp
+                : DateTime.UtcNow.ToString("o");
             var rows = new List<MemberValue>(valueRows);
             var parentRow = CreateWritableClassValueRow(
                 client,
@@ -1771,41 +1896,39 @@ namespace NeoCompose.Runtime
                 // its own traversal at `root.classId` and extends it the same
                 // way, so every ownership key recorded below lands on the key
                 // the preflight later looks up.
-                classId);
+                classId,
+                classPlan: trustedRootPlan);
             rows.Add(parentRow);
 
             PrepareConstructedGraph(
                 client,
                 parentRow,
                 rows,
-                scope.referenceOwnershipByPath,
-                requireCompleteRoot);
-
+                scope,
+                requireCompleteRoot,
+                trustedRuntimeRows,
+                trustedRootPlan);
             if (scope.ExistingEvaluationContext is { } evaluationContext)
             {
                 evaluationContext.allocationTracker
                     .ConsumeCreatedSessionRows(rows);
             }
 
-            foreach (var row in rows)
-            {
-                client.SetWritableValue(NeoValueOwnership.Session, row);
-            }
+            client.PublishConstructedSessionRows(rows);
 
-            var factoryMember = new ClassMember
-            {
-                id = $"__neo_factory_class_{classId}",
-                name = "Factory",
-                kind = MemberKind.Class,
-                classId = classId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-            };
-            return new NeoMemberClassWritable(
-                client,
-                factoryMember,
-                parentRow.id,
-                NeoValueOwnership.Session);
+            ClassMember factoryMember = trustedRuntimeRows
+                ? (trustedRootPlan ?? ResolveRuntimeClassPlan(client, classId))
+                    .factoryMember
+                : new ClassMember
+                {
+                    id = $"__neo_factory_class_{classId}",
+                    name = "Factory",
+                    kind = MemberKind.Class,
+                    classId = classId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                };
+            return new RuntimeConstructedClassValue(parentRow, factoryMember);
         }
 
         /// <summary>
@@ -1946,6 +2069,7 @@ namespace NeoCompose.Runtime
             internal string path = null!;
             internal string? expectedMapKey;
             internal string? expectedContainerId;
+            internal string parentValueId = null!;
             internal Action<string> replaceValueId = null!;
         }
 
@@ -1986,10 +2110,13 @@ namespace NeoCompose.Runtime
             NeoClient client,
             ObjectMemberValue root,
             List<MemberValue> rows,
-            IReadOnlyDictionary<string, NeoValueOwnership>?
-                referenceOwnershipByPath,
-            bool requireCompleteRoot = true)
+            NeoConstructionScope scope,
+            bool requireCompleteRoot = true,
+            bool trustedMaterialization = false,
+            RuntimeClassPlan? trustedRootPlan = null)
         {
+            IReadOnlyDictionary<string, NeoValueOwnership>
+                referenceOwnershipByPath = scope.referenceOwnershipByPath;
             if (!string.IsNullOrEmpty(root.mapKey))
             {
                 throw new InvalidOperationException(
@@ -2009,7 +2136,8 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Constructed value graph contains duplicate row id '{row.id}'.");
                 }
-                if (client.TryGetValue(row.id, out MemberValue? _))
+                if (!trustedMaterialization
+                    && client.TryGetValue(row.id, out MemberValue? _))
                 {
                     throw new InvalidOperationException(
                         $"Constructed value graph row id '{row.id}' collides with an existing value.");
@@ -2018,6 +2146,7 @@ namespace NeoCompose.Runtime
 
             var reachableStagedIds = new HashSet<string> { root.id };
             var ownedByPath = new Dictionary<string, string>();
+            var parentByChildId = new Dictionary<string, string>();
             var pending = new List<PendingConstructorReference>();
             ValidateConstructedClassRow(
                 client,
@@ -2028,18 +2157,24 @@ namespace NeoCompose.Runtime
                 stagedById,
                 reachableStagedIds,
                 ownedByPath,
+                parentByChildId,
                 pending,
                 path: root.classId!,
                 new HashSet<string>(),
                 referenceOwnershipByPath,
-                requireCompleteRoot);
+                requireCompleteRoot,
+                trustedMaterialization,
+                trustedRootPlan);
 
-            foreach (string stagedId in stagedById.Keys)
+            if (!trustedMaterialization)
             {
-                if (!reachableStagedIds.Contains(stagedId))
+                foreach (string stagedId in stagedById.Keys)
                 {
-                    throw new InvalidOperationException(
-                        $"Constructed value graph contains orphan staged row '{stagedId}'.");
+                    if (!reachableStagedIds.Contains(stagedId))
+                    {
+                        throw new InvalidOperationException(
+                            $"Constructed value graph contains orphan staged row '{stagedId}'.");
+                    }
                 }
             }
 
@@ -2073,6 +2208,10 @@ namespace NeoCompose.Runtime
                 }
                 reference.sourceOwnership = ownership;
                 if (ownership == NeoValueOwnership.Session
+                    && !(scope.ExistingEvaluationContext is { } evaluationContext
+                        && evaluationContext.allocationTracker
+                            .IsKnownParentlessAllocatedRoot(
+                                reference.sourceValueId))
                     && client.TryFindOwnedParent(
                         ownership,
                         reference.sourceValueId,
@@ -2093,8 +2232,16 @@ namespace NeoCompose.Runtime
                         && client.HasWritableValue(
                             NeoValueOwnership.Session,
                             reference.sourceValueId);
-                    string importedValueId = reference.sourceOwnership
-                        == NeoValueOwnership.Session
+                    bool isKnownParentlessConstructorRoot =
+                        reference.sourceOwnership == NeoValueOwnership.Session
+                        && existedInSession
+                        && scope.ExistingEvaluationContext is { } importContext
+                        && importContext.allocationTracker
+                            .IsKnownParentlessAllocatedRoot(
+                                reference.sourceValueId);
+                    string importedValueId = isKnownParentlessConstructorRoot
+                        ? reference.sourceValueId
+                        : reference.sourceOwnership == NeoValueOwnership.Session
                             ? client.ImportValueReference(
                                 NeoValueOwnership.Session,
                                 reference.sourceValueId)
@@ -2103,6 +2250,8 @@ namespace NeoCompose.Runtime
                                 reference.sourceOwnership,
                                 reference.sourceValueId,
                                 reference.member);
+                    parentByChildId.Remove(reference.sourceValueId);
+                    parentByChildId[importedValueId] = reference.parentValueId;
                     reference.replaceValueId(importedValueId);
                     if ((reference.sourceOwnership != NeoValueOwnership.Session
                             || !existedInSession)
@@ -2112,13 +2261,34 @@ namespace NeoCompose.Runtime
                     {
                         newlyImportedRoots.Add(importedValueId);
                     }
-                    StampImportedConstructorGraph(
-                        client,
-                        importedValueId,
-                        reference.member,
-                        reference.expectedMapKey,
-                        new HashSet<string>(),
-                        expectedContainerId: reference.expectedContainerId);
+                    bool retainsValidatedConstructionStamp =
+                        isKnownParentlessConstructorRoot
+                        && scope.ExistingEvaluationContext is { } stampContext
+                        && client.TryGetValue(
+                            NeoValueOwnership.Session,
+                            importedValueId,
+                            out MemberValue? importedRow)
+                        && stampContext.allocationTracker
+                            .IsKnownNormalizedParentlessGraph(
+                                reference.sourceValueId,
+                                importedRow!,
+                                reference.expectedMapKey,
+                                reference.expectedContainerId);
+                    if (!retainsValidatedConstructionStamp)
+                    {
+                        StampImportedConstructorGraph(
+                            client,
+                            importedValueId,
+                            reference.member,
+                            reference.expectedMapKey,
+                            new HashSet<string>(),
+                            expectedContainerId: reference.expectedContainerId);
+                    }
+                }
+                if (scope.ExistingEvaluationContext is { } evaluationContext)
+                {
+                    evaluationContext.allocationTracker
+                        .RegisterConstructedParents(parentByChildId);
                 }
             }
             catch
@@ -2140,12 +2310,15 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, MemberValue> stagedById,
             HashSet<string> reachableStagedIds,
             Dictionary<string, string> ownedByPath,
+            Dictionary<string, string> parentByChildId,
             List<PendingConstructorReference> pending,
             string path,
             HashSet<string> traversal,
             IReadOnlyDictionary<string, NeoValueOwnership>?
                 referenceOwnershipByPath,
-            bool requireRequiredMembers = true)
+            bool requireRequiredMembers = true,
+            bool trustedMaterialization = false,
+            RuntimeClassPlan? knownClassPlan = null)
         {
             if (!traversal.Add(row.id))
             {
@@ -2154,57 +2327,44 @@ namespace NeoCompose.Runtime
             }
             try
             {
-                if (!IsAssignableNeoSchemaClass(client, classId, classId))
+                if (!trustedMaterialization
+                    && !IsAssignableNeoSchemaClass(client, classId, classId))
                 {
                     throw new InvalidOperationException(
                     $"Constructed Class row '{row.id}' has unknown runtime class '{classId}'.");
                 }
-                if (row.value is null)
+                if (!trustedMaterialization && row.value is null)
                 {
                     throw new InvalidOperationException(
                         $"Constructed Class root '{path}' cannot have a null record payload.");
                 }
-                IList<MergedSchemaEntry> schema = ResolveMergedSchema(
-                    client,
-                    classId);
-                var schemaByKey = new Dictionary<string, MergedSchemaEntry>();
-                foreach (MergedSchemaEntry entry in schema)
+                RuntimeClassPlan classPlan = knownClassPlan
+                    ?? ResolveRuntimeClassPlan(client, classId);
+                IList<MergedSchemaEntry> schema = classPlan.schema;
+                Dictionary<string, MergedSchemaEntry> schemaByKey =
+                    classPlan.schemaByKey;
+                if (!trustedMaterialization)
                 {
-                    if (!schemaByKey.TryAdd(entry.schemaKey, entry))
+                    foreach (string key in row.value.Keys)
                     {
-                        throw new InvalidOperationException(
-                            $"Merged schema for '{classId}' contains duplicate key '{entry.schemaKey}'.");
-                    }
-                }
-                foreach (string key in row.value.Keys)
-                {
-                    if (!schemaByKey.ContainsKey(key))
-                    {
-                        throw new InvalidOperationException(
-                            $"Constructed Class row '{path}' contains unknown schema key '{key}'.");
+                        if (!schemaByKey.ContainsKey(key))
+                        {
+                            throw new InvalidOperationException(
+                                $"Constructed Class row '{path}' contains unknown schema key '{key}'.");
+                        }
                     }
                 }
 
-                var env = NeoGenericResolution.ResolveInstanceEnv(
-                    client,
-                    classId,
-                    classArguments: null);
+                IReadOnlyDictionary<string, NeoGenericEnvEntry> env =
+                    classPlan.genericEnv;
                 foreach (MergedSchemaEntry entry in schema)
                 {
-                    if (!client.TryGetMember(
-                            entry.memberId,
-                            out Member? rawMember))
-                    {
-                        throw new InvalidOperationException(
-                            $"Constructed Class row '{path}' schema key '{entry.schemaKey}' references missing member '{entry.memberId}'.");
-                    }
-                    Member member = NeoGenericResolution.SubstituteMember(
-                        client,
-                        rawMember,
-                        env);
+                    Member member =
+                        classPlan.membersBySchemaKey[entry.schemaKey];
                     if (!IsStoredConstructorMember(member))
                     {
-                        if (row.value.ContainsKey(entry.schemaKey))
+                        if (!trustedMaterialization
+                            && row.value.ContainsKey(entry.schemaKey))
                         {
                             if (member.isReadOnly == true)
                             {
@@ -2226,34 +2386,47 @@ namespace NeoCompose.Runtime
                         // AssertDeclaredConstructorRootIsComplete. Nested rows
                         // always keep the check; nothing writes into them
                         // between preparation and publication.
-                        if (member.required && requireRequiredMembers)
+                        if (!trustedMaterialization
+                            && member.required
+                            && requireRequiredMembers)
                         {
                             throw new InvalidOperationException(
                                 $"Constructed Class row '{path}' is missing required member '{entry.schemaKey}'/'{entry.memberId}'.");
                         }
                         continue;
                     }
-                    if (string.IsNullOrEmpty(childId))
+                    if (!trustedMaterialization
+                        && string.IsNullOrEmpty(childId))
                     {
                         throw new InvalidOperationException(
                             $"Constructed Class row '{path}.{entry.schemaKey}' references an empty value id.");
                     }
                     string key = entry.schemaKey;
+                    bool childIsTrustedStaged = trustedMaterialization
+                        && stagedById.ContainsKey(childId);
                     ValidateConstructedValueLink(
                         client,
                         member,
                         childId,
-                        replacement => row.value[key] = replacement,
+                        childIsTrustedStaged
+                            ? null
+                            : replacement => row.value[key] = replacement,
                         row.mapKey,
                         classId,
                         stagedById,
                         reachableStagedIds,
                         ownedByPath,
+                        parentByChildId,
                         pending,
-                        $"{path}.{entry.schemaKey}",
+                        row.id,
+                        childIsTrustedStaged
+                            && referenceOwnershipByPath is { Count: 0 }
+                            ? path
+                            : $"{path}.{entry.schemaKey}",
                         traversal,
                         env,
-                        referenceOwnershipByPath);
+                        referenceOwnershipByPath,
+                        trustedMaterialization);
                 }
             }
             finally
@@ -2266,32 +2439,43 @@ namespace NeoCompose.Runtime
             NeoClient client,
             Member member,
             string valueId,
-            Action<string> replaceValueId,
+            Action<string>? replaceValueId,
             string? parentMapKey,
             string? parentClassId,
             IReadOnlyDictionary<string, MemberValue> stagedById,
             HashSet<string> reachableStagedIds,
             Dictionary<string, string> ownedByPath,
+            Dictionary<string, string> parentByChildId,
             List<PendingConstructorReference> pending,
+            string parentValueId,
             string path,
             HashSet<string> traversal,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
             IReadOnlyDictionary<string, NeoValueOwnership>?
                 referenceOwnershipByPath,
+            bool trustedMaterialization = false,
             string? expectedContainerId = null)
         {
-            if (ownedByPath.TryGetValue(valueId, out string? priorPath))
+            bool isStaged = stagedById.TryGetValue(
+                valueId,
+                out MemberValue? row);
+            if ((!trustedMaterialization || !isStaged)
+                && ownedByPath.TryGetValue(valueId, out string? priorPath))
             {
                 throw new InvalidOperationException(
                     $"Constructed value '{valueId}' would have two owned parents ('{priorPath}' and '{path}'). Call Clone() explicitly for a second owner.");
             }
-            ownedByPath[valueId] = path;
+            if (!trustedMaterialization || !isStaged)
+            {
+                ownedByPath[valueId] = path;
+            }
+            parentByChildId[valueId] = parentValueId;
             string? expectedMapKey = client.ResolveCreatedValueMapKey(
                 member,
                 parentMapKey,
                 parentClassId);
 
-            if (!stagedById.TryGetValue(valueId, out MemberValue? row))
+            if (!isStaged)
             {
                 if (member is not ClassMember classMember)
                 {
@@ -2335,13 +2519,20 @@ namespace NeoCompose.Runtime
                     path = path,
                     expectedMapKey = expectedMapKey,
                     expectedContainerId = expectedContainerId,
-                    replaceValueId = replaceValueId,
+                    parentValueId = parentValueId,
+                    replaceValueId = replaceValueId
+                        ?? throw new InvalidOperationException(
+                            $"Constructed external Class field '{path}' has no replacement target."),
                 });
                 return;
             }
 
-            reachableStagedIds.Add(valueId);
-            if (!MapKeyCanMoveTo(row.mapKey, expectedMapKey))
+            if (!trustedMaterialization)
+            {
+                reachableStagedIds.Add(valueId);
+            }
+            if (!trustedMaterialization
+                && !MapKeyCanMoveTo(row.mapKey, expectedMapKey))
             {
                 throw new InvalidOperationException(
                     $"Constructed field '{path}' carries partition '{row.mapKey ?? "main"}' but resolves to '{expectedMapKey ?? "main"}'.");
@@ -2349,7 +2540,8 @@ namespace NeoCompose.Runtime
             row.mapKey = expectedMapKey;
             if (expectedContainerId is not null)
             {
-                if (!string.IsNullOrEmpty(row.containerId)
+                if (!trustedMaterialization
+                    && !string.IsNullOrEmpty(row.containerId)
                     && row.containerId != expectedContainerId)
                 {
                     throw new InvalidOperationException(
@@ -2357,7 +2549,10 @@ namespace NeoCompose.Runtime
                 }
                 row.containerId = expectedContainerId;
             }
-            ValidateConstructedRowShape(client, member, row, path);
+            if (!trustedMaterialization)
+            {
+                ValidateConstructedRowShape(client, member, row, path);
+            }
 
             switch (member)
             {
@@ -2367,7 +2562,8 @@ namespace NeoCompose.Runtime
                 {
                     string actualClassId = classRow.classId
                         ?? classMember.classId;
-                    if (!IsAssignableNeoSchemaClass(
+                    if (!trustedMaterialization
+                        && !IsAssignableNeoSchemaClass(
                             client,
                             actualClassId,
                             classMember.classId))
@@ -2383,10 +2579,12 @@ namespace NeoCompose.Runtime
                         stagedById,
                         reachableStagedIds,
                         ownedByPath,
+                        parentByChildId,
                         pending,
                         path,
                         traversal,
-                        referenceOwnershipByPath);
+                        referenceOwnershipByPath,
+                        trustedMaterialization: trustedMaterialization);
                     break;
                 }
                 case ListMember listMember
@@ -2425,11 +2623,15 @@ namespace NeoCompose.Runtime
                     for (int index = 0; index < memberIds.Count; index++)
                     {
                         int capturedIndex = index;
+                        bool childIsTrustedStaged = trustedMaterialization
+                            && stagedById.ContainsKey(memberIds[index]);
                         ValidateConstructedValueLink(
                             client,
                             entryMember,
                             memberIds[index],
-                            isUnordered
+                            childIsTrustedStaged
+                                ? null
+                                : isUnordered
                                 ? _ => { }
                                 : replacement => listRow.value[capturedIndex] = replacement,
                             listRow.mapKey,
@@ -2437,11 +2639,17 @@ namespace NeoCompose.Runtime
                             stagedById,
                             reachableStagedIds,
                             ownedByPath,
+                            parentByChildId,
                             pending,
-                            $"{path}[{index}]",
+                            listRow.id,
+                            childIsTrustedStaged
+                                && referenceOwnershipByPath is { Count: 0 }
+                                ? path
+                                : $"{path}[{index}]",
                             traversal,
                             env,
                             referenceOwnershipByPath,
+                            trustedMaterialization,
                             expectedContainerId: isUnordered
                                 ? listRow.id
                                 : null);
@@ -2472,21 +2680,32 @@ namespace NeoCompose.Runtime
                     foreach (string key in new List<string>(dictionaryRow.value.Keys))
                     {
                         string capturedKey = key;
+                        bool childIsTrustedStaged = trustedMaterialization
+                            && stagedById.ContainsKey(dictionaryRow.value[key]);
                         ValidateConstructedValueLink(
                             client,
                             entryMember,
                             dictionaryRow.value[key],
-                            replacement => dictionaryRow.value[capturedKey] = replacement,
+                            childIsTrustedStaged
+                                ? null
+                                : replacement =>
+                                    dictionaryRow.value[capturedKey] = replacement,
                             dictionaryRow.mapKey,
                             dictionaryRow.classId,
                             stagedById,
                             reachableStagedIds,
                             ownedByPath,
+                            parentByChildId,
                             pending,
-                            $"{path}[{key}]",
+                            dictionaryRow.id,
+                            childIsTrustedStaged
+                                && referenceOwnershipByPath is { Count: 0 }
+                                ? path
+                                : $"{path}[{key}]",
                             traversal,
                             env,
-                            referenceOwnershipByPath);
+                            referenceOwnershipByPath,
+                            trustedMaterialization);
                     }
                     break;
                 }
@@ -2664,7 +2883,7 @@ namespace NeoCompose.Runtime
                     IList<MergedSchemaEntry> schema = ResolveMergedSchema(
                         client,
                         actualClassId);
-                    var env = NeoGenericResolution.ResolveInstanceEnv(
+                    var env = ResolveRuntimeInstanceEnv(
                         client,
                         actualClassId,
                         classArguments: null);
@@ -2759,7 +2978,7 @@ namespace NeoCompose.Runtime
         /// tracker — turning a cyclic graph into unbounded native recursion
         /// instead of a depth-cap diagnostic.</para>
         /// </summary>
-        internal static NeoMemberClassWritable CreateRuntimeClassValue(
+        internal static RuntimeConstructedClassValue CreateRuntimeClassValue(
             NeoClient client,
             ClassTypeInfo classTypeInfo,
             IReadOnlyList<RuntimeConstructorField> fields,
@@ -2769,12 +2988,37 @@ namespace NeoCompose.Runtime
             AssertMemberWiseConstructionIsAvailable(
                 client,
                 classTypeInfo.classId);
-            return CreateSuppliedClassValue(
+            return CreateSuppliedClassValueData(
                 client,
                 classTypeInfo,
                 fields,
                 valueReference,
-                new NeoConstructionScope(client, constructionCtx));
+                new NeoConstructionScope(client, constructionCtx),
+                trustedRuntimeRows: true);
+        }
+
+        /// <summary>
+        /// Materializes a constructor whose immutable schema/field metadata was
+        /// already validated before its value expressions ran. Keeping the plan
+        /// avoids resolving and validating the same merged schema a second time
+        /// for every eager nested constructor.
+        /// </summary>
+        internal static RuntimeConstructedClassValue CreateRuntimeClassValue(
+            NeoClient client,
+            ClassTypeInfo classTypeInfo,
+            IReadOnlyList<RuntimeConstructorField> fields,
+            RuntimeConstructorMetadata metadata,
+            Func<object?, NeoConstructorValueReference?> valueReference,
+            NeoScript.NSGetterEvaluator.Context constructionCtx)
+        {
+            return CreateSuppliedClassValueData(
+                client,
+                classTypeInfo,
+                fields,
+                valueReference,
+                new NeoConstructionScope(client, constructionCtx),
+                validatedMetadata: metadata,
+                trustedRuntimeRows: true);
         }
 
         /// <summary>
@@ -2834,10 +3078,40 @@ namespace NeoCompose.Runtime
             Func<object?, NeoConstructorValueReference?> valueReference,
             NeoConstructionScope? constructionScope = null,
             bool requireSuppliedRequiredFields = true,
-            bool requireCompleteRoot = true)
+            bool requireCompleteRoot = true,
+            RuntimeConstructorMetadata? validatedMetadata = null)
         {
-            RuntimeConstructorMetadata metadata =
-                ValidateRuntimeClassConstructorMetadataCore(
+            RuntimeConstructedClassValue constructed =
+                CreateSuppliedClassValueData(
+                    client,
+                    classTypeInfo,
+                    fields,
+                    valueReference,
+                    constructionScope,
+                    requireSuppliedRequiredFields,
+                    requireCompleteRoot,
+                    validatedMetadata);
+            return new NeoMemberClassWritable(
+                client,
+                constructed.member,
+                constructed.value.id,
+                NeoValueOwnership.Session);
+        }
+
+        private static RuntimeConstructedClassValue
+            CreateSuppliedClassValueData(
+            NeoClient client,
+            ClassTypeInfo classTypeInfo,
+            IReadOnlyList<RuntimeConstructorField> fields,
+            Func<object?, NeoConstructorValueReference?> valueReference,
+            NeoConstructionScope? constructionScope = null,
+            bool requireSuppliedRequiredFields = true,
+            bool requireCompleteRoot = true,
+            RuntimeConstructorMetadata? validatedMetadata = null,
+            bool trustedRuntimeRows = false)
+        {
+            RuntimeConstructorMetadata metadata = validatedMetadata
+                ?? ValidateRuntimeClassConstructorMetadataCore(
                     client,
                     classTypeInfo,
                     fields,
@@ -2847,7 +3121,7 @@ namespace NeoCompose.Runtime
                 ?? new NeoConstructionScope(client, null);
             var value = new Dictionary<string, string>();
             var rows = new List<MemberValue>();
-            string nowIso = DateTime.UtcNow.ToString("o");
+            string? nowIso = null;
             foreach (RuntimeConstructorField field in fields)
             {
                 Member member = metadata.membersBySchemaKey[field.schemaKey];
@@ -2864,7 +3138,9 @@ namespace NeoCompose.Runtime
                     member,
                     field.value,
                     rows,
-                    nowIso,
+                    nowIso ??= scope.ExistingEvaluationContext is { } fieldContext
+                        ? fieldContext.allocationTracker.ConstructionTimestamp
+                        : DateTime.UtcNow.ToString("o"),
                     valueReference,
                     metadata.genericEnv,
                     $"{classTypeInfo.classId}.{field.schemaKey}",
@@ -2874,13 +3150,15 @@ namespace NeoCompose.Runtime
                     value[field.schemaKey] = fieldValueId;
                 }
             }
-            return CreateWritableClassValueCore(
+            return CreateWritableClassValueDataCore(
                 client,
                 classTypeInfo.classId,
                 value,
                 rows,
                 scope,
-                requireCompleteRoot);
+                requireCompleteRoot,
+                trustedRuntimeRows,
+                trustedRuntimeRows ? metadata.classPlan : null);
         }
 
         // -------------------------------------------------------------------
@@ -4039,12 +4317,16 @@ namespace NeoCompose.Runtime
         /// compile-time call-shape ordering and preventing stale IR from
         /// running argument side effects.
         /// </summary>
-        internal static void ValidateRuntimeClassConstructorMetadata(
+        internal static RuntimeConstructorMetadata
+            ValidateRuntimeClassConstructorMetadata(
             NeoClient client,
             ClassTypeInfo classTypeInfo,
             IReadOnlyList<RuntimeConstructorField> fields)
         {
-            ValidateRuntimeClassConstructorMetadataCore(
+            AssertMemberWiseConstructionIsAvailable(
+                client,
+                classTypeInfo.classId);
+            return ValidateRuntimeClassConstructorMetadataCore(
                 client,
                 classTypeInfo,
                 fields);
@@ -4054,9 +4336,30 @@ namespace NeoCompose.Runtime
             ValidateRuntimeClassConstructorMetadataCore(
                 NeoClient client,
                 ClassTypeInfo classTypeInfo,
-                IReadOnlyList<RuntimeConstructorField> fields,
-                bool requireSuppliedRequiredFields = true)
+            IReadOnlyList<RuntimeConstructorField> fields,
+            bool requireSuppliedRequiredFields = true)
         {
+            ConstructorSchemaCache? constructorCache = null;
+            ConstructorMetadataCacheKey cacheKey = default;
+            bool cacheEmptyFieldMetadata = fields.Count == 0
+                && classTypeInfo.typeArguments is null;
+            if (cacheEmptyFieldMetadata)
+            {
+                constructorCache = ConstructorSchemaCaches.GetOrCreateValue(
+                    client);
+                cacheKey = new ConstructorMetadataCacheKey(
+                    classTypeInfo,
+                    requireSuppliedRequiredFields);
+                lock (constructorCache.gate)
+                {
+                    if (constructorCache.emptyFieldMetadata.TryGetValue(
+                            cacheKey,
+                            out RuntimeConstructorMetadata? cached))
+                    {
+                        return cached;
+                    }
+                }
+            }
             if (!client.TryGetClass(classTypeInfo.classId, out NeoSchemaClass? schemaClass))
             {
                 throw new InvalidOperationException(
@@ -4080,10 +4383,11 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Cannot construct immutable-only class '{schemaClass.name}'.");
             }
-            var genericEnv = NeoGenericResolution.ResolveInstanceEnv(
-                client,
-                classTypeInfo.classId,
-                classArguments: null);
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
+                ResolveRuntimeInstanceEnv(
+                    client,
+                    classTypeInfo.classId,
+                    classArguments: null);
             string? unboundParamId = NeoGenericResolution.FirstUnboundParamId(
                 genericEnv);
             if (unboundParamId is not null)
@@ -4095,19 +4399,15 @@ namespace NeoCompose.Runtime
                 client,
                 classTypeInfo,
                 genericEnv);
-            IList<MergedSchemaEntry> schema = ResolveMergedSchema(
+            RuntimeClassPlan classPlan = ResolveRuntimeClassPlan(
                 client,
-                classTypeInfo.classId);
-            var schemaByKey = new Dictionary<string, MergedSchemaEntry>();
-            var membersBySchemaKey = new Dictionary<string, Member>();
-            foreach (MergedSchemaEntry entry in schema)
-            {
-                if (!schemaByKey.TryAdd(entry.schemaKey, entry))
-                {
-                    throw new InvalidOperationException(
-                        $"Class constructor schema for '{classTypeInfo.classId}' contains duplicate merged key '{entry.schemaKey}'.");
-                }
-            }
+                classTypeInfo.classId,
+                genericEnv);
+            IList<MergedSchemaEntry> schema = classPlan.schema;
+            Dictionary<string, MergedSchemaEntry> schemaByKey =
+                classPlan.schemaByKey;
+            Dictionary<string, Member> membersBySchemaKey =
+                classPlan.membersBySchemaKey;
 
             var suppliedSchemaKeys = new HashSet<string>();
             foreach (RuntimeConstructorField field in fields)
@@ -4120,16 +4420,7 @@ namespace NeoCompose.Runtime
             }
             foreach (MergedSchemaEntry entry in schema)
             {
-                if (!client.TryGetMember(entry.memberId, out Member? member))
-                {
-                    throw new InvalidOperationException(
-                        $"Class constructor schema field '{entry.schemaKey}' references missing member '{entry.memberId}'.");
-                }
-                member = NeoGenericResolution.SubstituteMember(
-                    client,
-                    member,
-                    genericEnv);
-                membersBySchemaKey[entry.schemaKey] = member;
+                Member member = membersBySchemaKey[entry.schemaKey];
                 if (!IsStoredConstructorMember(member)) continue;
                 // A declared constructor never has to name every required
                 // field at the call site — its body may set them — so this
@@ -4163,11 +4454,20 @@ namespace NeoCompose.Runtime
                         $"Class constructor field '{field.schemaKey}' references non-stored member '{entry.memberId}'.");
                 }
             }
-            return new RuntimeConstructorMetadata
+            var metadata = new RuntimeConstructorMetadata
             {
                 membersBySchemaKey = membersBySchemaKey,
                 genericEnv = genericEnv,
+                classPlan = classPlan,
             };
+            if (constructorCache is not null)
+            {
+                lock (constructorCache.gate)
+                {
+                    constructorCache.emptyFieldMetadata[cacheKey] = metadata;
+                }
+            }
+            return metadata;
         }
 
         private static void ValidateRuntimeConstructorTypeArguments(
@@ -4897,7 +5197,8 @@ namespace NeoCompose.Runtime
             string nowIso,
             NeoConstructionScope scope,
             string path,
-            IReadOnlyDictionary<string, GenericBinding>? classArguments = null)
+            IReadOnlyDictionary<string, GenericBinding>? classArguments = null,
+            RuntimeClassPlan? classPlan = null)
         {
             if (!scope.classStack.Add(classId))
             {
@@ -4910,19 +5211,30 @@ namespace NeoCompose.Runtime
                     ? new Dictionary<string, string>()
                     : new Dictionary<string, string>(providedValue);
 
-                var mergedSchema = ResolveMergedSchema(client, classId, classArguments);
+                RuntimeClassPlan? resolvedClassPlan = classPlan
+                    ?? (classArguments is null
+                        ? ResolveRuntimeClassPlan(client, classId)
+                        : null);
+                IList<MergedSchemaEntry> mergedSchema = resolvedClassPlan?.schema
+                    ?? ResolveMergedSchema(client, classId, classArguments);
                 // Chain env overlaid with the owning slot's constructed
                 // arguments (specs/class-generics.md §4.1) — an
                 // instance of the declared open class binds its params
                 // through the slot, not a named subclass's chain.
-                var env = NeoGenericResolution.ResolveInstanceEnv(
-                    client,
-                    classId,
-                    classArguments);
+                IReadOnlyDictionary<string, NeoGenericEnvEntry> env =
+                    resolvedClassPlan?.genericEnv
+                    ?? ResolveRuntimeInstanceEnv(
+                        client,
+                        classId,
+                        classArguments);
                 foreach (var entry in mergedSchema)
                 {
                     if (value.ContainsKey(entry.schemaKey)) continue;
-                    if (!client.TryGetMember(entry.memberId, out Member? member))
+                    Member? member = resolvedClassPlan is null
+                        ? null
+                        : resolvedClassPlan.membersBySchemaKey[entry.schemaKey];
+                    if (member is null
+                        && !client.TryGetMember(entry.memberId, out member))
                     {
                         throw new InvalidOperationException(
                             $"Class '{classId}' schema key '{entry.schemaKey}' references missing member '{entry.memberId}'.");
@@ -4931,7 +5243,13 @@ namespace NeoCompose.Runtime
                     // required check and default construction — required and
                     // defaultValue travel with the binding
                     // (specs/class-generics.md Decision 10).
-                    member = NeoGenericResolution.SubstituteMember(client, member, env);
+                    if (resolvedClassPlan is null)
+                    {
+                        member = NeoGenericResolution.SubstituteMember(
+                            client,
+                            member,
+                            env);
+                    }
                     if (!IsStoredConstructorMember(member)) continue;
 
                     // P43 §1 / §8 — an init-backed default is EVALUATED here
@@ -4996,6 +5314,20 @@ namespace NeoCompose.Runtime
             string classId,
             IReadOnlyDictionary<string, GenericBinding>? classArguments = null)
         {
+            ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(
+                client);
+            if (classArguments is null)
+            {
+                lock (cache.gate)
+                {
+                    if (cache.mergedSchemas.TryGetValue(
+                            classId,
+                            out IList<MergedSchemaEntry>? cached))
+                    {
+                        return cached;
+                    }
+                }
+            }
             if (!client.TryGetClass(classId, out NeoSchemaClass? schemaClass))
             {
                 throw new InvalidOperationException(
@@ -5011,13 +5343,14 @@ namespace NeoCompose.Runtime
             // instantiable even though the named class is open
             // (specs/class-generics.md §3.4).
             string? unboundParamId = NeoGenericResolution.FirstUnboundParamId(
-                NeoGenericResolution.ResolveInstanceEnv(client, classId, classArguments));
+                ResolveRuntimeInstanceEnv(client, classId, classArguments));
             if (unboundParamId is not null)
             {
                 throw new InvalidOperationException(
                     $"Cannot create default class value for open generic class '{schemaClass.name}': generic param '{unboundParamId}' is unbound — every generic param must be bound before instantiation (specs/class-generics.md Decision 6).");
             }
-            return NeoSchemaClassInheritance.MergeInstanceSchema(
+            IList<MergedSchemaEntry> resolved =
+                NeoSchemaClassInheritance.MergeInstanceSchema(
                 NeoSchemaClassInheritance.ResolveChain(
                     classId,
                     id => client.TryGetClass(id, out NeoSchemaClass? match)
@@ -5026,6 +5359,118 @@ namespace NeoCompose.Runtime
                 id => client.TryGetMember(id, out Member? member)
                     ? member
                     : null);
+            if (classArguments is null)
+            {
+                lock (cache.gate)
+                {
+                    cache.mergedSchemas[classId] = resolved;
+                }
+            }
+            return resolved;
+        }
+
+        private static IReadOnlyDictionary<string, NeoGenericEnvEntry>
+            ResolveRuntimeInstanceEnv(
+            NeoClient client,
+            string classId,
+            IReadOnlyDictionary<string, GenericBinding>? classArguments)
+        {
+            if (classArguments is not null)
+            {
+                return NeoGenericResolution.ResolveInstanceEnv(
+                    client,
+                    classId,
+                    classArguments);
+            }
+            ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(
+                client);
+            lock (cache.gate)
+            {
+                if (cache.genericEnvironments.TryGetValue(
+                        classId,
+                        out IReadOnlyDictionary<string, NeoGenericEnvEntry>? cached))
+                {
+                    return cached;
+                }
+            }
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> resolved =
+                NeoGenericResolution.ResolveInstanceEnv(
+                    client,
+                    classId,
+                    classArguments: null);
+            lock (cache.gate)
+            {
+                cache.genericEnvironments[classId] = resolved;
+            }
+            return resolved;
+        }
+
+        private static RuntimeClassPlan ResolveRuntimeClassPlan(
+            NeoClient client,
+            string classId,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>?
+                knownGenericEnv = null)
+        {
+            ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(
+                client);
+            lock (cache.gate)
+            {
+                if (cache.classPlans.TryGetValue(
+                        classId,
+                        out RuntimeClassPlan? cached))
+                {
+                    return cached;
+                }
+            }
+
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
+                knownGenericEnv ?? ResolveRuntimeInstanceEnv(
+                    client,
+                    classId,
+                    classArguments: null);
+            IList<MergedSchemaEntry> schema = ResolveMergedSchema(
+                client,
+                classId);
+            var schemaByKey = new Dictionary<string, MergedSchemaEntry>(
+                schema.Count);
+            var membersBySchemaKey = new Dictionary<string, Member>(schema.Count);
+            foreach (MergedSchemaEntry entry in schema)
+            {
+                if (!schemaByKey.TryAdd(entry.schemaKey, entry))
+                {
+                    throw new InvalidOperationException(
+                        $"Class constructor schema for '{classId}' contains duplicate merged key '{entry.schemaKey}'.");
+                }
+                if (!client.TryGetMember(entry.memberId, out Member? member))
+                {
+                    throw new InvalidOperationException(
+                        $"Class constructor schema field '{entry.schemaKey}' references missing member '{entry.memberId}'.");
+                }
+                membersBySchemaKey[entry.schemaKey] =
+                    NeoGenericResolution.SubstituteMember(
+                        client,
+                        member,
+                        genericEnv);
+            }
+            var resolved = new RuntimeClassPlan
+            {
+                schema = schema,
+                genericEnv = genericEnv,
+                schemaByKey = schemaByKey,
+                membersBySchemaKey = membersBySchemaKey,
+                factoryMember = new ClassMember
+                {
+                    id = $"__neo_factory_class_{classId}",
+                    name = "Factory",
+                    kind = MemberKind.Class,
+                    classId = classId,
+                },
+            };
+            lock (cache.gate)
+            {
+                cache.classPlans[classId] = resolved;
+            }
+            return resolved;
         }
 
         /// <param name="path">
@@ -5248,7 +5693,7 @@ namespace NeoCompose.Runtime
             {
                 schemaByKey[entry.schemaKey] = entry;
             }
-            var env = NeoGenericResolution.ResolveInstanceEnv(
+            var env = ResolveRuntimeInstanceEnv(
                 client,
                 classId,
                 classArguments);
