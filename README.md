@@ -10,7 +10,7 @@ src/
 samples/
   HelloWorld/             Unity 6000.5.4f1 project consuming the package
                           via a local file: dependency
-    neo/                  Neo Schema Authoring v2 workspace for the sample
+    neo/                  format-4 Neo Compose workspace for the sample
 ```
 
 The package source lives entirely under `src/NeoComposeUnity/` (Runtime
@@ -24,9 +24,9 @@ separate raw-.NET library or precompiled `.dll`.
    in `Packages/manifest.json`, so edits in `src/NeoComposeUnity/` are
    picked up live.
 
-The Hello World project also serves as the downstream Schema Authoring v2
-sample. Its tracked schema lives in `samples/HelloWorld/neo/`; see the
-[sample README](./samples/HelloWorld/README.md#schema-authoring) for the
+The Hello World project also serves as the downstream format-4 authoring
+sample. Its tracked `.neo` source lives in `samples/HelloWorld/neo/`; see the
+[sample README](./samples/HelloWorld/README.md#the-neo-workspace) for the
 authoring and synchronization workflow.
 
 ## Tests
