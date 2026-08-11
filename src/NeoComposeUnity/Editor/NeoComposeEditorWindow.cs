@@ -110,7 +110,7 @@ namespace NeoCompose.Unity.Editor
 
         private void OnEnable()
         {
-            config = NeoComposeConfigProvider.LoadOrCreate();
+            config = LoadEffectiveConfig();
             runtimeSecret = NeoComposeRuntimeSecretProvider.Find();
             runtimeApiKey = runtimeSecret?.RuntimeApiKey ?? "";
             synchronizer = new NeoComposeSynchronizer(
@@ -205,6 +205,7 @@ namespace NeoCompose.Unity.Editor
             EditorGUILayout.LabelField(
                 "Synchronize generated Unity files from the Neo Compose web app.",
                 MutedStyle());
+            RenderRigStatus();
             EditorGUILayout.Space(2);
             RenderAccountSection(config);
 
@@ -1604,7 +1605,52 @@ namespace NeoCompose.Unity.Editor
 
         private void RefreshConfigForDisplay()
         {
-            config = NeoComposeConfigProvider.LoadOrCreate();
+            config = LoadEffectiveConfig();
+        }
+
+        /// <summary>
+        /// Loads the committed config and hands back the effective one — the
+        /// committed asset normally, or the rig overlay when a rig manifest is
+        /// bound (P53 §6). A broken rig binding is surfaced as an error status
+        /// rather than an exception, because the window has to keep drawing to
+        /// show it.
+        /// </summary>
+        private NeoComposeConfig LoadEffectiveConfig()
+        {
+            var committed = NeoComposeConfigProvider.LoadOrCreate();
+            try
+            {
+                return NeoComposeEffectiveConfig.Resolve(committed);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError(exception);
+                SetStatus(exception.Message, MessageType.Error);
+                return committed;
+            }
+        }
+
+        /// <summary>
+        /// Rig-mode banner. Drawn whenever a rig manifest is bound so the
+        /// disposable deployment the window is talking to is never invisible.
+        /// </summary>
+        private void RenderRigStatus()
+        {
+            string? rigStatus;
+            try
+            {
+                rigStatus = NeoComposeEffectiveConfig.DescribeActiveRig();
+            }
+            catch (Exception exception)
+            {
+                EditorGUILayout.HelpBox(exception.Message, MessageType.Error);
+                return;
+            }
+
+            if (rigStatus == null) return;
+
+            EditorGUILayout.Space(2);
+            EditorGUILayout.HelpBox(rigStatus, MessageType.Info);
         }
 
         private void UpdateProgressStatus(string message)

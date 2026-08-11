@@ -1,0 +1,54 @@
+{
+  "formatVersion": 1,
+  "rigId": "rig-20260810-brisk-ocelot",
+  "createdAt": "2026-08-10T09:04:41.882Z",
+  "expiresAt": "2026-08-13T09:04:41.882Z",
+  "repositories": {
+    "neoCompose": {
+      "path": "/Users/agent/Neo/neo-compose/.worktrees/rig-20260810-brisk-ocelot",
+      "baseCommit": "4d0a83f16b27c9e5108ab4d7e3f2905c6b1d8e47",
+      "worktreeCommit": "51ce9207a4bd3f8e6027c1d94a5b0e3fd728ac16"
+    },
+    "neoComposeDotnet": {
+      "path": "/Users/agent/Neo/neo-compose-dotnet/.worktrees/rig-20260810-brisk-ocelot",
+      "baseCommit": "b3b3dd4c7e1a92f0",
+      "worktreeCommit": "b3b3dd4c7e1a92f0"
+    }
+  },
+  "deployment": {
+    "project": "neo-compose",
+    "reference": "dev:brisk-ocelot-412",
+    "name": "brisk-ocelot-412",
+    "url": "https://brisk-ocelot-412.convex.cloud",
+    "siteUrl": "https://brisk-ocelot-412.convex.site"
+  },
+  "web": {
+    "origin": "http://127.0.0.1:31200",
+    "port": 31200,
+    "partyServerOrigin": "http://127.0.0.1:31201",
+    "partyServerPort": 31201
+  },
+  "seed": {
+    "id": "helloworld-2026-08-10",
+    "sha256": "6f0b2a1d84c37e59b0d1fa4c8e2735916ad0be47c53182f6a9d40b7e1c85f302",
+    "schemaEpoch": 17,
+    "migrationReceipts": [
+      "stampWorldPartitions",
+      "backfillAnimationSegments"
+    ],
+    "neoComposeCommit": "4d0a83f16b27c9e5108ab4d7e3f2905c6b1d8e47",
+    "neoComposeDotnetCommit": "b3b3dd4c7e1a92f0"
+  },
+  "sample": {
+    "organizationName": "Rig Brisk Ocelot",
+    "projectId": "k57c3n1q8w2m0v9xr4jb6d5haz",
+    "projectName": "Hello World",
+    "versionId": "j92f7t0p3s6y1k4nw8rc5b2mqe",
+    "releaseChannelId": "h41d9x5v7z0g2l6ps3bt8n1krw",
+    "runtimeOAuthClientId": "neo-rig-brisk-ocelot-hello-world",
+    "runtimeOAuthScopes": [
+      "project:k57c3n1q8w2m0v9xr4jb6d5haz:save:read",
+      "project:k57c3n1q8w2m0v9xr4jb6d5haz:save:write"
+    ]
+  }
+}
