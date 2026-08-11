@@ -74,6 +74,9 @@ namespace NeoCompose.Tests
             Assert.IsNull(manifest.repositories.neoComposeDotnet);
             Assert.IsNull(manifest.seed);
             Assert.IsNull(manifest.sample);
+            // Manifests written before the coordinator recorded the source stay
+            // readable: the field is absent, not empty.
+            Assert.IsNull(manifest.source);
         }
 
         [Test]
@@ -84,6 +87,7 @@ namespace NeoCompose.Tests
                 SeededFixture);
 
             Assert.AreEqual("rig-20260810-brisk-ocelot", manifest.rigId);
+            Assert.AreEqual("neo-compose-dotnet", manifest.source);
             Assert.AreEqual("brisk-ocelot-412", manifest.deployment.name);
             Assert.AreEqual("http://127.0.0.1:31200", manifest.web.origin);
             Assert.IsNotNull(manifest.repositories.neoComposeDotnet);

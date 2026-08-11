@@ -32,3 +32,6 @@ TestResults/
 # worktree/repository root; never committed — it names a machine-local,
 # disposable rig manifest.
 .neo-rig
+
+# Agent worktree/session state — never tracked
+.claude/

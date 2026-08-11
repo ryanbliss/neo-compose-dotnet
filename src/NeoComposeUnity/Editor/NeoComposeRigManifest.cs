@@ -89,6 +89,16 @@ namespace NeoCompose.Unity.Editor
         public string rigId = "";
         public string createdAt = "";
         public string expiresAt = "";
+
+        /// <summary>
+        /// The repository the rig's agent implements in — <c>neo-compose</c> or
+        /// <c>neo-compose-dotnet</c>. Null on manifests written before the
+        /// coordinator recorded it; those rigs could only ever be app-sourced.
+        /// Unity reads it for diagnostics only: both worktrees consume the same
+        /// endpoints and the same sample either way.
+        /// </summary>
+        public string? source;
+
         public NeoComposeRigRepositories repositories = new();
         public NeoComposeRigDeployment deployment = new();
         public NeoComposeRigWeb web = new();
