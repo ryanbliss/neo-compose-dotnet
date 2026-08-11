@@ -253,19 +253,36 @@ namespace NeoCompose.Unity.Editor
             }
         }
 
-        private static NeoComposeDeviceAuthorizationFlow DefaultFlowFactory(
+        /// <summary>
+        /// Builds the editor's device authorization flow over
+        /// <paramref name="store"/>. <paramref name="openVerificationUri"/> is
+        /// the only seam a headless caller needs to differ on: batchmode has no
+        /// browser to hand the verification page to, so it logs the URL instead
+        /// of opening it. Everything else — transport, clock, delay, client id,
+        /// scopes, and the post-save verification store — is constructed here so
+        /// interactive and headless sign-in cannot drift apart.
+        /// </summary>
+        public static NeoComposeDeviceAuthorizationFlow CreateFlow(
             string apiBaseUrl,
-            INeoComposeTokenStore store)
+            INeoComposeTokenStore store,
+            Action<string> openVerificationUri)
         {
             return new NeoComposeDeviceAuthorizationFlow(
                 new NeoComposeDeviceAuthTransport(),
                 store,
                 () => DateTimeOffset.UtcNow,
                 (seconds, token) => Task.Delay(TimeSpan.FromSeconds(seconds), token),
-                Application.OpenURL,
+                openVerificationUri,
                 NeoComposeEditorDefaults.OAuthClientId,
                 NeoComposeEditorDefaults.OAuthScopes,
                 () => NeoComposeTokenStore.Create(apiBaseUrl));
+        }
+
+        private static NeoComposeDeviceAuthorizationFlow DefaultFlowFactory(
+            string apiBaseUrl,
+            INeoComposeTokenStore store)
+        {
+            return CreateFlow(apiBaseUrl, store, Application.OpenURL);
         }
     }
 }

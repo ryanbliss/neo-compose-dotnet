@@ -3,6 +3,7 @@
   "rigId": "rig-20260810-brisk-ocelot",
   "createdAt": "2026-08-10T09:04:41.882Z",
   "expiresAt": "2026-08-13T09:04:41.882Z",
+  "source": "neo-compose-dotnet",
   "repositories": {
     "neoCompose": {
       "path": "/Users/agent/Neo/neo-compose/.worktrees/rig-20260810-brisk-ocelot",
