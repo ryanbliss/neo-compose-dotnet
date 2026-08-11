@@ -1,0 +1,7 @@
+@id("system_fb8a4243-fa52-4142-8097-765d9e86ff25")
+enum NeoSelectorRefreshKind {
+  @id("system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200")
+  OnLoad,
+  @id("system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f")
+  PerFrame,
+}

@@ -25,7 +25,15 @@ class Save {
   public virtual Dictionary<string, OutpostSaveData?> OutpostSaveMap;
 
   @id("4868ab84-027a-405d-bfca-d04d4d4917fa")
-  public virtual QuestState Quest = new QuestState();
+  public virtual QuestState Quest = new QuestState {
+    Ending = .none,
+    EvidenceArchive = false,
+    EvidenceFaith = false,
+    EvidenceLedger = false,
+    FlareClock = 0,
+    Reruns = 0,
+    Stage = .arrival
+  };
 
   @id("c151eda4-ecce-4edf-988d-25a97c657146")
   @settings(kind: .Ordered)

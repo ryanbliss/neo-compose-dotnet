@@ -32,8 +32,7 @@ abstract class ExitPromptObject : ConsoleObject {
       Name = "Background",
       Position = new(0, 0, 0),
       Size = new(1, 1, 0),
-      Tiles = @id("1365274a-f5f6-4707-bea5-4ccfc061ff25")
-      [
+      Tiles = [
         @id("fa6f6f5c-f432-41cc-aa5a-c92445b947fb")
         new NeoTileInstance {
           Cell = new(1, 0)

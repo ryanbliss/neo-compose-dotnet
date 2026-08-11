@@ -12,7 +12,7 @@ class DefaultObjectLayer : ConsoleObjectLayer {
 
   @id("neo-tile-grid-record-relations-v1-member-9d115a86ad7705f950cc44e5fb6f3946")
   @locked
-  @settings(collection: Assets.SortingLayers, collectionValue: Reference(id: "e82662a0-10be-45cb-8c4a-a5d8b6b5bb0c"))
+  @settings(collection: Assets.SortingLayers, collectionValue: Reference(root.Assets.SortingLayers))
   @system(kind: .WorldAuthoring)
   public override NeoSortingLayer SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
 

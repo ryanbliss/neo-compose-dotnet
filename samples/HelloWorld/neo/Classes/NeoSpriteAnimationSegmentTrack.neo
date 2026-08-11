@@ -1,0 +1,13 @@
+/// Plays a sprite segment onto a sprite child's Sprite member — the lane that
+/// animates a sprite over time. Derive from it to say where the segment comes
+/// from; Segment is left for you to fill in, so every lane that plays is one of
+/// your own classes.
+@id("system_24b70585-0798-49ad-b650-4c118bac1eb1")
+@settings(target: NeoSpriteObject.Sprite)
+@system(kind: .WorldAuthoring, worldKind: .SpriteAnimationSegmentTrack)
+abstract class NeoSpriteAnimationSegmentTrack<
+  @id("system_4de90637-6a3b-4bba-95ef-2ff9dfb05268")
+  TChild extends NeoSpriteObject
+>(NeoDelegate<TChild> selector) : NeoAnimationSegmentTrack<TChild, SpriteInfo>(selector: selector) {
+
+}

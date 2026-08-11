@@ -1,0 +1,26 @@
+/// A sequence of one member's values over a frame index. Frames are sparse and
+/// each one holds until the next row or the end of Duration. A segment has no
+/// fps of its own — the clip that schedules it owns the clock.
+///
+/// A segment can live anywhere: immutable catalog data, a save, or session
+/// state a game writes at runtime. Its frames and its Duration are re-read on
+/// every frame that plays, so a change made mid-playback shows on the next
+/// frame.
+@id("system_2866011d-30fe-410a-8a04-d2ff291b77cd")
+@system(kind: .WorldAuthoring, worldKind: .AnimationSegment)
+abstract class NeoAnimationSegment<
+  @id("system_a35d028e-bd71-49aa-9f9d-944b6e813b80")
+  T
+> {
+  @id("system_8a159870-36a4-40e4-98bf-15919410650a")
+  @locked
+  @settings(min: 1)
+  @system(kind: .WorldAuthoring)
+  public virtual int Duration = 1;
+
+  @id("system_40658ad2-b4a5-4404-bb6d-ed778088a772")
+  @locked
+  @settings(kind: .Ordered)
+  @system(kind: .WorldAuthoring)
+  public virtual List<NeoAnimationSegmentFrame<T>> Frames = [];
+}

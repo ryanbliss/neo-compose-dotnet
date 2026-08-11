@@ -1,0 +1,7 @@
+@id("system_705ccc39-e46e-4c9f-af3e-3ec8fd818709")
+enum NeoPlayDirection {
+  @id("system_2e4ca40e-f305-49c6-a91b-b99d56239ba0")
+  Forward,
+  @id("system_6478d195-3905-48db-befe-d276eb5478f0")
+  Reverse,
+}

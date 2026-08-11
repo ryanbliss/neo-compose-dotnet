@@ -1,22 +1,12 @@
+/// Plays another object's clip on this clip's timeline, looked up by name. The
+/// lane is as long as the clip it names.
 @id("system_8dc78ecf-15b8-4b8a-86f3-7691a5b487d0")
 @storage(allowed: .Immutable)
 @system(kind: .WorldAuthoring, worldKind: .AnimationChildTrack)
-class NeoAnimationChildTrack {
-  @id("system_29abc85e-2d38-4cef-a200-88915d176d06")
-  @locked
-  @settings(collection: NeoObject.Children)
-  @system(kind: .WorldAuthoring)
-  public virtual NeoObjectBase Child;
-
+class NeoAnimationChildTrack(NeoDelegate<NeoObjectBase> selector, string clipKey) : NeoAnimationTrackBase(selector: selector) {
   @id("system_2c816624-0281-46d3-9ed5-d20bd43519f4")
   @locked
   @settings(localizable: false)
   @system(kind: .WorldAuthoring)
-  public virtual string ClipKey;
-
-  @id("system_5af60692-74a0-45ea-a9ba-747854989b2a")
-  @locked
-  @settings(min: 0)
-  @system(kind: .WorldAuthoring)
-  public virtual int StartFrame = 0;
+  public virtual string ClipKey = clipKey;
 }

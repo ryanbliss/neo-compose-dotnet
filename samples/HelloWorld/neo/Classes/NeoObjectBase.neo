@@ -11,7 +11,7 @@ abstract class NeoObjectBase {
   @locked
   @settings(localizable: false)
   @system(kind: .WorldAuthoring)
-  public virtual string Name;
+  public virtual string Name = "";
 
   @id("system_7fc41bde-418a-4507-8c4b-9b75d7012125")
   @locked

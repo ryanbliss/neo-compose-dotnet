@@ -1,0 +1,13 @@
+/// One value at a frame index inside a segment. It holds until the next row
+/// you author, or until the segment's Duration runs out.
+@id("system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab")
+@system(kind: .WorldAuthoring, worldKind: .AnimationSegmentFrame)
+class NeoAnimationSegmentFrame<
+  @id("system_887b11d3-e56a-47ff-8d01-e2fcefb846a1")
+  T
+>(T value) : NeoAnimationFrameBase {
+  @id("system_b71d1f73-da72-49de-ab9a-911cc9bffa43")
+  @locked
+  @system(kind: .WorldAuthoring)
+  public virtual T Value = value;
+}

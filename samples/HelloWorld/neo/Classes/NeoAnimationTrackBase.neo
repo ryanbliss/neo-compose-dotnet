@@ -1,0 +1,49 @@
+/// A lane on a clip's timeline: which child it plays against, when it starts,
+/// which way it runs, and which slice of the content to use. Both kinds of
+/// track derive from this, so playing a child clip reversed or cropped is
+/// something you author on the lane rather than pass in when you play it.
+@id("system_45755778-ecfe-4a6c-b65f-a08017a7fb56")
+@system(kind: .WorldAuthoring, worldKind: .AnimationTrack)
+abstract class NeoAnimationTrackBase(NeoDelegate<NeoObjectBase> selector) {
+  /// How long the scheduled content runs, in its own frames — the referenced clip's Duration on a child track, the segment's Duration on a segment track. Neo answers this for you; it is not a value you author.
+  @id("system_626f7a7a-66b7-4e54-aaaa-7174a74c9467")
+  @locked
+  @system(kind: .WorldAuthoring)
+  protected abstract int BaseDuration { get; }
+
+  /// Which way the scheduled content plays: forward, or last frame first. This is playback order, not a direction in the world.
+  @id("system_75a314b5-c799-4af6-9e64-4cde6eae1b30")
+  @locked
+  @system(kind: .WorldAuthoring)
+  public virtual NeoPlayDirection Direction = .Forward;
+
+  /// Where to stop, counted in the scheduled content's own frames. The frame at this index is not played. Leave it empty to run to the end. Dragging the right edge of a lane edits this.
+  @id("system_6755f539-a459-46ec-b44a-cc74a18ad83e")
+  @locked
+  @settings(min: 1)
+  @system(kind: .WorldAuthoring)
+  public virtual int? OffsetEndIndex = null;
+
+  /// The first frame of the scheduled content to play, counted in that content's own frames. Dragging the left edge of a lane edits this.
+  @id("system_c71caaab-df72-48c6-a291-2772288351eb")
+  @locked
+  @settings(min: 0)
+  @system(kind: .WorldAuthoring)
+  public virtual int? OffsetStartIndex = 0;
+
+  @id("system_330602f7-bbc0-4be4-9dc3-d33e9dbdbab9")
+  @locked
+  @system(kind: .WorldAuthoring)
+  public virtual NeoSelectorRefreshKind Refresh = .OnLoad;
+
+  @id("system_1e877396-1802-474a-9e4d-1df478d4c888")
+  @locked
+  @system(kind: .WorldAuthoring)
+  public virtual NeoDelegate<NeoObjectBase> Selector = selector;
+
+  @id("system_5af60692-74a0-45ea-a9ba-747854989b2a")
+  @locked
+  @settings(min: 0)
+  @system(kind: .WorldAuthoring)
+  public virtual int StartFrame = 0;
+}

@@ -35,5 +35,5 @@ class NeoSpriteObject : NeoObjectBase {
   @id("system_e9288ba9-f5a2-4485-8443-6afb155b31e0")
   @locked
   @system(kind: .WorldAuthoring)
-  public virtual SpriteInfo Sprite;
+  public virtual SpriteInfo Sprite = SpriteInfo.Empty;
 }

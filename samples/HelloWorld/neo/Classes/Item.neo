@@ -2,7 +2,7 @@
 class Item {
   @id("66e49f29-58cb-4ac7-b128-93febd0f0fb1")
   @settings(localizable: true)
-  public virtual string Name = "b3867593-d854-402b-a1a7-5517bec1b9eb";
+  public virtual string Name = "Item!";
 
   @id("0c160a97-ff40-4433-ad66-6e649866bffd")
   @settings(min: 2, max: 91)
