@@ -1,0 +1,29 @@
+{
+  "formatVersion": 1,
+  "rigId": "rig-20260810-formal-toucan",
+  "createdAt": "2026-08-10T14:22:05.317Z",
+  "expiresAt": "2026-08-13T14:22:05.317Z",
+  "repositories": {
+    "neoCompose": {
+      "path": "/Users/agent/Neo/neo-compose/.worktrees/rig-20260810-formal-toucan",
+      "baseCommit": "9f1c2b7e4a8d5f30c6b1e9a742d8c05b3ef61a29",
+      "worktreeCommit": "9f1c2b7e4a8d5f30c6b1e9a742d8c05b3ef61a29"
+    },
+    "neoComposeDotnet": null
+  },
+  "deployment": {
+    "project": "neo-compose",
+    "reference": "dev:formal-toucan-689",
+    "name": "formal-toucan-689",
+    "url": "https://formal-toucan-689.convex.cloud",
+    "siteUrl": "https://formal-toucan-689.convex.site"
+  },
+  "web": {
+    "origin": "http://127.0.0.1:31100",
+    "port": 31100,
+    "partyServerOrigin": "http://127.0.0.1:31101",
+    "partyServerPort": 31101
+  },
+  "seed": null,
+  "sample": null
+}

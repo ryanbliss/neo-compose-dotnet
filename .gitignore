@@ -27,3 +27,8 @@ Thumbs.db
 
 # Test results
 TestResults/
+
+# P53 agent rig pointer. Written by the rig coordinator at the bound
+# worktree/repository root; never committed — it names a machine-local,
+# disposable rig manifest.
+.neo-rig

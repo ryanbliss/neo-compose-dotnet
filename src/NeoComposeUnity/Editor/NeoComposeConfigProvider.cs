@@ -66,8 +66,20 @@ namespace NeoCompose.Unity.Editor
                 .ToArray();
         }
 
+        /// <summary>
+        /// Persists the committed config asset. An ephemeral rig overlay
+        /// (<see cref="NeoComposeEffectiveConfig"/>) is refused instead: its values
+        /// belong to a disposable deployment and must never reach the checked-in
+        /// asset, so this is a logged no-op rather than a write (P53 §6).
+        /// </summary>
         public static void Save(NeoComposeConfig config)
         {
+            if (NeoComposeEffectiveConfig.IsRigOverlay(config))
+            {
+                NeoComposeEffectiveConfig.ReportSaveRefused(config);
+                return;
+            }
+
             EditorUtility.SetDirty(config);
             AssetDatabase.SaveAssets();
         }

@@ -178,9 +178,32 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+#if UNITY_EDITOR
+        /// <summary>
+        /// Editor-only hook returning the effective configuration for a committed
+        /// asset. Installed by the editor assembly's effective-config overlay so a
+        /// development rig can redirect endpoints and project identity without
+        /// dirtying the committed asset (P53 §6); null means "use the asset as
+        /// committed".
+        /// </summary>
+        /// <remarks>
+        /// The runtime holds only the hook, never the policy, and the hook does
+        /// not exist in a player build — a shipped game always loads the committed
+        /// release configuration.
+        /// </remarks>
+        internal static Func<NeoComposeConfig, NeoComposeConfig>? EditorEffectiveConfigResolver;
+#endif
+
         public static NeoComposeConfig? LoadDefault()
         {
-            return Resources.Load<NeoComposeConfig>(NeoComposeDefaults.ConfigResourcePath);
+            var config = Resources.Load<NeoComposeConfig>(NeoComposeDefaults.ConfigResourcePath);
+#if UNITY_EDITOR
+            if (config != null && EditorEffectiveConfigResolver != null)
+            {
+                return EditorEffectiveConfigResolver(config);
+            }
+#endif
+            return config;
         }
 
         public NeoLocalizationOptions ToLocalizationOptions()

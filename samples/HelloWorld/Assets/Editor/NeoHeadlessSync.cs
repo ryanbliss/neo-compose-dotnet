@@ -5,36 +5,28 @@
 
 using NeoCompose.Unity.Editor;
 using UnityEditor;
-using UnityEngine;
 
 namespace HelloWorld.Editor
 {
     /// <summary>
-    /// Agent/CI affordance: runs the Neo Compose synchronize pipeline without
-    /// the editor window, logging completion so external tooling (MCP, CI)
-    /// can await it by watching the console.
+    /// In-editor affordance for the package's headless synchronize pipeline
+    /// (<see cref="NeoComposeBatchSync"/>): runs the Neo Compose synchronize
+    /// pipeline without the editor window or any dialog, logging progress and
+    /// completion so external tooling (MCP, CI) can await it by watching the
+    /// console.
     /// </summary>
+    /// <remarks>
+    /// Batch runs should call the package entry point directly —
+    /// <c>-executeMethod NeoCompose.Unity.Editor.NeoComposeBatchSync.Run</c> —
+    /// which additionally exits the editor with the run's status. This menu item
+    /// deliberately uses the non-exiting variant.
+    /// </remarks>
     public static class NeoHeadlessSync
     {
         [MenuItem("Neo Compose/Headless Sync")]
-        public static async void Run()
+        public static void Run()
         {
-            var config = NeoComposeConfigProvider.LoadOrCreate();
-            var synchronizer = new NeoComposeSynchronizer(
-                new NeoComposeEditorApiClient(),
-                new NeoComposeEditorDialogConfirmationService(),
-                new NeoComposeEditorAssetService());
-            Debug.Log("[NeoHeadlessSync] starting…");
-            try
-            {
-                var result = await synchronizer.SynchronizeAsync(config, status => Debug.Log($"[NeoHeadlessSync] {status}"));
-                Debug.Log($"[NeoHeadlessSync] complete: success={result.success} {result.message}");
-                AssetDatabase.Refresh();
-            }
-            catch (System.Exception exception)
-            {
-                Debug.LogError($"[NeoHeadlessSync] failed: {exception.Message}");
-            }
+            NeoComposeBatchSync.RunWithoutExit();
         }
     }
 }

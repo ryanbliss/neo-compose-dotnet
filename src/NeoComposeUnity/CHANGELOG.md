@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### Added
+
+- Read the P53 agent-rig manifest (`rig.json`, `formatVersion` 1) in the editor,
+  selected by `NEO_COMPOSE_RIG_MANIFEST` or a `.neo-rig` pointer walked up from
+  the Unity project. The reader rejects an unsupported format version, a
+  manifest missing `rigId` / `deployment.name` / `web.origin`, any
+  secret-looking field name, and environment/pointer disagreement.
+- Apply the active rig manifest as an editor-only effective-configuration
+  overlay: the committed `NeoComposeConfig` is cloned with `HideFlags.DontSave`,
+  endpoints (and, for a seeded rig, project identity) come from the manifest,
+  the developer-owned `runtimeOAuthOverridden` latch is honoured, and saving the
+  clone is a logged no-op. `NeoComposeConfig.LoadDefault` resolves the overlay
+  under `UNITY_EDITOR` only; player builds keep the committed release config.
+- `NeoComposeBatchSync.Run` — a headless synchronize entry point for
+  `-batchmode -executeMethod`, backed by
+  `NeoComposeNonInteractiveConfirmationService` so no dialog can open.
+
 ## [0.20.4] - 2026-08-10
 
 ### Changed
