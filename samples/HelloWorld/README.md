@@ -1,69 +1,120 @@
 # NeoCompose Unity Sample — HelloWorld
 
-A minimal Unity 6 project consuming the `com.ryanbliss.neocompose` package
-via a local-path dependency, for end-to-end smoke testing of the package
-during development.
+A Unity 6 project consuming the `com.ryanbliss.neocompose` package via a
+local-path dependency. It doubles as the end-to-end smoke test for the package
+and as the reference downstream consumer of a Neo Compose format-4 project.
 
-## Setup
+## Prerequisites
 
-1. Open this project in Unity 6000.5.4f1.
-2. The package is referenced at `file:../../../src/NeoComposeUnity` in
-   `Packages/manifest.json` — edits to the package source are picked up
-   on the next domain reload.
-3. Drop a `HelloWorldBehaviour` component on any GameObject and enter
-   Play mode. The console logs a "Hello from NeoCompose" message confirming
-   the package loaded.
+- Unity 6000.5.4f1.
+- The `neo` CLI — `npm i -g @neocompose/cli`, or `node cli/bin/neo.mjs` from a
+  `neo-compose` repository checkout.
 
-## Schema authoring
+## Running the sample
 
-The tracked `neo/` directory is this sample's Neo Schema Authoring v2
-workspace. `neo/neo.json` declares `formatVersion: 3`, and
-`neo/NeoCompose.Schema.csproj` gives editors a real C# 11 project targeting
-`netstandard2.1` for complete C# and Neo schema IntelliSense.
+1. Open `samples/HelloWorld/` in Unity 6000.5.4f1. The package is referenced at
+   `file:../../../src/NeoComposeUnity` in `Packages/manifest.json`, so edits to
+   the package source are picked up on the next domain reload.
+2. Open `Assets/Scenes/MainScene.unity` and enter Play mode. `HelloWorldMenu`
+   drives the save-file menu, spawns `HelloWorldGameplay` for the selected save,
+   and `LandingSceneGameplay` / `LandingSceneUI` render the landing scene.
 
-- Types, inheritance, overrides, nullability, defaults, ordering, and
-  function signatures are authored as native C# under `neo/Classes/`,
-  `neo/Interfaces/`, and `neo/Enums/`.
-- Root-level and otherwise loose members are authored in the `[NeoRegistry]`
-  declaration at `neo/Root.cs`.
-- Stable server identities remain explicit through `[NeoSchemaClass]`,
-  `[NeoMember]`, and the other typed Neo members.
-- Computed-property and NeoScript functions are tracked as complete contextual
-  `.neo` documents under `neo/Scripts/<DeclaringType>/<Member>.neo`. Their
-  outer signature mirrors C# and includes `<DeclaringType> this, Root root`;
-  canonical C# links back with a `// NeoScript: Scripts/...` comment.
-- Template and localization configuration use strongly typed C# settings
-  objects, including workflow statuses under `neo/LocalizationStatuses/`.
-  There are no embedded JSON schema carriers.
-- `.neo/tooling` and `.neo` sync state are local generated artifacts. The CLI
-  hydrates them and discovers Unity's compatible runtime first, then a system
-  `dotnet`; it never installs or downloads a runtime.
+## The `neo/` workspace
 
-Run schema commands from `samples/HelloWorld/neo/` (or any descendant):
+`samples/HelloWorld/neo/` is a format-4 Neo Compose checkout — a Git-like
+working copy of one project version. `neo/neo.json` declares
+`formatVersion: 4`. Tracked native source is the CLI authoring source of truth;
+there is no C# schema project, no generated authoring SDK, and no per-member
+script sidecars.
+
+```text
+neo/
+  neo.json
+  Project.neo             Project settings (default texture template, priority group)
+  Root.neo                Root-level stored bindings
+  Classes/                Class declarations (*.neo) + colocated *.spec.neo tests
+  Interfaces/             Interface declarations
+  Enums/                  Enum declarations
+  Templates/              Texture templates
+  PriorityGroups/
+  Localization.neo        Locales, statuses, main locale
+  LocalizationStatuses/
+  Files/                  Images.neo / AudioClips.neo registries + their binaries
+  DialogueGroups/
+  Dialogues/*.neoflow     NeoFlow dialogues
+```
+
+Schema declarations, values, and NeoScript live in `.neo`; dialogues live in
+`.neoflow`; tests live in colocated `.spec.neo` files, which are test-only and
+never enter status, source hashes, pull, or push. `.neo/` inside the workspace
+is private CLI state — never edit it as source.
+
+### Identity lives in the Unity config asset
+
+`neo.json` uses `unityConfigPath: ../Assets/Resources/Neo/NeoComposeConfig.asset`
+instead of inline `projectId`/`versionId`. That asset owns the project and
+version IDs and is updated by branch and version switches, so the IDs are never
+duplicated in `neo.json`. `neo.json` also sets `apiBaseUrl`, `convexUrl`,
+`profile: editor`, and `prePushHook: "neo test"`.
+
+## The sync loop
+
+1. Edit tracked `.neo` / `.neoflow` source under `neo/`.
+2. `neo push` from `samples/HelloWorld/neo/` (or any descendant). The configured
+   `prePushHook` runs `neo test` first. `neo push --dry-run` rehearses the full
+   local emission and the server's preparation phase without pushing; note that
+   the pre-push hook is a real-push hook and does not run for a dry run.
+3. In Unity, run the synchronize pipeline from **Tools → Neo Compose** (also
+   available under **Window → Neo Compose**). The sample additionally exposes
+   **Neo Compose → Headless Sync** (`Assets/Editor/NeoHeadlessSync.cs`), a menu
+   command that runs the same pipeline without opening the editor window. It is
+   not batchmode-safe: it can raise confirmation dialogs and never exits the
+   editor, so it is not a CI entry point.
+4. Commit the regenerated outputs.
+
+Synchronization writes committed artifacts into the Unity project:
+
+- `Assets/Resources/Neo/project.json` — the runtime project export.
+- `Assets/Scripts/Neo/NeoGeneratedTypes.cs` — the generated C# API. Do not edit
+  by hand; extend it with hand-authored partials in
+  `Assets/Scripts/Neo/NeoClassesExtended.cs`.
+- `Assets/Resources/Neo/Localization/*.json` — per-locale strings.
+- `Assets/Resources/Neo/Files/{Sprites,Audio}/` — imported managed binaries.
+
+## Common CLI commands
+
+Run from `samples/HelloWorld/neo/` or any descendant:
 
 ```sh
 neo doctor
 neo status
+neo diff
 neo pull
+neo test
 neo push --dry-run
+neo push
 ```
 
-`neo pull --reset` is the intentional clean-reconstruction path for an old or
-discardable working copy. It rewrites the canonical v2 C# and sidecars, so
-commit or stash hand-authored work first.
+Pull before editing, and pull again before pushing if time has passed.
+`neo pull --reset` and `neo pull --force` are destructive reconstruction paths;
+use them only when that effect is intended.
 
-The schema workspace is distinct from the Unity runtime export. The latter is
-materialized as `Assets/Resources/Neo/project.json`, and its generated C# API
-is committed at `Assets/Scripts/Neo/NeoGeneratedTypes.cs`; do not edit that
-generated file by hand.
+## Runtime auth
+
+`NeoComposeConfig.asset` carries the runtime OAuth client ID and scopes and
+enables OAuth cloud sync. The companion
+`Assets/Resources/Neo/NeoComposeRuntimeSecret.asset` is bundled into builds and
+deliberately gitignored (see `Assets/Resources/Neo/.gitignore`), so a fresh
+clone has no runtime secret until one is provisioned locally.
 
 ## Tests
 
-Open **Window → General → Test Runner**. You'll see two assemblies:
+Open **Window → General → Test Runner**. The visible assemblies are the
+package test assemblies exposed through `testables` in `Packages/manifest.json`
+(`NeoCompose.Unity.Tests` and `NeoCompose.Unity.Convex.Tests`, living under
+`src/`) plus the sample's own: `Tests` (EditMode) and
+`HelloWorld.PlayMode.Tests` (PlayMode) under `Assets/Tests/`.
 
-- `NeoCompose.Unity.Tests` — the package's own tests (live in
-  `src/NeoComposeUnity/Tests/`).
-- `Tests` — the sample's tests demonstrating downstream
-  consumption of the package.
-
-Both run from this same Test Runner window.
+All of them run from this same Test Runner window. Schema-level tests are
+separate: they are the `.spec.neo` files under `neo/Classes/`, run by
+`neo test`.
