@@ -16,6 +16,7 @@ build/
 # Rider
 .idea/
 *.sln.iml
+*.slnx
 
 # NuGet
 *.nupkg
