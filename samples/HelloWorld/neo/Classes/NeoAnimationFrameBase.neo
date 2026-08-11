@@ -1,0 +1,12 @@
+/// A row at a frame index. Rows are sparse: each one holds from its index
+/// until the next row you author, so you only author the frames where
+/// something changes.
+@id("system_6529416a-f68b-49a3-b3d2-2af8fda60cb4")
+@system(kind: .WorldAuthoring, worldKind: .AnimationFrameBase)
+abstract class NeoAnimationFrameBase {
+  @id("system_0dbdd0f9-9dd2-4b4b-9403-50180c1500dd")
+  @locked
+  @settings(min: 0)
+  @system(kind: .WorldAuthoring)
+  public virtual int Index = 0;
+}

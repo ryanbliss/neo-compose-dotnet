@@ -1,3 +1,10 @@
+/// Composition and timing for one object and the children under it: how long
+/// it runs, how fast, the sparse frames that override values, and the tracks
+/// that schedule other content onto the same timeline.
+///
+/// Editing a clip while it plays takes effect the next time playback starts,
+/// and in the editor at the next preview recompute. Segments are the exception
+/// — they are re-read every frame.
 @id("system_994b3886-7392-4bd2-8f9d-d5f7fd316a5a")
 @storage(allowed: .Immutable)
 @system(kind: .WorldAuthoring, worldKind: .AnimationClip)
@@ -27,5 +34,5 @@ class NeoAnimationClip<
   @locked
   @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
-  public virtual List<NeoAnimationChildTrack> Tracks = [];
+  public virtual List<NeoAnimationTrackBase> Tracks = [];
 }

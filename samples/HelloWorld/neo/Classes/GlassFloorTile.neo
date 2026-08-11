@@ -29,6 +29,7 @@ class GlassFloorTile : ConsoleTile {
         MinAnimationSpeed = 1,
         Neighbors = [],
         Output = .Random,
+        RuleTransform = .Fixed,
         Sprites = [
           @id("4dc8d972-ecdd-4efd-b0bf-4958058db185")
           Images.GlassFloorVariants.Slice(0),

@@ -10,7 +10,7 @@ abstract class NeoTile {
   @id("system_cbd6db9a-f473-44b5-b913-7cdc06452f35")
   @locked
   @system(kind: .WorldAuthoring)
-  public virtual SpriteInfo Sprite;
+  public virtual SpriteInfo Sprite = SpriteInfo.Empty;
 
   @id("system_96cda8f5-3100-45b5-adcb-0552d21504dd")
   @locked

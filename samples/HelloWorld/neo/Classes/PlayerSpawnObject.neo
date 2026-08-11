@@ -52,5 +52,5 @@ class PlayerSpawnObject : ConsoleObject {
   @id("2b10e854-d60a-40a7-bc4c-8aede3e5049e")
   @locked
   @storage(allowed: .Session)
-  public override Vector3 Position = new(0, 0, 0);
+  public override Vector3 Position;
 }

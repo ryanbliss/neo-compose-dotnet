@@ -19,8 +19,7 @@ Root root = new() {
             @id("1be67fe6-6dc0-4094-8e8d-38f2e13665a0")
             Images.FlareStatic.Slice(2)
           ],
-          Name = @id("6aa7247b-2aad-4470-b1a0-c422dd84dceb")
-          "FlareStatic"
+          Name = "FlareStatic"
         },
         FlareStaticSprite = Images.FlareStatic.Slice(0),
         JupiterSprite = Images.Jupiter.Slice(0),
@@ -40,8 +39,7 @@ Root root = new() {
             @id("ccd9282f-b6b2-4e47-82eb-6784a4528d41")
             Images.ShipThruster.Slice(3)
           ],
-          Name = @id("0cf08f75-1fba-413f-9747-86f94cec7c36")
-          "ShipThruster"
+          Name = "ShipThruster"
         },
         ShipSprite = Images.ShipThruster.Slice(0),
         SunSprite = Images.Sun.Slice(0),
@@ -57,111 +55,93 @@ Root root = new() {
         RocketThrustSfx = AudioClips.RocketThrust
       },
       Computed = new ComputedText {
-        baseText = @id("36c35ac3-e532-43e8-a42c-4725d4781332")
-        "Hello",
-        optionalSuffix = @id("ac23da44-0f11-4355-a3a2-33194b0eca8f")
-        "!"
+        baseText = "Hello",
+        optionalSuffix = "!"
       },
       Items = [
         @id("ca105d9d-2885-4f33-80d4-206d5e207173")
         new Item {
-          Name = @id("06eea766-0e13-4bdf-ac92-2cc64e124bf4")
-          "Earth OG Souvenir Hat",
+          Name = "Earth OG Souvenir Hat",
           Value = 100
         },
     
         @id("c263523c-352c-4273-885c-934bb35f5d16")
         new Item {
-          Name = @id("3db24b95-06f2-4fd0-8d4d-2cbc19c1f770")
-          "Cloudsilk Parasol",
+          Name = "Cloudsilk Parasol",
           Value = 180
         },
     
         @id("c8eb381b-9c3f-4120-b8c3-3872cdde5148")
         new Item {
-          Name = @id("2e56b5ca-1d36-4594-ac87-88426008cbd0")
-          "Low-G Pitons",
+          Name = "Low-G Pitons",
           Value = 95
         },
     
         @id("0e9655ec-dc98-477c-b0ff-90d8f203040a")
         new Item {
-          Name = @id("82254d7a-acc2-40af-9cd2-a2e6f8ac22a3")
-          "Storm Corn",
+          Name = "Storm Corn",
           Value = 12
         },
     
         @id("fec825b2-2449-4ae2-a4bd-b29f8cf73e3c")
         new Item {
-          Name = @id("eebd3bf4-cdca-4bde-a147-4f34ef6289cf")
-          "Abyssal Lantern",
+          Name = "Abyssal Lantern",
           Value = 140
         },
     
         @id("18b9a621-ea41-4ac7-8a46-9cc443f2b480")
         new Item {
-          Name = @id("16ef076b-a0ed-4d9f-9b11-733f01961ac0")
-          "Helium-3 Flask",
+          Name = "Helium-3 Flask",
           Value = 220
         },
     
         @id("0c962c81-359a-4f8b-9263-7b6bb33b42b7")
         new Item {
-          Name = @id("244a01a9-356b-4685-ab84-266cffeee3f1")
-          "Smuggler's Manifest",
+          Name = "Smuggler's Manifest",
           Value = 425
         },
     
         @id("a840747f-9d6b-4d71-af3a-16b294ec436d")
         new Item {
-          Name = @id("2068afd1-c7c8-4bfd-97f6-25aa183ded98")
-          "Cryo Salve",
+          Name = "Cryo Salve",
           Value = 60
         },
     
         @id("73a11098-70fa-4608-bfb6-0ab25571e576")
         new Item {
-          Name = @id("1c78411e-4d5d-4f11-8306-420758f89046")
-          "Gyro Stabilizer",
+          Name = "Gyro Stabilizer",
           Value = 310
         },
     
         @id("e812e95c-d4dc-4f5d-8f42-ce57e5501eab")
         new Item {
-          Name = @id("d4259fc6-fcae-448a-989b-5ec89e7d8635")
-          "Plutonian Signet",
+          Name = "Plutonian Signet",
           Value = 999
         }
       ],
       LookupContainer = new LookupContainer {
         Lookup = Reference<LookupEntry>(id: "33d1c6b5-1310-4565-83c3-3c090f0c768c"),
         LookupList = {
-          "Item1": @id("33d1c6b5-1310-4565-83c3-3c090f0c768c")
-          new LookupEntry {
-            Name = @id("0bd8e0e4-8f3d-4645-8312-c20b00444f49")
-            "Hello World!"
+          "Item1": new LookupEntry {
+            Name = "Hello World!"
           },
           "Item2": new LookupEntry {
-            Name = @id("950a99ac-8141-4a41-8948-5af71f983df5")
-            "Hello Worlds!"
+            Name = "Hello Worlds!"
           }
         }
       },
-      Outposts = @id("75c7623a-dcdb-4ca1-b5e5-a809da678766")
-      [
+      Outposts = [
         @id("88cacaa9-25d2-4cfd-bd10-55db71139608")
         new Outpost {
           Image = Images.Mercury.Slice(0),
-          Name = @id("b5446956-b429-4171-947d-cfb55874653c")
-          "Mercurial",
+          Name = "Mercurial",
           Planet = .mercury
         },
     
         @id("ed141cc4-304c-40cd-8229-105f1ee9b99c")
         new Outpost {
           Image = Images.VenusCloudy.Slice(0),
-          Name = @id("eb5ac9f8-202c-464a-8eca-bdc1ff3aa983")
-          "Venusian",
+          Name = "Venusian",
           Planet = .venus
         },
     
@@ -323,20 +303,17 @@ Root root = new() {
               @id("d9f6ecf8-d481-41d0-8ea1-d4aefb601e9f")
               Images.EarthDayAndNight.Slice(52)
             ],
-            Name = @id("1e7c4feb-2ca2-4b09-a1cf-f3920191d8de")
-            "RotateEarth"
+            Name = "RotateEarth"
           },
           Image = Images.Earth.Slice(0),
-          Name = @id("f06fcc73-bf85-4534-9357-a1fe88bbe445")
-          "Capitol OG",
+          Name = "Capitol OG",
           Planet = .earth
         },
     
         @id("424019cd-8b46-4dd9-9aac-3721331179bb")
         new Outpost {
           Image = Images.Mars.Slice(0),
-          Name = @id("07666e99-93aa-4013-9cd2-836059f81964")
-          "Olympic Mons",
+          Name = "Olympic Mons",
           Planet = .mars
         },
     
@@ -345,8 +322,7 @@ Root root = new() {
           Image = Images.Io.Slice(0),
           Moon = .io,
           Planet = .jupiter,
-          Name = @id("5074d845-82de-4a1a-a3ef-6c81d3faa17f")
-          "Iowan"
+          Name = "Iowan"
         },
     
         @id("83cc2935-5a85-4d71-9e50-4e4496f00631")
@@ -354,8 +330,7 @@ Root root = new() {
           Image = Images.Europa.Slice(0),
           Moon = .europa,
           Planet = .jupiter,
-          Name = @id("700d2fa9-9aa0-4958-88a7-12a476bdd2c9")
-          "Europapas"
+          Name = "Europapas"
         },
     
         @id("1c9e473a-3616-4c1c-82f7-461e080c9785")
@@ -363,8 +338,7 @@ Root root = new() {
           Image = Images.Ganymede.Slice(0),
           Moon = .ganymede,
           Planet = .jupiter,
-          Name = @id("41f3c04b-c82d-483a-a118-0adad9808b0e")
-          "Pour Lords"
+          Name = "Pour Lords"
         },
     
         @id("b81df7d3-be41-4685-9111-3cdc1821e693")
@@ -372,8 +346,7 @@ Root root = new() {
           Image = Images.Callisto.Slice(0),
           Moon = .callisto,
           Planet = .jupiter,
-          Name = @id("0580c103-0694-4d6b-b60b-c13ab3e0badc")
-          "Ursa Major"
+          Name = "Ursa Major"
         },
     
         @id("c9cbef1c-4660-432c-83e1-0e9c10c897e0")
@@ -381,8 +354,7 @@ Root root = new() {
           Moon = .titan,
           Planet = .saturn,
           Image = Images.Titan.Slice(0),
-          Name = @id("6c30c617-0402-442b-801c-6c4aa560d92e")
-          "Titan"
+          Name = "Titan"
         },
     
         @id("bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f")
@@ -390,31 +362,27 @@ Root root = new() {
           Moon = .enceladus,
           Planet = .saturn,
           Image = Images.Enceladus.Slice(0),
-          Name = @id("76455b88-8ff4-4da7-9bce-8444965ced99")
-          "Etna Diadem"
+          Name = "Etna Diadem"
         },
     
         @id("0bfa8e27-27e0-41b2-b90b-6d3c9442905a")
         new Outpost {
           Image = Images.Uranus.Slice(0),
-          Name = @id("8a0a6406-0c25-4a2f-a9cf-55b89fc7e22e")
-          "Caelus Anchorpoint",
+          Name = "Caelus Anchorpoint",
           Planet = .uranus
         },
     
         @id("763b50d2-c0b2-4346-b8fb-a092e7337af3")
         new Outpost {
           Image = Images.Neptune.Slice(0),
-          Name = @id("25156663-5977-461a-8191-1f41b46f9366")
-          "Gyre Collective",
+          Name = "Gyre Collective",
           Planet = .neptune
         },
     
         @id("18154c7e-8f9a-4767-b44c-a25b0e1ca234")
         new Outpost {
           Image = Images.Pluto.Slice(0),
-          Name = @id("8fe29521-4991-491c-80db-f4fc99d7bfa1")
-          "Plutocracy",
+          Name = "Plutocracy",
           Planet = .pluto
         }
       ],
@@ -424,8 +392,7 @@ Root root = new() {
         Children = [],
         PixelsPerUnit = 100
       },
-      SortingLayers = @id("e82662a0-10be-45cb-8c4a-a5d8b6b5bb0c")
-      [
+      SortingLayers = [
         @id("88c0d53b-94ee-4f48-839b-9148d07828fb")
         new NeoSortingLayer {
           Name = "Default"
@@ -442,8 +409,7 @@ Root root = new() {
               Name = "Background",
               Position = new(0, 0, 0),
               Size = new(1, 1, 0),
-              Tiles = @id("1a60291c-5123-4090-a4eb-2ba55e9a4ace")
-              [
+              Tiles = [
                 @id("0085b356-6f35-462e-b50d-5e7d85e96ec8")
                 new NeoTileInstance {
                   Cell = new(9, -4)
@@ -3152,8 +3118,7 @@ Root root = new() {
               Name = "Collisions",
               Position = new(0, 0, 0),
               Size = new(1, 1, 0),
-              Tiles = @id("ce061cd0-8895-40cd-ad0e-958714a59d2e")
-              [
+              Tiles = [
                 @id("03c316d0-44a6-4b07-9edf-2efcb9ea9d62")
                 new NeoTileInstance {
                   Cell = new(-1, 3)
@@ -3570,8 +3535,7 @@ Root root = new() {
             new ObjectLayerLink {
               Enabled = true,
               Name = "Objects",
-              Objects = @id("1d57ae36-0e0a-4558-a03b-27b5eb0a733d")
-              [
+              Objects = [
                 @id("4406f40a-2a75-4773-bb54-93507bd9f83a")
                 new RecoveryCacheObject {
                   Children = [
@@ -3649,8 +3613,7 @@ Root root = new() {
               Name = "Blocked Path",
               Position = new(0, 0, 0),
               Size = new(1, 1, 0),
-              Tiles = @id("9f9f4fd7-aa68-4c74-9e80-eb5964717283")
-              [
+              Tiles = [
                 @id("6061777d-44a1-4ae5-9227-e8957c3d4d7d")
                 new NeoTileInstance {
                   Cell = new(0, 1)

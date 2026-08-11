@@ -1,0 +1,9 @@
+/// A sprite flipbook: which sprite to show at each frame index. This is the
+/// segment to reach for when animating a sprite. To animate any other kind of
+/// value — a Vector3 bounce, a Color flash — declare your own segment class
+/// deriving from NeoAnimationSegment.
+@id("system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3")
+@system(kind: .WorldAuthoring, worldKind: .SpriteAnimationSegment)
+class NeoSpriteAnimationSegment : NeoAnimationSegment<SpriteInfo> {
+
+}

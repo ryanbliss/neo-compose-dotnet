@@ -31,8 +31,7 @@ class ExitPromptObject987403 : ExitPromptObject {
       Name = "Background",
       Position = new(0, 0, 0),
       Size = new(1, 1, 0),
-      Tiles = @id("88696e5c-6143-4fba-9d59-03fcdad8dbdb")
-      [
+      Tiles = [
         @id("49d79dcd-cfe8-4f6d-aa0e-f3fef0359828")
         new NeoTileInstance {
           Cell = new(1, 0)
@@ -45,8 +44,8 @@ class ExitPromptObject987403 : ExitPromptObject {
   @locked
   @system(kind: .WorldAuthoring)
   public override NeoCollider? Collider = new NeoCollider {
-    size = new(1, 1),
-    offset = new(0, 0),
+    size = new(0.857, 0.845),
+    offset = new(0.492, 0.477),
     isTrigger = false
   };
 

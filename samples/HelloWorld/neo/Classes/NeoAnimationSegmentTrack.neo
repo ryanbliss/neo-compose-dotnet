@@ -1,0 +1,26 @@
+/// Plays a sequence of values onto one member of one child, on the owning
+/// clip's clock. Where a child track hands off to another clip, this lane is a
+/// leaf: it writes one value per frame to the member its subclass targets.
+///
+/// Derive from it with the child type you author against, so that a Segment
+/// getter can reach that child's own members.
+@id("system_fd551dd8-6e6b-4044-9f32-7445ab344200")
+@system(kind: .WorldAuthoring, worldKind: .AnimationSegmentTrack)
+abstract class NeoAnimationSegmentTrack<
+  @id("system_d4fe9f71-d9d9-4baf-bc52-8de16933b655")
+  TChild extends NeoObjectBase,
+  @id("system_03497842-3381-45a2-b2fa-b2dee36c2759")
+  TValue
+>(NeoDelegate<TChild> selector) : NeoAnimationTrackBase(selector: selector) {
+  /// The sequence of values this lane plays. Your subclass decides where it comes from — a value you store, a lookup, or a getter you write — and it is resolved again on every frame that plays.
+  @id("system_d2d0bf9b-211f-4b2f-bff3-3d6da5766abd")
+  @locked
+  @system(kind: .WorldAuthoring)
+  public abstract NeoAnimationSegment<TValue> Segment { get; }
+
+  /// The child this lane plays against, typed as the child class you derived with, so a Segment getter can read that child's own members.
+  @id("system_b29e7ab9-0b8e-4399-84c1-1203070b75dd")
+  @locked
+  @system(kind: .WorldAuthoring)
+  public override NeoDelegate<TChild> Selector = selector;
+}

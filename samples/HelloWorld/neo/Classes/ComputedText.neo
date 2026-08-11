@@ -2,7 +2,7 @@
 class ComputedText {
   @id("29659610-fc70-4b9c-833e-a6185f745c04")
   @settings(localizable: true)
-  public virtual string baseText = "5ed5d8c1-a01d-47ff-b2ca-d663be283d79";
+  public virtual string baseText = "Hello";
 
   @id("acf7a92c-9ede-4a0d-a00c-c8c64e7a9b80")
   public virtual string fullText {
