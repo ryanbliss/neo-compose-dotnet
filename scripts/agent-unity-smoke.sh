@@ -95,12 +95,125 @@ if [[ ! "$app_status" =~ ^[1-4][0-9][0-9]$ ]]; then
   fail "The rig app at $web_origin is not serving (status ${app_status:-none}). Start it with \"npm run agent:dev\" in the rig's neo-compose worktree."
 fi
 
-unity_editor="${UNITY_EDITOR:-}"
-if [[ -z "$unity_editor" ]]; then
-  unity_editor="$(command -v Unity || true)"
+# --- unity editor ----------------------------------------------------------
+# "It exists and is executable" is NOT enough to launch something as an
+# editor. This host carries a same-named CLI SHIM at ~/.unity/bin/Unity that
+# answers `error: unknown option '-version'` and rejects -batchmode outright,
+# so a bare `command -v Unity` can hand back a binary that dies instantly —
+# observed 2026-08-11.
+#
+# Same policy as resolveUnityEditor() in neo-compose's
+# scripts/agent-rig/unity-login.mts: UNITY_EDITOR is authoritative when set,
+# otherwise the Hub install for the version the sample pins, then PATH. Every
+# candidate is validated with a `-version` probe before it is accepted.
+
+# 15s: a real editor answers -version in well under a second, and the shim
+# this guards against answers instantly. The deadline only has to outlast a
+# cold page-in of the binary, not any Unity work.
+unity_version_probe_deciseconds=150
+
+project_version=""
+version_file="$project_path/ProjectSettings/ProjectVersion.txt"
+if [[ -f "$version_file" ]]; then
+  project_version="$(awk '/^m_EditorVersion:/ { print $2; exit }' "$version_file")"
 fi
-[[ -n "$unity_editor" ]] || fail "Unity was not found. Set UNITY_EDITOR to the Unity 6000.5.4f1 executable."
-[[ -x "$unity_editor" ]] || fail "UNITY_EDITOR is not executable: $unity_editor"
+
+unity_hub_editor_path() {
+  echo "/Applications/Unity/Hub/Editor/$1/Unity.app/Contents/MacOS/Unity"
+}
+
+remediation="Set UNITY_EDITOR to the Unity ${project_version:-editor} executable"
+if [[ -n "$project_version" ]]; then
+  remediation="$remediation (Unity Hub installs it at $(unity_hub_editor_path "$project_version"))"
+fi
+remediation="$remediation. Note that ~/.unity/bin/Unity is a non-editor CLI shim, not an editor: it rejects -batchmode and exits immediately, so it can never run this smoke."
+
+# Probes one candidate. Prints nothing and returns 0 when it is a real editor;
+# otherwise prints the reason it is not, phrased for a human, and returns 1.
+probe_unity_editor() {
+  local candidate="$1" source="$2"
+  if [[ ! -e "$candidate" ]]; then
+    echo "$candidate ($source) does not exist"
+    return 1
+  fi
+  if [[ ! -x "$candidate" ]]; then
+    echo "$candidate ($source) is not executable"
+    return 1
+  fi
+  local probe_log
+  probe_log="$(mktemp -t neo-unity-version-probe)"
+  # Deliberately unpiped: a pipeline would replace the probe's exit status,
+  # and what the binary actually did is the whole signal here. macOS ships no
+  # timeout(1), so the deadline is enforced below by polling the child.
+  "$candidate" -version >"$probe_log" 2>&1 &
+  local probe_pid=$!
+  local waited=0
+  while kill -0 "$probe_pid" 2>/dev/null &&
+    ((waited < unity_version_probe_deciseconds)); do
+    sleep 0.1
+    waited=$((waited + 1))
+  done
+  if kill -0 "$probe_pid" 2>/dev/null; then
+    kill -9 "$probe_pid" 2>/dev/null || true
+    wait "$probe_pid" 2>/dev/null || true
+    rm -f "$probe_log"
+    echo "$candidate ($source) did not answer -version within $((unity_version_probe_deciseconds / 10))s"
+    return 1
+  fi
+  wait "$probe_pid" 2>/dev/null || true
+  # A real editor answers -version with nothing but its version.
+  if grep -Eq '^[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+[abfpx][0-9]+[[:space:]]*$' "$probe_log"; then
+    rm -f "$probe_log"
+    return 0
+  fi
+  local first
+  first="$(head -n 1 "$probe_log")"
+  rm -f "$probe_log"
+  echo "$candidate ($source) answered -version with \"${first:-(no output)}\" instead of a Unity version, so it is not an editor binary (the ~/.unity/bin/Unity CLI shim answers exactly like this and rejects -batchmode)"
+  return 1
+}
+
+unity_editor=""
+unity_editor_source=""
+if [[ -n "${UNITY_EDITOR:-}" ]]; then
+  # An explicit operator override that turns out to be unusable is an ERROR,
+  # never a reason to quietly launch some other editor: the whole point of
+  # setting UNITY_EDITOR is to choose the binary.
+  if rejection="$(probe_unity_editor "$UNITY_EDITOR" UNITY_EDITOR)"; then
+    unity_editor="$UNITY_EDITOR"
+    unity_editor_source="UNITY_EDITOR"
+  else
+    fail "UNITY_EDITOR does not name a usable Unity editor: $rejection. $remediation"
+  fi
+else
+  candidates=()
+  if [[ -n "$project_version" ]]; then
+    candidates+=("$(unity_hub_editor_path "$project_version")|unity-hub")
+  fi
+  path_unity="$(command -v Unity || true)"
+  if [[ -n "$path_unity" ]]; then
+    candidates+=("$path_unity|PATH")
+  fi
+  ((${#candidates[@]} > 0)) || fail "No Unity editor could be located. $remediation"
+  rejections=()
+  for entry in "${candidates[@]}"; do
+    candidate="${entry%%|*}"
+    candidate_source="${entry##*|}"
+    if rejection="$(probe_unity_editor "$candidate" "$candidate_source")"; then
+      unity_editor="$candidate"
+      unity_editor_source="$candidate_source"
+      break
+    fi
+    rejections+=("  - $rejection")
+  done
+  if [[ -z "$unity_editor" ]]; then
+    fail "No usable Unity editor was found. Rejected:
+$(printf '%s\n' "${rejections[@]}")
+$remediation"
+  fi
+fi
+
+echo "Unity editor: $unity_editor ($unity_editor_source, ${project_version:-unknown version})"
 
 log_dir="${TMPDIR:-/tmp}"
 log_dir="${log_dir%/}"
