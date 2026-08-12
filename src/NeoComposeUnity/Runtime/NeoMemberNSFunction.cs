@@ -385,13 +385,14 @@ namespace NeoCompose.Runtime
                     $"Static NSFunction '{function.Member.name}' must be invoked without an instance receiver.");
             }
             args ??= Array.Empty<object?>();
-            if (args.Length != function.ArgumentTypes.Length)
-            {
-                throw new NSGetterRuntimeError(
-                    $"NSFunction '{function.Member.name}' ({function.MemberId}) expects " +
-                    $"{function.ArgumentTypes.Length} arguments but received {args.Length}; " +
-                    "compiled call IR or caller is stale/corrupt.");
-            }
+            // P65 §2.5 callee-side fill: a positionally short call is
+            // completed from the callee record's current defaults before the
+            // `__arg_N__` parameters bind. Below the non-defaulted minimum and
+            // above the full arity remain hard errors.
+            args = NeoParameterDefaults.FillTrailingDefaults(
+                args,
+                function.ArgumentTypes,
+                $"NSFunction '{function.Member.name}' ({function.MemberId})");
             if (ctx.functionCallStack.Count >= MaxCallableDepth)
             {
                 var names = new List<string>(ctx.functionCallStack.Count + 1);

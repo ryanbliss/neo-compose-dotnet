@@ -1354,7 +1354,10 @@ namespace NeoCompose.Runtime.NeoScript
             if (member is FunctionMember)
             {
                 ctx.allocationTracker.ConsumeWorkUnit();
-                return ctx.client.InvokeNativeFunction(memberId, receiver, args);
+                return ctx.client.InvokeNativeFunction(
+                    memberId,
+                    receiver,
+                    FillNativeCallSiteArguments(memberId, args, ctx));
             }
             if (member is NSFunctionMember)
             {
@@ -1367,6 +1370,39 @@ namespace NeoCompose.Runtime.NeoScript
             }
             throw new NSGetterRuntimeError(
                 $"Member '{memberId}' is not a callable Function member.");
+        }
+
+        /// <summary>
+        /// P65 §2.5 for native call sites: the fill happens in the evaluator
+        /// BEFORE dispatch, so <c>PrepareNativeFunctionInvocation</c> always
+        /// receives full arity and its exact-match check stands. A member
+        /// whose effective signature cannot resolve passes through untouched —
+        /// the existing broken-signature error keeps firing inside dispatch,
+        /// exactly as before. NSFunction calls need no twin here: their fill
+        /// is callee-side in <c>NeoNSFunctionRuntime.ExecuteResolved</c>.
+        /// Internal because the linked-frame executor's twin dispatch
+        /// (<c>NeoScriptExecutor.EvalFunctionCall</c>) fills through the same
+        /// seam.
+        /// </summary>
+        internal static object?[] FillNativeCallSiteArguments(
+            string memberId,
+            object?[] args,
+            Context ctx)
+        {
+            if (!ctx.client.TryResolveFunctionMember(
+                    memberId,
+                    out FunctionMember? signature))
+            {
+                return args;
+            }
+            if (!NeoParameterDefaults.HasAnyDefault(signature.argumentTypes))
+            {
+                return args;
+            }
+            return NeoParameterDefaults.FillTrailingDefaults(
+                args,
+                signature.argumentTypes,
+                $"Function '{signature.name}' ({memberId})");
         }
 
         /// <summary>

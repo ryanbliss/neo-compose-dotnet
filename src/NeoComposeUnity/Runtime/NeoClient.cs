@@ -5398,15 +5398,18 @@ namespace NeoCompose.Runtime
                     }
                     claimedByClass[constructorId] = pair.Key;
 
-                    string signature = ConstructorPositionalSignature(record);
-                    if (positionalSignatures.TryGetValue(
-                            signature,
-                            out string? collidingId))
+                    foreach (string signature in
+                        ConstructorEffectivePositionalSignatures(record))
                     {
-                        throw new InvalidOperationException(
-                            $"Constructors '{collidingId}' and '{constructorId}' on class '{schemaClass.name}' have the same positional signature and would generate two identical C# constructors. Overloads must differ by arity or parameter type, not only by parameter name.");
+                        if (positionalSignatures.TryGetValue(
+                                signature,
+                                out string? collidingId))
+                        {
+                            throw new InvalidOperationException(
+                                $"Constructors '{collidingId}' and '{constructorId}' on class '{schemaClass.name}' have the same positional signature and would generate two identical C# constructors. Overloads must differ by arity or parameter type, not only by parameter name.");
+                        }
+                        positionalSignatures[signature] = constructorId;
                     }
-                    positionalSignatures[signature] = constructorId;
                 }
             }
 
@@ -5638,20 +5641,35 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// P43 §6.1.1 — the signature C# would see. <c>required</c> is
+        /// P43 §6.1.1 — the signatures C# would see. <c>required</c> is
         /// deliberately excluded: <c>T</c> and <c>T?</c> are the same positional
         /// type for a reference type, so two overloads differing only there
         /// would generate two identical C# constructors.
+        ///
+        /// <para>P65 §2.2 re-judges the rule against every effective arity a
+        /// defaulted signature exposes: <c>Foo(int a, int b = 2)</c> occupies
+        /// both <c>(int)</c> and <c>(int, int)</c> positionally, so each
+        /// prefix from the non-defaulted count up to the full arity is one
+        /// signature here, exactly as the web-side declaration-time check
+        /// keys them.</para>
         /// </summary>
-        private static string ConstructorPositionalSignature(ConstructorRecord record)
+        private static IReadOnlyList<string> ConstructorEffectivePositionalSignatures(
+            ConstructorRecord record)
         {
-            var parts = new List<string>(record.argumentTypes?.Length ?? 0);
-            foreach (FunctionArgumentTypeInfo argument in
-                record.argumentTypes ?? System.Array.Empty<FunctionArgumentTypeInfo>())
+            FunctionArgumentTypeInfo[] argumentTypes =
+                record.argumentTypes ?? System.Array.Empty<FunctionArgumentTypeInfo>();
+            var parts = new List<string>(argumentTypes.Length);
+            foreach (FunctionArgumentTypeInfo argument in argumentTypes)
             {
                 parts.Add(ConstructorPositionalTypeKey(argument));
             }
-            return string.Join(",", parts);
+            int minimumArity = NeoParameterDefaults.NonDefaultedCount(argumentTypes);
+            var signatures = new List<string>(argumentTypes.Length - minimumArity + 1);
+            for (int arity = minimumArity; arity <= argumentTypes.Length; arity++)
+            {
+                signatures.Add(string.Join(",", parts.GetRange(0, arity)));
+            }
+            return signatures;
         }
 
         /// <summary>

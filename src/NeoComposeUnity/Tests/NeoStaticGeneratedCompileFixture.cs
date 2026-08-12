@@ -49,6 +49,14 @@ namespace NeoCompose.StaticCompileFixture
         internal static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableClassFactory> NeoWritableValueFactories =>
             DialogueWritableValueFactories;
 
+        internal static readonly IReadOnlyDictionary<Type, string> NeoClassIdsByType =
+            new Dictionary<Type, string>
+            {
+                [typeof(global::NeoCompose.StaticCompileFixture.SmokeItem)] = "static-smoke-item-class",
+                [typeof(global::NeoCompose.StaticCompileFixture.SmokeRoot)] = "static-smoke-root-class",
+                [typeof(global::NeoCompose.StaticCompileFixture.SmokeRules)] = "static-smoke-rules-class",
+            };
+
         internal object? ResolveDialogueValue(string valueId) =>
             NeoGeneratedTypesSupport.ResolveClassValue(
                 Client,
@@ -62,7 +70,21 @@ namespace NeoCompose.StaticCompileFixture
                 ["static-smoke-reset"] = (client, receiver, args) =>
                 {
                 var amount = Convert.ToInt32(args[0]);
-                return global::NeoCompose.StaticCompileFixture.SmokeRules.Reset(amount);
+                var rate = NeoDecimalValues.Parse((string)args[1]!);
+                var dir = SmokeDirection.FromOptionId(NeoGeneratedTypesSupport.ToStringArray(args[2])[0]);
+                return global::NeoCompose.StaticCompileFixture.SmokeRules.Reset(amount, rate, dir);
+                },
+                ["static-smoke-greet"] = (client, receiver, args) =>
+                {
+                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<SmokeRules>(
+                    client,
+                    receiver,
+                    DialogueReadOnlyValueFactories,
+                    DialogueWritableValueFactories,
+                    "Greet",
+                    "static-smoke-greet");
+                var name = (string)args[0]!;
+                return target.Greet(name);
                 },
             };
 
@@ -88,6 +110,7 @@ namespace NeoCompose.StaticCompileFixture
                 throw new InvalidOperationException("Only one active StaticCompileSmokeNeo is allowed while generated static members are enabled. Dispose the existing project client first.");
             }
             Client = client;
+            Client.RegisterGeneratedClassFactories(DialogueReadOnlyValueFactories, DialogueWritableValueFactories);
             Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(DeferredNativeFunctionInvokers);
             Instance = this;
@@ -132,6 +155,76 @@ namespace NeoCompose.StaticCompileFixture
         }
     }
 
+    public sealed class SmokeDirection : IEquatable<SmokeDirection>, global::NeoCompose.Runtime.INeoEnumOption
+    {
+        private static readonly Dictionary<string, SmokeDirection> values = new Dictionary<string, SmokeDirection>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private SmokeDirection(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly SmokeDirection North = FromOptionId("static-smoke-direction-north");
+        public static readonly SmokeDirection South = FromOptionId("static-smoke-direction-south");
+
+        public static SmokeDirection FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new SmokeDirection(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<SmokeDirection>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "static-smoke-direction-north" => true,
+                "static-smoke-direction-south" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "static-smoke-direction-north" => "North",
+                "static-smoke-direction-south" => "South",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? StaticCompileSmokeNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(SmokeDirection value) => value.optionId;
+        public static implicit operator SmokeDirection(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(SmokeDirection? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as SmokeDirection);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(SmokeDirection? left, SmokeDirection? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(SmokeDirection? left, SmokeDirection? right) => !(left == right);
+    }
+
+    public interface ISmokeGreeter
+    {
+        string Greet(string name = "friend");
+    }
 
     public interface IReadOnlySmokeRoot : INeoValueReference
     {
@@ -268,15 +361,9 @@ namespace NeoCompose.StaticCompileFixture
         {
         }
 
-        public SmokeItem()
-            : this(StaticCompileSmokeNeo.RequireInstance().Client, CreateFactoryNode(), false, NeoValueOwnership.Session)
+        public SmokeItem(string label, string motto = "GO\n\"far\"", SmokeDirection? dir = null, string? nick = null)
+            : this(StaticCompileSmokeNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StaticCompileSmokeNeo.RequireInstance().Client, "static-smoke-item-class", "static-smoke-item-ctor", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("label", label), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("motto", motto), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("dir", dir ?? SmokeDirection.North), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("nick", nick) }), false, NeoValueOwnership.Session)
         {
-        }
-
-        private static NeoMemberClassWritable CreateFactoryNode()
-        {
-            var client = StaticCompileSmokeNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "static-smoke-item-class");
         }
 
         internal static SmokeItem Create(NeoClient client, NeoMemberClass node)
@@ -369,11 +456,16 @@ namespace NeoCompose.StaticCompileFixture
     }
     public interface ISmokeRulesStaticFunctionHandler
     {
-        int Reset(int amount);
+        int Reset(int amount, decimal rate, SmokeDirection dir);
         void Wait(NeoDeferredFunction deferred);
     }
 
-    public interface IReadOnlySmokeRules : INeoValueReference
+    public interface ISmokeRulesFunctionHandler
+    {
+        string Greet(string name);
+    }
+
+    public interface IReadOnlySmokeRules : INeoValueReference, ISmokeGreeter
     {
         bool IsReadOnly { get; }
 
@@ -382,6 +474,8 @@ namespace NeoCompose.StaticCompileFixture
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out SmokeRules writable);
+
+        new string Greet(string name = "friend");
     }
 
     public partial class SmokeRules : NeoGeneratedClassValue, IReadOnlySmokeRules
@@ -447,13 +541,14 @@ namespace NeoCompose.StaticCompileFixture
             }
         }
 
-        public static int Reset(int amount)
+        public static int Reset(int amount, decimal rate = 2.75m, SmokeDirection? dir = null)
         {
+            var dirValue = dir ?? SmokeDirection.South;
             if (SmokeRules.StaticFunctionHandler is null)
             {
                 throw new NeoFunctionHandlerMissingException("Cannot invoke static Function 'Reset' because SmokeRules.StaticFunctionHandler is not set.");
             }
-            return SmokeRules.StaticFunctionHandler.Reset(amount);
+            return SmokeRules.StaticFunctionHandler.Reset(amount, rate, dirValue);
         }
 
         public static Task Wait()
@@ -462,25 +557,30 @@ namespace NeoCompose.StaticCompileFixture
             return client.InvokeDeferredNativeFunction("static-smoke-wait", null, new object?[] { });
         }
 
-        public static int Calculate(int amount)
+        public static int Calculate(int amount, int bonus = -1)
         {
             var client = StaticCompileSmokeNeo.RequireInstance().Client;
             var node = new NeoMemberNSFunction(client, "static-smoke-calculate", null, NeoValueOwnership.Session);
-            var result = node.InvokeStatic(new object?[] { amount });
+            var result = node.InvokeStatic(new object?[] { amount, bonus });
             return Convert.ToInt32(result);
         }
 
         public static ISmokeRulesStaticFunctionHandler? StaticFunctionHandler { get; set; }
 
-        public SmokeRules()
-            : this(StaticCompileSmokeNeo.RequireInstance().Client, CreateFactoryNode(), false, NeoValueOwnership.Session)
+        public ISmokeRulesFunctionHandler? FunctionHandler
+        {
+            get => FunctionHandlerObject as ISmokeRulesFunctionHandler;
+            set => FunctionHandlerObject = value;
+        }
+
+        public SmokeRules(string tag, int seed = -3)
+            : this(StaticCompileSmokeNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StaticCompileSmokeNeo.RequireInstance().Client, "static-smoke-rules-class", "static-smoke-rules-ctor", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("tag", tag), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("seed", seed) }), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode()
+        public SmokeRules()
+            : this(StaticCompileSmokeNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StaticCompileSmokeNeo.RequireInstance().Client, "static-smoke-rules-class", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
-            var client = StaticCompileSmokeNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "static-smoke-rules-class");
         }
 
         internal static SmokeRules Create(NeoClient client, NeoMemberClass node)
@@ -525,6 +625,18 @@ namespace NeoCompose.StaticCompileFixture
         public bool TryWritable(out SmokeRules writable)
         {
             return TryWritable<SmokeRules>(out writable);
+        }
+
+
+        public string Greet(string name = "friend")
+        {
+            if (FunctionHandler is null)
+            {
+                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
+                throw new NeoFunctionHandlerMissingException(
+                    $"Cannot invoke Function 'Greet' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
+            }
+            return FunctionHandler.Greet(name);
         }
 
         public sealed class Fields
