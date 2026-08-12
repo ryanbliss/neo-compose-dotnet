@@ -2,8 +2,27 @@
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-08-12
+
 ### Added
 
+- Accept parameter default values (P65) on every `argumentTypes` surface:
+  `FunctionArgumentTypeInfo.defaultValue` is a one-key wrapper whose payload
+  the parameter's own kind interprets. Absence is the only spelling of "no
+  default", so a wrapper carrying `value: null` is an explicit null default
+  and a bare `defaultValue: null` on the wire is rejected as malformed.
+- Fill omitted arguments callee-side from the callee's current
+  `ArgumentTypes`, mirroring the web evaluator: NSFunction invocation, both
+  native-dispatch evaluator paths, declared constructors, and base clauses
+  accept a trailing-omission arity range whose minimum is the non-defaulted
+  parameter count. Enum defaults materialize from the stored option id,
+  decimals keep their canonical string, and an explicit null default fills
+  `null`. Closure and delegate arity stay exact (P60).
+- Resolve declared and base constructor calls by argument-name subset with
+  C#'s betterness tie-break — the candidate filling in the fewest defaults
+  wins, a tie reports the existing ambiguity error, and a constructor whose
+  every parameter is defaulted is parameterless-callable. Missing arguments
+  for non-defaulted parameters keep their previous error text.
 - Read the P53 agent-rig manifest (`rig.json`, `formatVersion` 1) in the editor,
   selected by `NEO_COMPOSE_RIG_MANIFEST` or a `.neo-rig` pointer walked up from
   the Unity project. The reader rejects an unsupported format version, a
@@ -18,6 +37,17 @@
 - `NeoComposeBatchSync.Run` — a headless synchronize entry point for
   `-batchmode -executeMethod`, backed by
   `NeoComposeNonInteractiveConfirmationService` so no dialog can open.
+
+### Changed
+
+- **Breaking:** the project export schema version is now 18. Exports must be
+  regenerated from a web app of the same release; the SDK enforces exact
+  equality. An SDK that predates P65 would read a defaulted parameter as
+  plain-mandatory and throw arity errors at evaluation instead of filling the
+  default, which is what the gate exists to prevent.
+- Register every effective positional signature of a defaulted constructor in
+  the duplicate-overload guard, matching the declaration-time distinctness
+  check the web compiler applies.
 
 ## [0.20.4] - 2026-08-10
 
