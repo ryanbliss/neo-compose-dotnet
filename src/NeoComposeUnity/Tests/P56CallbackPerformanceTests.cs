@@ -37,14 +37,32 @@ namespace NeoCompose.Tests
                 MeasureDurationMs(workload, capturedBindingCount);
             }
 
+            var durationSamples = CapturedBindingCounts
+                .ToDictionary(
+                    capturedBindingCount => capturedBindingCount,
+                    _ => new double[MeasurementCount]);
+            for (int measurementIndex = 0;
+                measurementIndex < MeasurementCount;
+                measurementIndex++)
+            {
+                // Rotate the order so time-correlated editor or host noise is
+                // distributed across scope sizes instead of biasing one group.
+                for (int offset = 0;
+                    offset < CapturedBindingCounts.Length;
+                    offset++)
+                {
+                    int capturedBindingCount = CapturedBindingCounts[
+                        (measurementIndex + offset)
+                        % CapturedBindingCounts.Length];
+                    durationSamples[capturedBindingCount][measurementIndex] =
+                        MeasureDurationMs(workload, capturedBindingCount);
+                }
+            }
+
             CallbackMeasurement[] measurements = CapturedBindingCounts
                 .Select(capturedBindingCount => new CallbackMeasurement(
                     capturedBindingCount,
-                    Median(Enumerable.Range(0, MeasurementCount)
-                        .Select(_ => MeasureDurationMs(
-                            workload,
-                            capturedBindingCount))
-                        .ToArray())))
+                    Median(durationSamples[capturedBindingCount])))
                 .ToArray();
 
             foreach (CallbackMeasurement measurement in measurements)
