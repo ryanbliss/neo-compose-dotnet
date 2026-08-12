@@ -131,7 +131,7 @@ namespace NeoCompose.Tests
             {
                 schema.metadata = new ProjectExportMetadata
                 {
-                    schemaVersion = 18,
+                    schemaVersion = NeoProjectExportContract.CurrentSchemaVersion,
                     projectId = schema.project.id,
                     versionId = "unit-test-version",
                 };

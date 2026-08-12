@@ -270,6 +270,30 @@ namespace NeoCompose.Tests
             Assert.AreEqual("immutableToSessionLookup", WritabilityKind.ImmutableToSessionLookup);
         }
 
+        [Test]
+        public void ReferencePointer_ProvenanceOptInRoundTripsAndAbsentFlagStaysAbsent()
+        {
+            var source = new ReferencePointer
+            {
+                type = PointerKind.Reference,
+                valueId = "authored-child",
+                withProvenance = true,
+            };
+
+            string json = JsonConvert.SerializeObject(source);
+            var roundTripped = (ReferencePointer)JsonConvert.DeserializeObject<Pointer>(json)!;
+
+            StringAssert.Contains("\"withProvenance\":true", json);
+            Assert.AreEqual(true, roundTripped.withProvenance);
+            StringAssert.DoesNotContain(
+                "withProvenance",
+                JsonConvert.SerializeObject(new ReferencePointer
+                {
+                    type = PointerKind.Reference,
+                    valueId = "exact-child",
+                }));
+        }
+
         /// <summary>
         /// P43 §1 — a computed member default carries source plus compiled IR
         /// and no baked <c>value</c>.
@@ -757,9 +781,9 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CompilerRevision_EightIsTheCurrentCeiling()
+        public void CompilerRevision_NineIsTheCurrentCeiling()
         {
-            Assert.AreEqual(8, FunctionWithReturnType.CurrentCompilerRevision);
+            Assert.AreEqual(9, FunctionWithReturnType.CurrentCompilerRevision);
         }
 
         [Test]

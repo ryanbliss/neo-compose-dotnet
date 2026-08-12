@@ -193,7 +193,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void DelegateSelector_ReplacesLegacyChildLookupAtRuntime()
+        public void DelegateSelector_ResolvesAuthoredReferenceToPlacedChildByProvenance()
         {
             ProjectData data = BuildEquipProjectData();
             data.classes[TrackBaseClassId].schema.Remove("Child");
@@ -219,6 +219,11 @@ namespace NeoCompose.Tests
             ObjectMemberValue track = (ObjectMemberValue)data.values["track-0"];
             track.value!.Remove("Child");
             track.value["Selector"] = "track-selector-value";
+            data.values["authored-c-value"] = ObjectValue(
+                "authored-c-value",
+                RigClassId,
+                new Dictionary<string, string>());
+            data.values["c-value"].sourceValueId = "authored-c-value";
             data.values["track-selector-value"] = new DelegateMemberValue
             {
                 id = "track-selector-value",
@@ -226,7 +231,7 @@ namespace NeoCompose.Tests
                 updatedAt = "x",
                 value = new NeoDelegateValue
                 {
-                    code = "() => this.Children[0]",
+                    code = "() => Reference<Rig>(id: \"authored-c-value\", withProvenance: true)",
                     action = new FunctionWithReturnType
                     {
                         compilerRevision = 7,
@@ -271,7 +276,8 @@ namespace NeoCompose.Tests
                                 pointer = new ReferencePointer
                                 {
                                     type = PointerKind.Reference,
-                                    valueId = "c-value",
+                                    valueId = "authored-c-value",
+                                    withProvenance = true,
                                 },
                             },
                         },

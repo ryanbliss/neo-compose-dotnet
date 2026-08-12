@@ -1089,7 +1089,36 @@ namespace NeoCompose.Runtime.NeoScript
                 case ReferencePointer rp:
                 {
                     var ownership = ResolveOwnershipForValueId(ctx, rp.valueId);
-                    if (!ctx.client.TryGetValue(ownership, rp.valueId, out MemberValue? row))
+                    MemberValue? row = null;
+                    if (rp.withProvenance == true
+                        && FindRowIdByReference(ctx.thisValue, ctx) is string receiverId)
+                    {
+                        NeoValueOwnership receiverOwnership =
+                            FindRowOwnershipByReference(ctx.thisValue, ctx)
+                            ?? ctx.valueOwnership;
+                        try
+                        {
+                            if (ctx.client.TryResolveProvenanceReference(
+                                    receiverOwnership,
+                                    receiverId,
+                                    rp.valueId,
+                                    out MemberValue? provenanceRow,
+                                    out NeoValueOwnership provenanceOwnership))
+                            {
+                                row = provenanceRow;
+                                ownership = provenanceOwnership;
+                            }
+                        }
+                        catch (InvalidOperationException error)
+                        {
+                            throw new NSGetterRuntimeError(error.Message);
+                        }
+                    }
+                    if (row is null
+                        && !ctx.client.TryGetValue(
+                            ownership,
+                            rp.valueId,
+                            out row))
                     {
                         throw new NSGetterRuntimeError(
                             $"Missing value reference: {rp.valueId}");
