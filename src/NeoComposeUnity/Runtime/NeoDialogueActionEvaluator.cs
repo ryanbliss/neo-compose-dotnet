@@ -2476,7 +2476,17 @@ namespace NeoCompose.Runtime
                     bool deferred = client.IsNativeFunctionDeferred(memberId);
                     if (!deferred)
                     {
-                        value = client.InvokeNativeFunction(memberId, receiver, args);
+                        // P65 §2.5 — filled BEFORE dispatch so the native
+                        // exact-arity check stands. Deferred functions reject
+                        // defaulted parameters (§1.4), so the branch below
+                        // stays unfilled.
+                        value = client.InvokeNativeFunction(
+                            memberId,
+                            receiver,
+                            NSGetterEvaluator.FillNativeCallSiteArguments(
+                                memberId,
+                                args,
+                                ctx));
                     }
                     else
                     {

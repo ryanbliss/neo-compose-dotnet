@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 17,
+    "schemaVersion": 18,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -188,6 +188,23 @@
           "name": "amount",
           "type": 2,
           "required": true
+        },
+        {
+          "name": "rate",
+          "type": 20,
+          "required": true,
+          "defaultValue": {
+            "value": "2.75"
+          }
+        },
+        {
+          "name": "dir",
+          "type": 8,
+          "required": true,
+          "enumId": "static-smoke-direction",
+          "defaultValue": {
+            "value": "static-smoke-direction-south"
+          }
         }
       ],
       "returnTypeInfo": {
@@ -233,6 +250,14 @@
           "name": "amount",
           "type": 2,
           "required": true
+        },
+        {
+          "name": "bonus",
+          "type": 2,
+          "required": true,
+          "defaultValue": {
+            "value": -1
+          }
         }
       ],
       "returnTypeInfo": {
@@ -241,10 +266,96 @@
       },
       "createdAt": 0,
       "updatedAt": 0
+    },
+    "static-smoke-greet": {
+      "id": "static-smoke-greet",
+      "projectId": "test-project",
+      "name": "Greet",
+      "kind": 13,
+      "locked": false,
+      "required": false,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": false,
+      "deferred": false,
+      "argumentTypes": [
+        {
+          "name": "name",
+          "type": 3,
+          "required": true,
+          "defaultValue": {
+            "value": "friend"
+          }
+        }
+      ],
+      "returnTypeInfo": {
+        "type": 3,
+        "required": true
+      },
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
-  "enums": {},
-  "interfaces": {},
+  "enums": {
+    "static-smoke-direction": {
+      "id": "static-smoke-direction",
+      "name": "Smoke Direction",
+      "options": {
+        "static-smoke-direction-north": {
+          "id": "static-smoke-direction-north",
+          "name": "North",
+          "text": "North"
+        },
+        "static-smoke-direction-south": {
+          "id": "static-smoke-direction-south",
+          "name": "South",
+          "text": "South"
+        }
+      },
+      "optionKeyOrder": [
+        "static-smoke-direction-north",
+        "static-smoke-direction-south"
+      ],
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    }
+  },
+  "interfaces": {
+    "static-smoke-greeter": {
+      "id": "static-smoke-greeter",
+      "projectId": "test-project",
+      "name": "ISmokeGreeter",
+      "members": {
+        "Greet": {
+          "id": "static-smoke-greeter-greet",
+          "kind": "function",
+          "accessModifierKind": "public",
+          "returnTypeInfo": {
+            "type": 3,
+            "required": true
+          },
+          "argumentTypes": [
+            {
+              "name": "name",
+              "type": 3,
+              "required": true,
+              "defaultValue": {
+                "value": "friend"
+              }
+            }
+          ],
+          "deferred": false
+        }
+      },
+      "memberKeyOrder": [
+        "Greet"
+      ],
+      "extendsInterfaceIds": [],
+      "createdAt": 0,
+      "updatedAt": 0
+    }
+  },
   "classes": {
     "static-smoke-root-class": {
       "id": "static-smoke-root-class",
@@ -264,7 +375,8 @@
       "hiddenInMemberSelector": false,
       "isAbstract": false,
       "createdAt": 0,
-      "updatedAt": 0
+      "updatedAt": 0,
+      "requiredConstructorId": "static-smoke-item-ctor"
     },
     "static-smoke-rules-class": {
       "id": "static-smoke-rules-class",
@@ -277,10 +389,82 @@
         "Current": "static-smoke-current",
         "Reset": "static-smoke-reset",
         "Wait": "static-smoke-wait",
-        "Calculate": "static-smoke-calculate"
+        "Calculate": "static-smoke-calculate",
+        "Greet": "static-smoke-greet"
       },
       "hiddenInMemberSelector": false,
       "isAbstract": false,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "implementsInterfaceIds": [
+        "static-smoke-greeter"
+      ],
+      "constructorIds": [
+        "static-smoke-rules-ctor"
+      ]
+    }
+  },
+  "constructors": {
+    "static-smoke-item-ctor": {
+      "id": "static-smoke-item-ctor",
+      "projectId": "test-project",
+      "classId": "static-smoke-item-class",
+      "argumentTypes": [
+        {
+          "name": "label",
+          "type": 3,
+          "required": true
+        },
+        {
+          "name": "motto",
+          "type": 3,
+          "required": true,
+          "defaultValue": {
+            "value": "GO\n\"far\""
+          }
+        },
+        {
+          "name": "dir",
+          "type": 8,
+          "required": true,
+          "enumId": "static-smoke-direction",
+          "defaultValue": {
+            "value": "static-smoke-direction-north"
+          }
+        },
+        {
+          "name": "nick",
+          "type": 3,
+          "required": false,
+          "defaultValue": {
+            "value": null
+          }
+        }
+      ],
+      "code": null,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "static-smoke-rules-ctor": {
+      "id": "static-smoke-rules-ctor",
+      "projectId": "test-project",
+      "classId": "static-smoke-rules-class",
+      "argumentTypes": [
+        {
+          "name": "tag",
+          "type": 3,
+          "required": true
+        },
+        {
+          "name": "seed",
+          "type": 2,
+          "required": true,
+          "defaultValue": {
+            "value": -3
+          }
+        }
+      ],
+      "code": "",
       "createdAt": 0,
       "updatedAt": 0
     }

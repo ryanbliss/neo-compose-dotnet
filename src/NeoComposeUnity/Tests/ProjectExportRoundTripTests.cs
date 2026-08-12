@@ -66,10 +66,11 @@ namespace NeoCompose.Tests
         /// export from the segment rig after materializing a required-constructor
         /// track, its nested required-constructor segment, and two constructed
         /// entries in a genuine unordered list. Unity must consume that exact
-        /// schema-17 wire shape without retaining executable row initializers.
+        /// materialized wire shape (restamped to the current schema version)
+        /// without retaining executable row initializers.
         /// </summary>
         [Test]
-        public void P61SegmentRig_MaterializedConstructorRowsLoadAtSchemaSeventeen()
+        public void P61SegmentRig_MaterializedConstructorRowsLoadAtTheCurrentSchema()
         {
             string json = LoadFixture("p61-segment-rig-schema17.json");
             ProjectData data = Deserialize(json);
@@ -490,7 +491,7 @@ namespace NeoCompose.Tests
         public void ConstructorRecord_AndClassConstructorIdsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 17, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 18, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -559,7 +560,7 @@ namespace NeoCompose.Tests
         public void RequiredConstructorId_AndBaseInitializerFieldsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 17, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 18, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -628,7 +629,7 @@ namespace NeoCompose.Tests
         public void ConstructorCode_IsAbsentWhenNoInitBlockIsDeclared()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 17, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 18, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},

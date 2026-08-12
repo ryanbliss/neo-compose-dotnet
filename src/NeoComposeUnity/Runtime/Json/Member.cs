@@ -373,10 +373,29 @@ namespace NeoCompose.Runtime.Json
         public FunctionWithReturnType? setter;
     }
 
+    /// <summary>
+    /// Mirror of TS-side <c>INSParameterDefault</c> (P65 §3.1). Present iff
+    /// the parameter is defaulted; a present wrapper with a null
+    /// <see cref="value"/> is an explicit null default. The payload carries no
+    /// kind of its own — it is interpreted by the parameter's own
+    /// <c>type</c>/<c>enumId</c>: bool, integer, float, decimal canonical
+    /// string, string, or a single enum option id.
+    /// </summary>
+    public sealed class ParameterDefaultValue
+    {
+        public object? value;
+    }
+
     [JsonConverter(typeof(FunctionArgumentTypeInfoConverter))]
     public class FunctionArgumentTypeInfo : TypeInfo
     {
         public string name = null!;
+        /// <summary>
+        /// P65 §3.1 — the parameter's constant default. Absent means no
+        /// default; <c>{ value: null }</c> is an explicit null default.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public ParameterDefaultValue? defaultValue;
         public string? classId;
         public string? interfaceId;
         public string? enumId;
@@ -434,6 +453,7 @@ namespace NeoCompose.Runtime.Json
                     "Function argument type info is missing 'name'."),
                 type = type,
                 required = json.Value<bool?>("required") ?? false,
+                defaultValue = ReadParameterDefault(json["defaultValue"]),
                 classId = json.Value<string>("classId"),
                 interfaceId = json.Value<string>("interfaceId"),
                 enumId = json.Value<string>("enumId"),
@@ -475,6 +495,37 @@ namespace NeoCompose.Runtime.Json
                 };
             }
             return (MemberKind)typeToken.Value<int>();
+        }
+
+        /// <summary>
+        /// P65 §3.1 — reads the <c>{ value }</c> default wrapper. Only the
+        /// §1.2 constant scalars are legal payloads, so anything structured is
+        /// a malformed export rather than a tolerable unknown.
+        /// </summary>
+        private static ParameterDefaultValue? ReadParameterDefault(JToken? token)
+        {
+            if (token is null) return null;
+            if (token is not JObject wrapper)
+            {
+                throw new JsonSerializationException(
+                    "Function argument 'defaultValue' must be an object when present.");
+            }
+            if (!wrapper.TryGetValue("value", out JToken? valueToken))
+            {
+                throw new JsonSerializationException(
+                    "Function argument 'defaultValue' is missing 'value'.");
+            }
+            object? value = valueToken.Type switch
+            {
+                JTokenType.Null => null,
+                JTokenType.Boolean => valueToken.Value<bool>(),
+                JTokenType.Integer => valueToken.Value<long>(),
+                JTokenType.Float => valueToken.Value<double>(),
+                JTokenType.String => valueToken.Value<string>(),
+                _ => throw new JsonSerializationException(
+                    $"Function argument 'defaultValue' payload of type {valueToken.Type} is not a P65 §1.2 constant."),
+            };
+            return new ParameterDefaultValue { value = value };
         }
 
         private static TypeInfo? ReadDelegateReturnType(

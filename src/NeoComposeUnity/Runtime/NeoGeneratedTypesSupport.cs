@@ -3349,16 +3349,18 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>
+        /// P65 §2.2 subset matching: the call must cover every non-defaulted
+        /// parameter and name no unknown parameter. With duplicates rejected,
+        /// those two checks also bound the total at the full arity. The
+        /// coverage check runs first so an uncovered required parameter keeps
+        /// its pre-P65 error.
+        /// </summary>
         private static void AssertDeclaredArgumentNamesMatch(
             string className,
             ConstructorRecord record,
             IReadOnlyList<string> argumentNames)
         {
-            if (argumentNames.Count != record.argumentTypes.Length)
-            {
-                throw new InvalidOperationException(
-                    $"Declared constructor '{record.id}' on class '{className}' expects {record.argumentTypes.Length} arguments but the call supplies {argumentNames.Count}. Regenerate the NeoScript IR from the current schema.");
-            }
             var supplied = new HashSet<string>(StringComparer.Ordinal);
             foreach (string name in argumentNames)
             {
@@ -3368,13 +3370,20 @@ namespace NeoCompose.Runtime
                         $"Declared constructor call on class '{className}' supplies argument '{name}' more than once.");
                 }
             }
+            var declared = new HashSet<string>(StringComparer.Ordinal);
             foreach (FunctionArgumentTypeInfo argument in record.argumentTypes)
             {
-                if (!supplied.Contains(argument.name))
-                {
-                    throw new InvalidOperationException(
-                        $"Declared constructor '{record.id}' on class '{className}' is missing argument '{argument.name}'. Regenerate the NeoScript IR from the current schema.");
-                }
+                declared.Add(argument.name);
+                if (supplied.Contains(argument.name)) continue;
+                if (NeoParameterDefaults.HasDefault(argument)) continue;
+                throw new InvalidOperationException(
+                    $"Declared constructor '{record.id}' on class '{className}' is missing argument '{argument.name}'. Regenerate the NeoScript IR from the current schema.");
+            }
+            foreach (string name in argumentNames)
+            {
+                if (declared.Contains(name)) continue;
+                throw new InvalidOperationException(
+                    $"Declared constructor '{record.id}' on class '{className}' names unknown argument '{name}'. Regenerate the NeoScript IR from the current schema.");
             }
         }
 
@@ -3508,7 +3517,10 @@ namespace NeoCompose.Runtime
                     baseClassId!,
                     baseClass.name,
                     candidateId);
-                if (candidate.argumentTypes.Length == 0) return candidate;
+                // P65 §2.3: a constructor whose every parameter is defaulted
+                // is parameterless-callable — a zero-parameter list satisfies
+                // this vacuously.
+                if (AllParametersDefaulted(candidate)) return candidate;
             }
             throw new InvalidOperationException(
                 $"Declared constructor '{record.id}' on class '{owningClass.name}' must call a base constructor: '{baseClass.name}' declares constructors but none parameterless.");
@@ -3533,7 +3545,11 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Declared constructor '{record.id}' names a base argument more than once.");
             }
-            ConstructorRecord? match = null;
+            // P65 §2.2 subset matching with C#'s betterness: the clause must
+            // cover every non-defaulted parameter and name no unknown
+            // parameter; among the matches, the candidate filling in the
+            // fewest defaults wins, and a tie is ambiguous.
+            var matches = new List<ConstructorRecord>();
             foreach (string candidateId in baseConstructorIds)
             {
                 ConstructorRecord candidate = RequireConstructorRecord(
@@ -3542,6 +3558,27 @@ namespace NeoCompose.Runtime
                     baseClass.name,
                     candidateId);
                 if (!ArgumentNameSetMatches(candidate, supplied)) continue;
+                matches.Add(candidate);
+            }
+            if (matches.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    $"Declared constructor '{record.id}' base call matches no constructor of class '{baseClass.name}'.");
+            }
+            int fewestFillIns = int.MaxValue;
+            foreach (ConstructorRecord candidate in matches)
+            {
+                fewestFillIns = Math.Min(
+                    fewestFillIns,
+                    candidate.argumentTypes.Length - supplied.Count);
+            }
+            ConstructorRecord? match = null;
+            foreach (ConstructorRecord candidate in matches)
+            {
+                if (candidate.argumentTypes.Length - supplied.Count != fewestFillIns)
+                {
+                    continue;
+                }
                 if (match is not null)
                 {
                     throw new InvalidOperationException(
@@ -3552,7 +3589,7 @@ namespace NeoCompose.Runtime
             if (match is null)
             {
                 throw new InvalidOperationException(
-                    $"Declared constructor '{record.id}' base call matches no constructor of class '{baseClass.name}'.");
+                    $"Declared constructor '{record.id}' resolved its base call to an empty betterness set on class '{baseClass.name}'.");
             }
             return match;
         }
@@ -3578,14 +3615,38 @@ namespace NeoCompose.Runtime
             return all;
         }
 
+        /// <summary>
+        /// P65 §2.2's subset rule: the supplied names must cover every
+        /// non-defaulted parameter and name no unknown parameter. With no
+        /// defaults in play this degenerates to P43's exact name-set match.
+        /// </summary>
         private static bool ArgumentNameSetMatches(
             ConstructorRecord record,
             HashSet<string> supplied)
         {
-            if (record.argumentTypes.Length != supplied.Count) return false;
+            int covered = 0;
             foreach (FunctionArgumentTypeInfo argument in record.argumentTypes)
             {
-                if (!supplied.Contains(argument.name)) return false;
+                if (supplied.Contains(argument.name))
+                {
+                    covered++;
+                    continue;
+                }
+                if (!NeoParameterDefaults.HasDefault(argument)) return false;
+            }
+            return covered == supplied.Count;
+        }
+
+        /// <summary>
+        /// P65 §2.3 — whether every parameter is defaulted, which makes the
+        /// constructor parameterless-callable. Vacuously true for an empty
+        /// parameter list.
+        /// </summary>
+        private static bool AllParametersDefaulted(ConstructorRecord record)
+        {
+            foreach (FunctionArgumentTypeInfo argument in record.argumentTypes)
+            {
+                if (!NeoParameterDefaults.HasDefault(argument)) return false;
             }
             return true;
         }
@@ -3741,11 +3802,22 @@ namespace NeoCompose.Runtime
             var ordered = new object?[record.argumentTypes.Length];
             for (int i = 0; i < record.argumentTypes.Length; i++)
             {
-                string name = record.argumentTypes[i].name;
-                if (!argumentValues.TryGetValue(name, out object? value))
+                FunctionArgumentTypeInfo argument = record.argumentTypes[i];
+                if (!argumentValues.TryGetValue(argument.name, out object? value))
                 {
+                    // P65 §2.5 callee-side fill: an omitted name binds the
+                    // parameter's current stored default.
+                    // `AssertDeclaredArgumentNamesMatch` already rejected
+                    // omissions without one.
+                    if (NeoParameterDefaults.HasDefault(argument))
+                    {
+                        ordered[i] = NeoParameterDefaults.DefaultRuntimeValue(
+                            argument,
+                            $"Constructor '{record.id}'");
+                        continue;
+                    }
                     throw new InvalidOperationException(
-                        $"Declared constructor '{record.id}' is missing a value for argument '{name}'.");
+                        $"Declared constructor '{record.id}' is missing a value for argument '{argument.name}'.");
                 }
                 ordered[i] = value;
             }
@@ -3770,12 +3842,14 @@ namespace NeoCompose.Runtime
                     ?? throw new InvalidOperationException(
                         $"Declared constructor '{record.id}' resolved an empty base link.");
                 var baseArguments = new object?[baseRecord.argumentTypes.Length];
+                var boundBaseSlots = new bool[baseRecord.argumentTypes.Length];
                 ConstructorBaseArgument[] declaredBaseArguments =
                     record.baseArguments ?? Array.Empty<ConstructorBaseArgument>();
                 FunctionWithReturnType[] compiled =
                     record.compiledBaseArguments ?? Array.Empty<FunctionWithReturnType>();
                 for (int i = 0; i < declaredBaseArguments.Length; i++)
                 {
+                    boundBaseSlots[link.baseArgumentTargets[i]] = true;
                     // `this` is the instance under construction, not null: step
                     // 1 has already run every member initializer, so a base
                     // argument may legitimately read `this.X` as well as the
@@ -3791,6 +3865,25 @@ namespace NeoCompose.Runtime
                         ctx.WithThis(thisValue),
                         expectValue: true,
                         $"Base argument '{declaredBaseArguments[i].name}' of constructor '{record.id}'");
+                }
+                // P65 §2.5 callee-side fill, same as a direct constructor
+                // call: the base overload's own current default completes each
+                // omitted slot. Base resolution already required every
+                // unbound slot to be defaulted, so a bare slot here is stale
+                // IR rather than a tolerable absence.
+                for (int i = 0; i < baseRecord.argumentTypes.Length; i++)
+                {
+                    if (boundBaseSlots[i]) continue;
+                    FunctionArgumentTypeInfo baseParameter =
+                        baseRecord.argumentTypes[i];
+                    if (!NeoParameterDefaults.HasDefault(baseParameter))
+                    {
+                        throw new InvalidOperationException(
+                            $"Declared constructor '{record.id}' binds no argument for base parameter '{baseParameter.name}' of constructor '{baseRecord.id}'. Regenerate the NeoScript IR from the current schema.");
+                    }
+                    baseArguments[i] = NeoParameterDefaults.DefaultRuntimeValue(
+                        baseParameter,
+                        $"Constructor '{baseRecord.id}'");
                 }
                 RunDeclaredConstructorChain(
                     client,

@@ -13,11 +13,13 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
-        /// P62 §7 — 17 is the first export that may carry NSAction members.
-        /// The SDK accepts exactly this version, so an older export is
-        /// regenerated rather than partially understood.
+        /// P65 §3.3 — 18 is the first export whose parameters may carry a
+        /// constant <c>defaultValue</c>. The SDK accepts exactly this version,
+        /// so an older export is regenerated rather than partially understood:
+        /// a pre-P65 SDK would accept calls the project no longer requires
+        /// arguments for, then throw arity errors at evaluation.
         /// </summary>
-        public const int CurrentSchemaVersion = 17;
+        public const int CurrentSchemaVersion = 18;
     }
 
     public class ProjectExportMetadataSemver
