@@ -340,9 +340,10 @@ namespace NeoCompose.Runtime.Json
         /// <c>switch</c> instruction; revision 6 adds the P52
         /// <c>try</c> instruction; revision 7 adds first-class delegate calls;
         /// revision 8 adds the P62 NSAction listener instructions and the
-        /// <c>callAction</c> pointer.
+        /// <c>callAction</c> pointer; revision 9 adds provenance-aware
+        /// <c>Reference&lt;T&gt;</c> pointers.
         /// </summary>
-        public const int CurrentCompilerRevision = 8;
+        public const int CurrentCompilerRevision = 9;
 
         /// <summary>
         /// Optional for backward compatibility. Absence means legacy

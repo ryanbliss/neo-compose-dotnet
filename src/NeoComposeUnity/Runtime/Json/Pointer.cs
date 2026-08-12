@@ -35,6 +35,14 @@ namespace NeoCompose.Runtime.Json
     public class ReferencePointer : Pointer
     {
         public string valueId = null!;
+
+        /// <summary>
+        /// When true, resolve <see cref="valueId"/> as an authored source id
+        /// within the lexical receiver's cloned ownership graph. Absent and
+        /// false retain exact-id reference semantics.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? withProvenance;
     }
 
     /// <summary>Mirror of <c>INSPointerVariable</c>.</summary>

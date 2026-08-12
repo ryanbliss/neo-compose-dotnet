@@ -3539,6 +3539,177 @@ namespace NeoCompose.Runtime
             foreach (var pair in data.values) yield return pair;
         }
 
+        /// <summary>
+        /// Resolves an authored value id to the nearest effective row carrying
+        /// that id as <see cref="MemberValue.sourceValueId"/> in the lexical
+        /// receiver's ownership graph. This is the runtime half of
+        /// <c>Reference&lt;T&gt;(id: ..., withProvenance: true)</c>.
+        /// </summary>
+        internal bool TryResolveProvenanceReference(
+            NeoValueOwnership receiverOwnership,
+            string receiverValueId,
+            string sourceValueId,
+            [NotNullWhen(true)] out MemberValue? value,
+            out NeoValueOwnership ownership)
+        {
+            // Resolve one effective overlay, just like TryGetValue does for an
+            // evaluation context. Save and Session are independent graphs;
+            // rows with the same stable id in the other overlay must neither
+            // contribute parent edges nor become duplicate provenance matches.
+            var rows = new List<
+                (string valueId, MemberValue row, NeoValueOwnership ownership)>();
+            ProjectSaveData? overlay = receiverOwnership == NeoValueOwnership.Asset
+                ? null
+                : GetWritableStore(receiverOwnership);
+            if (overlay is not null)
+            {
+                foreach (var pair in overlay.values)
+                {
+                    if (!pair.Value.IsRemoved)
+                    {
+                        rows.Add((pair.Key, pair.Value, receiverOwnership));
+                    }
+                }
+            }
+            foreach (var pair in data.values)
+            {
+                if (overlay?.values.ContainsKey(pair.Key) == true) continue;
+                rows.Add((
+                    pair.Key,
+                    pair.Value,
+                    EffectiveAuthoredOwnership(pair.Key, pair.Value)));
+            }
+            if (!rows.Any(entry => entry.valueId == receiverValueId))
+            {
+                value = null;
+                ownership = receiverOwnership;
+                return false;
+            }
+
+            // Match the web evaluator's structural index exactly: every row
+            // id contained by another row is a parent link, as is the explicit
+            // containerId used by unordered lists. Do not key these links by
+            // runtime storage ownership. Untyped List/Dictionary rows inherit
+            // the ownership of their surrounding Class graph and may still be
+            // represented by authored asset rows in a sparse Save/Session
+            // overlay. Adding ownership here would split one constructed graph
+            // at those aggregate rows.
+            var parents = new Dictionary<string, HashSet<string>>();
+            void AddParent(string childId, string parentId)
+            {
+                if (!parents.TryGetValue(childId, out var values))
+                {
+                    values = new HashSet<string>();
+                    parents[childId] = values;
+                }
+                values.Add(parentId);
+            }
+            foreach (var entry in rows)
+            {
+                if (!string.IsNullOrEmpty(entry.row.containerId))
+                {
+                    AddParent(entry.valueId, entry.row.containerId!);
+                }
+                switch (entry.row)
+                {
+                    case ObjectMemberValue obj when obj.value is not null:
+                        foreach (string childId in obj.value.Values)
+                        {
+                            AddParent(childId, entry.valueId);
+                        }
+                        break;
+                    case ArrayMemberValue arr when arr.value is not null:
+                        foreach (string childId in arr.value)
+                        {
+                            AddParent(childId, entry.valueId);
+                        }
+                        break;
+                }
+            }
+
+            Dictionary<string, int> AncestorDistances(string start)
+            {
+                var distances = new Dictionary<string, int> { [start] = 0 };
+                var pending = new Queue<string>();
+                pending.Enqueue(start);
+                while (pending.Count > 0)
+                {
+                    var current = pending.Dequeue();
+                    int nextDistance = distances[current] + 1;
+                    if (!parents.TryGetValue(current, out var currentParents))
+                    {
+                        continue;
+                    }
+                    foreach (var parent in currentParents)
+                    {
+                        if (distances.TryGetValue(parent, out int prior)
+                            && prior <= nextDistance)
+                        {
+                            continue;
+                        }
+                        distances[parent] = nextDistance;
+                        pending.Enqueue(parent);
+                    }
+                }
+                return distances;
+            }
+
+            var receiverDistances = AncestorDistances(receiverValueId);
+            int nearestDistance = int.MaxValue;
+            var nearest = new List<
+                (string valueId, MemberValue row, NeoValueOwnership ownership)>();
+            foreach (var candidate in rows)
+            {
+                if (!string.Equals(
+                        candidate.row.sourceValueId,
+                        sourceValueId,
+                        System.StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                var candidateDistances = AncestorDistances(candidate.valueId);
+                int distance = int.MaxValue;
+                foreach (var receiverAncestor in receiverDistances)
+                {
+                    if (candidateDistances.TryGetValue(
+                            receiverAncestor.Key,
+                            out int candidateDistance))
+                    {
+                        distance = System.Math.Min(
+                            distance,
+                            receiverAncestor.Value + candidateDistance);
+                    }
+                }
+                if (distance < nearestDistance)
+                {
+                    nearestDistance = distance;
+                    nearest.Clear();
+                    nearest.Add(candidate);
+                }
+                else if (distance == nearestDistance
+                    && distance != int.MaxValue)
+                {
+                    nearest.Add(candidate);
+                }
+            }
+
+            if (nearest.Count == 0)
+            {
+                value = null;
+                ownership = receiverOwnership;
+                return false;
+            }
+            if (nearest.Count > 1)
+            {
+                throw new InvalidOperationException(
+                    $"Value reference '{sourceValueId}' is ambiguous within the constructed object graph.");
+            }
+            var selected = nearest[0];
+            value = selected.row;
+            ownership = selected.ownership;
+            return true;
+        }
+
         private static MemberValue CloneValueRow(MemberValue row)
         {
             MemberValue clone = row switch

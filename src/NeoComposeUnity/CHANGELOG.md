@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-08-12
+
+### Added
+
+- Deserialize and evaluate the optional `withProvenance` field on NeoScript
+  reference pointers. A true flag selects the nearest receiver-scoped clone
+  whose `sourceValueId` matches the authored id; absent or false continues to
+  resolve the exact row id. Equal-distance clone matches fail as ambiguous.
+
+### Changed
+
+- **Breaking:** the project export schema version is now 19 and the supported
+  NeoScript compiler revision is now 9. This prevents older SDKs from silently
+  ignoring provenance on animation selectors and targeting shared authored
+  children.
 ## [0.21.0] - 2026-08-12
 
 ### Added

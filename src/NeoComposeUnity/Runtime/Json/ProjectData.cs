@@ -13,13 +13,13 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
-        /// P65 §3.3 — 18 is the first export whose parameters may carry a
-        /// constant <c>defaultValue</c>. The SDK accepts exactly this version,
-        /// so an older export is regenerated rather than partially understood:
-        /// a pre-P65 SDK would accept calls the project no longer requires
-        /// arguments for, then throw arity errors at evaluation.
+        /// 19 is the first export whose NeoScript reference pointers may opt
+        /// into clone provenance with <c>withProvenance: true</c>. An older SDK
+        /// would silently exact-match the authored id and select a shared row,
+        /// so it must reject the export rather than misapply an instance-scoped
+        /// animation override.
         /// </summary>
-        public const int CurrentSchemaVersion = 18;
+        public const int CurrentSchemaVersion = 19;
     }
 
     public class ProjectExportMetadataSemver
