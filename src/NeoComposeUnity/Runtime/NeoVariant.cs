@@ -149,6 +149,15 @@ namespace NeoCompose.Runtime
                 inheritedStorageOwnership: ownership)
         {
         }
+
+        /// <summary>
+        /// This wrapper is a borrowed view over a value the caller owns, and it
+        /// is disposed as soon as one variant finishes applying. Releasing the
+        /// backing value's clips here would stop the receiver's running
+        /// animations and discard compiled definitions it is still playing —
+        /// `ToVariant` writes members, it does not end the object's life.
+        /// </summary>
+        protected override bool OwnsBackingValueLifetime => false;
     }
 
     /// <summary>

@@ -85,8 +85,28 @@ namespace NeoCompose.Tests
 
             // §4.2 step 4 — a value, and the receiver's, never a replacement.
             Assert.IsNotNull(applied);
-            // The Apply closure ran, then Overrides refined it: last writer wins.
+            // Ordering, provably: Apply wrote Label AND Trace; Overrides then
+            // overwrote Label only. `Trace` is what makes a skipped Apply fail
+            // this test rather than pass it silently.
+            Assert.AreEqual("apply-ran", ReadRowMember(client, targetId, "Trace"));
             Assert.AreEqual("up", ReadRowLabel(client, targetId));
+        }
+
+        [Test]
+        public void VariantApply_OverridesWinOverTheApplyClosure()
+        {
+            NeoClient client = LoadClient();
+            NSGetterEvaluator.Context ctx = Context(client);
+            string targetId = NewSessionInstance(client);
+
+            NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantApplyPointer(
+                    Reference(targetId),
+                    VariantRef(WidgetClassId, "variant-up")))),
+                ctx);
+
+            // Apply set Label to "applied"; Overrides is step 2, so it wins.
+            Assert.AreNotEqual("applied", ReadRowLabel(client, targetId));
         }
 
         [Test]
@@ -238,13 +258,21 @@ namespace NeoCompose.Tests
 
         private static string ReadRowLabel(NeoClient client, string valueId)
         {
+            return ReadRowMember(client, valueId, "Label");
+        }
+
+        private static string ReadRowMember(
+            NeoClient client,
+            string valueId,
+            string schemaKey)
+        {
             if (!client.TryGetValue(valueId, out ObjectMemberValue? row)) return string.Empty;
-            if (row.value is null || !row.value.TryGetValue("Label", out string? labelId))
+            if (row.value is null || !row.value.TryGetValue(schemaKey, out string? memberId))
             {
                 return string.Empty;
             }
-            return client.TryGetValue(labelId, out StringMemberValue? label)
-                ? label.value ?? string.Empty
+            return client.TryGetValue(memberId, out StringMemberValue? member)
+                ? member.value ?? string.Empty
                 : string.Empty;
         }
 
@@ -262,7 +290,13 @@ namespace NeoCompose.Tests
                 id = WidgetClassId,
                 projectId = ProjectId,
                 name = "Widget",
-                schema = new Dictionary<string, string> { ["Label"] = "widget-label" },
+                schema = new Dictionary<string, string>
+                {
+                    ["Label"] = "widget-label",
+                    // Written only by Apply, never by any Overrides partial, so
+                    // a skipped Apply is observable.
+                    ["Trace"] = "widget-trace",
+                },
             };
             // The seeded family, reduced to the shape the handle reads.
             var variantClass = new NeoSchemaClass
@@ -310,7 +344,8 @@ namespace NeoCompose.Tests
                     Return(ClassConstructorPointer(WidgetClassId))),
                 ["value-up-apply"] = VoidClosure(
                     "value-up-apply",
-                    AssignLabel("applied")),
+                    AssignMember("Label", "applied"),
+                    AssignMember("Trace", "apply-ran")),
                 ["value-up-overrides"] = ObjectValue(
                     "value-up-overrides",
                     WidgetClassId,
@@ -368,6 +403,7 @@ namespace NeoCompose.Tests
                     [rootSave.id] = rootSave,
                     [rootSession.id] = rootSession,
                     ["widget-label"] = StringField("widget-label", "Label"),
+                    ["widget-trace"] = StringField("widget-trace", "Trace"),
                     // `Initialize` returns TObject; `Apply` is void (§1).
                     ["variant-initialize"] = DelegateField(
                         "variant-initialize",
@@ -484,7 +520,9 @@ namespace NeoCompose.Tests
             },
         };
 
-        private static AssignInstruction AssignLabel(string value) => new()
+        private static AssignInstruction AssignMember(
+            string schemaKey,
+            string value) => new()
         {
             type = InstructionKind.Assign,
             target = new WriteTarget
@@ -499,7 +537,7 @@ namespace NeoCompose.Tests
                             type = PointerKind.Variable,
                             variableId = "__this__",
                         },
-                        key = Literal("Label"),
+                        key = Literal(schemaKey),
                     },
                 },
                 typeInfo = new PrimitiveTypeInfo

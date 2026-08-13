@@ -1234,6 +1234,33 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<ConsoleObject>(out writable);
         }
 
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public ConsoleObject ToVariant(NeoVariant<ConsoleObject> variant)
+        {
+            ThrowIfReadOnly("ConsoleObject.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
+        }
+
+        public static class Variants
+        {
+            /// <summary>
+            /// The class itself with no variant applied (P67 §3.4).
+            /// </summary>
+            public static NeoVariant<ConsoleObject> Base =>
+                NeoGeneratedTypesSupport.ResolveBaseVariant<ConsoleObject>(
+                    HelloWorldNeo.RequireInstance().Client,
+                    "060620d4-9f8b-417a-ba43-d6f010fc6edc");
+
+            public static NeoVariant<ConsoleObject> Idle =>
+                NeoGeneratedTypesSupport.ResolveVariant<ConsoleObject>(
+                    HelloWorldNeo.RequireInstance().Client,
+                    "p67-fixture-variant-console");
+        }
+
         public override string Name
         {
             get
@@ -2108,6 +2135,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool TryWritable(out RecoveryCacheObject writable)
         {
             return TryWritable<RecoveryCacheObject>(out writable);
+        }
+
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public RecoveryCacheObject ToVariant(NeoVariant<RecoveryCacheObject> variant)
+        {
+            ThrowIfReadOnly("RecoveryCacheObject.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
         }
 
         public static NeoClassRef<RecoveryCacheObject> Definition { get; } = new NeoClassRef<RecoveryCacheObject>("27874300-3e78-4d1c-802b-caf34d25d1ab");
@@ -3477,6 +3515,17 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<ExitPromptObject>(out writable);
         }
 
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public ExitPromptObject ToVariant(NeoVariant<ExitPromptObject> variant)
+        {
+            ThrowIfReadOnly("ExitPromptObject.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
+        }
+
         public override NeoList<NeoObjectBase> Children
         {
             get
@@ -4571,6 +4620,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool TryWritable(out PlayerSpawnObject writable)
         {
             return TryWritable<PlayerSpawnObject>(out writable);
+        }
+
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public PlayerSpawnObject ToVariant(NeoVariant<PlayerSpawnObject> variant)
+        {
+            ThrowIfReadOnly("PlayerSpawnObject.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
         }
 
         public static NeoClassRef<PlayerSpawnObject> Definition { get; } = new NeoClassRef<PlayerSpawnObject>("7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f");
@@ -6931,6 +6991,44 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<VaultPlaqueObject>(out writable);
         }
 
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public VaultPlaqueObject ToVariant(NeoVariant<VaultPlaqueObject> variant)
+        {
+            ThrowIfReadOnly("VaultPlaqueObject.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
+        }
+
+        public new static class Variants
+        {
+            /// <summary>
+            /// The class itself with no variant applied (P67 §3.4).
+            /// </summary>
+            public static NeoVariant<VaultPlaqueObject> Base =>
+                NeoGeneratedTypesSupport.ResolveBaseVariant<VaultPlaqueObject>(
+                    HelloWorldNeo.RequireInstance().Client,
+                    "cacf06dd-db1d-4f48-99c7-f3cea5a6961f");
+
+            public static NeoVariant<VaultPlaqueObject> Default =>
+                NeoGeneratedTypesSupport.ResolveVariant<VaultPlaqueObject>(
+                    HelloWorldNeo.RequireInstance().Client,
+                    "p67-fixture-variant-default");
+
+            public static class Trees
+            {
+                public static class Oak
+                {
+                    public static NeoVariant<VaultPlaqueObject> Ancient =>
+                        NeoGeneratedTypesSupport.ResolveVariant<VaultPlaqueObject>(
+                            HelloWorldNeo.RequireInstance().Client,
+                            "p67-fixture-variant-oak");
+                }
+            }
+        }
+
         public static NeoClassRef<VaultPlaqueObject> Definition { get; } = new NeoClassRef<VaultPlaqueObject>("cacf06dd-db1d-4f48-99c7-f3cea5a6961f");
 
         public override NeoList<NeoObjectBase> Children
@@ -8233,6 +8331,17 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<ExitPromptObject37f67d>(out writable);
         }
 
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public ExitPromptObject37f67d ToVariant(NeoVariant<ExitPromptObject37f67d> variant)
+        {
+            ThrowIfReadOnly("ExitPromptObject37f67d.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
+        }
+
         public static NeoClassRef<ExitPromptObject37f67d> Definition { get; } = new NeoClassRef<ExitPromptObject37f67d>("neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d");
 
         public override string Name
@@ -8503,6 +8612,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool TryWritable(out ExitPromptObjecta26352 writable)
         {
             return TryWritable<ExitPromptObjecta26352>(out writable);
+        }
+
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public ExitPromptObjecta26352 ToVariant(NeoVariant<ExitPromptObjecta26352> variant)
+        {
+            ThrowIfReadOnly("ExitPromptObjecta26352.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
         }
 
         public static NeoClassRef<ExitPromptObjecta26352> Definition { get; } = new NeoClassRef<ExitPromptObjecta26352>("neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352");
@@ -9764,6 +9884,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool TryWritable(out ExitPromptObject987403 writable)
         {
             return TryWritable<ExitPromptObject987403>(out writable);
+        }
+
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public ExitPromptObject987403 ToVariant(NeoVariant<ExitPromptObject987403> variant)
+        {
+            ThrowIfReadOnly("ExitPromptObject987403.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
         }
 
         public static NeoClassRef<ExitPromptObject987403> Definition { get; } = new NeoClassRef<ExitPromptObject987403>("neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403");
@@ -14715,6 +14846,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool TryWritable(out NeoObject writable)
         {
             return TryWritable<NeoObject>(out writable);
+        }
+
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public NeoObject ToVariant(NeoVariant<NeoObject> variant)
+        {
+            ThrowIfReadOnly("NeoObject.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
         }
 
         public TChild? GetChild<TChild>(string? name = null) where TChild : NeoGeneratedClassValue

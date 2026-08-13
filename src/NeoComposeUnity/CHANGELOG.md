@@ -16,6 +16,12 @@
   place (`ToVariant`). A variant's `Overrides` and `ChildOverrides` are null
   when unauthored, which means empty everywhere they are read.
 
+### Fixed
+
+- Applying a variant no longer releases the receiver's compiled animation
+  clips or stops its running animations: variant application writes members,
+  it does not end the object's life.
+
 ### Changed
 
 - **Breaking:** the project export schema version is now 21. Exports must be

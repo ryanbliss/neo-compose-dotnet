@@ -103,7 +103,7 @@ namespace NeoCompose.Runtime
         {
             if (isDisposed) return;
             isDisposed = true;
-            client.ReleaseAnimationClips(this);
+            if (OwnsBackingValueLifetime) client.ReleaseAnimationClips(this);
             foreach (var subscription in subscriptions.ToArray())
             {
                 subscription.Dispose();
@@ -176,6 +176,21 @@ namespace NeoCompose.Runtime
         {
             // Do nothing by default
         }
+
+        /// <summary>
+        /// Whether disposing this wrapper should release everything keyed to
+        /// the BACKING VALUE — currently the compiled animation clips, which
+        /// <see cref="NeoClient.ReleaseAnimationClips"/> drops by value
+        /// identity, not by wrapper identity.
+        ///
+        /// <para>True for every generated class: a generated wrapper is the
+        /// value's representative, so its disposal is the value going away.
+        /// A short-lived wrapper minted over a value someone else owns must
+        /// override this to false, or disposing it would stop the real owner's
+        /// running animations and throw away definitions it is still using
+        /// (P67 §7.2's variant-application adapter is the case in point).</para>
+        /// </summary>
+        protected virtual bool OwnsBackingValueLifetime => true;
 
 #if UNITY_EDITOR
         public virtual void OnDidSynchronize()
