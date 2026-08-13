@@ -116,6 +116,7 @@ namespace NeoCompose.Unity.Editor
                 var incremental = await TryBuildIncrementalExportAsync(
                     config,
                     projectJsonPath,
+                    generatedTypesPath,
                     onProgress);
                 if (incremental?.unchanged == true)
                 {
@@ -136,6 +137,16 @@ namespace NeoCompose.Unity.Editor
                 if (diagnosticErrors.Length > 0)
                 {
                     LogDiagnostics(exportResponse.diagnostics);
+                }
+
+                if (!isIncremental && string.IsNullOrWhiteSpace(exportResponse.generatedTypes))
+                {
+                    return NeoComposeSyncResult.Failure(
+                        "Synchronization stopped because the full export returned empty generated C#. Existing synchronized files were left unchanged.");
+                }
+
+                if (diagnosticErrors.Length > 0)
+                {
                     if (!confirmations.Confirm(
                             "Neo Compose generated C# has errors",
                             FormatDiagnosticsForDialog(diagnosticErrors) +
@@ -240,11 +251,14 @@ namespace NeoCompose.Unity.Editor
         private async Task<IncrementalExportAttempt?> TryBuildIncrementalExportAsync(
             NeoComposeConfig config,
             string projectJsonPath,
+            string generatedTypesPath,
             Action<string>? onProgress)
         {
             var state = exportCache.Load(config.projectId, config.versionId);
             if (state == null || state.schemaVersion != 1) return null;
             if (!assets.FileExists(projectJsonPath)) return null;
+            if (!assets.FileExists(generatedTypesPath)) return null;
+            if (string.IsNullOrWhiteSpace(assets.ReadAllText(generatedTypesPath))) return null;
 
             var delta = await apiClient.ExportProjectDeltaAsync(
                 config.apiBaseUrl,

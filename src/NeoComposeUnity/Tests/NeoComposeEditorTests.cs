@@ -519,6 +519,48 @@ namespace NeoCompose.Tests
                 cache.state?.snapshots.Select(snapshot => snapshot.id).ToArray());
         }
 
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase("   ")]
+        public async Task Synchronizer_InvalidGeneratedTypesArtifactForcesFullExport(
+            string? existingGeneratedTypes)
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            var assets = new FakeAssetService();
+            assets.files["Assets/Resources/Neo/project.json"] = "{}";
+            if (existingGeneratedTypes != null)
+            {
+                assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = existingGeneratedTypes;
+            }
+            var cache = new FakeExportCache
+            {
+                state = new NeoComposeUnityExportSyncState
+                {
+                    cursor = new NeoComposeUnityExportCursor
+                    {
+                        createdAt = 100,
+                        transactionIds = new List<string> { "tx-1" },
+                        versionsStamp = "1:100",
+                    },
+                },
+            };
+            var synchronizer = new NeoComposeSynchronizer(
+                api,
+                new FakeConfirmationService(true),
+                assets,
+                cache);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsTrue(result.success, result.message);
+            Assert.AreEqual(0, api.deltaExportCalls);
+            Assert.AreEqual(1, api.fullExportCalls);
+            Assert.AreEqual(
+                "// generated",
+                assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
+        }
+
         [Test]
         public async Task Synchronizer_FullExportCachesRelationHeadsWithoutPayloadSnapshots()
         {
@@ -622,6 +664,7 @@ namespace NeoCompose.Tests
                 },
             };
             var assets = new FakeAssetService();
+            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing generated";
             assets.files["Assets/Resources/Neo/project.json"] = "{}";
             var cache = new FakeExportCache
             {
@@ -1480,6 +1523,40 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task Synchronizer_RefusesEmptyGeneratedCodeWithoutMutatingExistingFiles()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.exportResponse.generatedTypes = "";
+            api.exportResponse.projectJson = "{ \"project\": \"new\" }";
+            api.exportResponse.diagnostics.Add(new NeoComposeCodegenDiagnostic
+            {
+                severity = "error",
+                path = "members.bad",
+                message = "Generation failed.",
+            });
+            var assets = new FakeAssetService();
+            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing generated";
+            assets.files["Assets/Resources/Neo/project.json"] = "{ \"project\": \"existing\" }";
+            var confirmations = new FakeConfirmationService(true);
+            var synchronizer = new NeoComposeSynchronizer(api, confirmations, assets);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsFalse(result.success);
+            StringAssert.Contains("empty generated C#", result.message);
+            Assert.AreEqual(
+                "// existing generated",
+                assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
+            Assert.AreEqual(
+                "{ \"project\": \"existing\" }",
+                assets.files["Assets/Resources/Neo/project.json"]);
+            Assert.AreEqual(0, confirmations.calls.Count);
+            Assert.IsFalse(assets.savedConfig);
+            Assert.IsNull(assets.postSynchronizeProjectJsonPath);
+        }
+
+        [Test]
         public async Task Synchronizer_CanContinueAndWriteFilesAfterExportDiagnostics()
         {
             var config = MakeConfig();
@@ -1698,7 +1775,7 @@ namespace NeoCompose.Tests
                 projectId = "project-1",
                 projectName = "Project One",
                 projectJson = "{}",
-                generatedTypes = "",
+                generatedTypes = "// generated",
             };
             public readonly NeoComposeProjectEditResponse editResponse = new();
             public string? lastEditApiBaseUrl;
