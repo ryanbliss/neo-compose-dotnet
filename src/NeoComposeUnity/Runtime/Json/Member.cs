@@ -637,6 +637,21 @@ namespace NeoCompose.Runtime.Json
         public int sliceIndex;
     }
 
+    /// <summary>
+    /// P67 §6. The `{classId, variantId}` pair a `NeoVariant&lt;TTarget&gt;`
+    /// member stores. A null <see cref="variantId"/> selects the base entry —
+    /// the class itself with no variant applied — and is a real selection, not
+    /// an absent one.
+    /// </summary>
+    public class VariantRefValue
+    {
+        public string classId = string.Empty;
+        public string? variantId;
+    }
+
+    /// <summary>Mirror of TS-side <c>TMemberVariant</c>.</summary>
+    public class VariantMember : Member<VariantRefValue?> { }
+
     /// <summary>Mirror of TS-side <c>TMemberSprite</c>.</summary>
     public class SpriteMember : Member<SpriteValue?>
     {
@@ -756,6 +771,7 @@ namespace NeoCompose.Runtime.Json
                 case MemberKind.FunctionRef: return typeof(FunctionRefMember);
                 case MemberKind.NSDelegate: return typeof(DelegateMember);
                 case MemberKind.NSAction: return typeof(ActionMember);
+                case MemberKind.Variant: return typeof(VariantMember);
                 case MemberKind.Vector2: return typeof(Vector2Member);
                 case MemberKind.Vector2Int: return typeof(Vector2IntMember);
                 case MemberKind.Vector3: return typeof(Vector3Member);

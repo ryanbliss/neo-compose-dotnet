@@ -1064,6 +1064,56 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// P67 §7.4 — reads a `Variant` member's stored `{classId, variantId}`
+        /// pair into a resolved handle.
+        ///
+        /// <para>A null <c>variantId</c> resolves to the base entry of the
+        /// *stored* class, which may be a subclass of the member's declared
+        /// target: §6 covariance is a property of the value, so the read has to
+        /// honour it rather than re-deriving the class from `T`.</para>
+        ///
+        /// <para>Returns null only when the member holds no selection at all,
+        /// which a nullable declaration is the only way to reach.</para>
+        /// </summary>
+        [System.ComponentModel.EditorBrowsable(
+            System.ComponentModel.EditorBrowsableState.Never)]
+        public static NeoVariant<T>? ResolveVariantValue<T>(NeoMemberVariant node)
+            where T : NeoGeneratedClassValue
+        {
+            if (node is null) throw new ArgumentNullException(nameof(node));
+            VariantRefValue? selection = node.value?.value;
+            if (selection is null)
+            {
+                if (!node.member.required) return null;
+                throw new InvalidOperationException(
+                    $"Required variant member '{node.member.name}' has no selection.");
+            }
+            if (selection.variantId is null)
+            {
+                return node.Client.GetOrCreateBaseVariant<T>(selection.classId);
+            }
+            return node.Client.GetOrCreateVariant<T>(selection.variantId);
+        }
+
+        /// <summary>
+        /// P67 §7.4 — the write half. A variant member is written by identity:
+        /// the handle already knows which class and which record it names, and
+        /// nothing about the variant's own graph is copied into the member.
+        /// </summary>
+        [System.ComponentModel.EditorBrowsable(
+            System.ComponentModel.EditorBrowsableState.Never)]
+        public static NeoValueWritePayload? VariantValue<T>(NeoVariant<T>? variant)
+            where T : NeoGeneratedClassValue
+        {
+            if (variant is null) return Value<VariantRefValue>(null);
+            return Value(new VariantRefValue
+            {
+                classId = variant.ClassId,
+                variantId = variant.VariantId,
+            });
+        }
+
+        /// <summary>
         /// P67 §4.2 — the seam generated `ToVariant` methods call. Application
         /// is always in place; the value is <paramref name="source"/>.
         /// </summary>

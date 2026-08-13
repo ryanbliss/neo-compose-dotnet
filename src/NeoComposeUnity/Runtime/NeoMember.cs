@@ -222,6 +222,7 @@ namespace NeoCompose.Runtime
                 FunctionRefMember functionRef => new NeoMemberFunctionRef(client, functionRef, overrideValueId),
                 DelegateMember delegateMember => new NeoMemberDelegate(client, delegateMember, overrideValueId),
                 ActionMember actionMember => new NeoMemberAction(client, actionMember, overrideValueId),
+                VariantMember variantMember => new NeoMemberVariant(client, variantMember, overrideValueId),
                 SpriteMember sp => new NeoMemberSprite(client, sp, overrideValueId),
                 AudioMember au => new NeoMemberAudio(client, au, overrideValueId),
                 Vector2Member v2 => new NeoMemberVector2(client, v2, overrideValueId),

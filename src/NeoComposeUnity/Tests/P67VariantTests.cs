@@ -208,6 +208,144 @@ namespace NeoCompose.Tests
                 NeoGeneratedTypesSupport.ApplyVariant(hero, null!));
         }
 
+        // -------------------------------------------------------------------
+        // §7.4 — the Variant member property's read and write halves.
+        // -------------------------------------------------------------------
+
+        private static NeoMemberVariant VariantNode(
+            NeoClient client,
+            bool required,
+            VariantRefValue? stored)
+        {
+            var member = new VariantMember
+            {
+                id = "member-chosen",
+                name = "Chosen",
+                kind = MemberKind.Variant,
+                required = required,
+                createdAt = "1970-01-01T00:00:00.000Z",
+                updatedAt = "1970-01-01T00:00:00.000Z",
+            };
+            client.ProjectDataForRuntime.values["value-chosen"] =
+                new VariantMemberValue
+                {
+                    id = "value-chosen",
+                    value = stored,
+                    createdAt = member.createdAt,
+                    updatedAt = member.updatedAt,
+                };
+            return new NeoMemberVariant(client, member, "value-chosen");
+        }
+
+        [Test]
+        public void ResolveVariantValue_ReadsAStoredPairIntoAHandle()
+        {
+            NeoClient client = LoadClient();
+            client.ProjectDataForRuntime.variants["variant-down"] =
+                Variant("variant-down", "Down", null);
+            NeoMemberVariant node = VariantNode(
+                client,
+                required: true,
+                new VariantRefValue { classId = HeroClassId, variantId = "variant-down" });
+
+            NeoVariant<Hero>? resolved =
+                NeoGeneratedTypesSupport.ResolveVariantValue<Hero>(node);
+
+            Assert.IsNotNull(resolved);
+            Assert.AreEqual("variant-down", resolved!.VariantId);
+            Assert.AreEqual("Down", resolved.Name);
+            // The same cache the static tree uses: a member read and a
+            // `Class.Variants.X` read are the same handle.
+            Assert.AreSame(
+                NeoGeneratedTypesSupport.ResolveVariant<Hero>(client, "variant-down"),
+                resolved);
+        }
+
+        [Test]
+        public void ResolveVariantValue_ReadsTheBaseSelection()
+        {
+            NeoClient client = LoadClient();
+            NeoMemberVariant node = VariantNode(
+                client,
+                required: true,
+                new VariantRefValue { classId = HeroClassId, variantId = null });
+
+            NeoVariant<Hero>? resolved =
+                NeoGeneratedTypesSupport.ResolveVariantValue<Hero>(node);
+
+            Assert.IsNotNull(resolved);
+            Assert.IsNull(resolved!.VariantId);
+            Assert.AreEqual("Base", resolved.Name);
+        }
+
+        [Test]
+        public void ResolveVariantValue_ResolvesACovariantStoredClass()
+        {
+            // §6: the pair may name a SUBCLASS of the member's declared target,
+            // and the handle has to follow the stored class rather than the
+            // declaration — otherwise a base-typed member would construct the
+            // wrong object.
+            NeoClient client = LoadClient();
+            const string subclassId = "class-hero-subclass";
+            client.ProjectDataForRuntime.variants["variant-sub"] = new VariantRecord
+            {
+                id = "variant-sub",
+                projectId = "synth",
+                classId = subclassId,
+                name = "Sub",
+                folder = null,
+                valueId = "value-variant-graph",
+            };
+            NeoMemberVariant node = VariantNode(
+                client,
+                required: true,
+                new VariantRefValue { classId = subclassId, variantId = "variant-sub" });
+
+            NeoVariant<Hero>? resolved =
+                NeoGeneratedTypesSupport.ResolveVariantValue<Hero>(node);
+
+            Assert.IsNotNull(resolved);
+            Assert.AreEqual(subclassId, resolved!.ClassId);
+        }
+
+        [Test]
+        public void ResolveVariantValue_ReturnsNullOnlyForANullableMember()
+        {
+            NeoClient client = LoadClient();
+
+            Assert.IsNull(
+                NeoGeneratedTypesSupport.ResolveVariantValue<Hero>(
+                    VariantNode(client, required: false, stored: null)));
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                NeoGeneratedTypesSupport.ResolveVariantValue<Hero>(
+                    VariantNode(client, required: true, stored: null)))!;
+            StringAssert.Contains("Chosen", error.Message);
+        }
+
+        [Test]
+        public void VariantValue_WritesTheHandleByIdentity()
+        {
+            NeoClient client = LoadClient();
+            client.ProjectDataForRuntime.variants["variant-down"] =
+                Variant("variant-down", "Down", null);
+            NeoVariant<Hero> handle =
+                NeoGeneratedTypesSupport.ResolveVariant<Hero>(client, "variant-down");
+
+            NeoValueWritePayload? payload =
+                NeoGeneratedTypesSupport.VariantValue(handle);
+            var written = payload!.value as VariantRefValue;
+
+            Assert.IsNotNull(written);
+            Assert.AreEqual(HeroClassId, written!.classId);
+            Assert.AreEqual("variant-down", written.variantId);
+
+            // A null handle is the "no selection" write, not an empty pair.
+            NeoValueWritePayload? cleared =
+                NeoGeneratedTypesSupport.VariantValue<Hero>(null);
+            Assert.IsNull(cleared!.value);
+        }
+
         private static Hero RequireHero(NeoClient client)
         {
             // The synth fixture places Hero rows in whichever store its roots
