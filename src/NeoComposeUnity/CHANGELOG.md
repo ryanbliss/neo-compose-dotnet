@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.22.1] - 2026-08-12
+
+### Fixed
+
+- Refuse a full synchronization whose generated C# payload is empty before
+  replacing any existing project files, preserving the last usable generated
+  types when server-side code generation fails.
+- Fall back to a full export when the cached project is missing a non-empty
+  `NeoGeneratedTypes.cs`, instead of reporting that the project is already
+  synchronized.
+
 ## [0.22.0] - 2026-08-12
 
 ### Added
