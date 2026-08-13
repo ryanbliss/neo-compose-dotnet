@@ -2286,6 +2286,18 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoSchemaClass_SealedFlag_Deserializes()
+        {
+            const string json = @"{
+                ""id"": ""leaf"", ""projectId"": ""project"", ""name"": ""Leaf"",
+                ""schema"": {}, ""isSealed"": true
+            }";
+
+            var schemaClass = JsonConvert.DeserializeObject<NeoSchemaClass>(json)!;
+            Assert.IsTrue(schemaClass.isSealed);
+        }
+
+        [Test]
         public void SynthFixture_EnumOptions_DeserializeAsDictionary()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
