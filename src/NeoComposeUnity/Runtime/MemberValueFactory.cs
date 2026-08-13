@@ -127,6 +127,15 @@ namespace NeoCompose.Runtime
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = DecimalPayload(rawPayload, member),
                 },
+                // P67 §7.4 — the stored value is the atomic
+                // {classId, variantId} pair; null is "no selection".
+                // P67 §7.4 — the stored value is the atomic
+                // {classId, variantId} pair; null is "no selection".
+                VariantMember => new VariantMemberValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = Cast<VariantRefValue?>(rawPayload, member),
+                },
                 NSPropertyMember => new NullMemberValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
@@ -356,6 +365,28 @@ namespace NeoCompose.Runtime
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = member.defaultValue.value?.PersistedCopy()
                         ?? new NeoActionValue(),
+                    classId = member.defaultValue.classId,
+                },
+                // P67 §6. The pair is selected atomically, and it is COPIED
+                // rather than aliased for the same reason the Sprite/Vector/
+                // Color arms copy theirs: a row that aliased the shared
+                // declaration default would let one instance's write edit the
+                // default every other instance reads.
+                // P67 §6. The pair is selected atomically, and it is COPIED
+                // rather than aliased for the same reason the Sprite/Vector/
+                // Color arms copy theirs: a row that aliased the shared
+                // declaration default would let one instance's write edit the
+                // default every other instance reads.
+                VariantMember member => member.defaultValue is null ? null : new VariantMemberValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = member.defaultValue.value is null
+                        ? null
+                        : new VariantRefValue
+                        {
+                            classId = member.defaultValue.value.classId,
+                            variantId = member.defaultValue.value.variantId,
+                        },
                     classId = member.defaultValue.classId,
                 },
                 _ => null,

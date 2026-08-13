@@ -346,6 +346,275 @@ namespace NeoCompose.Tests
             Assert.IsNull(cleared!.value);
         }
 
+        // -------------------------------------------------------------------
+        // Factory wiring: a class DECLARING a variant member must materialise.
+        // The tests above build a NeoMemberVariant directly, which is exactly
+        // why the missing factory arms shipped.
+        // -------------------------------------------------------------------
+
+        private const string HolderClassId = "class-variant-holder";
+
+        /// <summary>
+        /// Registers a class whose schema declares one variant member, plus the
+        /// member itself, so node construction walks the real factories.
+        /// </summary>
+        private static VariantMember RegisterHolderClass(
+            NeoClient client,
+            VariantMemberValueBase? declarationDefault = null,
+            string storage = "save")
+        {
+            var member = new VariantMember
+            {
+                id = "member-holder-chosen",
+                name = "Chosen",
+                kind = MemberKind.Variant,
+                required = false,
+                storage = storage,
+                defaultValue = declarationDefault,
+                createdAt = "1970-01-01T00:00:00.000Z",
+                updatedAt = "1970-01-01T00:00:00.000Z",
+            };
+            client.ProjectDataForRuntime.members[member.id] = member;
+            client.ProjectDataForRuntime.classes[HolderClassId] = new NeoSchemaClass
+            {
+                id = HolderClassId,
+                projectId = "synth",
+                name = "VariantHolder",
+                schema = new Dictionary<string, string> { ["Chosen"] = member.id },
+            };
+            return member;
+        }
+
+        private static ClassMember HolderMember() => new()
+        {
+            id = "member-holder",
+            name = "Holder",
+            kind = MemberKind.Class,
+            classId = HolderClassId,
+            createdAt = "1970-01-01T00:00:00.000Z",
+            updatedAt = "1970-01-01T00:00:00.000Z",
+        };
+
+        private static string RegisterHolderRow(NeoClient client)
+        {
+            client.ProjectDataForRuntime.values["value-holder"] = new ObjectMemberValue
+            {
+                id = "value-holder",
+                classId = HolderClassId,
+                value = new Dictionary<string, string>(),
+                createdAt = "1970-01-01T00:00:00.000Z",
+                updatedAt = "1970-01-01T00:00:00.000Z",
+            };
+            return "value-holder";
+        }
+
+        [Test]
+        public void WritableNode_MaterialisesAClassDeclaringAVariantMember()
+        {
+            // Regression: CreateWritable had no VariantMember arm, so merely
+            // constructing a Save/Session instance of a class carrying a
+            // variant member threw "Unknown member type VariantMember" before
+            // any read or write happened.
+            NeoClient client = LoadClient();
+            RegisterHolderClass(client);
+            string valueId = RegisterHolderRow(client);
+
+            var node = new NeoMemberClassWritable(
+                client,
+                HolderMember(),
+                valueId,
+                NeoValueOwnership.Save);
+
+            Assert.IsTrue(node.TryGet("Chosen", out NeoMemberVariant? child));
+            Assert.IsInstanceOf<NeoMemberVariantWritable>(child);
+        }
+
+        [Test]
+        public void AsWritable_MaterialisesAClassDeclaringAVariantMember()
+        {
+            // The write half of every family routes through AsWritable, so the
+            // generated setter threw here too, even on an Asset-owned instance.
+            NeoClient client = LoadClient();
+            RegisterHolderClass(client);
+            string valueId = RegisterHolderRow(client);
+            var readOnly = new NeoMemberClass(client, HolderMember(), valueId);
+
+            NeoMemberClassWritable writable =
+                NeoGeneratedTypesSupport.AsWritable(readOnly);
+
+            Assert.IsTrue(writable.TryGet("Chosen", out NeoMemberVariant? child));
+            Assert.IsInstanceOf<NeoMemberVariantWritable>(child);
+        }
+
+        [Test]
+        public void SetValue_WritesAVariantSelectionThroughTheNode()
+        {
+            // Regression: MemberValueFactory.Create had no VariantMember arm,
+            // so the generated setter's SetValue threw.
+            NeoClient client = LoadClient();
+            RegisterHolderClass(client);
+            client.ProjectDataForRuntime.variants["variant-down"] =
+                Variant("variant-down", "Down", null);
+            string valueId = RegisterHolderRow(client);
+            var node = new NeoMemberClassWritable(
+                client,
+                HolderMember(),
+                valueId,
+                NeoValueOwnership.Save);
+            NeoVariant<Hero> handle =
+                NeoGeneratedTypesSupport.ResolveVariant<Hero>(client, "variant-down");
+
+            NeoGeneratedTypesSupport.SetValue(
+                node,
+                "Chosen",
+                NeoGeneratedTypesSupport.VariantValue(handle));
+
+            Assert.IsTrue(node.TryGet("Chosen", out NeoMemberVariant? child));
+            Assert.AreEqual(HeroClassId, child!.value?.value?.classId);
+            Assert.AreEqual("variant-down", child.value?.value?.variantId);
+            Assert.AreEqual(
+                "variant-down",
+                NeoGeneratedTypesSupport.ResolveVariantValue<Hero>(child)?.VariantId);
+        }
+
+        [Test]
+        public void SetValue_ClearsAnOptionalVariantSelection()
+        {
+            NeoClient client = LoadClient();
+            RegisterHolderClass(client);
+            client.ProjectDataForRuntime.variants["variant-down"] =
+                Variant("variant-down", "Down", null);
+            string valueId = RegisterHolderRow(client);
+            var node = new NeoMemberClassWritable(
+                client,
+                HolderMember(),
+                valueId,
+                NeoValueOwnership.Save);
+            NeoGeneratedTypesSupport.SetValue(
+                node,
+                "Chosen",
+                NeoGeneratedTypesSupport.VariantValue(
+                    NeoGeneratedTypesSupport.ResolveVariant<Hero>(client, "variant-down")));
+
+            NeoGeneratedTypesSupport.SetValue(
+                node,
+                "Chosen",
+                NeoGeneratedTypesSupport.VariantValue<Hero>(null));
+
+            Assert.IsTrue(node.TryGet("Chosen", out NeoMemberVariant? child));
+            Assert.IsNull(NeoGeneratedTypesSupport.ResolveVariantValue<Hero>(child!));
+        }
+
+        [Test]
+        public void DeclarationDefault_SurvivesAsAVariantSelection()
+        {
+            // Regression: CreateFromDefault fell to `_ => null`, so an authored
+            // `NeoVariant<Tree> Felled = Tree.Variants.ChoppedTree` was
+            // silently dropped and read back as "no selection".
+            NeoClient client = LoadClient();
+            client.ProjectDataForRuntime.variants["variant-down"] =
+                Variant("variant-down", "Down", null);
+            VariantMember member = RegisterHolderClass(
+                client,
+                new VariantMemberValueBase
+                {
+                    value = new VariantRefValue
+                    {
+                        classId = HeroClassId,
+                        variantId = "variant-down",
+                    },
+                });
+
+            MemberValue? row = MemberValueFactory.CreateFromDefault(
+                member,
+                "value-default",
+                "1970-01-01T00:00:00.000Z",
+                "1970-01-01T00:00:00.000Z");
+
+            Assert.IsInstanceOf<VariantMemberValue>(row);
+            var variantRow = (VariantMemberValue)row!;
+            Assert.AreEqual("variant-down", variantRow.value?.variantId);
+            // Copied, not aliased: a write through one instance must not edit
+            // the declaration every other instance reads.
+            Assert.AreNotSame(member.defaultValue!.value, variantRow.value);
+        }
+
+        // -------------------------------------------------------------------
+        // Reflection seam behind Initialize().
+        // -------------------------------------------------------------------
+
+        [Test]
+        public void Materialize_FindsTheGeneratedInternalWritableFactory()
+        {
+            // Regression: the lookup asked for a PUBLIC method taking
+            // NeoMemberClass, but every generated factory is
+            // `internal static X CreateWritable(NeoClient, NeoMemberClassWritable)`.
+            // Both mismatched, so Initialize() threw for every generated T.
+            NeoClient client = LoadClient();
+            Hero hero = RequireHero(client);
+
+            Hero materialised = NeoVariantSupport.Materialize<Hero>(
+                client,
+                hero.WritableBackingNode);
+
+            Assert.IsNotNull(materialised);
+            Assert.AreEqual(hero.valueId, materialised.valueId);
+        }
+
+        // -------------------------------------------------------------------
+        // §6 covariance: one record, two surfaces, one client.
+        // -------------------------------------------------------------------
+
+        [Test]
+        public void VariantHandles_AreCachedPerRequestingType()
+        {
+            // Regression: the cache key omitted T, so a base-typed member read
+            // and the subclass's own Variants path collided on one key and
+            // whichever asked second threw.
+            NeoClient client = LoadClient();
+            client.ProjectDataForRuntime.variants["variant-shared"] = new VariantRecord
+            {
+                id = "variant-shared",
+                projectId = "synth",
+                classId = HeroClassId,
+                name = "Shared",
+                folder = null,
+                valueId = "value-variant-graph",
+            };
+
+            NeoVariant<Hero> asHero =
+                NeoGeneratedTypesSupport.ResolveVariant<Hero>(client, "variant-shared");
+            NeoVariant<Root> asRoot =
+                NeoGeneratedTypesSupport.ResolveVariant<Root>(client, "variant-shared");
+
+            Assert.AreEqual("variant-shared", asHero.VariantId);
+            Assert.AreEqual("variant-shared", asRoot.VariantId);
+            // Handle stability per surface is the cache's actual purpose.
+            Assert.AreSame(
+                asHero,
+                NeoGeneratedTypesSupport.ResolveVariant<Hero>(client, "variant-shared"));
+            Assert.AreSame(
+                asRoot,
+                NeoGeneratedTypesSupport.ResolveVariant<Root>(client, "variant-shared"));
+        }
+
+        [Test]
+        public void BaseVariantHandles_AreAlsoCachedPerRequestingType()
+        {
+            NeoClient client = LoadClient();
+
+            NeoVariant<Hero> asHero =
+                NeoGeneratedTypesSupport.ResolveBaseVariant<Hero>(client, HeroClassId);
+            NeoVariant<Root> asRoot =
+                NeoGeneratedTypesSupport.ResolveBaseVariant<Root>(client, HeroClassId);
+
+            Assert.IsNull(asHero.VariantId);
+            Assert.IsNull(asRoot.VariantId);
+            Assert.AreSame(
+                asHero,
+                NeoGeneratedTypesSupport.ResolveBaseVariant<Hero>(client, HeroClassId));
+        }
+
         private static Hero RequireHero(NeoClient client)
         {
             // The synth fixture places Hero rows in whichever store its roots

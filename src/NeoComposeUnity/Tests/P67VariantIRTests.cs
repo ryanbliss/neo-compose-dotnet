@@ -7,6 +7,7 @@ using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using UnityEngine.TestTools;
 using JsonMember = NeoCompose.Runtime.Json.Member;
 
 namespace NeoCompose.Tests
@@ -182,6 +183,119 @@ namespace NeoCompose.Tests
         }
 
         // -------------------------------------------------------------------
+        // 6 - a Variant MEMBER read, which is the shape the resolver actually
+        // emits for `item.Variant` (an ordinary member pointer, not the static
+        // `variant` pointer every other test here builds).
+        // -------------------------------------------------------------------
+
+        private static KeyOfPointer MemberRead(string valueId, string schemaKey) => new()
+        {
+            type = PointerKind.KeyOf,
+            keyOf = new KeyOf
+            {
+                pointer = Reference(valueId),
+                key = Literal(schemaKey),
+            },
+        };
+
+        [Test]
+        public void VariantMemberRead_YieldsTheStoredPair()
+        {
+            // Regression: ExtractWireValue had no VariantMemberValue arm, so a
+            // member read fell to `_ => null` on device while the web evaluator
+            // returned the pair - a silent web/device split on a shipped kind.
+            NeoClient client = LoadClient();
+            NSGetterEvaluator.Context ctx = Context(client);
+
+            object? read = NSGetterEvaluator.Evaluate(
+                Getter(Return(MemberRead("value-target", "Chosen"))),
+                ctx);
+
+            Assert.IsNotNull(read);
+        }
+
+        [Test]
+        public void VariantMemberRead_DrivesInitializeWithoutAStaticPath()
+        {
+            NeoClient client = LoadClient();
+            NSGetterEvaluator.Context ctx = Context(client);
+
+            object? made = NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantInitializePointer(MemberRead("value-target", "Chosen")))),
+                ctx);
+
+            // "Up" constructs the widget and Overrides labels it.
+            Assert.IsNotNull(made);
+        }
+
+        [Test]
+        public void VariantMemberRead_DrivesToVariantWithoutAStaticPath()
+        {
+            NeoClient client = LoadClient();
+            NSGetterEvaluator.Context ctx = Context(client);
+            string targetId = NewSessionInstance(client);
+
+            NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantApplyPointerFrom(
+                    Reference(targetId),
+                    MemberRead("value-target", "Chosen")))),
+                ctx);
+
+            Assert.AreEqual("up", ReadRowLabel(client, targetId));
+        }
+
+        [Test]
+        public void VariantMemberRead_OfAnEmptySelectionIsNull()
+        {
+            // `item.Variant == null` must agree with the web, which returns the
+            // stored pair - and null when there is no selection.
+            NeoClient client = LoadClient();
+            NSGetterEvaluator.Context ctx = Context(client);
+            client.ProjectDataForRuntime.values["value-empty-holder"] =
+                ObjectValue(
+                    "value-empty-holder",
+                    WidgetClassId,
+                    ("Label", "value-target-label"),
+                    ("Chosen", "value-target-empty-choice"));
+
+            object? read = NSGetterEvaluator.Evaluate(
+                Getter(Return(MemberRead("value-empty-holder", "Chosen"))),
+                ctx);
+
+            Assert.IsNull(read);
+        }
+
+        // -------------------------------------------------------------------
+        // 2.2 / 11 - a variant graph is rooted at its RECORD, not at a member,
+        // so the load-time reachability walk must treat it as live.
+        // -------------------------------------------------------------------
+
+        [Test]
+        public void VariantGraphs_LoadWithoutAnUnreferencedValueWarning()
+        {
+            // Every other value row is reachable from Assets/Save/Session. A
+            // variant's is reachable only from its variant record, so a walk
+            // that did not know about variant roots would report the whole
+            // graph as unreferenced (or drop it).
+            ProjectData data = BuildVariantProjectData();
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            // No warning was logged during load: an unhandled Debug.LogWarning
+            // fails an EditMode test through the log handler, so reaching here
+            // with the graph intact is the assertion.
+            LogAssert.NoUnexpectedReceived();
+            Assert.IsTrue(client.TryGetVariant("variant-up", out VariantRecord? record));
+            Assert.IsTrue(client.TryGetValue(
+                record!.valueId,
+                out ObjectMemberValue? root));
+            Assert.AreEqual(VariantClassId, root!.classId);
+            // The graph beneath it is still readable, which is what "live"
+            // has to mean for the construction path to work at all.
+            Assert.IsTrue(root.value!.ContainsKey("Initialize"));
+        }
+
+        // -------------------------------------------------------------------
         // Revision handshake.
         // -------------------------------------------------------------------
 
@@ -296,6 +410,9 @@ namespace NeoCompose.Tests
                     // Written only by Apply, never by any Overrides partial, so
                     // a skipped Apply is observable.
                     ["Trace"] = "widget-trace",
+                    // P67 6 - a Variant member, read through an ordinary keyOf
+                    // member pointer rather than a static Variants path.
+                    ["Chosen"] = "widget-chosen",
                 },
             };
             // The seeded family, reduced to the shape the handle reads.
@@ -327,8 +444,27 @@ namespace NeoCompose.Tests
                 ["value-target"] = ObjectValue(
                     "value-target",
                     WidgetClassId,
-                    ("Label", "value-target-label")),
+                    ("Label", "value-target-label"),
+                    ("Chosen", "value-target-chosen")),
                 ["value-target-label"] = StringValue("value-target-label", "target"),
+                ["value-target-chosen"] = new VariantMemberValue
+                {
+                    id = "value-target-chosen",
+                    value = new VariantRefValue
+                    {
+                        classId = WidgetClassId,
+                        variantId = "variant-up",
+                    },
+                    createdAt = "x",
+                    updatedAt = "x",
+                },
+                ["value-target-empty-choice"] = new VariantMemberValue
+                {
+                    id = "value-target-empty-choice",
+                    value = null,
+                    createdAt = "x",
+                    updatedAt = "x",
+                },
 
                 // Variant "Up": constructs the widget, Overrides Label, and
                 // declares an Apply so the construction path can be shown to
@@ -404,6 +540,17 @@ namespace NeoCompose.Tests
                     [rootSession.id] = rootSession,
                     ["widget-label"] = StringField("widget-label", "Label"),
                     ["widget-trace"] = StringField("widget-trace", "Trace"),
+                    ["widget-chosen"] = new VariantMember
+                    {
+                        id = "widget-chosen",
+                        projectId = ProjectId,
+                        name = "Chosen",
+                        kind = MemberKind.Variant,
+                        required = false,
+                        storage = "session",
+                        createdAt = "x",
+                        updatedAt = "x",
+                    },
                     // `Initialize` returns TObject; `Apply` is void (§1).
                     ["variant-initialize"] = DelegateField(
                         "variant-initialize",
@@ -475,7 +622,7 @@ namespace NeoCompose.Tests
             variantId = variantId,
         };
 
-        private static FunctionPointer VariantInitializePointer(VariantPointer variant) => new()
+        private static FunctionPointer VariantInitializePointer(Pointer variant) => new()
         {
             type = PointerKind.Function,
             function = new VariantInitializeFunction
@@ -492,6 +639,23 @@ namespace NeoCompose.Tests
         private static FunctionPointer VariantApplyPointer(
             Pointer receiver,
             VariantPointer variant) => new()
+        {
+            type = PointerKind.Function,
+            function = new VariantApplyFunction
+            {
+                type = FunctionKind.VariantApply,
+                info = new FunctionVariantApplyInfo
+                {
+                    receiverPointer = receiver,
+                    variantPointer = variant,
+                    schemaClassInfo = ClassType(WidgetClassId),
+                },
+            },
+        };
+
+        private static FunctionPointer VariantApplyPointerFrom(
+            Pointer receiver,
+            Pointer variant) => new()
         {
             type = PointerKind.Function,
             function = new VariantApplyFunction

@@ -1148,6 +1148,16 @@ namespace NeoCompose.Runtime.Json
         /// what tells it apart from a placement sidecar that also carries a
         /// `variantId`. Exact-keyed for the same reason every other shape
         /// probe is: this decides how the row is deserialized.
+        ///
+        /// <para>Residual collision, unavoidable at this seam: a Dictionary
+        /// member whose stored map is exactly two entries keyed `classId` and
+        /// `variantId` is structurally identical to a variant reference and
+        /// deserializes as one. This resolver runs on the JSON path, where the
+        /// row arrives keyed by id in `values` with no member in hand, so there
+        /// is nothing to discriminate on but shape - the same bound the sprite
+        /// and file probes sit inside. Discriminating by member kind would mean
+        /// threading the declaring member into row deserialization, a change to
+        /// the export reader's contract rather than to this probe.</para>
         /// </summary>
         private static bool LooksLikeVariantRefValue(JToken token)
         {
@@ -1456,6 +1466,16 @@ namespace NeoCompose.Runtime.Json
         /// what tells it apart from a placement sidecar that also carries a
         /// `variantId`. Exact-keyed for the same reason every other shape
         /// probe is: this decides how the row is deserialized.
+        ///
+        /// <para>Residual collision, unavoidable at this seam: a Dictionary
+        /// member whose stored map is exactly two entries keyed `classId` and
+        /// `variantId` is structurally identical to a variant reference and
+        /// deserializes as one. This resolver runs on the JSON path, where the
+        /// row arrives keyed by id in `values` with no member in hand, so there
+        /// is nothing to discriminate on but shape - the same bound the sprite
+        /// and file probes sit inside. Discriminating by member kind would mean
+        /// threading the declaring member into row deserialization, a change to
+        /// the export reader's contract rather than to this probe.</para>
         /// </summary>
         private static bool LooksLikeVariantRefValue(JToken token)
         {

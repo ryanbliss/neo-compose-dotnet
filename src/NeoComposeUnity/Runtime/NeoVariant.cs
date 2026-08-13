@@ -176,16 +176,17 @@ namespace NeoCompose.Runtime
         private const string ChildOverridesKey = "ChildOverrides";
 
         /// <summary>
-        /// Per-`T` factory resolved once. Generated classes expose a static
-        /// `CreateWritable(NeoClient, NeoMemberClass)` returning themselves —
-        /// the same method `Clone()` routes through — but nothing hands the
-        /// runtime a classId-keyed factory table (generated code passes its own
-        /// tables into <see cref="NeoGeneratedTypesSupport.ResolveClassValue"/>
-        /// at each call site instead). A generic static cache gives one
-        /// reflection lookup per `T` for the lifetime of the domain, which is
-        /// the cheapest correct option that keeps
-        /// `ResolveVariant&lt;T&gt;(client, variantId)` to the two arguments
-        /// §7.1 specifies.
+        /// Per-`T` factory resolved once. Generated classes expose an
+        /// `internal static CreateWritable(NeoClient, NeoMemberClassWritable)`
+        /// returning themselves — the same method `Clone()` routes through.
+        ///
+        /// <para>Reflection rather than a lookup table because the registered
+        /// factory table (<see cref="NeoClient.RegisterGeneratedClassFactories"/>)
+        /// resolves an existing valueId row, whereas this has to wrap a node
+        /// that was just built and has no registered row yet. A generic static
+        /// cache gives one lookup per `T` for the lifetime of the domain, which
+        /// keeps `ResolveVariant&lt;T&gt;(client, variantId)` to the two
+        /// arguments §7.1 specifies.</para>
         /// </summary>
         private static class GeneratedFactory<TValue>
             where TValue : NeoGeneratedClassValue
@@ -193,9 +194,16 @@ namespace NeoCompose.Runtime
             internal static readonly MethodInfo? CreateWritable =
                 typeof(TValue).GetMethod(
                     "CreateWritable",
-                    BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy,
+                    // Generated factories are `internal static ... (NeoClient,
+                    // NeoMemberClassWritable)`, so NonPublic is required and
+                    // the parameter must be the WRITABLE node: the binder needs
+                    // the declared type assignable FROM the supplied one, and
+                    // NeoMemberClassWritable is not assignable from its base.
+                    // Same flags as the NeoGenericBindings precedent.
+                    BindingFlags.Public | BindingFlags.NonPublic
+                        | BindingFlags.Static | BindingFlags.FlattenHierarchy,
                     binder: null,
-                    types: new[] { typeof(NeoClient), typeof(NeoMemberClass) },
+                    types: new[] { typeof(NeoClient), typeof(NeoMemberClassWritable) },
                     modifiers: null);
         }
 
@@ -208,7 +216,7 @@ namespace NeoCompose.Runtime
             if (factory is null)
             {
                 throw new InvalidOperationException(
-                    $"Generated type '{typeof(TValue).FullName}' has no static CreateWritable(NeoClient, NeoMemberClass), so a variant cannot produce one. Regenerate the project's C# types.");
+                    $"Generated type '{typeof(TValue).FullName}' has no static CreateWritable(NeoClient, NeoMemberClassWritable), so a variant cannot produce one. Regenerate the project's C# types.");
             }
             object? created = factory.Invoke(null, new object?[] { client, node });
             if (created is TValue typed) return typed;
@@ -344,6 +352,28 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership)
         {
             if (record is null) return;
+            try
+            {
+                ApplyDeclarativeHalvesCore(client, record, node, ownership);
+            }
+            catch (InvalidOperationException error)
+            {
+                // The Overrides/ChildOverrides machinery is shared with
+                // animation, so its messages say "Animation clip '<key>'
+                // frame 0". Re-attribute: an author reading this failure is
+                // editing a variant, and there is no clip involved.
+                throw new InvalidOperationException(
+                    $"Variant '{DescribeVariant(record)}' could not apply its overrides: {error.Message}",
+                    error);
+            }
+        }
+
+        private static void ApplyDeclarativeHalvesCore(
+            NeoClient client,
+            VariantRecord record,
+            NeoMemberClassWritable node,
+            NeoValueOwnership ownership)
+        {
             using var instance = new NeoVariantTargetValue(client, node, ownership);
             NeoMemberClass graph = ResolveGraph(client, record);
             string variantKey = $"variant:{record.id}";

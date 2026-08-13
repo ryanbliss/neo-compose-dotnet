@@ -18,6 +18,16 @@
 
 ### Fixed
 
+- Variant members are now readable and writable on device: the writable node
+  factory, the value factory, and the declaration-default factory all gained
+  the missing arms, so a class declaring a `NeoVariant<T>` member materializes
+  instead of throwing, its setter writes, and an authored default survives.
+- NeoScript reads of a variant member now yield the stored `{classId,
+  variantId}` pair instead of null, matching the web evaluator.
+- `Class.Variants.X.Initialize()` now resolves the generated factory it needs,
+  instead of throwing for every generated type.
+- A variant reached through both a base-typed member and its own class's
+  `Variants` tree no longer throws on the second resolution.
 - Applying a variant no longer releases the receiver's compiled animation
   clips or stops its running animations: variant application writes members,
   it does not end the object's life.

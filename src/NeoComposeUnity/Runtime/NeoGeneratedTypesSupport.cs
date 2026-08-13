@@ -1099,6 +1099,17 @@ namespace NeoCompose.Runtime
         /// P67 §7.4 — the write half. A variant member is written by identity:
         /// the handle already knows which class and which record it names, and
         /// nothing about the variant's own graph is copied into the member.
+        ///
+        /// <para>Known limitation: a handle minted by a DIFFERENT client is
+        /// accepted without validation. What crosses is a pair of ids, not a
+        /// live object, so the write is well defined; it is only meaningful if
+        /// the destination project happens to carry the same ids. Validating
+        /// here is not possible — the destination is the node
+        /// <see cref="SetValue"/> receives, which this marshaller never sees —
+        /// and commit-time validation is the authority on dangling variant ids
+        /// (P67 §6), so a bad pair is caught on the next push rather than
+        /// silently resolving to the wrong variant at runtime: a missing record
+        /// throws on resolution.</para>
         /// </summary>
         [System.ComponentModel.EditorBrowsable(
             System.ComponentModel.EditorBrowsableState.Never)]
@@ -4785,6 +4796,9 @@ namespace NeoCompose.Runtime
                 Vector3IntMember member => member.defaultValue is not null,
                 ColorMember member => member.defaultValue is not null,
                 DecimalMember member => member.defaultValue is not null,
+                // P67 §6 — a defaulted variant member is settled, so it must
+                // stop being demanded as a runtime constructor argument.
+                VariantMember member => member.defaultValue is not null,
                 _ => false,
             };
         }
@@ -5745,6 +5759,25 @@ namespace NeoCompose.Runtime
                     return CreateDefaultColorRow(nowIso, member.defaultValue);
                 case DecimalMember member:
                     return CreateDefaultDecimalRow(nowIso, member.defaultValue);
+                // P67 §6 — copied, not aliased, like every other
+                // reference-typed default row above.
+                case VariantMember member:
+                    return member.defaultValue is null
+                        ? null
+                        : new VariantMemberValue
+                        {
+                            id = Guid.NewGuid().ToString(),
+                            createdAt = nowIso,
+                            updatedAt = nowIso,
+                            value = member.defaultValue.value is null
+                                ? null
+                                : new VariantRefValue
+                                {
+                                    classId = member.defaultValue.value.classId,
+                                    variantId = member.defaultValue.value.variantId,
+                                },
+                            classId = member.defaultValue.classId,
+                        };
                 case StringMember member:
                     return member.defaultValue is null
                         ? null

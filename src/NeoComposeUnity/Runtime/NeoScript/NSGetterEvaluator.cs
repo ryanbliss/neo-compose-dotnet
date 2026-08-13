@@ -4472,6 +4472,23 @@ namespace NeoCompose.Runtime.NeoScript
                 Vector2MemberValue v => v.value,
                 Vector3MemberValue v => v.value,
                 ColorMemberValue c => c.value,
+                // P67 6. A Variant member read hands the runtime the SAME
+                // shape a `<Class>.Variants.X` static path does, so the two
+                // variant intrinsics need no conversion and no second accepted
+                // CLR type. Without this arm the row fell to `_ => null`, so
+                // `item.Variant.Initialize()` threw on device while the web
+                // evaluator returned the pair, and `item.Variant == null` was
+                // unconditionally true on device and false in the editor.
+                // P67 6. A Variant member read hands the runtime the SAME
+                // shape a `<Class>.Variants.X` static path does, so the two
+                // variant intrinsics need no conversion and no second accepted
+                // CLR type. Without this arm the row fell to `_ => null`, so
+                // `item.Variant.Initialize()` threw on device while the web
+                // evaluator returned the pair, and `item.Variant == null` was
+                // unconditionally true on device and false in the editor.
+                VariantMemberValue vr => vr.value is null
+                    ? null
+                    : new NeoVariantReference(vr.value.classId, vr.value.variantId),
                 NullMemberValue _ => null,
                 _ => null,
             };

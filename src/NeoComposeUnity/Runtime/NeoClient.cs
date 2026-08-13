@@ -204,7 +204,8 @@ namespace NeoCompose.Runtime
         /// P67 §3.4 — the cached handle for a class's reserved `Base` entry.
         /// Keyed by class id in the same map: a base entry and a declared
         /// variant can never collide, because a record id and a class id are
-        /// distinguished by the key prefix.
+        /// distinguished by the key prefix - and the requesting `T` is part of
+        /// the key too (see <see cref="GetOrCreateVariantHandle"/>).
         /// </summary>
         internal NeoVariant<T> GetOrCreateBaseVariant<T>(string classId)
             where T : NeoGeneratedClassValue
@@ -222,14 +223,23 @@ namespace NeoCompose.Runtime
             VariantRecord? record)
             where T : NeoGeneratedClassValue
         {
-            if (variantHandles.TryGetValue(cacheKey, out object existing))
+            // P67 6 covariance is DATA-level: the stored classId may be a
+            // subclass of a member's declared target, so one record is
+            // legitimately resolved under more than one `T` in the same client
+            // - as `NeoVariant<Base>` through a base-typed member read, and as
+            // `NeoVariant<Sub>` through the subclass's own Variants tree.
+            // `NeoVariant<T>` stays sealed and invariant, so the handle is
+            // per-(record, T) and the key has to be too; keying by record
+            // alone made whichever surface asked second throw.
+            string typedKey = $"{cacheKey}{typeof(T).FullName}";
+            if (variantHandles.TryGetValue(typedKey, out object existing))
             {
                 if (existing is NeoVariant<T> match) return match;
                 throw new InvalidOperationException(
-                    $"Variant cache key '{cacheKey}' changed target type; regenerate the project's C# types.");
+                    $"Variant cache key '{typedKey}' changed target type; regenerate the project's C# types.");
             }
             var handle = new NeoVariant<T>(this, classId, record);
-            variantHandles.Add(cacheKey, handle);
+            variantHandles.Add(typedKey, handle);
             return handle;
         }
 
@@ -1758,6 +1768,9 @@ namespace NeoCompose.Runtime
             Vector3IntMember typed => typed.defaultValue is not null,
             ColorMember typed => typed.defaultValue is not null,
             DecimalMember typed => typed.defaultValue is not null,
+            // P67 §6 — a defaulted variant member is settled, so it must stop
+            // being demanded as a runtime constructor argument.
+            VariantMember typed => typed.defaultValue is not null,
             _ => false,
         };
 
