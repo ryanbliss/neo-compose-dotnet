@@ -84,7 +84,8 @@ namespace NeoCompose.Tests
         ""name"": ""Foo"",
         ""schema"": {
           ""Bar"": ""member-bar"",
-          ""Count"": ""member-count""
+          ""Count"": ""member-count"",
+          ""Items"": ""member-items""
         },
         ""constructorIds"": [""ctor-foo""]
       },
@@ -284,6 +285,35 @@ namespace NeoCompose.Tests
         ""defaultValue"": {
           ""value"": 1
         }
+      },
+      {
+        ""projectId"": ""project-p43"",
+        ""accessModifierKind"": ""public"",
+        ""locked"": false,
+        ""isStatic"": false,
+        ""createdAt"": 1,
+        ""updatedAt"": 1,
+        ""id"": ""member-items"",
+        ""name"": ""Items"",
+        ""kind"": 6,
+        ""entryMemberId"": ""member-items-entry"",
+        ""required"": true,
+        ""defaultValue"": {
+          ""value"": []
+        }
+      },
+      {
+        ""projectId"": ""project-p43"",
+        ""accessModifierKind"": ""public"",
+        ""locked"": false,
+        ""isStatic"": false,
+        ""createdAt"": 1,
+        ""updatedAt"": 1,
+        ""id"": ""member-items-entry"",
+        ""name"": ""Item"",
+        ""kind"": 7,
+        ""classId"": ""class-holder"",
+        ""required"": true
       },
       {
         ""projectId"": ""project-p43"",
@@ -3416,6 +3446,130 @@ namespace NeoCompose.Tests
         ""Mark"": ""gate:K"",
         ""Seal"": ""seal-call-site"",
         ""Note"": ""init:gate:K""
+      }
+    },
+    {
+      ""name"": ""a call-site list literal materializes its class entries"",
+      ""getter"": {
+        ""compilerRevision"": 3,
+        ""parameters"": [
+          {
+            ""id"": ""__this__"",
+            ""typeInfo"": {
+              ""type"": 0,
+              ""required"": false
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 0,
+                  ""required"": false
+                },
+                ""value"": null
+              }
+            }
+          },
+          {
+            ""id"": ""__root__"",
+            ""typeInfo"": {
+              ""type"": 0,
+              ""required"": false
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 0,
+                  ""required"": false
+                },
+                ""value"": null
+              }
+            }
+          }
+        ],
+        ""instructions"": [
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""function"",
+              ""function"": {
+                ""type"": ""declaredConstructor"",
+                ""info"": {
+                  ""schemaClassInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""class-foo""
+                  },
+                  ""constructorId"": ""ctor-foo"",
+                  ""args"": [
+                    {
+                      ""name"": ""AllCaps"",
+                      ""valuePointer"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 1,
+                            ""required"": true
+                          },
+                          ""value"": false
+                        }
+                      }
+                    }
+                  ],
+                  ""fields"": [
+                    {
+                      ""schemaKey"": ""Items"",
+                      ""memberId"": ""member-items"",
+                      ""valuePointer"": {
+                        ""type"": ""listLiteral"",
+                        ""typeInfo"": {
+                          ""type"": 6,
+                          ""required"": true,
+                          ""entryTypeInfo"": {
+                            ""type"": 7,
+                            ""required"": true,
+                            ""classId"": ""class-holder""
+                          }
+                        },
+                        ""entries"": [
+                          {
+                            ""type"": ""function"",
+                            ""function"": {
+                              ""type"": ""declaredConstructor"",
+                              ""info"": {
+                                ""schemaClassInfo"": {
+                                  ""type"": 7,
+                                  ""required"": true,
+                                  ""classId"": ""class-holder""
+                                },
+                                ""constructorId"": null,
+                                ""args"": [],
+                                ""fields"": []
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 7,
+          ""required"": true,
+          ""classId"": ""class-foo""
+        }
+      },
+      ""expectedFields"": {
+        ""Items"": [
+          {
+            ""Label"": ""computed""
+          }
+        ]
       }
     },
     {

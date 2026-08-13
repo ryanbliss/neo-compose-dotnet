@@ -4033,6 +4033,11 @@ namespace NeoCompose.Runtime
             IReadOnlyList<RuntimeConstructorField> fields,
             NeoScript.NSGetterEvaluator.Context ctx)
         {
+            MaterializeDeclaredConstructorFieldPayloads(
+                client,
+                resolved,
+                fields,
+                ctx);
             foreach (RuntimeConstructorField field in fields)
             {
                 Member member = resolved.membersBySchemaKey[field.schemaKey];
@@ -4247,33 +4252,20 @@ namespace NeoCompose.Runtime
                 resolved,
                 argumentValues,
                 callSiteFields,
-                ctx,
-                // Marshalled as a thunk rather than up front because it stages
-                // rows and can import an already-owned reference: running it
-                // inside construction's try block is what puts a failure under
-                // the same reclamation as the body's.
-                constructionCtx => MarshalGeneratedCallSiteValues(
-                    client,
-                    resolved,
-                    callSiteFields,
-                    constructionCtx));
+                ctx);
         }
 
         /// <summary>
-        /// P49 §4.4 — converts the optional members a generated constructor
-        /// appended after its declared parameters into values
+        /// Converts declared-constructor initializer fields into values
         /// <see cref="ApplyDeclaredConstructorFields"/> can write.
         ///
-        /// <para>Without this the seam would only carry the kinds an in-place
-        /// write already understands — scalars and Class references — and a
-        /// generated <c>= null</c> parameter for an enum, a lookup, a dialogue
-        /// lookup, a Sprite/AudioClip or a List/Dictionary member would fail at
-        /// construction instead of at compile time, because those payloads are
-        /// option ids, file records and <b>entry rows</b> rather than the value
-        /// the caller handed over. Computing them here through the same
+        /// <para>The write path directly understands scalars and Class
+        /// references, but enums, lookups, files, and collections require
+        /// stored payloads such as option ids, file records, and entry rows.
+        /// Computing them here through the same
         /// <see cref="ComputeRuntimeConstructorPayload"/> the member-wise
-        /// factory uses is what makes the two entry points accept exactly the
-        /// same generated argument types.</para>
+        /// factory uses keeps NeoScript and generated-C# call sites on the same
+        /// materialization path.</para>
         ///
         /// <para>Class-typed members are deliberately left alone: the write
         /// target already routes a Class value through the ordinary import
@@ -4283,7 +4275,7 @@ namespace NeoCompose.Runtime
         /// target, so they are imported here — otherwise the entry row would be
         /// referenced by a second owner without ever being adopted.</para>
         /// </summary>
-        private static void MarshalGeneratedCallSiteValues(
+        private static void MaterializeDeclaredConstructorFieldPayloads(
             NeoClient client,
             NeoResolvedDeclaredConstructor resolved,
             IReadOnlyList<RuntimeConstructorField> fields,
