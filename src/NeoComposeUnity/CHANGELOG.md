@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-08-13
+
+### Added
+
+- P67 NeoObject variants: deserialize the new `variants` export collection and
+  resolve a `NeoVariant<T>` handle from it, so generated `Class.Variants`
+  static trees construct through a variant (`Initialize()`) and apply one in
+  place (`ToVariant`). A variant's `Overrides` and `ChildOverrides` are null
+  when unauthored, which means empty everywhere they are read.
+
+### Changed
+
+- **Breaking:** the project export schema version is now 21. Exports must be
+  regenerated from a web app of the same release; the SDK enforces exact
+  equality, so an older runtime cannot load an export whose `Variants` lookups
+  it would silently resolve to the bare class.
+
 ## [0.23.0] - 2026-08-13
 
 ### Added

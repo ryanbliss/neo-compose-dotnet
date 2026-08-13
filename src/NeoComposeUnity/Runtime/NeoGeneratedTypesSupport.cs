@@ -1021,6 +1021,63 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// P67 §7.1 — resolves one declared variant of <typeparamref name="T"/>.
+        /// Generated `Class.Variants` entries call this helper.
+        /// </summary>
+        [System.ComponentModel.EditorBrowsable(
+            System.ComponentModel.EditorBrowsableState.Never)]
+        public static NeoVariant<T> ResolveVariant<T>(
+            NeoClient client,
+            string variantId)
+            where T : NeoGeneratedClassValue
+        {
+            if (client is null) throw new ArgumentNullException(nameof(client));
+            if (string.IsNullOrWhiteSpace(variantId))
+            {
+                throw new ArgumentException(
+                    "A variant id is required.",
+                    nameof(variantId));
+            }
+            return client.GetOrCreateVariant<T>(variantId);
+        }
+
+        /// <summary>
+        /// P67 §3.4 — resolves the reserved `Base` entry: the class itself with
+        /// no variant applied, whose `Initialize` is the class's own
+        /// construction. Generated `Class.Variants.Base` calls this helper.
+        /// </summary>
+        [System.ComponentModel.EditorBrowsable(
+            System.ComponentModel.EditorBrowsableState.Never)]
+        public static NeoVariant<T> ResolveBaseVariant<T>(
+            NeoClient client,
+            string classId)
+            where T : NeoGeneratedClassValue
+        {
+            if (client is null) throw new ArgumentNullException(nameof(client));
+            if (string.IsNullOrWhiteSpace(classId))
+            {
+                throw new ArgumentException(
+                    "A class id is required.",
+                    nameof(classId));
+            }
+            return client.GetOrCreateBaseVariant<T>(classId);
+        }
+
+        /// <summary>
+        /// P67 §4.2 — the seam generated `ToVariant` methods call. Application
+        /// is always in place; the value is <paramref name="source"/>.
+        /// </summary>
+        [System.ComponentModel.EditorBrowsable(
+            System.ComponentModel.EditorBrowsableState.Never)]
+        public static T ApplyVariant<T>(T source, NeoVariant<T> variant)
+            where T : NeoGeneratedClassValue
+        {
+            if (source is null) throw new ArgumentNullException(nameof(source));
+            if (variant is null) throw new ArgumentNullException(nameof(variant));
+            return variant.Apply(source);
+        }
+
+        /// <summary>
         /// Resolves and caches an authored animation clip for a generated
         /// target value. Generated clip properties call this helper.
         /// </summary>

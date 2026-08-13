@@ -76,6 +76,13 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, NeoGeneratedClassValue> generatedValuesInternal = new();
         private readonly Dictionary<string, object> animationClips = new();
         /// <summary>
+        /// P67 §7.2 — one <c>NeoVariant&lt;T&gt;</c> handle per (variant id or
+        /// base class id, T). Typed <c>object</c> for the same reason
+        /// <see cref="animationClips"/> is: the handle is an open generic, so
+        /// the type check happens on retrieval.
+        /// </summary>
+        private readonly Dictionary<string, object> variantHandles = new();
+        /// <summary>
         /// Compiled definitions, keyed exactly as <see cref="animationClips"/>
         /// is. Kept apart from the handle dictionary because that one is typed
         /// <c>object</c> over an open generic; this one is what
@@ -145,6 +152,8 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, NeoSchemaClass> classes => data.classes;
         internal IReadOnlyDictionary<string, ConstructorRecord> constructors =>
             data.constructors;
+        internal IReadOnlyDictionary<string, VariantRecord> variants =>
+            data.variants;
         internal IReadOnlyDictionary<string, Interface> interfaces => data.interfaces;
         internal IReadOnlyDictionary<string, Enum> enums => data.enums;
         internal IReadOnlyDictionary<string, Dialogue> dialogues => data.dialogues;
@@ -170,6 +179,59 @@ namespace NeoCompose.Runtime
         internal bool IsDisposed => isDisposed;
         internal int ActiveDialogueCount => activeDialogues.Count;
         internal NeoAnimationCoordinator AnimationCoordinator => animationCoordinator;
+
+        /// <summary>
+        /// P67 §7.2 — the cached handle for one declared variant. Cached like a
+        /// clip is, and for the same reason: a `Variants` entry is a property,
+        /// so a loop that reads it every frame must not mint a handle per read.
+        /// </summary>
+        internal NeoVariant<T> GetOrCreateVariant<T>(string variantId)
+            where T : NeoGeneratedClassValue
+        {
+            EnsureNotDisposed();
+            if (!TryGetVariant(variantId, out VariantRecord? record))
+            {
+                throw new InvalidOperationException(
+                    $"Variant '{variantId}' is not in this project export. Re-export the project, or regenerate the C# types if the variant was deleted.");
+            }
+            return GetOrCreateVariantHandle<T>(
+                $"variant\u001f{variantId}",
+                record.classId,
+                record);
+        }
+
+        /// <summary>
+        /// P67 §3.4 — the cached handle for a class's reserved `Base` entry.
+        /// Keyed by class id in the same map: a base entry and a declared
+        /// variant can never collide, because a record id and a class id are
+        /// distinguished by the key prefix.
+        /// </summary>
+        internal NeoVariant<T> GetOrCreateBaseVariant<T>(string classId)
+            where T : NeoGeneratedClassValue
+        {
+            EnsureNotDisposed();
+            return GetOrCreateVariantHandle<T>(
+                $"base\u001f{classId}",
+                classId,
+                record: null);
+        }
+
+        private NeoVariant<T> GetOrCreateVariantHandle<T>(
+            string cacheKey,
+            string classId,
+            VariantRecord? record)
+            where T : NeoGeneratedClassValue
+        {
+            if (variantHandles.TryGetValue(cacheKey, out object existing))
+            {
+                if (existing is NeoVariant<T> match) return match;
+                throw new InvalidOperationException(
+                    $"Variant cache key '{cacheKey}' changed target type; regenerate the project's C# types.");
+            }
+            var handle = new NeoVariant<T>(this, classId, record);
+            variantHandles.Add(cacheKey, handle);
+            return handle;
+        }
 
         /// <summary>
         /// Generated-code support for resolving the per-instance cached
@@ -298,6 +360,9 @@ namespace NeoCompose.Runtime
                 }
             }
             animationClips.Clear();
+            // A variant handle is minted against this client's records, so it
+            // is dropped on the same schedule a recompile drops clips.
+            variantHandles.Clear();
             DisposeAnimationDefinitions();
             reportedAnimationChildSkips.Clear();
             reportedAnimationApplySkips.Clear();
@@ -566,6 +631,9 @@ namespace NeoCompose.Runtime
             }
             animationCoordinator.Dispose();
             animationClips.Clear();
+            // A variant handle is minted against this client's records, so it
+            // is dropped on the same schedule a recompile drops clips.
+            variantHandles.Clear();
             DisposeAnimationDefinitions();
             reportedAnimationChildSkips.Clear();
             reportedAnimationApplySkips.Clear();
@@ -611,6 +679,23 @@ namespace NeoCompose.Runtime
         {
             if (data.constructors is not null
                 && data.constructors.TryGetValue(id, out ConstructorRecord idMatch))
+            {
+                record = idMatch;
+                return true;
+            }
+            record = null;
+            return false;
+        }
+
+        /// <summary>
+        /// P67 §9 — resolves a variant record by id.
+        /// </summary>
+        internal bool TryGetVariant(
+            string id,
+            [NotNullWhen(true)] out VariantRecord? record)
+        {
+            if (data.variants is not null
+                && data.variants.TryGetValue(id, out VariantRecord idMatch))
             {
                 record = idMatch;
                 return true;
@@ -5531,6 +5616,10 @@ namespace NeoCompose.Runtime
             // hand-built ProjectData may leave it null. Both mean "declares
             // none", so normalize once instead of null-checking every read.
             data.constructors ??= new Dictionary<string, ConstructorRecord>();
+            // P67 §9 — same reasoning: an export written before P67 omits the
+            // collection and a hand-built ProjectData may leave it null. Both
+            // mean "declares no variants".
+            data.variants ??= new Dictionary<string, VariantRecord>();
             var claimedByClass = new Dictionary<string, string>();
             foreach (var pair in data.classes)
             {

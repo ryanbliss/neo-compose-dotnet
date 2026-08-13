@@ -13,11 +13,15 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
-        /// 20 adds the explicit sealed-class flag. An older SDK would ignore
-        /// the declaration and permit consumers to derive from a class whose
-        /// project contract forbids inheritance, so it must reject the export.
+        /// 21 adds the `variants` collection (P67 §9) and the generated
+        /// `Variants` static trees that resolve against it. An older SDK has no
+        /// collection to resolve a variant id through, so every
+        /// <c>Variants.X</c> lookup and every <c>Variant</c>-member read would
+        /// fail to find its record and hand back the bare class — an object in
+        /// the wrong configuration rather than an error. It must reject the
+        /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 20;
+        public const int CurrentSchemaVersion = 21;
     }
 
     public class ProjectExportMetadataSemver
@@ -89,6 +93,54 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>Authored expression source.</summary>
         public string code = null!;
+    }
+
+    /// <summary>
+    /// P67 §2.1/§9 — one named configuration of a class.
+    ///
+    /// <para>A variant is a record, not a value: it is a child of its class the
+    /// way a constructor is, and it POINTS AT the value graph carrying its
+    /// configuration (<see cref="valueId"/>) rather than living inside one.
+    /// That graph is an ordinary materialized row — a `NeoVariant&lt;TObject&gt;`
+    /// class value whose members are Initialize, Apply, Overrides, and
+    /// ChildOverrides — so it reads through the normal node machinery.</para>
+    ///
+    /// <para><see cref="classId"/> is the authority on the variant's target
+    /// class. The root row's generic bindings corroborate it when present, but
+    /// a graph pushed from the CLI carries none, so nothing may depend on
+    /// them.</para>
+    /// </summary>
+    public sealed class VariantRecord
+    {
+        public string id = null!;
+        public string projectId = null!;
+
+        /// <summary>Owning class — the `TObject` this variant configures.</summary>
+        public string classId = null!;
+
+        /// <summary>
+        /// Symbol name, unique per (classId, folder), case-insensitive. `Base`
+        /// is reserved for the no-variant selection and never appears here.
+        /// </summary>
+        public string name = null!;
+
+        /// <summary>
+        /// Resolved folder PATH (`"Trees/Oak"`), or null for the class root.
+        ///
+        /// <para>Deliberately the path and not a folder record id: the export
+        /// performs the join so a data-driven consumer can resolve a variant by
+        /// (folder, name) without loading a second collection that exists only
+        /// to hold this string. There is no folder collection on the wire.</para>
+        /// </summary>
+        public string? folder;
+
+        /// <summary>
+        /// Root value row of this variant's `NeoVariant&lt;TObject&gt;` graph.
+        /// </summary>
+        public string valueId = null!;
+
+        public NeoTimestamp createdAt;
+        public NeoTimestamp updatedAt;
     }
 
     /// <summary>
@@ -246,6 +298,14 @@ namespace NeoCompose.Runtime.Json
         /// written before P43 simply omits it and loads unchanged.
         /// </summary>
         public Dictionary<string, ConstructorRecord> constructors = new();
+
+        /// <summary>
+        /// P67 §9 — variant records keyed by variant record id. Empty for every
+        /// project that declares none, so the field defaults to an empty map
+        /// rather than being required; a hand-built <see cref="ProjectData"/>
+        /// may also leave it null, which means the same thing.
+        /// </summary>
+        public Dictionary<string, VariantRecord> variants = new();
 
         /// <summary>
         /// Declared relation rows keyed by stable relation id. Required by
