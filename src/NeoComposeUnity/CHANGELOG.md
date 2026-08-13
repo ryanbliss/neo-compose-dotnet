@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-08-13
+
+### Added
+
+- P66 sealed classes: deserialize the class-level `isSealed` export field and
+  emit `sealed partial class` for matching generated C# types, preserving the
+  project inheritance contract for game code.
+
+### Changed
+
+- **Breaking:** the project export schema version is now 20. Exports must be
+  regenerated from a web app of the same release; the SDK enforces exact
+  equality so older runtimes cannot silently treat sealed types as extensible.
+
 ## [0.22.1] - 2026-08-12
 
 ### Fixed
