@@ -34,6 +34,11 @@ namespace NeoCompose.Runtime.Json
         public bool hiddenInMemberSelector;
         public bool isAbstract;
         /// <summary>
+        /// Whether authored and generated types may derive from this class.
+        /// </summary>
+        public bool isSealed;
+
+        /// <summary>
         /// Optional system metadata emitted for protected authoring classes.
         /// Contract 3.4 identifies the protection rule with <c>kind</c>; world
         /// runtime validation additionally reads <c>worldKind</c> from this

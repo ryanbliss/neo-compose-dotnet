@@ -13,13 +13,11 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
-        /// 19 is the first export whose NeoScript reference pointers may opt
-        /// into clone provenance with <c>withProvenance: true</c>. An older SDK
-        /// would silently exact-match the authored id and select a shared row,
-        /// so it must reject the export rather than misapply an instance-scoped
-        /// animation override.
+        /// 20 adds the explicit sealed-class flag. An older SDK would ignore
+        /// the declaration and permit consumers to derive from a class whose
+        /// project contract forbids inheritance, so it must reject the export.
         /// </summary>
-        public const int CurrentSchemaVersion = 19;
+        public const int CurrentSchemaVersion = 20;
     }
 
     public class ProjectExportMetadataSemver
