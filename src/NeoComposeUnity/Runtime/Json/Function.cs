@@ -256,6 +256,32 @@ namespace NeoCompose.Runtime.Json
         public FunctionClassConstructorInfo info = null!;
     }
 
+    /// <summary>P67 §4.1 — mirror of <c>INSFunctionVariantInitializeInfo</c>.</summary>
+    public class FunctionVariantInitializeInfo
+    {
+        public Pointer variantPointer = null!;
+        public ClassTypeInfo schemaClassInfo = null!;
+    }
+
+    /// <summary>P67 §4.2 — mirror of <c>INSFunctionVariantApplyInfo</c>.</summary>
+    public class FunctionVariantApplyInfo
+    {
+        public Pointer receiverPointer = null!;
+        public Pointer variantPointer = null!;
+        /// <summary>The RECEIVER's class, which may be a subclass of the variant's (§4.3).</summary>
+        public ClassTypeInfo schemaClassInfo = null!;
+    }
+
+    public class VariantInitializeFunction : Function
+    {
+        public FunctionVariantInitializeInfo info = null!;
+    }
+
+    public class VariantApplyFunction : Function
+    {
+        public FunctionVariantApplyInfo info = null!;
+    }
+
     public class DeclaredConstructorFunction : Function
     {
         public DeclaredConstructorInfo info = null!;
@@ -348,6 +374,8 @@ namespace NeoCompose.Runtime.Json
                 case FunctionKind.StringOp: return typeof(StringOpFunction);
                 case FunctionKind.DecimalOp: return typeof(DecimalOpFunction);
                 case FunctionKind.ListIndex: return typeof(ListIndexFunction);
+                case FunctionKind.VariantInitialize: return typeof(VariantInitializeFunction);
+                case FunctionKind.VariantApply: return typeof(VariantApplyFunction);
                 default: return null;
             }
         }

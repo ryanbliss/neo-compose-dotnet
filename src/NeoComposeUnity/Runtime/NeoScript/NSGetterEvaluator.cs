@@ -1125,6 +1125,20 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                     return UnwrapCached(row, ctx, ownership);
                 }
+                case VariantPointer variantPointer:
+                {
+                    // P67 §6. The pair is the value; resolution to a record
+                    // happens in the two intrinsics that consume it, so an
+                    // unused variant reference costs nothing.
+                    if (string.IsNullOrEmpty(variantPointer.classId))
+                    {
+                        throw new NSGetterRuntimeError(
+                            "Variant reference carries no classId.");
+                    }
+                    return new NeoVariantReference(
+                        variantPointer.classId,
+                        variantPointer.variantId);
+                }
                 case StaticMemberPointer staticPointer:
                 {
                     if (!ctx.client.TryGetMember(
@@ -1323,6 +1337,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return $"reference {rp.valueId}";
                 case StaticMemberPointer staticMember:
                     return $"staticMember {staticMember.memberId}";
+                case VariantPointer variant:
+                    return $"variant {variant.variantId ?? "Base"} of {variant.classId}";
                 case CallFunctionPointer functionCall:
                     return $"functionCall {functionCall.memberId ?? functionCall.memberKey}";
                 case CallDelegatePointer:
@@ -2957,6 +2973,138 @@ namespace NeoCompose.Runtime.NeoScript
                 : classId;
         }
 
+        /// <summary>
+        /// P67 §4.1 through the IR. Thin dispatch into
+        /// <see cref="NeoVariantSupport"/> so the typed
+        /// <see cref="NeoVariant{T}"/> handle and the evaluator run one
+        /// implementation of the construction order, not two.
+        /// </summary>
+        private static object? EvalVariantInitialize(
+            FunctionVariantInitializeInfo info,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            NeoVariantReference reference = RequireVariantReference(
+                EvalPointer(info.variantPointer, scope, ctx),
+                "Initialize");
+            try
+            {
+                VariantRecord? record = NeoVariantSupport.ResolveRecord(
+                    ctx.client,
+                    reference.classId,
+                    reference.variantId);
+                NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(
+                    ctx.client,
+                    reference.classId,
+                    record);
+                MemberValue? row = node.value;
+                if (row is null)
+                {
+                    throw new NSGetterRuntimeError(
+                        "Variant Initialize produced no backing row.");
+                }
+                ctx.allocationTracker.RegisterSessionRoot(row.id);
+                return UnwrapCached(row, ctx, NeoValueOwnership.Session, node.member);
+            }
+            catch (Exception error)
+                when (error is InvalidOperationException
+                    || error is ArgumentException)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Variant Initialize failed: {error.Message}");
+            }
+        }
+
+        /// <summary>
+        /// P67 §4.2 through the IR. Application is in place, so the value is
+        /// the receiver expression's own — re-unwrapped rather than rebuilt,
+        /// because the rows the application wrote have changed underneath it.
+        /// </summary>
+        private static object? EvalVariantApply(
+            FunctionVariantApplyInfo info,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            object? receiver = EvalPointer(info.receiverPointer, scope, ctx);
+            if (receiver is null)
+            {
+                throw new NSGetterRuntimeError(
+                    "ToVariant receiver is null; narrow or force-unwrap the optional value first.");
+            }
+            if (!TryFindRowReferenceByReference(receiver, ctx, out RowReference source))
+            {
+                throw new NSGetterRuntimeError(
+                    "ToVariant receiver has no backing value row.");
+            }
+            NeoVariantReference reference = RequireVariantReference(
+                EvalPointer(info.variantPointer, scope, ctx),
+                "ToVariant");
+            try
+            {
+                VariantRecord? record = NeoVariantSupport.ResolveRecord(
+                    ctx.client,
+                    reference.classId,
+                    reference.variantId);
+                // The base selection writes nothing (§4.2), so skip building a
+                // writable view for it at all.
+                if (record is null) return receiver;
+                if (!ctx.client.TryGetValue(
+                        source.ownership,
+                        source.valueId,
+                        out ObjectMemberValue? row))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"ToVariant receiver row '{source.valueId}' could not be read.");
+                }
+                var member = new ClassMember
+                {
+                    id = $"__neo_variant_target_{source.valueId}",
+                    name = "VariantTarget",
+                    kind = MemberKind.Class,
+                    classId = row.classId ?? source.classId ?? string.Empty,
+                    createdAt = row.createdAt,
+                    updatedAt = row.updatedAt,
+                };
+                var node = new NeoMemberClassWritable(
+                    ctx.client,
+                    member,
+                    source.valueId,
+                    source.ownership);
+                NeoVariantSupport.ApplyToNode(
+                    ctx.client,
+                    record,
+                    node,
+                    source.ownership);
+                MemberValue? applied = node.value;
+                if (applied is not null)
+                {
+                    // The application wrote through the node, so the receiver's
+                    // cached unwrapped shape is stale.
+                    RefreshCachedRowAfterWrite(applied, ctx, source.ownership);
+                }
+                // §4.2 step 4: the value is the receiver itself, never a
+                // replacement — so hand back the very object the receiver
+                // expression produced.
+                return receiver;
+            }
+            catch (Exception error)
+                when (error is InvalidOperationException
+                    || error is ArgumentException)
+            {
+                throw new NSGetterRuntimeError(
+                    $"ToVariant failed for value '{source.valueId}': {error.Message}");
+            }
+        }
+
+        private static NeoVariantReference RequireVariantReference(
+            object? value,
+            string usage)
+        {
+            if (value is NeoVariantReference reference) return reference;
+            throw new NSGetterRuntimeError(
+                $"{usage} expected a NeoVariant value, got '{value?.GetType().Name ?? "null"}'.");
+        }
+
         private static object? EvalFunction(
             Function fn,
             NeoScriptScope scope,
@@ -3051,6 +3199,10 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 case DeclaredConstructorFunction declared:
                     return EvalDeclaredConstructor(declared.info, scope, ctx);
+                case VariantInitializeFunction variantInitialize:
+                    return EvalVariantInitialize(variantInitialize.info, scope, ctx);
+                case VariantApplyFunction variantApply:
+                    return EvalVariantApply(variantApply.info, scope, ctx);
                 case ClassCloneFunction ccf:
                 {
                     var receiver = EvalPointer(ccf.info.receiverPointer, scope, ctx);

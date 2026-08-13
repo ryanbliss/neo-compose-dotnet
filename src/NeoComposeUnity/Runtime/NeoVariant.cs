@@ -77,11 +77,9 @@ namespace NeoCompose.Runtime
         /// </summary>
         public T Initialize()
         {
-            T instance = record is null
-                ? NeoVariantSupport.ConstructBase<T>(client, ClassId)
-                : NeoVariantSupport.RunInitializeClosure<T>(client, record);
-            ApplyDeclarativeHalves(instance);
-            return instance;
+            return NeoVariantSupport.Materialize<T>(
+                client,
+                NeoVariantSupport.InitializeNode(client, ClassId, record));
         }
 
         /// <summary>
@@ -96,19 +94,60 @@ namespace NeoCompose.Runtime
         internal T Apply(T source)
         {
             if (source is null) throw new ArgumentNullException(nameof(source));
-            // The base entry applies nothing: it names the class itself, and
-            // "become the plain class again" is not a thing a written value can
-            // be walked back to. Returning the receiver keeps `ToVariant` total.
-            if (record is null) return source;
-            NeoVariantSupport.RunApplyClosure(client, record, source);
-            ApplyDeclarativeHalves(source);
+            NeoVariantSupport.ApplyToNode(
+                client,
+                record,
+                source.WritableBackingNode,
+                source.ValueOwnership);
             return source;
         }
+    }
 
-        private void ApplyDeclarativeHalves(T instance)
+    /// <summary>
+    /// P67 §6. What a `variant` IR pointer evaluates to: the stored
+    /// `{classId, variantId}` pair, unresolved.
+    ///
+    /// <para>Deliberately not a <see cref="NeoVariant{T}"/>: the evaluator has
+    /// no `T` to close the handle over, and the pair is all either intrinsic
+    /// needs. A null <see cref="variantId"/> is the base selection.</para>
+    /// </summary>
+    internal sealed class NeoVariantReference
+    {
+        internal NeoVariantReference(string classId, string? variantId)
         {
-            if (record is null) return;
-            NeoVariantSupport.ApplyDeclarativeHalves(client, record, instance);
+            this.classId = classId;
+            this.variantId = variantId;
+        }
+
+        internal string classId { get; }
+        internal string? variantId { get; }
+    }
+
+    /// <summary>
+    /// A row-backed <see cref="NeoGeneratedClassValue"/> used only as the
+    /// target of a variant's `ChildOverrides` compile.
+    ///
+    /// <para>`NeoAnimationCompiler.CompileChildOverrides` takes a generated
+    /// value because a selector resolves against the target's `Children` and
+    /// its provenance stamps. Generated wrappers are minted from classId-keyed
+    /// factory tables that only generated code holds, so the evaluator — which
+    /// has a row and no `T` — cannot produce one. This adapter wraps the same
+    /// backing node the real wrapper would, which is the only thing the
+    /// selector path reads.</para>
+    /// </summary>
+    internal sealed class NeoVariantTargetValue : NeoGeneratedClassValue
+    {
+        internal NeoVariantTargetValue(
+            NeoClient client,
+            NeoMemberClass node,
+            NeoValueOwnership ownership)
+            : base(
+                client,
+                node,
+                node.value?.classId ?? string.Empty,
+                isReadOnly: false,
+                inheritedStorageOwnership: ownership)
+        {
         }
     }
 
@@ -169,58 +208,119 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// `&lt;Class&gt;.Variants.Base.Initialize()` — the class's own
-        /// construction, with no variant applied. Required constructor
-        /// parameters must be settleable, exactly as §6 says.
+        /// Resolves the record a `{classId, variantId}` pair names. A null
+        /// <paramref name="variantId"/> is the base selection (§3.4) and
+        /// resolves to a null record, not to a lookup failure.
         /// </summary>
-        internal static TValue ConstructBase<TValue>(NeoClient client, string classId)
-            where TValue : NeoGeneratedClassValue
+        internal static VariantRecord? ResolveRecord(
+            NeoClient client,
+            string classId,
+            string? variantId)
         {
-            NeoMemberClassWritable node =
-                NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+            if (variantId is null) return null;
+            if (!client.TryGetVariant(variantId, out VariantRecord? record))
+            {
+                throw new InvalidOperationException(
+                    $"Variant '{variantId}' is not in this project export. Re-export the project, or regenerate the C# types if the variant was deleted.");
+            }
+            // The record's own classId is the authority on the target class
+            // (§9); the pointer's is corroboration written at compile time.
+            if (!string.IsNullOrEmpty(classId)
+                && !string.Equals(record.classId, classId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Variant '{DescribeVariant(record)}' belongs to class '{record.classId}', but the reference names '{classId}'. Re-export the project.");
+            }
+            return record;
+        }
+
+        /// <summary>
+        /// P67 §4.1 — the whole construction path, at node level so the typed
+        /// handle and the evaluator share one implementation: the `Initialize`
+        /// closure (or, for the base selection, the class's own declared
+        /// construction), then `Overrides`, then `ChildOverrides`.
+        /// </summary>
+        internal static NeoMemberClassWritable InitializeNode(
+            NeoClient client,
+            string classId,
+            VariantRecord? record)
+        {
+            NeoMemberClassWritable node;
+            if (record is null)
+            {
+                // Base selection: the class's own construction. Required
+                // constructor parameters must be settleable, exactly as §6 says.
+                node = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
                     client,
                     classId,
                     constructorId: null,
                     arguments: Array.Empty<NeoDeclaredConstructorArgument>());
-            return Materialize<TValue>(client, node);
-        }
-
-        internal static TValue RunInitializeClosure<TValue>(
-            NeoClient client,
-            VariantRecord record)
-            where TValue : NeoGeneratedClassValue
-        {
-            NeoMemberClass graph = ResolveGraph(client, record);
-            if (!graph.TryGet(InitializeKey, out NeoMemberDelegate? initialize))
-            {
-                throw new InvalidOperationException(
-                    $"Variant '{DescribeVariant(record)}' has no Initialize delegate on its value graph '{record.valueId}'.");
             }
-            object? produced = initialize.Invoke();
-            NeoMemberClassWritable node = RequireConstructedNode(
-                client,
-                produced,
-                record);
-            return Materialize<TValue>(client, node);
+            else
+            {
+                NeoMemberClass graph = ResolveGraph(client, record);
+                if (!graph.TryGet(InitializeKey, out NeoMemberDelegate? initialize))
+                {
+                    throw new InvalidOperationException(
+                        $"Variant '{DescribeVariant(record)}' has no Initialize delegate on its value graph '{record.valueId}'.");
+                }
+                node = RequireConstructedNode(client, initialize.Invoke(), record);
+            }
+            // `Apply` deliberately does not run on this path (§4.1).
+            ApplyDeclarativeHalves(client, record, node, NeoValueOwnership.Session);
+            return node;
         }
 
-        internal static void RunApplyClosure(
+        /// <summary>
+        /// P67 §4.2 — the whole application path, in place: the `Apply` closure
+        /// when the variant declares one, then `Overrides`, then
+        /// `ChildOverrides`.
+        ///
+        /// <para>The base selection applies nothing. It names the class itself,
+        /// and "become the plain class again" is not a state a written value
+        /// can be walked back to; returning the receiver untouched keeps
+        /// `ToVariant` total.</para>
+        /// </summary>
+        internal static void ApplyToNode(
+            NeoClient client,
+            VariantRecord? record,
+            NeoMemberClassWritable node,
+            NeoValueOwnership ownership)
+        {
+            if (record is null) return;
+            RunApplyClosure(client, record, node, ownership);
+            ApplyDeclarativeHalves(client, record, node, ownership);
+        }
+
+        private static void RunApplyClosure(
             NeoClient client,
             VariantRecord record,
-            NeoGeneratedClassValue source)
+            NeoMemberClass node,
+            NeoValueOwnership ownership)
         {
             NeoMemberClass graph = ResolveGraph(client, record);
             // Absent Apply is declarative-only application (§4.2 step 1), not
             // an error and not a fallback to Initialize — the draft's
             // reconstruct-the-instance mode is deliberately gone.
+            //
+            // `TryGet` alone is not the test: it succeeds for any member the
+            // CLASS declares, and `Apply` is declared nullable on every variant.
+            // "Unauthored" is the value being absent, which is what null means
+            // here and what settles to "skip".
             if (!graph.TryGet(ApplyKey, out NeoMemberDelegate? apply)) return;
-            string? sourceValueId = source.valueId;
+            if (apply.value?.value is null && apply.member.defaultValue is null) return;
+            string? sourceValueId = node.overrideValueId ?? node.value?.id;
             if (string.IsNullOrEmpty(sourceValueId))
             {
                 throw new InvalidOperationException(
                     $"Variant '{DescribeVariant(record)}' cannot apply to an instance with no backing value id.");
             }
-            apply.Invoke(sourceValueId!, Array.Empty<object?>());
+            // Explicit receiver ownership, not the delegate's own: the closure
+            // lives in an Immutable variant graph while its target is a Save or
+            // Session instance, so `Invoke(thisValueId)` — which resolves the
+            // receiver in the DELEGATE's store — would look for it in assets
+            // and fail. Same reason animation selectors use this overload.
+            apply.InvokeValueReference(sourceValueId!, ownership);
         }
 
         /// <summary>
@@ -228,11 +328,14 @@ namespace NeoCompose.Runtime
         /// `ChildOverrides` row against the instance. Shared because the two
         /// paths differ only in step 1.
         /// </summary>
-        internal static void ApplyDeclarativeHalves(
+        private static void ApplyDeclarativeHalves(
             NeoClient client,
-            VariantRecord record,
-            NeoGeneratedClassValue instance)
+            VariantRecord? record,
+            NeoMemberClassWritable node,
+            NeoValueOwnership ownership)
         {
+            if (record is null) return;
+            using var instance = new NeoVariantTargetValue(client, node, ownership);
             NeoMemberClass graph = ResolveGraph(client, record);
             string variantKey = $"variant:{record.id}";
             var writes = new List<NeoAnimationCompiledWrite>();

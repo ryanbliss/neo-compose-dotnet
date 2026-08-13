@@ -6,6 +6,10 @@
 
 ### Added
 
+- P67 NeoObject variants: NeoScript compiler revision 10 — the `variant`
+  pointer and the `variantInitialize` / `variantApply` intrinsics — executes on
+  device, so one variant's `initialize` may delegate to another's `Initialize()`
+  and `source.ToVariant(...)` applies in place from authored NeoScript.
 - P67 NeoObject variants: deserialize the new `variants` export collection and
   resolve a `NeoVariant<T>` handle from it, so generated `Class.Variants`
   static trees construct through a variant (`Initialize()`) and apply one in

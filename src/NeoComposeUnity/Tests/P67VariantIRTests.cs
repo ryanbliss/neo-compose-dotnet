@@ -1,0 +1,673 @@
+#nullable enable
+
+using System;
+using System.Collections.Generic;
+using NeoCompose.Runtime;
+using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript;
+using Newtonsoft.Json.Linq;
+using NUnit.Framework;
+using JsonMember = NeoCompose.Runtime.Json.Member;
+
+namespace NeoCompose.Tests
+{
+    /// <summary>
+    /// P67 §4.1/§4.2 executed through the compiled IR — the on-device half of
+    /// compiler revision 10's `variant` pointer and its two intrinsics.
+    ///
+    /// <para>The fixture hand-builds variant graphs because that is the only
+    /// way to reach the evaluator arms without a live push; the graphs are the
+    /// shape the CLI actually emits (a materialized value map, no `init`).</para>
+    /// </summary>
+    public class P67VariantIRTests
+    {
+        private const string ProjectId = "p67";
+        private const string WidgetClassId = "widget-class";
+        private const string VariantClassId = "neo-variant-class";
+
+        // -------------------------------------------------------------------
+        // §3.3 — one variant's initialize delegating to another's Initialize.
+        // -------------------------------------------------------------------
+
+        [Test]
+        public void VariantInitialize_DelegatesToAnotherVariantsInitialize()
+        {
+            NeoClient client = LoadClient();
+
+            // Variant "Down" declares `initialize: () => Widget.Variants.Up.Initialize()`.
+            // "Up" constructs the widget and labels it.
+            VariantRecord down = client.variants["variant-down"];
+            NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(
+                client,
+                WidgetClassId,
+                down);
+
+            Assert.IsNotNull(node.value);
+            Assert.AreEqual(WidgetClassId, node.value!.classId);
+            // "Up" built it; "Down"'s own Overrides then refined it, proving the
+            // delegated construction and the delegating variant's declarative
+            // half both ran, in that order (§4.1 steps 1 then 2).
+            Assert.AreEqual("down", ReadLabel(client, node));
+        }
+
+        [Test]
+        public void VariantInitialize_RunsOverridesButNotApply()
+        {
+            NeoClient client = LoadClient();
+            VariantRecord up = client.variants["variant-up"];
+
+            NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(
+                client,
+                WidgetClassId,
+                up);
+
+            // "Up" declares an Apply that would write "applied". §4.1 says the
+            // construction path never runs it, so Overrides' "up" survives.
+            Assert.AreEqual("up", ReadLabel(client, node));
+        }
+
+        // -------------------------------------------------------------------
+        // §4.2 — ToVariant through the IR.
+        // -------------------------------------------------------------------
+
+        [Test]
+        public void VariantApply_RunsInPlaceAndReturnsTheReceiver()
+        {
+            NeoClient client = LoadClient();
+            NSGetterEvaluator.Context ctx = Context(client);
+            string targetId = NewSessionInstance(client);
+
+            object? applied = NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantApplyPointer(
+                    Reference(targetId),
+                    VariantRef(WidgetClassId, "variant-up")))),
+                ctx);
+
+            // §4.2 step 4 — a value, and the receiver's, never a replacement.
+            Assert.IsNotNull(applied);
+            // The Apply closure ran, then Overrides refined it: last writer wins.
+            Assert.AreEqual("up", ReadRowLabel(client, targetId));
+        }
+
+        [Test]
+        public void VariantApply_SkipsTheClosureWhenTheVariantDeclaresNone()
+        {
+            NeoClient client = LoadClient();
+            NSGetterEvaluator.Context ctx = Context(client);
+            string targetId = NewSessionInstance(client);
+
+            // "Plain" authors no Apply value — declarative-only application.
+            // The member is still declared on the class, so "absent" has to be
+            // read off the value, not off the schema.
+            NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantApplyPointer(
+                    Reference(targetId),
+                    VariantRef(WidgetClassId, "variant-plain")))),
+                ctx);
+
+            Assert.AreEqual("plain", ReadRowLabel(client, targetId));
+        }
+
+        // -------------------------------------------------------------------
+        // §3.4 — the base selection through both paths.
+        // -------------------------------------------------------------------
+
+        [Test]
+        public void BaseSelection_InitializeIsTheClassesOwnConstruction()
+        {
+            NeoClient client = LoadClient();
+
+            NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(
+                client,
+                WidgetClassId,
+                record: null);
+
+            Assert.IsNotNull(node.value);
+            Assert.AreEqual(WidgetClassId, node.value!.classId);
+        }
+
+        [Test]
+        public void BaseSelection_ApplyLeavesTheReceiverUntouched()
+        {
+            NeoClient client = LoadClient();
+            NSGetterEvaluator.Context ctx = Context(client);
+            string targetId = NewSessionInstance(client);
+            string before = ReadRowLabel(client, targetId);
+
+            object? applied = NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantApplyPointer(
+                    Reference(targetId),
+                    VariantRef(WidgetClassId, variantId: null)))),
+                ctx);
+
+            Assert.IsNotNull(applied);
+            // "Become the plain class again" is not a state a written value can
+            // be walked back to, so the base entry writes nothing (§4.2).
+            Assert.AreEqual(before, ReadRowLabel(client, targetId));
+        }
+
+        [Test]
+        public void VariantPointer_RejectsAnIdThatIsNotInTheExport()
+        {
+            NeoClient client = LoadClient();
+            NSGetterEvaluator.Context ctx = Context(client);
+
+            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+                NSGetterEvaluator.Evaluate(
+                    Getter(Return(VariantInitializePointer(
+                        VariantRef(WidgetClassId, "variant-missing")))),
+                    ctx))!;
+
+            StringAssert.Contains("variant-missing", error.Message);
+        }
+
+        // -------------------------------------------------------------------
+        // Revision handshake.
+        // -------------------------------------------------------------------
+
+        [Test]
+        public void CompilerRevision_CurrentIsTen()
+        {
+            Assert.AreEqual(10, FunctionWithReturnType.CurrentCompilerRevision);
+        }
+
+        [Test]
+        public void CompilerRevision_TenExecutesAndElevenIsRejected()
+        {
+            NeoClient client = LoadClient();
+            FunctionWithReturnType ten = Getter(Return(Literal("ok")));
+            ten.compilerRevision = 10;
+            Assert.DoesNotThrow(() =>
+                NeoScriptExecutor.PrepareCallback(
+                    client,
+                    ten,
+                    Context(client),
+                    options: null));
+
+            FunctionWithReturnType eleven = Getter(Return(Literal("ok")));
+            eleven.compilerRevision = 11;
+            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+                NeoScriptExecutor.PrepareCallback(
+                    client,
+                    eleven,
+                    Context(client),
+                    options: null))!;
+            StringAssert.Contains("compiler revision 11", error.Message);
+            StringAssert.Contains("revisions 1 through 10", error.Message);
+        }
+
+        // -------------------------------------------------------------------
+        // Fixture.
+        // -------------------------------------------------------------------
+
+        private static NeoClient LoadClient()
+        {
+            return NeoTestSaveStack.ClientFromSchema(BuildVariantProjectData());
+        }
+
+        private static NSGetterEvaluator.Context Context(NeoClient client)
+        {
+            var ctx = new NSGetterEvaluator.Context(
+                client,
+                thisValue: null,
+                rootValue: null,
+                valueOwnership: NeoValueOwnership.Session);
+            return ctx.WithRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+        }
+
+        /// <summary>
+        /// A Session-owned Widget to apply variants to. Application writes, so
+        /// an Asset-owned row is correctly refused as read-only.
+        /// </summary>
+        private static string NewSessionInstance(NeoClient client)
+        {
+            NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(
+                client,
+                WidgetClassId,
+                record: null);
+            return node.value?.id
+                ?? throw new InvalidOperationException("No instance row.");
+        }
+
+        private static string ReadLabel(NeoClient client, NeoMemberClass node)
+        {
+            return node.TryGet("Label", out NeoMemberString? label)
+                ? label.value?.value ?? string.Empty
+                : string.Empty;
+        }
+
+        private static string ReadRowLabel(NeoClient client, string valueId)
+        {
+            if (!client.TryGetValue(valueId, out ObjectMemberValue? row)) return string.Empty;
+            if (row.value is null || !row.value.TryGetValue("Label", out string? labelId))
+            {
+                return string.Empty;
+            }
+            return client.TryGetValue(labelId, out StringMemberValue? label)
+                ? label.value ?? string.Empty
+                : string.Empty;
+        }
+
+        private static ProjectData BuildVariantProjectData()
+        {
+            var rootClass = new NeoSchemaClass
+            {
+                id = "root-class",
+                projectId = ProjectId,
+                name = "Root",
+                schema = new Dictionary<string, string>(),
+            };
+            var widgetClass = new NeoSchemaClass
+            {
+                id = WidgetClassId,
+                projectId = ProjectId,
+                name = "Widget",
+                schema = new Dictionary<string, string> { ["Label"] = "widget-label" },
+            };
+            // The seeded family, reduced to the shape the handle reads.
+            var variantClass = new NeoSchemaClass
+            {
+                id = VariantClassId,
+                projectId = ProjectId,
+                name = "NeoVariant",
+                schema = new Dictionary<string, string>
+                {
+                    ["Initialize"] = "variant-initialize",
+                    ["Apply"] = "variant-apply",
+                    ["Overrides"] = "variant-overrides",
+                },
+            };
+
+            ClassMember rootAssets = RootMember("root-assets", "Assets", "value-assets");
+            ClassMember rootSave = RootMember("root-save", "Save", "value-save", "save");
+            ClassMember rootSession =
+                RootMember("root-session", "Session", "value-session", "session");
+
+            var values = new Dictionary<string, MemberValue>
+            {
+                ["value-assets"] = ObjectValue("value-assets", rootClass.id),
+                ["value-save"] = ObjectValue("value-save", rootClass.id),
+                ["value-session"] = ObjectValue("value-session", rootClass.id),
+
+                // A pre-existing widget instance for the application path.
+                ["value-target"] = ObjectValue(
+                    "value-target",
+                    WidgetClassId,
+                    ("Label", "value-target-label")),
+                ["value-target-label"] = StringValue("value-target-label", "target"),
+
+                // Variant "Up": constructs the widget, Overrides Label, and
+                // declares an Apply so the construction path can be shown to
+                // skip it.
+                ["value-variant-up"] = ObjectValue(
+                    "value-variant-up",
+                    VariantClassId,
+                    ("Initialize", "value-up-initialize"),
+                    ("Apply", "value-up-apply"),
+                    ("Overrides", "value-up-overrides")),
+                ["value-up-initialize"] = Closure(
+                    "value-up-initialize",
+                    Return(ClassConstructorPointer(WidgetClassId))),
+                ["value-up-apply"] = VoidClosure(
+                    "value-up-apply",
+                    AssignLabel("applied")),
+                ["value-up-overrides"] = ObjectValue(
+                    "value-up-overrides",
+                    WidgetClassId,
+                    ("Label", "value-up-override-label")),
+                ["value-up-override-label"] = StringValue("value-up-override-label", "up"),
+
+                // Variant "Down": §3.3's delegating shape — its initialize is
+                // `Widget.Variants.Up.Initialize()`.
+                ["value-variant-down"] = ObjectValue(
+                    "value-variant-down",
+                    VariantClassId,
+                    ("Initialize", "value-down-initialize"),
+                    ("Overrides", "value-down-overrides")),
+                ["value-down-initialize"] = Closure(
+                    "value-down-initialize",
+                    Return(VariantInitializePointer(
+                        VariantRef(WidgetClassId, "variant-up")))),
+                ["value-down-overrides"] = ObjectValue(
+                    "value-down-overrides",
+                    WidgetClassId,
+                    ("Label", "value-down-override-label")),
+                ["value-down-override-label"] =
+                    StringValue("value-down-override-label", "down"),
+
+                // Variant "Plain": Overrides only — declarative-only application.
+                ["value-variant-plain"] = ObjectValue(
+                    "value-variant-plain",
+                    VariantClassId,
+                    ("Initialize", "value-plain-initialize"),
+                    ("Overrides", "value-plain-overrides")),
+                ["value-plain-initialize"] = Closure(
+                    "value-plain-initialize",
+                    Return(ClassConstructorPointer(WidgetClassId))),
+                ["value-plain-overrides"] = ObjectValue(
+                    "value-plain-overrides",
+                    WidgetClassId,
+                    ("Label", "value-plain-override-label")),
+                ["value-plain-override-label"] =
+                    StringValue("value-plain-override-label", "plain"),
+            };
+
+            return new ProjectData
+            {
+                project = new Project
+                {
+                    id = ProjectId,
+                    name = "P67 Variant IR Tests",
+                    rootAssetsMemberId = rootAssets.id,
+                    rootSaveFileMemberId = rootSave.id,
+                    rootSessionMemberId = rootSession.id,
+                },
+                members = new Dictionary<string, JsonMember>
+                {
+                    [rootAssets.id] = rootAssets,
+                    [rootSave.id] = rootSave,
+                    [rootSession.id] = rootSession,
+                    ["widget-label"] = StringField("widget-label", "Label"),
+                    // `Initialize` returns TObject; `Apply` is void (§1).
+                    ["variant-initialize"] = DelegateField(
+                        "variant-initialize",
+                        "Initialize",
+                        ClassType(WidgetClassId)),
+                    ["variant-apply"] = DelegateField(
+                        "variant-apply",
+                        "Apply",
+                        new PrimitiveTypeInfo { type = MemberKind.Null, required = true }),
+                    ["variant-overrides"] = PartialField("variant-overrides", "Overrides"),
+                },
+                values = values,
+                classes = new Dictionary<string, NeoSchemaClass>
+                {
+                    [rootClass.id] = rootClass,
+                    [widgetClass.id] = widgetClass,
+                    [variantClass.id] = variantClass,
+                },
+                variants = new Dictionary<string, VariantRecord>
+                {
+                    ["variant-up"] = Variant("variant-up", "Up", "value-variant-up"),
+                    ["variant-down"] = Variant("variant-down", "Down", "value-variant-down"),
+                    ["variant-plain"] = Variant("variant-plain", "Plain", "value-variant-plain"),
+                },
+                enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
+            };
+        }
+
+        private static VariantRecord Variant(string id, string name, string valueId) => new()
+        {
+            id = id,
+            projectId = ProjectId,
+            classId = WidgetClassId,
+            name = name,
+            folder = null,
+            valueId = valueId,
+            createdAt = "x",
+            updatedAt = "x",
+        };
+
+        // ---- IR builders ----
+
+        private static ReturnInstruction Return(Pointer pointer) => new()
+        {
+            type = InstructionKind.Return,
+            pointer = pointer,
+        };
+
+        private static ValuePointer Literal(string value) => new()
+        {
+            type = PointerKind.Value,
+            value = new Value
+            {
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true },
+                value = JToken.FromObject(value),
+            },
+        };
+
+        private static ReferencePointer Reference(string valueId) => new()
+        {
+            type = PointerKind.Reference,
+            valueId = valueId,
+        };
+
+        private static VariantPointer VariantRef(string classId, string? variantId) => new()
+        {
+            type = PointerKind.Variant,
+            classId = classId,
+            variantId = variantId,
+        };
+
+        private static FunctionPointer VariantInitializePointer(VariantPointer variant) => new()
+        {
+            type = PointerKind.Function,
+            function = new VariantInitializeFunction
+            {
+                type = FunctionKind.VariantInitialize,
+                info = new FunctionVariantInitializeInfo
+                {
+                    variantPointer = variant,
+                    schemaClassInfo = ClassType(WidgetClassId),
+                },
+            },
+        };
+
+        private static FunctionPointer VariantApplyPointer(
+            Pointer receiver,
+            VariantPointer variant) => new()
+        {
+            type = PointerKind.Function,
+            function = new VariantApplyFunction
+            {
+                type = FunctionKind.VariantApply,
+                info = new FunctionVariantApplyInfo
+                {
+                    receiverPointer = receiver,
+                    variantPointer = variant,
+                    schemaClassInfo = ClassType(WidgetClassId),
+                },
+            },
+        };
+
+        private static FunctionPointer ClassConstructorPointer(string classId) => new()
+        {
+            type = PointerKind.Function,
+            function = new ClassConstructorFunction
+            {
+                type = FunctionKind.ClassConstructor,
+                info = new FunctionClassConstructorInfo
+                {
+                    schemaClassInfo = ClassType(classId),
+                    fields = Array.Empty<FunctionClassConstructorField>(),
+                },
+            },
+        };
+
+        private static AssignInstruction AssignLabel(string value) => new()
+        {
+            type = InstructionKind.Assign,
+            target = new WriteTarget
+            {
+                pointer = new KeyOfPointer
+                {
+                    type = PointerKind.KeyOf,
+                    keyOf = new KeyOf
+                    {
+                        pointer = new VariablePointer
+                        {
+                            type = PointerKind.Variable,
+                            variableId = "__this__",
+                        },
+                        key = Literal("Label"),
+                    },
+                },
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = MemberKind.String,
+                    required = true,
+                },
+            },
+            pointer = Literal(value),
+        };
+
+        private static ClassTypeInfo ClassType(string classId) => new()
+        {
+            type = MemberKind.Class,
+            required = true,
+            classId = classId,
+        };
+
+        private static FunctionWithReturnType Getter(params Instruction[] instructions) => new()
+        {
+            compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+            parameters = Array.Empty<Variable>(),
+            instructions = instructions,
+            typeInfo = new PrimitiveTypeInfo { type = MemberKind.Unknown, required = false },
+        };
+
+        /// <summary>
+        /// A void-body closure — the shape `Apply` compiles to (§1's
+        /// `NeoDelegate&lt;void, TObject&gt;`), which returns nothing.
+        /// </summary>
+        private static DelegateMemberValue VoidClosure(
+            string id,
+            params Instruction[] instructions)
+        {
+            DelegateMemberValue closure = Closure(id, instructions);
+            closure.value!.action!.typeInfo = new PrimitiveTypeInfo
+            {
+                type = MemberKind.Null,
+                required = true,
+            };
+            return closure;
+        }
+
+        private static DelegateMemberValue Closure(
+            string id,
+            params Instruction[] instructions) => new()
+        {
+            id = id,
+            createdAt = "x",
+            updatedAt = "x",
+            value = new NeoDelegateValue
+            {
+                code = "// hand-built",
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        new Variable
+                        {
+                            id = "__this__",
+                            typeInfo = ClassType(WidgetClassId),
+                        },
+                        new Variable
+                        {
+                            id = "__root__",
+                            typeInfo = ClassType("root-class"),
+                        },
+                    },
+                    instructions = instructions,
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Unknown,
+                        required = false,
+                    },
+                },
+            },
+        };
+
+        // ---- record builders ----
+
+        private static ClassMember RootMember(
+            string id,
+            string name,
+            string valueId,
+            string? storage = null) => new()
+        {
+            id = id,
+            projectId = ProjectId,
+            name = name,
+            kind = MemberKind.Class,
+            classId = "root-class",
+            valueId = valueId,
+            storage = storage,
+            createdAt = "x",
+            updatedAt = "x",
+        };
+
+        private static ObjectMemberValue ObjectValue(
+            string id,
+            string classId,
+            params (string key, string valueId)[] entries)
+        {
+            var map = new Dictionary<string, string>();
+            foreach ((string key, string valueId) in entries) map[key] = valueId;
+            return new ObjectMemberValue
+            {
+                id = id,
+                classId = classId,
+                value = map,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+        }
+
+        private static StringMemberValue StringValue(string id, string value) => new()
+        {
+            id = id,
+            value = value,
+            createdAt = "x",
+            updatedAt = "x",
+        };
+
+        private static StringMember StringField(string id, string name) => new()
+        {
+            id = id,
+            projectId = ProjectId,
+            name = name,
+            kind = MemberKind.String,
+            // Settleable without a call-site argument, so the base selection's
+            // bare construction (§3.4) succeeds.
+            required = false,
+            defaultValue = new StringMemberValueBase { value = "unset" },
+            localizable = false,
+            storage = "session",
+            createdAt = "x",
+            updatedAt = "x",
+        };
+
+        private static DelegateMember DelegateField(
+            string id,
+            string name,
+            TypeInfo returnTypeInfo) => new()
+        {
+            id = id,
+            projectId = ProjectId,
+            name = name,
+            kind = MemberKind.NSDelegate,
+            required = false,
+            storage = "immutable",
+            returnTypeInfo = returnTypeInfo,
+            argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+            createdAt = "x",
+            updatedAt = "x",
+        };
+
+        private static ClassMember PartialField(string id, string name) => new()
+        {
+            id = id,
+            projectId = ProjectId,
+            name = name,
+            kind = MemberKind.Class,
+            classId = WidgetClassId,
+            partial = true,
+            required = false,
+            storage = "immutable",
+            createdAt = "x",
+            updatedAt = "x",
+        };
+    }
+}
