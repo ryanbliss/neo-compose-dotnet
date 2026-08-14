@@ -260,6 +260,7 @@ namespace NeoCompose.Runtime.Json
     public class FunctionVariantInitializeInfo
     {
         public Pointer variantPointer = null!;
+        public Pointer? rowPointer;
         public ClassTypeInfo schemaClassInfo = null!;
     }
 
@@ -268,6 +269,7 @@ namespace NeoCompose.Runtime.Json
     {
         public Pointer receiverPointer = null!;
         public Pointer variantPointer = null!;
+        public Pointer? rowPointer;
         /// <summary>The RECEIVER's class, which may be a subclass of the variant's (§4.3).</summary>
         public ClassTypeInfo schemaClassInfo = null!;
     }

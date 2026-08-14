@@ -14,7 +14,7 @@ namespace NeoCompose.Tests
 {
     /// <summary>
     /// P67 §4.1/§4.2 executed through the compiled IR — the on-device half of
-    /// compiler revision 10's `variant` pointer and its two intrinsics.
+    /// compiler revisions 10-11's `variant` pointer and its two intrinsics.
     ///
     /// <para>The fixture hand-builds variant graphs because that is the only
     /// way to reach the evaluator arms without a live push; the graphs are the
@@ -25,6 +25,9 @@ namespace NeoCompose.Tests
         private const string ProjectId = "p67";
         private const string WidgetClassId = "widget-class";
         private const string VariantClassId = "neo-variant-class";
+        private const string LookupFolderId = "lookup-folder";
+        private const string LookupCollectionMemberId = "lookup-catalog";
+        private const string LookupCollectionValueId = "value-catalog";
 
         // -------------------------------------------------------------------
         // §3.3 — one variant's initialize delegating to another's Initialize.
@@ -108,6 +111,98 @@ namespace NeoCompose.Tests
 
             // Apply set Label to "applied"; Overrides is step 2, so it wins.
             Assert.AreNotEqual("applied", ReadRowLabel(client, targetId));
+        }
+
+        // -------------------------------------------------------------------
+        // P68 §4 — the row argument through both evaluator intrinsics.
+        // -------------------------------------------------------------------
+
+        [Test]
+        public void LookupVariantInitialize_ReceivesAnExplicitCollectionRow()
+        {
+            NeoClient client = LoadClient();
+
+            object? made = NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantInitializePointer(
+                    VariantRef(WidgetClassId, "variant-lookup"),
+                    Reference("value-target")))),
+                Context(client));
+
+            Assert.IsNotNull(made);
+        }
+
+        [Test]
+        public void LookupVariantApply_ThreadsTheRowAndReturnsTheReceiver()
+        {
+            NeoClient client = LoadClient();
+            string targetId = NewSessionInstance(client);
+            NSGetterEvaluator.Context ctx = Context(client);
+            object? receiver = NSGetterEvaluator.Evaluate(
+                Getter(Return(Reference(targetId))),
+                ctx);
+
+            object? applied = NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantApplyPointer(
+                    Reference(targetId),
+                    VariantRef(WidgetClassId, "variant-lookup"),
+                    Reference("value-target")))),
+                ctx);
+
+            Assert.AreSame(receiver, applied);
+            Assert.AreEqual("target", ReadRowLabel(client, targetId));
+        }
+
+        [Test]
+        public void LookupVariantInitialize_UsesARowBoundOnTheVariantValue()
+        {
+            NeoClient client = LoadClient();
+
+            object? made = NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantInitializePointer(
+                    VariantRef(
+                        WidgetClassId,
+                        "variant-lookup",
+                        rowValueId: "value-target")))),
+                Context(client));
+
+            Assert.IsNotNull(made);
+        }
+
+        [Test]
+        public void LookupVariant_RejectsARowOutsideTheBoundCollection()
+        {
+            NeoClient client = LoadClient();
+
+            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+                NSGetterEvaluator.Evaluate(
+                    Getter(Return(VariantInitializePointer(
+                        VariantRef(WidgetClassId, "variant-lookup"),
+                        Reference("value-assets")))),
+                    Context(client)))!;
+
+            StringAssert.Contains("not an entry", error.Message);
+            StringAssert.Contains(LookupCollectionValueId, error.Message);
+        }
+
+        [Test]
+        public void BaseVariant_RejectsALookupRowOnBothPaths()
+        {
+            NeoClient client = LoadClient();
+            string targetId = NewSessionInstance(client);
+
+            Assert.Throws<NSGetterRuntimeError>(() =>
+                NSGetterEvaluator.Evaluate(
+                    Getter(Return(VariantInitializePointer(
+                        VariantRef(WidgetClassId, variantId: null),
+                        Reference("value-target")))),
+                    Context(client)));
+            Assert.Throws<NSGetterRuntimeError>(() =>
+                NSGetterEvaluator.Evaluate(
+                    Getter(Return(VariantApplyPointer(
+                        Reference(targetId),
+                        VariantRef(WidgetClassId, variantId: null),
+                        Reference("value-target")))),
+                    Context(client)));
         }
 
         [Test]
@@ -300,34 +395,34 @@ namespace NeoCompose.Tests
         // -------------------------------------------------------------------
 
         [Test]
-        public void CompilerRevision_CurrentIsTen()
+        public void CompilerRevision_CurrentIsEleven()
         {
-            Assert.AreEqual(10, FunctionWithReturnType.CurrentCompilerRevision);
+            Assert.AreEqual(11, FunctionWithReturnType.CurrentCompilerRevision);
         }
 
         [Test]
-        public void CompilerRevision_TenExecutesAndElevenIsRejected()
+        public void CompilerRevision_ElevenExecutesAndTwelveIsRejected()
         {
             NeoClient client = LoadClient();
-            FunctionWithReturnType ten = Getter(Return(Literal("ok")));
-            ten.compilerRevision = 10;
-            Assert.DoesNotThrow(() =>
-                NeoScriptExecutor.PrepareCallback(
-                    client,
-                    ten,
-                    Context(client),
-                    options: null));
-
             FunctionWithReturnType eleven = Getter(Return(Literal("ok")));
             eleven.compilerRevision = 11;
-            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+            Assert.DoesNotThrow(() =>
                 NeoScriptExecutor.PrepareCallback(
                     client,
                     eleven,
                     Context(client),
+                    options: null));
+
+            FunctionWithReturnType twelve = Getter(Return(Literal("ok")));
+            twelve.compilerRevision = 12;
+            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+                NeoScriptExecutor.PrepareCallback(
+                    client,
+                    twelve,
+                    Context(client),
                     options: null))!;
-            StringAssert.Contains("compiler revision 11", error.Message);
-            StringAssert.Contains("revisions 1 through 10", error.Message);
+            StringAssert.Contains("compiler revision 12", error.Message);
+            StringAssert.Contains("revisions 1 through 11", error.Message);
         }
 
         // -------------------------------------------------------------------
@@ -397,7 +492,10 @@ namespace NeoCompose.Tests
                 id = "root-class",
                 projectId = ProjectId,
                 name = "Root",
-                schema = new Dictionary<string, string>(),
+                schema = new Dictionary<string, string>
+                {
+                    ["Catalog"] = LookupCollectionMemberId,
+                },
             };
             var widgetClass = new NeoSchemaClass
             {
@@ -436,7 +534,10 @@ namespace NeoCompose.Tests
 
             var values = new Dictionary<string, MemberValue>
             {
-                ["value-assets"] = ObjectValue("value-assets", rootClass.id),
+                ["value-assets"] = ObjectValue(
+                    "value-assets",
+                    rootClass.id,
+                    ("Catalog", LookupCollectionValueId)),
                 ["value-save"] = ObjectValue("value-save", rootClass.id),
                 ["value-session"] = ObjectValue("value-session", rootClass.id),
 
@@ -462,6 +563,13 @@ namespace NeoCompose.Tests
                 {
                     id = "value-target-empty-choice",
                     value = null,
+                    createdAt = "x",
+                    updatedAt = "x",
+                },
+                [LookupCollectionValueId] = new ArrayMemberValue
+                {
+                    id = LookupCollectionValueId,
+                    value = new[] { "value-target" },
                     createdAt = "x",
                     updatedAt = "x",
                 },
@@ -521,6 +629,23 @@ namespace NeoCompose.Tests
                     ("Label", "value-plain-override-label")),
                 ["value-plain-override-label"] =
                     StringValue("value-plain-override-label", "plain"),
+
+                // P68 lookup variant: Initialize consumes the row while
+                // constructing; Apply copies the row's Label onto the target,
+                // making row-argument threading observable on device.
+                ["value-variant-lookup"] = ObjectValue(
+                    "value-variant-lookup",
+                    VariantClassId,
+                    ("Initialize", "value-lookup-initialize"),
+                    ("Apply", "value-lookup-apply")),
+                ["value-lookup-initialize"] = LookupClosure(
+                    "value-lookup-initialize",
+                    Return(ClassConstructorPointer(WidgetClassId))),
+                ["value-lookup-apply"] = LookupVoidClosure(
+                    "value-lookup-apply",
+                    AssignMember(
+                        "Label",
+                        VariableMemberRead("__row__", "Label"))),
             };
 
             return new ProjectData
@@ -551,6 +676,30 @@ namespace NeoCompose.Tests
                         createdAt = "x",
                         updatedAt = "x",
                     },
+                    ["lookup-entry"] = new ClassMember
+                    {
+                        id = "lookup-entry",
+                        projectId = ProjectId,
+                        name = "Entry",
+                        kind = MemberKind.Class,
+                        classId = WidgetClassId,
+                        required = true,
+                        storage = "immutable",
+                        createdAt = "x",
+                        updatedAt = "x",
+                    },
+                    [LookupCollectionMemberId] = new ListMember
+                    {
+                        id = LookupCollectionMemberId,
+                        projectId = ProjectId,
+                        name = "Catalog",
+                        kind = MemberKind.List,
+                        entryMemberId = "lookup-entry",
+                        required = true,
+                        storage = "immutable",
+                        createdAt = "x",
+                        updatedAt = "x",
+                    },
                     // `Initialize` returns TObject; `Apply` is void (§1).
                     ["variant-initialize"] = DelegateField(
                         "variant-initialize",
@@ -574,6 +723,31 @@ namespace NeoCompose.Tests
                     ["variant-up"] = Variant("variant-up", "Up", "value-variant-up"),
                     ["variant-down"] = Variant("variant-down", "Down", "value-variant-down"),
                     ["variant-plain"] = Variant("variant-plain", "Plain", "value-variant-plain"),
+                    ["variant-lookup"] = new VariantRecord
+                    {
+                        id = "variant-lookup",
+                        projectId = ProjectId,
+                        classId = WidgetClassId,
+                        name = "Lookup",
+                        folder = "Stages",
+                        valueId = "value-variant-lookup",
+                        createdAt = "x",
+                        updatedAt = "x",
+                    },
+                },
+                variantFolders = new Dictionary<string, VariantFolderRecord>
+                {
+                    [LookupFolderId] = new VariantFolderRecord
+                    {
+                        id = LookupFolderId,
+                        classId = WidgetClassId,
+                        path = "Stages",
+                        binding = new VariantFolderBinding
+                        {
+                            collectionMemberId = LookupCollectionMemberId,
+                            collectionValueId = LookupCollectionValueId,
+                        },
+                    },
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             };
@@ -615,14 +789,20 @@ namespace NeoCompose.Tests
             valueId = valueId,
         };
 
-        private static VariantPointer VariantRef(string classId, string? variantId) => new()
+        private static VariantPointer VariantRef(
+            string classId,
+            string? variantId,
+            string? rowValueId = null) => new()
         {
             type = PointerKind.Variant,
             classId = classId,
             variantId = variantId,
+            rowValueId = rowValueId,
         };
 
-        private static FunctionPointer VariantInitializePointer(Pointer variant) => new()
+        private static FunctionPointer VariantInitializePointer(
+            Pointer variant,
+            Pointer? row = null) => new()
         {
             type = PointerKind.Function,
             function = new VariantInitializeFunction
@@ -631,6 +811,7 @@ namespace NeoCompose.Tests
                 info = new FunctionVariantInitializeInfo
                 {
                     variantPointer = variant,
+                    rowPointer = row,
                     schemaClassInfo = ClassType(WidgetClassId),
                 },
             },
@@ -638,7 +819,8 @@ namespace NeoCompose.Tests
 
         private static FunctionPointer VariantApplyPointer(
             Pointer receiver,
-            VariantPointer variant) => new()
+            VariantPointer variant,
+            Pointer? row = null) => new()
         {
             type = PointerKind.Function,
             function = new VariantApplyFunction
@@ -648,6 +830,7 @@ namespace NeoCompose.Tests
                 {
                     receiverPointer = receiver,
                     variantPointer = variant,
+                    rowPointer = row,
                     schemaClassInfo = ClassType(WidgetClassId),
                 },
             },
@@ -686,7 +869,14 @@ namespace NeoCompose.Tests
 
         private static AssignInstruction AssignMember(
             string schemaKey,
-            string value) => new()
+            string value)
+        {
+            return AssignMember(schemaKey, Literal(value));
+        }
+
+        private static AssignInstruction AssignMember(
+            string schemaKey,
+            Pointer value) => new()
         {
             type = InstructionKind.Assign,
             target = new WriteTarget
@@ -710,7 +900,23 @@ namespace NeoCompose.Tests
                     required = true,
                 },
             },
-            pointer = Literal(value),
+            pointer = value,
+        };
+
+        private static KeyOfPointer VariableMemberRead(
+            string variableId,
+            string schemaKey) => new()
+        {
+            type = PointerKind.KeyOf,
+            keyOf = new KeyOf
+            {
+                pointer = new VariablePointer
+                {
+                    type = PointerKind.Variable,
+                    variableId = variableId,
+                },
+                key = Literal(schemaKey),
+            },
         };
 
         private static ClassTypeInfo ClassType(string classId) => new()
@@ -742,6 +948,36 @@ namespace NeoCompose.Tests
                 type = MemberKind.Null,
                 required = true,
             };
+            return closure;
+        }
+
+        private static DelegateMemberValue LookupVoidClosure(
+            string id,
+            params Instruction[] instructions)
+        {
+            DelegateMemberValue closure = LookupClosure(id, instructions);
+            closure.value!.action!.typeInfo = new PrimitiveTypeInfo
+            {
+                type = MemberKind.Null,
+                required = true,
+            };
+            return closure;
+        }
+
+        private static DelegateMemberValue LookupClosure(
+            string id,
+            params Instruction[] instructions)
+        {
+            DelegateMemberValue closure = Closure(id, instructions);
+            var parameters = new List<Variable>(closure.value!.action!.parameters)
+            {
+                new Variable
+                {
+                    id = "__row__",
+                    typeInfo = ClassType(WidgetClassId),
+                },
+            };
+            closure.value.action.parameters = parameters.ToArray();
             return closure;
         }
 

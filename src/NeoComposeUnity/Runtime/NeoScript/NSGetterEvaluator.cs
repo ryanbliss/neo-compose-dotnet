@@ -1137,7 +1137,8 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                     return new NeoVariantReference(
                         variantPointer.classId,
-                        variantPointer.variantId);
+                        variantPointer.variantId,
+                        variantPointer.rowValueId);
                 }
                 case StaticMemberPointer staticPointer:
                 {
@@ -2993,10 +2994,18 @@ namespace NeoCompose.Runtime.NeoScript
                     ctx.client,
                     reference.classId,
                     reference.variantId);
+                (object? lookupRow, string? lookupRowValueId) =
+                    ResolveVariantLookupRow(
+                        info.rowPointer,
+                        reference.rowValueId,
+                        scope,
+                        ctx);
                 NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(
                     ctx.client,
                     reference.classId,
-                    record);
+                    record,
+                    lookupRow,
+                    lookupRowValueId);
                 MemberValue? row = node.value;
                 if (row is null)
                 {
@@ -3045,9 +3054,25 @@ namespace NeoCompose.Runtime.NeoScript
                     ctx.client,
                     reference.classId,
                     reference.variantId);
-                // The base selection writes nothing (§4.2), so skip building a
-                // writable view for it at all.
-                if (record is null) return receiver;
+                (object? lookupRow, string? lookupRowValueId) =
+                    ResolveVariantLookupRow(
+                        info.rowPointer,
+                        reference.rowValueId,
+                        scope,
+                        ctx);
+                // The base selection writes nothing (§4.2), but still route
+                // through the shared boundary when a row was supplied so the
+                // illegal `ToVariant(Base, row)` shape fails like Initialize
+                // and the web evaluator instead of returning silently.
+                if (record is null)
+                {
+                    if (lookupRow is not null || lookupRowValueId is not null)
+                    {
+                        throw new InvalidOperationException(
+                            "The Base variant is not collection-bound and cannot receive a row.");
+                    }
+                    return receiver;
+                }
                 if (!ctx.client.TryGetValue(
                         source.ownership,
                         source.valueId,
@@ -3074,7 +3099,9 @@ namespace NeoCompose.Runtime.NeoScript
                     ctx.client,
                     record,
                     node,
-                    source.ownership);
+                    source.ownership,
+                    lookupRow,
+                    lookupRowValueId);
                 MemberValue? applied = node.value;
                 if (applied is not null)
                 {
@@ -3103,6 +3130,34 @@ namespace NeoCompose.Runtime.NeoScript
             if (value is NeoVariantReference reference) return reference;
             throw new NSGetterRuntimeError(
                 $"{usage} expected a NeoVariant value, got '{value?.GetType().Name ?? "null"}'.");
+        }
+
+        private static (object? value, string? valueId) ResolveVariantLookupRow(
+            Pointer? explicitPointer,
+            string? boundRowValueId,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            if (explicitPointer is not null)
+            {
+                object? value = EvalPointer(explicitPointer, scope, ctx);
+                return (value, ValueIdOf(value, ctx));
+            }
+            if (string.IsNullOrWhiteSpace(boundRowValueId)) return (null, null);
+            NeoValueOwnership ownership = ResolveOwnershipForValueId(
+                ctx,
+                boundRowValueId!);
+            if (!ctx.client.TryGetValue(
+                    ownership,
+                    boundRowValueId!,
+                    out MemberValue? row))
+            {
+                throw new NSGetterRuntimeError(
+                    $"Lookup variant row '{boundRowValueId}' was not found.");
+            }
+            return (
+                UnwrapCached(row, ctx, ownership),
+                boundRowValueId);
         }
 
         private static object? EvalFunction(
@@ -4488,7 +4543,10 @@ namespace NeoCompose.Runtime.NeoScript
                 // unconditionally true on device and false in the editor.
                 VariantMemberValue vr => vr.value is null
                     ? null
-                    : new NeoVariantReference(vr.value.classId, vr.value.variantId),
+                    : new NeoVariantReference(
+                        vr.value.classId,
+                        vr.value.variantId,
+                        vr.value.rowValueId),
                 NullMemberValue _ => null,
                 _ => null,
             };

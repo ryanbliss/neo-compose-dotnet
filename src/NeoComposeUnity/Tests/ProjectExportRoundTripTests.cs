@@ -781,9 +781,9 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CompilerRevision_TenIsTheCurrentCeiling()
+        public void CompilerRevision_ElevenIsTheCurrentCeiling()
         {
-            Assert.AreEqual(10, FunctionWithReturnType.CurrentCompilerRevision);
+            Assert.AreEqual(11, FunctionWithReturnType.CurrentCompilerRevision);
         }
 
         [Test]

@@ -647,6 +647,11 @@ namespace NeoCompose.Runtime.Json
     {
         public string classId = string.Empty;
         public string? variantId;
+        /// <summary>
+        /// P68 §6 — required for a lookup variant projected through a plain
+        /// <c>NeoVariant&lt;T&gt;</c> member; null for plain and unbound handles.
+        /// </summary>
+        public string? rowValueId;
     }
 
     /// <summary>Mirror of TS-side <c>TMemberVariant</c>.</summary>
