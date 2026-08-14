@@ -3,7 +3,9 @@
 
 #nullable enable
 
+using System.Collections.Generic;
 using System.IO;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
@@ -77,6 +79,131 @@ namespace NeoCompose.Tests
             }
         }
 
+        [Test]
+        public void NullableClassValue_DoesNotMaterializeComputedDefaultChildren()
+        {
+            ProjectData data = JsonConvert.DeserializeObject<ProjectData>(
+                LoadFixture("synth-example.json"))!;
+            const string saveClassId = "class-nullable-save";
+            const string selectorClassId = "class-color-category-selector";
+            const string selectorMemberId = "member-hat-color";
+            const string categoryKindMemberId = "member-category-kind";
+            const string enumId = "enum-category-kind";
+            const string nullValueId = "value-null-hat-color";
+
+            data.enums[enumId] = new NeoCompose.Runtime.Json.Enum
+            {
+                id = enumId,
+                projectId = "test-project",
+                name = "ColorCategoryKind",
+                options = new Dictionary<string, EnumOption>
+                {
+                    ["standard"] = new EnumOption { text = "Standard" },
+                },
+                optionKeyOrder = new List<string> { "standard" },
+                createdAt = 0,
+                updatedAt = 0,
+            };
+            data.members[categoryKindMemberId] = new EnumMember
+            {
+                id = categoryKindMemberId,
+                projectId = "test-project",
+                name = "CategoryKind",
+                kind = MemberKind.Enum,
+                required = true,
+                enumId = enumId,
+                defaultValue = new ArrayMemberValueBase
+                {
+                    init = new InitializerBody { code = "categoryKind" },
+                },
+                createdAt = 0,
+                updatedAt = 0,
+            };
+            data.classes[selectorClassId] = new NeoSchemaClass
+            {
+                id = selectorClassId,
+                projectId = "test-project",
+                name = "ColorCategorySelector",
+                schema = new Dictionary<string, string>
+                {
+                    ["CategoryKind"] = categoryKindMemberId,
+                },
+                createdAt = 0,
+                updatedAt = 0,
+            };
+            data.members[selectorMemberId] = new ClassMember
+            {
+                id = selectorMemberId,
+                projectId = "test-project",
+                name = "HatColor",
+                kind = MemberKind.Class,
+                required = false,
+                classId = selectorClassId,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    init = new InitializerBody { code = "new(.Standard)" },
+                },
+                createdAt = 0,
+                updatedAt = 0,
+            };
+            data.classes[saveClassId] = new NeoSchemaClass
+            {
+                id = saveClassId,
+                projectId = "test-project",
+                name = "NullableSave",
+                schema = new Dictionary<string, string>
+                {
+                    ["HatColor"] = selectorMemberId,
+                },
+                createdAt = 0,
+                updatedAt = 0,
+            };
+            data.values[nullValueId] = new NullMemberValue
+            {
+                id = nullValueId,
+                value = null,
+                createdAt = 0,
+                updatedAt = 0,
+            };
+            var saveMember = (ClassMember)data.members[data.project.rootSaveFileMemberId];
+            saveMember.classId = saveClassId;
+            var saveValue = (ObjectMemberValue)data.values[saveMember.valueId!];
+            saveValue.classId = saveClassId;
+            saveValue.value = new Dictionary<string, string>
+            {
+                ["HatColor"] = nullValueId,
+            };
+
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                Assert.IsTrue(client.save.TryGet(
+                    "HatColor",
+                    out NeoMemberClassWritable? selector));
+                Assert.IsNull(selector!.value);
+                Assert.IsFalse(selector.TryGet(
+                    "CategoryKind",
+                    out NeoMemberEnum? categoryKind));
+                Assert.IsNull(categoryKind);
+            }
+
+            // Absence is not an explicit null. A required Class with an
+            // object default must still walk its schema and surface the
+            // computed child that cannot be literalized.
+            saveValue.value.Clear();
+            var selectorMember = (ClassMember)data.members[selectorMemberId];
+            selectorMember.required = true;
+            selectorMember.defaultValue = new ObjectMemberValueBase
+            {
+                value = new Dictionary<string, string>(),
+            };
+
+            System.InvalidOperationException error = Assert.Throws<System.InvalidOperationException>(
+                () =>
+                {
+                    using NeoClient _ = NeoTestSaveStack.ClientFromSchema(data);
+                })!;
+            StringAssert.Contains("CategoryKind", error.Message);
+        }
         // -----------------------------------------------------------------
         // Derived class — keys flow base-first (root ancestor's keys
         // first, then descendant's new keys). Each entry's ownerClassId
