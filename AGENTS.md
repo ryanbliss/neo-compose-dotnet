@@ -25,13 +25,10 @@ NeoCompose is a Unity 6 C# package. Package source in `/src/NeoComposeUnity` (Ru
 
 ## Isolated agent rigs
 
-Never edit this canonical checkout. Run `scripts/agent-setup` before editing
-and work only in the neo-compose-dotnet worktree it reports; it is the same
-rig as `npm run agent:setup -- --source neo-compose-dotnet` from the Neo
-workspace. Every rig owns BOTH worktrees — `--source` picks the one you
-implement in, and the neo-compose companion stays detached at main and
-test-only. If doctor fails, rerun setup or report it; never copy credentials,
-select another Convex deployment, or improvise an empty database.
+Never edit this canonical checkout (unless contributer says otherwise).
+Run `scripts/agent-setup` before editing and work only in the `neo-compose-dotnet`
+worktree it reports. It is the same rig as `npm run agent:setup -- --source neo-compose-dotnet`
+from the Neo workspace.
 
 Each rig owns its Convex deployment, seed, ports, browser context, and Neo CLI
 credential namespace. Never target personal dev or production, never reuse
@@ -55,6 +52,8 @@ editor itself and logs `end: success` or `end: failed`:
 - `scripts/agent-unity-smoke.sh` runs both serially against the rig app (start
   it with `npm run agent:dev` in the rig's neo-compose worktree) and fails when
   synchronizing dirtied tracked sample output.
+
+Adhere to rules & guidelines in the `agent-workspace-rigs` skill as needed.
 
 <!-- END:agent-rigs -->
 
