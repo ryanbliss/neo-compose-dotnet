@@ -310,6 +310,20 @@ namespace NeoCompose.Runtime
         {
             var previousChildren = childMembers;
             childMembers = new();
+            // A Class member explicitly bound to a Null row has no object
+            // graph to descend into. Do not confuse it with a missing or
+            // malformed Object row, which must retain the existing fail-fast
+            // behavior for required data.
+            string? resolvedValueId = valueId;
+            if (resolvedValueId is not null
+                && client.TryGetOverlaidValue(
+                    ownership,
+                    resolvedValueId,
+                    out NullMemberValue? _))
+            {
+                DisposeChildren(previousChildren.Values);
+                return;
+            }
             foreach (var entry in mergedSchema)
             {
                 if (member.partial == true
@@ -361,7 +375,12 @@ namespace NeoCompose.Runtime
                 child.OnChanged += HandleChildChanged;
                 childMembers[entry.schemaKey] = child;
             }
-            foreach (var child in previousChildren.Values)
+            DisposeChildren(previousChildren.Values);
+        }
+
+        private void DisposeChildren(IEnumerable<NeoMember> children)
+        {
+            foreach (var child in children)
             {
                 child.OnChanged -= HandleChildChanged;
                 if (child.member.isReadOnly == true)

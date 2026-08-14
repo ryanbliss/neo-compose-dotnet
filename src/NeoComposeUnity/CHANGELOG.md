@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.24.1] - 2026-08-14
+
+### Fixed
+
+- Stop explicitly null Class values from materializing child declarations,
+  which could incorrectly evaluate computed child defaults as literals.
+
 ## [0.24.0] - 2026-08-13
 
 ### Added
