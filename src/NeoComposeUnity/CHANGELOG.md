@@ -39,6 +39,15 @@
   equality, so an older runtime cannot load an export whose `Variants` lookups
   it would silently resolve to the bare class.
 
+## [0.23.1] - 2026-08-13
+
+### Fixed
+
+- Materialize list and dictionary payloads before applying NeoScript call-site
+  initializer blocks, so their entries can contain constructed Class values.
+  The call-site path now reuses the same recursive constructor payload factory
+  as generated C# construction.
+
 ## [0.23.0] - 2026-08-13
 
 ### Added

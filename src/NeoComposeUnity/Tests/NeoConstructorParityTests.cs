@@ -47,10 +47,10 @@ namespace NeoCompose.Tests
             // 13 for P43's order and base-chain cases, plus P49 §1.5's three:
             // the required constructor's base clause and init body, the
             // call-site block beating the base-clause block, and the implicit
-            // new being rejected.
+            // new being rejected, plus issue #280's nested collection case.
             Assert.GreaterOrEqual(
                 cases.Count,
-                16,
+                17,
                 "The shared fixture lost evaluate cases; re-vendor it from the web repo.");
 
             int errorCases = 0;
@@ -147,28 +147,37 @@ namespace NeoCompose.Tests
 
             string message =
                 $"Case '{caseName}' produced a different '{expected.Name}' than the shared fixture.";
-            switch (expected.Value.Type)
+            AssertValueMatches(client, child!, expected.Value, message);
+        }
+
+        private static void AssertValueMatches(
+            NeoClient client,
+            MemberValue actual,
+            JToken expected,
+            string message)
+        {
+            switch (expected.Type)
             {
                 case JTokenType.String:
-                    Assert.IsInstanceOf<StringMemberValue>(child, message);
+                    Assert.IsInstanceOf<StringMemberValue>(actual, message);
                     Assert.AreEqual(
-                        expected.Value.Value<string>(),
-                        ((StringMemberValue)child!).value,
+                        expected.Value<string>(),
+                        ((StringMemberValue)actual).value,
                         message);
                     return;
                 case JTokenType.Integer:
                 case JTokenType.Float:
-                    Assert.IsInstanceOf<NumberMemberValue>(child, message);
+                    Assert.IsInstanceOf<NumberMemberValue>(actual, message);
                     Assert.AreEqual(
-                        expected.Value.Value<double>(),
-                        ((NumberMemberValue)child!).value,
+                        expected.Value<double>(),
+                        ((NumberMemberValue)actual).value,
                         message);
                     return;
                 case JTokenType.Boolean:
-                    Assert.IsInstanceOf<BoolMemberValue>(child, message);
+                    Assert.IsInstanceOf<BoolMemberValue>(actual, message);
                     Assert.AreEqual(
-                        expected.Value.Value<bool>(),
-                        ((BoolMemberValue)child!).value,
+                        expected.Value<bool>(),
+                        ((BoolMemberValue)actual).value,
                         message);
                     return;
                 case JTokenType.Null:
@@ -177,12 +186,56 @@ namespace NeoCompose.Tests
                     // and its row is cleared. "No key at all" would be the
                     // wrong shape: that is what an OMITTED field produces.
                     Assert.IsTrue(
-                        IsClearedRow(child!),
-                        $"{message} Expected a cleared row, got {child!.GetType().Name} with a value.");
+                        IsClearedRow(actual),
+                        $"{message} Expected a cleared row, got {actual.GetType().Name} with a value.");
+                    return;
+                case JTokenType.Array:
+                    Assert.IsInstanceOf<ArrayMemberValue>(actual, message);
+                    string[]? entryIds = ((ArrayMemberValue)actual).value;
+                    Assert.IsNotNull(entryIds, message);
+                    var expectedEntries = (JArray)expected;
+                    Assert.AreEqual(expectedEntries.Count, entryIds!.Length, message);
+                    for (int i = 0; i < entryIds.Length; i++)
+                    {
+                        Assert.IsTrue(
+                            client.TryGetValue(
+                                NeoValueOwnership.Session,
+                                entryIds[i],
+                                out MemberValue? entry),
+                            $"{message} Collection entry {i} has no session row.");
+                        AssertValueMatches(
+                            client,
+                            entry!,
+                            expectedEntries[i],
+                            $"{message} Collection entry {i} differs.");
+                    }
+                    return;
+                case JTokenType.Object:
+                    Assert.IsInstanceOf<ObjectMemberValue>(actual, message);
+                    Dictionary<string, string>? record =
+                        ((ObjectMemberValue)actual).value;
+                    Assert.IsNotNull(record, message);
+                    foreach (JProperty property in ((JObject)expected).Properties())
+                    {
+                        Assert.IsTrue(
+                            record!.TryGetValue(property.Name, out string childId),
+                            $"{message} Nested object has no '{property.Name}'.");
+                        Assert.IsTrue(
+                            client.TryGetValue(
+                                NeoValueOwnership.Session,
+                                childId,
+                                out MemberValue? child),
+                            $"{message} Nested field '{property.Name}' has no session row.");
+                        AssertValueMatches(
+                            client,
+                            child!,
+                            property.Value,
+                            $"{message} Nested field '{property.Name}' differs.");
+                    }
                     return;
                 default:
                     throw new InvalidOperationException(
-                        $"Case '{caseName}' expects '{expected.Name}' to be a {expected.Value.Type}, which this harness cannot compare. Teach both halves the new shape together.");
+                        $"The shared fixture expects a {expected.Type}, which this harness cannot compare. Teach both halves the new shape together.");
             }
         }
 
