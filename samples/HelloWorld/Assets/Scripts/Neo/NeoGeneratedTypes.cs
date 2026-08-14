@@ -35,10 +35,12 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["22a62498-61f8-4b6f-8d4c-bc05743a5c2e"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Worlds.Create(client, node),
                 ["27874300-3e78-4d1c-802b-caf34d25d1ab"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.RecoveryCacheObject.Create(client, node),
                 ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ComputedText.Create(client, node),
+                ["41908036-a68d-4898-9a52-7f6b316e00dd"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.PlacedItemInfo.Create(client, node),
                 ["44d6324f-6507-4420-a919-3496681c3b21"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Audio.Create(client, node),
                 ["47a1f7dd-b16d-4f04-96f8-6c0199d18c7b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.BlockedPath.Create(client, node),
                 ["48bcbba5-57c0-40fd-8df8-35f4e7ce73f2"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.VoidTile.Create(client, node),
                 ["4c196697-4e08-4aeb-823f-322b353071ac"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Outpost.Create(client, node),
+                ["582b7d1f-fd79-47b4-993b-620ea26b3c55"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.PlacedPlant.Create(client, node),
                 ["60c25a92-cb01-46f7-b5cf-c9d950586116"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Item.Create(client, node),
                 ["63b261c9-46f2-4d37-84e9-06f16af04e58"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Session.Create(client, node),
                 ["720c1361-de9e-4c12-b90e-bb6ac9e1ce8b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SealBarrierTile.Create(client, node),
@@ -58,6 +60,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["d931c907-19cd-4f3d-b04a-e6f1945fb216"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.RedNovaWarningTile.Create(client, node),
                 ["daf72c99-ad09-47d6-a863-f1ab31acf750"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.QuestState.Create(client, node),
                 ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Assets.Create(client, node),
+                ["ddab406e-f4fd-4bd1-8db8-cc1f9c7e293b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SeedMarker.Create(client, node),
                 ["f1b08825-2ad0-4666-acf1-3df7ffbda64e"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ObjectLayerLink.Create(client, node),
                 ["neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ExitPromptObject37f67d.Create(client, node),
                 ["neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ExitPromptObjecta26352.Create(client, node),
@@ -94,10 +97,12 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["22a62498-61f8-4b6f-8d4c-bc05743a5c2e"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Worlds.CreateWritable(client, node),
                 ["27874300-3e78-4d1c-802b-caf34d25d1ab"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.RecoveryCacheObject.CreateWritable(client, node),
                 ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ComputedText.CreateWritable(client, node),
+                ["41908036-a68d-4898-9a52-7f6b316e00dd"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.PlacedItemInfo.CreateWritable(client, node),
                 ["44d6324f-6507-4420-a919-3496681c3b21"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Audio.CreateWritable(client, node),
                 ["47a1f7dd-b16d-4f04-96f8-6c0199d18c7b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.BlockedPath.CreateWritable(client, node),
                 ["48bcbba5-57c0-40fd-8df8-35f4e7ce73f2"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.VoidTile.CreateWritable(client, node),
                 ["4c196697-4e08-4aeb-823f-322b353071ac"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Outpost.CreateWritable(client, node),
+                ["582b7d1f-fd79-47b4-993b-620ea26b3c55"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.PlacedPlant.CreateWritable(client, node),
                 ["60c25a92-cb01-46f7-b5cf-c9d950586116"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Item.CreateWritable(client, node),
                 ["63b261c9-46f2-4d37-84e9-06f16af04e58"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Session.CreateWritable(client, node),
                 ["720c1361-de9e-4c12-b90e-bb6ac9e1ce8b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SealBarrierTile.CreateWritable(client, node),
@@ -117,6 +122,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["d931c907-19cd-4f3d-b04a-e6f1945fb216"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.RedNovaWarningTile.CreateWritable(client, node),
                 ["daf72c99-ad09-47d6-a863-f1ab31acf750"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateWritable(client, node),
                 ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Assets.CreateWritable(client, node),
+                ["ddab406e-f4fd-4bd1-8db8-cc1f9c7e293b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SeedMarker.CreateWritable(client, node),
                 ["f1b08825-2ad0-4666-acf1-3df7ffbda64e"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ObjectLayerLink.CreateWritable(client, node),
                 ["neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ExitPromptObject37f67d.CreateWritable(client, node),
                 ["neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ExitPromptObjecta26352.CreateWritable(client, node),
@@ -153,10 +159,12 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.Worlds)] = "22a62498-61f8-4b6f-8d4c-bc05743a5c2e",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.RecoveryCacheObject)] = "27874300-3e78-4d1c-802b-caf34d25d1ab",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.ComputedText)] = "2ab1bc07-da0b-47fc-b77b-54cc511575bb",
+                [typeof(global::HelloWorld.Assets.Scripts.Neo.PlacedItemInfo)] = "41908036-a68d-4898-9a52-7f6b316e00dd",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.Audio)] = "44d6324f-6507-4420-a919-3496681c3b21",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.BlockedPath)] = "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.VoidTile)] = "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.Outpost)] = "4c196697-4e08-4aeb-823f-322b353071ac",
+                [typeof(global::HelloWorld.Assets.Scripts.Neo.PlacedPlant)] = "582b7d1f-fd79-47b4-993b-620ea26b3c55",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.Item)] = "60c25a92-cb01-46f7-b5cf-c9d950586116",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.Session)] = "63b261c9-46f2-4d37-84e9-06f16af04e58",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.SealBarrierTile)] = "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b",
@@ -176,6 +184,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.RedNovaWarningTile)] = "d931c907-19cd-4f3d-b04a-e6f1945fb216",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.QuestState)] = "daf72c99-ad09-47d6-a863-f1ab31acf750",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.Assets)] = "dd0bbe5a-47ef-4164-9421-caea07f6f56f",
+                [typeof(global::HelloWorld.Assets.Scripts.Neo.SeedMarker)] = "ddab406e-f4fd-4bd1-8db8-cc1f9c7e293b",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.ObjectLayerLink)] = "f1b08825-2ad0-4666-acf1-3df7ffbda64e",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.ExitPromptObject37f67d)] = "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.ExitPromptObjecta26352)] = "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352",
@@ -1186,8 +1195,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 return clientClassId switch
                 {
                     "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(client, node, true, NeoValueOwnership.Asset),
+                    "582b7d1f-fd79-47b4-993b-620ea26b3c55" => new PlacedPlant(client, node, true, NeoValueOwnership.Asset),
                     "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, true, NeoValueOwnership.Asset),
                     "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, true, NeoValueOwnership.Asset),
+                    "ddab406e-f4fd-4bd1-8db8-cc1f9c7e293b" => new SeedMarker(client, node, true, NeoValueOwnership.Asset),
                     "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(client, node, true, NeoValueOwnership.Asset),
                     "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(client, node, true, NeoValueOwnership.Asset),
                     "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" => new ExitPromptObject987403(client, node, true, NeoValueOwnership.Asset),
@@ -1204,8 +1215,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 return clientClassId switch
                 {
                     "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(client, node, false, node.ownership),
+                    "582b7d1f-fd79-47b4-993b-620ea26b3c55" => new PlacedPlant(client, node, false, node.ownership),
                     "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, false, node.ownership),
                     "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, false, node.ownership),
+                    "ddab406e-f4fd-4bd1-8db8-cc1f9c7e293b" => new SeedMarker(client, node, false, node.ownership),
                     "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(client, node, false, node.ownership),
                     "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(client, node, false, node.ownership),
                     "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" => new ExitPromptObject987403(client, node, false, node.ownership),
@@ -1232,6 +1245,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool TryWritable(out ConsoleObject writable)
         {
             return TryWritable<ConsoleObject>(out writable);
+        }
+
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public ConsoleObject ToVariant(NeoVariant<ConsoleObject> variant)
+        {
+            ThrowIfReadOnly("ConsoleObject.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
         }
 
         public override string Name
@@ -2110,6 +2134,33 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<RecoveryCacheObject>(out writable);
         }
 
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public RecoveryCacheObject ToVariant(NeoVariant<RecoveryCacheObject> variant)
+        {
+            ThrowIfReadOnly("RecoveryCacheObject.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
+        }
+
+        public static class Variants
+        {
+            /// <summary>
+            /// The class itself with no variant applied (P67 §3.4).
+            /// </summary>
+            public static NeoVariant<RecoveryCacheObject> Base =>
+                NeoGeneratedTypesSupport.ResolveBaseVariant<RecoveryCacheObject>(
+                    HelloWorldNeo.RequireInstance().Client,
+                    "27874300-3e78-4d1c-802b-caf34d25d1ab");
+
+            public static NeoVariant<RecoveryCacheObject> BrowserPassA =>
+                NeoGeneratedTypesSupport.ResolveVariant<RecoveryCacheObject>(
+                    HelloWorldNeo.RequireInstance().Client,
+                    "eabfec24-e51a-4160-9140-81450f263172");
+        }
+
         public static NeoClassRef<RecoveryCacheObject> Definition { get; } = new NeoClassRef<RecoveryCacheObject>("27874300-3e78-4d1c-802b-caf34d25d1ab");
 
         public override NeoList<NeoObjectBase> Children
@@ -2455,6 +2506,266 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.baseText] = () => baseText,
                 [Fields.fullText] = () => fullText,
                 [Fields.optionalSuffix] = () => optionalSuffix,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyPlacedItemInfo : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        IReadOnlyPlacedItemInfo Clone();
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out PlacedItemInfo writable);
+
+        NeoVariant<VaultPlaqueObject> Bare { get; }
+
+        NeoVariant<VaultPlaqueObject> Foldered { get; }
+
+        NeoVariant<SeedMarker> Marker { get; }
+
+        string Name { get; }
+
+        NeoVariant<VaultPlaqueObject>? Override { get; }
+
+        NeoVariant<VaultPlaqueObject> Spawned { get; }
+
+        NeoVariant<RecoveryCacheObject> VariantLessBase { get; }
+    }
+
+    public partial class PlacedItemInfo : NeoGeneratedClassValue, IReadOnlyPlacedItemInfo
+    {
+        internal PlacedItemInfo(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "41908036-a68d-4898-9a52-7f6b316e00dd", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public PlacedItemInfo(string? Name = null, NeoVariant<VaultPlaqueObject>? Spawned = null, NeoVariant<VaultPlaqueObject>? Foldered = null, NeoVariant<VaultPlaqueObject>? Bare = null, NeoVariant<VaultPlaqueObject>? Override = null, NeoVariant<RecoveryCacheObject>? VariantLessBase = null, NeoVariant<SeedMarker>? Marker = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Spawned, Foldered, Bare, Override, VariantLessBase, Marker), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoVariant<VaultPlaqueObject>? Spawned = null, NeoVariant<VaultPlaqueObject>? Foldered = null, NeoVariant<VaultPlaqueObject>? Bare = null, NeoVariant<VaultPlaqueObject>? Override = null, NeoVariant<RecoveryCacheObject>? VariantLessBase = null, NeoVariant<SeedMarker>? Marker = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
+                client,
+                "41908036-a68d-4898-9a52-7f6b316e00dd",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "49214105-b762-441e-ad7b-b790a30e3ead", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Spawned", "62e5b119-d585-44af-8320-a0a3ce47ee9a", Spawned),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Foldered", "7cf55b36-9e4f-4b05-a27c-85d1d4992dc7", Foldered),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Bare", "6ea3f7c5-448c-4db9-939b-eeafc43993a2", Bare),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Override", "e64708d4-a431-4acf-b627-9b4391e58ded", Override),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VariantLessBase", "6963c32b-dadf-4f0e-8c09-7d487243e3c1", VariantLessBase),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Marker", "6dcd35b1-cb9e-44a4-ba20-aabeaf046e27", Marker)
+            );
+        }
+
+        internal static PlacedItemInfo Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<PlacedItemInfo>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => new PlacedItemInfo(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal static PlacedItemInfo CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<PlacedItemInfo>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => new PlacedItemInfo(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public PlacedItemInfo Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyPlacedItemInfo IReadOnlyPlacedItemInfo.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out PlacedItemInfo writable)
+        {
+            return TryWritable<PlacedItemInfo>(out writable);
+        }
+
+        public virtual NeoVariant<VaultPlaqueObject> Bare
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ResolveVariantValue<VaultPlaqueObject>(node.Get<NeoMemberVariant>("Bare")) ?? throw new InvalidOperationException("Required variant 'Bare' has no selection.");
+            }
+            set
+            {
+                ThrowIfReadOnly("PlacedItemInfo.Bare");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Bare", NeoGeneratedTypesSupport.VariantValue(value));
+            }
+        }
+
+        public virtual NeoVariant<VaultPlaqueObject> Foldered
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ResolveVariantValue<VaultPlaqueObject>(node.Get<NeoMemberVariant>("Foldered")) ?? throw new InvalidOperationException("Required variant 'Foldered' has no selection.");
+            }
+            set
+            {
+                ThrowIfReadOnly("PlacedItemInfo.Foldered");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Foldered", NeoGeneratedTypesSupport.VariantValue(value));
+            }
+        }
+
+        public virtual NeoVariant<SeedMarker> Marker
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ResolveVariantValue<SeedMarker>(node.Get<NeoMemberVariant>("Marker")) ?? throw new InvalidOperationException("Required variant 'Marker' has no selection.");
+            }
+            set
+            {
+                ThrowIfReadOnly("PlacedItemInfo.Marker");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Marker", NeoGeneratedTypesSupport.VariantValue(value));
+            }
+        }
+
+        public virtual string Name
+        {
+            get
+            {
+                return node.Get<NeoMemberString>("Name").Text ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("PlacedItemInfo.Name");
+                writableNode.SetStringLiteral("Name", value);
+            }
+        }
+
+        public virtual NeoVariant<VaultPlaqueObject>? Override
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ResolveVariantValue<VaultPlaqueObject>(node.Get<NeoMemberVariant>("Override"));
+            }
+            set
+            {
+                ThrowIfReadOnly("PlacedItemInfo.Override");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Override", NeoGeneratedTypesSupport.VariantValue(value));
+            }
+        }
+
+        public virtual NeoVariant<VaultPlaqueObject> Spawned
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ResolveVariantValue<VaultPlaqueObject>(node.Get<NeoMemberVariant>("Spawned")) ?? throw new InvalidOperationException("Required variant 'Spawned' has no selection.");
+            }
+            set
+            {
+                ThrowIfReadOnly("PlacedItemInfo.Spawned");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Spawned", NeoGeneratedTypesSupport.VariantValue(value));
+            }
+        }
+
+        public virtual NeoVariant<RecoveryCacheObject> VariantLessBase
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ResolveVariantValue<RecoveryCacheObject>(node.Get<NeoMemberVariant>("VariantLessBase")) ?? throw new InvalidOperationException("Required variant 'VariantLessBase' has no selection.");
+            }
+            set
+            {
+                ThrowIfReadOnly("PlacedItemInfo.VariantLessBase");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "VariantLessBase", NeoGeneratedTypesSupport.VariantValue(value));
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoVariant<VaultPlaqueObject>> Spawned = new("Spawned");
+
+            public static readonly NeoField<NeoVariant<VaultPlaqueObject>> Foldered = new("Foldered");
+
+            public static readonly NeoField<NeoVariant<VaultPlaqueObject>> Bare = new("Bare");
+
+            public static readonly NeoField<NeoVariant<VaultPlaqueObject>?> Override = new("Override");
+
+            public static readonly NeoField<NeoVariant<RecoveryCacheObject>> VariantLessBase = new("VariantLessBase");
+
+            public static readonly NeoField<NeoVariant<SeedMarker>> Marker = new("Marker");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => node.Get<NeoMemberString>("Name").TextId,
+                [Fields.Spawned] = () => null,
+                [Fields.Foldered] = () => null,
+                [Fields.Bare] = () => null,
+                [Fields.Override] = () => null,
+                [Fields.VariantLessBase] = () => null,
+                [Fields.Marker] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+                [Fields.Spawned] = () => Spawned,
+                [Fields.Foldered] = () => Foldered,
+                [Fields.Bare] = () => Bare,
+                [Fields.Override] = () => Override,
+                [Fields.VariantLessBase] = () => VariantLessBase,
+                [Fields.Marker] = () => Marker,
             };
         }
 
@@ -3397,6 +3708,719 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
+    public interface IReadOnlyPlacedPlant : IReadOnlyConsoleObject
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyPlacedPlant Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out PlacedPlant writable);
+
+        new NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
+
+        int GrowthDays { get; }
+
+        int HarvestType { get; }
+
+        bool HasCollider { get; }
+
+        int MinHappiness { get; }
+
+        new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
+
+        string PlantName { get; }
+
+        int ShowOnDay { get; }
+    }
+
+    public partial class PlacedPlant : ConsoleObject, IReadOnlyPlacedPlant
+    {
+        internal PlacedPlant(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public PlacedPlant(string? PlantName = null, int? ShowOnDay = null, int? MinHappiness = null, int? HarvestType = null, bool? HasCollider = null, int? GrowthDays = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoCollider? Collider = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(PlantName, ShowOnDay, MinHappiness, HarvestType, HasCollider, GrowthDays, Children, PlacementTiles, Enabled, Name, Position, Size, Collider), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoMemberClassWritable CreateFactoryNode(string? PlantName = null, int? ShowOnDay = null, int? MinHappiness = null, int? HarvestType = null, bool? HasCollider = null, int? GrowthDays = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoCollider? Collider = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
+                client,
+                "582b7d1f-fd79-47b4-993b-620ea26b3c55",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlantName", "a511e592-f9fb-45f2-9c0c-95acedcc6776", PlantName),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ShowOnDay", "40993c75-a5ab-4cf8-9106-1f3fbb60bbd3", ShowOnDay),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("MinHappiness", "cba281dd-9566-440c-853c-9e3b0d8ae5a6", MinHappiness),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("HarvestType", "665be555-75e8-4dc9-9aaa-b07c22a99a94", HarvestType),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("HasCollider", "c6f8b8fc-a461-4f92-a706-39d55f88b5e6", HasCollider),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("GrowthDays", "185be453-1c6b-4ab9-b237-43d97c5b7955", GrowthDays),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "21761c68-7ce7-4c2d-8e7b-f08cb3c508a6", Children),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "1954e41e-9b41-4dd6-9dd7-a162f3489ee1", PlacementTiles),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "cd315e41-810f-4be5-8537-5e5cc6218976", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider)
+            );
+        }
+
+        internal new static PlacedPlant Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<PlacedPlant>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => new PlacedPlant(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static PlacedPlant CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<PlacedPlant>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => new PlacedPlant(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new PlacedPlant Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyPlacedPlant IReadOnlyPlacedPlant.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out PlacedPlant writable)
+        {
+            return TryWritable<PlacedPlant>(out writable);
+        }
+
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public PlacedPlant ToVariant(NeoVariant<PlacedPlant> variant)
+        {
+            ThrowIfReadOnly("PlacedPlant.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
+        }
+
+        public static class Variants
+        {
+            /// <summary>
+            /// The class itself with no variant applied (P67 §3.4).
+            /// </summary>
+            public static NeoVariant<PlacedPlant> Base =>
+                NeoGeneratedTypesSupport.ResolveBaseVariant<PlacedPlant>(
+                    HelloWorldNeo.RequireInstance().Client,
+                    "582b7d1f-fd79-47b4-993b-620ea26b3c55");
+
+            public static class Carrot
+            {
+                public static NeoVariant<PlacedPlant> Phase1 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "a08102c1-bd78-4fa1-8bc3-8a41262d10dc");
+
+                public static NeoVariant<PlacedPlant> Phase2 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "249e1788-92ab-4931-a94b-39e7287ce0f4");
+
+                public static NeoVariant<PlacedPlant> Phase3 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "d9e770fa-ad39-483d-916c-afff5519cf0d");
+
+                public static NeoVariant<PlacedPlant> Phase4 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "e89a74b1-e332-4293-a17f-9501b569470f");
+
+                public static NeoVariant<PlacedPlant> Phase5 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "7d7c023f-863b-4414-b0eb-a79792dfc8aa");
+            }
+
+            public static class CherryBlossom
+            {
+                public static NeoVariant<PlacedPlant> Phase1 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "bd64a570-2738-4e4c-9112-9b92d44554c3");
+
+                public static NeoVariant<PlacedPlant> Phase2 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "2f74a413-af03-41fd-88e6-06697182dfa8");
+
+                public static NeoVariant<PlacedPlant> Phase3 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "2c8cf549-57cd-47f6-abae-390e931a0ea9");
+
+                public static NeoVariant<PlacedPlant> Phase4 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "fbf96404-608f-4861-b2cc-cf02bf1b48c3");
+
+                public static NeoVariant<PlacedPlant> Phase5 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "03f6849b-37f5-4358-b202-31b7e8e770ce");
+
+                public static NeoVariant<PlacedPlant> Phase6 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "d204f411-6c71-4f65-8f4f-c45568f3d4dc");
+
+                public static NeoVariant<PlacedPlant> Phase7 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "cb4231f7-db97-4cc6-b4a8-35a0f741cd19");
+            }
+
+            public static class Comfrey
+            {
+                public static NeoVariant<PlacedPlant> Phase1 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "776f821c-c561-4265-97c4-c3379709467a");
+
+                public static NeoVariant<PlacedPlant> Phase2 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "3a00489b-1201-4935-be28-c5495ac56dc0");
+
+                public static NeoVariant<PlacedPlant> Phase3 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "f70b95dc-2ea1-478b-a328-a445eff08bfe");
+
+                public static NeoVariant<PlacedPlant> Phase4 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "94a5bb24-8ed8-41d1-9981-d50d3f54af47");
+            }
+
+            public static class Foxglove
+            {
+                public static NeoVariant<PlacedPlant> Phase1 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "ceffa4ec-bc2d-41fa-8594-d114023afa02");
+
+                public static NeoVariant<PlacedPlant> Phase2 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "c9bda525-f690-409a-8b74-f5feb2119921");
+
+                public static NeoVariant<PlacedPlant> Phase3 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "7419dea4-338b-4c70-845a-b1c8a58cf12f");
+
+                public static NeoVariant<PlacedPlant> Phase4 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "4fcdf6ed-b985-4bfa-ae73-7d9dbfcdb6e2");
+            }
+
+            public static class GarlicChives
+            {
+                public static NeoVariant<PlacedPlant> Phase1 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "9fcca6e5-d02c-4b69-b295-82ca275f5040");
+
+                public static NeoVariant<PlacedPlant> Phase2 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "2a48de04-d1c2-4207-a250-06e112d476f2");
+
+                public static NeoVariant<PlacedPlant> Phase3 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "329a5c45-7dd1-4d49-b1cc-3f77783d29e0");
+
+                public static NeoVariant<PlacedPlant> Phase4 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "6f04d170-4322-4ea6-9178-07fe7c92da41");
+
+                public static NeoVariant<PlacedPlant> Phase5 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "b71cf692-8f38-4060-94e0-a2ec760b3470");
+            }
+
+            public static class GenericFlower
+            {
+                public static NeoVariant<PlacedPlant> Phase1 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "94d3ca8d-b76e-4c80-83d5-eb20aa88aa8c");
+
+                public static NeoVariant<PlacedPlant> Phase2 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "0920403f-ecf0-489f-8e6f-49b012520a5b");
+
+                public static NeoVariant<PlacedPlant> Phase3 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "842559e9-3f0b-42c1-b421-0302f9e328e1");
+            }
+
+            public static class Hawthorn
+            {
+                public static NeoVariant<PlacedPlant> Phase1 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "efe18a1c-288b-42e6-932e-7f0f7170c6b7");
+
+                public static NeoVariant<PlacedPlant> Phase2 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "d3db4809-f721-426d-9838-8bde2fafe398");
+
+                public static NeoVariant<PlacedPlant> Phase3 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "a1e2eea2-f0da-4c23-b39a-8b4fb78c6618");
+
+                public static NeoVariant<PlacedPlant> Phase4 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "9fdf633d-1af3-41c4-9b2c-37acea4e9d38");
+
+                public static NeoVariant<PlacedPlant> Phase5 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "1a0f074a-670b-483c-b881-dbd5db2dc0bd");
+            }
+
+            public static class Lavender
+            {
+                public static NeoVariant<PlacedPlant> Phase1 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "afb85336-be67-4dde-becd-561187117b91");
+
+                public static NeoVariant<PlacedPlant> Phase2 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "a1e63862-2bbb-4d3a-9007-921c617d9e75");
+
+                public static NeoVariant<PlacedPlant> Phase3 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "da55474f-b6a3-4182-b349-c0fbb342ed75");
+
+                public static NeoVariant<PlacedPlant> Phase4 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "27f192ea-2462-46b2-aa1b-d6e260952e75");
+            }
+
+            public static class OakAcorn
+            {
+                public static NeoVariant<PlacedPlant> Phase1 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "81b72810-4f4e-40f3-8575-fa2aae645699");
+
+                public static NeoVariant<PlacedPlant> Phase2 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "a3246aa5-a2b9-4784-abf3-7f75dae86fb5");
+
+                public static NeoVariant<PlacedPlant> Phase3 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "0abec701-3dbb-4f79-8cd4-fb9e0db16883");
+
+                public static NeoVariant<PlacedPlant> Phase4 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "1d58fc54-edb2-4972-ad1d-f38ddefc9d13");
+            }
+
+            public static class SpringVetch
+            {
+                public static NeoVariant<PlacedPlant> Phase1 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "9e8c03f7-d8d8-48b2-8d9c-2cb5e75f6220");
+
+                public static NeoVariant<PlacedPlant> Phase2 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "97ffff9b-4931-49fe-8cf3-f02a1a4a6b41");
+
+                public static NeoVariant<PlacedPlant> Phase3 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "a36a9e22-8338-46c0-afa7-b6002e258e13");
+
+                public static NeoVariant<PlacedPlant> Phase4 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "a1ca2369-656c-431b-907a-b0f8527317f2");
+
+                public static NeoVariant<PlacedPlant> Phase5 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "57090945-5196-4c0d-a258-13f5457ca827");
+
+                public static NeoVariant<PlacedPlant> Phase6 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "f997ee08-2e0b-4df2-b7fa-432b9b288702");
+
+                public static NeoVariant<PlacedPlant> Phase7 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "c9259e53-8a2d-414e-965f-ccde51532128");
+            }
+
+            public static class Strawberry
+            {
+                public static NeoVariant<PlacedPlant> Phase1 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "6a337dc4-ac68-420c-b2ae-df4f15cbd0a7");
+
+                public static NeoVariant<PlacedPlant> Phase2 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "913c7a4b-7168-491e-94e3-1b264d073790");
+
+                public static NeoVariant<PlacedPlant> Phase3 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "dfac887b-c207-4cf2-a32a-1b6d9fd36016");
+
+                public static NeoVariant<PlacedPlant> Phase4 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "d56979f4-7cc3-49c0-9c76-b80c12ff3f32");
+            }
+
+            public static class SweetSnapPeas
+            {
+                public static NeoVariant<PlacedPlant> Phase1 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "fb10c484-960b-4930-b96b-7f3d34eafd6f");
+
+                public static NeoVariant<PlacedPlant> Phase2 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "04ecae2b-a62d-4b4a-94d3-dc35969c21df");
+
+                public static NeoVariant<PlacedPlant> Phase3 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "dd99e6e7-094f-4940-82e4-f63cc49028c4");
+
+                public static NeoVariant<PlacedPlant> Phase4 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "02a93be7-0273-4167-9209-de369df0e840");
+
+                public static NeoVariant<PlacedPlant> Phase5 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "2fd44bfe-5ace-43a1-9d95-8590b607a4b7");
+
+                public static NeoVariant<PlacedPlant> Phase6 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "0f9df897-fe7b-4df5-be4b-737025640901");
+
+                public static NeoVariant<PlacedPlant> Phase7 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "fcaebca4-d0b9-4f40-a9ac-86264d02e55c");
+            }
+
+            public static class Tulip
+            {
+                public static NeoVariant<PlacedPlant> Phase1 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "595477fa-b1a7-47f8-a32a-e7ef37e9ab8a");
+
+                public static NeoVariant<PlacedPlant> Phase2 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "01ffff7c-a919-4d1c-a7ea-5af1571db291");
+
+                public static NeoVariant<PlacedPlant> Phase3 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "36888ef5-fb0b-4bdc-b9b0-88cc48f0120f");
+
+                public static NeoVariant<PlacedPlant> Phase4 =>
+                    NeoGeneratedTypesSupport.ResolveVariant<PlacedPlant>(
+                        HelloWorldNeo.RequireInstance().Client,
+                        "19b040f6-d3b5-40c0-ad20-a35dfc6c0dbe");
+            }
+        }
+
+        public static NeoClassRef<PlacedPlant> Definition { get; } = new NeoClassRef<PlacedPlant>("582b7d1f-fd79-47b4-993b-620ea26b3c55");
+
+        public override NeoList<NeoObjectBase> Children
+        {
+            get
+            {
+                return new NeoList<NeoObjectBase>(client, writableNode.Get<NeoMemberListWritable>("Children"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Children"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("PlacedPlant.Children"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyPlacedPlant.Children
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, node.Get<NeoMemberList>("Children"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child));
+            }
+        }
+
+        public virtual int GrowthDays
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("GrowthDays")) ?? throw new InvalidOperationException("Required int 'GrowthDays' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("PlacedPlant.GrowthDays");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "GrowthDays", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public virtual int HarvestType
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("HarvestType")) ?? throw new InvalidOperationException("Required int 'HarvestType' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("PlacedPlant.HarvestType");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "HarvestType", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public virtual bool HasCollider
+        {
+            get
+            {
+                return node.Get<NeoMemberBool>("HasCollider").value?.value ?? throw new InvalidOperationException("Required bool 'HasCollider' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("PlacedPlant.HasCollider");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "HasCollider", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public virtual int MinHappiness
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("MinHappiness")) ?? throw new InvalidOperationException("Required int 'MinHappiness' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("PlacedPlant.MinHappiness");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "MinHappiness", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public override NeoList<NeoObjectPlacementTile> PlacementTiles
+        {
+            get
+            {
+                return new NeoList<NeoObjectPlacementTile>(client, writableNode.Get<NeoMemberListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("PlacedPlant.PlacementTiles"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyPlacedPlant.PlacementTiles
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>(client, node.Get<NeoMemberList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoMemberClass)child));
+            }
+        }
+
+        public virtual string PlantName
+        {
+            get
+            {
+                return node.Get<NeoMemberString>("PlantName").value?.value ?? throw new InvalidOperationException("Required string 'PlantName' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("PlacedPlant.PlantName");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "PlantName", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public virtual int ShowOnDay
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("ShowOnDay")) ?? throw new InvalidOperationException("Required int 'ShowOnDay' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("PlacedPlant.ShowOnDay");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "ShowOnDay", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyNeoObject.Children
+        {
+            get
+            {
+                return (NeoReadOnlyList<IReadOnlyNeoObjectBase>)(object)((NeoObject)this).Children!;
+            }
+        }
+
+        IReadOnlyNeoCollider? IReadOnlyNeoObject.Collider
+        {
+            get
+            {
+                return (IReadOnlyNeoCollider?)(object)((NeoObject)this).Collider!;
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyNeoObject.PlacementTiles
+        {
+            get
+            {
+                return (NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>)(object)((NeoObject)this).PlacementTiles!;
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> PlantName = new("PlantName");
+
+            public static readonly NeoField<int> ShowOnDay = new("ShowOnDay");
+
+            public static readonly NeoField<int> MinHappiness = new("MinHappiness");
+
+            public static readonly NeoField<int> HarvestType = new("HarvestType");
+
+            public static readonly NeoField<bool> HasCollider = new("HasCollider");
+
+            public static readonly NeoField<int> GrowthDays = new("GrowthDays");
+
+            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+
+            public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.PlantName] = () => null,
+                [Fields.ShowOnDay] = () => null,
+                [Fields.MinHappiness] = () => null,
+                [Fields.HarvestType] = () => null,
+                [Fields.HasCollider] = () => null,
+                [Fields.GrowthDays] = () => null,
+                [Fields.Children] = () => null,
+                [Fields.PlacementTiles] = () => null,
+                [Fields.Enabled] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
+                [Fields.Collider] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.PlantName] = () => PlantName,
+                [Fields.ShowOnDay] = () => ShowOnDay,
+                [Fields.MinHappiness] = () => MinHappiness,
+                [Fields.HarvestType] = () => HarvestType,
+                [Fields.HasCollider] = () => HasCollider,
+                [Fields.GrowthDays] = () => GrowthDays,
+                [Fields.Children] = () => Children,
+                [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.Enabled] = () => Enabled,
+                [Fields.Name] = () => Name,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
+                [Fields.Collider] = () => Collider,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
     public interface IReadOnlyExitPromptObject : IReadOnlyConsoleObject
     {
         new bool IsReadOnly { get; }
@@ -3475,6 +4499,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool TryWritable(out ExitPromptObject writable)
         {
             return TryWritable<ExitPromptObject>(out writable);
+        }
+
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public ExitPromptObject ToVariant(NeoVariant<ExitPromptObject> variant)
+        {
+            ThrowIfReadOnly("ExitPromptObject.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
         }
 
         public override NeoList<NeoObjectBase> Children
@@ -4571,6 +5606,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool TryWritable(out PlayerSpawnObject writable)
         {
             return TryWritable<PlayerSpawnObject>(out writable);
+        }
+
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public PlayerSpawnObject ToVariant(NeoVariant<PlayerSpawnObject> variant)
+        {
+            ThrowIfReadOnly("PlayerSpawnObject.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
         }
 
         public static NeoClassRef<PlayerSpawnObject> Definition { get; } = new NeoClassRef<PlayerSpawnObject>("7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f");
@@ -6931,6 +7977,49 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<VaultPlaqueObject>(out writable);
         }
 
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public VaultPlaqueObject ToVariant(NeoVariant<VaultPlaqueObject> variant)
+        {
+            ThrowIfReadOnly("VaultPlaqueObject.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
+        }
+
+        public static class Variants
+        {
+            /// <summary>
+            /// The class itself with no variant applied (P67 §3.4).
+            /// </summary>
+            public static NeoVariant<VaultPlaqueObject> Base =>
+                NeoGeneratedTypesSupport.ResolveBaseVariant<VaultPlaqueObject>(
+                    HelloWorldNeo.RequireInstance().Client,
+                    "cacf06dd-db1d-4f48-99c7-f3cea5a6961f");
+
+            public static NeoVariant<VaultPlaqueObject> Default =>
+                NeoGeneratedTypesSupport.ResolveVariant<VaultPlaqueObject>(
+                    HelloWorldNeo.RequireInstance().Client,
+                    "24e8b7ef-dccf-41e6-aeeb-9937a34cf71f");
+
+            public static NeoVariant<VaultPlaqueObject> Dimmed =>
+                NeoGeneratedTypesSupport.ResolveVariant<VaultPlaqueObject>(
+                    HelloWorldNeo.RequireInstance().Client,
+                    "4164d393-243b-451d-9d79-6acd4affc35b");
+
+            public static class Trees
+            {
+                public static class Oak
+                {
+                    public static NeoVariant<VaultPlaqueObject> Sapling =>
+                        NeoGeneratedTypesSupport.ResolveVariant<VaultPlaqueObject>(
+                            HelloWorldNeo.RequireInstance().Client,
+                            "28a5e220-efc7-468d-beed-51922ad20752");
+                }
+            }
+        }
+
         public static NeoClassRef<VaultPlaqueObject> Definition { get; } = new NeoClassRef<VaultPlaqueObject>("cacf06dd-db1d-4f48-99c7-f3cea5a6961f");
 
         public override NeoList<NeoObjectBase> Children
@@ -7848,6 +8937,241 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
+    public interface IReadOnlySeedMarker : IReadOnlyConsoleObject
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlySeedMarker Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out SeedMarker writable);
+
+        int Depth { get; }
+
+        string Label { get; }
+    }
+
+    public partial class SeedMarker : ConsoleObject, IReadOnlySeedMarker
+    {
+        internal SeedMarker(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public SeedMarker(string label, int depth, string? Label = null, int? Depth = null, bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null)
+            : this(HelloWorldNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(HelloWorldNeo.RequireInstance().Client, "ddab406e-f4fd-4bd1-8db8-cc1f9c7e293b", "c7afdcf6-c321-59ee-ab3a-649338575e20", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("label", label), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("depth", depth) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Label", "847506a7-8915-4d73-bdec-51325e366ab0", Label), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Depth", "44d18308-73fc-4158-ad39-77341bb6b071", Depth), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "cd315e41-810f-4be5-8537-5e5cc6218976", Name), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071", Children), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "system_5a9ca1f5-a21b-4d4e-8c55-00341af594b4", PlacementTiles) }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        internal new static SeedMarker Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SeedMarker>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => new SeedMarker(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static SeedMarker CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SeedMarker>(client, node, () =>
+            {
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
+                {
+                    _ => new SeedMarker(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new SeedMarker Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlySeedMarker IReadOnlySeedMarker.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out SeedMarker writable)
+        {
+            return TryWritable<SeedMarker>(out writable);
+        }
+
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public SeedMarker ToVariant(NeoVariant<SeedMarker> variant)
+        {
+            ThrowIfReadOnly("SeedMarker.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
+        }
+
+        public static class Variants
+        {
+            /// <summary>
+            /// The class itself with no variant applied (P67 §3.4).
+            /// </summary>
+            public static NeoVariant<SeedMarker> Base =>
+                NeoGeneratedTypesSupport.ResolveBaseVariant<SeedMarker>(
+                    HelloWorldNeo.RequireInstance().Client,
+                    "ddab406e-f4fd-4bd1-8db8-cc1f9c7e293b");
+
+            public static NeoVariant<SeedMarker> Planted =>
+                NeoGeneratedTypesSupport.ResolveVariant<SeedMarker>(
+                    HelloWorldNeo.RequireInstance().Client,
+                    "6e5d6a99-c196-4df5-8c5f-13909e0e35b0");
+
+            public static NeoVariant<SeedMarker> Sprouted =>
+                NeoGeneratedTypesSupport.ResolveVariant<SeedMarker>(
+                    HelloWorldNeo.RequireInstance().Client,
+                    "6997326f-f74b-4193-b029-7804d6f45e58");
+        }
+
+        public static NeoClassRef<SeedMarker> Definition { get; } = new NeoClassRef<SeedMarker>("ddab406e-f4fd-4bd1-8db8-cc1f9c7e293b");
+
+        public virtual int Depth
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Depth")) ?? throw new InvalidOperationException("Required int 'Depth' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("SeedMarker.Depth");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Depth", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public virtual string Label
+        {
+            get
+            {
+                return node.Get<NeoMemberString>("Label").value?.value ?? throw new InvalidOperationException("Required string 'Label' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("SeedMarker.Label");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Label", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyNeoObject.Children
+        {
+            get
+            {
+                return (NeoReadOnlyList<IReadOnlyNeoObjectBase>)(object)((NeoObject)this).Children!;
+            }
+        }
+
+        IReadOnlyNeoCollider? IReadOnlyNeoObject.Collider
+        {
+            get
+            {
+                return (IReadOnlyNeoCollider?)(object)((NeoObject)this).Collider!;
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyNeoObject.PlacementTiles
+        {
+            get
+            {
+                return (NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>)(object)((NeoObject)this).PlacementTiles!;
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Label = new("Label");
+
+            public static readonly NeoField<int> Depth = new("Depth");
+
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+
+            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
+            public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Label] = () => null,
+                [Fields.Depth] = () => null,
+                [Fields.Enabled] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
+                [Fields.Children] = () => null,
+                [Fields.Collider] = () => null,
+                [Fields.PlacementTiles] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Label] = () => Label,
+                [Fields.Depth] = () => Depth,
+                [Fields.Enabled] = () => Enabled,
+                [Fields.Name] = () => Name,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
+                [Fields.Children] = () => Children,
+                [Fields.Collider] = () => Collider,
+                [Fields.PlacementTiles] = () => PlacementTiles,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
     public interface IReadOnlyObjectLayerLink : IReadOnlyNeoObjectLayerLink
     {
         new bool IsReadOnly { get; }
@@ -8233,6 +9557,17 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<ExitPromptObject37f67d>(out writable);
         }
 
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public ExitPromptObject37f67d ToVariant(NeoVariant<ExitPromptObject37f67d> variant)
+        {
+            ThrowIfReadOnly("ExitPromptObject37f67d.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
+        }
+
         public static NeoClassRef<ExitPromptObject37f67d> Definition { get; } = new NeoClassRef<ExitPromptObject37f67d>("neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d");
 
         public override string Name
@@ -8503,6 +9838,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool TryWritable(out ExitPromptObjecta26352 writable)
         {
             return TryWritable<ExitPromptObjecta26352>(out writable);
+        }
+
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public ExitPromptObjecta26352 ToVariant(NeoVariant<ExitPromptObjecta26352> variant)
+        {
+            ThrowIfReadOnly("ExitPromptObjecta26352.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
         }
 
         public static NeoClassRef<ExitPromptObjecta26352> Definition { get; } = new NeoClassRef<ExitPromptObjecta26352>("neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352");
@@ -9764,6 +11110,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool TryWritable(out ExitPromptObject987403 writable)
         {
             return TryWritable<ExitPromptObject987403>(out writable);
+        }
+
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public ExitPromptObject987403 ToVariant(NeoVariant<ExitPromptObject987403> variant)
+        {
+            ThrowIfReadOnly("ExitPromptObject987403.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
         }
 
         public static NeoClassRef<ExitPromptObject987403> Definition { get; } = new NeoClassRef<ExitPromptObject987403>("neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403");
@@ -11900,8 +13257,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 {
                     "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(client, node, true, NeoValueOwnership.Asset),
                     "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(client, node, false, NeoValueOwnership.Save),
+                    "582b7d1f-fd79-47b4-993b-620ea26b3c55" => new PlacedPlant(client, node, true, NeoValueOwnership.Asset),
                     "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, true, NeoValueOwnership.Asset),
                     "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, true, NeoValueOwnership.Asset),
+                    "ddab406e-f4fd-4bd1-8db8-cc1f9c7e293b" => new SeedMarker(client, node, true, NeoValueOwnership.Asset),
                     "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(client, node, true, NeoValueOwnership.Asset),
                     "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(client, node, true, NeoValueOwnership.Asset),
                     "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(client, node, true, NeoValueOwnership.Asset),
@@ -11923,8 +13282,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 {
                     "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(client, node, false, node.ownership),
                     "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(client, node, false, node.ownership),
+                    "582b7d1f-fd79-47b4-993b-620ea26b3c55" => new PlacedPlant(client, node, false, node.ownership),
                     "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, false, node.ownership),
                     "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, false, node.ownership),
+                    "ddab406e-f4fd-4bd1-8db8-cc1f9c7e293b" => new SeedMarker(client, node, false, node.ownership),
                     "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(client, node, false, node.ownership),
                     "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(client, node, false, node.ownership),
                     "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(client, node, false, node.ownership),
@@ -14669,8 +16030,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 return clientClassId switch
                 {
                     "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(client, node, true, NeoValueOwnership.Asset),
+                    "582b7d1f-fd79-47b4-993b-620ea26b3c55" => new PlacedPlant(client, node, true, NeoValueOwnership.Asset),
                     "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, true, NeoValueOwnership.Asset),
                     "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, true, NeoValueOwnership.Asset),
+                    "ddab406e-f4fd-4bd1-8db8-cc1f9c7e293b" => new SeedMarker(client, node, true, NeoValueOwnership.Asset),
                     "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(client, node, true, NeoValueOwnership.Asset),
                     "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(client, node, true, NeoValueOwnership.Asset),
                     "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" => new ExitPromptObject987403(client, node, true, NeoValueOwnership.Asset),
@@ -14687,8 +16050,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 return clientClassId switch
                 {
                     "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(client, node, false, node.ownership),
+                    "582b7d1f-fd79-47b4-993b-620ea26b3c55" => new PlacedPlant(client, node, false, node.ownership),
                     "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, false, node.ownership),
                     "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, false, node.ownership),
+                    "ddab406e-f4fd-4bd1-8db8-cc1f9c7e293b" => new SeedMarker(client, node, false, node.ownership),
                     "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(client, node, false, node.ownership),
                     "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(client, node, false, node.ownership),
                     "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" => new ExitPromptObject987403(client, node, false, node.ownership),
@@ -14715,6 +16080,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool TryWritable(out NeoObject writable)
         {
             return TryWritable<NeoObject>(out writable);
+        }
+
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public NeoObject ToVariant(NeoVariant<NeoObject> variant)
+        {
+            ThrowIfReadOnly("NeoObject.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
         }
 
         public TChild? GetChild<TChild>(string? name = null) where TChild : NeoGeneratedClassValue
@@ -15268,7 +16644,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         private ReadOnlyOldConsoleLandingGridContent(NeoReadOnlyTileGridPrimitive primitive)
-            : this(primitive, primitive.BindReadOnlyTileLayer<BackgroundTileLayer>("neo-tile-grid-record-relations-v1-class-9f889dbed89e6fdd2a883fb5a87fea19", new[] { "07db44f3-8cc5-4164-aace-098ca68460f4", "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2", "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b", "a8305a31-7f6c-4ff5-8a9f-5871ef451093", "bda4cf72-c8da-4be0-8148-024d0fc2d826", "d931c907-19cd-4f3d-b04a-e6f1945fb216" }), primitive.BindReadOnlyTileLayer<CollisionTileLayer>("neo-tile-grid-record-relations-v1-class-e06896b149a650d6ceb37fbdfdba9ffa", new[] { "07db44f3-8cc5-4164-aace-098ca68460f4", "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2", "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b", "a8305a31-7f6c-4ff5-8a9f-5871ef451093", "bda4cf72-c8da-4be0-8148-024d0fc2d826", "d931c907-19cd-4f3d-b04a-e6f1945fb216" }), primitive.BindReadOnlyObjectLayer<DefaultObjectLayer>("neo-tile-grid-record-relations-v1-class-d1b21a408630eedaf664ccf5720d874f", new[] { "27874300-3e78-4d1c-802b-caf34d25d1ab", "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f", "cacf06dd-db1d-4f48-99c7-f3cea5a6961f", "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352", "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" }))
+            : this(primitive, primitive.BindReadOnlyTileLayer<BackgroundTileLayer>("neo-tile-grid-record-relations-v1-class-9f889dbed89e6fdd2a883fb5a87fea19", new[] { "07db44f3-8cc5-4164-aace-098ca68460f4", "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2", "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b", "a8305a31-7f6c-4ff5-8a9f-5871ef451093", "bda4cf72-c8da-4be0-8148-024d0fc2d826", "d931c907-19cd-4f3d-b04a-e6f1945fb216" }), primitive.BindReadOnlyTileLayer<CollisionTileLayer>("neo-tile-grid-record-relations-v1-class-e06896b149a650d6ceb37fbdfdba9ffa", new[] { "07db44f3-8cc5-4164-aace-098ca68460f4", "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2", "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b", "a8305a31-7f6c-4ff5-8a9f-5871ef451093", "bda4cf72-c8da-4be0-8148-024d0fc2d826", "d931c907-19cd-4f3d-b04a-e6f1945fb216" }), primitive.BindReadOnlyObjectLayer<DefaultObjectLayer>("neo-tile-grid-record-relations-v1-class-d1b21a408630eedaf664ccf5720d874f", new[] { "27874300-3e78-4d1c-802b-caf34d25d1ab", "582b7d1f-fd79-47b4-993b-620ea26b3c55", "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f", "cacf06dd-db1d-4f48-99c7-f3cea5a6961f", "ddab406e-f4fd-4bd1-8db8-cc1f9c7e293b", "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352", "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" }))
         {
         }
 
@@ -15297,7 +16673,7 @@ namespace HelloWorld.Assets.Scripts.Neo
     public partial class OldConsoleLandingGridContent : ReadOnlyOldConsoleLandingGridContent, INeoWritableTileGridContent
     {
         private OldConsoleLandingGridContent(NeoTileGridPrimitive primitive)
-            : base(primitive, primitive.BindWritableTileLayer<BackgroundTileLayer>("neo-tile-grid-record-relations-v1-class-9f889dbed89e6fdd2a883fb5a87fea19", new[] { "07db44f3-8cc5-4164-aace-098ca68460f4", "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2", "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b", "a8305a31-7f6c-4ff5-8a9f-5871ef451093", "bda4cf72-c8da-4be0-8148-024d0fc2d826", "d931c907-19cd-4f3d-b04a-e6f1945fb216" }), primitive.BindWritableTileLayer<CollisionTileLayer>("neo-tile-grid-record-relations-v1-class-e06896b149a650d6ceb37fbdfdba9ffa", new[] { "07db44f3-8cc5-4164-aace-098ca68460f4", "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2", "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b", "a8305a31-7f6c-4ff5-8a9f-5871ef451093", "bda4cf72-c8da-4be0-8148-024d0fc2d826", "d931c907-19cd-4f3d-b04a-e6f1945fb216" }), primitive.BindWritableObjectLayer<DefaultObjectLayer>("neo-tile-grid-record-relations-v1-class-d1b21a408630eedaf664ccf5720d874f", new[] { "27874300-3e78-4d1c-802b-caf34d25d1ab", "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f", "cacf06dd-db1d-4f48-99c7-f3cea5a6961f", "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352", "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" }))
+            : base(primitive, primitive.BindWritableTileLayer<BackgroundTileLayer>("neo-tile-grid-record-relations-v1-class-9f889dbed89e6fdd2a883fb5a87fea19", new[] { "07db44f3-8cc5-4164-aace-098ca68460f4", "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2", "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b", "a8305a31-7f6c-4ff5-8a9f-5871ef451093", "bda4cf72-c8da-4be0-8148-024d0fc2d826", "d931c907-19cd-4f3d-b04a-e6f1945fb216" }), primitive.BindWritableTileLayer<CollisionTileLayer>("neo-tile-grid-record-relations-v1-class-e06896b149a650d6ceb37fbdfdba9ffa", new[] { "07db44f3-8cc5-4164-aace-098ca68460f4", "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2", "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b", "a8305a31-7f6c-4ff5-8a9f-5871ef451093", "bda4cf72-c8da-4be0-8148-024d0fc2d826", "d931c907-19cd-4f3d-b04a-e6f1945fb216" }), primitive.BindWritableObjectLayer<DefaultObjectLayer>("neo-tile-grid-record-relations-v1-class-d1b21a408630eedaf664ccf5720d874f", new[] { "27874300-3e78-4d1c-802b-caf34d25d1ab", "582b7d1f-fd79-47b4-993b-620ea26b3c55", "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f", "cacf06dd-db1d-4f48-99c7-f3cea5a6961f", "ddab406e-f4fd-4bd1-8db8-cc1f9c7e293b", "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352", "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" }))
         {
             Primitive = primitive;
             Background = (BackgroundTileLayer)base.Background;

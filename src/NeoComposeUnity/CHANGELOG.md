@@ -2,6 +2,43 @@
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-08-13
+
+### Added
+
+- P67 NeoObject variants: NeoScript compiler revision 10 — the `variant`
+  pointer and the `variantInitialize` / `variantApply` intrinsics — executes on
+  device, so one variant's `initialize` may delegate to another's `Initialize()`
+  and `source.ToVariant(...)` applies in place from authored NeoScript.
+- P67 NeoObject variants: deserialize the new `variants` export collection and
+  resolve a `NeoVariant<T>` handle from it, so generated `Class.Variants`
+  static trees construct through a variant (`Initialize()`) and apply one in
+  place (`ToVariant`). A variant's `Overrides` and `ChildOverrides` are null
+  when unauthored, which means empty everywhere they are read.
+
+### Fixed
+
+- Variant members are now readable and writable on device: the writable node
+  factory, the value factory, and the declaration-default factory all gained
+  the missing arms, so a class declaring a `NeoVariant<T>` member materializes
+  instead of throwing, its setter writes, and an authored default survives.
+- NeoScript reads of a variant member now yield the stored `{classId,
+  variantId}` pair instead of null, matching the web evaluator.
+- `Class.Variants.X.Initialize()` now resolves the generated factory it needs,
+  instead of throwing for every generated type.
+- A variant reached through both a base-typed member and its own class's
+  `Variants` tree no longer throws on the second resolution.
+- Applying a variant no longer releases the receiver's compiled animation
+  clips or stops its running animations: variant application writes members,
+  it does not end the object's life.
+
+### Changed
+
+- **Breaking:** the project export schema version is now 21. Exports must be
+  regenerated from a web app of the same release; the SDK enforces exact
+  equality, so an older runtime cannot load an export whose `Variants` lookups
+  it would silently resolve to the bare class.
+
 ## [0.23.1] - 2026-08-13
 
 ### Fixed

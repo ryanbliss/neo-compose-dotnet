@@ -81,6 +81,18 @@ namespace NeoCompose.Runtime.Json
         public string memberId = null!;
     }
 
+    /// <summary>
+    /// P67 §6 — mirror of <c>INSPointerVariant</c>. <see cref="variantId"/> is
+    /// nullable by contract, not by omission: null is the reserved base
+    /// selection (`&lt;Class&gt;.Variants.Base`), meaning the class itself with
+    /// no variant applied.
+    /// </summary>
+    public class VariantPointer : Pointer
+    {
+        public string classId = null!;
+        public string? variantId;
+    }
+
     /// <summary>Mirror of <c>INSPointerKeyOf</c>.</summary>
     public class KeyOfPointer : Pointer
     {
@@ -285,6 +297,7 @@ namespace NeoCompose.Runtime.Json
                 case PointerKind.CallAction: return typeof(CallActionPointer);
                 case PointerKind.FunctionErrorCheck: return typeof(FunctionErrorCheckPointer);
                 case PointerKind.StaticMember: return typeof(StaticMemberPointer);
+                case PointerKind.Variant: return typeof(VariantPointer);
                 default: return null;
             }
         }

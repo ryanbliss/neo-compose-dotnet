@@ -940,6 +940,36 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void VariantApplication_LeavesTheReceiversPlayingClipAlone()
+        {
+            // P67 §7.2. Applying a variant writes members; it does not end the
+            // object's life. The short-lived wrapper the application borrows
+            // over the receiver's node must therefore NOT release the backing
+            // value's clips when it is disposed — `ReleaseAnimationClips` is
+            // keyed on the value identity, not on the wrapper.
+            ProjectData data = BuildPlacementAnimationProjectData();
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
+            var target = (TestComposedObject)placed.Info;
+            NeoAnimationClip<TestComposedObject> clip =
+                NeoGeneratedTypesSupport.GetAnimationClip(target, "Animate");
+            clip.PlayLoop();
+
+            using (var borrowed = new NeoVariantTargetValue(
+                       client,
+                       target.BackingNode,
+                       target.ValueOwnership))
+            {
+                Assert.IsNotNull(borrowed);
+            }
+
+            Assert.IsTrue(clip.IsPlaying);
+            Assert.AreSame(
+                clip,
+                NeoGeneratedTypesSupport.GetAnimationClip(target, "Animate"));
+        }
+
+        [Test]
         public void AnimationCacheInvalidation_StopsPlayersAndRebuildsHandles()
         {
             ProjectData data = BuildPlacementAnimationProjectData();

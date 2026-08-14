@@ -66,6 +66,13 @@ namespace NeoCompose.Runtime.Json
         /// closure — and the empty set, not null, is its rest state.
         /// </summary>
         NSAction = 26,
+        /// <summary>
+        /// A reference to a named configuration of a class (P67 §6). The
+        /// stored payload is a `{classId, variantId}` pair; a null
+        /// <c>variantId</c> selects the base class with no variant applied.
+        /// Selected atomically, never field-addressed.
+        /// </summary>
+        Variant = 27,
         Unknown = -1,
         Void = -2,
     }

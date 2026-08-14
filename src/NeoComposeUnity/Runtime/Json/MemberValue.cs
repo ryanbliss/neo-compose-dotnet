@@ -291,6 +291,12 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Carrier for a Sprite <see cref="Member.defaultValue"/>.</summary>
     public class SpriteMemberValueBase : MemberValueBase<SpriteValue?> { }
 
+    /// <summary>
+    /// Carrier for a Variant member's declaration default — the authored
+    /// `{classId, variantId}` selection (P67 §6).
+    /// </summary>
+    public class VariantMemberValueBase : MemberValueBase<VariantRefValue?> { }
+
     [JsonConverter(typeof(NeoVector2ValueConverter))]
     public class NeoVector2Value
     {
@@ -1118,6 +1124,7 @@ namespace NeoCompose.Runtime.Json
                     if (NeoVector3ValueConverter.LooksLikeVector3Value(token)) return typeof(Vector3MemberValueBase);
                     if (NeoVector2ValueConverter.LooksLikeVector2Value(token)) return typeof(Vector2MemberValueBase);
                     if (NeoColorValueConverter.LooksLikeColorValue(token)) return typeof(ColorMemberValueBase);
+                    if (LooksLikeVariantRefValue(token)) return typeof(VariantMemberValueBase);
                     if (LooksLikeSpriteValue(token)) return typeof(SpriteMemberValueBase);
                     if (LooksLikeFileValue(token)) return typeof(FileMemberValueBase);
                     return typeof(ObjectMemberValueBase);
@@ -1133,6 +1140,36 @@ namespace NeoCompose.Runtime.Json
             // future envelope grew a sibling key.
             if (NeoPartialLeafValue.IsEnvelope(token)) return false;
             return token["fileId"]?.Type == JTokenType.String;
+        }
+
+        /// <summary>
+        /// P67 §6. A variant reference is exactly `classId` plus `variantId`,
+        /// and `variantId` is either a string or an explicit null — which is
+        /// what tells it apart from a placement sidecar that also carries a
+        /// `variantId`. Exact-keyed for the same reason every other shape
+        /// probe is: this decides how the row is deserialized.
+        ///
+        /// <para>Residual collision, unavoidable at this seam: a Dictionary
+        /// member whose stored map is exactly two entries keyed `classId` and
+        /// `variantId` is structurally identical to a variant reference and
+        /// deserializes as one. This resolver runs on the JSON path, where the
+        /// row arrives keyed by id in `values` with no member in hand, so there
+        /// is nothing to discriminate on but shape - the same bound the sprite
+        /// and file probes sit inside. Discriminating by member kind would mean
+        /// threading the declaring member into row deserialization, a change to
+        /// the export reader's contract rather than to this probe.</para>
+        /// </summary>
+        private static bool LooksLikeVariantRefValue(JToken token)
+        {
+            if (token.Type != JTokenType.Object) return false;
+            var record = (JObject)token;
+            if (record.Count != 2) return false;
+            JToken? classId = record["classId"];
+            if (classId is null || classId.Type != JTokenType.String) return false;
+            JToken? variantId = record["variantId"];
+            if (variantId is null) return false;
+            return variantId.Type == JTokenType.String ||
+                variantId.Type == JTokenType.Null;
         }
 
         private static bool LooksLikeSpriteValue(JToken token)
@@ -1301,6 +1338,9 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Stored value for a Sprite member.</summary>
     public class SpriteMemberValue : MemberValue<SpriteValue?> { }
 
+    /// <summary>Stored value for a Variant member (P67 §6).</summary>
+    public class VariantMemberValue : MemberValue<VariantRefValue?> { }
+
     /// <summary>Stored value for a Vector2 / Vector2Int member.</summary>
     public class Vector2MemberValue : MemberValue<NeoVector2Value?> { }
 
@@ -1403,6 +1443,7 @@ namespace NeoCompose.Runtime.Json
                     if (NeoVector3ValueConverter.LooksLikeVector3Value(token)) return typeof(Vector3MemberValue);
                     if (NeoVector2ValueConverter.LooksLikeVector2Value(token)) return typeof(Vector2MemberValue);
                     if (NeoColorValueConverter.LooksLikeColorValue(token)) return typeof(ColorMemberValue);
+                    if (LooksLikeVariantRefValue(token)) return typeof(VariantMemberValue);
                     if (LooksLikeSpriteValue(token)) return typeof(SpriteMemberValue);
                     if (LooksLikeFileValue(token)) return typeof(FileMemberValue);
                     return typeof(ObjectMemberValue);
@@ -1417,6 +1458,36 @@ namespace NeoCompose.Runtime.Json
             // P42: see MemberValueBaseConverter.LooksLikeFileValue.
             if (NeoPartialLeafValue.IsEnvelope(token)) return false;
             return token["fileId"]?.Type == JTokenType.String;
+        }
+
+        /// <summary>
+        /// P67 §6. A variant reference is exactly `classId` plus `variantId`,
+        /// and `variantId` is either a string or an explicit null — which is
+        /// what tells it apart from a placement sidecar that also carries a
+        /// `variantId`. Exact-keyed for the same reason every other shape
+        /// probe is: this decides how the row is deserialized.
+        ///
+        /// <para>Residual collision, unavoidable at this seam: a Dictionary
+        /// member whose stored map is exactly two entries keyed `classId` and
+        /// `variantId` is structurally identical to a variant reference and
+        /// deserializes as one. This resolver runs on the JSON path, where the
+        /// row arrives keyed by id in `values` with no member in hand, so there
+        /// is nothing to discriminate on but shape - the same bound the sprite
+        /// and file probes sit inside. Discriminating by member kind would mean
+        /// threading the declaring member into row deserialization, a change to
+        /// the export reader's contract rather than to this probe.</para>
+        /// </summary>
+        private static bool LooksLikeVariantRefValue(JToken token)
+        {
+            if (token.Type != JTokenType.Object) return false;
+            var record = (JObject)token;
+            if (record.Count != 2) return false;
+            JToken? classId = record["classId"];
+            if (classId is null || classId.Type != JTokenType.String) return false;
+            JToken? variantId = record["variantId"];
+            if (variantId is null) return false;
+            return variantId.Type == JTokenType.String ||
+                variantId.Type == JTokenType.Null;
         }
 
         private static bool LooksLikeSpriteValue(JToken token)

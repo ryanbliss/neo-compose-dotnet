@@ -42,6 +42,13 @@ namespace NeoCompose.Runtime.Json
         public const string CallAction = "callAction";
         public const string FunctionErrorCheck = "functionErrorCheck";
         public const string StaticMember = "staticMember";
+        /// <summary>
+        /// P67 §6 — a variant reference: the `{classId, variantId}` pair a
+        /// `&lt;Class&gt;.Variants.&lt;Path&gt;.&lt;Name&gt;` path resolves to.
+        /// A null `variantId` is the reserved base selection. Compiler
+        /// revision 10.
+        /// </summary>
+        public const string Variant = "variant";
     }
 
     public static class InstructionKind
@@ -121,6 +128,19 @@ namespace NeoCompose.Runtime.Json
         public const string StringOp = "stringOp";
         public const string DecimalOp = "decimalOp";
         public const string ListIndex = "listIndex";
+        /// <summary>
+        /// P67 §4.1 — `&lt;variant&gt;.Initialize()`: the Initialize closure,
+        /// then Overrides, then ChildOverrides. Distinct from reading the
+        /// variant graph's own `Initialize` NeoDelegate member, which would run
+        /// step 1 alone.
+        /// </summary>
+        public const string VariantInitialize = "variantInitialize";
+        /// <summary>
+        /// P67 §4.2 — `&lt;source&gt;.ToVariant(&lt;variant&gt;)`: the Apply
+        /// closure when declared, then Overrides, then ChildOverrides. Always
+        /// in place; the value is the receiver.
+        /// </summary>
+        public const string VariantApply = "variantApply";
     }
 
     public static class ListIndexKeyKind
@@ -341,9 +361,11 @@ namespace NeoCompose.Runtime.Json
         /// <c>try</c> instruction; revision 7 adds first-class delegate calls;
         /// revision 8 adds the P62 NSAction listener instructions and the
         /// <c>callAction</c> pointer; revision 9 adds provenance-aware
-        /// <c>Reference&lt;T&gt;</c> pointers.
+        /// <c>Reference&lt;T&gt;</c> pointers; revision 10 adds the P67
+        /// <c>variant</c> pointer and the <c>variantInitialize</c> /
+        /// <c>variantApply</c> intrinsics.
         /// </summary>
-        public const int CurrentCompilerRevision = 9;
+        public const int CurrentCompilerRevision = 10;
 
         /// <summary>
         /// Optional for backward compatibility. Absence means legacy

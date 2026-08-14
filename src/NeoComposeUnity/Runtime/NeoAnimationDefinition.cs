@@ -2127,7 +2127,14 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static void FlattenOverrides(
+        /// <summary>
+        /// P67 §7.2 reuses this verbatim for a variant's declarative halves,
+        /// which is why it is internal rather than private: a variant applies
+        /// the same `Partial&lt;T&gt;` semantics to the same kind of target, and
+        /// a second partial-application write path would be a second set of
+        /// eligibility and descent rules to keep in step.
+        /// </summary>
+        internal static void FlattenOverrides(
             NeoClient client,
             NeoMemberClass target,
             NeoMemberClass partial,
@@ -2482,7 +2489,11 @@ namespace NeoCompose.Runtime
                 $"{label} selector returned child '{selectedValueId}' outside the animation owner's Children graph.");
         }
 
-        private static void CompileChildOverrides(
+        /// <summary>
+        /// Shared with P67 variants (§7.2). `clipKey` and `frameIndex` are
+        /// message and dedupe keys only; a variant passes its own id and 0.
+        /// </summary>
+        internal static void CompileChildOverrides(
             NeoGeneratedClassValue target,
             NeoMemberList childOverrides,
             List<NeoAnimationCompiledWrite> writes,

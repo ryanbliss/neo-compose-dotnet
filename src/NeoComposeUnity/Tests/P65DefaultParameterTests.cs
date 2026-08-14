@@ -463,7 +463,7 @@ namespace NeoCompose.Tests
         }
 
         // -------------------------------------------------------------------
-        // §3.3 — the export gate accepts exactly schema 18.
+        // §3.3 — the export gate accepts exactly the current schema.
         // -------------------------------------------------------------------
 
         [Test]
@@ -486,9 +486,9 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ExportSchemaVersion_CurrentContractIsTwenty()
+        public void ExportSchemaVersion_CurrentContractIsTwentyOne()
         {
-            Assert.AreEqual(20, NeoProjectExportContract.CurrentSchemaVersion);
+            Assert.AreEqual(21, NeoProjectExportContract.CurrentSchemaVersion);
         }
 
         // -------------------------------------------------------------------

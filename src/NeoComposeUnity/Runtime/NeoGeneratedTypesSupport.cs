@@ -1021,6 +1021,124 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// P67 §7.1 — resolves one declared variant of <typeparamref name="T"/>.
+        /// Generated `Class.Variants` entries call this helper.
+        /// </summary>
+        [System.ComponentModel.EditorBrowsable(
+            System.ComponentModel.EditorBrowsableState.Never)]
+        public static NeoVariant<T> ResolveVariant<T>(
+            NeoClient client,
+            string variantId)
+            where T : NeoGeneratedClassValue
+        {
+            if (client is null) throw new ArgumentNullException(nameof(client));
+            if (string.IsNullOrWhiteSpace(variantId))
+            {
+                throw new ArgumentException(
+                    "A variant id is required.",
+                    nameof(variantId));
+            }
+            return client.GetOrCreateVariant<T>(variantId);
+        }
+
+        /// <summary>
+        /// P67 §3.4 — resolves the reserved `Base` entry: the class itself with
+        /// no variant applied, whose `Initialize` is the class's own
+        /// construction. Generated `Class.Variants.Base` calls this helper.
+        /// </summary>
+        [System.ComponentModel.EditorBrowsable(
+            System.ComponentModel.EditorBrowsableState.Never)]
+        public static NeoVariant<T> ResolveBaseVariant<T>(
+            NeoClient client,
+            string classId)
+            where T : NeoGeneratedClassValue
+        {
+            if (client is null) throw new ArgumentNullException(nameof(client));
+            if (string.IsNullOrWhiteSpace(classId))
+            {
+                throw new ArgumentException(
+                    "A class id is required.",
+                    nameof(classId));
+            }
+            return client.GetOrCreateBaseVariant<T>(classId);
+        }
+
+        /// <summary>
+        /// P67 §7.4 — reads a `Variant` member's stored `{classId, variantId}`
+        /// pair into a resolved handle.
+        ///
+        /// <para>A null <c>variantId</c> resolves to the base entry of the
+        /// *stored* class, which may be a subclass of the member's declared
+        /// target: §6 covariance is a property of the value, so the read has to
+        /// honour it rather than re-deriving the class from `T`.</para>
+        ///
+        /// <para>Returns null only when the member holds no selection at all,
+        /// which a nullable declaration is the only way to reach.</para>
+        /// </summary>
+        [System.ComponentModel.EditorBrowsable(
+            System.ComponentModel.EditorBrowsableState.Never)]
+        public static NeoVariant<T>? ResolveVariantValue<T>(NeoMemberVariant node)
+            where T : NeoGeneratedClassValue
+        {
+            if (node is null) throw new ArgumentNullException(nameof(node));
+            VariantRefValue? selection = node.value?.value;
+            if (selection is null)
+            {
+                if (!node.member.required) return null;
+                throw new InvalidOperationException(
+                    $"Required variant member '{node.member.name}' has no selection.");
+            }
+            if (selection.variantId is null)
+            {
+                return node.Client.GetOrCreateBaseVariant<T>(selection.classId);
+            }
+            return node.Client.GetOrCreateVariant<T>(selection.variantId);
+        }
+
+        /// <summary>
+        /// P67 §7.4 — the write half. A variant member is written by identity:
+        /// the handle already knows which class and which record it names, and
+        /// nothing about the variant's own graph is copied into the member.
+        ///
+        /// <para>Known limitation: a handle minted by a DIFFERENT client is
+        /// accepted without validation. What crosses is a pair of ids, not a
+        /// live object, so the write is well defined; it is only meaningful if
+        /// the destination project happens to carry the same ids. Validating
+        /// here is not possible — the destination is the node
+        /// <see cref="SetValue"/> receives, which this marshaller never sees —
+        /// and commit-time validation is the authority on dangling variant ids
+        /// (P67 §6), so a bad pair is caught on the next push rather than
+        /// silently resolving to the wrong variant at runtime: a missing record
+        /// throws on resolution.</para>
+        /// </summary>
+        [System.ComponentModel.EditorBrowsable(
+            System.ComponentModel.EditorBrowsableState.Never)]
+        public static NeoValueWritePayload? VariantValue<T>(NeoVariant<T>? variant)
+            where T : NeoGeneratedClassValue
+        {
+            if (variant is null) return Value<VariantRefValue>(null);
+            return Value(new VariantRefValue
+            {
+                classId = variant.ClassId,
+                variantId = variant.VariantId,
+            });
+        }
+
+        /// <summary>
+        /// P67 §4.2 — the seam generated `ToVariant` methods call. Application
+        /// is always in place; the value is <paramref name="source"/>.
+        /// </summary>
+        [System.ComponentModel.EditorBrowsable(
+            System.ComponentModel.EditorBrowsableState.Never)]
+        public static T ApplyVariant<T>(T source, NeoVariant<T> variant)
+            where T : NeoGeneratedClassValue
+        {
+            if (source is null) throw new ArgumentNullException(nameof(source));
+            if (variant is null) throw new ArgumentNullException(nameof(variant));
+            return variant.Apply(source);
+        }
+
+        /// <summary>
         /// Resolves and caches an authored animation clip for a generated
         /// target value. Generated clip properties call this helper.
         /// </summary>
@@ -4670,6 +4788,9 @@ namespace NeoCompose.Runtime
                 Vector3IntMember member => member.defaultValue is not null,
                 ColorMember member => member.defaultValue is not null,
                 DecimalMember member => member.defaultValue is not null,
+                // P67 §6 — a defaulted variant member is settled, so it must
+                // stop being demanded as a runtime constructor argument.
+                VariantMember member => member.defaultValue is not null,
                 _ => false,
             };
         }
@@ -5630,6 +5751,25 @@ namespace NeoCompose.Runtime
                     return CreateDefaultColorRow(nowIso, member.defaultValue);
                 case DecimalMember member:
                     return CreateDefaultDecimalRow(nowIso, member.defaultValue);
+                // P67 §6 — copied, not aliased, like every other
+                // reference-typed default row above.
+                case VariantMember member:
+                    return member.defaultValue is null
+                        ? null
+                        : new VariantMemberValue
+                        {
+                            id = Guid.NewGuid().ToString(),
+                            createdAt = nowIso,
+                            updatedAt = nowIso,
+                            value = member.defaultValue.value is null
+                                ? null
+                                : new VariantRefValue
+                                {
+                                    classId = member.defaultValue.value.classId,
+                                    variantId = member.defaultValue.value.variantId,
+                                },
+                            classId = member.defaultValue.classId,
+                        };
                 case StringMember member:
                     return member.defaultValue is null
                         ? null
