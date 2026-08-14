@@ -360,7 +360,7 @@ namespace NeoCompose.Runtime
             {
                 // The Overrides/ChildOverrides machinery is shared with
                 // animation, so its messages say "Animation clip '<key>'
-                // frame 0". Re-attribute: an author reading this failure is
+                // frame 0". Reframe the error: an author reading this failure is
                 // editing a variant, and there is no clip involved.
                 throw new InvalidOperationException(
                     $"Variant '{DescribeVariant(record)}' could not apply its overrides: {error.Message}",
