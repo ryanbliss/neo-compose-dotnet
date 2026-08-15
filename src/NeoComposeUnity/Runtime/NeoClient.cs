@@ -154,6 +154,8 @@ namespace NeoCompose.Runtime
             data.constructors;
         internal IReadOnlyDictionary<string, VariantRecord> variants =>
             data.variants;
+        internal IReadOnlyDictionary<string, VariantFolderRecord> variantFolders =>
+            data.variantFolders;
         internal IReadOnlyDictionary<string, Interface> interfaces => data.interfaces;
         internal IReadOnlyDictionary<string, Enum> enums => data.enums;
         internal IReadOnlyDictionary<string, Dialogue> dialogues => data.dialogues;
@@ -215,6 +217,30 @@ namespace NeoCompose.Runtime
                 $"base\u001f{classId}",
                 classId,
                 record: null);
+        }
+
+        /// <summary>P68 §7 — cached generated-tree handle for a lookup variant.</summary>
+        internal NeoLookupVariant<T, TValue> GetOrCreateLookupVariant<T, TValue>(
+            string variantId)
+            where T : NeoGeneratedClassValue
+            where TValue : NeoGeneratedClassValue
+        {
+            EnsureNotDisposed();
+            if (!TryGetVariant(variantId, out VariantRecord? record))
+            {
+                throw new InvalidOperationException(
+                    $"Variant '{variantId}' is not in this project export. Re-export the project.");
+            }
+            string key = $"lookup\u001f{variantId}\u001f{typeof(T).FullName}\u001f{typeof(TValue).FullName}";
+            if (variantHandles.TryGetValue(key, out object existing))
+            {
+                if (existing is NeoLookupVariant<T, TValue> match) return match;
+                throw new InvalidOperationException(
+                    $"Lookup variant cache key '{key}' changed target type; regenerate the project's C# types.");
+            }
+            var handle = new NeoLookupVariant<T, TValue>(this, record);
+            variantHandles.Add(key, handle);
+            return handle;
         }
 
         private NeoVariant<T> GetOrCreateVariantHandle<T>(
@@ -5633,6 +5659,7 @@ namespace NeoCompose.Runtime
             // collection and a hand-built ProjectData may leave it null. Both
             // mean "declares no variants".
             data.variants ??= new Dictionary<string, VariantRecord>();
+            data.variantFolders ??= new Dictionary<string, VariantFolderRecord>();
             var claimedByClass = new Dictionary<string, string>();
             foreach (var pair in data.classes)
             {

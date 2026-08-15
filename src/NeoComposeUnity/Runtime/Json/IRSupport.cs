@@ -46,7 +46,8 @@ namespace NeoCompose.Runtime.Json
         /// P67 §6 — a variant reference: the `{classId, variantId}` pair a
         /// `&lt;Class&gt;.Variants.&lt;Path&gt;.&lt;Name&gt;` path resolves to.
         /// A null `variantId` is the reserved base selection. Compiler
-        /// revision 10.
+        /// Revision 10 introduced the pointer; revision 11 adds its optional
+        /// lookup-row identity.
         /// </summary>
         public const string Variant = "variant";
     }
@@ -363,9 +364,10 @@ namespace NeoCompose.Runtime.Json
         /// <c>callAction</c> pointer; revision 9 adds provenance-aware
         /// <c>Reference&lt;T&gt;</c> pointers; revision 10 adds the P67
         /// <c>variant</c> pointer and the <c>variantInitialize</c> /
-        /// <c>variantApply</c> intrinsics.
+        /// <c>variantApply</c> intrinsics; revision 11 adds P68 lookup-row
+        /// pointers.
         /// </summary>
-        public const int CurrentCompilerRevision = 10;
+        public const int CurrentCompilerRevision = 11;
 
         /// <summary>
         /// Optional for backward compatibility. Absence means legacy

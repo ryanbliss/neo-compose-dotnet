@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+## [0.24.2] - 2026-08-14
+
+### Added
+
+- Load and validate collection-bound lookup variant folders and row-bound
+  Variant pointers from schema-22 exports.
+- Resolve `NeoLookupVariant<TObject, TValue>` handles and generated lookup
+  trees, carrying the selected collection row through `Initialize`,
+  `ToVariant`, NeoScript evaluation, and Variant member reads and writes.
+
+### Changed
+
+- **Breaking:** the project export schema version is now 22 and the supported
+  NeoScript compiler revision is now 11. Exports must be regenerated from a
+  matching web release so lookup-folder bindings and row pointers cannot be
+  silently ignored by an older runtime.
+
 ## [0.24.1] - 2026-08-14
 
 ### Fixed

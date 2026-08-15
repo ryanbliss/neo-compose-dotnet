@@ -33,8 +33,13 @@ namespace NeoCompose.Runtime
         /// which denotes the class itself with no variant applied (§3.4).
         /// </summary>
         private readonly VariantRecord? record;
+        private readonly NeoGeneratedClassValue? boundRow;
 
-        internal NeoVariant(NeoClient client, string classId, VariantRecord? record)
+        internal NeoVariant(
+            NeoClient client,
+            string classId,
+            VariantRecord? record,
+            NeoGeneratedClassValue? boundRow = null)
         {
             this.client = client ?? throw new ArgumentNullException(nameof(client));
             if (string.IsNullOrWhiteSpace(classId))
@@ -45,6 +50,7 @@ namespace NeoCompose.Runtime
             }
             ClassId = classId;
             this.record = record;
+            this.boundRow = boundRow;
         }
 
         /// <summary>
@@ -67,6 +73,9 @@ namespace NeoCompose.Runtime
         /// </summary>
         public string? Folder => record?.folder;
 
+        /// <summary>P68 §6 — the bound lookup row, when this is an erased lookup handle.</summary>
+        internal string? RowValueId => boundRow?.valueId;
+
         /// <summary>
         /// Runs the construction path (P67 §4.1), in order: the `Initialize`
         /// closure, which returns a fresh instance; then `Overrides`, applied
@@ -79,7 +88,11 @@ namespace NeoCompose.Runtime
         {
             return NeoVariantSupport.Materialize<T>(
                 client,
-                NeoVariantSupport.InitializeNode(client, ClassId, record));
+                NeoVariantSupport.InitializeNode(
+                    client,
+                    ClassId,
+                    record,
+                    boundRow));
         }
 
         /// <summary>
@@ -98,8 +111,60 @@ namespace NeoCompose.Runtime
                 client,
                 record,
                 source.WritableBackingNode,
-                source.ValueOwnership);
+                source.ValueOwnership,
+                boundRow);
             return source;
+        }
+    }
+
+    /// <summary>
+    /// P68 §7 — a named variant whose delegates receive a row from its bound
+    /// collection. <see cref="Bind"/> erases that argument into a plain
+    /// <see cref="NeoVariant{T}"/> handle for storage in a Variant member.
+    /// </summary>
+    public sealed class NeoLookupVariant<T, TValue>
+        where T : NeoGeneratedClassValue
+        where TValue : NeoGeneratedClassValue
+    {
+        private readonly NeoClient client;
+        private readonly VariantRecord record;
+
+        internal NeoLookupVariant(NeoClient client, VariantRecord record)
+        {
+            this.client = client ?? throw new ArgumentNullException(nameof(client));
+            this.record = record ?? throw new ArgumentNullException(nameof(record));
+        }
+
+        public string VariantId => record.id;
+        public string ClassId => record.classId;
+        public string Name => record.name;
+        public string? Folder => record.folder;
+
+        public T Initialize(TValue value)
+        {
+            NeoVariantSupport.ValidateLookupRow(client, record, value);
+            return NeoVariantSupport.Materialize<T>(
+                client,
+                NeoVariantSupport.InitializeNode(client, ClassId, record, value));
+        }
+
+        internal T Apply(T source, TValue value)
+        {
+            if (source is null) throw new ArgumentNullException(nameof(source));
+            NeoVariantSupport.ValidateLookupRow(client, record, value);
+            NeoVariantSupport.ApplyToNode(
+                client,
+                record,
+                source.WritableBackingNode,
+                source.ValueOwnership,
+                value);
+            return source;
+        }
+
+        public NeoVariant<T> Bind(TValue value)
+        {
+            NeoVariantSupport.ValidateLookupRow(client, record, value);
+            return new NeoVariant<T>(client, ClassId, record, value);
         }
     }
 
@@ -113,14 +178,19 @@ namespace NeoCompose.Runtime
     /// </summary>
     internal sealed class NeoVariantReference
     {
-        internal NeoVariantReference(string classId, string? variantId)
+        internal NeoVariantReference(
+            string classId,
+            string? variantId,
+            string? rowValueId = null)
         {
             this.classId = classId;
             this.variantId = variantId;
+            this.rowValueId = rowValueId;
         }
 
         internal string classId { get; }
         internal string? variantId { get; }
+        internal string? rowValueId { get; }
     }
 
     /// <summary>
@@ -260,11 +330,18 @@ namespace NeoCompose.Runtime
         internal static NeoMemberClassWritable InitializeNode(
             NeoClient client,
             string classId,
-            VariantRecord? record)
+            VariantRecord? record,
+            object? lookupRow = null,
+            string? lookupRowValueId = null)
         {
             NeoMemberClassWritable node;
             if (record is null)
             {
+                if (lookupRow is not null || lookupRowValueId is not null)
+                {
+                    throw new InvalidOperationException(
+                        "The Base variant is not collection-bound and cannot receive a row.");
+                }
                 // Base selection: the class's own construction. Required
                 // constructor parameters must be settleable, exactly as §6 says.
                 node = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
@@ -281,7 +358,15 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Variant '{DescribeVariant(record)}' has no Initialize delegate on its value graph '{record.valueId}'.");
                 }
-                node = RequireConstructedNode(client, initialize.Invoke(), record);
+                object?[] arguments = LookupArguments(
+                    client,
+                    record,
+                    lookupRow,
+                    lookupRowValueId);
+                node = RequireConstructedNode(
+                    client,
+                    initialize.Invoke(arguments),
+                    record);
             }
             // `Apply` deliberately does not run on this path (§4.1).
             ApplyDeclarativeHalves(client, record, node, NeoValueOwnership.Session);
@@ -302,10 +387,25 @@ namespace NeoCompose.Runtime
             NeoClient client,
             VariantRecord? record,
             NeoMemberClassWritable node,
-            NeoValueOwnership ownership)
+            NeoValueOwnership ownership,
+            object? lookupRow = null,
+            string? lookupRowValueId = null)
         {
-            if (record is null) return;
-            RunApplyClosure(client, record, node, ownership);
+            if (record is null)
+            {
+                if (lookupRow is not null || lookupRowValueId is not null)
+                {
+                    throw new InvalidOperationException(
+                        "The Base variant is not collection-bound and cannot receive a row.");
+                }
+                return;
+            }
+            object?[] arguments = LookupArguments(
+                client,
+                record,
+                lookupRow,
+                lookupRowValueId);
+            RunApplyClosure(client, record, node, ownership, arguments);
             ApplyDeclarativeHalves(client, record, node, ownership);
         }
 
@@ -313,7 +413,8 @@ namespace NeoCompose.Runtime
             NeoClient client,
             VariantRecord record,
             NeoMemberClass node,
-            NeoValueOwnership ownership)
+            NeoValueOwnership ownership,
+            object?[] lookupArguments)
         {
             NeoMemberClass graph = ResolveGraph(client, record);
             // Absent Apply is declarative-only application (§4.2 step 1), not
@@ -337,7 +438,112 @@ namespace NeoCompose.Runtime
             // Session instance, so `Invoke(thisValueId)` — which resolves the
             // receiver in the DELEGATE's store — would look for it in assets
             // and fail. Same reason animation selectors use this overload.
-            apply.InvokeValueReference(sourceValueId!, ownership);
+            apply.InvokeValueReference(
+                sourceValueId!,
+                ownership,
+                lookupArguments);
+        }
+
+        internal static void ValidateLookupRow(
+            NeoClient client,
+            VariantRecord record,
+            NeoGeneratedClassValue row)
+        {
+            if (row is null) throw new ArgumentNullException(nameof(row));
+            string? rowValueId = row.valueId;
+            if (string.IsNullOrWhiteSpace(rowValueId))
+            {
+                throw new InvalidOperationException(
+                    $"Lookup variant '{DescribeVariant(record)}' requires a materialized collection row.");
+            }
+            ValidateLookupRowId(client, record, rowValueId!);
+        }
+
+        internal static void ValidateLookupRowId(
+            NeoClient client,
+            VariantRecord record,
+            string rowValueId)
+        {
+            VariantFolderBinding binding = ResolveLookupBinding(client, record)
+                ?? throw new InvalidOperationException(
+                    $"Variant '{DescribeVariant(record)}' is not collection-bound and cannot receive a row.");
+            if (!client.TryGetMember(
+                    binding.collectionMemberId,
+                    out Member? collectionMember)
+                || collectionMember is not ListMember)
+            {
+                throw new InvalidOperationException(
+                    $"Lookup variant '{DescribeVariant(record)}' binds missing List member '{binding.collectionMemberId}'. Re-export the project.");
+            }
+            if (!client.TryGetValue(
+                    binding.collectionValueId,
+                    out MemberValue? collectionValue))
+            {
+                throw new InvalidOperationException(
+                    $"Lookup variant '{DescribeVariant(record)}' binds missing collection value '{binding.collectionValueId}'. Re-export the project.");
+            }
+            bool ordered = collectionValue is ArrayMemberValue array
+                && array.value is not null
+                && Array.IndexOf(array.value, rowValueId) >= 0;
+            bool unordered = client.TryGetValue(rowValueId, out MemberValue? row)
+                && string.Equals(
+                    row.containerId,
+                    binding.collectionValueId,
+                    StringComparison.Ordinal);
+            if (!ordered && !unordered)
+            {
+                throw new InvalidOperationException(
+                    $"Lookup variant '{DescribeVariant(record)}' row '{rowValueId}' is not an entry of collection '{binding.collectionValueId}'.");
+            }
+        }
+
+        private static object?[] LookupArguments(
+            NeoClient client,
+            VariantRecord record,
+            object? lookupRow,
+            string? explicitRowValueId)
+        {
+            VariantFolderBinding? binding = ResolveLookupBinding(client, record);
+            if (binding is null)
+            {
+                if (lookupRow is not null || explicitRowValueId is not null)
+                {
+                    throw new InvalidOperationException(
+                        $"Variant '{DescribeVariant(record)}' is not collection-bound and cannot receive a row.");
+                }
+                return Array.Empty<object?>();
+            }
+            if (lookupRow is null)
+            {
+                throw new InvalidOperationException(
+                    $"Lookup variant '{DescribeVariant(record)}' requires a row from collection '{binding.collectionValueId}'.");
+            }
+            string? rowValueId = explicitRowValueId
+                ?? (lookupRow is INeoValueReference reference
+                    ? reference.valueId
+                    : null);
+            if (string.IsNullOrWhiteSpace(rowValueId))
+            {
+                throw new InvalidOperationException(
+                    $"Lookup variant '{DescribeVariant(record)}' received a value with no backing row.");
+            }
+            ValidateLookupRowId(client, record, rowValueId!);
+            return new[] { lookupRow };
+        }
+
+        private static VariantFolderBinding? ResolveLookupBinding(
+            NeoClient client,
+            VariantRecord record)
+        {
+            foreach (VariantFolderRecord folder in client.variantFolders.Values)
+            {
+                if (!string.Equals(folder.classId, record.classId, StringComparison.Ordinal))
+                    continue;
+                if (!string.Equals(folder.path, record.folder, StringComparison.Ordinal))
+                    continue;
+                return folder.binding;
+            }
+            return null;
         }
 
         /// <summary>

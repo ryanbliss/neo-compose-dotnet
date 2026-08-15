@@ -13,6 +13,11 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 22 adds lookup-variant folder bindings and row-bound variant
+        /// references (P68 §7). An older SDK would invoke a lookup variant
+        /// without its row and construct the wrong object, so it must reject
+        /// the export.
+        ///
         /// 21 adds the `variants` collection (P67 §9) and the generated
         /// `Variants` static trees that resolve against it. An older SDK has no
         /// collection to resolve a variant id through, so every
@@ -21,7 +26,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 21;
+        public const int CurrentSchemaVersion = 22;
     }
 
     public class ProjectExportMetadataSemver
@@ -130,7 +135,8 @@ namespace NeoCompose.Runtime.Json
         /// <para>Deliberately the path and not a folder record id: the export
         /// performs the join so a data-driven consumer can resolve a variant by
         /// (folder, name) without loading a second collection that exists only
-        /// to hold this string. There is no folder collection on the wire.</para>
+        /// to hold this string. P68 also ships the folder collection separately
+        /// so bound folders retain their collection identity at runtime.</para>
         /// </summary>
         public string? folder;
 
@@ -141,6 +147,24 @@ namespace NeoCompose.Runtime.Json
 
         public NeoTimestamp createdAt;
         public NeoTimestamp updatedAt;
+    }
+
+    /// <summary>
+    /// P68 §2/§7 — a variant folder retained in the runtime export so lookup
+    /// variants can validate and resolve the collection row they receive.
+    /// </summary>
+    public sealed class VariantFolderRecord
+    {
+        public string id = null!;
+        public string classId = null!;
+        public string path = null!;
+        public VariantFolderBinding? binding;
+    }
+
+    public sealed class VariantFolderBinding
+    {
+        public string collectionMemberId = null!;
+        public string collectionValueId = null!;
     }
 
     /// <summary>
@@ -306,6 +330,9 @@ namespace NeoCompose.Runtime.Json
         /// may also leave it null, which means the same thing.
         /// </summary>
         public Dictionary<string, VariantRecord> variants = new();
+
+        /// <summary>P68 §7 — lookup bindings keyed by folder record id.</summary>
+        public Dictionary<string, VariantFolderRecord> variantFolders = new();
 
         /// <summary>
         /// Declared relation rows keyed by stable relation id. Required by

@@ -53,14 +53,67 @@ namespace NeoCompose.Tests
             };
         }
 
+        private static NeoLookupVariant<Hero, Hero> RegisterLookupVariant(
+            NeoClient client,
+            Hero row)
+        {
+            const string entryMemberId = "member-lookup-entry";
+            const string collectionMemberId = "member-lookup-catalog";
+            const string collectionValueId = "value-lookup-catalog";
+            client.ProjectDataForRuntime.members[entryMemberId] = new ClassMember
+            {
+                id = entryMemberId,
+                projectId = "synth",
+                name = "Entry",
+                kind = MemberKind.Class,
+                classId = HeroClassId,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            client.ProjectDataForRuntime.members[collectionMemberId] = new ListMember
+            {
+                id = collectionMemberId,
+                projectId = "synth",
+                name = "Catalog",
+                kind = MemberKind.List,
+                entryMemberId = entryMemberId,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            client.ProjectDataForRuntime.values[collectionValueId] = new ArrayMemberValue
+            {
+                id = collectionValueId,
+                value = new[] { row.valueId! },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            client.ProjectDataForRuntime.variantFolders["folder-stages"] =
+                new VariantFolderRecord
+                {
+                    id = "folder-stages",
+                    classId = HeroClassId,
+                    path = "Stages",
+                    binding = new VariantFolderBinding
+                    {
+                        collectionMemberId = collectionMemberId,
+                        collectionValueId = collectionValueId,
+                    },
+                };
+            client.ProjectDataForRuntime.variants["variant-lookup"] =
+                Variant("variant-lookup", "Mature", "Stages");
+            return NeoGeneratedTypesSupport.ResolveLookupVariant<Hero, Hero>(
+                client,
+                "variant-lookup");
+        }
+
         // -------------------------------------------------------------------
         // §9 — the collection and the schema handshake.
         // -------------------------------------------------------------------
 
         [Test]
-        public void ExportSchemaVersion_CurrentContractIsTwentyOne()
+        public void ExportSchemaVersion_CurrentContractIsTwentyTwo()
         {
-            Assert.AreEqual(21, NeoProjectExportContract.CurrentSchemaVersion);
+            Assert.AreEqual(22, NeoProjectExportContract.CurrentSchemaVersion);
         }
 
         [Test]
@@ -174,6 +227,111 @@ namespace NeoCompose.Tests
             NeoClient client = LoadClient();
             Assert.Throws<ArgumentException>(() =>
                 NeoGeneratedTypesSupport.ResolveVariant<Hero>(client, "  "));
+        }
+
+        // -------------------------------------------------------------------
+        // P68 §6/§7 — lookup handles and row erasure.
+        // -------------------------------------------------------------------
+
+        [Test]
+        public void ResolveLookupVariant_ProjectsAndCachesTheTypedHandle()
+        {
+            NeoClient client = LoadClient();
+            Hero row = RequireHero(client);
+
+            NeoLookupVariant<Hero, Hero> first = RegisterLookupVariant(client, row);
+            NeoLookupVariant<Hero, Hero> second =
+                NeoGeneratedTypesSupport.ResolveLookupVariant<Hero, Hero>(
+                    client,
+                    "variant-lookup");
+
+            Assert.AreEqual("variant-lookup", first.VariantId);
+            Assert.AreEqual(HeroClassId, first.ClassId);
+            Assert.AreEqual("Mature", first.Name);
+            Assert.AreEqual("Stages", first.Folder);
+            Assert.AreSame(first, second);
+        }
+
+        [Test]
+        public void LookupVariantBind_ErasesTheRowIntoAPlainVariantValue()
+        {
+            NeoClient client = LoadClient();
+            Hero row = RequireHero(client);
+            NeoLookupVariant<Hero, Hero> lookup = RegisterLookupVariant(client, row);
+
+            NeoVariant<Hero> bound = lookup.Bind(row);
+            var stored = (VariantRefValue)NeoGeneratedTypesSupport
+                .VariantValue(bound)!.value!;
+
+            Assert.AreEqual("variant-lookup", stored.variantId);
+            Assert.AreEqual(row.valueId, stored.rowValueId);
+        }
+
+        [Test]
+        public void VariantMember_ResolvesABoundLookupAsAPlainHandle()
+        {
+            NeoClient client = LoadClient();
+            Hero row = RequireHero(client);
+            RegisterLookupVariant(client, row);
+            client.RegisterGeneratedClassFactories(
+                TestProjectNeo.NeoReadOnlyValueFactories,
+                TestProjectNeo.NeoWritableValueFactories);
+            NeoMemberVariant node = VariantNode(
+                client,
+                required: true,
+                new VariantRefValue
+                {
+                    classId = HeroClassId,
+                    variantId = "variant-lookup",
+                    rowValueId = row.valueId,
+                });
+
+            NeoVariant<Hero>? resolved =
+                NeoGeneratedTypesSupport.ResolveVariantValue<Hero>(node);
+
+            Assert.IsNotNull(resolved);
+            Assert.AreEqual("variant-lookup", resolved!.VariantId);
+            Assert.AreEqual(row.valueId, resolved.RowValueId);
+        }
+
+        [Test]
+        public void LookupVariantMember_StaysUnbound()
+        {
+            NeoClient client = LoadClient();
+            Hero row = RequireHero(client);
+            RegisterLookupVariant(client, row);
+            NeoMemberVariant node = VariantNode(
+                client,
+                required: true,
+                new VariantRefValue
+                {
+                    classId = HeroClassId,
+                    variantId = "variant-lookup",
+                    rowValueId = null,
+                });
+
+            NeoLookupVariant<Hero, Hero>? resolved =
+                NeoGeneratedTypesSupport.ResolveLookupVariantValue<Hero, Hero>(node);
+            Assert.IsNotNull(resolved);
+
+            node.value!.value!.rowValueId = row.valueId;
+            Assert.Throws<InvalidOperationException>(() =>
+                NeoGeneratedTypesSupport.ResolveLookupVariantValue<Hero, Hero>(node));
+        }
+
+        [Test]
+        public void LookupVariantBind_RejectsARowOutsideItsCollection()
+        {
+            NeoClient client = LoadClient();
+            Hero row = RequireHero(client);
+            NeoLookupVariant<Hero, Hero> lookup = RegisterLookupVariant(client, row);
+            ((ArrayMemberValue)client.ProjectDataForRuntime.values[
+                "value-lookup-catalog"]).value = Array.Empty<string>();
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                lookup.Bind(row))!;
+
+            StringAssert.Contains("not an entry", error.Message);
         }
 
         // -------------------------------------------------------------------

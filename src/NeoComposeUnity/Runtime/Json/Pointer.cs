@@ -91,6 +91,8 @@ namespace NeoCompose.Runtime.Json
     {
         public string classId = null!;
         public string? variantId;
+        /// <summary>P68 §6 — a row bound by a plain Variant member.</summary>
+        public string? rowValueId;
     }
 
     /// <summary>Mirror of <c>INSPointerKeyOf</c>.</summary>

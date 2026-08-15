@@ -1041,6 +1041,25 @@ namespace NeoCompose.Runtime
             return client.GetOrCreateVariant<T>(variantId);
         }
 
+        /// <summary>P68 §7 — resolves one collection-bound variant handle.</summary>
+        [System.ComponentModel.EditorBrowsable(
+            System.ComponentModel.EditorBrowsableState.Never)]
+        public static NeoLookupVariant<T, TValue> ResolveLookupVariant<T, TValue>(
+            NeoClient client,
+            string variantId)
+            where T : NeoGeneratedClassValue
+            where TValue : NeoGeneratedClassValue
+        {
+            if (client is null) throw new ArgumentNullException(nameof(client));
+            if (string.IsNullOrWhiteSpace(variantId))
+            {
+                throw new ArgumentException(
+                    "A lookup variant id is required.",
+                    nameof(variantId));
+            }
+            return client.GetOrCreateLookupVariant<T, TValue>(variantId);
+        }
+
         /// <summary>
         /// P67 §3.4 — resolves the reserved `Base` entry: the class itself with
         /// no variant applied, whose `Initialize` is the class's own
@@ -1090,9 +1109,62 @@ namespace NeoCompose.Runtime
             }
             if (selection.variantId is null)
             {
+                if (selection.rowValueId is not null)
+                {
+                    throw new InvalidOperationException(
+                        $"Variant member '{node.member.name}' binds row '{selection.rowValueId}' to Base.");
+                }
                 return node.Client.GetOrCreateBaseVariant<T>(selection.classId);
             }
+            if (selection.rowValueId is not null)
+            {
+                if (!node.Client.TryGetVariant(
+                        selection.variantId,
+                        out VariantRecord? record))
+                {
+                    throw new InvalidOperationException(
+                        $"Variant '{selection.variantId}' is not in this project export.");
+                }
+                NeoGeneratedClassValue? row =
+                    node.Client.ResolveRegisteredGeneratedClassValue(selection.rowValueId);
+                if (row is null)
+                {
+                    throw new InvalidOperationException(
+                        $"Variant member '{node.member.name}' binds missing or unregistered row '{selection.rowValueId}'. Regenerate the project's C# types.");
+                }
+                NeoVariantSupport.ValidateLookupRow(node.Client, record!, row);
+                return new NeoVariant<T>(node.Client, selection.classId, record, row);
+            }
             return node.Client.GetOrCreateVariant<T>(selection.variantId);
+        }
+
+        /// <summary>P68 §6 — resolves an unbound lookup-variant member.</summary>
+        [System.ComponentModel.EditorBrowsable(
+            System.ComponentModel.EditorBrowsableState.Never)]
+        public static NeoLookupVariant<T, TValue>? ResolveLookupVariantValue<T, TValue>(
+            NeoMemberVariant node)
+            where T : NeoGeneratedClassValue
+            where TValue : NeoGeneratedClassValue
+        {
+            if (node is null) throw new ArgumentNullException(nameof(node));
+            VariantRefValue? selection = node.value?.value;
+            if (selection is null)
+            {
+                if (!node.member.required) return null;
+                throw new InvalidOperationException(
+                    $"Required lookup variant member '{node.member.name}' has no selection.");
+            }
+            if (selection.variantId is null)
+            {
+                throw new InvalidOperationException(
+                    $"Lookup variant member '{node.member.name}' cannot select Base.");
+            }
+            if (selection.rowValueId is not null)
+            {
+                throw new InvalidOperationException(
+                    $"Lookup variant member '{node.member.name}' must stay unbound; row '{selection.rowValueId}' belongs on a plain Variant member.");
+            }
+            return node.Client.GetOrCreateLookupVariant<T, TValue>(selection.variantId);
         }
 
         /// <summary>
@@ -1121,6 +1193,24 @@ namespace NeoCompose.Runtime
             {
                 classId = variant.ClassId,
                 variantId = variant.VariantId,
+                rowValueId = variant.RowValueId,
+            });
+        }
+
+        /// <summary>P68 §6 — writes an unbound lookup-variant handle.</summary>
+        [System.ComponentModel.EditorBrowsable(
+            System.ComponentModel.EditorBrowsableState.Never)]
+        public static NeoValueWritePayload? VariantValue<T, TValue>(
+            NeoLookupVariant<T, TValue>? variant)
+            where T : NeoGeneratedClassValue
+            where TValue : NeoGeneratedClassValue
+        {
+            if (variant is null) return Value<VariantRefValue>(null);
+            return Value(new VariantRefValue
+            {
+                classId = variant.ClassId,
+                variantId = variant.VariantId,
+                rowValueId = null,
             });
         }
 
@@ -1136,6 +1226,22 @@ namespace NeoCompose.Runtime
             if (source is null) throw new ArgumentNullException(nameof(source));
             if (variant is null) throw new ArgumentNullException(nameof(variant));
             return variant.Apply(source);
+        }
+
+        /// <summary>P68 §4.2 — applies a lookup variant in place.</summary>
+        [System.ComponentModel.EditorBrowsable(
+            System.ComponentModel.EditorBrowsableState.Never)]
+        public static T ApplyLookupVariant<T, TValue>(
+            T source,
+            NeoLookupVariant<T, TValue> variant,
+            TValue value)
+            where T : NeoGeneratedClassValue
+            where TValue : NeoGeneratedClassValue
+        {
+            if (source is null) throw new ArgumentNullException(nameof(source));
+            if (variant is null) throw new ArgumentNullException(nameof(variant));
+            if (value is null) throw new ArgumentNullException(nameof(value));
+            return variant.Apply(source, value);
         }
 
         /// <summary>
