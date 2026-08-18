@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.24.4] - 2026-08-18
+
+### Fixed
+
+- Reject object spawns when any authored `PlacementTiles` cell overlaps an
+  existing object footprint on the same layer, including non-origin overlaps
+  for both value-backed and class-default objects.
+
 ## [0.24.3] - 2026-08-18
 
 ### Fixed

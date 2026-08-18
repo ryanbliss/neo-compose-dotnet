@@ -2162,6 +2162,66 @@ namespace NeoCompose.Runtime
             IReadOnlyList<string> placementValueIds = ResolveListEntryIds(
                 placementTilesListId,
                 dependencyIds);
+            return ReadObjectFootprint(
+                placementValueIds,
+                origin,
+                dependencyIds);
+        }
+
+        protected IReadOnlyList<Vector2Int> ReadProspectiveObjectFootprint(
+            string objectClassId,
+            string? objectValueId,
+            Vector2Int origin)
+        {
+            IReadOnlyDictionary<string, string>? authoredValues =
+                objectValueId is not null
+                && client.ResolveEffectiveRow(objectValueId) is ObjectMemberValue assetRow
+                    ? assetRow.value
+                    : null;
+            MergedSchemaEntry? placementTilesEntry = FindSchemaEntry(
+                objectClassId,
+                PlacementTilesKeyCandidates);
+            if (placementTilesEntry is null)
+            {
+                return new[] { origin };
+            }
+
+            if (authoredValues is not null
+                && authoredValues.TryGetValue(
+                    placementTilesEntry.schemaKey,
+                    out string placementTilesListId))
+            {
+                return ReadObjectFootprint(
+                    ResolveListEntryIds(placementTilesListId, null),
+                    origin,
+                    null);
+            }
+
+            if (!client.TryGetMember(
+                    placementTilesEntry.memberId,
+                    out Json.Member? placementTilesMember)
+                || placementTilesMember is not ListMember listMember)
+            {
+                return new[] { origin };
+            }
+            if (listMember.valueId is not null)
+            {
+                return ReadObjectFootprint(
+                    ResolveListEntryIds(listMember.valueId, null),
+                    origin,
+                    null);
+            }
+            return ReadObjectFootprint(
+                listMember.defaultValue?.value ?? Array.Empty<string>(),
+                origin,
+                null);
+        }
+
+        private IReadOnlyList<Vector2Int> ReadObjectFootprint(
+            IReadOnlyList<string> placementValueIds,
+            Vector2Int origin,
+            HashSet<string>? dependencyIds)
+        {
             if (placementValueIds.Count == 0)
             {
                 return new[] { origin };
@@ -2271,24 +2331,19 @@ namespace NeoCompose.Runtime
         /// inheritance schema, first candidate wins.</summary>
         protected string? FindSchemaKey(string classId, string[] keyCandidates)
         {
-            var merged = ResolveMergedSchemaEntries(classId);
-            if (merged is null) return null;
-            foreach (var candidate in keyCandidates)
-            {
-                foreach (var entry in merged)
-                {
-                    if (string.Equals(entry.schemaKey, candidate, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return entry.schemaKey;
-                    }
-                }
-            }
-            return null;
+            return FindSchemaEntry(classId, keyCandidates)?.schemaKey;
         }
 
         /// <summary>The member id backing a schema key on a class's merged
         /// schema (first candidate match), or null.</summary>
         protected string? FindSchemaMemberId(string classId, string[] keyCandidates)
+        {
+            return FindSchemaEntry(classId, keyCandidates)?.memberId;
+        }
+
+        private MergedSchemaEntry? FindSchemaEntry(
+            string classId,
+            string[] keyCandidates)
         {
             var merged = ResolveMergedSchemaEntries(classId);
             if (merged is null) return null;
@@ -2298,7 +2353,7 @@ namespace NeoCompose.Runtime
                 {
                     if (string.Equals(entry.schemaKey, candidate, StringComparison.OrdinalIgnoreCase))
                     {
-                        return entry.memberId;
+                        return entry;
                     }
                 }
             }
@@ -2870,12 +2925,19 @@ namespace NeoCompose.Runtime
             string? objectValueId,
             NeoGeneratedClassValue generatedObject)
         {
-            var occupants = LookupCache.ObjectCandidatesAt(layerId, cell);
-            if (occupants.Count > 0)
+            IReadOnlyList<Vector2Int> footprint = ReadProspectiveObjectFootprint(
+                objectClassId,
+                objectValueId,
+                cell);
+            if (LookupCache.TryGetObjectCandidateAtAny(
+                layerId,
+                footprint,
+                out NeoObjectPlacementRecord? occupant,
+                out Vector2Int occupiedCell))
             {
                 return NeoPlacementResult.Error(
                     "tile-grid-object-cell-occupied",
-                    $"Object layer '{layerId}' already has object instance '{occupants[occupants.Count - 1].InstanceId}' at cell ({cell.x}, {cell.y}).");
+                    $"Object layer '{layerId}' already has object instance '{occupant!.InstanceId}' at cell ({occupiedCell.x}, {occupiedCell.y}).");
             }
 
             NeoGridLayerLinkModel? targetLink = ResolveDirectWriteTargetLink(

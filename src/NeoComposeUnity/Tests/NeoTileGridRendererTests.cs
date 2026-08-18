@@ -577,6 +577,64 @@ namespace NeoCompose.Tests
             }
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ObjectPlacementRejectsNonOriginFootprintOverlapWithoutWriting(
+            bool useClassDefault)
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            ConfigureObjectPlacementFootprint(
+                data,
+                "shop-1",
+                Vector2Int.one,
+                Vector2Int.zero,
+                new Vector2Int(1, 1));
+            ConfigureObjectPlacementFootprint(
+                data,
+                "shop-object",
+                Vector2Int.one,
+                Vector2Int.zero,
+                new Vector2Int(3, 1));
+            if (useClassDefault)
+            {
+                ((ObjectMemberValue)data.values["shop-object"]).value!
+                    .Remove("PlacementTiles");
+                data.members["object-placement-tiles-member"].valueId =
+                    "shop-object-placement-tiles";
+            }
+
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var readOnlyFactories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            var primitive = NeoTileGridPrimitive.ResolveForSave(
+                client,
+                "town-grid",
+                readOnlyFactories,
+                writableFactories,
+                new Dictionary<Type, string>
+                {
+                    [typeof(TestComposedObject)] = ObjectClassId,
+                });
+            var layer = primitive.BindWritableObjectLayer<TestAuthoredObjectLayer>(
+                ObjectsLayerClassId,
+                new[] { ObjectClassId });
+            var asset = (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "shop-object",
+                readOnlyFactories,
+                writableFactories)!;
+
+            NeoPlacementResult result = useClassDefault
+                ? layer.Spawn<TestComposedObject>(new Vector2Int(8, 20))
+                : layer.Spawn(new Vector2Int(8, 20), asset);
+
+            Assert.IsFalse(result.Ok);
+            Assert.AreEqual("tile-grid-object-cell-occupied", result.ErrorCode);
+            StringAssert.Contains("(11, 21)", result.Message);
+            Assert.AreEqual(1, layer.GetObjects().Count);
+            Assert.AreEqual(0, client.saveValues.Count);
+        }
+
         [Test]
         public void ObjectPlacementsCloneAuthoredChildrenWithExactProvenance()
         {
@@ -6211,6 +6269,19 @@ namespace NeoCompose.Tests
             Vector2Int visualSize,
             params Vector2Int[] placementCells)
         {
+            ConfigureObjectPlacementFootprint(
+                data,
+                "shop-1",
+                visualSize,
+                placementCells);
+        }
+
+        private static void ConfigureObjectPlacementFootprint(
+            ProjectData data,
+            string objectValueId,
+            Vector2Int visualSize,
+            params Vector2Int[] placementCells)
+        {
             data.classes[ObjectClassId].schema["Size"] = "object-size-member";
             data.classes[ObjectClassId].schema["PlacementTiles"] =
                 "object-placement-tiles-member";
@@ -6255,12 +6326,14 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Vector2Int,
             };
 
-            var shop = (ObjectMemberValue)data.values["shop-1"];
-            shop.value!["Size"] = "shop-1-size";
-            shop.value["PlacementTiles"] = "shop-1-placement-tiles";
-            data.values["shop-1-size"] = new Vector3MemberValue
+            var shop = (ObjectMemberValue)data.values[objectValueId];
+            string sizeValueId = $"{objectValueId}-size";
+            string placementTilesValueId = $"{objectValueId}-placement-tiles";
+            shop.value!["Size"] = sizeValueId;
+            shop.value["PlacementTiles"] = placementTilesValueId;
+            data.values[sizeValueId] = new Vector3MemberValue
             {
-                id = "shop-1-size",
+                id = sizeValueId,
                 value = new NeoVector3Value
                 {
                     x = visualSize.x,
@@ -6272,14 +6345,14 @@ namespace NeoCompose.Tests
             var placementValueIds = new string[placementCells.Length];
             for (int index = 0; index < placementCells.Length; index += 1)
             {
-                string placementValueId = $"shop-1-placement-{index}";
-                string cellValueId = $"shop-1-placement-cell-{index}";
+                string placementValueId = $"{objectValueId}-placement-{index}";
+                string cellValueId = $"{objectValueId}-placement-cell-{index}";
                 placementValueIds[index] = placementValueId;
                 data.values[placementValueId] = new ObjectMemberValue
                 {
                     id = placementValueId,
                     classId = ObjectPlacementTileClassId,
-                    containerId = "shop-1-placement-tiles",
+                    containerId = placementTilesValueId,
                     value = new Dictionary<string, string>
                     {
                         ["Cell"] = cellValueId,
@@ -6295,9 +6368,9 @@ namespace NeoCompose.Tests
                     },
                 };
             }
-            data.values["shop-1-placement-tiles"] = new ArrayMemberValue
+            data.values[placementTilesValueId] = new ArrayMemberValue
             {
-                id = "shop-1-placement-tiles",
+                id = placementTilesValueId,
                 value = placementValueIds,
             };
         }
