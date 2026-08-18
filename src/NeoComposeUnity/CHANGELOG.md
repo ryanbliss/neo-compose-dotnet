@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.24.3] - 2026-08-18
+
+### Fixed
+
+- Resolve placed-object occupancy from authored `PlacementTiles` instead of
+  expanding the visual `Size` rectangle. Empty or invalid placement maps occupy
+  only the origin cell, matching the world editor while allowing irregular
+  footprints and tall sprites that do not block their full visual span.
+
 ## [0.24.2] - 2026-08-14
 
 ### Added
