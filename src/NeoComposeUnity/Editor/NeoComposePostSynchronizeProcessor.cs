@@ -19,6 +19,24 @@ using UnityEngine.Tilemaps;
 
 namespace NeoCompose.Unity.Editor
 {
+    internal static class NeoComposePostSynchronizeAssetImporter
+    {
+        internal static void ImportChangedOutputs(
+            string projectJsonPath,
+            string generatedTypesPath,
+            Action<string> importAsset)
+        {
+            if (importAsset == null) throw new ArgumentNullException(nameof(importAsset));
+
+            // These are the only raw-written outputs that still need to enter
+            // Unity's asset pipeline. Importing them directly also starts script
+            // compilation when generated C# changed, without scanning every asset
+            // in the project through AssetDatabase.Refresh.
+            importAsset(projectJsonPath);
+            importAsset(generatedTypesPath);
+        }
+    }
+
     [InitializeOnLoad]
     internal static class NeoComposePostSynchronizeProcessor
     {
@@ -70,9 +88,10 @@ namespace NeoCompose.Unity.Editor
             };
             Persistence.Save(generation);
 
-            AssetDatabase.ImportAsset(projectJsonPath);
-            AssetDatabase.ImportAsset(generatedTypesPath);
-            AssetDatabase.Refresh();
+            NeoComposePostSynchronizeAssetImporter.ImportChangedOutputs(
+                projectJsonPath,
+                generatedTypesPath,
+                AssetDatabase.ImportAsset);
             EditorApplication.delayCall += TryRunPending;
         }
 
