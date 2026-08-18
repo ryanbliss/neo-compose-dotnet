@@ -1555,7 +1555,6 @@ namespace NeoCompose.Unity.Editor
                     await RefreshVersionMetadataAsync(false);
                 }
                 SetStatus(result.message, result.success ? MessageType.Info : MessageType.Error);
-                ScheduleAssetRefresh();
             }
             catch (Exception exception)
             {
@@ -1596,11 +1595,6 @@ namespace NeoCompose.Unity.Editor
                 clearKeyboardFocusNextGui = true;
                 Repaint();
             }
-        }
-
-        private static void ScheduleAssetRefresh()
-        {
-            EditorApplication.delayCall += AssetDatabase.Refresh;
         }
 
         private void RefreshConfigForDisplay()

@@ -47,6 +47,25 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void PostSynchronizeAssetImporter_ImportsOnlyGeneratedOutputs()
+        {
+            var imported = new List<string>();
+
+            NeoComposePostSynchronizeAssetImporter.ImportChangedOutputs(
+                "Assets/Resources/Neo/project.json",
+                "Assets/Scripts/Neo/NeoGeneratedTypes.cs",
+                imported.Add);
+
+            CollectionAssert.AreEqual(
+                new[]
+                {
+                    "Assets/Resources/Neo/project.json",
+                    "Assets/Scripts/Neo/NeoGeneratedTypes.cs",
+                },
+                imported);
+        }
+
+        [Test]
         public void PathUtility_RejectsPathsOutsideAssets()
         {
             Assert.IsFalse(NeoComposePathUtility.TryNormalizeAssetDirectory(

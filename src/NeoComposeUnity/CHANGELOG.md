@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Stop synchronization from running two project-wide asset database refreshes
+  after its outputs have already been imported directly. This avoids redundant
+  full-project scans and the associated editor/GPU work under memory pressure.
+
 ## [0.24.4] - 2026-08-18
 
 ### Fixed
