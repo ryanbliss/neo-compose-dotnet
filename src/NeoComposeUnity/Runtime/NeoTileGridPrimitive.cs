@@ -790,7 +790,7 @@ namespace NeoCompose.Runtime
     /// <summary>
     /// One resolved placed object: an object value joined to its object layer
     /// link's unordered "Objects" list via <see cref="MemberValue.containerId"/>,
-    /// with its footprint expanded from the record's Position/Size.
+    /// with its footprint translated from the record's authored PlacementTiles.
     /// </summary>
     internal sealed class NeoObjectPlacementRecord
     {
@@ -869,7 +869,7 @@ namespace NeoCompose.Runtime
         private static readonly string[] LinkTilePositionKeyCandidates = { "Position", "offset", "Cell" };
         private static readonly string[] OrderKeyCandidates = { "Order" };
         private static readonly string[] PositionKeyCandidates = { "Position" };
-        private static readonly string[] SizeKeyCandidates = { "Size" };
+        private static readonly string[] PlacementTilesKeyCandidates = { "PlacementTiles" };
 
         protected NeoReadOnlyTileGridPrimitive(
             NeoClient client,
@@ -2143,29 +2143,79 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             HashSet<string>? dependencyIds)
         {
-            int width = 1;
-            int height = 1;
-            string? sizeKey = objectRow.value is null
-                ? null
-                : FindSchemaKey(objectRow.classId!, SizeKeyCandidates);
-            if (sizeKey is not null && objectRow.value!.TryGetValue(sizeKey, out string sizeRowId))
+            if (objectRow.value is null)
             {
-                dependencyIds?.Add(sizeRowId);
-                var size = ReadVectorRow(sizeRowId);
-                if (size is not null)
-                {
-                    width = Mathf.Max(1, (int)size.Value.x);
-                    height = Mathf.Max(1, (int)size.Value.y);
-                }
+                return new[] { origin };
             }
-            var cells = new List<Vector2Int>(width * height);
-            for (int y = 0; y < height; y += 1)
+
+            string? placementTilesKey = FindSchemaKey(
+                objectRow.classId!,
+                PlacementTilesKeyCandidates);
+            if (placementTilesKey is null
+                || !objectRow.value.TryGetValue(
+                    placementTilesKey,
+                    out string placementTilesListId))
             {
-                for (int x = 0; x < width; x += 1)
-                {
-                    cells.Add(new Vector2Int(origin.x + x, origin.y + y));
-                }
+                return new[] { origin };
             }
+
+            IReadOnlyList<string> placementValueIds = ResolveListEntryIds(
+                placementTilesListId,
+                dependencyIds);
+            if (placementValueIds.Count == 0)
+            {
+                return new[] { origin };
+            }
+
+            var cells = new List<Vector2Int>(placementValueIds.Count);
+            HashSet<Vector2Int>? seen = null;
+            string? lastPlacementClassId = null;
+            string? lastCellKey = null;
+            foreach (string placementValueId in placementValueIds)
+            {
+                dependencyIds?.Add(placementValueId);
+                if (client.ResolveEffectiveRow(placementValueId)
+                    is not ObjectMemberValue placementRow)
+                {
+                    continue;
+                }
+                if (placementRow.IsRemoved
+                    || string.IsNullOrEmpty(placementRow.classId)
+                    || placementRow.value is null)
+                {
+                    continue;
+                }
+
+                if (!string.Equals(
+                    lastPlacementClassId,
+                    placementRow.classId,
+                    StringComparison.Ordinal))
+                {
+                    lastPlacementClassId = placementRow.classId;
+                    lastCellKey = FindSchemaKey(
+                        placementRow.classId!,
+                        CellKeyCandidates);
+                }
+                if (lastCellKey is null
+                    || !placementRow.value.TryGetValue(lastCellKey, out string cellValueId))
+                {
+                    continue;
+                }
+
+                dependencyIds?.Add(cellValueId);
+                Vector2Int? offset = ReadCellRow(cellValueId);
+                if (offset is null) continue;
+                Vector2Int cell = origin + offset.Value;
+                if (cells.Count == 0)
+                {
+                    cells.Add(cell);
+                    continue;
+                }
+                seen ??= new HashSet<Vector2Int>(cells);
+                if (seen.Add(cell)) cells.Add(cell);
+            }
+
+            if (cells.Count == 0) return new[] { origin };
             return cells;
         }
 

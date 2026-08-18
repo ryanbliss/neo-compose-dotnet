@@ -25,6 +25,7 @@ namespace NeoCompose.Tests
     {
         private const string TileClassId = "tile-class";
         private const string ObjectClassId = "object-class";
+        private const string ObjectPlacementTileClassId = "object-placement-tile-class";
         /// <summary>
         /// The real system enum id (P48 §2.1). Pinned rather than synthesized
         /// because <see cref="NeoPlayDirection"/> pins the option ids, and a
@@ -3035,6 +3036,110 @@ namespace NeoCompose.Tests
             Assert.AreEqual("shop-1", objects[0].Info.valueId);
             Assert.IsNotNull(link.GetObject(new Vector2Int(10, 20)));
             Assert.IsNotNull(link.GetObject<TestComposedObject>(new Vector2Int(10, 20)));
+        }
+
+        [Test]
+        public void ObjectLayerQueries_UseAuthoredPlacementTilesInsteadOfVisualSizeRect()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            ConfigureObjectPlacementFootprint(
+                data,
+                new Vector2Int(2, 3),
+                Vector2Int.zero,
+                new Vector2Int(1, 2),
+                new Vector2Int(1, 2));
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                factories,
+                writableFactories);
+            var layer = primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(
+                ObjectsLayerClassId,
+                new[] { ObjectClassId });
+
+            NeoResolvedObjectInstance placed = layer.GetObjects()[0];
+
+            CollectionAssert.AreEqual(
+                new[] { new Vector2Int(10, 20), new Vector2Int(11, 22) },
+                placed.Footprint);
+            Assert.IsNotNull(layer.GetObject(new Vector2Int(10, 20)));
+            Assert.IsNotNull(layer.GetObject(new Vector2Int(11, 22)));
+            Assert.IsNull(
+                layer.GetObject(new Vector2Int(10, 21)),
+                "a visual-span cell with no PlacementTile must remain unoccupied");
+            Assert.IsNull(
+                layer.GetObject(new Vector2Int(11, 20)),
+                "an irregular footprint must not fill its bounding rectangle");
+        }
+
+        [Test]
+        public void ObjectLayerQueries_EmptyPlacementTilesOccupyOnlyOriginRegardlessOfVisualSize()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            // The old Size-based expansion overflows its List capacity for this
+            // visual span. Occupancy work must be independent of rendered area.
+            ConfigureObjectPlacementFootprint(
+                data,
+                new Vector2Int(50_000, 50_000));
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                factories,
+                writableFactories);
+            var layer = primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(
+                ObjectsLayerClassId,
+                new[] { ObjectClassId });
+
+            NeoResolvedObjectInstance placed = layer.GetObjects()[0];
+
+            CollectionAssert.AreEqual(
+                new[] { new Vector2Int(10, 20) },
+                placed.Footprint);
+            Assert.IsNotNull(layer.GetObject(new Vector2Int(10, 20)));
+            Assert.IsNull(layer.GetObject(new Vector2Int(10, 21)));
+        }
+
+        [Test]
+        public void ObjectLayerQueries_PlacementTileCellWriteInvalidatesFootprintIndex()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            ConfigureObjectPlacementFootprint(
+                data,
+                new Vector2Int(1, 3),
+                Vector2Int.zero);
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                factories,
+                writableFactories);
+            var layer = primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(
+                ObjectsLayerClassId,
+                new[] { ObjectClassId });
+            Assert.IsNotNull(layer.GetObject(new Vector2Int(10, 20)));
+
+            client.SetWritableValue(
+                NeoValueOwnership.Save,
+                new Vector2MemberValue
+                {
+                    id = "shop-1-placement-cell-0",
+                    value = new NeoVector2Value { x = 2, y = 1 },
+                });
+
+            Assert.IsNull(layer.GetObject(new Vector2Int(10, 20)));
+            NeoResolvedObjectInstance? moved = layer.GetObject(new Vector2Int(12, 21));
+            Assert.IsNotNull(moved);
+            CollectionAssert.AreEqual(
+                new[] { new Vector2Int(12, 21) },
+                moved!.Footprint);
         }
 
         [Test]
@@ -6099,6 +6204,102 @@ namespace NeoCompose.Tests
                 value = new NeoVector2Value { x = 12, y = 13 },
             };
             return data;
+        }
+
+        private static void ConfigureObjectPlacementFootprint(
+            ProjectData data,
+            Vector2Int visualSize,
+            params Vector2Int[] placementCells)
+        {
+            data.classes[ObjectClassId].schema["Size"] = "object-size-member";
+            data.classes[ObjectClassId].schema["PlacementTiles"] =
+                "object-placement-tiles-member";
+            data.classes[ObjectPlacementTileClassId] = new NeoSchemaClass
+            {
+                id = ObjectPlacementTileClassId,
+                projectId = "project-a",
+                name = "Object Placement Tile",
+                schema = new Dictionary<string, string>
+                {
+                    ["Cell"] = "object-placement-cell-member",
+                },
+            };
+            data.members["object-size-member"] = new Vector3Member
+            {
+                id = "object-size-member",
+                projectId = "project-a",
+                name = "Size",
+                kind = MemberKind.Vector3,
+            };
+            data.members["object-placement-tiles-member"] = new ListMember
+            {
+                id = "object-placement-tiles-member",
+                projectId = "project-a",
+                name = "PlacementTiles",
+                kind = MemberKind.List,
+                entryMemberId = "object-placement-tile-entry-member",
+            };
+            data.members["object-placement-tile-entry-member"] = new ClassMember
+            {
+                id = "object-placement-tile-entry-member",
+                projectId = "project-a",
+                name = "PlacementTile",
+                kind = MemberKind.Class,
+                classId = ObjectPlacementTileClassId,
+            };
+            data.members["object-placement-cell-member"] = new Vector2IntMember
+            {
+                id = "object-placement-cell-member",
+                projectId = "project-a",
+                name = "Cell",
+                kind = MemberKind.Vector2Int,
+            };
+
+            var shop = (ObjectMemberValue)data.values["shop-1"];
+            shop.value!["Size"] = "shop-1-size";
+            shop.value["PlacementTiles"] = "shop-1-placement-tiles";
+            data.values["shop-1-size"] = new Vector3MemberValue
+            {
+                id = "shop-1-size",
+                value = new NeoVector3Value
+                {
+                    x = visualSize.x,
+                    y = visualSize.y,
+                    z = 0,
+                },
+            };
+
+            var placementValueIds = new string[placementCells.Length];
+            for (int index = 0; index < placementCells.Length; index += 1)
+            {
+                string placementValueId = $"shop-1-placement-{index}";
+                string cellValueId = $"shop-1-placement-cell-{index}";
+                placementValueIds[index] = placementValueId;
+                data.values[placementValueId] = new ObjectMemberValue
+                {
+                    id = placementValueId,
+                    classId = ObjectPlacementTileClassId,
+                    containerId = "shop-1-placement-tiles",
+                    value = new Dictionary<string, string>
+                    {
+                        ["Cell"] = cellValueId,
+                    },
+                };
+                data.values[cellValueId] = new Vector2MemberValue
+                {
+                    id = cellValueId,
+                    value = new NeoVector2Value
+                    {
+                        x = placementCells[index].x,
+                        y = placementCells[index].y,
+                    },
+                };
+            }
+            data.values["shop-1-placement-tiles"] = new ArrayMemberValue
+            {
+                id = "shop-1-placement-tiles",
+                value = placementValueIds,
+            };
         }
 
         private static InternalRecordRelation Relation(
