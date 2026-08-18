@@ -75,6 +75,29 @@ namespace NeoCompose.Runtime
                 : EmptyObjectRecords;
         }
 
+        public bool TryGetObjectCandidateAtAny(
+            string layerId,
+            IReadOnlyList<Vector2Int> cells,
+            out NeoObjectPlacementRecord? record,
+            out Vector2Int occupiedCell)
+        {
+            var candidatesByCell = GetObjectLayerIndex(layerId).CandidatesByCell;
+            foreach (Vector2Int cell in cells)
+            {
+                if (!candidatesByCell.TryGetValue(cell, out var candidates)
+                    || candidates.Count == 0)
+                {
+                    continue;
+                }
+                record = candidates[candidates.Count - 1];
+                occupiedCell = cell;
+                return true;
+            }
+            record = null;
+            occupiedCell = default;
+            return false;
+        }
+
         // ------------------------------------------------------------------
         // Invalidation.
         // ------------------------------------------------------------------
