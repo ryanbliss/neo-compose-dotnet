@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Stop synchronization progress updates from forcing an Editor-window repaint
+  for every file step. The initial and terminal states still repaint, while
+  intermediate messages remain available on the next natural repaint.
 - Stop synchronization from running two project-wide asset database refreshes
   after its outputs have already been imported directly. This avoids redundant
   full-project scans and the associated editor/GPU work under memory pressure.

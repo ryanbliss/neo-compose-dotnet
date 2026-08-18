@@ -1650,7 +1650,10 @@ namespace NeoCompose.Unity.Editor
         private void UpdateProgressStatus(string message)
         {
             status = message;
-            Repaint();
+            // A full synchronize can report several progress messages per file.
+            // Persist every message, but do not force a Metal-backed editor render
+            // for each one. The operation boundaries already repaint the window,
+            // and Unity will also show the latest message on any natural repaint.
         }
 
         private void ClearKeyboardFocusIfRequested()
