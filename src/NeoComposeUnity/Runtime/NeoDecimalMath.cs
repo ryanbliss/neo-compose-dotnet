@@ -222,6 +222,95 @@ namespace NeoCompose.Runtime
                     "multiplication"));
         }
 
+        /// <summary>
+        /// Exact minimum (P69 §2.2). The winning argument is returned
+        /// verbatim, so its scale survives ("1.10" stays "1.10"), and a tie
+        /// returns <paramref name="a"/> — the pinned cross-runtime rule, since
+        /// the two arguments can be equal yet spelled differently.
+        /// </summary>
+        public static string Min(string a, string b)
+        {
+            return Compare(a, b) <= 0 ? a : b;
+        }
+
+        /// <summary>Exact maximum; ties return <paramref name="a"/> (see <see cref="Min"/>).</summary>
+        public static string Max(string a, string b)
+        {
+            return Compare(a, b) >= 0 ? a : b;
+        }
+
+        /// <summary>
+        /// Exact magnitude (P69 §2.6); scale is preserved ("-1.50" → "1.50").
+        /// </summary>
+        public static string Abs(string value)
+        {
+            DecimalParts parts = ParseArg(value, "value");
+            return FormatParts(
+                new DecimalParts(BigInteger.Abs(parts.Coefficient), parts.Scale));
+        }
+
+        /// <summary>
+        /// Truncation toward zero to scale 0, reporting whether any non-zero
+        /// fraction was dropped — the shared core of <see cref="Floor"/>,
+        /// <see cref="Ceiling"/> and <see cref="Truncate"/>, which differ only
+        /// in how they adjust that dropped fraction. Integer division on
+        /// <see cref="BigInteger"/> already truncates toward zero.
+        /// </summary>
+        private static DecimalParts TruncateParts(DecimalParts parts, out bool droppedFraction)
+        {
+            if (parts.Scale == 0)
+            {
+                droppedFraction = false;
+                return parts;
+            }
+            BigInteger quotient = BigInteger.DivRem(
+                parts.Coefficient,
+                Pow10(parts.Scale),
+                out BigInteger remainder);
+            droppedFraction = !remainder.IsZero;
+            return new DecimalParts(quotient, 0);
+        }
+
+        /// <summary>
+        /// Largest integer &lt;= value, as a canonical scale-0 decimal
+        /// (P69 §2.5). Directional, never half-even: "-4.25" → "-5".
+        /// </summary>
+        public static string Floor(string value)
+        {
+            DecimalParts parts = ParseArg(value, "value");
+            DecimalParts truncated = TruncateParts(parts, out bool droppedFraction);
+            if (droppedFraction && parts.Coefficient.Sign < 0)
+            {
+                truncated = new DecimalParts(truncated.Coefficient - BigInteger.One, 0);
+            }
+            return FormatParts(AssertWithinEnvelope(truncated, "floor"));
+        }
+
+        /// <summary>
+        /// Smallest integer &gt;= value, as a canonical scale-0 decimal
+        /// (P69 §2.5): "-4.25" → "-4", "4.25" → "5".
+        /// </summary>
+        public static string Ceiling(string value)
+        {
+            DecimalParts parts = ParseArg(value, "value");
+            DecimalParts truncated = TruncateParts(parts, out bool droppedFraction);
+            if (droppedFraction && parts.Coefficient.Sign > 0)
+            {
+                truncated = new DecimalParts(truncated.Coefficient + BigInteger.One, 0);
+            }
+            return FormatParts(AssertWithinEnvelope(truncated, "ceiling"));
+        }
+
+        /// <summary>
+        /// The integer part, as a canonical scale-0 decimal (P69 §2.5):
+        /// toward zero, so "-4.25" → "-4".
+        /// </summary>
+        public static string Truncate(string value)
+        {
+            DecimalParts truncated = TruncateParts(ParseArg(value, "value"), out _);
+            return FormatParts(AssertWithinEnvelope(truncated, "truncate"));
+        }
+
         private static void AssertDigitsInRange(int digits, string operation)
         {
             if (digits < 0 || digits > MaxScale)

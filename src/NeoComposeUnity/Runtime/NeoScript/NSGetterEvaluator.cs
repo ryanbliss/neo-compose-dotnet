@@ -3326,6 +3326,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return EvalDecimalOp(dof.info, scope, ctx);
                 case StringOpFunction sof:
                     return EvalStringOp(sof.info, scope, ctx);
+                case MathOpFunction mof:
+                    return EvalMathOp(mof.info, scope, ctx);
                 case ListIndexFunction lif:
                     return EvalListIndex(lif.info, scope, ctx);
                 case CountFunction cf:
@@ -4046,6 +4048,267 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 default:
                     throw new NSGetterRuntimeError($"Unknown string op {info.op}");
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Math builtins (P69 §5.2). `Math` is a compiler intrinsic, not a
+        // class: arguments arrive as plain pointers and results are ordinary
+        // numbers — boxed doubles on the float path, canonical decimal
+        // strings on the decimal path, exactly like arithmetic operations.
+        // ---------------------------------------------------------------
+
+        /// <summary>
+        /// P69 §5.3 — the clamp bounds error, shared by the float and the
+        /// decimal arm. Like every Math error it names no value: the parity
+        /// harness compares these strings byte-for-byte and number
+        /// stringification differs between hosts at the extremes.
+        /// </summary>
+        private const string MathClampBoundsMessage = "Math.Clamp requires min <= max.";
+
+        /// <summary>
+        /// Evaluates a <c>mathOp</c> builtin — the <c>Math</c> namespace's
+        /// numeric functions — mirroring the TS evaluator's
+        /// <c>NSFunctionType.mathOp</c> case. Float arms delegate straight to
+        /// <see cref="System.Math"/>; <c>decimal</c>-stamped arms run the
+        /// exact decimal core (<see cref="NeoDecimalMath"/>), the same split
+        /// arithmetic operations make. Every failure is a plain
+        /// <see cref="NSGetterRuntimeError"/>, so authored <c>try</c> can
+        /// catch it like division by zero.
+        /// </summary>
+        private static object EvalMathOp(
+            FunctionMathOpInfo info,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            string name = MathOpFunctionName(info.op);
+            int arity = MathOpArity(info.op);
+            if (info.argPointers.Length != arity)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Math.{name} takes {arity} arguments; got {info.argPointers.Length}.");
+            }
+            var args = new object?[arity];
+            for (int i = 0; i < arity; i++)
+            {
+                args[i] = EvalPointer(info.argPointers[i], scope, ctx);
+            }
+            // Every argument is evaluated before any is rejected, so which
+            // operand is defective never changes the side effects the call
+            // produces.
+            foreach (var arg in args)
+            {
+                if (arg is null)
+                {
+                    throw new NSGetterRuntimeError($"Math.{name} argument is null.");
+                }
+            }
+            return info.isDecimal == true
+                ? EvalDecimalMathOp(info.op, name, args)
+                : EvalFloatMathOp(info.op, name, args);
+        }
+
+        /// <summary>
+        /// The IEEE double arm. Results are boxed doubles even where the
+        /// declared type is Int (<c>Round</c>/<c>Floor</c>/<c>Ceiling</c>/
+        /// <c>Truncate</c>/<c>Sign</c>) — NeoScript's Int is an integral
+        /// Float at runtime — which is exactly why the four Int-returning
+        /// conversions reject a non-finite argument up front instead of
+        /// minting a value the runtime's integral validation would refuse
+        /// downstream (P69 §2.5).
+        /// </summary>
+        private static object EvalFloatMathOp(string op, string name, object?[] args)
+        {
+            var values = new double[args.Length];
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (!TryAsDouble(args[i], out values[i]))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Math.{name} argument is not numeric: {ReceiverTypeName(args[i])}.");
+                }
+            }
+            switch (op)
+            {
+                // Min/Max propagate NaN and order -0.0 below 0.0 in both
+                // hosts, so the standard APIs are the contract (P69 §2.2).
+                case MathOpKind.Min: return System.Math.Min(values[0], values[1]);
+                case MathOpKind.Max: return System.Math.Max(values[0], values[1]);
+                case MathOpKind.Clamp:
+                {
+                    // System.Math.Clamp's algorithm, spelled out because the
+                    // web has no native clamp and the guard must raise our
+                    // message rather than the host's (P69 §2.3). The guard is
+                    // a real comparison, so NaN bounds never trip it, and a
+                    // NaN value falls through both tests and is returned.
+                    double value = values[0];
+                    double min = values[1];
+                    double max = values[2];
+                    if (min > max)
+                    {
+                        throw new NSGetterRuntimeError(MathClampBoundsMessage);
+                    }
+                    if (value < min) return min;
+                    if (value > max) return max;
+                    return value;
+                }
+                case MathOpKind.Round:
+                    RequireFiniteMathArgument(name, values[0]);
+                    // System.Math.Round(double)'s default midpoint mode is
+                    // already ToEven, and half-even is the pinned
+                    // cross-runtime contract (P69 §2.4) — the same midpoint
+                    // rule decimal.Round(digits) has always used. The web
+                    // evaluator hand-rolls it, because JS rounds half up.
+                    return System.Math.Round(values[0]);
+                case MathOpKind.Floor:
+                    RequireFiniteMathArgument(name, values[0]);
+                    return System.Math.Floor(values[0]);
+                case MathOpKind.Ceiling:
+                    RequireFiniteMathArgument(name, values[0]);
+                    return System.Math.Ceiling(values[0]);
+                case MathOpKind.Truncate:
+                    RequireFiniteMathArgument(name, values[0]);
+                    return System.Math.Truncate(values[0]);
+                case MathOpKind.Abs: return System.Math.Abs(values[0]);
+                case MathOpKind.Sign:
+                {
+                    // System.Math.Sign's three-way answer, not JS's ±0/NaN
+                    // one: NaN is a runtime error and both zeros give 0
+                    // (P69 §2.6).
+                    double value = values[0];
+                    if (double.IsNaN(value))
+                    {
+                        throw new NSGetterRuntimeError("Math.Sign is undefined for NaN.");
+                    }
+                    if (value > 0) return 1d;
+                    if (value < 0) return -1d;
+                    return 0d;
+                }
+                // Correctly rounded by IEEE 754 in both hosts, and NaN for a
+                // negative argument in both.
+                case MathOpKind.Sqrt: return System.Math.Sqrt(values[0]);
+                default:
+                    throw new NSGetterRuntimeError($"Unknown math op '{op}'.");
+            }
+        }
+
+        /// <summary>
+        /// The exact-decimal arm: operands are canonical decimal strings (Int
+        /// arguments widen exactly through
+        /// <see cref="CoerceDecimalOperand"/>), and results stay decimals —
+        /// canonical scale-0 for the integer-valued ops, matching
+        /// <c>System.Math.Floor(decimal)</c>'s shape — except <c>Sign</c>,
+        /// which is Int-typed on every numeric input.
+        /// </summary>
+        private static object EvalDecimalMathOp(string op, string name, object?[] args)
+        {
+            var values = new string[args.Length];
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (args[i] is not string && !TryAsDouble(args[i], out _))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Math.{name} argument is not numeric: {ReceiverTypeName(args[i])}.");
+                }
+                // The widening seam's own messages name the operation, and
+                // the web evaluator spells that context `Math.<Fn>`; these
+                // strings are parity-compared like every other one.
+                values[i] = CoerceDecimalOperand(args[i], $"Math.{name}");
+            }
+            try
+            {
+                switch (op)
+                {
+                    // Ties return the first argument, which is observable:
+                    // "1.10" and "1.1" are equal but not interchangeable.
+                    case MathOpKind.Min: return NeoDecimalMath.Min(values[0], values[1]);
+                    case MathOpKind.Max: return NeoDecimalMath.Max(values[0], values[1]);
+                    case MathOpKind.Clamp:
+                    {
+                        // The §2.3 algorithm again, on exact comparisons; a
+                        // decimal is never NaN, so nothing falls through.
+                        if (NeoDecimalMath.Compare(values[1], values[2]) > 0)
+                        {
+                            throw new NSGetterRuntimeError(MathClampBoundsMessage);
+                        }
+                        if (NeoDecimalMath.Compare(values[0], values[1]) < 0) return values[1];
+                        if (NeoDecimalMath.Compare(values[0], values[2]) > 0) return values[2];
+                        return values[0];
+                    }
+                    // Round(decimal) is defined as exactly x.Round(0), so the
+                    // two spellings run the same code and can never drift.
+                    case MathOpKind.Round: return NeoDecimalMath.Round(values[0], 0);
+                    case MathOpKind.Floor: return NeoDecimalMath.Floor(values[0]);
+                    case MathOpKind.Ceiling: return NeoDecimalMath.Ceiling(values[0]);
+                    case MathOpKind.Truncate: return NeoDecimalMath.Truncate(values[0]);
+                    case MathOpKind.Abs: return NeoDecimalMath.Abs(values[0]);
+                    case MathOpKind.Sign:
+                        return (double)NeoDecimalMath.Compare(values[0], "0");
+                    default:
+                        // Sqrt is the one op the compiler refuses on decimals:
+                        // no exact decimal square root exists (P69 §2.6).
+                        throw new NSGetterRuntimeError(
+                            $"Math.{name} does not accept decimal arguments.");
+                }
+            }
+            catch (DecimalOverflowException error)
+            {
+                throw new NSGetterRuntimeError(error.Message);
+            }
+        }
+
+        /// <summary>
+        /// Guards the Int-returning ops: a non-finite Float would mint an
+        /// Int-typed NaN or Infinity, which the runtime's own integral
+        /// validation refuses downstream (P69 §2.5). Min/Max/Clamp/Abs/Sqrt
+        /// stay Float-typed and keep host non-finite semantics.
+        /// </summary>
+        private static void RequireFiniteMathArgument(string name, double value)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                throw new NSGetterRuntimeError(
+                    $"Math.{name} requires a finite argument.");
+            }
+        }
+
+        /// <summary>
+        /// C#-cased name of a <see cref="MathOpKind"/> as it appears in the
+        /// runtime error contract (<c>Math.Ceiling …</c>). An unrecognized op
+        /// falls back to its wire spelling; the dispatch switch is what
+        /// rejects it.
+        /// </summary>
+        private static string MathOpFunctionName(string op)
+        {
+            switch (op)
+            {
+                case MathOpKind.Min: return "Min";
+                case MathOpKind.Max: return "Max";
+                case MathOpKind.Clamp: return "Clamp";
+                case MathOpKind.Round: return "Round";
+                case MathOpKind.Floor: return "Floor";
+                case MathOpKind.Ceiling: return "Ceiling";
+                case MathOpKind.Truncate: return "Truncate";
+                case MathOpKind.Abs: return "Abs";
+                case MathOpKind.Sign: return "Sign";
+                case MathOpKind.Sqrt: return "Sqrt";
+                default: return op;
+            }
+        }
+
+        /// <summary>
+        /// Declared argument count of a <see cref="MathOpKind"/> — defensive,
+        /// since the compiler already enforces arity; an unrecognized op is
+        /// treated as unary so the dispatch switch reports it.
+        /// </summary>
+        private static int MathOpArity(string op)
+        {
+            switch (op)
+            {
+                case MathOpKind.Clamp: return 3;
+                case MathOpKind.Min:
+                case MathOpKind.Max: return 2;
+                default: return 1;
             }
         }
 

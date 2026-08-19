@@ -128,6 +128,12 @@ namespace NeoCompose.Runtime.Json
         public const string ImageSlice = "imageSlice";
         public const string StringOp = "stringOp";
         public const string DecimalOp = "decimalOp";
+        /// <summary>
+        /// P69 §4 — <c>Math.&lt;Fn&gt;(…)</c>. A compiler intrinsic with no
+        /// schema record behind it: <c>Math</c> is a builtin namespace, never
+        /// a class.
+        /// </summary>
+        public const string MathOp = "mathOp";
         public const string ListIndex = "listIndex";
         /// <summary>
         /// P67 §4.1 — `&lt;variant&gt;.Initialize()`: the Initialize closure,
@@ -174,6 +180,26 @@ namespace NeoCompose.Runtime.Json
         public const string Divide = "divide";
         public const string ToFloat = "toFloat";
         public const string ToDecimal = "toDecimal";
+    }
+
+    /// <summary>
+    /// Wire values of the TS-side <c>TNSMathOp</c> union — the ops a
+    /// <c>mathOp</c> function IR node may carry (P69 §4). The C#-cased
+    /// spelling authors write (<c>Math.Ceiling</c>) is the display name; the
+    /// wire value stays lowercase like every other op union.
+    /// </summary>
+    public static class MathOpKind
+    {
+        public const string Min = "min";
+        public const string Max = "max";
+        public const string Clamp = "clamp";
+        public const string Round = "round";
+        public const string Floor = "floor";
+        public const string Ceiling = "ceiling";
+        public const string Truncate = "truncate";
+        public const string Abs = "abs";
+        public const string Sign = "sign";
+        public const string Sqrt = "sqrt";
     }
 
     public static class WritabilityKind

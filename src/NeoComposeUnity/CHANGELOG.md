@@ -11,6 +11,22 @@
   after its outputs have already been imported directly. This avoids redundant
   full-project scans and the associated editor/GPU work under memory pressure.
 
+## [0.25.0] - 2026-08-18
+
+### Added
+
+- Evaluate the P69 `Math` builtin namespace: `mathOp` intrinsic IR nodes
+  (`Min`, `Max`, `Clamp`, `Round`, `Floor`, `Ceiling`, `Truncate`, `Abs`,
+  `Sign`, `Sqrt`) dispatch through `System.Math` on the float path and
+  `NeoDecimalMath` on the decimal path, with round-half-even midpoints and
+  cross-runtime parity-fixture coverage.
+
+### Changed
+
+- **Breaking:** the project export schema version is now 23. Exports must be
+  regenerated from a matching web release, since a compiled body may now carry
+  a `mathOp` node an older runtime has no converter arm for.
+
 ## [0.24.4] - 2026-08-18
 
 ### Fixed

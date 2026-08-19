@@ -136,5 +136,67 @@ namespace NeoCompose.Tests
             Assert.AreEqual(0.5d, NeoDecimalMath.ToFloat("0.5"));
             Assert.AreEqual(-2.25d, NeoDecimalMath.ToFloat("-2.25"));
         }
+
+        // The Math builtin arms on the exact core (P69 §2.2/§2.5/§2.6). The
+        // shared math fixture covers them through the evaluator; these pin the
+        // core's own contract, which the evaluator only forwards.
+
+        [Test]
+        public void MinMax_TiesReturnTheFirstArgument()
+        {
+            // "1.10" and "1.1" compare equal, so which argument a tie returns
+            // is observable only through the scale that survives — and
+            // System.Math.Min(decimal, decimal) returns the first.
+            Assert.AreEqual("1.10", NeoDecimalMath.Min("1.10", "1.1"));
+            Assert.AreEqual("1.1", NeoDecimalMath.Min("1.1", "1.10"));
+            Assert.AreEqual("1.10", NeoDecimalMath.Max("1.10", "1.1"));
+            Assert.AreEqual("1.1", NeoDecimalMath.Max("1.1", "1.10"));
+        }
+
+        [Test]
+        public void MinMax_CompareExactlyNotLexically()
+        {
+            Assert.AreEqual("2.5", NeoDecimalMath.Min("10", "2.5"));
+            Assert.AreEqual("10", NeoDecimalMath.Max("10", "2.5"));
+        }
+
+        [Test]
+        public void Abs_PreservesScale()
+        {
+            Assert.AreEqual("1.50", NeoDecimalMath.Abs("-1.50"));
+            Assert.AreEqual("0", NeoDecimalMath.Abs("0"));
+        }
+
+        [Test]
+        public void FloorCeilingTruncate_AreDirectional()
+        {
+            Assert.AreEqual("-5", NeoDecimalMath.Floor("-4.25"));
+            Assert.AreEqual("-4", NeoDecimalMath.Ceiling("-4.25"));
+            Assert.AreEqual("-4", NeoDecimalMath.Truncate("-4.25"));
+            Assert.AreEqual("4", NeoDecimalMath.Floor("4.25"));
+            Assert.AreEqual("5", NeoDecimalMath.Ceiling("4.25"));
+            Assert.AreEqual("4", NeoDecimalMath.Truncate("4.25"));
+        }
+
+        [Test]
+        public void FloorCeilingTruncate_CanonicalizeAnAlreadyIntegralValue()
+        {
+            // Scale 0 is the shape System.Math.Floor(decimal) produces, so
+            // "4.00" comes back as "4" rather than carrying its scale through.
+            Assert.AreEqual("4", NeoDecimalMath.Floor("4.00"));
+            Assert.AreEqual("4", NeoDecimalMath.Ceiling("4.00"));
+            Assert.AreEqual("4", NeoDecimalMath.Truncate("4.00"));
+        }
+
+        [Test]
+        public void Directional_DiffersFromHalfEvenRoundingAtAMidpoint()
+        {
+            // Math.Round(decimal) is defined as x.Round(0) — half-even — while
+            // the three directional ops are not. 2.5 is where that shows.
+            Assert.AreEqual("2", NeoDecimalMath.Round("2.5", 0));
+            Assert.AreEqual("2", NeoDecimalMath.Floor("2.5"));
+            Assert.AreEqual("3", NeoDecimalMath.Ceiling("2.5"));
+            Assert.AreEqual("2", NeoDecimalMath.Truncate("2.5"));
+        }
     }
 }
