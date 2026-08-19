@@ -13,6 +13,12 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 25 admits the P71 <c>listRepeat</c> function kind inside compiled
+        /// bodies, for the same reason 23 admitted <c>mathOp</c>: an older
+        /// SDK has no converter arm for it and would fail such a body with a
+        /// raw serialization error mid-load rather than the standard clean
+        /// refusal.
+        ///
         /// 24 admits the revision-12 <c>conditional</c> and
         /// <c>delegateClosure</c> pointers and the generic-Equals
         /// <c>missingMemberFallback</c>. An older SDK cannot correctly
@@ -38,7 +44,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 24;
+        public const int CurrentSchemaVersion = 25;
     }
 
     public class ProjectExportMetadataSemver

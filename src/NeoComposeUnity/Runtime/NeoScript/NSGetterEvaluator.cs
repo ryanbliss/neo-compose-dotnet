@@ -3432,6 +3432,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return EvalStringOp(sof.info, scope, ctx);
                 case MathOpFunction mof:
                     return EvalMathOp(mof.info, scope, ctx);
+                case ListRepeatFunction lrf:
+                    return EvalListRepeat(lrf.info, scope, ctx);
                 case ListIndexFunction lif:
                     return EvalListIndex(lif.info, scope, ctx);
                 case CountFunction cf:
@@ -4414,6 +4416,90 @@ namespace NeoCompose.Runtime.NeoScript
                 case MathOpKind.Max: return 2;
                 default: return 1;
             }
+        }
+
+        // ---------------------------------------------------------------
+        // List statics (P71 §5.2). `List` is a builtin type, not a class:
+        // `List.Repeat` arrives as a compiler intrinsic with two named
+        // argument pointers and produces the same untyped entry array a list
+        // literal does.
+        // ---------------------------------------------------------------
+
+        /// <summary>
+        /// Evaluates a <c>listRepeat</c> builtin — <c>List.Repeat(value,
+        /// count)</c> — mirroring the TS evaluator's
+        /// <c>NSFunctionType.listRepeat</c> case. The value is evaluated
+        /// exactly once and the count exactly once, in that order, so side
+        /// effects in either operand happen once regardless of how many
+        /// entries come out. Every entry is that single evaluated value: for
+        /// reference-typed entries this is the same reference repeated,
+        /// precisely <c>Enumerable.Repeat</c>'s semantics (P71 §3).
+        ///
+        /// <para><c>info.entryTypeInfo</c> is the compile-time join result and
+        /// is deliberately not consulted here — this runtime stores entries
+        /// untyped, exactly as the <see cref="ListLiteralPointer"/> arm does
+        /// with its own <c>typeInfo</c>; the field exists for hosts that
+        /// materialize typed collections.</para>
+        /// </summary>
+        private static object EvalListRepeat(
+            FunctionListRepeatInfo info,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            object? value = EvalPointer(info.valuePointer, scope, ctx);
+            double count = IntegerArgument(
+                EvalPointer(info.countPointer, scope, ctx),
+                "List.Repeat count");
+            if (count < 0)
+            {
+                throw new NSGetterRuntimeError(
+                    $"List.Repeat count must be non-negative; got {FormatIntegralArgument(count)}.");
+            }
+            // Charged before a single entry exists, so an over-budget count
+            // fails without allocating — the same accounting, counter, and
+            // error the list-literal arm performs (P54, P71 §3). A count past
+            // int range is charged as the largest chargeable amount, which the
+            // shared limit (10,000 at most) always refuses.
+            ctx.allocationTracker.ConsumeProducedCollectionEntry(
+                count > int.MaxValue ? int.MaxValue : (int)count);
+            var entries = new object?[(int)count];
+            for (int i = 0; i < entries.Length; i++)
+            {
+                entries[i] = value;
+            }
+            return entries;
+        }
+
+        /// <summary>
+        /// The TS evaluator's <c>numberArg</c>: an argument that must be an
+        /// integer, rejected with the same wording on both runtimes. Booleans,
+        /// strings, and decimals (canonical strings here) are non-numeric and
+        /// fail the same way a fractional double does.
+        /// </summary>
+        private static double IntegerArgument(object? value, string name)
+        {
+            if (TryAsDouble(value, out double number)
+                && !double.IsNaN(number)
+                && !double.IsInfinity(number)
+                && System.Math.Truncate(number) == number)
+            {
+                return number;
+            }
+            throw new NSGetterRuntimeError($"{name} must be an integer");
+        }
+
+        /// <summary>
+        /// Renders an already-integral argument the way the TS evaluator's
+        /// template literal does, so the error text is byte-identical:
+        /// invariant digits with no decimal point. Magnitudes past
+        /// <see cref="long"/> keep round-trip formatting rather than
+        /// overflowing the cast.
+        /// </summary>
+        private static string FormatIntegralArgument(double value)
+        {
+            return value >= long.MinValue && value <= long.MaxValue
+                ? ((long)value).ToString(CultureInfo.InvariantCulture)
+                : value.ToString("R", CultureInfo.InvariantCulture);
         }
 
         private static void EnsureVectorArity(
