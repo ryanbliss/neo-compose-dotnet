@@ -2196,10 +2196,15 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     $"Generic Equals member '{memberId}' has no resolvable signature.");
             }
-            if (returnTypeInfo.type != MemberKind.Bool || argumentCount != 1)
+            if (argumentCount != 1)
             {
                 throw new NSGetterRuntimeError(
-                    $"Generic Equals member '{memberId}' must take exactly one argument and return bool.");
+                    $"Generic Equals member '{memberId}' must take exactly one argument; found {argumentCount}.");
+            }
+            if (returnTypeInfo.type != MemberKind.Bool)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Generic Equals member '{memberId}' must return bool.");
             }
         }
 

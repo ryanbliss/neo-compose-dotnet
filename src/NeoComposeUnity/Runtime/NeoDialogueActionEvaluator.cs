@@ -173,53 +173,15 @@ namespace NeoCompose.Runtime
                     $"Unsupported NeoScript compiler revision {compilerRevision}; this runtime supports revisions 1 through {FunctionWithReturnType.CurrentCompilerRevision}.");
             }
             ValidateControlFlowInstructionMetadata(body.instructions);
-            if (compilerRevision < 4
-                && ContainsLoopInstruction(body.instructions))
+            if (compilerRevision < FunctionWithReturnType.CurrentCompilerRevision)
             {
-                throw new NeoScriptPreExecutionValidationError(
-                    $"NeoScript loop IR requires compiler revision 4; body declares revision {compilerRevision}.");
-            }
-            if (compilerRevision < 5
-                && ContainsSwitchInstruction(body.instructions))
-            {
-                throw new NeoScriptPreExecutionValidationError(
-                    $"NeoScript switch IR requires compiler revision 5; body declares revision {compilerRevision}.");
-            }
-            if (compilerRevision < 6
-                && ContainsTryInstruction(body.instructions))
-            {
-                throw new NeoScriptPreExecutionValidationError(
-                    $"NeoScript try/catch IR requires compiler revision 6; body declares revision {compilerRevision}.");
-            }
-            if (compilerRevision < 7
-                && ContainsDelegateCall(body.instructions))
-            {
-                throw new NeoScriptPreExecutionValidationError(
-                    $"NeoScript delegate-call IR requires compiler revision 7; body declares revision {compilerRevision}.");
-            }
-            if (compilerRevision < 8
-                && ContainsActionIr(body.instructions))
-            {
-                throw new NeoScriptPreExecutionValidationError(
-                    $"NeoScript NSAction IR requires compiler revision 8; body declares revision {compilerRevision}.");
-            }
-            if (compilerRevision < 12
-                && ContainsConditionalPointer(body.instructions))
-            {
-                throw new NeoScriptPreExecutionValidationError(
-                    $"NeoScript conditional IR requires compiler revision 12; body declares revision {compilerRevision}.");
-            }
-            if (compilerRevision < 12
-                && ContainsDelegateClosurePointer(body.instructions))
-            {
-                throw new NeoScriptPreExecutionValidationError(
-                    $"NeoScript captured-closure IR requires compiler revision 12; body declares revision {compilerRevision}.");
-            }
-            if (compilerRevision < 12
-                && ContainsValueEqualityFallback(body.instructions))
-            {
-                throw new NeoScriptPreExecutionValidationError(
-                    $"NeoScript generic-Equals IR requires compiler revision 12; body declares revision {compilerRevision}.");
+                IrDiscriminatorVerdict verdict = IrDiscriminatorVerdictFor(
+                    body.instructions);
+                if (compilerRevision < verdict.minimumCompilerRevision)
+                {
+                    throw new NeoScriptPreExecutionValidationError(
+                        $"NeoScript {verdict.minimumRevisionFeature} IR requires compiler revision {verdict.minimumCompilerRevision}; body declares revision {compilerRevision}.");
+                }
             }
         }
 
@@ -305,26 +267,6 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static bool ContainsDelegateCall(Instruction[]? instructions) =>
-            IrDiscriminatorVerdictFor(instructions).containsDelegateCall;
-
-        /// <summary>
-        /// True when the body carries any P62 NSAction IR: either
-        /// subscription instruction, or a <c>callAction</c> pointer nested
-        /// anywhere inside an expression.
-        /// </summary>
-        private static bool ContainsActionIr(Instruction[]? instructions) =>
-            IrDiscriminatorVerdictFor(instructions).containsActionIr;
-
-        private static bool ContainsConditionalPointer(Instruction[]? instructions) =>
-            IrDiscriminatorVerdictFor(instructions).containsConditionalPointer;
-
-        private static bool ContainsDelegateClosurePointer(Instruction[]? instructions) =>
-            IrDiscriminatorVerdictFor(instructions).containsDelegateClosurePointer;
-
-        private static bool ContainsValueEqualityFallback(Instruction[]? instructions) =>
-            IrDiscriminatorVerdictFor(instructions).containsValueEqualityFallback;
-
         /// <summary>
         /// What one JToken pass over a compiled body found. Every stale-body
         /// revision gate reads it, and it is computed once per instruction
@@ -336,11 +278,15 @@ namespace NeoCompose.Runtime
         /// </summary>
         private sealed class IrDiscriminatorVerdict
         {
-            internal bool containsDelegateCall;
-            internal bool containsActionIr;
-            internal bool containsConditionalPointer;
-            internal bool containsDelegateClosurePointer;
-            internal bool containsValueEqualityFallback;
+            internal int minimumCompilerRevision = 1;
+            internal string minimumRevisionFeature = "baseline";
+
+            internal void Require(int revision, string feature)
+            {
+                if (revision <= minimumCompilerRevision) return;
+                minimumCompilerRevision = revision;
+                minimumRevisionFeature = feature;
+            }
         }
 
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
@@ -369,45 +315,10 @@ namespace NeoCompose.Runtime
             }
             var verdict = new IrDiscriminatorVerdict();
             JContainer body = (JContainer)JToken.FromObject(instructions);
-            foreach (JObject node in body.Descendants().Prepend(body).OfType<JObject>())
+            foreach (JObject node in CompilerIrObjects(body))
             {
                 string? type = node["type"]?.Value<string>();
-                if (string.Equals(
-                        type,
-                        PointerKind.CallDelegate,
-                        StringComparison.Ordinal))
-                {
-                    verdict.containsDelegateCall = true;
-                }
-                else if (IsActionIrNode(type))
-                {
-                    verdict.containsActionIr = true;
-                }
-                else if (string.Equals(
-                    type,
-                    PointerKind.Conditional,
-                    StringComparison.Ordinal))
-                {
-                    verdict.containsConditionalPointer = true;
-                }
-                else if (string.Equals(
-                        type,
-                        PointerKind.DelegateClosure,
-                        StringComparison.Ordinal))
-                {
-                    verdict.containsDelegateClosurePointer = true;
-                }
-                if (string.Equals(
-                        type,
-                        PointerKind.CallFunction,
-                        StringComparison.Ordinal)
-                    && string.Equals(
-                        node["missingMemberFallback"]?.Value<string>(),
-                        "valueEquality",
-                        StringComparison.Ordinal))
-                {
-                    verdict.containsValueEqualityFallback = true;
-                }
+                ObserveRevisionRequirement(verdict, type, node);
             }
             // A concurrent first execution of the same body may have raced us
             // here; either verdict is the same answer, so keep whichever
@@ -415,84 +326,80 @@ namespace NeoCompose.Runtime
             return IrDiscriminatorVerdicts.GetValue(instructions, _ => verdict);
         }
 
+        private static IEnumerable<JObject> CompilerIrObjects(JToken token)
+        {
+            if (token is JArray array)
+            {
+                foreach (JToken child in array.Children())
+                {
+                    foreach (JObject nested in CompilerIrObjects(child))
+                    {
+                        yield return nested;
+                    }
+                }
+                yield break;
+            }
+            if (token is not JObject obj) yield break;
+            yield return obj;
+            bool isLiteralValue = obj.Property("type") is null
+                && obj.Property("typeInfo") is not null
+                && obj.Property("value") is not null;
+            foreach (JProperty property in obj.Properties())
+            {
+                if (isLiteralValue && property.Name == "value") continue;
+                foreach (JObject nested in CompilerIrObjects(property.Value))
+                {
+                    yield return nested;
+                }
+            }
+        }
+
         private static readonly IrDiscriminatorVerdict EmptyIrDiscriminatorVerdict =
             new();
 
-        private static bool IsActionIrNode(string? type)
+        private static void ObserveRevisionRequirement(
+            IrDiscriminatorVerdict verdict,
+            string? type,
+            JObject node)
         {
-            return string.Equals(
-                    type,
-                    PointerKind.CallAction,
-                    StringComparison.Ordinal)
-                || string.Equals(
-                    type,
-                    InstructionKind.AddActionListener,
-                    StringComparison.Ordinal)
-                || string.Equals(
-                    type,
-                    InstructionKind.RemoveActionListener,
-                    StringComparison.Ordinal);
-        }
-
-        private static bool ContainsLoopInstruction(Instruction[]? instructions)
-        {
-            if (instructions is null) return false;
-            foreach (Instruction instruction in instructions)
+            switch (type)
             {
-                switch (instruction)
-                {
-                    case ForInstruction:
-                    case ForEachInstruction:
-                    case BreakInstruction:
-                    case ContinueInstruction:
-                        return true;
-                    case IfInstruction conditional:
-                        foreach (ConditionalBranch branch in conditional.branches
-                            ?? Array.Empty<ConditionalBranch>())
-                        {
-                            if (ContainsLoopInstruction(branch.instructions))
-                            {
-                                return true;
-                            }
-                        }
-                        if (ContainsLoopInstruction(
-                                conditional.elseInstructions))
-                        {
-                            return true;
-                        }
-                        break;
-                    case SwitchInstruction switchInstruction:
-                        foreach (SwitchSection section in switchInstruction.sections
-                            ?? Array.Empty<SwitchSection>())
-                        {
-                            if (ContainsLoopInstruction(section.instructions))
-                            {
-                                return true;
-                            }
-                        }
-                        if (ContainsLoopInstruction(
-                                switchInstruction.defaultInstructions))
-                        {
-                            return true;
-                        }
-                        break;
-                    case TryInstruction tryInstruction:
-                        if (ContainsLoopInstruction(tryInstruction.instructions))
-                        {
-                            return true;
-                        }
-                        foreach (CatchClause clause in tryInstruction.catches
-                            ?? Array.Empty<CatchClause>())
-                        {
-                            if (ContainsLoopInstruction(clause.instructions))
-                            {
-                                return true;
-                            }
-                        }
-                        break;
-                }
+                case InstructionKind.For:
+                case InstructionKind.ForEach:
+                case InstructionKind.Break:
+                case InstructionKind.Continue:
+                    verdict.Require(4, "loop");
+                    return;
+                case InstructionKind.Switch:
+                    verdict.Require(5, "switch");
+                    return;
+                case InstructionKind.Try:
+                    verdict.Require(6, "try/catch");
+                    return;
+                case PointerKind.CallDelegate:
+                    verdict.Require(7, "delegate-call");
+                    return;
+                case PointerKind.CallAction:
+                case InstructionKind.AddActionListener:
+                case InstructionKind.RemoveActionListener:
+                    verdict.Require(8, "NSAction");
+                    return;
+                case PointerKind.Conditional:
+                    verdict.Require(12, "conditional");
+                    return;
+                case PointerKind.DelegateClosure:
+                    verdict.Require(12, "captured-closure");
+                    return;
+                case PointerKind.CallFunction:
+                    if (string.Equals(
+                            node["missingMemberFallback"]?.Value<string>(),
+                            "valueEquality",
+                            StringComparison.Ordinal))
+                    {
+                        verdict.Require(12, "generic-Equals");
+                    }
+                    return;
             }
-            return false;
         }
 
         private static void ValidateControlFlowInstructionMetadata(
@@ -558,117 +465,6 @@ namespace NeoCompose.Runtime
                         break;
                 }
             }
-        }
-
-        private static bool ContainsSwitchInstruction(Instruction[]? instructions)
-        {
-            if (instructions is null) return false;
-            foreach (Instruction instruction in instructions)
-            {
-                switch (instruction)
-                {
-                    case SwitchInstruction:
-                        return true;
-                    case IfInstruction conditional:
-                        foreach (ConditionalBranch branch in conditional.branches
-                            ?? Array.Empty<ConditionalBranch>())
-                        {
-                            if (ContainsSwitchInstruction(branch.instructions))
-                            {
-                                return true;
-                            }
-                        }
-                        if (ContainsSwitchInstruction(
-                                conditional.elseInstructions))
-                        {
-                            return true;
-                        }
-                        break;
-                    case ForInstruction loop:
-                        if (ContainsSwitchInstruction(loop.instructions))
-                        {
-                            return true;
-                        }
-                        break;
-                    case ForEachInstruction loop:
-                        if (ContainsSwitchInstruction(loop.instructions))
-                        {
-                            return true;
-                        }
-                        break;
-                    case TryInstruction tryInstruction:
-                        if (ContainsSwitchInstruction(tryInstruction.instructions))
-                        {
-                            return true;
-                        }
-                        foreach (CatchClause clause in tryInstruction.catches
-                            ?? Array.Empty<CatchClause>())
-                        {
-                            if (ContainsSwitchInstruction(clause.instructions))
-                            {
-                                return true;
-                            }
-                        }
-                        break;
-                }
-            }
-            return false;
-        }
-
-        private static bool ContainsTryInstruction(Instruction[]? instructions)
-        {
-            if (instructions is null) return false;
-            foreach (Instruction instruction in instructions)
-            {
-                switch (instruction)
-                {
-                    case TryInstruction:
-                        return true;
-                    case IfInstruction conditional:
-                        foreach (ConditionalBranch branch in conditional.branches
-                            ?? Array.Empty<ConditionalBranch>())
-                        {
-                            if (ContainsTryInstruction(branch.instructions))
-                            {
-                                return true;
-                            }
-                        }
-                        if (ContainsTryInstruction(
-                                conditional.elseInstructions))
-                        {
-                            return true;
-                        }
-                        break;
-                    case ForInstruction loop:
-                        if (ContainsTryInstruction(loop.instructions))
-                        {
-                            return true;
-                        }
-                        break;
-                    case ForEachInstruction loop:
-                        if (ContainsTryInstruction(loop.instructions))
-                        {
-                            return true;
-                        }
-                        break;
-                    case SwitchInstruction switchInstruction:
-                        foreach (SwitchSection section in switchInstruction.sections
-                            ?? Array.Empty<SwitchSection>())
-                        {
-                            if (ContainsTryInstruction(section.instructions))
-                            {
-                                return true;
-                            }
-                        }
-                        if (ContainsTryInstruction(
-                                switchInstruction.defaultInstructions))
-                        {
-                            return true;
-                        }
-                        break;
-                }
-            }
-            return false;
         }
 
         private static NeoScriptExecutionResult ValidateTerminalAgainstBody(

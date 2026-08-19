@@ -15,8 +15,9 @@ namespace NeoCompose.Runtime.Json
     /// <item><description><c>{ memberId, valueId }</c> binds a callable
     /// member to an instance (or its declaration default when valueId is
     /// null).</description></item>
-    /// <item><description><c>{ code?, action }</c> is an authored closure
-    /// and its server-derived compiled body.</description></item>
+    /// <item><description><c>{ code?, action, captures? }</c> is an authored
+    /// closure, its server-derived compiled body, and explicit by-value
+    /// captures.</description></item>
     /// </list>
     /// </summary>
     [JsonConverter(typeof(NeoDelegateValueConverter))]

@@ -6163,15 +6163,34 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"NSDelegate member '{member.id}' closure must begin with __this__ and __root__ parameters.");
             }
+            var parameterIds = new HashSet<string>(System.StringComparer.Ordinal)
+            {
+                "__this__",
+                "__root__",
+            };
+            // Delegate invocation is position-aligned. Revision-12 lambdas
+            // deliberately use closure-unique ids so nested frames cannot
+            // collide; load validation therefore checks uniqueness and type,
+            // not the top-level NSFunction __arg_N__ spelling.
             for (int i = 0; i < member.argumentTypes.Length; i++)
             {
-                if (action.parameters[i + 2].id != $"__arg_{i}__"
-                    || !TypeInfoMatches(
-                        member.argumentTypes[i],
-                        action.parameters[i + 2].typeInfo))
+                Variable parameter = action.parameters[i + 2];
+                if (string.IsNullOrEmpty(parameter.id))
                 {
                     throw new System.InvalidOperationException(
-                        $"NSDelegate member '{member.id}' closure parameter {i} does not match its declared signature.");
+                        $"NSDelegate member '{member.id}' closure parameter {i} has no id.");
+                }
+                if (!parameterIds.Add(parameter.id))
+                {
+                    throw new System.InvalidOperationException(
+                        $"NSDelegate member '{member.id}' closure parameter {i} repeats id '{parameter.id}'.");
+                }
+                if (!TypeInfoMatches(
+                        member.argumentTypes[i],
+                        parameter.typeInfo))
+                {
+                    throw new System.InvalidOperationException(
+                        $"NSDelegate member '{member.id}' closure parameter {i} type does not match its declared signature.");
                 }
             }
             if (!TypeInfoMatches(member.returnTypeInfo, action.typeInfo))

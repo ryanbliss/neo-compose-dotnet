@@ -23,6 +23,10 @@
 
 ### Fixed
 
+- Accept compiler-revision-12 lambda parameter ids when validating stored
+  NeoDelegate closure defaults during project load. Delegate invocation is
+  positional, so closure-unique ids no longer prevent a valid schema-24 export
+  from loading.
 - Stop synchronization progress updates from forcing an Editor-window repaint
   for every file step. The initial and terminal states still repaint, while
   intermediate messages remain available on the next natural repaint.

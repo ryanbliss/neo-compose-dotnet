@@ -314,6 +314,52 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void DelegateMemberDefault_AcceptsRevisionTwelveLambdaParameterIdsAtLoad()
+        {
+            var argument = new FunctionArgumentTypeInfo
+            {
+                name = "value",
+                type = MemberKind.Int,
+                required = true,
+            };
+            var action = new FunctionWithReturnType
+            {
+                compilerRevision = 12,
+                parameters = new[]
+                {
+                    Parameter("__this__", NullType()),
+                    Parameter("__root__", NullType()),
+                    Parameter("__lambda_0_arg_0__", IntType()),
+                },
+                instructions = new Instruction[]
+                {
+                    Return(Variable("__lambda_0_arg_0__")),
+                },
+                typeInfo = IntType(),
+            };
+            var member = new DelegateMember
+            {
+                id = "revision-twelve-delegate-default",
+                projectId = ProjectId,
+                name = "Transform",
+                kind = MemberKind.NSDelegate,
+                required = true,
+                returnTypeInfo = IntType(),
+                argumentTypes = new[] { argument },
+                defaultValue = new DelegateMemberValueBase
+                {
+                    value = new NeoDelegateValue { action = action },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+
+            Assert.DoesNotThrow(() => BuildClient(
+                new JsonMember[] { member },
+                ReceiverClass((member.name, member.id))));
+        }
+
+        [Test]
         public void GenericEquals_DispatchesRuntimeOverrideBeforeValueEqualityFallback()
         {
             var otherArgument = new FunctionArgumentTypeInfo
@@ -449,7 +495,7 @@ namespace NeoCompose.Tests
                     call,
                     equals.id,
                     new NSGetterEvaluator.Context(client, receiver.value, null)))!;
-            StringAssert.Contains("must take exactly one argument and return bool", error.Message);
+            StringAssert.Contains("must return bool", error.Message);
         }
 
         [Test]

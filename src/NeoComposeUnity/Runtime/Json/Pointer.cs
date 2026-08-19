@@ -12,7 +12,7 @@ namespace NeoCompose.Runtime.Json
 {
     /// <summary>
     /// Abstract base for the TS-side <c>TNSPointer</c> discriminated
-    /// union. 14 concrete variants — see the subclasses below for each.
+    /// union. See the subclasses below for each concrete variant.
     /// Newtonsoft dispatches on the string <see cref="type"/> via
     /// {@link PointerConverter}.
     /// </summary>
@@ -368,12 +368,16 @@ namespace NeoCompose.Runtime.Json
                     throw new JsonSerializationException(
                         "DelegateClosurePointer captures must be pointers.");
                 }
-                if (obj["code"] is JToken code
-                    && (code.Type != JTokenType.String
-                        || string.IsNullOrEmpty(code.Value<string>())))
+                if (obj["code"] is JToken code && code.Type != JTokenType.String)
                 {
                     throw new JsonSerializationException(
-                        "DelegateClosurePointer 'code' must be a non-empty string when present.");
+                        "DelegateClosurePointer 'code' must be a string when present.");
+                }
+                if (obj["code"] is JToken codeValue
+                    && string.IsNullOrEmpty(codeValue.Value<string>()))
+                {
+                    throw new JsonSerializationException(
+                        "DelegateClosurePointer 'code' must be non-empty when present.");
                 }
                 return;
             }
@@ -476,12 +480,20 @@ namespace NeoCompose.Runtime.Json
             }
             if (fallback == "valueEquality")
             {
-                if (!hasMemberKey
-                    || obj["receiver"]?["kind"]?.Value<string>() != CallReceiverKind.Instance
-                    || ((JArray)obj["args"]!).Count != 1)
+                if (!hasMemberKey)
                 {
                     throw new JsonSerializationException(
-                        "CallFunctionPointer value-equality fallback requires a one-argument instance memberKey call.");
+                        "CallFunctionPointer value-equality fallback requires a memberKey call.");
+                }
+                if (obj["receiver"]?["kind"]?.Value<string>() != CallReceiverKind.Instance)
+                {
+                    throw new JsonSerializationException(
+                        "CallFunctionPointer value-equality fallback requires an instance receiver.");
+                }
+                if (((JArray)obj["args"]!).Count != 1)
+                {
+                    throw new JsonSerializationException(
+                        "CallFunctionPointer value-equality fallback requires exactly one argument.");
                 }
             }
         }
