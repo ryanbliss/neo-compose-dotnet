@@ -468,6 +468,102 @@ namespace NeoCompose.Tests
                     options: null));
         }
 
+        [Test]
+        public void DelegateClosurePointer_RequiresRevisionTwelve()
+        {
+            NeoClient client = LoadClient();
+            var stringType = new PrimitiveTypeInfo
+            {
+                type = MemberKind.String,
+                required = true,
+            };
+            var delegateType = new DelegateTypeInfo
+            {
+                type = MemberKind.NSDelegate,
+                required = true,
+                returnTypeInfo = stringType,
+                argumentTypes = Array.Empty<TypeInfo>(),
+            };
+            FunctionWithReturnType closureAction = Getter(Return(Literal("yes")));
+            var closure = new DelegateClosurePointer
+            {
+                type = PointerKind.DelegateClosure,
+                typeInfo = delegateType,
+                action = closureAction,
+                captures = Array.Empty<Pointer>(),
+            };
+            FunctionWithReturnType body = Getter(Return(closure));
+            body.typeInfo = delegateType;
+            body.compilerRevision = 11;
+
+            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+                NeoScriptExecutor.PrepareCallback(
+                    client,
+                    body,
+                    Context(client),
+                    options: null))!;
+            StringAssert.Contains("captured-closure IR requires compiler revision 12", error.Message);
+
+            body.compilerRevision = 12;
+            Assert.DoesNotThrow(() =>
+                NeoScriptExecutor.PrepareCallback(
+                    client,
+                    body,
+                    Context(client),
+                    options: null));
+        }
+
+        [Test]
+        public void GenericEqualsFallback_RequiresRevisionTwelve()
+        {
+            NeoClient client = LoadClient();
+            var seven = new ValuePointer
+            {
+                type = PointerKind.Value,
+                value = new Value
+                {
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Int,
+                        required = true,
+                    },
+                    value = JToken.FromObject(7),
+                },
+            };
+            var call = new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                memberKey = "Equals",
+                receiver = CallReceiver.Instance(seven),
+                args = new Pointer[] { seven },
+                missingMemberFallback = "valueEquality",
+                callSiteId = "generic-equals-revision",
+            };
+            FunctionWithReturnType body = Getter(Return(call));
+            body.typeInfo = new PrimitiveTypeInfo
+            {
+                type = MemberKind.Bool,
+                required = true,
+            };
+            body.compilerRevision = 11;
+
+            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+                NeoScriptExecutor.PrepareCallback(
+                    client,
+                    body,
+                    Context(client),
+                    options: null))!;
+            StringAssert.Contains("generic-Equals IR requires compiler revision 12", error.Message);
+
+            body.compilerRevision = 12;
+            Assert.DoesNotThrow(() =>
+                NeoScriptExecutor.PrepareCallback(
+                    client,
+                    body,
+                    Context(client),
+                    options: null));
+        }
+
         // -------------------------------------------------------------------
         // Fixture.
         // -------------------------------------------------------------------

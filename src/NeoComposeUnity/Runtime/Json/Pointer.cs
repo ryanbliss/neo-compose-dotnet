@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -224,6 +225,18 @@ namespace NeoCompose.Runtime.Json
         public Pointer whenFalse = null!;
     }
 
+    /// <summary>
+    /// Constructs a NeoDelegate closure. Capture pointers are evaluated once
+    /// at creation and bind the nested action's trailing parameters.
+    /// </summary>
+    public class DelegateClosurePointer : Pointer
+    {
+        public DelegateTypeInfo typeInfo = null!;
+        public FunctionWithReturnType action = null!;
+        public Pointer[] captures = null!;
+        public string? code;
+    }
+
     /// <summary>Mirror of <c>INSPointerToBool</c>.</summary>
     public class ToBoolPointer : Pointer
     {
@@ -250,6 +263,8 @@ namespace NeoCompose.Runtime.Json
         public CallReceiver receiver = null!;
         public Pointer[] args = null!;
         public bool? optional;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? missingMemberFallback;
         public override string? callSiteId { get; set; }
     }
 
@@ -304,6 +319,7 @@ namespace NeoCompose.Runtime.Json
                 case PointerKind.CallGetter: return typeof(CallGetterPointer);
                 case PointerKind.Coalesce: return typeof(CoalescePointer);
                 case PointerKind.Conditional: return typeof(ConditionalPointer);
+                case PointerKind.DelegateClosure: return typeof(DelegateClosurePointer);
                 case PointerKind.ToBool: return typeof(ToBoolPointer);
                 case PointerKind.Stringify: return typeof(StringifyPointer);
                 case PointerKind.CallFunction: return typeof(CallFunctionPointer);
@@ -327,6 +343,37 @@ namespace NeoCompose.Runtime.Json
                         throw new JsonSerializationException(
                             $"ConditionalPointer must contain a '{field}' pointer.");
                     }
+                }
+                return;
+            }
+            if (concrete == typeof(DelegateClosurePointer))
+            {
+                if (obj["typeInfo"]?.Type != JTokenType.Object)
+                {
+                    throw new JsonSerializationException(
+                        "DelegateClosurePointer must contain delegate 'typeInfo'.");
+                }
+                if (obj["action"]?.Type != JTokenType.Object)
+                {
+                    throw new JsonSerializationException(
+                        "DelegateClosurePointer must contain an 'action' object.");
+                }
+                if (obj["captures"]?.Type != JTokenType.Array)
+                {
+                    throw new JsonSerializationException(
+                        "DelegateClosurePointer must contain a 'captures' array.");
+                }
+                if (obj["captures"]!.Any(capture => capture.Type != JTokenType.Object))
+                {
+                    throw new JsonSerializationException(
+                        "DelegateClosurePointer captures must be pointers.");
+                }
+                if (obj["code"] is JToken code
+                    && (code.Type != JTokenType.String
+                        || string.IsNullOrEmpty(code.Value<string>())))
+                {
+                    throw new JsonSerializationException(
+                        "DelegateClosurePointer 'code' must be a non-empty string when present.");
                 }
                 return;
             }
@@ -417,6 +464,25 @@ namespace NeoCompose.Runtime.Json
             {
                 throw new JsonSerializationException(
                     "CallFunctionPointer must contain an 'args' array.");
+            }
+            string? fallback = obj["missingMemberFallback"]?.Type == JTokenType.String
+                ? obj["missingMemberFallback"]!.Value<string>()
+                : null;
+            if (obj.Property("missingMemberFallback") is not null
+                && fallback != "valueEquality")
+            {
+                throw new JsonSerializationException(
+                    "CallFunctionPointer 'missingMemberFallback' must be 'valueEquality' when present.");
+            }
+            if (fallback == "valueEquality")
+            {
+                if (!hasMemberKey
+                    || obj["receiver"]?["kind"]?.Value<string>() != CallReceiverKind.Instance
+                    || ((JArray)obj["args"]!).Count != 1)
+                {
+                    throw new JsonSerializationException(
+                        "CallFunctionPointer value-equality fallback requires a one-argument instance memberKey call.");
+                }
             }
         }
 

@@ -209,6 +209,18 @@ namespace NeoCompose.Runtime
                 throw new NeoScriptPreExecutionValidationError(
                     $"NeoScript conditional IR requires compiler revision 12; body declares revision {compilerRevision}.");
             }
+            if (compilerRevision < 12
+                && ContainsDelegateClosurePointer(body.instructions))
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    $"NeoScript captured-closure IR requires compiler revision 12; body declares revision {compilerRevision}.");
+            }
+            if (compilerRevision < 12
+                && ContainsValueEqualityFallback(body.instructions))
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    $"NeoScript generic-Equals IR requires compiler revision 12; body declares revision {compilerRevision}.");
+            }
         }
 
         /// <summary>
@@ -307,6 +319,12 @@ namespace NeoCompose.Runtime
         private static bool ContainsConditionalPointer(Instruction[]? instructions) =>
             IrDiscriminatorVerdictFor(instructions).containsConditionalPointer;
 
+        private static bool ContainsDelegateClosurePointer(Instruction[]? instructions) =>
+            IrDiscriminatorVerdictFor(instructions).containsDelegateClosurePointer;
+
+        private static bool ContainsValueEqualityFallback(Instruction[]? instructions) =>
+            IrDiscriminatorVerdictFor(instructions).containsValueEqualityFallback;
+
         /// <summary>
         /// What one JToken pass over a compiled body found. Every stale-body
         /// revision gate reads it, and it is computed once per instruction
@@ -321,6 +339,8 @@ namespace NeoCompose.Runtime
             internal bool containsDelegateCall;
             internal bool containsActionIr;
             internal bool containsConditionalPointer;
+            internal bool containsDelegateClosurePointer;
+            internal bool containsValueEqualityFallback;
         }
 
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
@@ -369,6 +389,24 @@ namespace NeoCompose.Runtime
                     StringComparison.Ordinal))
                 {
                     verdict.containsConditionalPointer = true;
+                }
+                else if (string.Equals(
+                        type,
+                        PointerKind.DelegateClosure,
+                        StringComparison.Ordinal))
+                {
+                    verdict.containsDelegateClosurePointer = true;
+                }
+                if (string.Equals(
+                        type,
+                        PointerKind.CallFunction,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        node["missingMemberFallback"]?.Value<string>(),
+                        "valueEquality",
+                        StringComparison.Ordinal))
+                {
+                    verdict.containsValueEqualityFallback = true;
                 }
             }
             // A concurrent first execution of the same body may have raced us
@@ -2447,9 +2485,22 @@ namespace NeoCompose.Runtime
                 {
                     args[i] = NSGetterEvaluator.EvaluatePointer(pointer.args[i], scope, ctx);
                 }
-                string memberId = NSGetterEvaluator.ResolveFunctionMemberId(
+                string? memberId = NSGetterEvaluator.ResolveFunctionMemberId(
                     pointer,
                     receiver,
+                    ctx);
+                if (memberId is null)
+                {
+                    object? fallback = NSGetterEvaluator.EvaluateMissingMemberFallback(
+                        pointer,
+                        receiver,
+                        args);
+                    expressionState.StoreValue(resumeKey, fallback);
+                    return fallback;
+                }
+                NSGetterEvaluator.ValidateValueEqualitySignature(
+                    pointer,
+                    memberId,
                     ctx);
                 object? value;
                 if (client.TryGetMember(memberId, out NSFunctionMember? nsFunction))

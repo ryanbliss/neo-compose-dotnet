@@ -26,6 +26,7 @@ namespace NeoCompose.Runtime.Json
         public string? valueId;
         public string? code;
         public FunctionWithReturnType? action;
+        public object?[]? captures;
 
         [JsonIgnore]
         internal object? lexicalThis;
@@ -56,6 +57,7 @@ namespace NeoCompose.Runtime.Json
             valueId = valueId,
             code = code,
             action = action,
+            captures = captures is null ? null : (object?[])captures.Clone(),
         };
     }
 
@@ -98,15 +100,21 @@ namespace NeoCompose.Runtime.Json
             else
             {
                 bool hasCode = obj.Property("code") is not null;
-                if (obj.Count != (hasCode ? 2 : 1))
+                bool hasCaptures = obj.Property("captures") is not null;
+                if (obj.Count != 1 + (hasCode ? 1 : 0) + (hasCaptures ? 1 : 0))
                 {
                     throw new JsonSerializationException(
-                        "NeoDelegate closure must contain exactly 'action' and optional 'code'.");
+                        "NeoDelegate closure must contain exactly 'action' and optional 'code'/'captures'.");
                 }
                 if (hasCode && !IsNonEmptyString(obj["code"]))
                 {
                     throw new JsonSerializationException(
                         "NeoDelegate closure 'code' must be a non-empty string when present.");
+                }
+                if (hasCaptures && obj["captures"]?.Type != JTokenType.Array)
+                {
+                    throw new JsonSerializationException(
+                        "NeoDelegate closure 'captures' must be an array when present.");
                 }
             }
 
@@ -150,6 +158,11 @@ namespace NeoCompose.Runtime.Json
                 }
                 writer.WritePropertyName("action");
                 serializer.Serialize(writer, delegateValue.action);
+                if (delegateValue.captures is not null)
+                {
+                    writer.WritePropertyName("captures");
+                    serializer.Serialize(writer, delegateValue.captures);
+                }
             }
             writer.WriteEndObject();
         }

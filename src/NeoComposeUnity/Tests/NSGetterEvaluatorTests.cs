@@ -97,6 +97,34 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GenericEqualsPointer_RoundTripsAndRejectsMalformedFallback()
+        {
+            const string json = @"{
+                'type':'callFunction',
+                'memberKey':'Equals',
+                'receiver':{
+                    'kind':'instance',
+                    'pointer':{'type':'value','value':{'typeInfo':{'type':2,'required':true},'value':7}}
+                },
+                'args':[{'type':'value','value':{'typeInfo':{'type':2,'required':true},'value':7}}],
+                'missingMemberFallback':'valueEquality',
+                'callSiteId':'generic-equals-json'
+            }";
+
+            var pointer = JsonConvert.DeserializeObject<Pointer>(json);
+            Assert.IsInstanceOf<CallFunctionPointer>(pointer);
+            Assert.AreEqual(
+                "valueEquality",
+                ((CallFunctionPointer)pointer!).missingMemberFallback);
+
+            string malformed = json.Replace(
+                "'args':[{'type':'value','value':{'typeInfo':{'type':2,'required':true},'value':7}}]",
+                "'args':[]");
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Pointer>(malformed));
+        }
+
+        [Test]
         public void Json_FunctionMemberAndGeneralCallIR_Deserializes()
         {
             var member = JsonConvert.DeserializeObject<Member>(
