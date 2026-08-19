@@ -32,7 +32,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 23;
+        public const int CurrentSchemaVersion = 24;
     }
 
     public class ProjectExportMetadataSemver

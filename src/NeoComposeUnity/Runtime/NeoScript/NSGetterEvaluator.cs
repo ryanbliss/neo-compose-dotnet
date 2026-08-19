@@ -1258,6 +1258,16 @@ namespace NeoCompose.Runtime.NeoScript
                     if (left is not null) return left;
                     return EvalPointer(cp.right, scope, ctx);
                 }
+                case ConditionalPointer conditional:
+                {
+                    var condition = EvalPointer(conditional.condition, scope, ctx);
+                    return EvalPointer(
+                        JsTruthy(condition)
+                            ? conditional.whenTrue
+                            : conditional.whenFalse,
+                        scope,
+                        ctx);
+                }
                 case ToBoolPointer tbp:
                 {
                     var v = EvalPointer(tbp.pointer, scope, ctx);

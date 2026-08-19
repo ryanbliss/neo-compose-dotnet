@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Added
+
+- Deserialize and lazily evaluate compiler-revision-12 `conditional` pointers
+  emitted for NeoScript `condition ? whenTrue : whenFalse` expressions.
+
+### Changed
+
+- **Breaking:** the project export schema version is now 24 and the supported
+  NeoScript compiler revision is now 12. A conditional pointer stamped with an
+  older revision is rejected before execution, and the unselected result
+  pointer is never evaluated.
+
 ### Fixed
 
 - Stop synchronization progress updates from forcing an Editor-window repaint

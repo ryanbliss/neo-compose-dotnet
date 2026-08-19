@@ -203,6 +203,12 @@ namespace NeoCompose.Runtime
                 throw new NeoScriptPreExecutionValidationError(
                     $"NeoScript NSAction IR requires compiler revision 8; body declares revision {compilerRevision}.");
             }
+            if (compilerRevision < 12
+                && ContainsConditionalPointer(body.instructions))
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    $"NeoScript conditional IR requires compiler revision 12; body declares revision {compilerRevision}.");
+            }
         }
 
         /// <summary>
@@ -298,6 +304,9 @@ namespace NeoCompose.Runtime
         private static bool ContainsActionIr(Instruction[]? instructions) =>
             IrDiscriminatorVerdictFor(instructions).containsActionIr;
 
+        private static bool ContainsConditionalPointer(Instruction[]? instructions) =>
+            IrDiscriminatorVerdictFor(instructions).containsConditionalPointer;
+
         /// <summary>
         /// What one JToken pass over a compiled body found. Every stale-body
         /// revision gate reads it, and it is computed once per instruction
@@ -311,6 +320,7 @@ namespace NeoCompose.Runtime
         {
             internal bool containsDelegateCall;
             internal bool containsActionIr;
+            internal bool containsConditionalPointer;
         }
 
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
@@ -352,6 +362,13 @@ namespace NeoCompose.Runtime
                 else if (IsActionIrNode(type))
                 {
                     verdict.containsActionIr = true;
+                }
+                else if (string.Equals(
+                    type,
+                    PointerKind.Conditional,
+                    StringComparison.Ordinal))
+                {
+                    verdict.containsConditionalPointer = true;
                 }
             }
             // A concurrent first execution of the same body may have raced us

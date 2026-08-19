@@ -395,34 +395,77 @@ namespace NeoCompose.Tests
         // -------------------------------------------------------------------
 
         [Test]
-        public void CompilerRevision_CurrentIsEleven()
+        public void CompilerRevision_CurrentIsTwelve()
         {
-            Assert.AreEqual(11, FunctionWithReturnType.CurrentCompilerRevision);
+            Assert.AreEqual(12, FunctionWithReturnType.CurrentCompilerRevision);
         }
 
         [Test]
-        public void CompilerRevision_ElevenExecutesAndTwelveIsRejected()
+        public void CompilerRevision_TwelveExecutesAndThirteenIsRejected()
         {
             NeoClient client = LoadClient();
-            FunctionWithReturnType eleven = Getter(Return(Literal("ok")));
-            eleven.compilerRevision = 11;
-            Assert.DoesNotThrow(() =>
-                NeoScriptExecutor.PrepareCallback(
-                    client,
-                    eleven,
-                    Context(client),
-                    options: null));
-
             FunctionWithReturnType twelve = Getter(Return(Literal("ok")));
             twelve.compilerRevision = 12;
-            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+            Assert.DoesNotThrow(() =>
                 NeoScriptExecutor.PrepareCallback(
                     client,
                     twelve,
                     Context(client),
+                    options: null));
+
+            FunctionWithReturnType thirteen = Getter(Return(Literal("ok")));
+            thirteen.compilerRevision = 13;
+            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+                NeoScriptExecutor.PrepareCallback(
+                    client,
+                    thirteen,
+                    Context(client),
                     options: null))!;
-            StringAssert.Contains("compiler revision 12", error.Message);
-            StringAssert.Contains("revisions 1 through 11", error.Message);
+            StringAssert.Contains("compiler revision 13", error.Message);
+            StringAssert.Contains("revisions 1 through 12", error.Message);
+        }
+
+        [Test]
+        public void ConditionalPointer_RequiresRevisionTwelve()
+        {
+            NeoClient client = LoadClient();
+            var conditional = new ConditionalPointer
+            {
+                type = PointerKind.Conditional,
+                condition = new ValuePointer
+                {
+                    type = PointerKind.Value,
+                    value = new Value
+                    {
+                        typeInfo = new PrimitiveTypeInfo
+                        {
+                            type = MemberKind.Bool,
+                            required = true,
+                        },
+                        value = JToken.FromObject(true),
+                    },
+                },
+                whenTrue = Literal("yes"),
+                whenFalse = Literal("no"),
+            };
+            FunctionWithReturnType body = Getter(Return(conditional));
+            body.compilerRevision = 11;
+
+            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+                NeoScriptExecutor.PrepareCallback(
+                    client,
+                    body,
+                    Context(client),
+                    options: null))!;
+            StringAssert.Contains("conditional IR requires compiler revision 12", error.Message);
+
+            body.compilerRevision = 12;
+            Assert.DoesNotThrow(() =>
+                NeoScriptExecutor.PrepareCallback(
+                    client,
+                    body,
+                    Context(client),
+                    options: null));
         }
 
         // -------------------------------------------------------------------

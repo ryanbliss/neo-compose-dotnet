@@ -213,6 +213,17 @@ namespace NeoCompose.Runtime.Json
         public Pointer right = null!;
     }
 
+    /// <summary>
+    /// Lazy conditional pointer. Only the selected result pointer is
+    /// evaluated after the normalized boolean condition.
+    /// </summary>
+    public class ConditionalPointer : Pointer
+    {
+        public Pointer condition = null!;
+        public Pointer whenTrue = null!;
+        public Pointer whenFalse = null!;
+    }
+
     /// <summary>Mirror of <c>INSPointerToBool</c>.</summary>
     public class ToBoolPointer : Pointer
     {
@@ -292,6 +303,7 @@ namespace NeoCompose.Runtime.Json
                 case PointerKind.IsCheck: return typeof(IsCheckPointer);
                 case PointerKind.CallGetter: return typeof(CallGetterPointer);
                 case PointerKind.Coalesce: return typeof(CoalescePointer);
+                case PointerKind.Conditional: return typeof(ConditionalPointer);
                 case PointerKind.ToBool: return typeof(ToBoolPointer);
                 case PointerKind.Stringify: return typeof(StringifyPointer);
                 case PointerKind.CallFunction: return typeof(CallFunctionPointer);
@@ -306,6 +318,18 @@ namespace NeoCompose.Runtime.Json
 
         protected override void ValidateObject(JObject obj, Type concrete)
         {
+            if (concrete == typeof(ConditionalPointer))
+            {
+                foreach (string field in new[] { "condition", "whenTrue", "whenFalse" })
+                {
+                    if (obj[field]?.Type != JTokenType.Object)
+                    {
+                        throw new JsonSerializationException(
+                            $"ConditionalPointer must contain a '{field}' pointer.");
+                    }
+                }
+                return;
+            }
             if (concrete == typeof(FunctionErrorCheckPointer))
             {
                 if (obj["call"]?.Type != JTokenType.Object)
