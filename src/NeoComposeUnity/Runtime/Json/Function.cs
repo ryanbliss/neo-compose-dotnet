@@ -244,6 +244,39 @@ namespace NeoCompose.Runtime.Json
         public Pointer? digitsPointer;
     }
 
+    /// <summary>
+    /// Info shape for <c>mathOp</c>: a numeric builtin on the <c>Math</c>
+    /// namespace (<c>Min</c>/<c>Max</c>/<c>Clamp</c>/<c>Round</c>/
+    /// <c>Floor</c>/<c>Ceiling</c>/<c>Truncate</c>/<c>Abs</c>/<c>Sign</c>/
+    /// <c>Sqrt</c> — P69 §4). Mirrors TS-side
+    /// <c>INSFunctionMathOpInfo</c>. Static-call shape — argument pointers
+    /// only, no receiver — like
+    /// <see cref="FunctionVectorConstructorInfo"/> rather than the
+    /// receiver-style <see cref="FunctionStringOpInfo"/> /
+    /// <see cref="FunctionDecimalOpInfo"/>.
+    /// </summary>
+    public class FunctionMathOpInfo
+    {
+        /// <summary>One of <see cref="MathOpKind"/>.</summary>
+        public string op = null!;
+        /// <summary>
+        /// One pointer per declared argument, in source order (1 for the
+        /// unary ops, 2 for min/max, 3 for clamp).
+        /// </summary>
+        public Pointer[] argPointers = null!;
+        /// <summary>
+        /// TS-side <c>decimal?: true</c> — when true, the arguments are
+        /// canonical decimal strings and the op runs on the exact decimal
+        /// core (<see cref="NeoDecimalMath"/>), the same stamp arithmetic
+        /// operations carry; absence means the IEEE double path. The TS-side
+        /// name <c>decimal</c> is a C# keyword —
+        /// <see cref="JsonPropertyAttribute"/> keeps the wire form unchanged
+        /// (the <c>else</c>/<c>elseInstructions</c> precedent).
+        /// </summary>
+        [JsonProperty("decimal")]
+        public bool? isDecimal;
+    }
+
     // ---------- Per-function variants ----------
 
     public class ClassCloneFunction : Function
@@ -349,6 +382,11 @@ namespace NeoCompose.Runtime.Json
         public FunctionDecimalOpInfo info = null!;
     }
 
+    public class MathOpFunction : Function
+    {
+        public FunctionMathOpInfo info = null!;
+    }
+
     public class ListIndexFunction : Function
     {
         public FunctionListIndexInfo info = null!;
@@ -375,6 +413,7 @@ namespace NeoCompose.Runtime.Json
                 case FunctionKind.ImageSlice: return typeof(ImageSliceFunction);
                 case FunctionKind.StringOp: return typeof(StringOpFunction);
                 case FunctionKind.DecimalOp: return typeof(DecimalOpFunction);
+                case FunctionKind.MathOp: return typeof(MathOpFunction);
                 case FunctionKind.ListIndex: return typeof(ListIndexFunction);
                 case FunctionKind.VariantInitialize: return typeof(VariantInitializeFunction);
                 case FunctionKind.VariantApply: return typeof(VariantApplyFunction);

@@ -13,6 +13,12 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 23 admits the P69 <c>mathOp</c> function kind inside compiled
+        /// bodies. An older SDK has no converter arm for it, so
+        /// <c>DiscriminatedConverter</c> would fail such a body with a raw
+        /// serialization error mid-load; the exact-match gate turns that into
+        /// the standard clean refusal.
+        ///
         /// 22 adds lookup-variant folder bindings and row-bound variant
         /// references (P68 §7). An older SDK would invoke a lookup variant
         /// without its row and construct the wrong object, so it must reject
@@ -26,7 +32,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 22;
+        public const int CurrentSchemaVersion = 23;
     }
 
     public class ProjectExportMetadataSemver
