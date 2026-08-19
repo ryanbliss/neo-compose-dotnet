@@ -13,6 +13,12 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 24 admits the revision-12 <c>conditional</c> and
+        /// <c>delegateClosure</c> pointers and the generic-Equals
+        /// <c>missingMemberFallback</c>. An older SDK cannot correctly
+        /// interpret those shapes, so it must reject the export at the exact
+        /// version gate.
+        ///
         /// 23 admits the P69 <c>mathOp</c> function kind inside compiled
         /// bodies. An older SDK has no converter arm for it, so
         /// <c>DiscriminatedConverter</c> would fail such a body with a raw
@@ -32,7 +38,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 23;
+        public const int CurrentSchemaVersion = 24;
     }
 
     public class ProjectExportMetadataSemver

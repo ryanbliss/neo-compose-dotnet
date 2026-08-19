@@ -67,6 +67,64 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ConditionalPointer_RoundTripsAndDoesNotEvaluateTheUnselectedBranch()
+        {
+            var pointer = JsonConvert.DeserializeObject<Pointer>(
+                @"{
+                    'type':'conditional',
+                    'condition':{'type':'value','value':{'typeInfo':{'type':1,'required':true},'value':true}},
+                    'whenTrue':{'type':'value','value':{'typeInfo':{'type':3,'required':true},'value':'chosen'}},
+                    'whenFalse':{'type':'forceUnwrap','pointer':{'type':'value','value':{'typeInfo':{'type':3,'required':false},'value':null}}}
+                }");
+
+            Assert.IsInstanceOf<ConditionalPointer>(pointer);
+            var conditional = (ConditionalPointer)pointer!;
+            Assert.IsInstanceOf<ValuePointer>(conditional.condition);
+            Assert.IsInstanceOf<ForceUnwrapPointer>(conditional.whenFalse);
+
+            FunctionWithReturnType getter = ReturnFunction(
+                conditional,
+                MemberKind.String);
+            getter.compilerRevision = 12;
+            object? result = NSGetterEvaluator.Evaluate(
+                getter,
+                new NSGetterEvaluator.Context(
+                    LoadClient(),
+                    thisValue: null,
+                    rootValue: null));
+
+            Assert.AreEqual("chosen", result);
+        }
+
+        [Test]
+        public void GenericEqualsPointer_RoundTripsAndRejectsMalformedFallback()
+        {
+            const string json = @"{
+                'type':'callFunction',
+                'memberKey':'Equals',
+                'receiver':{
+                    'kind':'instance',
+                    'pointer':{'type':'value','value':{'typeInfo':{'type':2,'required':true},'value':7}}
+                },
+                'args':[{'type':'value','value':{'typeInfo':{'type':2,'required':true},'value':7}}],
+                'missingMemberFallback':'valueEquality',
+                'callSiteId':'generic-equals-json'
+            }";
+
+            var pointer = JsonConvert.DeserializeObject<Pointer>(json);
+            Assert.IsInstanceOf<CallFunctionPointer>(pointer);
+            Assert.AreEqual(
+                "valueEquality",
+                ((CallFunctionPointer)pointer!).missingMemberFallback);
+
+            string malformed = json.Replace(
+                "'args':[{'type':'value','value':{'typeInfo':{'type':2,'required':true},'value':7}}]",
+                "'args':[]");
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Pointer>(malformed));
+        }
+
+        [Test]
         public void Json_FunctionMemberAndGeneralCallIR_Deserializes()
         {
             var member = JsonConvert.DeserializeObject<Member>(

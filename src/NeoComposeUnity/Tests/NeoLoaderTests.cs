@@ -588,7 +588,7 @@ namespace NeoCompose.Tests
         {
             var projectJson = $@"{{
   ""metadata"": {{
-    ""schemaVersion"": 23,
+    ""schemaVersion"": 24,
     ""projectId"": ""project-1"",
     ""versionId"": ""version-1""
   }},

@@ -29,6 +29,10 @@ namespace NeoCompose.Runtime.Json
         public const string IsCheck = "isCheck";
         public const string CallGetter = "callGetter";
         public const string Coalesce = "coalesce";
+        /// <summary>Lazy <c>condition ? whenTrue : whenFalse</c> (revision 12).</summary>
+        public const string Conditional = "conditional";
+        /// <summary>Creates a NeoDelegate with explicit by-value captures.</summary>
+        public const string DelegateClosure = "delegateClosure";
         public const string ToBool = "toBool";
         public const string Stringify = "stringify";
         public const string CallFunction = "callFunction";
@@ -391,9 +395,11 @@ namespace NeoCompose.Runtime.Json
         /// <c>Reference&lt;T&gt;</c> pointers; revision 10 adds the P67
         /// <c>variant</c> pointer and the <c>variantInitialize</c> /
         /// <c>variantApply</c> intrinsics; revision 11 adds P68 lookup-row
-        /// pointers.
+        /// pointers; revision 12 adds the lazy <c>conditional</c> pointer and
+        /// explicit captured <c>delegateClosure</c> values and dynamic generic
+        /// <c>Equals</c> fallback dispatch.
         /// </summary>
-        public const int CurrentCompilerRevision = 11;
+        public const int CurrentCompilerRevision = 12;
 
         /// <summary>
         /// Optional for backward compatibility. Absence means legacy

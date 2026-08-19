@@ -2,8 +2,31 @@
 
 ## [Unreleased]
 
+### Added
+
+- Deserialize and lazily evaluate compiler-revision-12 `conditional` pointers
+  emitted for NeoScript `condition ? whenTrue : whenFalse` expressions.
+- Deserialize and evaluate revision-12 `delegateClosure` pointers, preserving
+  explicit by-value captures when a returned NeoDelegate is stored or
+  serialized.
+- Dynamically dispatch generic `Equals(other)` calls to a runtime Class's
+  compatible Function/NSFunction override, with ordinary value equality as the
+  fallback when the Class has no such member.
+
+### Changed
+
+- **Breaking:** the project export schema version is now 24 and the supported
+  NeoScript compiler revision is now 12. Conditional and captured-closure
+  pointers and generic-Equals fallbacks stamped with an older revision are
+  rejected before execution, and the unselected conditional result pointer is
+  never evaluated.
+
 ### Fixed
 
+- Accept compiler-revision-12 lambda parameter ids when validating stored
+  NeoDelegate closure defaults during project load. Delegate invocation is
+  positional, so closure-unique ids no longer prevent a valid schema-24 export
+  from loading.
 - Stop synchronization progress updates from forcing an Editor-window repaint
   for every file step. The initial and terminal states still repaint, while
   intermediate messages remain available on the next natural repaint.

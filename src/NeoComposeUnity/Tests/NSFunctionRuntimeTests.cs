@@ -234,6 +234,271 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void DelegateClosurePointer_CapturesOuterArgumentsAndRoundTrips()
+        {
+            var delegateType = new DelegateTypeInfo
+            {
+                type = MemberKind.NSDelegate,
+                required = true,
+                returnTypeInfo = IntType(),
+                argumentTypes = new TypeInfo[] { IntType() },
+            };
+            var closureAction = new FunctionWithReturnType
+            {
+                compilerRevision = 12,
+                parameters = new[]
+                {
+                    Parameter("__this__", NullType()),
+                    Parameter("__root__", NullType()),
+                    Parameter("__lambda_0_arg_0__", IntType()),
+                    Parameter("__capture_0_0__", IntType()),
+                    Parameter("__capture_0_1__", IntType()),
+                },
+                instructions = new Instruction[]
+                {
+                    Return(Add(
+                        Add(
+                            Variable("__lambda_0_arg_0__"),
+                            Variable("__capture_0_0__")),
+                        Variable("__capture_0_1__"))),
+                },
+                typeInfo = IntType(),
+            };
+            var factory = new FunctionWithReturnType
+            {
+                compilerRevision = 12,
+                parameters = new[]
+                {
+                    Parameter("__this__", NullType()),
+                    Parameter("__root__", NullType()),
+                    Parameter("__arg_0__", IntType()),
+                    Parameter("__arg_1__", IntType()),
+                },
+                instructions = new Instruction[]
+                {
+                    Return(new DelegateClosurePointer
+                    {
+                        type = PointerKind.DelegateClosure,
+                        typeInfo = delegateType,
+                        action = closureAction,
+                        captures = new Pointer[]
+                        {
+                            Variable("__arg_0__"),
+                            Variable("__arg_1__"),
+                        },
+                        code = "(int value) => value + min + max",
+                    }),
+                },
+                typeInfo = delegateType,
+            };
+            NeoClient client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var context = new NSGetterEvaluator.Context(
+                client,
+                thisValue: null,
+                rootValue: null);
+
+            object? closure = NSGetterEvaluator.Evaluate(
+                factory,
+                context,
+                new object?[] { 3, 7 });
+            string persistedJson = JsonConvert.SerializeObject(closure);
+            NeoDelegateValue persisted =
+                JsonConvert.DeserializeObject<NeoDelegateValue>(persistedJson)!;
+
+            CollectionAssert.AreEqual(new object?[] { 3L, 7L }, persisted.captures);
+            object? result = NSGetterEvaluator.InvokeDelegate(
+                persisted,
+                new object?[] { 5 },
+                context);
+            Assert.AreEqual(15L, Convert.ToInt64(result));
+        }
+
+        [Test]
+        public void DelegateMemberDefault_AcceptsRevisionTwelveLambdaParameterIdsAtLoad()
+        {
+            var argument = new FunctionArgumentTypeInfo
+            {
+                name = "value",
+                type = MemberKind.Int,
+                required = true,
+            };
+            var action = new FunctionWithReturnType
+            {
+                compilerRevision = 12,
+                parameters = new[]
+                {
+                    Parameter("__this__", NullType()),
+                    Parameter("__root__", NullType()),
+                    Parameter("__lambda_0_arg_0__", IntType()),
+                },
+                instructions = new Instruction[]
+                {
+                    Return(Variable("__lambda_0_arg_0__")),
+                },
+                typeInfo = IntType(),
+            };
+            var member = new DelegateMember
+            {
+                id = "revision-twelve-delegate-default",
+                projectId = ProjectId,
+                name = "Transform",
+                kind = MemberKind.NSDelegate,
+                required = true,
+                returnTypeInfo = IntType(),
+                argumentTypes = new[] { argument },
+                defaultValue = new DelegateMemberValueBase
+                {
+                    value = new NeoDelegateValue { action = action },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+
+            Assert.DoesNotThrow(() => BuildClient(
+                new JsonMember[] { member },
+                ReceiverClass((member.name, member.id))));
+        }
+
+        [Test]
+        public void GenericEquals_DispatchesRuntimeOverrideBeforeValueEqualityFallback()
+        {
+            var otherArgument = new FunctionArgumentTypeInfo
+            {
+                name = "other",
+                type = MemberKind.Class,
+                required = true,
+                classId = "receiver-class",
+            };
+            FunctionWithReturnType equalsAction = Action(
+                BoolType(),
+                new[] { otherArgument },
+                Return(Boolean(false)));
+            equalsAction.compilerRevision = 12;
+            NSFunctionMember equals = ScriptFunction(
+                "generic-equals",
+                "Equals",
+                deferred: false,
+                BoolType(),
+                new[] { otherArgument },
+                equalsAction);
+            ObjectMemberValue left = ObjectValue("generic-equals-left", "receiver-class");
+            ObjectMemberValue right = ObjectValue("generic-equals-right", "receiver-class");
+            NeoClient client = BuildClient(
+                new JsonMember[] { equals },
+                ReceiverClass(("Equals", equals.id)),
+                additionalValues: new MemberValue[] { left, right });
+            var call = new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                memberKey = "Equals",
+                receiver = CallReceiver.Instance(Variable("__this__")),
+                args = new Pointer[] { Variable("__root__") },
+                missingMemberFallback = "valueEquality",
+                callSiteId = "generic-equals-0",
+            };
+            var body = new FunctionWithReturnType
+            {
+                compilerRevision = 12,
+                parameters = new[]
+                {
+                    Parameter("__this__", new ClassTypeInfo
+                    {
+                        type = MemberKind.Class,
+                        required = true,
+                        classId = "receiver-class",
+                    }),
+                    Parameter("__root__", new ClassTypeInfo
+                    {
+                        type = MemberKind.Class,
+                        required = true,
+                        classId = "receiver-class",
+                    }),
+                },
+                instructions = new Instruction[] { Return(call) },
+                typeInfo = BoolType(),
+            };
+
+            object? result = NSGetterEvaluator.Evaluate(
+                body,
+                new NSGetterEvaluator.Context(client, left.value, right.value));
+
+            Assert.AreEqual(false, result);
+        }
+
+        [Test]
+        public void GenericEquals_FallsBackForValuesWithoutACustomMember()
+        {
+            var call = new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                memberKey = "Equals",
+                receiver = CallReceiver.Instance(Number(7)),
+                args = new Pointer[] { Number(7) },
+                missingMemberFallback = "valueEquality",
+                callSiteId = "generic-equals-fallback",
+            };
+            FunctionWithReturnType body = Action(
+                BoolType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                Return(call));
+            body.compilerRevision = 12;
+            NeoClient client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+
+            object? result = NSGetterEvaluator.Evaluate(
+                body,
+                new NSGetterEvaluator.Context(client, null, null));
+
+            Assert.AreEqual(true, result);
+        }
+
+        [Test]
+        public void GenericEquals_RejectsACustomMemberThatDoesNotReturnBool()
+        {
+            var otherArgument = new FunctionArgumentTypeInfo
+            {
+                name = "other",
+                type = MemberKind.Class,
+                required = true,
+                classId = "receiver-class",
+            };
+            FunctionWithReturnType equalsAction = Action(
+                IntType(),
+                new[] { otherArgument },
+                Return(Number(1)));
+            equalsAction.compilerRevision = 12;
+            NSFunctionMember equals = ScriptFunction(
+                "invalid-generic-equals",
+                "Equals",
+                deferred: false,
+                IntType(),
+                new[] { otherArgument },
+                equalsAction);
+            ObjectMemberValue receiver = ObjectValue(
+                "invalid-generic-equals-receiver",
+                "receiver-class");
+            NeoClient client = BuildClient(
+                new JsonMember[] { equals },
+                ReceiverClass(("Equals", equals.id)),
+                additionalValues: new MemberValue[] { receiver });
+            var call = new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                memberKey = "Equals",
+                receiver = CallReceiver.Instance(Number(1)),
+                args = new Pointer[] { Number(1) },
+                missingMemberFallback = "valueEquality",
+                callSiteId = "generic-equals-invalid",
+            };
+
+            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+                NSGetterEvaluator.ValidateValueEqualitySignature(
+                    call,
+                    equals.id,
+                    new NSGetterEvaluator.Context(client, receiver.value, null)))!;
+            StringAssert.Contains("must return bool", error.Message);
+        }
+
+        [Test]
         public void DelegateMemberTarget_InvokesBoundNSFunctionReceiver()
         {
             FunctionArgumentTypeInfo amount = Argument("amount", MemberKind.Int);

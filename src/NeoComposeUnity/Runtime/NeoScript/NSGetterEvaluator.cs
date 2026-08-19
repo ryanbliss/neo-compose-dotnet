@@ -1258,6 +1258,35 @@ namespace NeoCompose.Runtime.NeoScript
                     if (left is not null) return left;
                     return EvalPointer(cp.right, scope, ctx);
                 }
+                case ConditionalPointer conditional:
+                {
+                    var condition = EvalPointer(conditional.condition, scope, ctx);
+                    return EvalPointer(
+                        JsTruthy(condition)
+                            ? conditional.whenTrue
+                            : conditional.whenFalse,
+                        scope,
+                        ctx);
+                }
+                case DelegateClosurePointer closurePointer:
+                {
+                    Pointer[] capturePointers =
+                        closurePointer.captures ?? Array.Empty<Pointer>();
+                    var captures = new object?[capturePointers.Length];
+                    for (int i = 0; i < captures.Length; i++)
+                    {
+                        captures[i] = EvalPointer(
+                            capturePointers[i],
+                            scope,
+                            ctx);
+                    }
+                    return new NeoDelegateValue
+                    {
+                        code = closurePointer.code,
+                        action = closurePointer.action,
+                        captures = captures,
+                    }.Capture(ctx.thisValue, ctx.rootValue);
+                }
                 case ToBoolPointer tbp:
                 {
                     var v = EvalPointer(tbp.pointer, scope, ctx);
@@ -1388,10 +1417,15 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 args[i] = EvalPointer(pointer.args[i], scope, ctx);
             }
-            string memberId = ResolveFunctionMemberId(
+            string? memberId = ResolveFunctionMemberId(
                 pointer,
                 receiver,
                 ctx);
+            if (memberId is null)
+            {
+                return EvaluateMissingMemberFallback(pointer, receiver, args);
+            }
+            ValidateValueEqualitySignature(pointer, memberId, ctx);
             if (!ctx.client.TryGetMember(memberId, out JsonMember? member))
             {
                 throw new NSGetterRuntimeError(
@@ -1582,10 +1616,12 @@ namespace NeoCompose.Runtime.NeoScript
             FunctionWithReturnType action = value.action
                 ?? throw new NSGetterRuntimeError(
                     "NeoDelegate closure has source code but no compiled action.");
-            if (action.parameters is null || action.parameters.Length != args.Length + 2)
+            object?[] captures = value.captures ?? Array.Empty<object?>();
+            if (action.parameters is null
+                || action.parameters.Length != args.Length + captures.Length + 2)
             {
                 throw new NSGetterRuntimeError(
-                    $"NeoDelegate closure expects {Math.Max(0, action.parameters?.Length - 2 ?? 0)} arguments but received {args.Length}.");
+                    $"NeoDelegate closure parameter envelope does not match {args.Length} call arguments and {captures.Length} captures.");
             }
             object? lexicalThis = value.hasLexicalEnvironment
                 ? value.lexicalThis
@@ -1609,6 +1645,18 @@ namespace NeoCompose.Runtime.NeoScript
                         action.parameters[i + 2].typeInfo,
                         nestedCtx,
                         $"argument {i} of NeoDelegate closure");
+            }
+            for (int i = 0; i < captures.Length; i++)
+            {
+                int parameterIndex = i + args.Length + 2;
+                scope[action.parameters[parameterIndex].id] =
+                    NeoScriptValueMarshaller.Normalize(
+                        ctx.client,
+                        ctx.valueOwnership,
+                        captures[i],
+                        action.parameters[parameterIndex].typeInfo,
+                        nestedCtx,
+                        $"capture {i} of NeoDelegate closure");
             }
             NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
                 ctx.client,
@@ -2017,7 +2065,7 @@ namespace NeoCompose.Runtime.NeoScript
             return actionRow.value ?? new NeoActionValue();
         }
 
-        internal static string ResolveFunctionMemberId(
+        internal static string? ResolveFunctionMemberId(
             CallFunctionPointer pointer,
             object? receiver,
             Context ctx)
@@ -2062,6 +2110,7 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     return pointer.memberId!;
                 }
+                if (pointer.missingMemberFallback == "valueEquality") return null;
                 throw new NSGetterRuntimeError(
                     $"Cannot resolve interface Function member '{schemaKey}' because the receiver has no runtime class.");
             }
@@ -2072,6 +2121,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (cachedMemberId is null)
                 {
+                    if (pointer.missingMemberFallback == "valueEquality") return null;
                     throw new NSGetterRuntimeError(
                         $"Runtime class '{runtimeClassId}' does not implement Function member '{schemaKey}'.");
                 }
@@ -2100,8 +2150,62 @@ namespace NeoCompose.Runtime.NeoScript
                 return entry.memberId;
             }
             ctx.callableDispatchCache[dispatchCacheKey] = null;
+            if (pointer.missingMemberFallback == "valueEquality") return null;
             throw new NSGetterRuntimeError(
                 $"Runtime class '{runtimeClassId}' does not implement Function member '{schemaKey}'.");
+        }
+
+        internal static object? EvaluateMissingMemberFallback(
+            CallFunctionPointer pointer,
+            object? receiver,
+            object?[] args)
+        {
+            if (pointer.missingMemberFallback != "valueEquality" || args.Length != 1)
+            {
+                throw new NSGetterRuntimeError(
+                    "Function call has no runtime member and no valid missing-member fallback.");
+            }
+            return JsEqual(receiver, args[0]);
+        }
+
+        internal static void ValidateValueEqualitySignature(
+            CallFunctionPointer pointer,
+            string memberId,
+            Context ctx)
+        {
+            if (pointer.missingMemberFallback != "valueEquality") return;
+            TypeInfo? returnTypeInfo;
+            int argumentCount;
+            if (ctx.client.TryGetMember(memberId, out NSFunctionMember? nsFunction))
+            {
+                NeoResolvedNSFunction resolved = NeoNSFunctionRuntime.ResolveSignature(
+                    ctx.client,
+                    nsFunction!.id);
+                returnTypeInfo = resolved.ReturnTypeInfo;
+                argumentCount = resolved.ArgumentTypes.Length;
+            }
+            else if (ctx.client.TryResolveFunctionMember(
+                         memberId,
+                         out FunctionMember? function))
+            {
+                returnTypeInfo = function!.returnTypeInfo;
+                argumentCount = function.argumentTypes.Length;
+            }
+            else
+            {
+                throw new NSGetterRuntimeError(
+                    $"Generic Equals member '{memberId}' has no resolvable signature.");
+            }
+            if (argumentCount != 1)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Generic Equals member '{memberId}' must take exactly one argument; found {argumentCount}.");
+            }
+            if (returnTypeInfo.type != MemberKind.Bool)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Generic Equals member '{memberId}' must return bool.");
+            }
         }
 
         internal static object? EvalCallReceiver(
