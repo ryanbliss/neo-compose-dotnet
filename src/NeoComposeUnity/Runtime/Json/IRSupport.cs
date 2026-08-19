@@ -138,6 +138,13 @@ namespace NeoCompose.Runtime.Json
         /// a class.
         /// </summary>
         public const string MathOp = "mathOp";
+        /// <summary>
+        /// P71 §4 — <c>List.Repeat(value, count)</c>. Like
+        /// <see cref="MathOp"/> a compiler intrinsic with no schema record
+        /// behind it: <c>List</c> is a builtin type, and this is its one
+        /// static factory.
+        /// </summary>
+        public const string ListRepeat = "listRepeat";
         public const string ListIndex = "listIndex";
         /// <summary>
         /// P67 §4.1 — `&lt;variant&gt;.Initialize()`: the Initialize closure,

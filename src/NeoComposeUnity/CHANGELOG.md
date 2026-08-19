@@ -12,14 +12,21 @@
 - Dynamically dispatch generic `Equals(other)` calls to a runtime Class's
   compatible Function/NSFunction override, with ordinary value equality as the
   fallback when the Class has no such member.
+- Evaluate the P71 `List.Repeat(value, count)` builtin: `listRepeat` intrinsic
+  IR nodes evaluate the value once and the count once, then produce `count`
+  entries of that single value — the same reference repeated for
+  reference-typed entries — charging `count` to the shared collection-entry
+  budget before allocating, with cross-runtime parity-fixture coverage.
 
 ### Changed
 
-- **Breaking:** the project export schema version is now 24 and the supported
+- **Breaking:** the project export schema version is now 25 and the supported
   NeoScript compiler revision is now 12. Conditional and captured-closure
   pointers and generic-Equals fallbacks stamped with an older revision are
-  rejected before execution, and the unselected conditional result pointer is
-  never evaluated.
+  rejected before execution, the unselected conditional result pointer is
+  never evaluated, and a compiled body may carry a `listRepeat` node an older
+  runtime has no converter arm for, so exports must be regenerated from a
+  matching web release.
 
 ### Fixed
 

@@ -277,6 +277,32 @@ namespace NeoCompose.Runtime.Json
         public bool? isDecimal;
     }
 
+    /// <summary>
+    /// Info shape for <c>listRepeat</c>: <c>List.Repeat(value, count)</c>
+    /// (P71 §4). Mirrors TS-side <c>INSFunctionListRepeatInfo</c>.
+    /// Static-call shape — argument pointers only, no receiver — like
+    /// <see cref="FunctionMathOpInfo"/>, but the two operands are named
+    /// rather than positional because they play different roles and the
+    /// evaluation order between them (value, then count) is part of the
+    /// contract.
+    /// </summary>
+    public class FunctionListRepeatInfo
+    {
+        /// <summary>Pointer producing the repeated value. Evaluated once.</summary>
+        public Pointer valuePointer = null!;
+        /// <summary>
+        /// Pointer producing the entry count. Evaluated once, after the value.
+        /// </summary>
+        public Pointer countPointer = null!;
+        /// <summary>
+        /// Entry type info for the produced list, post-join. Carried
+        /// explicitly because the join result (e.g. <c>float</c> from an
+        /// <c>int</c> value in a <c>float</c> context) is a compile-time fact
+        /// the evaluators must not re-derive.
+        /// </summary>
+        public TypeInfo entryTypeInfo = null!;
+    }
+
     // ---------- Per-function variants ----------
 
     public class ClassCloneFunction : Function
@@ -387,6 +413,11 @@ namespace NeoCompose.Runtime.Json
         public FunctionMathOpInfo info = null!;
     }
 
+    public class ListRepeatFunction : Function
+    {
+        public FunctionListRepeatInfo info = null!;
+    }
+
     public class ListIndexFunction : Function
     {
         public FunctionListIndexInfo info = null!;
@@ -414,6 +445,7 @@ namespace NeoCompose.Runtime.Json
                 case FunctionKind.StringOp: return typeof(StringOpFunction);
                 case FunctionKind.DecimalOp: return typeof(DecimalOpFunction);
                 case FunctionKind.MathOp: return typeof(MathOpFunction);
+                case FunctionKind.ListRepeat: return typeof(ListRepeatFunction);
                 case FunctionKind.ListIndex: return typeof(ListIndexFunction);
                 case FunctionKind.VariantInitialize: return typeof(VariantInitializeFunction);
                 case FunctionKind.VariantApply: return typeof(VariantApplyFunction);
