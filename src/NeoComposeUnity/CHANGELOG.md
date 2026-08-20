@@ -4,6 +4,20 @@
 
 ### Added
 
+- Evaluate NeoScript collection `Count` property/call IR, predicate-bearing
+  `Count(...)` for lists and dictionaries, and list `IndexOf(value)` with the
+  same value/reference equality semantics as `Contains`.
+
+### Changed
+
+- **Breaking:** the project export schema version is now 26 and the supported
+  NeoScript compiler revision is now 13. Predicate `count` and `indexOf` IR are
+  rejected at the version/revision gates by older or stale runtimes.
+
+## [0.26.0] - 2026-08-19
+
+### Added
+
 - Deserialize and lazily evaluate compiler-revision-12 `conditional` pointers
   emitted for NeoScript `condition ? whenTrue : whenFalse` expressions.
 - Deserialize and evaluate revision-12 `delegateClosure` pointers, preserving

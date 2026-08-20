@@ -395,34 +395,34 @@ namespace NeoCompose.Tests
         // -------------------------------------------------------------------
 
         [Test]
-        public void CompilerRevision_CurrentIsTwelve()
+        public void CompilerRevision_CurrentIsThirteen()
         {
-            Assert.AreEqual(12, FunctionWithReturnType.CurrentCompilerRevision);
+            Assert.AreEqual(13, FunctionWithReturnType.CurrentCompilerRevision);
         }
 
         [Test]
-        public void CompilerRevision_TwelveExecutesAndThirteenIsRejected()
+        public void CompilerRevision_ThirteenExecutesAndFourteenIsRejected()
         {
             NeoClient client = LoadClient();
-            FunctionWithReturnType twelve = Getter(Return(Literal("ok")));
-            twelve.compilerRevision = 12;
-            Assert.DoesNotThrow(() =>
-                NeoScriptExecutor.PrepareCallback(
-                    client,
-                    twelve,
-                    Context(client),
-                    options: null));
-
             FunctionWithReturnType thirteen = Getter(Return(Literal("ok")));
             thirteen.compilerRevision = 13;
-            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+            Assert.DoesNotThrow(() =>
                 NeoScriptExecutor.PrepareCallback(
                     client,
                     thirteen,
                     Context(client),
+                    options: null));
+
+            FunctionWithReturnType fourteen = Getter(Return(Literal("ok")));
+            fourteen.compilerRevision = 14;
+            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+                NeoScriptExecutor.PrepareCallback(
+                    client,
+                    fourteen,
+                    Context(client),
                     options: null))!;
-            StringAssert.Contains("compiler revision 13", error.Message);
-            StringAssert.Contains("revisions 1 through 12", error.Message);
+            StringAssert.Contains("compiler revision 14", error.Message);
+            StringAssert.Contains("revisions 1 through 13", error.Message);
         }
 
         [Test]

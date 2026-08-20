@@ -2617,7 +2617,7 @@ namespace NeoCompose.Tests
                 function = new CountFunction
                 {
                     type = FunctionKind.Count,
-                    info = new FunctionCollectionInfo
+                    info = new FunctionCollectionOptionalBoolInfo
                     {
                         collectionPointer = where,
                     },

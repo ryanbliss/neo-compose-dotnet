@@ -399,6 +399,17 @@ namespace NeoCompose.Runtime
                         verdict.Require(12, "generic-Equals");
                     }
                     return;
+                case FunctionKind.IndexOf:
+                    verdict.Require(13, "IndexOf");
+                    return;
+                case FunctionKind.Count:
+                    JToken? countPredicate = node["info"]?["function"];
+                    if (countPredicate is not null
+                        && countPredicate.Type != JTokenType.Null)
+                    {
+                        verdict.Require(13, "predicate-Count");
+                    }
+                    return;
             }
         }
 

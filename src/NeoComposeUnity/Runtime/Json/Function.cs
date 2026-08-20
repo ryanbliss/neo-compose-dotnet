@@ -11,8 +11,8 @@ namespace NeoCompose.Runtime.Json
 {
     /// <summary>
     /// Abstract base for the TS-side <c>TNSFunction</c> discriminated
-    /// union. Six variants (Select / First / FirstOrDefault / Where /
-    /// Contains / Count). Newtonsoft dispatches on <see cref="type"/>
+    /// union. Collection variants include Select / First / FirstOrDefault /
+    /// Where / Contains / Count / IndexOf. Newtonsoft dispatches on <see cref="type"/>
     /// via {@link FunctionConverter}.
     ///
     /// Each variant carries a per-shape <c>info</c> sub-object — see
@@ -138,15 +138,6 @@ namespace NeoCompose.Runtime.Json
     {
         public Pointer collectionPointer = null!;
         public Pointer valuePointer = null!;
-    }
-
-    /// <summary>
-    /// Info shape for <c>count</c>: collection only. Mirrors TS-side
-    /// <c>INSFunctionCollectionInfo</c>.
-    /// </summary>
-    public class FunctionCollectionInfo
-    {
-        public Pointer collectionPointer = null!;
     }
 
     /// <summary>
@@ -375,7 +366,12 @@ namespace NeoCompose.Runtime.Json
 
     public class CountFunction : Function
     {
-        public FunctionCollectionInfo info = null!;
+        public FunctionCollectionOptionalBoolInfo info = null!;
+    }
+
+    public class IndexOfFunction : Function
+    {
+        public FunctionCollectionContainsInfo info = null!;
     }
 
     public class VisitCountFunction : Function
@@ -438,6 +434,7 @@ namespace NeoCompose.Runtime.Json
                 case FunctionKind.Where: return typeof(WhereFunction);
                 case FunctionKind.Contains: return typeof(ContainsFunction);
                 case FunctionKind.Count: return typeof(CountFunction);
+                case FunctionKind.IndexOf: return typeof(IndexOfFunction);
                 case FunctionKind.VisitCount: return typeof(VisitCountFunction);
                 case FunctionKind.HasVisited: return typeof(HasVisitedFunction);
                 case FunctionKind.VectorConstructor: return typeof(VectorConstructorFunction);

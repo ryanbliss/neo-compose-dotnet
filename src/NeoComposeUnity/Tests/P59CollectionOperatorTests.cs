@@ -12,6 +12,7 @@ using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Unity.Profiling;
@@ -140,6 +141,108 @@ namespace NeoCompose.Tests
                     ? new object?[] { "two", "ten", "alpha" }
                     : new object?[] { "ten", "two", "alpha" },
                 (object?[])result!);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Count_WithoutPredicateReturnsCollectionLength(bool dictionary)
+        {
+            Pointer source = Collection(
+                dictionary,
+                ("0", "drop"),
+                ("1", "keep"),
+                ("2", "keep"));
+
+            Assert.AreEqual(3, Evaluate(Count(source)));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Count_WithPredicateCountsOnlyMatches(bool dictionary)
+        {
+            Pointer source = Collection(
+                dictionary,
+                ("0", "drop"),
+                ("1", "keep"),
+                ("2", "keep"));
+
+            Assert.AreEqual(
+                2,
+                Evaluate(Count(source, Callback(CallbackKind.MatchKeep))));
+        }
+
+        [Test]
+        public void IndexOf_ReturnsFirstMatchingIndexOrMinusOne()
+        {
+            Pointer source = Collection(
+                false,
+                ("0", "drop"),
+                ("1", "keep"),
+                ("2", "keep"));
+
+            Assert.AreEqual(1, Evaluate(IndexOf(source, Text("keep"))));
+            Assert.AreEqual(-1, Evaluate(IndexOf(source, Text("missing"))));
+        }
+
+        [Test]
+        public void IndexOf_RejectsADictionaryReceiver()
+        {
+            Pointer source = Collection(true, ("entry", "keep"));
+
+            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+                Evaluate(IndexOf(source, Text("keep"))));
+            Assert.AreEqual("IndexOf receiver must be a List value.", error!.Message);
+        }
+
+        [Test]
+        public void Json_CountPredicateAndIndexOfRoundTripThroughFunctionConverter()
+        {
+            Function count = JsonConvert.DeserializeObject<Function>(@"{
+                'type':'count',
+                'info':{
+                    'collectionPointer':{'type':'variable','variableId':'items'},
+                    'function':{
+                        'parameters':[],
+                        'instructions':[],
+                        'typeInfo':{'type':1,'required':true}
+                    }
+                }
+            }")!;
+            Function indexOf = JsonConvert.DeserializeObject<Function>(@"{
+                'type':'indexOf',
+                'info':{
+                    'collectionPointer':{'type':'variable','variableId':'items'},
+                    'valuePointer':{'type':'variable','variableId':'target'}
+                }
+            }")!;
+
+            Assert.IsInstanceOf<CountFunction>(count);
+            Assert.IsNotNull(((CountFunction)count).info.function);
+            Assert.IsInstanceOf<IndexOfFunction>(indexOf);
+            StringAssert.Contains(
+                "\"type\":\"indexOf\"",
+                JsonConvert.SerializeObject(indexOf));
+        }
+
+        [Test]
+        public void RevisionGateRequiresThirteenForIndexOfAndPredicateCountOnly()
+        {
+            Pointer source = Collection(false, ("0", "keep"));
+            Assert.DoesNotThrow(() => EvaluateBody(Count(source), 12));
+
+            var countError = Assert.Throws<NeoScriptPreExecutionValidationError>(
+                () => EvaluateBody(
+                    Count(source, Callback(CallbackKind.MatchKeep)),
+                    12));
+            StringAssert.Contains(
+                "predicate-Count IR requires compiler revision 13",
+                countError!.Message);
+
+            var indexError = Assert.Throws<NeoScriptPreExecutionValidationError>(
+                () => EvaluateBody(IndexOf(source, Text("keep")), 12));
+            StringAssert.Contains(
+                "IndexOf IR requires compiler revision 13",
+                indexError!.Message);
         }
 
         [TestCase(false, false)]
@@ -293,6 +396,19 @@ namespace NeoCompose.Tests
                 context);
         }
 
+        private static object? EvaluateBody(Pointer pointer, int compilerRevision)
+        {
+            return NSGetterEvaluator.Evaluate(
+                new FunctionWithReturnType
+                {
+                    compilerRevision = compilerRevision,
+                    parameters = Array.Empty<Variable>(),
+                    typeInfo = IntType(),
+                    instructions = new Instruction[] { Return(pointer) },
+                },
+                new NSGetterEvaluator.Context(BuildClient(), null, null));
+        }
+
         private static Pointer BuildOperator(
             Pointer collection,
             CallbackKind callbackKind)
@@ -322,6 +438,42 @@ namespace NeoCompose.Tests
             {
                 type = PointerKind.Function,
                 function = function,
+            };
+        }
+
+        private static Pointer Count(
+            Pointer collection,
+            FunctionWithReturnType? predicate = null)
+        {
+            return new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new CountFunction
+                {
+                    type = FunctionKind.Count,
+                    info = new FunctionCollectionOptionalBoolInfo
+                    {
+                        collectionPointer = collection,
+                        function = predicate,
+                    },
+                },
+            };
+        }
+
+        private static Pointer IndexOf(Pointer collection, Pointer value)
+        {
+            return new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new IndexOfFunction
+                {
+                    type = FunctionKind.IndexOf,
+                    info = new FunctionCollectionContainsInfo
+                    {
+                        collectionPointer = collection,
+                        valuePointer = value,
+                    },
+                },
             };
         }
 
@@ -380,6 +532,12 @@ namespace NeoCompose.Tests
                 instructions = instructions,
             };
         }
+
+        private static PrimitiveTypeInfo IntType() => new()
+        {
+            type = MemberKind.Int,
+            required = true,
+        };
 
         private static Pointer Collection(
             bool dictionary,
