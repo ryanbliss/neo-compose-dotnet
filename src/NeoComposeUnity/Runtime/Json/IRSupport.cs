@@ -125,6 +125,7 @@ namespace NeoCompose.Runtime.Json
         public const string Where = "where";
         public const string Contains = "contains";
         public const string Count = "count";
+        public const string IndexOf = "indexOf";
         public const string VisitCount = "visitCount";
         public const string HasVisited = "hasVisited";
         public const string VectorConstructor = "vectorConstructor";
@@ -404,9 +405,10 @@ namespace NeoCompose.Runtime.Json
         /// <c>variantApply</c> intrinsics; revision 11 adds P68 lookup-row
         /// pointers; revision 12 adds the lazy <c>conditional</c> pointer and
         /// explicit captured <c>delegateClosure</c> values and dynamic generic
-        /// <c>Equals</c> fallback dispatch.
+        /// <c>Equals</c> fallback dispatch; revision 13 adds the list
+        /// <c>indexOf</c> intrinsic and predicate-bearing <c>count</c> shape.
         /// </summary>
-        public const int CurrentCompilerRevision = 12;
+        public const int CurrentCompilerRevision = 13;
 
         /// <summary>
         /// Optional for backward compatibility. Absence means legacy

@@ -13,6 +13,10 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 26 admits the revision-13 <c>indexOf</c> function kind and the
+        /// predicate-bearing <c>count</c> payload inside compiled bodies. An
+        /// older SDK cannot deserialize or correctly execute those shapes.
+        ///
         /// 25 admits the P71 <c>listRepeat</c> function kind inside compiled
         /// bodies, for the same reason 23 admitted <c>mathOp</c>: an older
         /// SDK has no converter arm for it and would fail such a body with a
@@ -44,7 +48,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 25;
+        public const int CurrentSchemaVersion = 26;
     }
 
     public class ProjectExportMetadataSemver

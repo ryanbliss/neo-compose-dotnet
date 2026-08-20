@@ -3439,7 +3439,32 @@ namespace NeoCompose.Runtime.NeoScript
                 case CountFunction cf:
                 {
                     var c = EvalPointer(cf.info.collectionPointer, scope, ctx);
-                    return CollectionLength(c);
+                    var inner = cf.info.function;
+                    if (inner is null) return CollectionLength(c);
+
+                    bool isList = CollectionIsList(c);
+                    int count = 0;
+                    using var callback = new PreparedCollectionCallback(
+                        inner,
+                        scope,
+                        ctx,
+                        isList,
+                        CollectionCallbackReturnContract.Predicate);
+                    IterateCollection(c, ctx, (entry, key, _) =>
+                    {
+                        NeoScriptExecutionResult result = callback.Execute(
+                            key,
+                            entry);
+                        if (result.Returned
+                            && result.ReturnValue is bool matches
+                            && matches)
+                        {
+                            count++;
+                        }
+                        return CollectionIterationControl.Continue;
+                    });
+                    callback.CompleteOperator(count);
+                    return count;
                 }
                 case ContainsFunction cnf:
                 {
@@ -3468,6 +3493,30 @@ namespace NeoCompose.Runtime.NeoScript
                         return CollectionIterationControl.Continue;
                     });
                     return contains;
+                }
+                case IndexOfFunction iof:
+                {
+                    var c = EvalPointer(iof.info.collectionPointer, scope, ctx);
+                    if (!CollectionIsList(c))
+                    {
+                        throw new NSGetterRuntimeError(
+                            "IndexOf receiver must be a List value.");
+                    }
+                    var target = EvalPointer(iof.info.valuePointer, scope, ctx);
+                    string? targetReferenceId = target as string
+                        ?? ValueIdOf(target, ctx);
+                    int index = -1;
+                    IterateCollection(c, ctx, (entry, key, valueId) =>
+                    {
+                        if ((valueId is not null && valueId == targetReferenceId)
+                            || JsEqual(entry, target))
+                        {
+                            index = Convert.ToInt32(key);
+                            return CollectionIterationControl.Break;
+                        }
+                        return CollectionIterationControl.Continue;
+                    });
+                    return index;
                 }
                 case WhereFunction wf:
                 {

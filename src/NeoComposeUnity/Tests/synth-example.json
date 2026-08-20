@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 25,
+    "schemaVersion": 26,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -57,7 +57,7 @@
       "name": "Assets",
       "kind": 7,
       "locked": false,
-      "required": false,
+      "required": true,
       "isStatic": false,
       "accessModifierKind": "public",
       "projectId": "test-project",
@@ -70,7 +70,7 @@
       "name": "Save",
       "kind": 7,
       "locked": false,
-      "required": false,
+      "required": true,
       "isStatic": false,
       "accessModifierKind": "public",
       "projectId": "test-project",
@@ -84,7 +84,7 @@
       "name": "Session",
       "kind": 7,
       "locked": false,
-      "required": false,
+      "required": true,
       "isStatic": false,
       "accessModifierKind": "public",
       "projectId": "test-project",
@@ -1080,7 +1080,7 @@
       },
       "argumentTypes": [],
       "action": {
-        "compilerRevision": 3,
+        "compilerRevision": 13,
         "parameters": [
           {
             "id": "__this__",
@@ -2028,6 +2028,9 @@
       "isStatic": false,
       "accessModifierKind": "public",
       "isVirtual": true,
+      "defaultValue": {
+        "value": ""
+      },
       "system": {
         "kind": "worldAuthoring"
       },
@@ -2100,6 +2103,69 @@
       "createdAt": 0,
       "updatedAt": 0
     },
+    "system_c66c17e3-ecfc-4f41-96de-6a53bb2acd4f": {
+      "id": "system_c66c17e3-ecfc-4f41-96de-6a53bb2acd4f",
+      "projectId": "test-project",
+      "name": "size",
+      "kind": 14,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": {
+          "x": 1,
+          "y": 1
+        }
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "system_ec5b5d5e-7053-4378-87d1-9cceec30ff1a": {
+      "id": "system_ec5b5d5e-7053-4378-87d1-9cceec30ff1a",
+      "projectId": "test-project",
+      "name": "offset",
+      "kind": 14,
+      "locked": true,
+      "required": false,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "system_6ed1890b-0ae6-4979-bf5b-6f216d69f432": {
+      "id": "system_6ed1890b-0ae6-4979-bf5b-6f216d69f432",
+      "projectId": "test-project",
+      "name": "isTrigger",
+      "kind": 1,
+      "locked": true,
+      "required": false,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": false
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
     "system_441cb790-a45f-4488-a5a9-6f375af6c369": {
       "id": "system_441cb790-a45f-4488-a5a9-6f375af6c369",
       "projectId": "test-project",
@@ -2130,6 +2196,12 @@
       "isStatic": false,
       "accessModifierKind": "public",
       "isVirtual": true,
+      "defaultValue": {
+        "value": {
+          "fileId": "",
+          "sliceIndex": 0
+        }
+      },
       "system": {
         "kind": "worldAuthoring"
       },
@@ -2218,6 +2290,148 @@
       "updatedAt": 0,
       "minValue": -32768,
       "maxValue": 32767
+    },
+    "system_b0b3c45c-a87d-4218-b056-7418ef46aac5": {
+      "id": "system_b0b3c45c-a87d-4218-b056-7418ef46aac5",
+      "projectId": "test-project",
+      "name": "Cell",
+      "kind": 15,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "system_5a9ca1f5-a21b-4d4e-8c55-00341af594b4": {
+      "id": "system_5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
+      "projectId": "test-project",
+      "name": "PlacementTiles",
+      "kind": 6,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": []
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "entryMemberId": "system_96c7650a-1805-5b27-ae99-d1e49d3cb207"
+    },
+    "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071": {
+      "id": "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
+      "projectId": "test-project",
+      "name": "Children",
+      "kind": 6,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": []
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "entryMemberId": "system_0c4eba66-f5b6-5bfc-aa57-27c565beac53"
+    },
+    "system_a0083c92-72f7-405f-8863-ff86f995d36d": {
+      "id": "system_a0083c92-72f7-405f-8863-ff86f995d36d",
+      "projectId": "test-project",
+      "name": "Collider",
+      "kind": 7,
+      "locked": true,
+      "required": false,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": null
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "classId": "class-animation-object-collider"
+    },
+    "system_96c7650a-1805-5b27-ae99-d1e49d3cb207": {
+      "id": "system_96c7650a-1805-5b27-ae99-d1e49d3cb207",
+      "projectId": "test-project",
+      "name": "__PlacementTileEntry",
+      "kind": 7,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": {}
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "classId": "class-animation-object-placement-tile"
+    },
+    "system_0c4eba66-f5b6-5bfc-aa57-27c565beac53": {
+      "id": "system_0c4eba66-f5b6-5bfc-aa57-27c565beac53",
+      "projectId": "test-project",
+      "name": "__ChildEntry",
+      "kind": 7,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": {}
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "classId": "class-animation-object-base"
+    },
+    "system_0dbdd0f9-9dd2-4b4b-9403-50180c1500dd": {
+      "id": "system_0dbdd0f9-9dd2-4b4b-9403-50180c1500dd",
+      "projectId": "test-project",
+      "name": "Index",
+      "kind": 2,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": 0
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "minValue": 0
     },
     "system_af2d8db8-817b-46f0-adbe-cf9113b77155": {
       "id": "system_af2d8db8-817b-46f0-adbe-cf9113b77155",
@@ -2340,24 +2554,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "classId": "class-animation-child-track"
-    },
-    "system_0dbdd0f9-9dd2-4b4b-9403-50180c1500dd": {
-      "id": "system_0dbdd0f9-9dd2-4b4b-9403-50180c1500dd",
-      "projectId": "test-project",
-      "name": "Index",
-      "kind": 2,
-      "locked": true,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
-      "isVirtual": true,
-      "system": {
-        "kind": "worldAuthoring"
-      },
-      "createdAt": 0,
-      "updatedAt": 0,
-      "minValue": 0
+      "classId": "class-animation-track"
     },
     "system_8ab7bb00-a475-43f0-8579-1b08f133d658": {
       "id": "system_8ab7bb00-a475-43f0-8579-1b08f133d658",
@@ -2473,11 +2670,150 @@
       "updatedAt": 0,
       "classId": "class-animation-object-base"
     },
-    "system_6e15db41-a6f2-43fd-9793-c52fe4f3d0f8": {
-      "id": "system_6e15db41-a6f2-43fd-9793-c52fe4f3d0f8",
+    "system_b71d1f73-da72-49de-ab9a-911cc9bffa43": {
+      "id": "system_b71d1f73-da72-49de-ab9a-911cc9bffa43",
       "projectId": "test-project",
-      "name": "Child",
-      "kind": 9,
+      "name": "Value",
+      "kind": 21,
+      "locked": true,
+      "required": false,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "init": {
+          "code": "value",
+          "compiled": {
+            "compilerRevision": 13,
+            "parameters": [
+              {
+                "id": "__this__",
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": "Unknown",
+                      "required": true
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__root__",
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "__root__"
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_0__",
+                "typeInfo": {
+                  "type": 21,
+                  "required": true,
+                  "ownerClassId": "class-animation-segment-frame",
+                  "genericParamId": "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1"
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 21,
+                      "required": true,
+                      "ownerClassId": "class-animation-segment-frame",
+                      "genericParamId": "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1"
+                    },
+                    "value": null
+                  }
+                }
+              }
+            ],
+            "instructions": [
+              {
+                "type": "return",
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "__arg_0__"
+                }
+              }
+            ],
+            "typeInfo": {
+              "type": 21,
+              "required": false,
+              "ownerClassId": "class-animation-segment-frame",
+              "genericParamId": "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1"
+            }
+          }
+        }
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "genericParamId": "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1"
+    },
+    "system_8a159870-36a4-40e4-98bf-15919410650a": {
+      "id": "system_8a159870-36a4-40e4-98bf-15919410650a",
+      "projectId": "test-project",
+      "name": "Duration",
+      "kind": 2,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": 1
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "minValue": 1
+    },
+    "system_40658ad2-b4a5-4404-bb6d-ed778088a772": {
+      "id": "system_40658ad2-b4a5-4404-bb6d-ed778088a772",
+      "projectId": "test-project",
+      "name": "Frames",
+      "kind": 6,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": []
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "entryMemberId": "system_da56f93b-d3a6-5feb-9f51-3a9fd029272a"
+    },
+    "system_da56f93b-d3a6-5feb-9f51-3a9fd029272a": {
+      "id": "system_da56f93b-d3a6-5feb-9f51-3a9fd029272a",
+      "projectId": "test-project",
+      "name": "__FrameEntry",
+      "kind": 7,
       "locked": true,
       "required": true,
       "isStatic": false,
@@ -2488,8 +2824,193 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "collectionMemberId": "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
-      "collectionValueId": null,
+      "classId": "class-animation-segment-frame",
+      "classArguments": {
+        "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1": {
+          "kind": "generic",
+          "genericParamId": "system_a35d028e-bd71-49aa-9f9d-944b6e813b80"
+        }
+      }
+    },
+    "system_f10bc0fd-9b8e-5901-9f4b-38e7cdc7a241": {
+      "id": "system_f10bc0fd-9b8e-5901-9f4b-38e7cdc7a241",
+      "projectId": "test-project",
+      "name": "__SpriteInfoTypeArgument",
+      "kind": 11,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "templateId": null
+    },
+    "system_48e66117-43fe-4429-97a8-964165f063ea": {
+      "id": "system_48e66117-43fe-4429-97a8-964165f063ea",
+      "projectId": "test-project",
+      "name": "Selector",
+      "kind": 25,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "init": {
+          "code": "selector",
+          "compiled": {
+            "compilerRevision": 13,
+            "parameters": [
+              {
+                "id": "__this__",
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": "Unknown",
+                      "required": true
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__root__",
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "__root__"
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_0__",
+                "typeInfo": {
+                  "type": 25,
+                  "required": true,
+                  "returnTypeInfo": {
+                    "type": 21,
+                    "required": true,
+                    "ownerClassId": "class-animation-child-override",
+                    "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+                  },
+                  "argumentTypes": []
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 25,
+                      "required": true,
+                      "returnTypeInfo": {
+                        "type": 21,
+                        "required": true,
+                        "ownerClassId": "class-animation-child-override",
+                        "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+                      },
+                      "argumentTypes": []
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_1__",
+                "typeInfo": {
+                  "type": 21,
+                  "required": true,
+                  "ownerClassId": "class-animation-child-override",
+                  "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 21,
+                      "required": true,
+                      "ownerClassId": "class-animation-child-override",
+                      "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+                    },
+                    "value": null
+                  }
+                }
+              }
+            ],
+            "instructions": [
+              {
+                "type": "return",
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "__arg_0__"
+                }
+              }
+            ],
+            "typeInfo": {
+              "type": 25,
+              "required": true,
+              "returnTypeInfo": {
+                "type": 21,
+                "required": true,
+                "ownerClassId": "class-animation-child-override",
+                "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+              },
+              "argumentTypes": []
+            }
+          }
+        }
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "returnTypeInfo": {
+        "type": 21,
+        "required": true,
+        "ownerClassId": "class-animation-child-override",
+        "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+      },
+      "argumentTypes": []
+    },
+    "system_ba319c4b-3419-4301-a0d6-8bc5a89e20d1": {
+      "id": "system_ba319c4b-3419-4301-a0d6-8bc5a89e20d1",
+      "projectId": "test-project",
+      "name": "Refresh",
+      "kind": 8,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": [
+          "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200"
+        ]
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "enumId": "system_fb8a4243-fa52-4142-8097-765d9e86ff25",
       "multiselect": false
     },
     "system_819b3743-0c3d-4896-b679-9aeeb73255f4": {
@@ -2502,6 +3023,119 @@
       "isStatic": false,
       "accessModifierKind": "public",
       "isVirtual": true,
+      "defaultValue": {
+        "init": {
+          "code": "overrides",
+          "compiled": {
+            "compilerRevision": 13,
+            "parameters": [
+              {
+                "id": "__this__",
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": "Unknown",
+                      "required": true
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__root__",
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "__root__"
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_0__",
+                "typeInfo": {
+                  "type": 25,
+                  "required": true,
+                  "returnTypeInfo": {
+                    "type": 21,
+                    "required": true,
+                    "ownerClassId": "class-animation-child-override",
+                    "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+                  },
+                  "argumentTypes": []
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 25,
+                      "required": true,
+                      "returnTypeInfo": {
+                        "type": 21,
+                        "required": true,
+                        "ownerClassId": "class-animation-child-override",
+                        "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+                      },
+                      "argumentTypes": []
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_1__",
+                "typeInfo": {
+                  "type": 21,
+                  "required": true,
+                  "ownerClassId": "class-animation-child-override",
+                  "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 21,
+                      "required": true,
+                      "ownerClassId": "class-animation-child-override",
+                      "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+                    },
+                    "value": null
+                  }
+                }
+              }
+            ],
+            "instructions": [
+              {
+                "type": "return",
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "__arg_1__"
+                }
+              }
+            ],
+            "typeInfo": {
+              "type": 21,
+              "required": false,
+              "ownerClassId": "class-animation-child-override",
+              "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+            }
+          }
+        }
+      },
       "system": {
         "kind": "worldAuthoring"
       },
@@ -2510,41 +3144,144 @@
       "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0",
       "partial": true
     },
-    "system_29abc85e-2d38-4cef-a200-88915d176d06": {
-      "id": "system_29abc85e-2d38-4cef-a200-88915d176d06",
+    "system_1e877396-1802-474a-9e4d-1df478d4c888": {
+      "id": "system_1e877396-1802-474a-9e4d-1df478d4c888",
       "projectId": "test-project",
-      "name": "Child",
-      "kind": 9,
+      "name": "Selector",
+      "kind": 25,
       "locked": true,
       "required": true,
       "isStatic": false,
       "accessModifierKind": "public",
       "isVirtual": true,
+      "defaultValue": {
+        "init": {
+          "code": "selector",
+          "compiled": {
+            "compilerRevision": 13,
+            "parameters": [
+              {
+                "id": "__this__",
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": "Unknown",
+                      "required": true
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__root__",
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "__root__"
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_0__",
+                "typeInfo": {
+                  "type": 25,
+                  "required": true,
+                  "returnTypeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "class-animation-object-base"
+                  },
+                  "argumentTypes": []
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 25,
+                      "required": true,
+                      "returnTypeInfo": {
+                        "type": 7,
+                        "required": true,
+                        "classId": "class-animation-object-base"
+                      },
+                      "argumentTypes": []
+                    },
+                    "value": null
+                  }
+                }
+              }
+            ],
+            "instructions": [
+              {
+                "type": "return",
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "__arg_0__"
+                }
+              }
+            ],
+            "typeInfo": {
+              "type": 25,
+              "required": true,
+              "returnTypeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "class-animation-object-base"
+              },
+              "argumentTypes": []
+            }
+          }
+        }
+      },
       "system": {
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "collectionMemberId": "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
-      "collectionValueId": null,
-      "multiselect": false
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "class-animation-object-base"
+      },
+      "argumentTypes": []
     },
-    "system_2c816624-0281-46d3-9ed5-d20bd43519f4": {
-      "id": "system_2c816624-0281-46d3-9ed5-d20bd43519f4",
+    "system_330602f7-bbc0-4be4-9dc3-d33e9dbdbab9": {
+      "id": "system_330602f7-bbc0-4be4-9dc3-d33e9dbdbab9",
       "projectId": "test-project",
-      "name": "ClipKey",
-      "kind": 3,
+      "name": "Refresh",
+      "kind": 8,
       "locked": true,
       "required": true,
       "isStatic": false,
       "accessModifierKind": "public",
       "isVirtual": true,
+      "defaultValue": {
+        "value": [
+          "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200"
+        ]
+      },
       "system": {
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "localizable": false
+      "enumId": "system_fb8a4243-fa52-4142-8097-765d9e86ff25",
+      "multiselect": false
     },
     "system_5af60692-74a0-45ea-a9ba-747854989b2a": {
       "id": "system_5af60692-74a0-45ea-a9ba-747854989b2a",
@@ -2565,6 +3302,380 @@
       "createdAt": 0,
       "updatedAt": 0,
       "minValue": 0
+    },
+    "system_75a314b5-c799-4af6-9e64-4cde6eae1b30": {
+      "id": "system_75a314b5-c799-4af6-9e64-4cde6eae1b30",
+      "projectId": "test-project",
+      "name": "Direction",
+      "kind": 8,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": [
+          "system_2e4ca40e-f305-49c6-a91b-b99d56239ba0"
+        ]
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "enumId": "system_705ccc39-e46e-4c9f-af3e-3ec8fd818709",
+      "multiselect": false
+    },
+    "system_c71caaab-df72-48c6-a291-2772288351eb": {
+      "id": "system_c71caaab-df72-48c6-a291-2772288351eb",
+      "projectId": "test-project",
+      "name": "OffsetStartIndex",
+      "kind": 2,
+      "locked": true,
+      "required": false,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": 0
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "minValue": 0
+    },
+    "system_6755f539-a459-46ec-b44a-cc74a18ad83e": {
+      "id": "system_6755f539-a459-46ec-b44a-cc74a18ad83e",
+      "projectId": "test-project",
+      "name": "OffsetEndIndex",
+      "kind": 2,
+      "locked": true,
+      "required": false,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "value": null
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "minValue": 1
+    },
+    "system_626f7a7a-66b7-4e54-aaaa-7174a74c9467": {
+      "id": "system_626f7a7a-66b7-4e54-aaaa-7174a74c9467",
+      "projectId": "test-project",
+      "name": "BaseDuration",
+      "kind": 10,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "protected",
+      "isVirtual": true,
+      "isAbstract": true,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "returnTypeInfo": {
+        "type": 2,
+        "required": true
+      }
+    },
+    "system_2c816624-0281-46d3-9ed5-d20bd43519f4": {
+      "id": "system_2c816624-0281-46d3-9ed5-d20bd43519f4",
+      "projectId": "test-project",
+      "name": "ClipKey",
+      "kind": 3,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "defaultValue": {
+        "init": {
+          "code": "clipKey",
+          "compiled": {
+            "compilerRevision": 13,
+            "parameters": [
+              {
+                "id": "__this__",
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": "Unknown",
+                      "required": true
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__root__",
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "__root__"
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_0__",
+                "typeInfo": {
+                  "type": 25,
+                  "required": true,
+                  "returnTypeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "class-animation-object-base"
+                  },
+                  "argumentTypes": []
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 25,
+                      "required": true,
+                      "returnTypeInfo": {
+                        "type": 7,
+                        "required": true,
+                        "classId": "class-animation-object-base"
+                      },
+                      "argumentTypes": []
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_1__",
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": true
+                    },
+                    "value": null
+                  }
+                }
+              }
+            ],
+            "instructions": [
+              {
+                "type": "return",
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "__arg_1__"
+                }
+              }
+            ],
+            "typeInfo": {
+              "type": 3,
+              "required": true
+            }
+          }
+        }
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "localizable": false
+    },
+    "system_b29e7ab9-0b8e-4399-84c1-1203070b75dd": {
+      "id": "system_b29e7ab9-0b8e-4399-84c1-1203070b75dd",
+      "projectId": "test-project",
+      "name": "Selector",
+      "kind": 25,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "extendsMemberId": "system_1e877396-1802-474a-9e4d-1df478d4c888",
+      "defaultValue": {
+        "init": {
+          "code": "selector",
+          "compiled": {
+            "compilerRevision": 13,
+            "parameters": [
+              {
+                "id": "__this__",
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": "Unknown",
+                      "required": true
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__root__",
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "__root__"
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_0__",
+                "typeInfo": {
+                  "type": 25,
+                  "required": true,
+                  "returnTypeInfo": {
+                    "type": 21,
+                    "required": true,
+                    "ownerClassId": "class-animation-segment-track",
+                    "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
+                  },
+                  "argumentTypes": []
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 25,
+                      "required": true,
+                      "returnTypeInfo": {
+                        "type": 21,
+                        "required": true,
+                        "ownerClassId": "class-animation-segment-track",
+                        "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
+                      },
+                      "argumentTypes": []
+                    },
+                    "value": null
+                  }
+                }
+              }
+            ],
+            "instructions": [
+              {
+                "type": "return",
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "__arg_0__"
+                }
+              }
+            ],
+            "typeInfo": {
+              "type": 25,
+              "required": true,
+              "returnTypeInfo": {
+                "type": 21,
+                "required": true,
+                "ownerClassId": "class-animation-segment-track",
+                "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
+              },
+              "argumentTypes": []
+            }
+          }
+        }
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "returnTypeInfo": {
+        "type": 21,
+        "required": true,
+        "ownerClassId": "class-animation-segment-track",
+        "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
+      },
+      "argumentTypes": []
+    },
+    "system_d2d0bf9b-211f-4b2f-bff3-3d6da5766abd": {
+      "id": "system_d2d0bf9b-211f-4b2f-bff3-3d6da5766abd",
+      "projectId": "test-project",
+      "name": "Segment",
+      "kind": 10,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "isAbstract": true,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "class-animation-segment",
+        "typeArguments": {
+          "system_a35d028e-bd71-49aa-9f9d-944b6e813b80": {
+            "type": 21,
+            "required": true,
+            "ownerClassId": "class-animation-segment-track",
+            "genericParamId": "system_03497842-3381-45a2-b2fa-b2dee36c2759"
+          }
+        }
+      }
+    },
+    "system_65388373-2b28-53f4-b821-8c74dada7c8c": {
+      "id": "system_65388373-2b28-53f4-b821-8c74dada7c8c",
+      "projectId": "test-project",
+      "name": "__SpriteInfoTypeArgument",
+      "kind": 11,
+      "locked": true,
+      "required": true,
+      "isStatic": false,
+      "accessModifierKind": "public",
+      "isVirtual": true,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "templateId": null
     },
     "member-animation-x": {
       "id": "member-animation-x",
@@ -2821,6 +3932,58 @@
         "system_9d607a4f-60c3-4347-94fc-f24b538bf468",
         "system_4c670ac9-78a4-44e9-9833-94e1c69dca97",
         "system_a0aeb200-7216-49e2-aad2-e151ff35c336"
+      ],
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "system_705ccc39-e46e-4c9f-af3e-3ec8fd818709": {
+      "id": "system_705ccc39-e46e-4c9f-af3e-3ec8fd818709",
+      "projectId": "test-project",
+      "name": "NeoPlayDirection",
+      "options": {
+        "system_2e4ca40e-f305-49c6-a91b-b99d56239ba0": {
+          "id": "system_2e4ca40e-f305-49c6-a91b-b99d56239ba0",
+          "name": "Forward",
+          "text": "Forward"
+        },
+        "system_6478d195-3905-48db-befe-d276eb5478f0": {
+          "id": "system_6478d195-3905-48db-befe-d276eb5478f0",
+          "name": "Reverse",
+          "text": "Reverse"
+        }
+      },
+      "optionKeyOrder": [
+        "system_2e4ca40e-f305-49c6-a91b-b99d56239ba0",
+        "system_6478d195-3905-48db-befe-d276eb5478f0"
+      ],
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "system_fb8a4243-fa52-4142-8097-765d9e86ff25": {
+      "id": "system_fb8a4243-fa52-4142-8097-765d9e86ff25",
+      "projectId": "test-project",
+      "name": "NeoSelectorRefreshKind",
+      "options": {
+        "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200": {
+          "id": "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200",
+          "name": "OnLoad",
+          "text": "OnLoad"
+        },
+        "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f": {
+          "id": "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f",
+          "name": "PerFrame",
+          "text": "PerFrame"
+        }
+      },
+      "optionKeyOrder": [
+        "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200",
+        "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f"
       ],
       "system": {
         "kind": "worldAuthoring"
@@ -3516,6 +4679,75 @@
       "createdAt": 0,
       "updatedAt": 0
     },
+    "class-animation-object-collider": {
+      "id": "class-animation-object-collider",
+      "projectId": "test-project",
+      "name": "NeoCollider",
+      "schema": {
+        "size": "system_c66c17e3-ecfc-4f41-96de-6a53bb2acd4f",
+        "offset": "system_ec5b5d5e-7053-4378-87d1-9cceec30ff1a",
+        "isTrigger": "system_6ed1890b-0ae6-4979-bf5b-6f216d69f432"
+      },
+      "hiddenInMemberSelector": false,
+      "isAbstract": false,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "objectCollider"
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-animation-object-placement-tile": {
+      "id": "class-animation-object-placement-tile",
+      "projectId": "test-project",
+      "name": "NeoObjectPlacementTile",
+      "schema": {
+        "Cell": "system_b0b3c45c-a87d-4218-b056-7418ef46aac5"
+      },
+      "hiddenInMemberSelector": false,
+      "isAbstract": false,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "objectPlacementTile"
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-animation-object": {
+      "id": "class-animation-object",
+      "projectId": "test-project",
+      "name": "NeoObject",
+      "schema": {
+        "PlacementTiles": "system_5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
+        "Children": "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
+        "Collider": "system_a0083c92-72f7-405f-8863-ff86f995d36d"
+      },
+      "hiddenInMemberSelector": false,
+      "isAbstract": true,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "object"
+      },
+      "extendsClassId": "class-animation-object-base",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-animation-frame-base": {
+      "id": "class-animation-frame-base",
+      "projectId": "test-project",
+      "name": "NeoAnimationFrameBase",
+      "schema": {
+        "Index": "system_0dbdd0f9-9dd2-4b4b-9403-50180c1500dd"
+      },
+      "hiddenInMemberSelector": false,
+      "isAbstract": true,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "animationFrameBase"
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
     "class-animation-clip": {
       "id": "class-animation-clip",
       "projectId": "test-project",
@@ -3532,7 +4764,6 @@
         "kind": "worldAuthoring",
         "worldKind": "animationClip"
       },
-      "allowedStorage": "immutable",
       "genericParams": [
         {
           "id": "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2",
@@ -3551,7 +4782,6 @@
       "projectId": "test-project",
       "name": "NeoAnimationFrame",
       "schema": {
-        "Index": "system_0dbdd0f9-9dd2-4b4b-9403-50180c1500dd",
         "Overrides": "system_8ab7bb00-a475-43f0-8579-1b08f133d658",
         "ChildOverrides": "system_a5905750-c472-46a8-89e9-f04f0bf66696",
         "Actions": "system_23e05410-6428-4bd1-b085-c0390ed7fcb7"
@@ -3562,7 +4792,6 @@
         "kind": "worldAuthoring",
         "worldKind": "animationFrame"
       },
-      "allowedStorage": "immutable",
       "genericParams": [
         {
           "id": "system_d2194ea1-08ec-4a0c-b9a0-97877031d39b",
@@ -3573,6 +4802,75 @@
           }
         }
       ],
+      "extendsClassId": "class-animation-frame-base",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-animation-segment-frame": {
+      "id": "class-animation-segment-frame",
+      "projectId": "test-project",
+      "name": "NeoAnimationSegmentFrame",
+      "schema": {
+        "Value": "system_b71d1f73-da72-49de-ab9a-911cc9bffa43"
+      },
+      "hiddenInMemberSelector": false,
+      "isAbstract": false,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "animationSegmentFrame"
+      },
+      "genericParams": [
+        {
+          "id": "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1",
+          "name": "T"
+        }
+      ],
+      "requiredConstructorId": "system_498d073e-0018-5828-af2b-22b113c31380",
+      "extendsClassId": "class-animation-frame-base",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-animation-segment": {
+      "id": "class-animation-segment",
+      "projectId": "test-project",
+      "name": "NeoAnimationSegment",
+      "schema": {
+        "Duration": "system_8a159870-36a4-40e4-98bf-15919410650a",
+        "Frames": "system_40658ad2-b4a5-4404-bb6d-ed778088a772"
+      },
+      "hiddenInMemberSelector": false,
+      "isAbstract": true,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "animationSegment"
+      },
+      "genericParams": [
+        {
+          "id": "system_a35d028e-bd71-49aa-9f9d-944b6e813b80",
+          "name": "T"
+        }
+      ],
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-sprite-animation-segment": {
+      "id": "class-sprite-animation-segment",
+      "projectId": "test-project",
+      "name": "NeoSpriteAnimationSegment",
+      "schema": {},
+      "hiddenInMemberSelector": false,
+      "isAbstract": false,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "spriteAnimationSegment"
+      },
+      "extendsGenericBindings": {
+        "system_a35d028e-bd71-49aa-9f9d-944b6e813b80": {
+          "kind": "member",
+          "memberId": "system_f10bc0fd-9b8e-5901-9f4b-38e7cdc7a241"
+        }
+      },
+      "extendsClassId": "class-animation-segment",
       "createdAt": 0,
       "updatedAt": 0
     },
@@ -3581,7 +4879,8 @@
       "projectId": "test-project",
       "name": "NeoAnimationChildOverride",
       "schema": {
-        "Child": "system_6e15db41-a6f2-43fd-9793-c52fe4f3d0f8",
+        "Selector": "system_48e66117-43fe-4429-97a8-964165f063ea",
+        "Refresh": "system_ba319c4b-3419-4301-a0d6-8bc5a89e20d1",
         "Overrides": "system_819b3743-0c3d-4896-b679-9aeeb73255f4"
       },
       "hiddenInMemberSelector": false,
@@ -3590,7 +4889,6 @@
         "kind": "worldAuthoring",
         "worldKind": "animationChildOverride"
       },
-      "allowedStorage": "immutable",
       "genericParams": [
         {
           "id": "system_de23448a-45be-4e3f-8965-072a545e08f0",
@@ -3601,12 +4899,30 @@
           }
         }
       ],
-      "constructorProjections": [
-        {
-          "parameterName": "id",
-          "memberId": "system_6e15db41-a6f2-43fd-9793-c52fe4f3d0f8"
-        }
-      ],
+      "requiredConstructorId": "system_2fefcc00-08ab-5a16-a76a-758beac24ef1",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-animation-track": {
+      "id": "class-animation-track",
+      "projectId": "test-project",
+      "name": "NeoAnimationTrackBase",
+      "schema": {
+        "Selector": "system_1e877396-1802-474a-9e4d-1df478d4c888",
+        "Refresh": "system_330602f7-bbc0-4be4-9dc3-d33e9dbdbab9",
+        "StartFrame": "system_5af60692-74a0-45ea-a9ba-747854989b2a",
+        "Direction": "system_75a314b5-c799-4af6-9e64-4cde6eae1b30",
+        "OffsetStartIndex": "system_c71caaab-df72-48c6-a291-2772288351eb",
+        "OffsetEndIndex": "system_6755f539-a459-46ec-b44a-cc74a18ad83e",
+        "BaseDuration": "system_626f7a7a-66b7-4e54-aaaa-7174a74c9467"
+      },
+      "hiddenInMemberSelector": false,
+      "isAbstract": true,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "animationTrack"
+      },
+      "requiredConstructorId": "system_8980d09b-0a6d-5461-9615-2f524515b1af",
       "createdAt": 0,
       "updatedAt": 0
     },
@@ -3615,9 +4931,7 @@
       "projectId": "test-project",
       "name": "NeoAnimationChildTrack",
       "schema": {
-        "Child": "system_29abc85e-2d38-4cef-a200-88915d176d06",
-        "ClipKey": "system_2c816624-0281-46d3-9ed5-d20bd43519f4",
-        "StartFrame": "system_5af60692-74a0-45ea-a9ba-747854989b2a"
+        "ClipKey": "system_2c816624-0281-46d3-9ed5-d20bd43519f4"
       },
       "hiddenInMemberSelector": false,
       "isAbstract": false,
@@ -3625,13 +4939,78 @@
         "kind": "worldAuthoring",
         "worldKind": "animationChildTrack"
       },
-      "allowedStorage": "immutable",
-      "constructorProjections": [
+      "requiredConstructorId": "system_6baa12a7-be86-5ae0-82da-2fed308320a0",
+      "extendsClassId": "class-animation-track",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-animation-segment-track": {
+      "id": "class-animation-segment-track",
+      "projectId": "test-project",
+      "name": "NeoAnimationSegmentTrack",
+      "schema": {
+        "Selector": "system_b29e7ab9-0b8e-4399-84c1-1203070b75dd",
+        "Segment": "system_d2d0bf9b-211f-4b2f-bff3-3d6da5766abd"
+      },
+      "hiddenInMemberSelector": false,
+      "isAbstract": true,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "animationSegmentTrack"
+      },
+      "genericParams": [
         {
-          "parameterName": "id",
-          "memberId": "system_29abc85e-2d38-4cef-a200-88915d176d06"
+          "id": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655",
+          "name": "TChild",
+          "constraint": {
+            "kind": "class",
+            "classId": "class-animation-object-base"
+          }
+        },
+        {
+          "id": "system_03497842-3381-45a2-b2fa-b2dee36c2759",
+          "name": "TValue"
         }
       ],
+      "requiredConstructorId": "system_1e7f8826-5392-5b4c-8cc3-6052d20e5280",
+      "extendsClassId": "class-animation-track",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-sprite-animation-segment-track": {
+      "id": "class-sprite-animation-segment-track",
+      "projectId": "test-project",
+      "name": "NeoSpriteAnimationSegmentTrack",
+      "schema": {},
+      "hiddenInMemberSelector": false,
+      "isAbstract": true,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "spriteAnimationSegmentTrack"
+      },
+      "genericParams": [
+        {
+          "id": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268",
+          "name": "TChild",
+          "constraint": {
+            "kind": "class",
+            "classId": "class-animation-sprite-object"
+          }
+        }
+      ],
+      "extendsGenericBindings": {
+        "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655": {
+          "kind": "generic",
+          "genericParamId": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
+        },
+        "system_03497842-3381-45a2-b2fa-b2dee36c2759": {
+          "kind": "member",
+          "memberId": "system_65388373-2b28-53f4-b821-8c74dada7c8c"
+        }
+      },
+      "targetMemberId": "system_e9288ba9-f5a2-4485-8443-6afb155b31e0",
+      "requiredConstructorId": "system_9a3f52ca-872a-50a5-aad9-e9a040f40802",
+      "extendsClassId": "class-animation-segment-track",
       "createdAt": 0,
       "updatedAt": 0
     },
@@ -3678,7 +5057,958 @@
       "updatedAt": 0
     }
   },
-  "constructors": {},
+  "constructors": {
+    "system_498d073e-0018-5828-af2b-22b113c31380": {
+      "id": "system_498d073e-0018-5828-af2b-22b113c31380",
+      "projectId": "test-project",
+      "classId": "class-animation-segment-frame",
+      "argumentTypes": [
+        {
+          "name": "value",
+          "type": 21,
+          "required": true,
+          "ownerClassId": "class-animation-segment-frame",
+          "genericParamId": "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1"
+        }
+      ],
+      "code": null,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "action": {
+        "compilerRevision": 13,
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-animation-segment-frame"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-animation-segment-frame"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 21,
+              "required": true,
+              "ownerClassId": "class-animation-segment-frame",
+              "genericParamId": "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 21,
+                  "required": true,
+                  "ownerClassId": "class-animation-segment-frame",
+                  "genericParamId": "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        }
+      }
+    },
+    "system_2fefcc00-08ab-5a16-a76a-758beac24ef1": {
+      "id": "system_2fefcc00-08ab-5a16-a76a-758beac24ef1",
+      "projectId": "test-project",
+      "classId": "class-animation-child-override",
+      "argumentTypes": [
+        {
+          "name": "selector",
+          "type": 25,
+          "required": true,
+          "returnTypeInfo": {
+            "type": 21,
+            "required": true,
+            "ownerClassId": "class-animation-child-override",
+            "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+          },
+          "argumentTypes": []
+        },
+        {
+          "name": "overrides",
+          "type": 21,
+          "required": true,
+          "ownerClassId": "class-animation-child-override",
+          "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+        }
+      ],
+      "code": null,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "action": {
+        "compilerRevision": 13,
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-animation-child-override"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-animation-child-override"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 25,
+              "required": true,
+              "returnTypeInfo": {
+                "type": 21,
+                "required": true,
+                "ownerClassId": "class-animation-child-override",
+                "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+              },
+              "argumentTypes": []
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 25,
+                  "required": true,
+                  "returnTypeInfo": {
+                    "type": 21,
+                    "required": true,
+                    "ownerClassId": "class-animation-child-override",
+                    "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+                  },
+                  "argumentTypes": []
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_1__",
+            "typeInfo": {
+              "type": 21,
+              "required": true,
+              "ownerClassId": "class-animation-child-override",
+              "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 21,
+                  "required": true,
+                  "ownerClassId": "class-animation-child-override",
+                  "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        }
+      }
+    },
+    "system_8980d09b-0a6d-5461-9615-2f524515b1af": {
+      "id": "system_8980d09b-0a6d-5461-9615-2f524515b1af",
+      "projectId": "test-project",
+      "classId": "class-animation-track",
+      "argumentTypes": [
+        {
+          "name": "selector",
+          "type": 25,
+          "required": true,
+          "returnTypeInfo": {
+            "type": 7,
+            "required": true,
+            "classId": "class-animation-object-base"
+          },
+          "argumentTypes": []
+        }
+      ],
+      "code": null,
+      "createdAt": 0,
+      "updatedAt": 0,
+      "action": {
+        "compilerRevision": 13,
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-animation-track"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-animation-track"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 25,
+              "required": true,
+              "returnTypeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "class-animation-object-base"
+              },
+              "argumentTypes": []
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 25,
+                  "required": true,
+                  "returnTypeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "class-animation-object-base"
+                  },
+                  "argumentTypes": []
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        }
+      }
+    },
+    "system_6baa12a7-be86-5ae0-82da-2fed308320a0": {
+      "id": "system_6baa12a7-be86-5ae0-82da-2fed308320a0",
+      "projectId": "test-project",
+      "classId": "class-animation-child-track",
+      "argumentTypes": [
+        {
+          "name": "selector",
+          "type": 25,
+          "required": true,
+          "returnTypeInfo": {
+            "type": 7,
+            "required": true,
+            "classId": "class-animation-object-base"
+          },
+          "argumentTypes": []
+        },
+        {
+          "name": "clipKey",
+          "type": 3,
+          "required": true
+        }
+      ],
+      "code": null,
+      "baseArguments": [
+        {
+          "name": "selector",
+          "code": "selector"
+        }
+      ],
+      "createdAt": 0,
+      "updatedAt": 0,
+      "action": {
+        "compilerRevision": 13,
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-animation-child-track"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-animation-child-track"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 25,
+              "required": true,
+              "returnTypeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "class-animation-object-base"
+              },
+              "argumentTypes": []
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 25,
+                  "required": true,
+                  "returnTypeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "class-animation-object-base"
+                  },
+                  "argumentTypes": []
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_1__",
+            "typeInfo": {
+              "type": 3,
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        }
+      },
+      "compiledBaseArguments": [
+        {
+          "compilerRevision": 13,
+          "parameters": [
+            {
+              "id": "__this__",
+              "typeInfo": {
+                "type": "Unknown",
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": "Unknown",
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__root__",
+              "typeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "__root__"
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "__root__"
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__arg_0__",
+              "typeInfo": {
+                "type": 25,
+                "required": true,
+                "returnTypeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-animation-object-base"
+                },
+                "argumentTypes": []
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 25,
+                    "required": true,
+                    "returnTypeInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "class-animation-object-base"
+                    },
+                    "argumentTypes": []
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__arg_1__",
+              "typeInfo": {
+                "type": 3,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            }
+          ],
+          "instructions": [
+            {
+              "type": "return",
+              "pointer": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              }
+            }
+          ],
+          "typeInfo": {
+            "type": 25,
+            "required": true,
+            "returnTypeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-animation-object-base"
+            },
+            "argumentTypes": []
+          }
+        }
+      ]
+    },
+    "system_1e7f8826-5392-5b4c-8cc3-6052d20e5280": {
+      "id": "system_1e7f8826-5392-5b4c-8cc3-6052d20e5280",
+      "projectId": "test-project",
+      "classId": "class-animation-segment-track",
+      "argumentTypes": [
+        {
+          "name": "selector",
+          "type": 25,
+          "required": true,
+          "returnTypeInfo": {
+            "type": 21,
+            "required": true,
+            "ownerClassId": "class-animation-segment-track",
+            "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
+          },
+          "argumentTypes": []
+        }
+      ],
+      "code": null,
+      "baseArguments": [
+        {
+          "name": "selector",
+          "code": "selector"
+        }
+      ],
+      "createdAt": 0,
+      "updatedAt": 0,
+      "action": {
+        "compilerRevision": 13,
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-animation-segment-track"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-animation-segment-track"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 25,
+              "required": true,
+              "returnTypeInfo": {
+                "type": 21,
+                "required": true,
+                "ownerClassId": "class-animation-segment-track",
+                "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
+              },
+              "argumentTypes": []
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 25,
+                  "required": true,
+                  "returnTypeInfo": {
+                    "type": 21,
+                    "required": true,
+                    "ownerClassId": "class-animation-segment-track",
+                    "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
+                  },
+                  "argumentTypes": []
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        }
+      },
+      "compiledBaseArguments": [
+        {
+          "compilerRevision": 13,
+          "parameters": [
+            {
+              "id": "__this__",
+              "typeInfo": {
+                "type": "Unknown",
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": "Unknown",
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__root__",
+              "typeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "__root__"
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "__root__"
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__arg_0__",
+              "typeInfo": {
+                "type": 25,
+                "required": true,
+                "returnTypeInfo": {
+                  "type": 21,
+                  "required": true,
+                  "ownerClassId": "class-animation-segment-track",
+                  "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
+                },
+                "argumentTypes": []
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 25,
+                    "required": true,
+                    "returnTypeInfo": {
+                      "type": 21,
+                      "required": true,
+                      "ownerClassId": "class-animation-segment-track",
+                      "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
+                    },
+                    "argumentTypes": []
+                  },
+                  "value": null
+                }
+              }
+            }
+          ],
+          "instructions": [
+            {
+              "type": "return",
+              "pointer": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              }
+            }
+          ],
+          "typeInfo": {
+            "type": 25,
+            "required": true,
+            "returnTypeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-animation-object-base"
+            },
+            "argumentTypes": []
+          }
+        }
+      ]
+    },
+    "system_9a3f52ca-872a-50a5-aad9-e9a040f40802": {
+      "id": "system_9a3f52ca-872a-50a5-aad9-e9a040f40802",
+      "projectId": "test-project",
+      "classId": "class-sprite-animation-segment-track",
+      "argumentTypes": [
+        {
+          "name": "selector",
+          "type": 25,
+          "required": true,
+          "returnTypeInfo": {
+            "type": 21,
+            "required": true,
+            "ownerClassId": "class-sprite-animation-segment-track",
+            "genericParamId": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
+          },
+          "argumentTypes": []
+        }
+      ],
+      "code": null,
+      "baseArguments": [
+        {
+          "name": "selector",
+          "code": "selector"
+        }
+      ],
+      "createdAt": 0,
+      "updatedAt": 0,
+      "action": {
+        "compilerRevision": 13,
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-sprite-animation-segment-track"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-sprite-animation-segment-track"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 25,
+              "required": true,
+              "returnTypeInfo": {
+                "type": 21,
+                "required": true,
+                "ownerClassId": "class-sprite-animation-segment-track",
+                "genericParamId": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
+              },
+              "argumentTypes": []
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 25,
+                  "required": true,
+                  "returnTypeInfo": {
+                    "type": 21,
+                    "required": true,
+                    "ownerClassId": "class-sprite-animation-segment-track",
+                    "genericParamId": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
+                  },
+                  "argumentTypes": []
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        }
+      },
+      "compiledBaseArguments": [
+        {
+          "compilerRevision": 13,
+          "parameters": [
+            {
+              "id": "__this__",
+              "typeInfo": {
+                "type": "Unknown",
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": "Unknown",
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__root__",
+              "typeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "__root__"
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "__root__"
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__arg_0__",
+              "typeInfo": {
+                "type": 25,
+                "required": true,
+                "returnTypeInfo": {
+                  "type": 21,
+                  "required": true,
+                  "ownerClassId": "class-sprite-animation-segment-track",
+                  "genericParamId": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
+                },
+                "argumentTypes": []
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 25,
+                    "required": true,
+                    "returnTypeInfo": {
+                      "type": 21,
+                      "required": true,
+                      "ownerClassId": "class-sprite-animation-segment-track",
+                      "genericParamId": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
+                    },
+                    "argumentTypes": []
+                  },
+                  "value": null
+                }
+              }
+            }
+          ],
+          "instructions": [
+            {
+              "type": "return",
+              "pointer": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              }
+            }
+          ],
+          "typeInfo": {
+            "type": 25,
+            "required": true,
+            "returnTypeInfo": {
+              "type": 21,
+              "required": true,
+              "ownerClassId": "class-sprite-animation-segment-track",
+              "genericParamId": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
+            },
+            "argumentTypes": []
+          }
+        }
+      ]
+    }
+  },
+  "variants": {},
+  "variantFolders": {},
   "internalRecordRelations": {},
   "values": {
     "v-num": {
@@ -4240,7 +6570,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score += 3;",
                 "action": {
-                  "compilerRevision": 3,
+                  "compilerRevision": 13,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -4388,6 +6718,14 @@
                   "typeInfo": {
                     "type": 0,
                     "required": true
+                  },
+                  "dependencies": {
+                    "recordIds": [
+                      "__root__",
+                      "member-root-score",
+                      "root-save"
+                    ],
+                    "typeNames": []
                   }
                 }
               }
@@ -4452,7 +6790,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score -= 3;",
                 "action": {
-                  "compilerRevision": 3,
+                  "compilerRevision": 13,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -4600,6 +6938,14 @@
                   "typeInfo": {
                     "type": 0,
                     "required": true
+                  },
+                  "dependencies": {
+                    "recordIds": [
+                      "__root__",
+                      "member-root-score",
+                      "root-save"
+                    ],
+                    "typeNames": []
                   }
                 }
               }
@@ -4664,7 +7010,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score *= 3;",
                 "action": {
-                  "compilerRevision": 3,
+                  "compilerRevision": 13,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -4812,6 +7158,14 @@
                   "typeInfo": {
                     "type": 0,
                     "required": true
+                  },
+                  "dependencies": {
+                    "recordIds": [
+                      "__root__",
+                      "member-root-score",
+                      "root-save"
+                    ],
+                    "typeNames": []
                   }
                 }
               }
@@ -4876,7 +7230,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score /= 3;",
                 "action": {
-                  "compilerRevision": 3,
+                  "compilerRevision": 13,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -5024,6 +7378,14 @@
                   "typeInfo": {
                     "type": 0,
                     "required": true
+                  },
+                  "dependencies": {
+                    "recordIds": [
+                      "__root__",
+                      "member-root-score",
+                      "root-save"
+                    ],
+                    "typeNames": []
                   }
                 }
               }
@@ -5088,7 +7450,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score %= 3;",
                 "action": {
-                  "compilerRevision": 3,
+                  "compilerRevision": 13,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -5236,6 +7598,14 @@
                   "typeInfo": {
                     "type": 0,
                     "required": true
+                  },
+                  "dependencies": {
+                    "recordIds": [
+                      "__root__",
+                      "member-root-score",
+                      "root-save"
+                    ],
+                    "typeNames": []
                   }
                 }
               }
@@ -5300,7 +7670,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score++;",
                 "action": {
-                  "compilerRevision": 3,
+                  "compilerRevision": 13,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -5448,6 +7818,14 @@
                   "typeInfo": {
                     "type": 0,
                     "required": true
+                  },
+                  "dependencies": {
+                    "recordIds": [
+                      "__root__",
+                      "member-root-score",
+                      "root-save"
+                    ],
+                    "typeNames": []
                   }
                 }
               }
@@ -5512,7 +7890,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score--;",
                 "action": {
-                  "compilerRevision": 3,
+                  "compilerRevision": 13,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -5660,6 +8038,14 @@
                   "typeInfo": {
                     "type": 0,
                     "required": true
+                  },
+                  "dependencies": {
+                    "recordIds": [
+                      "__root__",
+                      "member-root-score",
+                      "root-save"
+                    ],
+                    "typeNames": []
                   }
                 }
               }

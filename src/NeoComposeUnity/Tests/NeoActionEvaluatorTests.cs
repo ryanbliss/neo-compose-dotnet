@@ -556,9 +556,9 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CurrentCompilerRevisionIsTwelve()
+        public void CurrentCompilerRevisionIsThirteen()
         {
-            Assert.AreEqual(12, FunctionWithReturnType.CurrentCompilerRevision);
+            Assert.AreEqual(13, FunctionWithReturnType.CurrentCompilerRevision);
         }
 
         // -------------------------------------------------------------
