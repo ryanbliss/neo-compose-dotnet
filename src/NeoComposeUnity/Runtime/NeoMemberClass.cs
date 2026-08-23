@@ -357,6 +357,14 @@ namespace NeoCompose.Runtime
                         // members never reach this branch for missing keys.
                         childValueId = defaultValueIdForKey;
                     }
+                    else if (resolvedValueId is not null
+                        && client.TryGetVirtualClassChildValueId(
+                            resolvedValueId,
+                            entry.schemaKey,
+                            out string? virtualChildValueId))
+                    {
+                        childValueId = virtualChildValueId;
+                    }
                 }
                 if (previousChildren.TryGetValue(entry.schemaKey, out NeoMember? existing)
                     && existing.member.id == childMember.id
@@ -738,8 +746,21 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            if (value?.value is not null
-                && value.value.TryGetValue(key, out string existingValueId)
+            string? existingValueId = null;
+            if (value?.value is not null)
+            {
+                value.value.TryGetValue(key, out existingValueId);
+            }
+            if (existingValueId is null
+                && valueId is string parentValueId
+                && client.TryGetVirtualClassChildValueId(
+                    parentValueId,
+                    key,
+                    out string? virtualExistingValueId))
+            {
+                existingValueId = virtualExistingValueId;
+            }
+            if (existingValueId is not null
                 && client.TryGetValue(childOwnership, existingValueId, out MemberValue? existing))
             {
                 if (setValue?.isValueReference == true)

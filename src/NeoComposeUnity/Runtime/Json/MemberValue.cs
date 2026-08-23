@@ -1199,17 +1199,48 @@ namespace NeoCompose.Runtime.Json
         public NeoTimestamp updatedAt { get; set; }
 
         /// <summary>
-        /// P61 §3 / §5.1 — evaluated arguments used to create a
-        /// materialized class instance, keyed by constructor parameter id.
+        /// P61 §3 / §5.1 — evaluated arguments used to create a class
+        /// instance, keyed by constructor parameter id.
         /// These are creation data, not executable source: literals remain
         /// literals, a constructed argument is the id of its materialized row,
         /// and an NSDelegate argument retains its ordinary delegate-value
         /// object. The row's <c>value</c> remains authoritative for every
-        /// runtime read; Unity preserves this field so exports round-trip but
-        /// never replays construction from it.
+        /// P75 replays these arguments to resolve omitted instance rows.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public Dictionary<string, JToken?>? constructorArgs { get; set; }
+
+        /// <summary>
+        /// P75 creation provenance. A string names the exact declared
+        /// constructor; null selects the implicit new(). Historical rows omit
+        /// both this field and constructorArgs.
+        /// </summary>
+        private string? storedInstanceConstructorId;
+
+        [JsonIgnore]
+        public bool hasInstanceConstructorId { get; private set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Include)]
+        public string? instanceConstructorId
+        {
+            get => storedInstanceConstructorId;
+            set
+            {
+                storedInstanceConstructorId = value;
+                hasInstanceConstructorId = true;
+            }
+        }
+
+        public bool ShouldSerializeinstanceConstructorId() =>
+            hasInstanceConstructorId;
+
+        /// <summary>P75 variant layer used to construct this instance.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? instanceVariantId { get; set; }
+
+        /// <summary>P68 lookup row supplied to a lookup-bound variant.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? instanceVariantRowValueId { get; set; }
 
         /// <summary>
         /// Set iff this row is an entry of an <b>unordered</b> List value

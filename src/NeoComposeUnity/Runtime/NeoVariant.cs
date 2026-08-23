@@ -98,8 +98,9 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Runs the application path (P67 §4.2) for `ToVariant`, in order: the
         /// `Apply` closure if the variant declares one — a variant without it
-        /// is declarative-only and simply skips this step; then `Overrides`;
-        /// then `ChildOverrides`.
+        /// is declarative-only and simply skips this step — then writes the
+        /// declarative halves through the sparse runtime overlay and persists
+        /// the root provenance through which untouched values resolve.
         ///
         /// <para>Always in place. The value is <paramref name="source"/>, never
         /// a replacement instance.</para>
@@ -374,9 +375,9 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// P67 §4.2 — the whole application path, in place: the `Apply` closure
-        /// when the variant declares one, then `Overrides`, then
-        /// `ChildOverrides`.
+        /// P67 §4.2 + P75 §6 — the application path, in place: the `Apply`
+        /// closure and declarative halves write only what they touch, then the
+        /// root records variant provenance for the virtual remainder.
         ///
         /// <para>The base selection applies nothing. It names the class itself,
         /// and "become the plain class again" is not a state a written value
@@ -407,6 +408,11 @@ namespace NeoCompose.Runtime
                 lookupRowValueId);
             RunApplyClosure(client, record, node, ownership, arguments);
             ApplyDeclarativeHalves(client, record, node, ownership);
+            client.StampVirtualInstanceVariant(
+                node,
+                ownership,
+                record.id,
+                lookupRowValueId);
         }
 
         private static void RunApplyClosure(

@@ -20,7 +20,7 @@ namespace NeoCompose.Runtime
     /// <summary>
     /// NeoClient owns a live save file instance.
     /// </summary>
-    public class NeoClient : INeoClient
+    public partial class NeoClient : INeoClient
     {
         private static readonly HashSet<NeoClient> activeClients = new();
 
@@ -104,6 +104,9 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, IList<MergedSchemaEntry>> instanceSurfaceSchemas = new();
         private readonly Dictionary<string, IList<MergedSchemaEntry>> storedInstanceSchemas = new();
         private readonly Dictionary<string, IList<MergedSchemaEntry>> readOnlyMemberSchemas = new();
+        private readonly Dictionary<string, MemberValue> virtualValues = new();
+        private readonly Dictionary<string, NeoValueOwnership> virtualValueOwnership = new();
+        private readonly Dictionary<string, Dictionary<string, string>> virtualClassChildren = new();
         private IReadOnlyDictionary<string, MemberValue> readOnlyAuthoredRows =
             new Dictionary<string, MemberValue>();
         private IReadOnlyDictionary<string, string> readOnlyAuthoredClassIds =
@@ -622,6 +625,7 @@ namespace NeoCompose.Runtime
             assets = new(this, data.project.rootAssetsMemberId, null);
             save = new(this, data.project.rootSaveFileMemberId, null, NeoValueOwnership.Save);
             session = new(this, data.project.rootSessionMemberId, null, NeoValueOwnership.Session);
+            InitializeVirtualInstanceValues();
             NeoAnimationCompiler.ValidateProject(this);
             if (loadedExistingSave)
             {
@@ -779,6 +783,12 @@ namespace NeoCompose.Runtime
                     return true;
                 }
             }
+            if (virtualValues.TryGetValue(id, out MemberValue virtualMatch)
+                && virtualMatch is TValue typedVirtual)
+            {
+                value = typedVirtual;
+                return true;
+            }
             value = null;
             return false;
         }
@@ -823,6 +833,12 @@ namespace NeoCompose.Runtime
                 && assetMatch is TValue typedAsset)
             {
                 value = typedAsset;
+                return true;
+            }
+            if (virtualValues.TryGetValue(id, out MemberValue virtualMatch)
+                && virtualMatch is TValue typedVirtual)
+            {
+                value = typedVirtual;
                 return true;
             }
             return false;
@@ -2348,6 +2364,10 @@ namespace NeoCompose.Runtime
                 ownership = NeoValueOwnership.Asset;
                 return true;
             }
+            if (virtualValueOwnership.TryGetValue(id, out ownership))
+            {
+                return true;
+            }
             ownership = NeoValueOwnership.Asset;
             return false;
         }
@@ -2414,6 +2434,11 @@ namespace NeoCompose.Runtime
                 value = assetRow as TValue;
                 return value is not null;
             }
+            if (virtualValues.TryGetValue(id, out MemberValue virtualRow))
+            {
+                value = virtualRow as TValue;
+                return value is not null;
+            }
             return false;
         }
 
@@ -2449,6 +2474,11 @@ namespace NeoCompose.Runtime
             if (data.values.TryGetValue(id, out MemberValue authoredRow))
             {
                 value = authoredRow as TValue;
+                return value is not null;
+            }
+            if (virtualValues.TryGetValue(id, out MemberValue virtualRow))
+            {
+                value = virtualRow as TValue;
                 return value is not null;
             }
             return false;
@@ -3941,6 +3971,17 @@ namespace NeoCompose.Runtime
             // Authored-child provenance is immutable placement identity and
             // must survive every Save/Session clone-on-write shadow.
             clone.sourceValueId = row.sourceValueId;
+            clone.constructorArgs = row.constructorArgs is null
+                ? null
+                : row.constructorArgs.ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value?.DeepClone());
+            if (row.hasInstanceConstructorId)
+            {
+                clone.instanceConstructorId = row.instanceConstructorId;
+            }
+            clone.instanceVariantId = row.instanceVariantId;
+            clone.instanceVariantRowValueId = row.instanceVariantRowValueId;
             // genericBindings is immutable creation-time context
             // (specs/class-generics.md Decision 9): a shadow of a
             // stamped collection row keeps its entry-substitution stamp.
