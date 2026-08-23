@@ -164,6 +164,18 @@ namespace NeoCompose.Tests
         public void PartitionLoadAndUnloadBuildAndTearDownVirtualPlacementRows()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildPartitionedProjectData());
+            client.ProjectDataForRuntime.values["unrelated-malformed-root"] =
+                new ObjectMemberValue
+                {
+                    id = "unrelated-malformed-root",
+                    classId = TileInstanceClassId,
+                    value = new Dictionary<string, string>(),
+                    constructorArgs = new Dictionary<string, JToken?>(),
+                    instanceConstructorId = null,
+                };
+
+            // Partition replay is scoped to its newly loaded roots; an
+            // unrelated malformed sparse root must not poison the load.
             client.LoadValuePartition(WorldPartitionKey);
             var placementMember = (ClassMember)client.ProjectDataForRuntime.members[
                 "tile-layer-link-tile-entry-member"];

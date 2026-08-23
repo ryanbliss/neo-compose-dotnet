@@ -157,8 +157,8 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// P75 variant swaps persist one root-level provenance delta. The
-        /// imperative Apply closure has already written every value it touched;
-        /// declarative variant halves stay virtual and are replayed here.
+        /// imperative Apply closure has already run; declarative variant halves
+        /// stay virtual and are replayed here after their answered pins clear.
         /// </summary>
         internal void StampVirtualInstanceVariant(
             NeoMemberClassWritable node,
@@ -169,6 +169,15 @@ namespace NeoCompose.Runtime
             string valueId = node.value?.id
                 ?? throw new InvalidOperationException(
                     "ToVariant receiver has no backing value row.");
+            if (TryGetOverlaidValue(
+                    ownership,
+                    valueId,
+                    out ObjectMemberValue? current)
+                && current.instanceVariantId == variantId
+                && current.instanceVariantRowValueId == rowValueId)
+            {
+                return;
+            }
             if (ownership == NeoValueOwnership.Asset)
             {
                 throw new InvalidOperationException(
@@ -225,6 +234,64 @@ namespace NeoCompose.Runtime
             return depth;
         }
 
+        private void InitializeVirtualInstanceValuesForLoadedRows(
+            IEnumerable<MemberValue> loadedRows)
+        {
+            MemberValue[] rows = loadedRows.ToArray();
+            var parentByValueId = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (MemberValue row in rows)
+            {
+                if (row is ObjectMemberValue objectRow && objectRow.value is not null)
+                {
+                    foreach (string childId in objectRow.value.Values)
+                        parentByValueId.TryAdd(childId, row.id);
+                }
+                else if (row is ArrayMemberValue arrayRow && arrayRow.value is not null)
+                {
+                    foreach (string childId in arrayRow.value)
+                        parentByValueId.TryAdd(childId, row.id);
+                }
+                if (row.containerId is not null)
+                    parentByValueId.TryAdd(row.id, row.containerId);
+            }
+
+            foreach (ObjectMemberValue root in rows
+                .OfType<ObjectMemberValue>()
+                .Where(row => row.classId is not null)
+                .Where(row => row.hasInstanceConstructorId
+                    || row.instanceVariantId is not null)
+                .OrderBy(row => AuthoredContainmentDepth(row.id, parentByValueId))
+                .ThenBy(row => row.id, StringComparer.Ordinal))
+            {
+                AssertPersistedVirtualInstanceRootIsClassPlacement(root);
+                ExpandVirtualInstanceRoot(root);
+            }
+        }
+
+        private IReadOnlyCollection<string> ClearVirtualInstanceValuesForAuthoredRows(
+            IEnumerable<string> authoredRowIds)
+        {
+            var removedVirtualIds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string rootId in authoredRowIds)
+            {
+                if (!data.values.TryGetValue(rootId, out MemberValue? row)
+                    || row is not ObjectMemberValue root
+                    || (!root.hasInstanceConstructorId
+                        && root.instanceVariantId is null))
+                {
+                    continue;
+                }
+                if (virtualValueIdsByRoot.TryGetValue(
+                        rootId,
+                        out HashSet<string>? valueIds))
+                {
+                    removedVirtualIds.UnionWith(valueIds);
+                }
+                ClearVirtualInstanceRoot(rootId);
+            }
+            return removedVirtualIds;
+        }
+
         private static void RefreshVirtualWrapperTree(NeoMember node)
         {
             switch (node)
@@ -247,6 +314,16 @@ namespace NeoCompose.Runtime
 
         private void ExpandVirtualInstanceRoot(ObjectMemberValue instanceRoot)
         {
+            if (virtualValueIdsByRoot.TryGetValue(
+                    instanceRoot.id,
+                    out HashSet<string>? priorVirtualIds))
+            {
+                // Wrapper nodes retain the row object they were built from.
+                // A variant swap reuses stable virtual ids with new effective
+                // values, so release the prior wrappers before replacing the
+                // index or they keep serving the old variant indefinitely.
+                DisposeWrappersTouchingRows(priorVirtualIds);
+            }
             ClearVirtualInstanceRoot(instanceRoot.id);
             NeoValueOwnership ownership = TryGetValueOwnership(
                 instanceRoot.id,
@@ -611,6 +688,16 @@ namespace NeoCompose.Runtime
             MemberValue? materialized = null;
             if (materializedId is not null)
                 TryGetOverlaidValue(ownership, materializedId, out materialized);
+            // Sparse class spines are stored at their deterministic virtual
+            // ids without requiring every ancestor body to point at them.
+            // Probe that stable id before treating the whole subtree as
+            // virtual; otherwise a stored empty Class row hides all deeper
+            // virtual links and truncates web-authored overrides in Unity.
+            if (materialized is null
+                && materializedId != node.virtualId)
+            {
+                TryGetOverlaidValue(ownership, node.virtualId, out materialized);
+            }
             if (materialized is null)
             {
                 IndexVirtualSubtree(node, instanceRoot, ownership);
@@ -840,6 +927,13 @@ namespace NeoCompose.Runtime
 
         private static string VirtualValueId(string instanceRootId, string sourceIdentity)
         {
+            const string systemPrefix = "system_";
+            bool isSystemRecord = instanceRootId.StartsWith(
+                systemPrefix,
+                StringComparison.Ordinal);
+            string bareRootId = isSystemRecord
+                ? instanceRootId.Substring(systemPrefix.Length)
+                : instanceRootId;
             string namespaceHex = VirtualValueNamespace.Replace("-", string.Empty);
             var namespaceBytes = new byte[namespaceHex.Length / 2];
             for (int index = 0; index < namespaceBytes.Length; index++)
@@ -849,7 +943,7 @@ namespace NeoCompose.Runtime
                     16);
             }
             byte[] nameBytes = Encoding.UTF8.GetBytes(
-                $"{instanceRootId}:{sourceIdentity}");
+                $"{bareRootId}:{sourceIdentity}");
             byte[] input = new byte[namespaceBytes.Length + nameBytes.Length];
             Buffer.BlockCopy(namespaceBytes, 0, input, 0, namespaceBytes.Length);
             Buffer.BlockCopy(nameBytes, 0, input, namespaceBytes.Length, nameBytes.Length);
@@ -860,7 +954,8 @@ namespace NeoCompose.Runtime
             string hex = BitConverter.ToString(hash, 0, 16)
                 .Replace("-", string.Empty)
                 .ToLowerInvariant();
-            return $"{hex.Substring(0, 8)}-{hex.Substring(8, 4)}-{hex.Substring(12, 4)}-{hex.Substring(16, 4)}-{hex.Substring(20, 12)}";
+            string valueId = $"{hex.Substring(0, 8)}-{hex.Substring(8, 4)}-{hex.Substring(12, 4)}-{hex.Substring(16, 4)}-{hex.Substring(20, 12)}";
+            return isSystemRecord ? systemPrefix + valueId : valueId;
         }
     }
 }

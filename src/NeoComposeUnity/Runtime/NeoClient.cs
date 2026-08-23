@@ -4544,7 +4544,10 @@ namespace NeoCompose.Runtime
                 }
             }
             loadedPartitionRowIds[mapKey] = rowIds;
-            InitializeVirtualInstanceValues();
+            // A partition owns its placement roots. Replaying only those rows
+            // avoids O(project) work and prevents an unrelated malformed root
+            // elsewhere in the corpus from breaking this load.
+            InitializeVirtualInstanceValuesForLoadedRows(rows.Values);
             OnValuePartitionChanged?.Invoke(mapKey);
         }
 
@@ -4565,7 +4568,9 @@ namespace NeoCompose.Runtime
             }
             ThrowIfOverlayShadowsPartition(NeoValueOwnership.Save, mapKey, rowIds);
             ThrowIfOverlayShadowsPartition(NeoValueOwnership.Session, mapKey, rowIds);
-            DisposeWrappersTouchingRows(rowIds);
+            IReadOnlyCollection<string> virtualRowIds =
+                ClearVirtualInstanceValuesForAuthoredRows(rowIds);
+            DisposeWrappersTouchingRows(rowIds.Concat(virtualRowIds));
             foreach (var rowId in rowIds)
             {
                 if (authoredContainerByRow.TryGetValue(rowId, out string containerId))
@@ -4579,7 +4584,6 @@ namespace NeoCompose.Runtime
                 data.values.Remove(rowId);
             }
             loadedPartitionRowIds.Remove(mapKey);
-            InitializeVirtualInstanceValues();
             OnValuePartitionChanged?.Invoke(mapKey);
         }
 
@@ -6854,6 +6858,12 @@ namespace NeoCompose.Runtime
 
                     SetSaveValue(row);
                 }
+
+                // Live patches may introduce or remove sparse Class spine rows
+                // and root provenance. Rebuild the virtual index only after the
+                // incoming overlay is complete so readers never see a partial
+                // replay graph.
+                InitializeVirtualInstanceValues();
 
                 // Binding metadata is independent from the target rows. Keep
                 // absent (authored fallback) distinct from present-null

@@ -3164,19 +3164,6 @@ namespace NeoCompose.Runtime.NeoScript
                         reference.rowValueId,
                         scope,
                         ctx);
-                // The base selection writes nothing (§4.2), but still route
-                // through the shared boundary when a row was supplied so the
-                // illegal `ToVariant(Base, row)` shape fails like Initialize
-                // and the web evaluator instead of returning silently.
-                if (record is null)
-                {
-                    if (lookupRow is not null || lookupRowValueId is not null)
-                    {
-                        throw new InvalidOperationException(
-                            "The Base variant is not collection-bound and cannot receive a row.");
-                    }
-                    return receiver;
-                }
                 if (!ctx.client.TryGetValue(
                         source.ownership,
                         source.valueId,

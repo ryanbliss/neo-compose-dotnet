@@ -375,16 +375,14 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// P67 §4.2 + P75 §6 — the application path, in place. The root first
-        /// records the incoming variant so its declarative layer exists at the
-        /// stable virtual ids, then shadows answered by that layer are cleared.
-        /// The imperative `Apply` closure runs last and pins only what it
-        /// actually mutates.
+        /// P67 §4.2 + P75 §6 — the application path, in place. The imperative
+        /// `Apply` closure runs first. The root then records the incoming
+        /// variant and clears shadows answered by its declarative layer, so
+        /// Overrides and ChildOverrides retain their specified precedence.
         ///
-        /// <para>The base selection applies nothing. It names the class itself,
-        /// and "become the plain class again" is not a state a written value
-        /// can be walked back to; returning the receiver untouched keeps
-        /// `ToVariant` total.</para>
+        /// <para>The base selection has no layers to apply, but it still clears
+        /// root variant provenance so the old declarative layer stops
+        /// resolving.</para>
         /// </summary>
         internal static void ApplyToNode(
             NeoClient client,
@@ -401,6 +399,11 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         "The Base variant is not collection-bound and cannot receive a row.");
                 }
+                client.StampVirtualInstanceVariant(
+                    node,
+                    ownership,
+                    variantId: null,
+                    rowValueId: null);
                 return;
             }
             object?[] arguments = LookupArguments(
@@ -408,6 +411,7 @@ namespace NeoCompose.Runtime
                 record,
                 lookupRow,
                 lookupRowValueId);
+            RunApplyClosure(client, record, node, ownership, arguments);
             client.StampVirtualInstanceVariant(
                 node,
                 ownership,
@@ -423,7 +427,6 @@ namespace NeoCompose.Runtime
                 answered.ClearInstanceOverride();
             }
             client.RefreshVirtualInstanceVariant(node, ownership);
-            RunApplyClosure(client, record, node, ownership, arguments);
         }
 
         private static void RunApplyClosure(

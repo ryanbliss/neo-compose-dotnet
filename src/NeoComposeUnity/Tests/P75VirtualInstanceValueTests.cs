@@ -48,6 +48,111 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SparseSpineRowsAtVirtualIdsPreserveDeeperOverrides()
+        {
+            string nestedId;
+            string deepId;
+            string countId;
+            using (NeoClient probe = NeoTestSaveStack.ClientFromSchema(
+                BuildNestedProjectData()))
+            {
+                NeoMemberClassWritable nested = probe.save
+                    .Get<NeoMemberClassWritable>("Thing")
+                    .Get<NeoMemberClassWritable>("Nested");
+                NeoMemberClassWritable deep = nested
+                    .Get<NeoMemberClassWritable>("Deep");
+                nestedId = nested.value!.id;
+                deepId = deep.value!.id;
+                countId = deep.Get<NeoMemberIntWritable>("Count").value!.id;
+            }
+
+            ProjectData data = BuildNestedProjectData();
+            // Web sparse writes keep Class spine rows at their virtual ids,
+            // without reattaching them to each ancestor body.
+            data.values[nestedId] = ObjectValue(nestedId, "nested-class");
+            data.values[deepId] = ObjectValue(deepId, "deep-class");
+            data.values[countId] = new NumberMemberValue
+            {
+                id = countId,
+                value = 91,
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable nestedValue = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberClassWritable>("Nested");
+            NeoMemberClassWritable deepValue = nestedValue
+                .Get<NeoMemberClassWritable>("Deep");
+
+            Assert.AreEqual(nestedId, nestedValue.value!.id);
+            Assert.AreEqual(deepId, deepValue.value!.id);
+            Assert.AreEqual(
+                91d,
+                deepValue.Get<NeoMemberIntWritable>("Count").value!.value);
+        }
+
+        [Test]
+        public void SystemRootPropagatesItsNamespaceToVirtualChildren()
+        {
+            ProjectData data = BuildProjectData();
+            ObjectMemberValue root = (ObjectMemberValue)data.values["thing-instance"];
+            data.values.Remove(root.id);
+            root.id = "system_thing-instance";
+            data.values[root.id] = root;
+            ((ObjectMemberValue)data.values["value-save"]).value!["Thing"] = root.id;
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            string countId = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberIntWritable>("Count")
+                .value!.id;
+
+            Assert.AreEqual(
+                "system_35f55577-5ef0-5bf5-861b-070aa19817f5",
+                countId);
+        }
+
+        [Test]
+        public void ExternalSaveApplyRebuildsSparseVirtualSpines()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                BuildNestedProjectData());
+            NeoMemberClassWritable thing = client.save
+                .Get<NeoMemberClassWritable>("Thing");
+            NeoMemberClassWritable nested = thing
+                .Get<NeoMemberClassWritable>("Nested");
+            NeoMemberClassWritable deep = nested
+                .Get<NeoMemberClassWritable>("Deep");
+            string nestedId = nested.value!.id;
+            string deepId = deep.value!.id;
+            string countId = deep.Get<NeoMemberIntWritable>("Count").value!.id;
+
+            JObject incoming = JObject.Parse(client.SerializeSaveData());
+            var values = (JObject)incoming["values"]!;
+            values[nestedId] = JObject.FromObject(ObjectValue(
+                nestedId,
+                "nested-class"));
+            values[deepId] = JObject.FromObject(ObjectValue(
+                deepId,
+                "deep-class"));
+            values[countId] = JObject.FromObject(new NumberMemberValue
+            {
+                id = countId,
+                value = 73,
+            });
+
+            client.ApplyExternalSaveContent(incoming.ToString());
+
+            Assert.AreEqual(
+                73d,
+                thing
+                    .Get<NeoMemberClassWritable>("Nested")
+                    .Get<NeoMemberClassWritable>("Deep")
+                    .Get<NeoMemberIntWritable>("Count")
+                    .value!.value);
+        }
+
+        [Test]
         public void ResolveEffectiveRowReadsVirtualValuesForUntypedConsumers()
         {
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
@@ -330,6 +435,52 @@ namespace NeoCompose.Tests
                 id = "thing-item-b",
                 value = "B",
             };
+            return data;
+        }
+
+        private static ProjectData BuildNestedProjectData()
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["thing-class"].schema.Remove("Count");
+            data.classes["thing-class"].schema["Nested"] = "thing-nested";
+            data.members.Remove("thing-count");
+            data.members["thing-nested"] = new ClassMember
+            {
+                id = "thing-nested",
+                projectId = "p75-project",
+                name = "Nested",
+                kind = MemberKind.Class,
+                classId = "nested-class",
+                required = true,
+            };
+            data.members["nested-deep"] = new ClassMember
+            {
+                id = "nested-deep",
+                projectId = "p75-project",
+                name = "Deep",
+                kind = MemberKind.Class,
+                classId = "deep-class",
+                required = true,
+            };
+            data.members["deep-count"] = new IntMember
+            {
+                id = "deep-count",
+                projectId = "p75-project",
+                name = "Count",
+                kind = MemberKind.Int,
+                required = true,
+                defaultValue = new NumberMemberValueBase { value = 5 },
+            };
+            data.classes["nested-class"] = SchemaClass(
+                "nested-class",
+                "Nested",
+                "save");
+            data.classes["nested-class"].schema["Deep"] = "nested-deep";
+            data.classes["deep-class"] = SchemaClass(
+                "deep-class",
+                "Deep",
+                "save");
+            data.classes["deep-class"].schema["Count"] = "deep-count";
             return data;
         }
 

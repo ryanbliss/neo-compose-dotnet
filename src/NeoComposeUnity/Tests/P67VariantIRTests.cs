@@ -89,10 +89,10 @@ namespace NeoCompose.Tests
 
             // §4.2 step 4 — a value, and the receiver's, never a replacement.
             Assert.IsNotNull(applied);
-            // P75 §6.1: the declarative Label is the virtual baseline, then
-            // Apply pins Label and Trace at the incoming variant's stable ids.
+            // P67 §4.2: Apply runs first, then the declarative Label wins.
+            // Trace is Apply-only and remains pinned.
             Assert.AreEqual("apply-ran", ReadRowMember(client, targetId, "Trace"));
-            Assert.AreEqual("applied", ReadRowLabel(client, targetId));
+            Assert.AreEqual("up", ReadRowLabel(client, targetId));
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 targetId,
@@ -114,7 +114,7 @@ namespace NeoCompose.Tests
                 ctx);
 
             int firstApplyCount = client.sessionValues.Count;
-            Assert.AreEqual("applied", ReadRowLabel(client, targetId));
+            Assert.AreEqual("up", ReadRowLabel(client, targetId));
 
             NSGetterEvaluator.Evaluate(
                 Getter(Return(VariantApplyPointer(
@@ -129,7 +129,7 @@ namespace NeoCompose.Tests
                     VariantRef(WidgetClassId, "variant-up")))),
                 ctx);
 
-            Assert.AreEqual("applied", ReadRowLabel(client, targetId));
+            Assert.AreEqual("up", ReadRowLabel(client, targetId));
             Assert.AreEqual(firstApplyCount, client.sessionValues.Count);
         }
 
@@ -283,12 +283,19 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void BaseSelection_ApplyLeavesTheReceiverUntouched()
+        public void BaseSelection_ApplyClearsPriorVariantProvenance()
         {
             NeoClient client = LoadClient();
             NSGetterEvaluator.Context ctx = Context(client);
             string targetId = NewSessionInstance(client);
             string before = ReadRowLabel(client, targetId);
+
+            NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantApplyPointer(
+                    Reference(targetId),
+                    VariantRef(WidgetClassId, "variant-plain")))),
+                ctx);
+            Assert.AreEqual("plain", ReadRowLabel(client, targetId));
 
             object? applied = NSGetterEvaluator.Evaluate(
                 Getter(Return(VariantApplyPointer(
@@ -297,9 +304,13 @@ namespace NeoCompose.Tests
                 ctx);
 
             Assert.IsNotNull(applied);
-            // "Become the plain class again" is not a state a written value can
-            // be walked back to, so the base entry writes nothing (§4.2).
+            // Base has no layers, but it removes the prior declarative layer.
             Assert.AreEqual(before, ReadRowLabel(client, targetId));
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Session,
+                targetId,
+                out ObjectMemberValue? root));
+            Assert.IsNull(root!.instanceVariantId);
         }
 
         [Test]
@@ -376,7 +387,7 @@ namespace NeoCompose.Tests
                     MemberRead("value-target", "Chosen")))),
                 ctx);
 
-            Assert.AreEqual("applied", ReadRowLabel(client, targetId));
+            Assert.AreEqual("up", ReadRowLabel(client, targetId));
         }
 
         [Test]
