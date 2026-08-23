@@ -3,9 +3,12 @@
 
 #nullable enable
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using JsonMember = NeoCompose.Runtime.Json.Member;
@@ -45,6 +48,120 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ResolveEffectiveRowReadsVirtualValuesForUntypedConsumers()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            NeoMemberIntWritable count = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberIntWritable>("Count");
+
+            NumberMemberValue row = (NumberMemberValue)client.ResolveEffectiveRow(
+                count.value!.id)!;
+
+            Assert.AreEqual(5d, row.value);
+            Assert.AreEqual(count.value.id, row.id);
+        }
+
+        [Test]
+        public void VirtualUnorderedListRegistersItsEntriesAndContainment()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                BuildUnorderedListProjectData());
+            NeoMemberList items = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberList>("Items");
+
+            string[] entryIds = items
+                .Select(item => item.value!.id)
+                .OrderBy(id => id, System.StringComparer.Ordinal)
+                .ToArray();
+
+            Assert.AreEqual(2, entryIds.Length);
+            CollectionAssert.AreEqual(
+                entryIds,
+                client.GetUnorderedListEntryIds(items.value!.id).ToArray());
+            foreach (string entryId in entryIds)
+            {
+                Assert.IsTrue(client.TryResolveContainerIdForValueId(
+                    entryId,
+                    out string? containerId));
+                Assert.AreEqual(items.value.id, containerId);
+                Assert.IsInstanceOf<StringMemberValue>(
+                    client.ResolveEffectiveRow(entryId));
+            }
+        }
+
+        [Test]
+        public void SparseReplayFillsAnOmittedDefaultedConstructorArgument()
+        {
+            ProjectData data = BuildProjectData();
+            ObjectMemberValue root = (ObjectMemberValue)data.values["thing-instance"];
+            root.instanceConstructorId = "thing-ctor";
+            root.constructorArgs = new Dictionary<string, JToken?>();
+            data.classes["thing-class"].constructorIds = new[] { "thing-ctor" };
+            var optional = new FunctionArgumentTypeInfo
+            {
+                name = "Label",
+                type = MemberKind.String,
+                required = true,
+                defaultValue = new ParameterDefaultValue { value = "default" },
+            };
+            data.constructors = new Dictionary<string, ConstructorRecord>
+            {
+                ["thing-ctor"] = new ConstructorRecord
+                {
+                    id = "thing-ctor",
+                    projectId = "p75-project",
+                    classId = "thing-class",
+                    argumentTypes = new[] { optional },
+                    action = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = new[]
+                        {
+                            new Variable
+                            {
+                                id = "__this__",
+                                typeInfo = new ClassTypeInfo
+                                {
+                                    type = MemberKind.Class,
+                                    required = true,
+                                    classId = "thing-class",
+                                },
+                            },
+                            new Variable
+                            {
+                                id = "__root__",
+                                typeInfo = new ClassTypeInfo
+                                {
+                                    type = MemberKind.Class,
+                                    required = true,
+                                    classId = "save-root-class",
+                                },
+                            },
+                            new Variable { id = "__arg_0__", typeInfo = optional },
+                        },
+                        typeInfo = new PrimitiveTypeInfo
+                        {
+                            type = MemberKind.Null,
+                            required = true,
+                        },
+                        instructions = System.Array.Empty<Instruction>(),
+                    },
+                },
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            Assert.AreEqual(
+                5d,
+                client.save
+                    .Get<NeoMemberClassWritable>("Thing")
+                    .Get<NeoMemberIntWritable>("Count")
+                    .value!.value);
+        }
+
+        [Test]
         public void ConstructorProvenanceRoundTripsExplicitImplicitNull()
         {
             const string json = @"{
@@ -64,6 +181,21 @@ namespace NeoCompose.Tests
             StringAssert.Contains(
                 "\"instanceConstructorId\":null",
                 Newtonsoft.Json.JsonConvert.SerializeObject(row));
+        }
+
+        [Test]
+        public void PersistedSparseRootOutsideAClassPlacementFailsClosed()
+        {
+            ProjectData data = BuildProjectData();
+            ObjectMemberValue orphan = ObjectValue("orphan-instance", "thing-class");
+            orphan.constructorArgs = new Dictionary<string, JToken?>();
+            orphan.instanceConstructorId = null;
+            data.values[orphan.id] = orphan;
+
+            InvalidOperationException error = Assert.Throws<InvalidOperationException>(
+                () => NeoTestSaveStack.ClientFromSchema(data))!;
+
+            StringAssert.Contains("not reachable through a Class member", error.ToString());
         }
 
         private static ProjectData BuildProjectData(double defaultCount = 5)
@@ -158,6 +290,47 @@ namespace NeoCompose.Tests
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             };
+        }
+
+        private static ProjectData BuildUnorderedListProjectData()
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["thing-class"].schema.Remove("Count");
+            data.classes["thing-class"].schema["Items"] = "thing-items";
+            data.members.Remove("thing-count");
+            data.members["thing-item"] = new StringMember
+            {
+                id = "thing-item",
+                projectId = "p75-project",
+                name = "Item",
+                kind = MemberKind.String,
+                required = true,
+            };
+            data.members["thing-items"] = new ListMember
+            {
+                id = "thing-items",
+                projectId = "p75-project",
+                name = "Items",
+                kind = MemberKind.List,
+                required = true,
+                listKind = NeoListKinds.Unordered,
+                entryMemberId = "thing-item",
+                defaultValue = new ArrayMemberValueBase
+                {
+                    value = new[] { "thing-item-a", "thing-item-b" },
+                },
+            };
+            data.values["thing-item-a"] = new StringMemberValue
+            {
+                id = "thing-item-a",
+                value = "A",
+            };
+            data.values["thing-item-b"] = new StringMemberValue
+            {
+                id = "thing-item-b",
+                value = "B",
+            };
+            return data;
         }
 
         private static NeoSchemaClass SchemaClass(

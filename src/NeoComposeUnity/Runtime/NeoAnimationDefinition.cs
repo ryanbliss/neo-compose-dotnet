@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -652,6 +653,73 @@ namespace NeoCompose.Runtime
                 writableParent,
                 writableKey,
                 NeoValueWritePayload.FromValue(composed));
+        }
+
+        /// <summary>
+        /// P75 variant swaps make declarative answers virtual. A previously
+        /// pinned row at the same stable path must therefore be removed before
+        /// the imperative Apply closure runs. Structured-leaf partials share
+        /// one persisted value row, so the destructive-confirmation unit is
+        /// the leaf row rather than an individual component.
+        /// </summary>
+        internal void ClearInstanceOverride()
+        {
+            NeoMember leaf = ResolveLeafNode();
+            string? valueId = leaf.overrideValueId ?? leaf.value?.id;
+            if (string.IsNullOrEmpty(valueId)) return;
+            string? parentValueId = writableParent.overrideValueId
+                ?? writableParent.value?.id;
+            bool detached = false;
+            string? detachedValueId = null;
+            if (string.IsNullOrEmpty(parentValueId)
+                || !client.TryGetWritableValue(
+                    writableParent.ownership,
+                    parentValueId!,
+                    out ObjectMemberValue? storedParent)
+                || storedParent.value?.ContainsKey(writableKey) != true)
+            {
+                if (client.TryFindOwnedParent(
+                        leaf.ownership,
+                        valueId!,
+                        out string? indexedParentId)
+                    && client.TryGetWritableValue(
+                        writableParent.ownership,
+                        indexedParentId,
+                        out storedParent))
+                {
+                    parentValueId = indexedParentId;
+                }
+                else
+                {
+                    storedParent = null;
+                }
+            }
+            if (storedParent?.value is not null)
+            {
+                if (client.CloneRowForWrite(storedParent) is not ObjectMemberValue next
+                    || next.value is not Dictionary<string, string> nextBody)
+                {
+                    throw new InvalidOperationException(
+                        $"Variant override parent '{storedParent.id}' is not a writable Class row.");
+                }
+                if (nextBody.TryGetValue(writableKey, out detachedValueId))
+                {
+                    nextBody.Remove(writableKey);
+                    client.SetWritableValue(writableParent.ownership, next, "value");
+                    detached = true;
+                }
+            }
+            if (detached)
+            {
+                client.RemoveWritableValueAndDescendantsIfUnlinked(
+                    leaf.ownership,
+                    detachedValueId!,
+                    leaf.member);
+            }
+            else
+            {
+                client.RemoveWritableShadow(leaf.ownership, valueId!);
+            }
         }
 
         /// <summary>
@@ -2499,7 +2567,8 @@ namespace NeoCompose.Runtime
             List<NeoAnimationCompiledWrite> writes,
             List<Action> selectorActions,
             string clipKey,
-            int frameIndex)
+            int frameIndex,
+            bool resolveSelectorsImmediately = false)
         {
             foreach (NeoMember item in childOverrides)
             {
@@ -2521,9 +2590,13 @@ namespace NeoCompose.Runtime
                     label,
                     clipKey,
                     $"frame {frameIndex} child override");
-                if (selector.Refresh == NeoSelectorRefreshKind.OnLoad)
+                if (selector.Refresh == NeoSelectorRefreshKind.OnLoad
+                    || resolveSelectorsImmediately)
                 {
-                    NeoMemberClass? placedChild = selector.ResolveOptional();
+                    NeoMemberClass? placedChild =
+                        selector.Refresh == NeoSelectorRefreshKind.OnLoad
+                            ? selector.ResolveOptional()
+                            : selector.Resolve();
                     if (placedChild is null) continue;
                     FlattenOverrides(
                         target.Client,

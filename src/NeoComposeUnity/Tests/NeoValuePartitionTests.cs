@@ -161,6 +161,34 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void PartitionLoadAndUnloadBuildAndTearDownVirtualPlacementRows()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildPartitionedProjectData());
+            client.LoadValuePartition(WorldPartitionKey);
+            var placementMember = (ClassMember)client.ProjectDataForRuntime.members[
+                "tile-layer-link-tile-entry-member"];
+            using var placement = new NeoMemberClass(
+                client,
+                placementMember,
+                "floor-1");
+            NeoMemberBool enabled = placement.Get<NeoMemberBool>("Enabled");
+            string virtualId = enabled.value!.id;
+
+            Assert.AreEqual(true, enabled.value.value);
+            Assert.AreEqual(
+                WorldPartitionKey,
+                client.ResolveEffectiveRow(virtualId)!.mapKey);
+
+            client.UnloadValuePartition(WorldPartitionKey);
+            Assert.IsNull(client.ResolveEffectiveRow(virtualId));
+
+            client.LoadValuePartition(WorldPartitionKey);
+            Assert.AreEqual(
+                true,
+                ((BoolMemberValue)client.ResolveEffectiveRow(virtualId)!).value);
+        }
+
+        [Test]
         public void UnloadValuePartition_NotLoadedThrows()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildPartitionedProjectData());
@@ -425,6 +453,7 @@ namespace NeoCompose.Tests
                 schema = new Dictionary<string, string>
                 {
                     ["Cell"] = "tile-instance-cell-member",
+                    ["Enabled"] = "tile-instance-enabled-member",
                 },
             };
             var tileLayerLinkBaseClass = new NeoSchemaClass
@@ -448,6 +477,18 @@ namespace NeoCompose.Tests
                 schema = new Dictionary<string, string>(),
             };
 
+            JObject floorPlacement = PartitionRow(
+                "floor-1",
+                TileInstanceClassId,
+                new JObject
+                {
+                    ["Cell"] = "floor-1-cell",
+                    ["assetClassId"] = TileClassId,
+                },
+                containerId: TilesListValueId);
+            floorPlacement["instanceConstructorId"] = JValue.CreateNull();
+            floorPlacement["constructorArgs"] = new JObject();
+
             var partition = new JObject
             {
                 ["town-grid-children"] = PartitionRow(
@@ -460,15 +501,7 @@ namespace NeoCompose.Tests
                         ["Tiles"] = TilesListValueId,
                     }),
                 [TilesListValueId] = PartitionRow(TilesListValueId, null, new JArray()),
-                ["floor-1"] = PartitionRow(
-                    "floor-1",
-                    TileInstanceClassId,
-                    new JObject
-                    {
-                        ["Cell"] = "floor-1-cell",
-                        ["assetClassId"] = TileClassId,
-                    },
-                    containerId: TilesListValueId),
+                ["floor-1"] = floorPlacement,
                 ["floor-1-cell"] = PartitionRow(
                     "floor-1-cell", null, new JObject { ["x"] = 3, ["y"] = 4 }),
             };
@@ -511,6 +544,20 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Cell",
                         kind = MemberKind.Vector2Int,
+                        required = true,
+                        defaultValue = new Vector2MemberValueBase
+                        {
+                            value = new NeoVector2Value { x = 0, y = 0 },
+                        },
+                    },
+                    ["tile-instance-enabled-member"] = new BoolMember
+                    {
+                        id = "tile-instance-enabled-member",
+                        projectId = "project-a",
+                        name = "Enabled",
+                        kind = MemberKind.Bool,
+                        required = true,
+                        defaultValue = new BoolMemberValueBase { value = true },
                     },
                     ["tile-layer-link-tiles-member"] = new ListMember
                     {

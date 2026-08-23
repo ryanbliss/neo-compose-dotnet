@@ -375,9 +375,11 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// P67 §4.2 + P75 §6 — the application path, in place: the `Apply`
-        /// closure and declarative halves write only what they touch, then the
-        /// root records variant provenance for the virtual remainder.
+        /// P67 §4.2 + P75 §6 — the application path, in place. The root first
+        /// records the incoming variant so its declarative layer exists at the
+        /// stable virtual ids, then shadows answered by that layer are cleared.
+        /// The imperative `Apply` closure runs last and pins only what it
+        /// actually mutates.
         ///
         /// <para>The base selection applies nothing. It names the class itself,
         /// and "become the plain class again" is not a state a written value
@@ -406,13 +408,22 @@ namespace NeoCompose.Runtime
                 record,
                 lookupRow,
                 lookupRowValueId);
-            RunApplyClosure(client, record, node, ownership, arguments);
-            ApplyDeclarativeHalves(client, record, node, ownership);
             client.StampVirtualInstanceVariant(
                 node,
                 ownership,
                 record.id,
                 lookupRowValueId);
+            foreach (NeoAnimationCompiledWrite answered in CompileDeclarativeHalves(
+                client,
+                record,
+                node,
+                ownership,
+                resolveSelectorsImmediately: true))
+            {
+                answered.ClearInstanceOverride();
+            }
+            client.RefreshVirtualInstanceVariant(node, ownership);
+            RunApplyClosure(client, record, node, ownership, arguments);
         }
 
         private static void RunApplyClosure(
@@ -586,6 +597,24 @@ namespace NeoCompose.Runtime
             NeoMemberClassWritable node,
             NeoValueOwnership ownership)
         {
+            foreach (NeoAnimationCompiledWrite write in CompileDeclarativeHalves(
+                client,
+                record,
+                node,
+                ownership,
+                resolveSelectorsImmediately: false))
+            {
+                write.Apply();
+            }
+        }
+
+        private static IReadOnlyList<NeoAnimationCompiledWrite> CompileDeclarativeHalves(
+            NeoClient client,
+            VariantRecord record,
+            NeoMemberClassWritable node,
+            NeoValueOwnership ownership,
+            bool resolveSelectorsImmediately)
+        {
             using var instance = new NeoVariantTargetValue(client, node, ownership);
             NeoMemberClass graph = ResolveGraph(client, record);
             string variantKey = $"variant:{record.id}";
@@ -615,10 +644,11 @@ namespace NeoCompose.Runtime
                     writes,
                     selectorActions,
                     variantKey,
-                    0);
+                    0,
+                    resolveSelectorsImmediately);
             }
-            foreach (NeoAnimationCompiledWrite write in writes) write.Apply();
             foreach (Action selectorAction in selectorActions) selectorAction();
+            return writes;
         }
 
         private static NeoMemberClass ResolveGraph(

@@ -107,6 +107,10 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, MemberValue> virtualValues = new();
         private readonly Dictionary<string, NeoValueOwnership> virtualValueOwnership = new();
         private readonly Dictionary<string, Dictionary<string, string>> virtualClassChildren = new();
+        private readonly Dictionary<string, HashSet<string>> virtualEntriesByContainer = new();
+        private readonly Dictionary<string, string> virtualContainerByRow = new();
+        private readonly Dictionary<string, HashSet<string>> virtualValueIdsByRoot = new();
+        private readonly Dictionary<string, HashSet<string>> virtualClassParentIdsByRoot = new();
         private IReadOnlyDictionary<string, MemberValue> readOnlyAuthoredRows =
             new Dictionary<string, MemberValue>();
         private IReadOnlyDictionary<string, string> readOnlyAuthoredClassIds =
@@ -3568,6 +3572,22 @@ namespace NeoCompose.Runtime
                 }
             }
 
+            // Unordered-list membership is stored on the child row rather
+            // than in the list body's discriminator. Follow that back-pointer
+            // before scanning body-owned placements so partition-loaded tile
+            // entries infer the same declared entry member as ordered lists.
+            if (TryGetValue(valueId, out MemberValue? containedValue)
+                && !string.IsNullOrEmpty(containedValue.containerId)
+                && TryInferMemberForValueId(
+                    containedValue.containerId!,
+                    new HashSet<string>(visitingValueIds),
+                    out Member? containerMember)
+                && TryResolveCollectionEntryMember(containerMember) is Member containedMember)
+            {
+                member = containedMember;
+                return true;
+            }
+
             foreach (var parent in EnumerateAllValueRows())
             {
                 if (parent.Value is not ObjectMemberValue objectValue
@@ -4524,6 +4544,7 @@ namespace NeoCompose.Runtime
                 }
             }
             loadedPartitionRowIds[mapKey] = rowIds;
+            InitializeVirtualInstanceValues();
             OnValuePartitionChanged?.Invoke(mapKey);
         }
 
@@ -4558,6 +4579,7 @@ namespace NeoCompose.Runtime
                 data.values.Remove(rowId);
             }
             loadedPartitionRowIds.Remove(mapKey);
+            InitializeVirtualInstanceValues();
             OnValuePartitionChanged?.Invoke(mapKey);
         }
 
@@ -4669,6 +4691,11 @@ namespace NeoCompose.Runtime
                 containerId = authoredContainer;
                 return true;
             }
+            if (virtualContainerByRow.TryGetValue(valueId, out string virtualContainer))
+            {
+                containerId = virtualContainer;
+                return true;
+            }
             containerId = null;
             return false;
         }
@@ -4692,6 +4719,7 @@ namespace NeoCompose.Runtime
             var members = new List<string>();
             var seen = new HashSet<string>();
             CollectLiveMembers(authoredEntriesByContainer, containerValueId, seen, members);
+            CollectLiveMembers(virtualEntriesByContainer, containerValueId, seen, members);
             CollectLiveMembers(saveEntriesByContainer, containerValueId, seen, members);
             CollectLiveMembers(sessionEntriesByContainer, containerValueId, seen, members);
             members.Sort(System.StringComparer.Ordinal);
@@ -4723,6 +4751,7 @@ namespace NeoCompose.Runtime
             if (sessionData.values.TryGetValue(valueId, out MemberValue sessionRow)) return sessionRow;
             if (saveData.values.TryGetValue(valueId, out MemberValue saveRow)) return saveRow;
             if (data.values.TryGetValue(valueId, out MemberValue authoredRow)) return authoredRow;
+            if (virtualValues.TryGetValue(valueId, out MemberValue virtualRow)) return virtualRow;
             return null;
         }
 

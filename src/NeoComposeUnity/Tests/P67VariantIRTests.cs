@@ -89,15 +89,19 @@ namespace NeoCompose.Tests
 
             // §4.2 step 4 — a value, and the receiver's, never a replacement.
             Assert.IsNotNull(applied);
-            // Ordering, provably: Apply wrote Label AND Trace; Overrides then
-            // overwrote Label only. `Trace` is what makes a skipped Apply fail
-            // this test rather than pass it silently.
+            // P75 §6.1: the declarative Label is the virtual baseline, then
+            // Apply pins Label and Trace at the incoming variant's stable ids.
             Assert.AreEqual("apply-ran", ReadRowMember(client, targetId, "Trace"));
-            Assert.AreEqual("up", ReadRowLabel(client, targetId));
+            Assert.AreEqual("applied", ReadRowLabel(client, targetId));
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Session,
+                targetId,
+                out ObjectMemberValue? root));
+            Assert.AreEqual("variant-up", root!.instanceVariantId);
         }
 
         [Test]
-        public void VariantApply_OverridesWinOverTheApplyClosure()
+        public void VariantApply_ResultsPinAndRepeatedSwapsDoNotGrowTheSession()
         {
             NeoClient client = LoadClient();
             NSGetterEvaluator.Context ctx = Context(client);
@@ -109,8 +113,24 @@ namespace NeoCompose.Tests
                     VariantRef(WidgetClassId, "variant-up")))),
                 ctx);
 
-            // Apply set Label to "applied"; Overrides is step 2, so it wins.
-            Assert.AreNotEqual("applied", ReadRowLabel(client, targetId));
+            int firstApplyCount = client.sessionValues.Count;
+            Assert.AreEqual("applied", ReadRowLabel(client, targetId));
+
+            NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantApplyPointer(
+                    Reference(targetId),
+                    VariantRef(WidgetClassId, "variant-plain")))),
+                ctx);
+            Assert.AreEqual("plain", ReadRowLabel(client, targetId));
+
+            NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantApplyPointer(
+                    Reference(targetId),
+                    VariantRef(WidgetClassId, "variant-up")))),
+                ctx);
+
+            Assert.AreEqual("applied", ReadRowLabel(client, targetId));
+            Assert.AreEqual(firstApplyCount, client.sessionValues.Count);
         }
 
         // -------------------------------------------------------------------
@@ -211,6 +231,11 @@ namespace NeoCompose.Tests
             NeoClient client = LoadClient();
             NSGetterEvaluator.Context ctx = Context(client);
             string targetId = NewSessionInstance(client);
+            NeoMemberClassWritable initialized = NeoVariantSupport.InitializeNode(
+                client,
+                WidgetClassId,
+                client.variants["variant-plain"]);
+            Assert.AreEqual("plain", ReadLabel(client, initialized));
 
             // "Plain" authors no Apply value — declarative-only application.
             // The member is still declared on the class, so "absent" has to be
@@ -221,6 +246,21 @@ namespace NeoCompose.Tests
                     VariantRef(WidgetClassId, "variant-plain")))),
                 ctx);
 
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Session,
+                targetId,
+                out ObjectMemberValue? root));
+            Assert.AreEqual("variant-plain", root!.instanceVariantId);
+            Assert.IsFalse(
+                root.value!.ContainsKey("Label"),
+                $"stored root keys: {string.Join(",", root.value.Keys)}");
+            Assert.IsTrue(client.TryGetVirtualClassChildValueId(
+                targetId,
+                "Label",
+                out string? virtualLabelId));
+            Assert.AreEqual(
+                "plain",
+                ((StringMemberValue)client.ResolveEffectiveRow(virtualLabelId!)!).value);
             Assert.AreEqual("plain", ReadRowLabel(client, targetId));
         }
 
@@ -336,7 +376,7 @@ namespace NeoCompose.Tests
                     MemberRead("value-target", "Chosen")))),
                 ctx);
 
-            Assert.AreEqual("up", ReadRowLabel(client, targetId));
+            Assert.AreEqual("applied", ReadRowLabel(client, targetId));
         }
 
         [Test]
@@ -614,13 +654,21 @@ namespace NeoCompose.Tests
             string valueId,
             string schemaKey)
         {
-            if (!client.TryGetValue(valueId, out ObjectMemberValue? row)) return string.Empty;
-            if (row.value is null || !row.value.TryGetValue(schemaKey, out string? memberId))
+            var member = new ClassMember
             {
-                return string.Empty;
-            }
-            return client.TryGetValue(memberId, out StringMemberValue? member)
-                ? member.value ?? string.Empty
+                id = $"__variant_test_{valueId}_{schemaKey}",
+                projectId = ProjectId,
+                name = "Variant test receiver",
+                kind = MemberKind.Class,
+                classId = WidgetClassId,
+            };
+            using var node = new NeoMemberClass(
+                client,
+                member,
+                valueId,
+                NeoValueOwnership.Session);
+            return node.TryGet(schemaKey, out NeoMemberString? value)
+                ? value.value?.value ?? string.Empty
                 : string.Empty;
         }
 
