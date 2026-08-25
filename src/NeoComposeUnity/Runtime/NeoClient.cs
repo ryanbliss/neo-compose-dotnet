@@ -6936,7 +6936,9 @@ namespace NeoCompose.Runtime
                     Debug.LogWarning(
                         $"NeoCompose save contains {unlinkedValueIds.Count} unlinked value(s). " +
                         "This can happen when generated factory values are created but never assigned. " +
-                        "Call RunGarbageCollector() before CommitAsync() to delete unlinked values.");
+                        "Inspect them with FindUnlinkedSaveValueIds() first: RunGarbageCollector() " +
+                        "deletes every id it reports, so run it only once you have confirmed none of " +
+                        "them is a value you still intend to link.");
                 }
             }
             var savedAt = NeoTimestamp.Now();
@@ -7162,6 +7164,20 @@ namespace NeoCompose.Runtime
                 var current = pending.Dequeue();
                 if (!reachable.Add(current.valueId)) continue;
                 newlyReachable?.Enqueue(current.valueId);
+                // P75 sparse spines are a reachability edge that no stored
+                // body carries: a write under an omitted Class member adopts
+                // the deterministic virtual id WITHOUT linking key -> id into
+                // the parent. Walking only stored bodies therefore judges
+                // every such override unlinked and the collector deletes the
+                // user's write. The virtual index is that missing edge, and it
+                // has to be followed BEFORE the store lookup below, because a
+                // purely virtual spine row is in neither store.
+                foreach (string virtualChildId in EnumerateVirtualReachableChildIds(
+                    ownership,
+                    current.valueId))
+                {
+                    pending.Enqueue((virtualChildId, null));
+                }
                 if (!store.values.TryGetValue(current.valueId, out MemberValue? val)
                     && !data.values.TryGetValue(current.valueId, out val))
                 {

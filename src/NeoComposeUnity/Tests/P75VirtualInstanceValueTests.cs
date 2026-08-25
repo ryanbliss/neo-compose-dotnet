@@ -400,6 +400,100 @@ namespace NeoCompose.Tests
             Assert.AreEqual(virtualId, reapplied.value.id);
         }
 
+        [Test]
+        public void GarbageCollectorKeepsOverridesWrittenUnderASparseSpine()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                BuildNestedProjectData());
+            NeoMemberIntWritable count = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberClassWritable>("Nested")
+                .Get<NeoMemberClassWritable>("Deep")
+                .Get<NeoMemberIntWritable>("Count");
+
+            count.Set(42);
+            string virtualId = count.value!.id;
+            Assert.IsTrue(client.saveValues.ContainsKey(virtualId));
+
+            // The spine is sparse by design: no ancestor body links this id,
+            // so only the virtual index can prove it reachable.
+            CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
+            Assert.AreEqual(0, client.RunGarbageCollector());
+
+            Assert.IsTrue(client.saveValues.ContainsKey(virtualId));
+            Assert.AreEqual(
+                42d,
+                client.save
+                    .Get<NeoMemberClassWritable>("Thing")
+                    .Get<NeoMemberClassWritable>("Nested")
+                    .Get<NeoMemberClassWritable>("Deep")
+                    .Get<NeoMemberIntWritable>("Count")
+                    .value!.value);
+        }
+
+        [Test]
+        public void LiveApplyScopesAMalformedRootAndKeepsTheOthers()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                BuildTwoRootProjectData());
+            Assert.AreEqual(
+                5d,
+                client.save
+                    .Get<NeoMemberClassWritable>("Thing")
+                    .Get<NeoMemberIntWritable>("Count")
+                    .value!.value);
+
+            JObject incoming = JObject.Parse(client.SerializeSaveData());
+            var values = (JObject)incoming["values"]!;
+            // A root whose recipe cannot resolve. Before scoping, this
+            // exception escaped the whole apply and left the index gutted.
+            values["other-instance"] = JObject.Parse(@"{
+  'id':'other-instance',
+  'classId':'thing-class',
+  'value':{},
+  'constructorArgs':{},
+  'instanceConstructorId':'missing-ctor',
+  'createdAt':'2026-08-22T00:00:00.000Z',
+  'updatedAt':'2026-08-22T00:00:00.000Z'
+}".Replace('\'', '"'));
+
+            UnityEngine.TestTools.LogAssert.Expect(
+                UnityEngine.LogType.Warning,
+                new System.Text.RegularExpressions.Regex(
+                    "could not replay instance root 'other-instance'"));
+            client.ApplyExternalSaveContent(incoming.ToString());
+
+            Assert.AreEqual(
+                5d,
+                client.save
+                    .Get<NeoMemberClassWritable>("Thing")
+                    .Get<NeoMemberIntWritable>("Count")
+                    .value!.value,
+                "A malformed root must not cost every other root its virtual values.");
+        }
+
+        private static ProjectData BuildTwoRootProjectData()
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["save-root-class"].schema["Other"] = "other-member";
+            data.members["other-member"] = new ClassMember
+            {
+                id = "other-member",
+                projectId = "p75-project",
+                name = "Other",
+                kind = MemberKind.Class,
+                classId = "thing-class",
+                required = true,
+                storage = "save",
+            };
+            ObjectMemberValue other = ObjectValue("other-instance", "thing-class");
+            other.constructorArgs = new Dictionary<string, JToken?>();
+            other.instanceConstructorId = null;
+            data.values[other.id] = other;
+            ((ObjectMemberValue)data.values["value-save"]).value!["Other"] = other.id;
+            return data;
+        }
+
         private static ProjectData BuildProjectData(double defaultCount = 5)
         {
             const string projectId = "p75-project";

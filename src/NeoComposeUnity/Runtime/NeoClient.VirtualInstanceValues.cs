@@ -1019,6 +1019,44 @@ namespace NeoCompose.Runtime
                 IndexVirtualSubtree(child, instanceRoot, ownership);
         }
 
+        /// <summary>
+        /// The reachability edges the virtual index owns for one already
+        /// reachable value: the sparse-spine schema-key links hanging off it,
+        /// and — when it is an instance root — every id inside its expansion.
+        /// A row materialized at one of those ids is a user override of an
+        /// omitted member and is reachable exactly because its root is.
+        /// </summary>
+        private IEnumerable<string> EnumerateVirtualReachableChildIds(
+            NeoValueOwnership ownership,
+            string valueId)
+        {
+            if (virtualClassChildren.TryGetValue(
+                    valueId,
+                    out Dictionary<string, string>? links))
+            {
+                foreach (string childId in links.Values) yield return childId;
+            }
+            if (!virtualValueIdsByRoot.TryGetValue(
+                    valueId,
+                    out HashSet<string>? expansionIds))
+            {
+                yield break;
+            }
+            foreach (string expansionId in expansionIds)
+            {
+                // The expansion is indexed under the root's own ownership;
+                // a differently-owned id belongs to another store's sweep.
+                if (virtualValueOwnership.TryGetValue(
+                        expansionId,
+                        out NeoValueOwnership expansionOwnership)
+                    && expansionOwnership != ownership)
+                {
+                    continue;
+                }
+                yield return expansionId;
+            }
+        }
+
         private void TrackVirtualValue(string rootId, string valueId)
         {
             if (!virtualValueIdsByRoot.TryGetValue(rootId, out HashSet<string>? ids))
