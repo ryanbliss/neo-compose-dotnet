@@ -601,6 +601,44 @@ namespace NeoCompose.Tests
             }
         }
 
+        [Test]
+        public void LiveApplyReexpandsOnlyTheRootsThePatchTouches()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                BuildTwoRootProjectData());
+            NeoMemberIntWritable thingCount = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberIntWritable>("Count");
+            NeoMemberIntWritable otherCount = client.save
+                .Get<NeoMemberClassWritable>("Other")
+                .Get<NeoMemberIntWritable>("Count");
+            Assert.AreEqual(5d, thingCount.value!.value);
+            Assert.AreEqual(5d, otherCount.value!.value);
+            string thingCountId = thingCount.value.id;
+
+            JObject incoming = JObject.Parse(client.SerializeSaveData());
+            ((JObject)incoming["values"]!)[thingCountId] = JObject.FromObject(
+                new NumberMemberValue { id = thingCountId, value = 31 });
+
+            client.ApplyExternalSaveContent(incoming.ToString());
+
+            // Replaying the touched root retires its wrappers; every other
+            // root keeps both its index entries and its live wrappers, which
+            // is the observable difference between a scoped invalidation and
+            // a full project re-expansion.
+            Assert.IsTrue(thingCount.isDisposed);
+            Assert.IsFalse(
+                otherCount.isDisposed,
+                "An untouched root must not be re-expanded by a patch that never reached it.");
+            Assert.AreEqual(5d, otherCount.value!.value);
+            Assert.AreEqual(
+                31d,
+                client.save
+                    .Get<NeoMemberClassWritable>("Thing")
+                    .Get<NeoMemberIntWritable>("Count")
+                    .value!.value);
+        }
+
         private static ProjectData BuildTwoRootProjectData()
         {
             ProjectData data = BuildProjectData();

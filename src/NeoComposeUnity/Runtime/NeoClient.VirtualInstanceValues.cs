@@ -27,6 +27,17 @@ namespace NeoCompose.Runtime
         /// </summary>
         private const int MaxVirtualInstanceRebuildPasses = 8;
         private bool isInitializingVirtualInstanceValues;
+        private bool isReplayingVirtualInstance;
+
+        /// <summary>
+        /// Every row id one instance root's expansion touched — the virtual
+        /// ids it minted AND the materialized ids that answered its nodes.
+        /// This is the attribution a live apply needs: it turns "these rows
+        /// changed" into "these roots have to be replayed", so the rest of the
+        /// project keeps its index entries.
+        /// </summary>
+        private readonly Dictionary<string, HashSet<string>> virtualFootprintByRoot = new();
+        private readonly Dictionary<string, string> virtualRootByFootprintId = new();
         private bool virtualInstanceValuesDirty;
 
         private sealed class VirtualExpansionNode
@@ -192,6 +203,8 @@ namespace NeoCompose.Runtime
             virtualContainerByRow.Clear();
             virtualValueIdsByRoot.Clear();
             virtualClassParentIdsByRoot.Clear();
+            virtualFootprintByRoot.Clear();
+            virtualRootByFootprintId.Clear();
             MemberValue[] allRows = data.values.Values
                 .Concat(saveData.values.Values)
                 .Concat(sessionData.values.Values)
@@ -222,9 +235,7 @@ namespace NeoCompose.Runtime
             // The three roots were created before replay so constructor and
             // variant code could resolve Assets/Save/Session. Rebind their
             // wrapper trees once the virtual child index is complete.
-            RefreshVirtualWrapperTree(assets);
-            RefreshVirtualWrapperTree(save);
-            RefreshVirtualWrapperTree(session);
+            RefreshAllVirtualWrapperTrees();
         }
 
         /// <summary>
@@ -270,6 +281,113 @@ namespace NeoCompose.Runtime
                 Debug.LogWarning(
                     $"[NeoCompose] P75 could not replay instance root '{root.id}' of class '{root.classId}' from the incoming live content; its virtual values are unavailable until the next successful apply. {error}");
             }
+        }
+
+        /// <summary>
+        /// P75 live-apply invalidation. Replaying EVERY instance root for
+        /// every delivered live-content message is O(instances x expansion)
+        /// on a message that usually touches one row, and each throwaway
+        /// replay graph churns change events for ids no subscriber ever saw.
+        /// Only roots the patch actually reaches are replayed here; every
+        /// other root keeps its index entries and its live wrappers.
+        ///
+        /// <para>Returns false when the patch cannot be attributed and the
+        /// caller must fall back to a full rebuild.</para>
+        /// </summary>
+        private bool TryReexpandVirtualInstanceRootsForChangedRows(
+            IReadOnlyCollection<string> changedValueIds,
+            bool failClosed)
+        {
+            if (isInitializingVirtualInstanceValues) return false;
+            var affectedRootIds = new HashSet<string>(StringComparer.Ordinal);
+            var retiredRootIds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string valueId in changedValueIds)
+            {
+                // The row is (or has become) a root in its own right.
+                MemberValue? current = ResolveEffectiveRow(valueId);
+                if (current is ObjectMemberValue currentRoot
+                    && currentRoot.classId is not null
+                    && IsVirtualInstanceRoot(currentRoot))
+                {
+                    affectedRootIds.Add(valueId);
+                }
+                else if (virtualFootprintByRoot.ContainsKey(valueId))
+                {
+                    // It was a root and no longer is.
+                    retiredRootIds.Add(valueId);
+                }
+                // The row sits inside some root's expansion — as a virtual id
+                // it minted, or as the materialized override answering one.
+                if (virtualRootByFootprintId.TryGetValue(
+                        valueId,
+                        out string? owningRootId))
+                {
+                    affectedRootIds.Add(owningRootId);
+                }
+                // The row is creation data some root replays against.
+                foreach (string argumentRootId in RootsUsingConstructorArgumentRow(valueId))
+                {
+                    affectedRootIds.Add(argumentRootId);
+                }
+            }
+            foreach (string retiredRootId in retiredRootIds)
+            {
+                if (virtualValueIdsByRoot.TryGetValue(
+                        retiredRootId,
+                        out HashSet<string>? retiredIds))
+                {
+                    DisposeWrappersTouchingRows(new HashSet<string>(retiredIds));
+                }
+                ClearVirtualInstanceRoot(retiredRootId);
+                affectedRootIds.Remove(retiredRootId);
+            }
+            if (affectedRootIds.Count == 0)
+            {
+                if (retiredRootIds.Count > 0) RefreshAllVirtualWrapperTrees();
+                return true;
+            }
+
+            Dictionary<string, string> parentByValueId = BuildParentByValueId(
+                data.values.Values
+                    .Concat(saveData.values.Values)
+                    .Concat(sessionData.values.Values));
+            foreach (string rootId in affectedRootIds
+                .OrderBy(id => AuthoredContainmentDepth(id, parentByValueId))
+                .ThenBy(id => id, StringComparer.Ordinal))
+            {
+                if (ResolveEffectiveRow(rootId) is not ObjectMemberValue root) continue;
+                ExpandVirtualInstanceRootOrReport(root, failClosed);
+            }
+            RefreshAllVirtualWrapperTrees();
+            return true;
+        }
+
+        /// <summary>
+        /// Roots whose <c>constructorArgs</c> name this value id, and which
+        /// therefore replay differently once it changes.
+        /// </summary>
+        private IEnumerable<string> RootsUsingConstructorArgumentRow(string valueId)
+        {
+            foreach (string rootId in virtualFootprintByRoot.Keys)
+            {
+                if (ResolveEffectiveRow(rootId) is not ObjectMemberValue root) continue;
+                if (root.constructorArgs is null) continue;
+                foreach (JToken? argument in root.constructorArgs.Values)
+                {
+                    if (argument is null) continue;
+                    if (argument.Type != JTokenType.String) continue;
+                    if (argument.Value<string>() != valueId) continue;
+                    yield return rootId;
+                    break;
+                }
+            }
+        }
+
+        private void RefreshAllVirtualWrapperTrees()
+        {
+            RefreshVirtualWrapperTree(assets);
+            RefreshVirtualWrapperTree(save);
+            RefreshVirtualWrapperTree(session);
         }
 
         private void AssertPersistedVirtualInstanceRootIsClassPlacement(
@@ -344,6 +462,36 @@ namespace NeoCompose.Runtime
                 root.hasInstanceConstructorId ? root.instanceConstructorId : null,
                 root.constructorArgs ?? new Dictionary<string, JToken?>());
             SetWritableValue(ownership, root, "instanceVariantId");
+            ExpandVirtualInstanceRoot(root);
+            RefreshVirtualWrapperTree(node);
+        }
+
+        /// <summary>
+        /// P75 acceptance criterion 3 — records the variant a runtime
+        /// <c>Variants.X.Initialize()</c> was built from on the row it
+        /// produced, then expands it so members the construction left at
+        /// their declared values resolve through the virtual layer instead of
+        /// being frozen at construction time.
+        ///
+        /// <para>The Base selection needs nothing here: its construction
+        /// already stamped the constructor pair, which is the whole recipe.
+        /// </para>
+        /// </summary>
+        internal void StampConstructedVariantInstance(
+            NeoMemberClassWritable node,
+            VariantRecord? record,
+            string? lookupRowValueId)
+        {
+            if (record is null) return;
+            // A replay constructs a throwaway graph by calling straight back
+            // into this path. Expanding it there would recurse without bound,
+            // and its rows are discarded anyway.
+            if (isReplayingVirtualInstance) return;
+            ObjectMemberValue root = node.value
+                ?? throw new InvalidOperationException(
+                    $"Variant '{record.id}' produced a node with no backing value row.");
+            root.instanceVariantId = record.id;
+            root.instanceVariantRowValueId = lookupRowValueId;
             ExpandVirtualInstanceRoot(root);
             RefreshVirtualWrapperTree(node);
         }
@@ -500,6 +648,8 @@ namespace NeoCompose.Runtime
                 sessionData.values.Keys,
                 StringComparer.Ordinal);
             NeoMemberClassWritable constructed;
+            bool wasReplaying = isReplayingVirtualInstance;
+            isReplayingVirtualInstance = true;
             try
             {
                 constructed = ReplayVirtualInstance(instanceRoot);
@@ -509,6 +659,10 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"P75 could not replay sparse instance '{instanceRoot.id}' of class '{instanceRoot.classId}'.",
                     error);
+            }
+            finally
+            {
+                isReplayingVirtualInstance = wasReplaying;
             }
 
             string temporaryRootId = constructed.value?.id
@@ -888,6 +1042,7 @@ namespace NeoCompose.Runtime
                 return;
             }
             string effectiveId = materialized?.id ?? node.virtualId;
+            TrackVirtualFootprint(instanceRoot.id, effectiveId);
 
             if (node.member is ClassMember)
             {
@@ -1006,6 +1161,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             string? unorderedContainerId = null)
         {
+            TrackVirtualFootprint(instanceRoot.id, node.virtualId);
             MemberValue virtualRow = RewriteVirtualRow(node, instanceRoot);
             if (unorderedContainerId is not null)
                 virtualRow.containerId = unorderedContainerId;
@@ -1088,8 +1244,34 @@ namespace NeoCompose.Runtime
             ids.Add(parentId);
         }
 
+        private void TrackVirtualFootprint(string rootId, string valueId)
+        {
+            if (!virtualFootprintByRoot.TryGetValue(rootId, out HashSet<string>? ids))
+            {
+                ids = new HashSet<string>(StringComparer.Ordinal);
+                virtualFootprintByRoot[rootId] = ids;
+            }
+            if (ids.Add(valueId)) virtualRootByFootprintId[valueId] = rootId;
+        }
+
         private void ClearVirtualInstanceRoot(string rootId)
         {
+            if (virtualFootprintByRoot.TryGetValue(
+                    rootId,
+                    out HashSet<string>? footprint))
+            {
+                foreach (string valueId in footprint)
+                {
+                    if (virtualRootByFootprintId.TryGetValue(
+                            valueId,
+                            out string? owner)
+                        && owner == rootId)
+                    {
+                        virtualRootByFootprintId.Remove(valueId);
+                    }
+                }
+                virtualFootprintByRoot.Remove(rootId);
+            }
             if (virtualValueIdsByRoot.TryGetValue(rootId, out HashSet<string>? valueIds))
             {
                 foreach (string valueId in valueIds)

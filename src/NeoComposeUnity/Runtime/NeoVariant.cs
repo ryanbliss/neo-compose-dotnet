@@ -371,6 +371,11 @@ namespace NeoCompose.Runtime
             }
             // `Apply` deliberately does not run on this path (§4.1).
             ApplyDeclarativeHalves(client, record, node, NeoValueOwnership.Session);
+            // The construction below the closure already stamped its
+            // constructor pair (P75 §4). Recording the variant on top is what
+            // makes the row replay through the SAME declarative layer it was
+            // built from, rather than through the class's own construction.
+            client.StampConstructedVariantInstance(node, record, lookupRowValueId);
             return node;
         }
 

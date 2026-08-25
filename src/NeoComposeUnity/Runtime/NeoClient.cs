@@ -2687,6 +2687,10 @@ namespace NeoCompose.Runtime
                         value.containerId!);
                 }
             }
+            // A P75 replay publishes a throwaway graph it reclaims before
+            // returning. Announcing ids no subscriber has ever seen — and will
+            // never see again — is pure churn on every live tick.
+            if (isReplayingVirtualInstance) return;
             foreach (MemberValue value in values)
             {
                 OnWritableValueChanged?.Invoke(
@@ -6856,6 +6860,9 @@ namespace NeoCompose.Runtime
                     RemoveWritableShadow(NeoValueOwnership.Save, id);
                 }
 
+                var changedValueIds = new HashSet<string>(
+                    removedIds,
+                    System.StringComparer.Ordinal);
                 foreach (var row in rows.Values)
                 {
                     if (saveValues.TryGetValue(row.id, out var existing)
@@ -6865,15 +6872,23 @@ namespace NeoCompose.Runtime
                     }
 
                     SetSaveValue(row);
+                    changedValueIds.Add(row.id);
                 }
 
                 // Live patches may introduce or remove sparse Class spine rows
-                // and root provenance. Rebuild the virtual index only after the
-                // incoming overlay is complete so readers never see a partial
-                // replay graph. A live apply is not a place to fail closed:
-                // one malformed root must not gut the index for a running
-                // game, so failures are scoped to their own root.
-                InitializeVirtualInstanceValues(failClosed: false);
+                // and root provenance, so the virtual index is invalidated only
+                // after the incoming overlay is complete — readers never see a
+                // partial replay graph. Only the roots this patch reaches are
+                // replayed; a message that touches one row must not cost a full
+                // project re-expansion. A live apply is also not a place to
+                // fail closed: one malformed root must not gut the index for a
+                // running game, so failures are scoped to their own root.
+                if (!TryReexpandVirtualInstanceRootsForChangedRows(
+                        changedValueIds,
+                        failClosed: false))
+                {
+                    InitializeVirtualInstanceValues(failClosed: false);
+                }
 
                 // Binding metadata is independent from the target rows. Keep
                 // absent (authored fallback) distinct from present-null
