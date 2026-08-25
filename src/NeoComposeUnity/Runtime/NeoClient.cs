@@ -6862,8 +6862,10 @@ namespace NeoCompose.Runtime
                 // Live patches may introduce or remove sparse Class spine rows
                 // and root provenance. Rebuild the virtual index only after the
                 // incoming overlay is complete so readers never see a partial
-                // replay graph.
-                InitializeVirtualInstanceValues();
+                // replay graph. A live apply is not a place to fail closed:
+                // one malformed root must not gut the index for a running
+                // game, so failures are scoped to their own root.
+                InitializeVirtualInstanceValues(failClosed: false);
 
                 // Binding metadata is independent from the target rows. Keep
                 // absent (authored fallback) distinct from present-null

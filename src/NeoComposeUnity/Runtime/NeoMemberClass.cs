@@ -367,6 +367,12 @@ namespace NeoCompose.Runtime
                     }
                 }
                 if (previousChildren.TryGetValue(entry.schemaKey, out NeoMember? existing)
+                    // A P75 rebuild mints new rows at the SAME deterministic
+                    // virtual ids and disposes the wrappers holding the old
+                    // ones. Matching ids therefore no longer implies the
+                    // wrapper is still usable — a disposed one would serve the
+                    // previous expansion for the rest of its life.
+                    && !existing.isDisposed
                     && existing.member.id == childMember.id
                     && (existing.overrideValueId == childValueId
                         || existing.value?.id == childValueId))

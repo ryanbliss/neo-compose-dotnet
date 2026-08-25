@@ -11,6 +11,7 @@ using System.Text;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json.Linq;
+using UnityEngine;
 
 namespace NeoCompose.Runtime
 {
@@ -18,6 +19,13 @@ namespace NeoCompose.Runtime
     {
         private const string VirtualValueNamespace =
             "3e8ca0b3-e3f1-5d5f-bf2f-6ab5ee3896d0";
+
+        /// <summary>
+        /// Convergence bound for the re-entrant replay loop. Each pass is a
+        /// full project replay; more than a handful means the graph is not
+        /// settling rather than that the project is large.
+        /// </summary>
+        private const int MaxVirtualInstanceRebuildPasses = 8;
         private bool isInitializingVirtualInstanceValues;
         private bool virtualInstanceValuesDirty;
 
@@ -31,6 +39,86 @@ namespace NeoCompose.Runtime
             internal readonly Dictionary<string, VirtualExpansionNode> classChildren = new();
             internal readonly List<VirtualExpansionNode> listChildren = new();
             internal readonly Dictionary<string, VirtualExpansionNode> dictionaryChildren = new();
+        }
+
+        /// <summary>
+        /// P75 root eligibility. A row is a sparse instance root when it
+        /// carries ANY arm of the creation-provenance stamp: an explicit
+        /// <c>instanceConstructorId</c> (present even when its value is
+        /// null &#8212; the implicit <c>new()</c>), evaluated
+        /// <c>constructorArgs</c>, or a selected variant. The
+        /// <c>constructorArgs</c> arm matters on its own because the web's
+        /// schema-impact repair can produce a row that carries only the
+        /// arguments; without it that row would silently stop expanding.
+        /// </summary>
+        internal static bool IsVirtualInstanceRoot(MemberValue row)
+        {
+            return row.hasInstanceConstructorId
+                || row.constructorArgs is not null
+                || row.instanceVariantId is not null;
+        }
+
+        /// <summary>
+        /// Writes the canonical P75 creation-provenance PAIR onto a row the
+        /// runtime just constructed, so it is durably a sparse instance root
+        /// and replays through <see cref="ExpandVirtualInstanceRoot"/> on
+        /// every later load. The implicit <c>new()</c> stamps an explicit
+        /// null constructor id (which serializes) alongside empty arguments.
+        /// </summary>
+        internal static void StampConstructionProvenance(
+            ObjectMemberValue root,
+            string? constructorId,
+            Dictionary<string, JToken?> constructorArgs)
+        {
+            root.instanceConstructorId = constructorId;
+            root.constructorArgs = constructorArgs;
+        }
+
+        /// <summary>
+        /// Serializes one evaluated constructor argument into the creation
+        /// data <see cref="MemberValue.constructorArgs"/> stores: literals
+        /// stay literals, a constructed argument becomes the id of its
+        /// materialized row, and structured runtime values keep their JSON
+        /// shape. This is the exact inverse of
+        /// <see cref="VirtualReplayArgument"/>.
+        /// </summary>
+        internal static JToken? ConstructorArgumentToken(
+            object? value,
+            string describeArgument)
+        {
+            switch (value)
+            {
+                case null:
+                    return JValue.CreateNull();
+                case JToken token:
+                    return token.DeepClone();
+                case string text:
+                    return new JValue(text);
+                case bool flag:
+                    return new JValue(flag);
+                case NeoMember member:
+                    return member.value is null
+                        ? JValue.CreateNull()
+                        : new JValue(member.value.id);
+                case NeoGeneratedClassValue generated:
+                    return generated.valueId is null
+                        ? JValue.CreateNull()
+                        : new JValue(generated.valueId);
+                case sbyte or byte or short or ushort or int or uint or long:
+                    return new JValue(Convert.ToInt64(value));
+                case float or double or decimal:
+                    return new JValue(Convert.ToDouble(value));
+            }
+            try
+            {
+                return JToken.FromObject(value);
+            }
+            catch (Exception error)
+            {
+                throw new InvalidOperationException(
+                    $"Constructor argument {describeArgument} of runtime type '{value.GetType().FullName}' cannot be recorded as P75 creation data.",
+                    error);
+            }
         }
 
         internal bool TryGetVirtualClassChildValueId(
@@ -51,7 +139,7 @@ namespace NeoCompose.Runtime
         /// The replay graph is temporary Session data; only immutable read
         /// rows and parent/schema-key links survive this method.
         /// </summary>
-        private void InitializeVirtualInstanceValues()
+        private void InitializeVirtualInstanceValues(bool failClosed = true)
         {
             if (isInitializingVirtualInstanceValues)
             {
@@ -61,10 +149,21 @@ namespace NeoCompose.Runtime
             isInitializingVirtualInstanceValues = true;
             try
             {
+                int pass = 0;
                 do
                 {
+                    // A replay can publish rows that make another root's
+                    // expansion stale, which re-enters here and asks for one
+                    // more pass. That must converge: an expansion whose own
+                    // output keeps re-dirtying the index would otherwise spin
+                    // forever with no diagnostic.
+                    if (++pass > MaxVirtualInstanceRebuildPasses)
+                    {
+                        throw new InvalidOperationException(
+                            $"P75 virtual instance replay did not converge after {MaxVirtualInstanceRebuildPasses} passes. A constructor or variant Initialize is writing rows that invalidate the instance index on every pass.");
+                    }
                     virtualInstanceValuesDirty = false;
-                    InitializeVirtualInstanceValuesCore();
+                    InitializeVirtualInstanceValuesCore(failClosed);
                 }
                 while (virtualInstanceValuesDirty);
             }
@@ -74,8 +173,18 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private void InitializeVirtualInstanceValuesCore()
+        private void InitializeVirtualInstanceValuesCore(bool failClosed)
         {
+            // Wrapper nodes retain the row object they were built from, and a
+            // full rebuild mints new rows at the SAME deterministic ids. The
+            // per-root dispose guard in ExpandVirtualInstanceRoot reads the
+            // index that is about to be cleared, so it cannot see them:
+            // snapshot the outgoing ids here and release their wrappers once
+            // the new index is in place, or a held wrapper serves the old
+            // expansion forever.
+            var outgoingVirtualIds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (HashSet<string> ids in virtualValueIdsByRoot.Values)
+                outgoingVirtualIds.UnionWith(ids);
             virtualValues.Clear();
             virtualValueOwnership.Clear();
             virtualClassChildren.Clear();
@@ -108,8 +217,7 @@ namespace NeoCompose.Runtime
             ObjectMemberValue[] roots = allRows
                 .OfType<ObjectMemberValue>()
                 .Where(row => row.classId is not null)
-                .Where(row => row.hasInstanceConstructorId
-                    || row.instanceVariantId is not null)
+                .Where(IsVirtualInstanceRoot)
                 // A containing replay may index the nested root using its
                 // outer-root virtual scope. Replaying shallow-to-deep lets the
                 // nested root's own durable recipe overwrite that provisional
@@ -120,10 +228,10 @@ namespace NeoCompose.Runtime
 
             foreach (ObjectMemberValue root in roots)
             {
-                if (!sessionData.values.ContainsKey(root.id))
-                    AssertPersistedVirtualInstanceRootIsClassPlacement(root);
-                ExpandVirtualInstanceRoot(root);
+                ExpandVirtualInstanceRootOrReport(root, failClosed);
             }
+
+            DisposeWrappersTouchingRows(outgoingVirtualIds);
 
             // The three roots were created before replay so constructor and
             // variant code could resolve Assets/Save/Session. Rebind their
@@ -131,6 +239,51 @@ namespace NeoCompose.Runtime
             RefreshVirtualWrapperTree(assets);
             RefreshVirtualWrapperTree(save);
             RefreshVirtualWrapperTree(session);
+        }
+
+        /// <summary>
+        /// Whether the row NAMES its creation recipe rather than merely
+        /// carrying evaluated arguments. Pre-P75 corpora stamp
+        /// <c>constructorArgs</c> from P61 evaluation without recording which
+        /// overload ran, so an arguments-only row is shape-identical to a root
+        /// the web's schema-impact repair produced. Explicit rows are the only
+        /// ones a replay failure can be blamed on.
+        /// </summary>
+        private static bool HasExplicitInstanceProvenance(MemberValue row)
+        {
+            return row.hasInstanceConstructorId
+                || row.instanceVariantId is not null;
+        }
+
+        /// <summary>
+        /// Expands one root, scoping any failure to that root. A malformed
+        /// root must not gut the whole index: the live path keeps every other
+        /// root's virtual values and surfaces the failure, mirroring how a
+        /// partition load replays only its own placement roots.
+        /// </summary>
+        private void ExpandVirtualInstanceRootOrReport(
+            ObjectMemberValue root,
+            bool failClosed)
+        {
+            try
+            {
+                if (!sessionData.values.ContainsKey(root.id))
+                    AssertPersistedVirtualInstanceRootIsClassPlacement(root);
+                ExpandVirtualInstanceRoot(root);
+            }
+            catch (Exception error)
+            {
+                ClearVirtualInstanceRoot(root.id);
+                if (!HasExplicitInstanceProvenance(root))
+                {
+                    // Legacy arguments-only row. It loaded fully materialized
+                    // and stays that way; there is nothing to warn about.
+                    return;
+                }
+                if (failClosed) throw;
+                Debug.LogWarning(
+                    $"[NeoCompose] P75 could not replay instance root '{root.id}' of class '{root.classId}' from the incoming live content; its virtual values are unavailable until the next successful apply. {error}");
+            }
         }
 
         private void AssertPersistedVirtualInstanceRootIsClassPlacement(
@@ -194,6 +347,16 @@ namespace NeoCompose.Runtime
             }
             root.instanceVariantId = variantId;
             root.instanceVariantRowValueId = rowValueId;
+            // `instanceVariantId` is the row's ONLY eligibility marker while
+            // a variant is selected, and it serializes with
+            // NullValueHandling.Ignore &#8212; clearing to Base would therefore
+            // erase every trace that this row is a P75 root and strand its
+            // whole virtual layer. Re-establish (or preserve) the constructor
+            // pair so the row keeps expanding through its own construction.
+            StampConstructionProvenance(
+                root,
+                root.hasInstanceConstructorId ? root.instanceConstructorId : null,
+                root.constructorArgs ?? new Dictionary<string, JToken?>());
             SetWritableValue(ownership, root, "instanceVariantId");
             ExpandVirtualInstanceRoot(root);
             RefreshVirtualWrapperTree(node);
@@ -258,13 +421,11 @@ namespace NeoCompose.Runtime
             foreach (ObjectMemberValue root in rows
                 .OfType<ObjectMemberValue>()
                 .Where(row => row.classId is not null)
-                .Where(row => row.hasInstanceConstructorId
-                    || row.instanceVariantId is not null)
+                .Where(IsVirtualInstanceRoot)
                 .OrderBy(row => AuthoredContainmentDepth(row.id, parentByValueId))
                 .ThenBy(row => row.id, StringComparer.Ordinal))
             {
-                AssertPersistedVirtualInstanceRootIsClassPlacement(root);
-                ExpandVirtualInstanceRoot(root);
+                ExpandVirtualInstanceRootOrReport(root, failClosed: true);
             }
         }
 
@@ -276,8 +437,7 @@ namespace NeoCompose.Runtime
             {
                 if (!data.values.TryGetValue(rootId, out MemberValue? row)
                     || row is not ObjectMemberValue root
-                    || (!root.hasInstanceConstructorId
-                        && root.instanceVariantId is null))
+                    || !IsVirtualInstanceRoot(root))
                 {
                     continue;
                 }
@@ -451,7 +611,13 @@ namespace NeoCompose.Runtime
                 replayArguments.ToArray());
         }
 
-        private static string ConstructorParameterId(
+        /// <summary>
+        /// The <see cref="MemberValue.constructorArgs"/> key for one declared
+        /// parameter: the compiled action's own parameter id when it has one
+        /// (slots 0 and 1 are <c>__this__</c> and <c>__root__</c>), and a
+        /// positional fallback otherwise.
+        /// </summary>
+        internal static string ConstructorParameterId(
             ConstructorRecord constructor,
             int index)
         {
@@ -705,8 +871,7 @@ namespace NeoCompose.Runtime
             }
             if (materialized.id != instanceRoot.id
                 && materialized is ObjectMemberValue nestedRoot
-                && (nestedRoot.hasInstanceConstructorId
-                    || nestedRoot.instanceVariantId is not null))
+                && IsVirtualInstanceRoot(nestedRoot))
             {
                 // A nested construction owns its own UUID namespace and is
                 // replayed independently. Do not retain an unreachable copy

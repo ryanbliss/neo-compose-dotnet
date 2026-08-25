@@ -303,6 +303,103 @@ namespace NeoCompose.Tests
             StringAssert.Contains("not reachable through a Class member", error.ToString());
         }
 
+        [Test]
+        public void RuntimeConstructionStampsTheCanonicalProvenancePair()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+
+            NeoMemberClassWritable constructed =
+                NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client,
+                    "thing-class",
+                    constructorId: null,
+                    Array.Empty<NeoDeclaredConstructorArgument>());
+
+            ObjectMemberValue row = constructed.value!;
+            Assert.IsTrue(
+                row.hasInstanceConstructorId,
+                "An implicitly constructed row must carry an EXPLICIT null constructor id.");
+            Assert.IsNull(row.instanceConstructorId);
+            Assert.IsNotNull(row.constructorArgs);
+            Assert.AreEqual(0, row.constructorArgs!.Count);
+            Assert.IsTrue(NeoClient.IsVirtualInstanceRoot(row));
+            StringAssert.Contains(
+                "\"instanceConstructorId\":null",
+                Newtonsoft.Json.JsonConvert.SerializeObject(row));
+        }
+
+        [Test]
+        public void ConstructorArgsAloneMakeARowASparseInstanceRoot()
+        {
+            ProjectData data = BuildProjectData();
+            // The web's schema-impact repair can rewrite a row's arguments
+            // without re-stamping the constructor id.
+            var root = (ObjectMemberValue)data.values["thing-instance"];
+            data.values["thing-instance"] = Newtonsoft.Json.JsonConvert
+                .DeserializeObject<ObjectMemberValue>(@"{
+  'id':'thing-instance',
+  'classId':'thing-class',
+  'value':{},
+  'constructorArgs':{},
+  'createdAt':'2026-08-22T00:00:00.000Z',
+  'updatedAt':'2026-08-22T00:00:00.000Z'
+}".Replace('\'', '"'))!;
+            Assert.IsFalse(data.values["thing-instance"].hasInstanceConstructorId);
+            Assert.AreEqual("thing-class", root.classId);
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            Assert.AreEqual(
+                5d,
+                client.save
+                    .Get<NeoMemberClassWritable>("Thing")
+                    .Get<NeoMemberIntWritable>("Count")
+                    .value!.value);
+        }
+
+        [Test]
+        public void ClearingAVariantToBaseKeepsTheInstanceExpanding()
+        {
+            ProjectData data = BuildProjectData();
+            // A variant-only root: the web stamped the selected variant and
+            // nothing else, so `instanceVariantId` is its ONLY eligibility
+            // marker.
+            var authored = (ObjectMemberValue)data.values["thing-instance"];
+            data.values["thing-instance"] = ObjectValue(authored.id, authored.classId!);
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable thing = client.save
+                .Get<NeoMemberClassWritable>("Thing");
+            ((ObjectMemberValue)client.values["thing-instance"]).instanceVariantId =
+                "thing-variant";
+
+            client.StampVirtualInstanceVariant(
+                thing,
+                NeoValueOwnership.Save,
+                variantId: null,
+                rowValueId: null);
+
+            NeoMemberIntWritable count = thing.Get<NeoMemberIntWritable>("Count");
+            Assert.AreEqual(5d, count.value!.value);
+            string virtualId = count.value.id;
+
+            string content = client.SerializeSaveData();
+            var written = (JObject)JObject.Parse(content)["values"]!["thing-instance"]!;
+            Assert.IsTrue(
+                written.TryGetValue("instanceConstructorId", out JToken? stampedId),
+                "Clearing to Base must leave the row a valid P75 root.");
+            Assert.AreEqual(JTokenType.Null, stampedId!.Type);
+            Assert.IsNotNull(written["constructorArgs"]);
+
+            client.ApplyExternalSaveContent(content);
+
+            NeoMemberIntWritable reapplied = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberIntWritable>("Count");
+            Assert.AreEqual(5d, reapplied.value!.value);
+            Assert.AreEqual(virtualId, reapplied.value.id);
+        }
+
         private static ProjectData BuildProjectData(double defaultCount = 5)
         {
             const string projectId = "p75-project";

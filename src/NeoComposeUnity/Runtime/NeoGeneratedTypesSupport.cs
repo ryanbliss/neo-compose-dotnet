@@ -3986,6 +3986,11 @@ namespace NeoCompose.Runtime
                     constructionCtx);
 
                 AssertDeclaredConstructorRootIsComplete(client, resolved, root.id);
+                StampConstructedInstanceProvenance(
+                    client,
+                    resolved,
+                    argumentValues,
+                    root.id);
                 node.RefreshChildrenAfterConstruction();
             }
             catch
@@ -3994,6 +3999,52 @@ namespace NeoCompose.Runtime
                 throw;
             }
             return node;
+        }
+
+        /// <summary>
+        /// P75 §4 — records the creation recipe on the row construction just
+        /// produced. Only the runtime knows which overload ran and what the
+        /// arguments evaluated to, so this is the one place a runtime-created
+        /// instance becomes a durable sparse root: without the stamp its
+        /// omitted members are frozen at their construction-time values and
+        /// never track later declaration changes.
+        /// </summary>
+        private static void StampConstructedInstanceProvenance(
+            NeoClient client,
+            NeoResolvedDeclaredConstructor resolved,
+            IReadOnlyDictionary<string, object?> argumentValues,
+            string rootValueId)
+        {
+            if (!client.TryGetValue(
+                    NeoValueOwnership.Session,
+                    rootValueId,
+                    out ObjectMemberValue? live))
+            {
+                throw new InvalidOperationException(
+                    $"Declared constructor for '{resolved.classTypeInfo.classId}' lost its root row '{rootValueId}' before creation provenance could be recorded.");
+            }
+            ConstructorRecord? record = resolved.link.record;
+            var constructorArgs = new Dictionary<string, JToken?>(StringComparer.Ordinal);
+            if (record is not null)
+            {
+                for (int index = 0; index < record.argumentTypes.Length; index++)
+                {
+                    FunctionArgumentTypeInfo argument = record.argumentTypes[index];
+                    // An omitted name with a declared default is filled
+                    // callee-side (P65 §2.5) and is deliberately NOT recorded:
+                    // the replay re-reads the parameter's current default, so
+                    // the instance keeps tracking it.
+                    if (!argumentValues.TryGetValue(argument.name, out object? value))
+                    {
+                        continue;
+                    }
+                    constructorArgs[NeoClient.ConstructorParameterId(record, index)] =
+                        NeoClient.ConstructorArgumentToken(
+                            value,
+                            $"'{argument.name}' of constructor '{record.id}' on class '{resolved.schemaClass.name}'");
+                }
+            }
+            NeoClient.StampConstructionProvenance(live, record?.id, constructorArgs);
         }
 
         /// <summary>
