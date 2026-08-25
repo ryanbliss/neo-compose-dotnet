@@ -472,6 +472,41 @@ namespace NeoCompose.Tests
                 "A malformed root must not cost every other root its virtual values.");
         }
 
+        [Test]
+        public void FullVirtualRebuildRetiresWrappersHoldingTheOldExpansion()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                BuildNestedProjectData());
+            NeoMemberClassWritable thing = client.save
+                .Get<NeoMemberClassWritable>("Thing");
+            NeoMemberIntWritable held = thing
+                .Get<NeoMemberClassWritable>("Nested")
+                .Get<NeoMemberClassWritable>("Deep")
+                .Get<NeoMemberIntWritable>("Count");
+            Assert.AreEqual(5d, held.value!.value);
+            string countId = held.value.id;
+
+            JObject incoming = JObject.Parse(client.SerializeSaveData());
+            ((JObject)incoming["values"]!)[countId] = JObject.FromObject(
+                new NumberMemberValue { id = countId, value = 73 });
+
+            client.ApplyExternalSaveContent(incoming.ToString());
+
+            // A rebuild mints new rows at the same deterministic ids, so a
+            // wrapper that survives keeps serving the previous expansion while
+            // the resolver serves the new one.
+            Assert.IsTrue(
+                held.isDisposed,
+                "A wrapper bound to a replaced virtual row must be retired, not left serving the old value.");
+            Assert.AreEqual(
+                73d,
+                thing
+                    .Get<NeoMemberClassWritable>("Nested")
+                    .Get<NeoMemberClassWritable>("Deep")
+                    .Get<NeoMemberIntWritable>("Count")
+                    .value!.value);
+        }
+
         private static ProjectData BuildTwoRootProjectData()
         {
             ProjectData data = BuildProjectData();

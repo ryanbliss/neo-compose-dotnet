@@ -198,22 +198,8 @@ namespace NeoCompose.Runtime
                 .GroupBy(row => row.id, StringComparer.Ordinal)
                 .Select(group => group.Last())
                 .ToArray();
-            var parentByValueId = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (MemberValue row in allRows)
-            {
-                if (row is ObjectMemberValue objectRow && objectRow.value is not null)
-                {
-                    foreach (string childId in objectRow.value.Values)
-                        parentByValueId.TryAdd(childId, row.id);
-                }
-                else if (row is ArrayMemberValue arrayRow && arrayRow.value is not null)
-                {
-                    foreach (string childId in arrayRow.value)
-                        parentByValueId.TryAdd(childId, row.id);
-                }
-                if (row.containerId is not null)
-                    parentByValueId.TryAdd(row.id, row.containerId);
-            }
+            Dictionary<string, string> parentByValueId =
+                BuildParentByValueId(allRows);
             ObjectMemberValue[] roots = allRows
                 .OfType<ObjectMemberValue>()
                 .Where(row => row.classId is not null)
@@ -381,6 +367,33 @@ namespace NeoCompose.Runtime
             RefreshVirtualWrapperTree(node);
         }
 
+        /// <summary>
+        /// Child value id -> the id of the row that owns it, over whichever
+        /// corpus is supplied: class/dictionary bodies, ordered-list bodies,
+        /// and unordered-list containment stamps.
+        /// </summary>
+        private static Dictionary<string, string> BuildParentByValueId(
+            IEnumerable<MemberValue> rows)
+        {
+            var parentByValueId = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (MemberValue row in rows)
+            {
+                if (row is ObjectMemberValue objectRow && objectRow.value is not null)
+                {
+                    foreach (string childId in objectRow.value.Values)
+                        parentByValueId.TryAdd(childId, row.id);
+                }
+                else if (row is ArrayMemberValue arrayRow && arrayRow.value is not null)
+                {
+                    foreach (string childId in arrayRow.value)
+                        parentByValueId.TryAdd(childId, row.id);
+                }
+                if (row.containerId is not null)
+                    parentByValueId.TryAdd(row.id, row.containerId);
+            }
+            return parentByValueId;
+        }
+
         private static int AuthoredContainmentDepth(
             string valueId,
             IReadOnlyDictionary<string, string> parentByValueId)
@@ -401,22 +414,15 @@ namespace NeoCompose.Runtime
             IEnumerable<MemberValue> loadedRows)
         {
             MemberValue[] rows = loadedRows.ToArray();
-            var parentByValueId = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (MemberValue row in rows)
-            {
-                if (row is ObjectMemberValue objectRow && objectRow.value is not null)
-                {
-                    foreach (string childId in objectRow.value.Values)
-                        parentByValueId.TryAdd(childId, row.id);
-                }
-                else if (row is ArrayMemberValue arrayRow && arrayRow.value is not null)
-                {
-                    foreach (string childId in arrayRow.value)
-                        parentByValueId.TryAdd(childId, row.id);
-                }
-                if (row.containerId is not null)
-                    parentByValueId.TryAdd(row.id, row.containerId);
-            }
+            // Only this partition's roots are replayed, but their DEPTH has to
+            // be measured against the whole corpus: a partition root nested
+            // under a main-map parent has no parent inside the partition and
+            // would sort to depth 0, replaying before the outer root whose
+            // scope must lose to it.
+            Dictionary<string, string> parentByValueId = BuildParentByValueId(
+                data.values.Values
+                    .Concat(saveData.values.Values)
+                    .Concat(sessionData.values.Values));
 
             foreach (ObjectMemberValue root in rows
                 .OfType<ObjectMemberValue>()
@@ -667,11 +673,16 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Constructor argument references missing value '{valueId}'.");
             }
-            NeoValueOwnership ownership = TryGetValueOwnership(
-                valueId,
-                out NeoValueOwnership resolved)
-                    ? resolved
-                    : NeoValueOwnership.Asset;
+            // Defaulting to Asset here would read a Save/Session argument row
+            // through the immutable store and silently replay the instance
+            // from the wrong layer. The row exists (the lookup above
+            // succeeded), so an unresolvable ownership is an index defect, not
+            // a value the caller can be given.
+            if (!TryGetValueOwnership(valueId, out NeoValueOwnership ownership))
+            {
+                throw new InvalidOperationException(
+                    $"Constructor argument value '{valueId}' has no resolvable storage ownership, so the instance cannot be replayed against it.");
+            }
             var ctx = new NSGetterEvaluator.Context(
                 this,
                 thisValue: null,

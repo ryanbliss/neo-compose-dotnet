@@ -839,7 +839,15 @@ namespace NeoCompose.Runtime
                 value = typedAsset;
                 return true;
             }
+            // A virtual row belongs to the store its instance root belongs to.
+            // Answering an Asset-scoped read with a Save-owned virtual row (or
+            // the reverse) would let a caller read across the storage boundary
+            // it explicitly asked to stay inside.
             if (virtualValues.TryGetValue(id, out MemberValue virtualMatch)
+                && virtualValueOwnership.TryGetValue(
+                    id,
+                    out NeoValueOwnership virtualOwnership)
+                && virtualOwnership == ownership
                 && virtualMatch is TValue typedVirtual)
             {
                 value = typedVirtual;
