@@ -507,6 +507,100 @@ namespace NeoCompose.Tests
                     .value!.value);
         }
 
+        // -------------------------------------------------------------------
+        // Three-way id parity. Every literal below is uuidv5 (RFC 4122,
+        // SHA-1, big-endian) of "{bareRootId}:{sourceIdentity}" under the P75
+        // namespace 3e8ca0b3-e3f1-5d5f-bf2f-6ab5ee3896d0, so the TypeScript
+        // suite can assert the same strings from the same two inputs.
+        // -------------------------------------------------------------------
+
+        [Test]
+        public void UnorderedListEntryIdsFollowTheDeclaredDefaultOrder()
+        {
+            // The parity risk: C# indexes unordered entries in wrapper
+            // enumeration order and TypeScript in resolver visit order. A
+            // replayed entry carries no authored-child provenance, so the id
+            // falls back to the POSITIONAL identity and the two runtimes agree
+            // only while both walk the declared default in its own order. The
+            // literals below pin that walk; the entry VALUE ids the fixture
+            // declares deliberately do not appear in them.
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                BuildUnorderedListProjectData("entry-a", "entry-b", "entry-c"));
+            NeoMemberList items = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberList>("Items");
+
+            string[] entryIds = items
+                .Select(item => item.value!.id)
+                .OrderBy(id => id, StringComparer.Ordinal)
+                .ToArray();
+
+            CollectionAssert.AreEqual(
+                new[]
+                {
+                    // path:thing-item:$/{class Items}/{list 1}
+                    "3e2e712d-a6f4-596c-9add-a0f2457f78c0",
+                    // path:thing-item:$/{class Items}/{list 2}
+                    "4b374fc6-bee8-5552-a484-70e70e67c4e5",
+                    // path:thing-item:$/{class Items}/{list 0}
+                    "631ac656-2e46-555b-8664-420a080fc2a0",
+                },
+                entryIds);
+        }
+
+        [Test]
+        public void PositionalSourceIdentitySpellsAnIdLessMemberAsInline()
+        {
+            var row = new NumberMemberValue { id = "unused" };
+            var named = new IntMember
+            {
+                id = "thing-count",
+                name = "Count",
+                kind = MemberKind.Int,
+            };
+            var inline = new IntMember { id = string.Empty, name = "Count", kind = MemberKind.Int };
+            const string path = "$/{\"kind\":\"class\",\"schemaKey\":\"Count\"}";
+
+            Assert.AreEqual(
+                "path:thing-count:" + path,
+                NeoClient.VirtualSourceIdentity(row, named, path));
+            Assert.AreEqual(
+                "path:<inline>:" + path,
+                NeoClient.VirtualSourceIdentity(row, inline, path));
+            Assert.AreEqual(
+                "35f55577-5ef0-5bf5-861b-070aa19817f5",
+                NeoClient.VirtualValueId(
+                    "thing-instance",
+                    NeoClient.VirtualSourceIdentity(row, named, path)));
+            Assert.AreEqual(
+                "77712819-a4bd-5105-a9bf-eb4925f94bc3",
+                NeoClient.VirtualValueId(
+                    "thing-instance",
+                    NeoClient.VirtualSourceIdentity(row, inline, path)));
+        }
+
+        [Test]
+        public void OrderedListEntryIdsArePositional()
+        {
+            const string listPath = "$/{\"kind\":\"class\",\"schemaKey\":\"Items\"}";
+            var expected = new[]
+            {
+                "631ac656-2e46-555b-8664-420a080fc2a0",
+                "3e2e712d-a6f4-596c-9add-a0f2457f78c0",
+                "4b374fc6-bee8-5552-a484-70e70e67c4e5",
+            };
+
+            for (int index = 0; index < expected.Length; index++)
+            {
+                Assert.AreEqual(
+                    expected[index],
+                    NeoClient.VirtualValueId(
+                        "thing-instance",
+                        $"path:thing-item:{listPath}/{{\"kind\":\"list\",\"index\":{index}}}"),
+                    $"Ordered entry {index} must derive from its index, not its identity.");
+            }
+        }
+
         private static ProjectData BuildTwoRootProjectData()
         {
             ProjectData data = BuildProjectData();
@@ -623,8 +717,11 @@ namespace NeoCompose.Tests
             };
         }
 
-        private static ProjectData BuildUnorderedListProjectData()
+        private static ProjectData BuildUnorderedListProjectData(
+            params string[] entryValueIds)
         {
+            if (entryValueIds.Length == 0)
+                entryValueIds = new[] { "thing-item-a", "thing-item-b" };
             ProjectData data = BuildProjectData();
             data.classes["thing-class"].schema.Remove("Count");
             data.classes["thing-class"].schema["Items"] = "thing-items";
@@ -646,21 +743,16 @@ namespace NeoCompose.Tests
                 required = true,
                 listKind = NeoListKinds.Unordered,
                 entryMemberId = "thing-item",
-                defaultValue = new ArrayMemberValueBase
+                defaultValue = new ArrayMemberValueBase { value = entryValueIds },
+            };
+            for (int index = 0; index < entryValueIds.Length; index++)
+            {
+                data.values[entryValueIds[index]] = new StringMemberValue
                 {
-                    value = new[] { "thing-item-a", "thing-item-b" },
-                },
-            };
-            data.values["thing-item-a"] = new StringMemberValue
-            {
-                id = "thing-item-a",
-                value = "A",
-            };
-            data.values["thing-item-b"] = new StringMemberValue
-            {
-                id = "thing-item-b",
-                value = "B",
-            };
+                    id = entryValueIds[index],
+                    value = ((char)('A' + index)).ToString(),
+                };
+            }
             return data;
         }
 

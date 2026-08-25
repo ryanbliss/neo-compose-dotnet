@@ -724,9 +724,7 @@ namespace NeoCompose.Runtime
                 ?? throw new InvalidOperationException(
                     $"Virtual expansion path '{path}' has no value row.");
             Member member = wrapper.member;
-            string sourceIdentity = !string.IsNullOrEmpty(row.sourceValueId)
-                ? row.sourceValueId!
-                : $"path:{member.id}:{path}";
+            string sourceIdentity = VirtualSourceIdentity(row, member, path);
             string virtualId = path == "$"
                 ? instanceRoot.id
                 : VirtualValueId(instanceRoot.id, sourceIdentity);
@@ -1139,7 +1137,43 @@ namespace NeoCompose.Runtime
             return $"{parent}/{{\"kind\":\"{kind}\",{encodedName}:{encodedValue}}}";
         }
 
-        private static string VirtualValueId(string instanceRootId, string sourceIdentity)
+        /// <summary>
+        /// The name half of the deterministic id: the row's authored-child
+        /// provenance when it has one, and otherwise its position, spelled
+        /// <c>path:{memberId}:{pathKey}</c>.
+        ///
+        /// <para>Both runtimes must spell this identically or the same
+        /// omitted value lands at two different ids. A member with no id is
+        /// written as <see cref="InlineMemberSentinel"/> rather than as an
+        /// empty segment, which is what the web emits for an inline
+        /// declaration.</para>
+        /// </summary>
+        internal static string VirtualSourceIdentity(
+            MemberValue row,
+            Member member,
+            string path)
+        {
+            if (!string.IsNullOrEmpty(row.sourceValueId)) return row.sourceValueId!;
+            string memberId = string.IsNullOrEmpty(member.id)
+                ? InlineMemberSentinel
+                : member.id;
+            return $"path:{memberId}:{path}";
+        }
+
+        /// <summary>
+        /// Stands in for the member id of an inline (id-less) declaration in
+        /// a positional source identity. Byte-identical to the web's.
+        /// </summary>
+        internal const string InlineMemberSentinel = "<inline>";
+
+        /// <summary>
+        /// uuidv5 (RFC 4122, SHA-1, big-endian) of
+        /// <c>{bareRootId}:{sourceIdentity}</c> under the P75 namespace. A
+        /// <c>system_</c> root keeps its prefix on the derived id and is
+        /// hashed without it, so a platform record's virtual children stay in
+        /// the platform namespace.
+        /// </summary>
+        internal static string VirtualValueId(string instanceRootId, string sourceIdentity)
         {
             const string systemPrefix = "system_";
             bool isSystemRecord = instanceRootId.StartsWith(
