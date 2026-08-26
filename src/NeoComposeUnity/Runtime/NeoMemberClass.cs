@@ -885,8 +885,28 @@ namespace NeoCompose.Runtime
             bool recordWritable,
             string nowIso)
         {
-            bool hasBoundRow = value?.value is not null
-                && value.value.TryGetValue(key, out string existingListValueId)
+            string? existingListValueId = null;
+            if (value?.value is not null)
+            {
+                value.value.TryGetValue(key, out existingListValueId);
+            }
+            // An unordered list the construction left untouched is omitted from
+            // a P75 sparse body and lives at its deterministic virtual id.
+            // Without this the whole-list assignment below mints a fresh random
+            // id and links it into the root — forking the same logical write to
+            // a different id than the web's, and materializing a spine the root
+            // deliberately omits. This is the unordered twin of the lookup
+            // `SetSerializedValue` already performs for every other kind.
+            if (existingListValueId is null
+                && valueId is string parentValueId
+                && client.TryGetVirtualClassChildValueId(
+                    parentValueId,
+                    key,
+                    out string? virtualListValueId))
+            {
+                existingListValueId = virtualListValueId;
+            }
+            bool hasBoundRow = existingListValueId is not null
                 && client.TryGetValue(childOwnership, existingListValueId, out MemberValue? _);
             if (!hasBoundRow)
             {
@@ -1062,7 +1082,27 @@ namespace NeoCompose.Runtime
                         $"Cannot unset required field '{key}'.");
                 }
             }
-            if (value?.value is null || !value.value.TryGetValue(key, out string childValueId))
+            string? childValueId = null;
+            if (value?.value is not null)
+            {
+                value.value.TryGetValue(key, out childValueId);
+            }
+            // A P75 sparse root omits every member still sitting at its
+            // construction value, so the body alone reports them absent and
+            // Unset would silently no-op — including the generated
+            // `property = null` setter that compiles to it. The omitted member
+            // is bound at its deterministic virtual id, which is exactly where
+            // the tombstone has to land for the web to read the same unset.
+            if (childValueId is null
+                && valueId is string parentValueId
+                && client.TryGetVirtualClassChildValueId(
+                    parentValueId,
+                    key,
+                    out string? virtualChildValueId))
+            {
+                childValueId = virtualChildValueId;
+            }
+            if (childValueId is null)
             {
                 return;
             }

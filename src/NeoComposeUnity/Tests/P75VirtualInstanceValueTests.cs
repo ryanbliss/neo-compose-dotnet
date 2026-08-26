@@ -197,6 +197,126 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void UnsetTombstonesAnOmittedMemberOnASparseRoot()
+        {
+            ProjectData data = BuildProjectData();
+            ((IntMember)data.members["thing-count"]).required = false;
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable thing =
+                client.save.Get<NeoMemberClassWritable>("Thing");
+            string virtualId = thing.Get<NeoMemberIntWritable>("Count").value!.id;
+
+            thing.Unset("Count");
+
+            // The omitted member is virtual, so its stable id lives only in the
+            // instance index. Reading presence off the sparse body alone makes
+            // Unset — and therefore every generated `property = null` — a
+            // silent no-op on a constructed instance.
+            Assert.IsTrue(
+                client.saveValues.TryGetValue(virtualId, out MemberValue? row),
+                "Unset must tombstone the omitted member at its virtual id.");
+            Assert.IsTrue(row!.IsRemoved);
+            Assert.IsTrue(thing.TryGet("Count", out NeoMemberIntWritable? refetched));
+            Assert.IsNull(refetched!.value);
+        }
+
+        [Test]
+        public void AssigningAnOmittedUnorderedListKeepsItsVirtualId()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                BuildUnorderedListProjectData());
+            NeoMemberClassWritable thing =
+                client.save.Get<NeoMemberClassWritable>("Thing");
+            string virtualListId = thing.Get<NeoMemberList>("Items").value!.id;
+
+            NeoGeneratedTypesSupport.SetValue(
+                thing,
+                "Items",
+                NeoValueWritePayload.FromValue(new[] { "thing-item-a" }));
+
+            // The unordered whole-list assignment bypasses the virtual-child
+            // lookup the scalar path uses, so it minted a fresh random id and
+            // materialized the spine. Both runtimes must land the same write at
+            // the same deterministic id, and the root must stay sparse.
+            Assert.AreEqual(
+                virtualListId,
+                thing.Get<NeoMemberList>("Items").value!.id);
+            Assert.IsFalse(thing.value!.value!.ContainsKey("Items"));
+        }
+
+        // VERIFIED FAILING, deliberately not fixed here. Teaching
+        // NeoClassMemberWriteTarget the virtual index (the one-line twin of the
+        // lookup `SetSerializedValue` already does) makes this pass, but it then
+        // breaks P67's
+        // VariantApply_ResultsPinAndRepeatedSwapsDoNotGrowTheSession: once the
+        // Apply closure's write lands at the virtual id instead of
+        // materializing the key, `NeoAnimationCompiledWrite.ClearInstanceOverride`
+        // can no longer find it — that path locates the pin through the stored
+        // parent body and `NeoClient.TryFindOwnedParent`, both of which are
+        // themselves virtual-blind. The write target and the clear path have to
+        // be taught the virtual layer in the same change, and that change is a
+        // P67 §4.2 / P75 §6 precedence decision rather than a local repair.
+        [Test]
+        [Ignore("Verified P75 defect; fix requires ClearInstanceOverride/TryFindOwnedParent to become virtual-aware in the same change. See comment above.")]
+        public void NeoScriptAssignmentWritesAnOmittedMemberAtItsVirtualId()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            string virtualId = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberIntWritable>("Count")
+                .value!.id;
+
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            Dictionary<string, object?> root = NeoScriptRuntimeRoot(client, ctx);
+            ctx = ctx.WithRoot(root);
+            var action = new FunctionWithReturnType
+            {
+                parameters = System.Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = MemberKind.Null,
+                    required = true,
+                },
+                instructions = new Instruction[]
+                {
+                    new AssignInstruction
+                    {
+                        type = InstructionKind.Assign,
+                        target = new WriteTarget
+                        {
+                            pointer = PointerKeyOf(
+                                PointerKeyOf(
+                                    PointerKeyOf(RootPointer(), "Save"),
+                                    "Thing"),
+                                "Count"),
+                            typeInfo = IntTypeInfo(),
+                            writability = WritabilityKind.Runtime,
+                        },
+                        operatorValue = "=",
+                        pointer = IntLiteral(9),
+                    },
+                },
+            };
+
+            NeoScriptExecutor.Execute(
+                client,
+                action,
+                new Dictionary<string, object?> { ["__root__"] = root },
+                ctx);
+
+            // The NeoScript write target resolved the member off the stored
+            // body alone. On a sparse root the omitted member is absent there,
+            // so the write minted a fresh random id and materialized the spine
+            // instead of shadowing the deterministic virtual id both runtimes
+            // agree on.
+            NeoMemberIntWritable count = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberIntWritable>("Count");
+            Assert.AreEqual(virtualId, count.value!.id);
+            Assert.AreEqual(9d, count.value.value);
+        }
+
+        [Test]
         public void SparseReplayFillsAnOmittedDefaultedConstructorArgument()
         {
             ProjectData data = BuildProjectData();
@@ -875,6 +995,68 @@ namespace NeoCompose.Tests
                 valueId = valueId,
             };
         }
+
+        private static Dictionary<string, object?> NeoScriptRuntimeRoot(
+            NeoClient client,
+            NSGetterEvaluator.Context ctx)
+        {
+            return new Dictionary<string, object?>
+            {
+                ["Assets"] = client.assets.value is ObjectMemberValue assets
+                    ? NSGetterEvaluator.UnwrapRow(assets, ctx, NeoValueOwnership.Asset)
+                    : null,
+                ["Save"] = client.save.value is ObjectMemberValue save
+                    ? NSGetterEvaluator.UnwrapRow(save, ctx, NeoValueOwnership.Save)
+                    : null,
+                ["Session"] = client.session.value is ObjectMemberValue session
+                    ? NSGetterEvaluator.UnwrapRow(session, ctx, NeoValueOwnership.Session)
+                    : null,
+            };
+        }
+
+        private static PrimitiveTypeInfo IntTypeInfo() => new()
+        {
+            type = MemberKind.Int,
+            required = true,
+        };
+
+        private static VariablePointer RootPointer() => new()
+        {
+            type = PointerKind.Variable,
+            variableId = "__root__",
+        };
+
+        private static ValuePointer IntLiteral(double value) => new()
+        {
+            type = PointerKind.Value,
+            value = new Value
+            {
+                typeInfo = IntTypeInfo(),
+                value = JToken.FromObject(value),
+            },
+        };
+
+        private static KeyOfPointer PointerKeyOf(Pointer receiver, string key) => new()
+        {
+            type = PointerKind.KeyOf,
+            keyOf = new KeyOf
+            {
+                pointer = receiver,
+                key = new ValuePointer
+                {
+                    type = PointerKind.Value,
+                    value = new Value
+                    {
+                        typeInfo = new PrimitiveTypeInfo
+                        {
+                            type = MemberKind.String,
+                            required = true,
+                        },
+                        value = JToken.FromObject(key),
+                    },
+                },
+            },
+        };
 
         private static ObjectMemberValue ObjectValue(
             string id,

@@ -1298,16 +1298,39 @@ namespace NeoCompose.Runtime
         /// not defended against — push rejects duplicates, and silently
         /// preferring one would hide it.
         /// </summary>
+        /// <summary>
+        /// The effective row bound to <paramref name="schemaKey"/> on a class
+        /// row: the stored body first, then the P75 virtual index.
+        ///
+        /// <para>Segments and their frames are ordinary class instances, so a
+        /// collapse-stamped one omits every member its construction supplied
+        /// and nothing overrode. Reading the body alone drops exactly those —
+        /// a missing <c>Duration</c> abandons the whole segment and a missing
+        /// <c>Value</c> reads as an authored null, which actively clears the
+        /// channel rather than being ignored.</para>
+        /// </summary>
+        private MemberValue? ResolveClassMemberRow(
+            ObjectMemberValue row,
+            string schemaKey)
+        {
+            string? childId = null;
+            row.value?.TryGetValue(schemaKey, out childId);
+            if (string.IsNullOrWhiteSpace(childId))
+            {
+                client.TryGetVirtualClassChildValueId(row.id, schemaKey, out childId);
+            }
+            return string.IsNullOrWhiteSpace(childId)
+                ? null
+                : client.ResolveEffectiveRow(childId!);
+        }
+
         private void ReadContent(string rowId)
         {
-            if (client.ResolveEffectiveRow(rowId) is not ObjectMemberValue segmentRow
-                || segmentRow.value is null)
+            if (client.ResolveEffectiveRow(rowId) is not ObjectMemberValue segmentRow)
             {
                 return;
             }
-            if (!segmentRow.value.TryGetValue("Duration", out string? durationId)
-                || string.IsNullOrWhiteSpace(durationId)
-                || client.ResolveEffectiveRow(durationId!) is not NumberMemberValue durationRow
+            if (ResolveClassMemberRow(segmentRow, "Duration") is not NumberMemberValue durationRow
                 || durationRow.value is not double rawDuration)
             {
                 return;
@@ -1317,36 +1340,25 @@ namespace NeoCompose.Runtime
 
             var rows = new MemberValue?[duration];
             var authored = new bool[duration];
-            if (segmentRow.value.TryGetValue("Frames", out string? framesId)
-                && !string.IsNullOrWhiteSpace(framesId)
-                && client.ResolveEffectiveRow(framesId!) is ArrayMemberValue framesRow
+            if (ResolveClassMemberRow(segmentRow, "Frames") is ArrayMemberValue framesRow
                 && framesRow.value is not null)
             {
                 var ordered = new List<(int index, MemberValue? row)>();
                 foreach (string frameId in framesRow.value)
                 {
                     if (string.IsNullOrWhiteSpace(frameId)) continue;
-                    if (client.ResolveEffectiveRow(frameId) is not ObjectMemberValue frameRow
-                        || frameRow.value is null)
+                    if (client.ResolveEffectiveRow(frameId) is not ObjectMemberValue frameRow)
                     {
                         continue;
                     }
-                    if (!frameRow.value.TryGetValue("Index", out string? indexId)
-                        || string.IsNullOrWhiteSpace(indexId)
-                        || client.ResolveEffectiveRow(indexId!) is not NumberMemberValue indexRow
+                    if (ResolveClassMemberRow(frameRow, "Index") is not NumberMemberValue indexRow
                         || indexRow.value is not double rawIndex)
                     {
                         continue;
                     }
                     int index = (int)Math.Floor(rawIndex);
                     if (index < 0 || index >= duration) continue;
-                    MemberValue? valueRow = null;
-                    if (frameRow.value.TryGetValue("Value", out string? valueId)
-                        && !string.IsNullOrWhiteSpace(valueId))
-                    {
-                        valueRow = client.ResolveEffectiveRow(valueId!);
-                    }
-                    ordered.Add((index, valueRow));
+                    ordered.Add((index, ResolveClassMemberRow(frameRow, "Value")));
                 }
                 ordered.Sort((left, right) => left.index.CompareTo(right.index));
                 foreach ((int index, MemberValue? row) in ordered)
