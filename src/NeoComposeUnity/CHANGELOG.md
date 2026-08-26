@@ -10,9 +10,20 @@
 
 ### Changed
 
-- **Breaking:** the project export schema version is now 26 and the supported
-  NeoScript compiler revision is now 13. Predicate `count` and `indexOf` IR are
-  rejected at the version/revision gates by older or stale runtimes.
+- **Breaking:** the P42 structured-leaf field-override envelope key is now
+  `~partial` rather than `$partial`, and the project export schema version is
+  now 28. Convex reserves `$`-prefixed field names in every serialized
+  position, so the old spelling could never cross the wire as a structured
+  object; `~` is printable ASCII and illegal in a NeoScript identifier, so it
+  keeps the collision-proof property `$` was chosen for. The envelope key is
+  the only thing separating a field override from a whole-leaf record
+  (`{"fileId": …}` is a valid whole sprite value), so an SDK at 27 would read
+  a new-spelling override as a plain object row rather than failing — the
+  exact-version gate is what turns that into a refusal. Re-export from a
+  matching web release.
+- **Breaking:** the supported NeoScript compiler revision is now 13. Predicate
+  `count` and `indexOf` IR are rejected at the version/revision gates by older
+  or stale runtimes.
 
 ## [0.26.0] - 2026-08-19
 

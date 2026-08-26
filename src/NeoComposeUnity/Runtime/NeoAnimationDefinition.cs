@@ -106,7 +106,7 @@ namespace NeoCompose.Runtime
 
     /// <summary>
     /// The structured-leaf member kinds P42 §1.1 makes field-addressable.
-    /// <see cref="None"/> covers every other member kind — a <c>$partial</c>
+    /// <see cref="None"/> covers every other member kind — a <c>~partial</c>
     /// envelope landing on one of those is invalid data, not a field write.
     /// </summary>
     internal enum NeoAnimationLeafKind
@@ -121,7 +121,7 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>
-    /// One validated field of a P42 <c>$partial</c> envelope, already checked
+    /// One validated field of a P42 <c>~partial</c> envelope, already checked
     /// against its member kind at compile time so <c>Apply()</c> does no
     /// validation and allocates nothing on the common path.
     /// <para>Sprite <c>fileId</c> is the only text-valued field; every other
@@ -1784,7 +1784,7 @@ namespace NeoCompose.Runtime
                     if (leafKind == NeoAnimationLeafKind.None)
                     {
                         throw new InvalidOperationException(
-                            $"{where} carries a '$partial' field envelope, but that member has no addressable fields. Only Sprite, Vector2(Int), Vector3(Int), and Color members do.");
+                            $"{where} carries a '~partial' field envelope, but that member has no addressable fields. Only Sprite, Vector2(Int), Vector3(Int), and Color members do.");
                     }
                     // Eligibility is evaluated on the ENCLOSING leaf, never on
                     // the field — a field segment has no member id to walk.
@@ -1836,7 +1836,7 @@ namespace NeoCompose.Runtime
             if (leafKind == NeoAnimationLeafKind.None) return;
             if (client.ResolveEffectiveRow(overrideValueId) is not ObjectMemberValue) return;
             throw new InvalidOperationException(
-                $"{where} addresses a field path deeper than one level. Structured leaves are one level deep: a '$partial' envelope names fields, never sub-fields.");
+                $"{where} addresses a field path deeper than one level. Structured leaves are one level deep: a '~partial' envelope names fields, never sub-fields.");
         }
 
         /// <summary>
@@ -2279,7 +2279,7 @@ namespace NeoCompose.Runtime
                 }
 
                 // P42 §1.3: a structured leaf is a PATH SEGMENT when its
-                // override row is a `$partial` envelope, and a write target when
+                // override row is a `~partial` envelope, and a write target when
                 // it is a full value. The envelope decides which.
                 NeoAnimationLeafKind leafKind = NeoAnimationLeafFields.KindOf(child.member);
                 NeoPartialLeafValue? partialFields = child.partialLeafValue?.value;
@@ -2288,7 +2288,7 @@ namespace NeoCompose.Runtime
                     if (leafKind == NeoAnimationLeafKind.None)
                     {
                         throw new InvalidOperationException(
-                            $"{where} carries a '$partial' field envelope, but that member has no addressable fields. Only Sprite, Vector2(Int), Vector3(Int), and Color members do.");
+                            $"{where} carries a '~partial' field envelope, but that member has no addressable fields. Only Sprite, Vector2(Int), Vector3(Int), and Color members do.");
                     }
                     // Eligibility is evaluated on the ENCLOSING leaf member, not
                     // on the field: fields carry no storage of their own and a
@@ -2296,7 +2296,7 @@ namespace NeoCompose.Runtime
                     EnsureEligibleCompiledLeaf(child, ownership, where);
                     List<NeoAnimationLeafFieldValue> compiledFields =
                         NeoAnimationLeafFields.Compile(leafKind, partialFields, where);
-                    // `{"$partial":{}}` is the wire form of "no change", so it
+                    // `{"~partial":{}}` is the wire form of "no change", so it
                     // produces NO write at all — it must never become the frame
                     // the leaf's value is attributed to. Emitting an empty
                     // write would compose an identical value and then hand this
@@ -3519,7 +3519,7 @@ namespace NeoCompose.Runtime
                 ObjectMemberValue => throw new InvalidOperationException(
                     "Animation Class value rows are path segments, not leaf payloads: descend into the Class's keys."),
                 PartialLeafMemberValue => throw new InvalidOperationException(
-                    "Animation '$partial' structured-leaf rows are path segments into the leaf's fields, not leaf payloads: they are composed against the leaf's current value at apply time."),
+                    "Animation '~partial' structured-leaf rows are path segments into the leaf's fields, not leaf payloads: they are composed against the leaf's current value at apply time."),
                 _ => throw new InvalidOperationException(
                     $"Unsupported animation payload row '{row.GetType().Name}'."),
             };

@@ -461,11 +461,11 @@ namespace NeoCompose.Tests
 
             var partialRow = (PartialLeafMemberValue)JsonConvert
                 .DeserializeObject<MemberValue>(
-                    "{\"id\":\"y\",\"value\":{\"$partial\":{\"sliceIndex\":1}}}")!;
+                    "{\"id\":\"y\",\"value\":{\"~partial\":{\"sliceIndex\":1}}}")!;
             var partialError = Assert.Throws<System.InvalidOperationException>(
                 () => NeoAnimationCompiler.Payload(partialRow));
             StringAssert.Contains(
-                "'$partial' structured-leaf rows are path segments",
+                "'~partial' structured-leaf rows are path segments",
                 partialError!.Message);
         }
 
@@ -617,7 +617,7 @@ namespace NeoCompose.Tests
         private static MemberValue PartialRow(string innerJson)
         {
             return JsonConvert.DeserializeObject<MemberValue>(
-                "{\"id\":\"pending\",\"value\":{\"$partial\":" + innerJson + "}}")!;
+                "{\"id\":\"pending\",\"value\":{\"~partial\":" + innerJson + "}}")!;
         }
 
         private static MemberValue WholeSpriteRow(string fileId, int sliceIndex)

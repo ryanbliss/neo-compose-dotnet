@@ -3980,7 +3980,7 @@ namespace NeoCompose.Runtime
                 {
                     value = d.value?.PersistedCopy(),
                 },
-                // A P42 '$partial' envelope is plain scalar field tokens, so
+                // A P42 '~partial' envelope is plain scalar field tokens, so
                 // the shadow deep-copies them: a later field write on the
                 // Save/Session row must not reach the authored envelope it
                 // was cloned from.

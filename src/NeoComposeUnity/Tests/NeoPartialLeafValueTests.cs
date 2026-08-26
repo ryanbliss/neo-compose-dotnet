@@ -13,7 +13,7 @@ using NUnit.Framework;
 namespace NeoCompose.Tests
 {
     /// <summary>
-    /// P42 row layer — the <c>$partial</c> structured-leaf envelope
+    /// P42 row layer — the <c>~partial</c> structured-leaf envelope
     /// (decision D1).
     ///
     /// <para>Covers the four things the JSON row layer owes the rest of P42:
@@ -46,36 +46,36 @@ namespace NeoCompose.Tests
         [Test]
         public void Envelope_RoundTripsSpriteFields()
         {
-            AssertRoundTripsByteStably("{\"$partial\":{\"sliceIndex\":1}}");
-            AssertRoundTripsByteStably("{\"$partial\":{\"fileId\":\"file-a\"}}");
+            AssertRoundTripsByteStably("{\"~partial\":{\"sliceIndex\":1}}");
+            AssertRoundTripsByteStably("{\"~partial\":{\"fileId\":\"file-a\"}}");
             AssertRoundTripsByteStably(
-                "{\"$partial\":{\"fileId\":\"file-a\",\"sliceIndex\":3}}");
+                "{\"~partial\":{\"fileId\":\"file-a\",\"sliceIndex\":3}}");
         }
 
         [Test]
         public void Envelope_RoundTripsVectorFields()
         {
-            AssertRoundTripsByteStably("{\"$partial\":{\"y\":0.25}}");
-            AssertRoundTripsByteStably("{\"$partial\":{\"x\":1,\"y\":2}}");
-            AssertRoundTripsByteStably("{\"$partial\":{\"x\":1,\"y\":2,\"z\":3}}");
-            AssertRoundTripsByteStably("{\"$partial\":{\"z\":-1.5}}");
+            AssertRoundTripsByteStably("{\"~partial\":{\"y\":0.25}}");
+            AssertRoundTripsByteStably("{\"~partial\":{\"x\":1,\"y\":2}}");
+            AssertRoundTripsByteStably("{\"~partial\":{\"x\":1,\"y\":2,\"z\":3}}");
+            AssertRoundTripsByteStably("{\"~partial\":{\"z\":-1.5}}");
         }
 
         [Test]
         public void Envelope_RoundTripsColorFields()
         {
-            AssertRoundTripsByteStably("{\"$partial\":{\"a\":0.5}}");
+            AssertRoundTripsByteStably("{\"~partial\":{\"a\":0.5}}");
             AssertRoundTripsByteStably(
-                "{\"$partial\":{\"r\":0.1,\"g\":0.2,\"b\":0.3,\"a\":1}}");
+                "{\"~partial\":{\"r\":0.1,\"g\":0.2,\"b\":0.3,\"a\":1}}");
         }
 
         [Test]
         public void Envelope_RoundTripsEmptyEnvelope()
         {
-            // {"$partial":{}} is the wire form of "no change" and is legal.
-            AssertRoundTripsByteStably("{\"$partial\":{}}");
+            // {"~partial":{}} is the wire form of "no change" and is legal.
+            AssertRoundTripsByteStably("{\"~partial\":{}}");
             var partial = JsonConvert.DeserializeObject<NeoPartialLeafValue>(
-                "{\"$partial\":{}}")!;
+                "{\"~partial\":{}}")!;
             Assert.IsTrue(partial.IsEmpty);
             Assert.AreEqual(0, partial.FieldCount);
             Assert.AreEqual(0, partial.FieldKeys.Count);
@@ -85,12 +85,12 @@ namespace NeoCompose.Tests
         public void Envelope_RoundTripsThroughTheStoredRow()
         {
             var row = JsonConvert.DeserializeObject<MemberValue>(
-                "{\"id\":\"v1\",\"value\":{\"$partial\":{\"fileId\":\"file-a\",\"sliceIndex\":2}}}");
+                "{\"id\":\"v1\",\"value\":{\"~partial\":{\"fileId\":\"file-a\",\"sliceIndex\":2}}}");
             Assert.IsInstanceOf<PartialLeafMemberValue>(row);
 
             var written = JObject.Parse(JsonConvert.SerializeObject(row));
             Assert.AreEqual(
-                "{\"$partial\":{\"fileId\":\"file-a\",\"sliceIndex\":2}}",
+                "{\"~partial\":{\"fileId\":\"file-a\",\"sliceIndex\":2}}",
                 written["value"]!.ToString(Formatting.None));
         }
 
@@ -99,7 +99,7 @@ namespace NeoCompose.Tests
         {
             // A double round-trip would surface any int → double widening
             // (1 becoming 1.0), which would break byte stability.
-            const string json = "{\"$partial\":{\"sliceIndex\":1}}";
+            const string json = "{\"~partial\":{\"sliceIndex\":1}}";
             var once = JsonConvert.SerializeObject(
                 JsonConvert.DeserializeObject<NeoPartialLeafValue>(json));
             var twice = JsonConvert.SerializeObject(
@@ -128,7 +128,7 @@ namespace NeoCompose.Tests
                      })
             {
                 var row = JsonConvert.DeserializeObject<MemberValue>(
-                    "{\"id\":\"v1\",\"value\":{\"$partial\":" + inner + "}}");
+                    "{\"id\":\"v1\",\"value\":{\"~partial\":" + inner + "}}");
                 Assert.IsInstanceOf<PartialLeafMemberValue>(
                     row,
                     $"envelope with inner {inner} resolved to {row?.GetType().Name}");
@@ -152,7 +152,7 @@ namespace NeoCompose.Tests
         {
             var error = Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<MemberValueBase>(
-                    "{\"value\":{\"$partial\":{\"sliceIndex\":1}}}"));
+                    "{\"value\":{\"~partial\":{\"sliceIndex\":1}}}"));
             StringAssert.Contains("member declaration default", error!.ToString());
             StringAssert.Contains("animation override graph", error.ToString());
         }
@@ -165,7 +165,7 @@ namespace NeoCompose.Tests
             // straight into SpriteValue and silently became "no value".
             var error = Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<MemberValueBase<SpriteValue?>>(
-                    "{\"value\":{\"$partial\":{\"sliceIndex\":1}}}"));
+                    "{\"value\":{\"~partial\":{\"sliceIndex\":1}}}"));
             StringAssert.Contains("member declaration default", error!.ToString());
         }
 
@@ -176,7 +176,7 @@ namespace NeoCompose.Tests
                 JsonConvert.DeserializeObject<NeoCompose.Runtime.Json.Member>(
                     "{\"id\":\"portrait-member\",\"projectId\":\"p\",\"name\":\"Portrait\","
                     + "\"kind\":11,\"isStatic\":false,\"accessModifierKind\":\"public\","
-                    + "\"defaultValue\":{\"value\":{\"$partial\":{\"sliceIndex\":1}}}}"));
+                    + "\"defaultValue\":{\"value\":{\"~partial\":{\"sliceIndex\":1}}}}"));
             StringAssert.Contains("SpriteMember 'Portrait' (portrait-member)", error!.ToString());
             StringAssert.Contains("animation override graph", error.ToString());
         }
@@ -197,10 +197,10 @@ namespace NeoCompose.Tests
         public void DeclarationDefault_LeavesADictionaryDefaultWithADollarPartialEntryAlone()
         {
             // A Dictionary default is Dictionary<string, string>, so a
-            // '$partial' entry there is a string beside other strings, not an
+            // '~partial' entry there is a string beside other strings, not an
             // envelope — exactly the distinction IsEnvelope draws.
             var carrier = JsonConvert.DeserializeObject<MemberValueBase>(
-                "{\"value\":{\"$partial\":\"child-value\",\"Other\":\"x\"}}");
+                "{\"value\":{\"~partial\":\"child-value\",\"Other\":\"x\"}}");
             Assert.IsInstanceOf<ObjectMemberValueBase>(carrier);
         }
 
@@ -233,18 +233,18 @@ namespace NeoCompose.Tests
         public void ShapeSniffing_DictionaryRowWithADollarPartialEntryIsUnaffected()
         {
             // Class / Dictionary rows are Dictionary<string, string>, so a
-            // '$partial' entry there is a string next to other strings — never
+            // '~partial' entry there is a string next to other strings — never
             // an envelope. It must keep resolving to ObjectMemberValue.
             var row = JsonConvert.DeserializeObject<MemberValue>(
-                "{\"id\":\"v1\",\"value\":{\"$partial\":\"child-value\",\"Other\":\"x\"}}");
+                "{\"id\":\"v1\",\"value\":{\"~partial\":\"child-value\",\"Other\":\"x\"}}");
             Assert.IsInstanceOf<ObjectMemberValue>(row);
-            Assert.AreEqual("child-value", ((ObjectMemberValue)row!).value!["$partial"]);
+            Assert.AreEqual("child-value", ((ObjectMemberValue)row!).value!["~partial"]);
         }
 
         [Test]
         public void ShapeSniffing_WholeValueProbesRejectAnEnvelope()
         {
-            var envelope = JObject.Parse("{\"$partial\":{\"x\":1,\"y\":2}}");
+            var envelope = JObject.Parse("{\"~partial\":{\"x\":1,\"y\":2}}");
             Assert.IsFalse(NeoVector2ValueConverter.LooksLikeVector2Value(envelope));
             Assert.IsFalse(NeoVector3ValueConverter.LooksLikeVector3Value(envelope));
             Assert.IsFalse(NeoColorValueConverter.LooksLikeColorValue(envelope));
@@ -259,8 +259,8 @@ namespace NeoCompose.Tests
         {
             var error = Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<MemberValue>(
-                    "{\"id\":\"v1\",\"value\":{\"$partial\":{\"x\":1},\"y\":2}}"));
-            StringAssert.Contains("exactly one '$partial' key", error!.ToString());
+                    "{\"id\":\"v1\",\"value\":{\"~partial\":{\"x\":1},\"y\":2}}"));
+            StringAssert.Contains("exactly one '~partial' key", error!.ToString());
         }
 
         [Test]
@@ -270,9 +270,9 @@ namespace NeoCompose.Tests
             {
                 var error = Assert.Throws<JsonSerializationException>(() =>
                     JsonConvert.DeserializeObject<MemberValue>(
-                        "{\"id\":\"v1\",\"value\":{\"$partial\":" + payload + "}}"));
+                        "{\"id\":\"v1\",\"value\":{\"~partial\":" + payload + "}}"));
                 StringAssert.Contains(
-                    "'$partial' must be an object of scalar field values",
+                    "'~partial' must be an object of scalar field values",
                     error!.ToString());
             }
         }
@@ -282,17 +282,17 @@ namespace NeoCompose.Tests
         {
             var error = Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<MemberValue>(
-                    "{\"id\":\"v1\",\"value\":{\"$partial\":{\"x\":{\"nested\":1}}}}"));
+                    "{\"id\":\"v1\",\"value\":{\"~partial\":{\"x\":{\"nested\":1}}}}"));
             StringAssert.Contains("field 'x' must be a string or a number", error!.ToString());
 
             var arrayError = Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<MemberValue>(
-                    "{\"id\":\"v1\",\"value\":{\"$partial\":{\"y\":[1]}}}"));
+                    "{\"id\":\"v1\",\"value\":{\"~partial\":{\"y\":[1]}}}"));
             StringAssert.Contains("field 'y' must be a string or a number", arrayError!.ToString());
 
             var boolError = Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<MemberValue>(
-                    "{\"id\":\"v1\",\"value\":{\"$partial\":{\"z\":true}}}"));
+                    "{\"id\":\"v1\",\"value\":{\"~partial\":{\"z\":true}}}"));
             StringAssert.Contains("field 'z' must be a string or a number", boolError!.ToString());
         }
 
@@ -301,7 +301,7 @@ namespace NeoCompose.Tests
         {
             var error = Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<MemberValue>(
-                    "{\"id\":\"v1\",\"value\":{\"$partial\":{\"x\":NaN}}}"));
+                    "{\"id\":\"v1\",\"value\":{\"~partial\":{\"x\":NaN}}}"));
             StringAssert.Contains("field 'x' must be a finite number", error!.ToString());
         }
 
@@ -311,7 +311,7 @@ namespace NeoCompose.Tests
             // An absent field is "leave alone"; an explicit null is a write.
             // Whether null is legal for a given field is a kind-aware question.
             var partial = JsonConvert.DeserializeObject<NeoPartialLeafValue>(
-                "{\"$partial\":{\"fileId\":null}}")!;
+                "{\"~partial\":{\"fileId\":null}}")!;
             Assert.IsTrue(partial.HasField("fileId"));
             Assert.IsTrue(partial.IsNullField("fileId"));
             Assert.IsFalse(partial.TryGetString("fileId", out _));
@@ -325,7 +325,7 @@ namespace NeoCompose.Tests
         public void FieldKeys_ReportWrittenFieldsInWireOrder()
         {
             var partial = JsonConvert.DeserializeObject<NeoPartialLeafValue>(
-                "{\"$partial\":{\"z\":3,\"x\":1}}")!;
+                "{\"~partial\":{\"z\":3,\"x\":1}}")!;
             Assert.AreEqual(2, partial.FieldCount);
             Assert.IsFalse(partial.IsEmpty);
             CollectionAssert.AreEqual(new[] { "z", "x" }, partial.FieldKeys);
@@ -337,7 +337,7 @@ namespace NeoCompose.Tests
         public void FieldAccessors_ReadTypedValues()
         {
             var partial = JsonConvert.DeserializeObject<NeoPartialLeafValue>(
-                "{\"$partial\":{\"fileId\":\"file-a\",\"sliceIndex\":4,\"y\":0.25}}")!;
+                "{\"~partial\":{\"fileId\":\"file-a\",\"sliceIndex\":4,\"y\":0.25}}")!;
 
             Assert.IsTrue(partial.TryGetString("fileId", out var fileId));
             Assert.AreEqual("file-a", fileId);
@@ -368,7 +368,7 @@ namespace NeoCompose.Tests
             partial.SetInt32("sliceIndex", 2);
             CollectionAssert.AreEqual(new[] { "fileId", "sliceIndex" }, partial.FieldKeys);
             Assert.AreEqual(
-                "{\"$partial\":{\"fileId\":\"file-a\",\"sliceIndex\":2}}",
+                "{\"~partial\":{\"fileId\":\"file-a\",\"sliceIndex\":2}}",
                 JsonConvert.SerializeObject(partial));
 
             partial.SetInt32("sliceIndex", 7);
@@ -385,7 +385,7 @@ namespace NeoCompose.Tests
         public void Clone_IsIndependent()
         {
             var partial = JsonConvert.DeserializeObject<NeoPartialLeafValue>(
-                "{\"$partial\":{\"x\":1}}")!;
+                "{\"~partial\":{\"x\":1}}")!;
             var clone = partial.Clone();
             clone.SetDouble("x", 9d);
 
@@ -450,7 +450,7 @@ namespace NeoCompose.Tests
 
         /// <summary>
         /// The row-level clone-on-write primitive must know the partial row
-        /// kind by name: shadowing an authored '$partial' row into an overlay
+        /// kind by name: shadowing an authored '~partial' row into an overlay
         /// store deep-copies the envelope, so a later field write on the
         /// shadow never reaches the shared authored payload.
         /// </summary>
@@ -551,7 +551,7 @@ namespace NeoCompose.Tests
                         new Dictionary<string, string>()),
                     ["portrait-value"] = (PartialLeafMemberValue)JsonConvert
                         .DeserializeObject<MemberValue>(
-                            "{\"id\":\"portrait-value\",\"value\":{\"$partial\":{\"sliceIndex\":3}}}")!,
+                            "{\"id\":\"portrait-value\",\"value\":{\"~partial\":{\"sliceIndex\":3}}}")!,
                     ["banner-value"] = new SpriteMemberValue
                     {
                         id = "banner-value",

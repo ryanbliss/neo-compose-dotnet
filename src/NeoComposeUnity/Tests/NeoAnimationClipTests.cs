@@ -424,12 +424,12 @@ namespace NeoCompose.Tests
                     JObject.Parse(@"{ ""Enabled"": false, ""Offset"": { ""x"": 1, ""y"": 0 } }"),
                     lastCollider),
                 $"resolvedFrames[3].Collider was {lastCollider}");
-            // `Offset.x` moved without `$partial` appearing: the envelope is
+            // `Offset.x` moved without `~partial` appearing: the envelope is
             // unwrapped inside the recursion, not only at the top level.
             Assert.IsNull(
                 lastCollider!["Offset"]![
                     NeoJson.NeoPartialLeafValue.EnvelopeKey],
-                "the $partial envelope leaked into a resolved value");
+                "the ~partial envelope leaked into a resolved value");
 
             // The bound sheet survives the slice-only frame, and the z the clip
             // never touches stays the placement's.
@@ -531,7 +531,7 @@ namespace NeoCompose.Tests
         /// whose composed value is indistinguishable from its base:
         ///
         /// <list type="number">
-        /// <item><c>{"$partial":{}}</c> composes to the base AND authors
+        /// <item><c>{"~partial":{}}</c> composes to the base AND authors
         /// nothing, so it must never become the frame the leaf's value is
         /// attributed to.</item>
         /// <item>A field the leaf does not carry is <b>ignored</b>, never
@@ -973,9 +973,9 @@ namespace NeoCompose.Tests
         /// <summary>
         /// Deep record merge, mirroring the web resolver's `mergeSparseValue`
         /// (`world-grid-animation-model.ts`) key for key. This replaced
-        /// `JObject.Merge` when P42 put the `$partial` envelope in the fixture:
+        /// `JObject.Merge` when P42 put the `~partial` envelope in the fixture:
         /// Newtonsoft's merge has no idea what the envelope means and would
-        /// leave a literal `$partial` key sitting in the resolved state, so the
+        /// leave a literal `~partial` key sitting in the resolved state, so the
         /// two runtimes would stop agreeing about what the vectors even say.
         /// </summary>
         private static void MergeFixtureState(JObject state, JObject sparse)
@@ -1035,7 +1035,7 @@ namespace NeoCompose.Tests
 
         /// <summary>
         /// The envelope probe, matching the web `isStructuredLeafPartialValue`:
-        /// exactly one key, named <c>$partial</c>, whose value is an object.
+        /// exactly one key, named <c>~partial</c>, whose value is an object.
         /// Anything else is an ordinary record and merges as one.
         /// </summary>
         private static JObject? PartialEnvelopeFields(JToken value)

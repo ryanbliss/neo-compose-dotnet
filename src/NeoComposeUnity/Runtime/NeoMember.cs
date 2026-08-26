@@ -41,7 +41,7 @@ namespace NeoCompose.Runtime
         public string? overrideValueId { get; }
         public MemberValue? value { get; protected set; }
         /// <summary>
-        /// The P42 <c>$partial</c> structured-leaf row bound to this node, or
+        /// The P42 <c>~partial</c> structured-leaf row bound to this node, or
         /// null (the overwhelmingly common case).
         ///
         /// <para><see cref="Create"/> picks the node CLR type from the member
@@ -65,7 +65,7 @@ namespace NeoCompose.Runtime
         public PartialLeafMemberValue? partialLeafValue { get; protected set; }
 
         /// <summary>
-        /// True when this node's bound row is a P42 <c>$partial</c> envelope
+        /// True when this node's bound row is a P42 <c>~partial</c> envelope
         /// rather than a whole value.
         /// </summary>
         public bool hasPartialLeafValue => partialLeafValue is not null;
@@ -582,7 +582,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Keeps <see cref="NeoMember.partialLeafValue"/> in step with
-        /// <see cref="value"/>. A P42 <c>$partial</c> envelope row can never
+        /// <see cref="value"/>. A P42 <c>~partial</c> envelope row can never
         /// satisfy this node's <typeparamref name="TValue"/> (the node type
         /// comes from the member declaration kind, the row type from the JSON
         /// shape), so <see cref="valueData"/> resolves it as null and the row
