@@ -2555,6 +2555,26 @@ namespace NeoCompose.Runtime.NeoScript
                 return DispatchResult.Ok(
                     ResolveValueIfId(at, ctx, FindRowOwnershipByReference(receiver, ctx), member));
             }
+            // P75: a collapse-stamped row stores only the members that differ
+            // from its construction — an absent key is usually a VIRTUAL
+            // child indexed at its deterministic id, not an authored
+            // omission. Resolve it before concluding anything from the
+            // absence, exactly as the web evaluator does.
+            string? receiverRowId = FindRowIdByReference(receiver, ctx);
+            if (!string.IsNullOrEmpty(receiverRowId)
+                && ctx.client.TryGetVirtualClassChildValueId(
+                    receiverRowId!,
+                    schemaKey,
+                    out string? virtualChildId)
+                && !string.IsNullOrEmpty(virtualChildId))
+            {
+                return DispatchResult.Ok(
+                    ResolveValueIfId(
+                        virtualChildId,
+                        ctx,
+                        FindRowOwnershipByReference(receiver, ctx),
+                        member));
+            }
             return DispatchResult.NoInfo(matchedMember: true);
         }
 

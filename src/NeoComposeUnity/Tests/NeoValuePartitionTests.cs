@@ -57,6 +57,44 @@ namespace NeoCompose.Tests
             CollectionAssert.IsEmpty(client.GetUnorderedListEntryIds(TilesListValueId));
         }
 
+        /// <summary>
+        /// Binding the grid into the root assets tree makes wrapper
+        /// construction auto-load the placement partition DURING the client
+        /// constructor — before Assets/Save/Session are assigned. The
+        /// partition carries a collapse-stamped root, and its eager replay
+        /// resolved <c>root</c> through members that did not exist yet
+        /// (HelloWorld's ObjectLayerLink post-sync failure). Partition replay
+        /// now defers to the constructor's own full pass, which covers the
+        /// merged rows.
+        /// </summary>
+        [Test]
+        public void ClientConstruction_GridInRootTree_DefersPartitionReplay()
+        {
+            ProjectData data = BuildPartitionedProjectData();
+            data.classes["root-class"].schema["Grid"] = "root-grid-member";
+            data.members["root-grid-member"] = new ClassMember
+            {
+                id = "root-grid-member",
+                projectId = "project-a",
+                name = "Grid",
+                kind = MemberKind.Class,
+                classId = GridClassId,
+            };
+            ((ObjectMemberValue)data.values["root-assets-value"])
+                .value["Grid"] = "town-grid";
+
+            NeoClient client = null!;
+            Assert.DoesNotThrow(
+                () => client = NeoTestSaveStack.ClientFromSchema(data));
+
+            CollectionAssert.Contains(
+                client.LoadedValuePartitions.ToArray(), WorldPartitionKey);
+            Assert.IsTrue(client.values.ContainsKey("floor-1"));
+            CollectionAssert.Contains(
+                client.GetUnorderedListEntryIds(TilesListValueId).ToArray(),
+                "floor-1");
+        }
+
         [Test]
         public void LoadValuePartition_MergesRowsAndMembershipIndex()
         {

@@ -30,6 +30,31 @@ namespace NeoCompose.Runtime
         private bool isReplayingVirtualInstance;
 
         /// <summary>
+        /// True while a P75 sparse instance is replaying its construction.
+        /// Replay completeness follows the WEB contract: the web's replay
+        /// OMITS a required member it cannot construct (no declared default,
+        /// no constructor coverage) and the sparse root's MATERIALIZED rows
+        /// supply it in the overlay — merged completeness is what the
+        /// server-side collapse verifier proved, not construction-only
+        /// completeness. Constructed-graph validation consults this to relax
+        /// exactly that check during replay, and nothing else.
+        /// </summary>
+        internal bool IsReplayingVirtualInstance => isReplayingVirtualInstance;
+
+        /// <summary>
+        /// False until the client constructor has assigned Assets, Save, and
+        /// Session. Replay evaluates constructor bodies whose context binds
+        /// <c>root</c> through those members, so an expansion that runs
+        /// earlier dereferences a null root: a world-grid member constructed
+        /// inside the root tree loads its value partition, and the
+        /// partition's eager per-row replay fired mid-construction. Until
+        /// this flips, partition loads merge their rows and leave replay to
+        /// the constructor's own full <see cref="InitializeVirtualInstanceValues"/>
+        /// pass, which scans <c>data.values</c> and therefore covers them.
+        /// </summary>
+        private bool virtualInstanceReplayReady;
+
+        /// <summary>
         /// Every row id one instance root's expansion touched — the virtual
         /// ids it minted AND the materialized ids that answered its nodes.
         /// This is the attribution a live apply needs: it turns "these rows
@@ -1089,10 +1114,17 @@ namespace NeoCompose.Runtime
                         }
                         links[pair.Key] = pair.Value.virtualId;
                     }
+                    // Ownership switches at declared member boundaries: a
+                    // Save-storage member's pins live in the SAVE store, and
+                    // probing (and stamping) them under the root's Asset
+                    // ownership hid materialized save overrides and starved
+                    // the save sweep's virtual seeds.
                     OverlaySparseInstance(
                         pair.Value,
                         childMaterializedId,
-                        ownership,
+                        (pair.Value.member is null
+                            ? null
+                            : DeclaredOwnership(pair.Value.member)) ?? ownership,
                         instanceRoot);
                 }
                 return;
@@ -1201,7 +1233,20 @@ namespace NeoCompose.Runtime
                     virtualRow.containerId!);
             }
             foreach (VirtualExpansionNode child in node.classChildren.Values)
-                IndexVirtualSubtree(child, instanceRoot, ownership);
+            {
+                // Ownership switches at declared member boundaries, exactly as
+                // the reachability walk's own edge filter does: a Save-storage
+                // member under an Asset root owns a SAVE slot, and stamping it
+                // Asset made the save sweep skip the very expansion ids its
+                // pins materialize under (an Outpost's OutpostSaveData after
+                // the collapse virtualized the key).
+                IndexVirtualSubtree(
+                    child,
+                    instanceRoot,
+                    (child.member is null
+                        ? null
+                        : DeclaredOwnership(child.member)) ?? ownership);
+            }
             foreach (VirtualExpansionNode child in node.listChildren)
                 IndexVirtualSubtree(child, instanceRoot, ownership);
             foreach (VirtualExpansionNode child in node.dictionaryChildren.Values)
@@ -1219,11 +1264,57 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             string valueId)
         {
+            foreach (var link in EnumerateVirtualReachableChildLinks(
+                ownership,
+                valueId))
+            {
+                yield return link.valueId;
+            }
+        }
+
+        private IEnumerable<(string valueId, Member? member)>
+            EnumerateVirtualReachableChildLinks(
+                NeoValueOwnership ownership,
+                string valueId)
+        {
             if (virtualClassChildren.TryGetValue(
                     valueId,
                     out Dictionary<string, string>? links))
             {
-                foreach (string childId in links.Values) yield return childId;
+                // The parent's class types each link edge: a virtual-linked
+                // child sits at a v5 id no raw body names, so member
+                // inference by raw parents cannot recover it downstream.
+                string? parentClassId = null;
+                if ((data.values.TryGetValue(valueId, out MemberValue? parent)
+                        || saveData.values.TryGetValue(valueId, out parent)
+                        || sessionData.values.TryGetValue(valueId, out parent)
+                        || virtualValues.TryGetValue(valueId, out parent))
+                    && parent is ObjectMemberValue parentObject)
+                {
+                    parentClassId = parentObject.classId;
+                }
+                foreach (var pair in links)
+                {
+                    Member? linkMember = null;
+                    if (parentClassId is not null)
+                    {
+                        try
+                        {
+                            foreach (MergedSchemaEntry entry
+                                in ResolveInstanceSurfaceSchema(parentClassId))
+                            {
+                                if (entry.schemaKey != pair.Key) continue;
+                                TryGetMember(entry.memberId, out linkMember);
+                                break;
+                            }
+                        }
+                        catch (CircularInheritanceError)
+                        {
+                            linkMember = null;
+                        }
+                    }
+                    yield return (pair.Value, linkMember);
+                }
             }
             if (!virtualValueIdsByRoot.TryGetValue(
                     valueId,
@@ -1242,7 +1333,21 @@ namespace NeoCompose.Runtime
                 {
                     continue;
                 }
-                yield return expansionId;
+                yield return (expansionId, null);
+            }
+        }
+
+        /// <summary>
+        /// Every virtual expansion id stamped with <paramref name="ownership"/>
+        /// — the virtual twin of the authored-ownership map, seeding the
+        /// writable-store reachability sweeps.
+        /// </summary>
+        private IEnumerable<string> VirtualValueIdsByOwnership(
+            NeoValueOwnership ownership)
+        {
+            foreach (var pair in virtualValueOwnership)
+            {
+                if (pair.Value == ownership) yield return pair.Key;
             }
         }
 

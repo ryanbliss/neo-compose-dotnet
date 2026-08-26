@@ -629,6 +629,7 @@ namespace NeoCompose.Runtime
             assets = new(this, data.project.rootAssetsMemberId, null);
             save = new(this, data.project.rootSaveFileMemberId, null, NeoValueOwnership.Save);
             session = new(this, data.project.rootSessionMemberId, null, NeoValueOwnership.Session);
+            virtualInstanceReplayReady = true;
             InitializeVirtualInstanceValues();
             NeoAnimationCompiler.ValidateProject(this);
             if (loadedExistingSave)
@@ -4558,8 +4559,15 @@ namespace NeoCompose.Runtime
             loadedPartitionRowIds[mapKey] = rowIds;
             // A partition owns its placement roots. Replaying only those rows
             // avoids O(project) work and prevents an unrelated malformed root
-            // elsewhere in the corpus from breaking this load.
-            InitializeVirtualInstanceValuesForLoadedRows(rows.Values);
+            // elsewhere in the corpus from breaking this load. During client
+            // CONSTRUCTION the roots replay resolves `root` through do not
+            // exist yet — a world-grid member inside the root tree triggers
+            // this load — so the merged rows wait for the constructor's own
+            // full InitializeVirtualInstanceValues pass instead.
+            if (virtualInstanceReplayReady)
+            {
+                InitializeVirtualInstanceValuesForLoadedRows(rows.Values);
+            }
             OnValuePartitionChanged?.Invoke(mapKey);
         }
 
@@ -7055,6 +7063,17 @@ namespace NeoCompose.Runtime
                     MarkReachableValue(ownership, pair.Key, reachable);
                 }
             }
+            // P75: the authored map above is built from stored bodies, but a
+            // collapse-stamped row omits construction-equal keys — a save-
+            // storage slot under an asset instance (an Outpost's
+            // OutpostSaveData) exists only in the virtual index. Its ids are
+            // reachable exactly because their root is live; without this seed
+            // the sweep reported every pin written under such a slot as
+            // unlinked and the collector would delete the player's writes.
+            foreach (var pair in VirtualValueIdsByOwnership(ownership))
+            {
+                MarkReachableValue(ownership, pair, reachable);
+            }
             foreach (var row in data.values.Values)
             {
                 if (row is ObjectMemberValue obj
@@ -7195,11 +7214,18 @@ namespace NeoCompose.Runtime
                 // user's write. The virtual index is that missing edge, and it
                 // has to be followed BEFORE the store lookup below, because a
                 // purely virtual spine row is in neither store.
-                foreach (string virtualChildId in EnumerateVirtualReachableChildIds(
+                //
+                // Link edges carry their MEMBER, resolved from the parent's
+                // class schema: a virtual-linked child sits at a v5 id no raw
+                // body names, so TryInferMemberForValueId cannot type it — and
+                // an untyped dictionary/list container enumerates no entries,
+                // which orphaned every memory record written under a virtual
+                // DialogueMemories container.
+                foreach (var virtualChild in EnumerateVirtualReachableChildLinks(
                     ownership,
                     current.valueId))
                 {
-                    pending.Enqueue((virtualChildId, null));
+                    pending.Enqueue((virtualChild.valueId, virtualChild.member));
                 }
                 if (!store.values.TryGetValue(current.valueId, out MemberValue? val)
                     && !data.values.TryGetValue(current.valueId, out val))
