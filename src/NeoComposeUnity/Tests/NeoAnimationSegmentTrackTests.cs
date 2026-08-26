@@ -553,6 +553,45 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
+        /// P75: a segment placement is a collapse-stamped sparse instance root,
+        /// so a <c>Duration</c> the construction supplied and nothing overrode
+        /// is absent from the stored body and lives only at its virtual id.
+        /// Reading the body alone makes the whole segment resolve empty and the
+        /// clip silently plays nothing — the shape more than half the
+        /// <c>ThreeFrameSpriteAnimationSegment</c> rows in the production
+        /// corpus have.
+        /// </summary>
+        [Test]
+        public void SparseSegmentResolvesItsConstructedDuration()
+        {
+            ProjectData data = BuildEquipProjectData();
+            ((IntMember)data.members["segment-duration-member"]).defaultValue =
+                new NumberMemberValueBase { value = 2 };
+            // The replay reconstructs the whole instance, so every required
+            // member has to be satisfiable from the declaration. Frames stays
+            // materialized in the stored body and wins over this default.
+            ((ListMember)data.members["segment-frames-member"]).defaultValue =
+                new ArrayMemberValueBase { value = Array.Empty<string>() };
+            var segmentRow = (ObjectMemberValue)data.values["seg-a"];
+            segmentRow.value!.Remove("Duration");
+            segmentRow.constructorArgs = new Dictionary<string, JToken?>();
+            segmentRow.instanceConstructorId = null;
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            using var target = OpenRig(client);
+            using NeoAnimationDefinition definition =
+                NeoAnimationCompiler.Compile(target, "Clip");
+
+            definition.PreparePlayback();
+            definition.ApplyFrame(0, useResolvedState: false);
+
+            Assert.AreEqual(
+                "a0",
+                ReadLabel(client, "c-sprite"),
+                "a sparse segment must resolve its constructed Duration, not read as empty");
+        }
+
+        /// <summary>
         /// P48 §3.2 and P41: a disabled child is a visibility fact, not a
         /// lifecycle one. Resolution and writes proceed, so enabling a layer
         /// mid-clip shows the current frame rather than a stale one.

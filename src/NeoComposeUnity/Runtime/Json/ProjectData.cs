@@ -13,6 +13,10 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 27 admits P75 sparse instance roots and their deterministic
+        /// constructor/variant replay provenance. Older SDKs cannot resolve
+        /// omitted instance rows and must reject the export before loading.
+        ///
         /// 26 admits the revision-13 <c>indexOf</c> function kind and the
         /// predicate-bearing <c>count</c> payload inside compiled bodies. An
         /// older SDK cannot deserialize or correctly execute those shapes.
@@ -48,7 +52,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 26;
+        public const int CurrentSchemaVersion = 27;
     }
 
     public class ProjectExportMetadataSemver

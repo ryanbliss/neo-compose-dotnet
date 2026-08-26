@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -1199,17 +1200,87 @@ namespace NeoCompose.Runtime.Json
         public NeoTimestamp updatedAt { get; set; }
 
         /// <summary>
-        /// P61 §3 / §5.1 — evaluated arguments used to create a
-        /// materialized class instance, keyed by constructor parameter id.
+        /// P61 §3 / §5.1 — evaluated arguments used to create a class
+        /// instance, keyed by constructor parameter id.
         /// These are creation data, not executable source: literals remain
         /// literals, a constructed argument is the id of its materialized row,
         /// and an NSDelegate argument retains its ordinary delegate-value
         /// object. The row's <c>value</c> remains authoritative for every
-        /// runtime read; Unity preserves this field so exports round-trip but
-        /// never replays construction from it.
+        /// P75 replays these arguments to resolve omitted instance rows.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public Dictionary<string, JToken?>? constructorArgs { get; set; }
+
+        /// <summary>
+        /// P75 creation provenance. A string names the exact declared
+        /// constructor; null selects the implicit new(). Historical rows omit
+        /// both this field and constructorArgs.
+        /// </summary>
+        private string? storedInstanceConstructorId;
+
+        /// <summary>
+        /// Whether <see cref="instanceConstructorId"/> is PRESENT on this row,
+        /// which is not the same question as whether it is null.
+        ///
+        /// <para>The field has three states, and P75 root eligibility depends
+        /// on telling them apart:</para>
+        /// <list type="bullet">
+        ///   <item><description><b>absent</b> — this property is
+        ///   <c>false</c>. The row predates P75 and names no construction.
+        ///   </description></item>
+        ///   <item><description><b>explicit null</b> — this property is
+        ///   <c>true</c> and <see cref="instanceConstructorId"/> is
+        ///   <c>null</c>. The row was created by the implicit
+        ///   <c>new()</c>; this is the canonical stamp, paired with
+        ///   <see cref="constructorArgs"/> of <c>{}</c>.</description></item>
+        ///   <item><description><b>named</b> — a declared overload's id.
+        ///   </description></item>
+        /// </list>
+        ///
+        /// <para>Assigning <see cref="instanceConstructorId"/> at all — even
+        /// <c>null</c> — sets this to <c>true</c>, which is what makes the
+        /// explicit null survive a serialization round trip.</para>
+        /// </summary>
+        [JsonIgnore]
+        public bool hasInstanceConstructorId { get; private set; }
+
+        /// <summary>
+        /// P75 creation provenance: the declared constructor that produced
+        /// this instance, or <c>null</c> for the implicit <c>new()</c>. Absent
+        /// on rows that predate P75 — see
+        /// <see cref="hasInstanceConstructorId"/> for the absent-vs-explicit-
+        /// null distinction, which callers must respect rather than testing
+        /// this property against <c>null</c>.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Include)]
+        public string? instanceConstructorId
+        {
+            get => storedInstanceConstructorId;
+            set
+            {
+                storedInstanceConstructorId = value;
+                hasInstanceConstructorId = true;
+            }
+        }
+
+        /// <summary>
+        /// Newtonsoft's conditional-serialization hook for
+        /// <see cref="instanceConstructorId"/>, which is how an explicit null
+        /// serializes while an absent field stays absent. It must keep this
+        /// exact name and public accessibility for the serializer to find it;
+        /// it is not part of the API surface and should not be called.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public bool ShouldSerializeinstanceConstructorId() =>
+            hasInstanceConstructorId;
+
+        /// <summary>P75 variant layer used to construct this instance.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? instanceVariantId { get; set; }
+
+        /// <summary>P68 lookup row supplied to a lookup-bound variant.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? instanceVariantRowValueId { get; set; }
 
         /// <summary>
         /// Set iff this row is an entry of an <b>unordered</b> List value

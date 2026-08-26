@@ -20,7 +20,7 @@ namespace NeoCompose.Runtime
     /// <summary>
     /// NeoClient owns a live save file instance.
     /// </summary>
-    public class NeoClient : INeoClient
+    public partial class NeoClient : INeoClient
     {
         private static readonly HashSet<NeoClient> activeClients = new();
 
@@ -104,6 +104,13 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, IList<MergedSchemaEntry>> instanceSurfaceSchemas = new();
         private readonly Dictionary<string, IList<MergedSchemaEntry>> storedInstanceSchemas = new();
         private readonly Dictionary<string, IList<MergedSchemaEntry>> readOnlyMemberSchemas = new();
+        private readonly Dictionary<string, MemberValue> virtualValues = new();
+        private readonly Dictionary<string, NeoValueOwnership> virtualValueOwnership = new();
+        private readonly Dictionary<string, Dictionary<string, string>> virtualClassChildren = new();
+        private readonly Dictionary<string, HashSet<string>> virtualEntriesByContainer = new();
+        private readonly Dictionary<string, string> virtualContainerByRow = new();
+        private readonly Dictionary<string, HashSet<string>> virtualValueIdsByRoot = new();
+        private readonly Dictionary<string, HashSet<string>> virtualClassParentIdsByRoot = new();
         private IReadOnlyDictionary<string, MemberValue> readOnlyAuthoredRows =
             new Dictionary<string, MemberValue>();
         private IReadOnlyDictionary<string, string> readOnlyAuthoredClassIds =
@@ -622,6 +629,7 @@ namespace NeoCompose.Runtime
             assets = new(this, data.project.rootAssetsMemberId, null);
             save = new(this, data.project.rootSaveFileMemberId, null, NeoValueOwnership.Save);
             session = new(this, data.project.rootSessionMemberId, null, NeoValueOwnership.Session);
+            InitializeVirtualInstanceValues();
             NeoAnimationCompiler.ValidateProject(this);
             if (loadedExistingSave)
             {
@@ -779,6 +787,12 @@ namespace NeoCompose.Runtime
                     return true;
                 }
             }
+            if (virtualValues.TryGetValue(id, out MemberValue virtualMatch)
+                && virtualMatch is TValue typedVirtual)
+            {
+                value = typedVirtual;
+                return true;
+            }
             value = null;
             return false;
         }
@@ -823,6 +837,20 @@ namespace NeoCompose.Runtime
                 && assetMatch is TValue typedAsset)
             {
                 value = typedAsset;
+                return true;
+            }
+            // A virtual row belongs to the store its instance root belongs to.
+            // Answering an Asset-scoped read with a Save-owned virtual row (or
+            // the reverse) would let a caller read across the storage boundary
+            // it explicitly asked to stay inside.
+            if (virtualValues.TryGetValue(id, out MemberValue virtualMatch)
+                && virtualValueOwnership.TryGetValue(
+                    id,
+                    out NeoValueOwnership virtualOwnership)
+                && virtualOwnership == ownership
+                && virtualMatch is TValue typedVirtual)
+            {
+                value = typedVirtual;
                 return true;
             }
             return false;
@@ -2348,6 +2376,10 @@ namespace NeoCompose.Runtime
                 ownership = NeoValueOwnership.Asset;
                 return true;
             }
+            if (virtualValueOwnership.TryGetValue(id, out ownership))
+            {
+                return true;
+            }
             ownership = NeoValueOwnership.Asset;
             return false;
         }
@@ -2414,6 +2446,11 @@ namespace NeoCompose.Runtime
                 value = assetRow as TValue;
                 return value is not null;
             }
+            if (virtualValues.TryGetValue(id, out MemberValue virtualRow))
+            {
+                value = virtualRow as TValue;
+                return value is not null;
+            }
             return false;
         }
 
@@ -2449,6 +2486,11 @@ namespace NeoCompose.Runtime
             if (data.values.TryGetValue(id, out MemberValue authoredRow))
             {
                 value = authoredRow as TValue;
+                return value is not null;
+            }
+            if (virtualValues.TryGetValue(id, out MemberValue virtualRow))
+            {
+                value = virtualRow as TValue;
                 return value is not null;
             }
             return false;
@@ -2645,6 +2687,10 @@ namespace NeoCompose.Runtime
                         value.containerId!);
                 }
             }
+            // A P75 replay publishes a throwaway graph it reclaims before
+            // returning. Announcing ids no subscriber has ever seen — and will
+            // never see again — is pure churn on every live tick.
+            if (isReplayingVirtualInstance) return;
             foreach (MemberValue value in values)
             {
                 OnWritableValueChanged?.Invoke(
@@ -3538,6 +3584,22 @@ namespace NeoCompose.Runtime
                 }
             }
 
+            // Unordered-list membership is stored on the child row rather
+            // than in the list body's discriminator. Follow that back-pointer
+            // before scanning body-owned placements so partition-loaded tile
+            // entries infer the same declared entry member as ordered lists.
+            if (TryGetValue(valueId, out MemberValue? containedValue)
+                && !string.IsNullOrEmpty(containedValue.containerId)
+                && TryInferMemberForValueId(
+                    containedValue.containerId!,
+                    new HashSet<string>(visitingValueIds),
+                    out Member? containerMember)
+                && TryResolveCollectionEntryMember(containerMember) is Member containedMember)
+            {
+                member = containedMember;
+                return true;
+            }
+
             foreach (var parent in EnumerateAllValueRows())
             {
                 if (parent.Value is not ObjectMemberValue objectValue
@@ -3941,6 +4003,17 @@ namespace NeoCompose.Runtime
             // Authored-child provenance is immutable placement identity and
             // must survive every Save/Session clone-on-write shadow.
             clone.sourceValueId = row.sourceValueId;
+            clone.constructorArgs = row.constructorArgs is null
+                ? null
+                : row.constructorArgs.ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value?.DeepClone());
+            if (row.hasInstanceConstructorId)
+            {
+                clone.instanceConstructorId = row.instanceConstructorId;
+            }
+            clone.instanceVariantId = row.instanceVariantId;
+            clone.instanceVariantRowValueId = row.instanceVariantRowValueId;
             // genericBindings is immutable creation-time context
             // (specs/class-generics.md Decision 9): a shadow of a
             // stamped collection row keeps its entry-substitution stamp.
@@ -4483,6 +4556,10 @@ namespace NeoCompose.Runtime
                 }
             }
             loadedPartitionRowIds[mapKey] = rowIds;
+            // A partition owns its placement roots. Replaying only those rows
+            // avoids O(project) work and prevents an unrelated malformed root
+            // elsewhere in the corpus from breaking this load.
+            InitializeVirtualInstanceValuesForLoadedRows(rows.Values);
             OnValuePartitionChanged?.Invoke(mapKey);
         }
 
@@ -4503,7 +4580,9 @@ namespace NeoCompose.Runtime
             }
             ThrowIfOverlayShadowsPartition(NeoValueOwnership.Save, mapKey, rowIds);
             ThrowIfOverlayShadowsPartition(NeoValueOwnership.Session, mapKey, rowIds);
-            DisposeWrappersTouchingRows(rowIds);
+            IReadOnlyCollection<string> virtualRowIds =
+                ClearVirtualInstanceValuesForAuthoredRows(rowIds);
+            DisposeWrappersTouchingRows(rowIds.Concat(virtualRowIds));
             foreach (var rowId in rowIds)
             {
                 if (authoredContainerByRow.TryGetValue(rowId, out string containerId))
@@ -4628,6 +4707,11 @@ namespace NeoCompose.Runtime
                 containerId = authoredContainer;
                 return true;
             }
+            if (virtualContainerByRow.TryGetValue(valueId, out string virtualContainer))
+            {
+                containerId = virtualContainer;
+                return true;
+            }
             containerId = null;
             return false;
         }
@@ -4651,6 +4735,7 @@ namespace NeoCompose.Runtime
             var members = new List<string>();
             var seen = new HashSet<string>();
             CollectLiveMembers(authoredEntriesByContainer, containerValueId, seen, members);
+            CollectLiveMembers(virtualEntriesByContainer, containerValueId, seen, members);
             CollectLiveMembers(saveEntriesByContainer, containerValueId, seen, members);
             CollectLiveMembers(sessionEntriesByContainer, containerValueId, seen, members);
             members.Sort(System.StringComparer.Ordinal);
@@ -4682,6 +4767,7 @@ namespace NeoCompose.Runtime
             if (sessionData.values.TryGetValue(valueId, out MemberValue sessionRow)) return sessionRow;
             if (saveData.values.TryGetValue(valueId, out MemberValue saveRow)) return saveRow;
             if (data.values.TryGetValue(valueId, out MemberValue authoredRow)) return authoredRow;
+            if (virtualValues.TryGetValue(valueId, out MemberValue virtualRow)) return virtualRow;
             return null;
         }
 
@@ -6774,6 +6860,9 @@ namespace NeoCompose.Runtime
                     RemoveWritableShadow(NeoValueOwnership.Save, id);
                 }
 
+                var changedValueIds = new HashSet<string>(
+                    removedIds,
+                    System.StringComparer.Ordinal);
                 foreach (var row in rows.Values)
                 {
                     if (saveValues.TryGetValue(row.id, out var existing)
@@ -6783,6 +6872,22 @@ namespace NeoCompose.Runtime
                     }
 
                     SetSaveValue(row);
+                    changedValueIds.Add(row.id);
+                }
+
+                // Live patches may introduce or remove sparse Class spine rows
+                // and root provenance, so the virtual index is invalidated only
+                // after the incoming overlay is complete — readers never see a
+                // partial replay graph. Only the roots this patch reaches are
+                // replayed; a message that touches one row must not cost a full
+                // project re-expansion. A live apply is also not a place to
+                // fail closed: one malformed root must not gut the index for a
+                // running game, so failures are scoped to their own root.
+                if (!TryReexpandVirtualInstanceRootsForChangedRows(
+                        changedValueIds,
+                        failClosed: false))
+                {
+                    InitializeVirtualInstanceValues(failClosed: false);
                 }
 
                 // Binding metadata is independent from the target rows. Keep
@@ -6854,7 +6959,9 @@ namespace NeoCompose.Runtime
                     Debug.LogWarning(
                         $"NeoCompose save contains {unlinkedValueIds.Count} unlinked value(s). " +
                         "This can happen when generated factory values are created but never assigned. " +
-                        "Call RunGarbageCollector() before CommitAsync() to delete unlinked values.");
+                        "Inspect them with FindUnlinkedSaveValueIds() first: RunGarbageCollector() " +
+                        "deletes every id it reports, so run it only once you have confirmed none of " +
+                        "them is a value you still intend to link.");
                 }
             }
             var savedAt = NeoTimestamp.Now();
@@ -7080,6 +7187,20 @@ namespace NeoCompose.Runtime
                 var current = pending.Dequeue();
                 if (!reachable.Add(current.valueId)) continue;
                 newlyReachable?.Enqueue(current.valueId);
+                // P75 sparse spines are a reachability edge that no stored
+                // body carries: a write under an omitted Class member adopts
+                // the deterministic virtual id WITHOUT linking key -> id into
+                // the parent. Walking only stored bodies therefore judges
+                // every such override unlinked and the collector deletes the
+                // user's write. The virtual index is that missing edge, and it
+                // has to be followed BEFORE the store lookup below, because a
+                // purely virtual spine row is in neither store.
+                foreach (string virtualChildId in EnumerateVirtualReachableChildIds(
+                    ownership,
+                    current.valueId))
+                {
+                    pending.Enqueue((virtualChildId, null));
+                }
                 if (!store.values.TryGetValue(current.valueId, out MemberValue? val)
                     && !data.values.TryGetValue(current.valueId, out val))
                 {

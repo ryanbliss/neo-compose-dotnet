@@ -26,8 +26,13 @@ namespace NeoCompose.Tests
             createdObjects.Clear();
         }
 
+        /// <summary>
+        /// Without a class identity to compare — an untyped caller, or a tile
+        /// whose generated value carries no class id — there is nothing but
+        /// Unity's asset identity to match on, so the built-in constants stay.
+        /// </summary>
         [Test]
-        public void ToRuleTile_MapsThisAndNotThisToUnityBuiltInNeighbors()
+        public void ToRuleTile_WithoutASelfClassIdKeepsUnityBuiltInThisNeighbors()
         {
             var rule = new FakeSmartTileRule();
             rule.Neighbors.Add(new FakeSmartTileNeighbor
@@ -52,6 +57,58 @@ namespace NeoCompose.Tests
             Assert.AreEqual(
                 RuleTile.TilingRuleOutput.Neighbor.NotThis,
                 neighbors[new Vector3Int(1, 0, 0)]);
+        }
+
+        /// <summary>
+        /// `This`/`NotThis` are DEFINITION identity. The web pins that to the
+        /// concrete tile class id (<c>ISmartTileNeighborContext.assetId</c>),
+        /// so the SDK routes both through its own exact-tile matcher against
+        /// the tile's own class rather than through Unity's asset-reference
+        /// constants — the renderer caches one TileBase per placement value id,
+        /// so reference identity makes two placements of one tile class
+        /// invisible to each other.
+        /// </summary>
+        [Test]
+        public void ToRuleTile_RoutesThisAndNotThisThroughTheSelfClassIdMatcher()
+        {
+            var rule = new FakeSmartTileRule();
+            rule.Neighbors.Add(new FakeSmartTileNeighbor
+            {
+                Cell = new Vector2Int(0, 1),
+                Condition = NeoSmartTileOptionIds.ConditionThis,
+            });
+            rule.Neighbors.Add(new FakeSmartTileNeighbor
+            {
+                Cell = new Vector2Int(1, 0),
+                Condition = NeoSmartTileOptionIds.ConditionNotThis,
+            });
+            var matcher = new RecordingNeighborMatcher();
+
+            var tile = Convert(
+                SmartTileWithRules(rule),
+                matcher,
+                selfTileClassId: "grass-tile-class");
+
+            var neighbors = tile.m_TilingRules[0].GetNeighbors();
+            int thisId = neighbors[new Vector3Int(0, 1, 0)];
+            int notThisId = neighbors[new Vector3Int(1, 0, 0)];
+            Assert.AreNotEqual(RuleTile.TilingRuleOutput.Neighbor.This, thisId);
+            Assert.AreNotEqual(RuleTile.TilingRuleOutput.Neighbor.NotThis, notThisId);
+
+            tile.RuleMatch(thisId, null!);
+            tile.RuleMatch(notThisId, null!);
+
+            Assert.AreEqual(2, matcher.Observed.Count);
+            Assert.AreEqual(
+                NeoSmartTileNeighborKind.ExactTile,
+                matcher.Observed[0].Kind);
+            Assert.AreEqual("grass-tile-class", matcher.Observed[0].TileClassId);
+            Assert.AreEqual(new Vector3Int(0, 1, 0), matcher.Observed[0].Offset);
+            Assert.AreEqual(
+                NeoSmartTileNeighborKind.NotExactTile,
+                matcher.Observed[1].Kind);
+            Assert.AreEqual("grass-tile-class", matcher.Observed[1].TileClassId);
+            Assert.AreEqual(new Vector3Int(1, 0, 0), matcher.Observed[1].Offset);
         }
 
         [Test]
@@ -352,12 +409,14 @@ namespace NeoCompose.Tests
         private NeoRuleTile Convert(
             INeoSmartTile smartTile,
             INeoSmartTileNeighborMatcher? matcher = null,
-            Sprite? fallbackDefaultSprite = null)
+            Sprite? fallbackDefaultSprite = null,
+            string? selfTileClassId = null)
         {
             var tile = NeoSmartTileRuleTileConverter.ToRuleTile(
                 smartTile,
                 matcher,
-                fallbackDefaultSprite);
+                fallbackDefaultSprite,
+                selfTileClassId);
             createdObjects.Add(tile);
             return tile;
         }

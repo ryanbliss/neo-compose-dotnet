@@ -98,8 +98,9 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Runs the application path (P67 §4.2) for `ToVariant`, in order: the
         /// `Apply` closure if the variant declares one — a variant without it
-        /// is declarative-only and simply skips this step; then `Overrides`;
-        /// then `ChildOverrides`.
+        /// is declarative-only and simply skips this step — then writes the
+        /// declarative halves through the sparse runtime overlay and persists
+        /// the root provenance through which untouched values resolve.
         ///
         /// <para>Always in place. The value is <paramref name="source"/>, never
         /// a replacement instance.</para>
@@ -370,18 +371,23 @@ namespace NeoCompose.Runtime
             }
             // `Apply` deliberately does not run on this path (§4.1).
             ApplyDeclarativeHalves(client, record, node, NeoValueOwnership.Session);
+            // The construction below the closure already stamped its
+            // constructor pair (P75 §4). Recording the variant on top is what
+            // makes the row replay through the SAME declarative layer it was
+            // built from, rather than through the class's own construction.
+            client.StampConstructedVariantInstance(node, record, lookupRowValueId);
             return node;
         }
 
         /// <summary>
-        /// P67 §4.2 — the whole application path, in place: the `Apply` closure
-        /// when the variant declares one, then `Overrides`, then
-        /// `ChildOverrides`.
+        /// P67 §4.2 + P75 §6 — the application path, in place. The imperative
+        /// `Apply` closure runs first. The root then records the incoming
+        /// variant and clears shadows answered by its declarative layer, so
+        /// Overrides and ChildOverrides retain their specified precedence.
         ///
-        /// <para>The base selection applies nothing. It names the class itself,
-        /// and "become the plain class again" is not a state a written value
-        /// can be walked back to; returning the receiver untouched keeps
-        /// `ToVariant` total.</para>
+        /// <para>The base selection has no layers to apply, but it still clears
+        /// root variant provenance so the old declarative layer stops
+        /// resolving.</para>
         /// </summary>
         internal static void ApplyToNode(
             NeoClient client,
@@ -398,6 +404,11 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         "The Base variant is not collection-bound and cannot receive a row.");
                 }
+                client.StampVirtualInstanceVariant(
+                    node,
+                    ownership,
+                    variantId: null,
+                    rowValueId: null);
                 return;
             }
             object?[] arguments = LookupArguments(
@@ -406,7 +417,21 @@ namespace NeoCompose.Runtime
                 lookupRow,
                 lookupRowValueId);
             RunApplyClosure(client, record, node, ownership, arguments);
-            ApplyDeclarativeHalves(client, record, node, ownership);
+            client.StampVirtualInstanceVariant(
+                node,
+                ownership,
+                record.id,
+                lookupRowValueId);
+            foreach (NeoAnimationCompiledWrite answered in CompileDeclarativeHalves(
+                client,
+                record,
+                node,
+                ownership,
+                resolveSelectorsImmediately: true))
+            {
+                answered.ClearInstanceOverride();
+            }
+            client.RefreshVirtualInstanceVariant(node, ownership);
         }
 
         private static void RunApplyClosure(
@@ -580,6 +605,24 @@ namespace NeoCompose.Runtime
             NeoMemberClassWritable node,
             NeoValueOwnership ownership)
         {
+            foreach (NeoAnimationCompiledWrite write in CompileDeclarativeHalves(
+                client,
+                record,
+                node,
+                ownership,
+                resolveSelectorsImmediately: false))
+            {
+                write.Apply();
+            }
+        }
+
+        private static IReadOnlyList<NeoAnimationCompiledWrite> CompileDeclarativeHalves(
+            NeoClient client,
+            VariantRecord record,
+            NeoMemberClassWritable node,
+            NeoValueOwnership ownership,
+            bool resolveSelectorsImmediately)
+        {
             using var instance = new NeoVariantTargetValue(client, node, ownership);
             NeoMemberClass graph = ResolveGraph(client, record);
             string variantKey = $"variant:{record.id}";
@@ -609,10 +652,11 @@ namespace NeoCompose.Runtime
                     writes,
                     selectorActions,
                     variantKey,
-                    0);
+                    0,
+                    resolveSelectorsImmediately);
             }
-            foreach (NeoAnimationCompiledWrite write in writes) write.Apply();
             foreach (Action selectorAction in selectorActions) selectorAction();
+            return writes;
         }
 
         private static NeoMemberClass ResolveGraph(

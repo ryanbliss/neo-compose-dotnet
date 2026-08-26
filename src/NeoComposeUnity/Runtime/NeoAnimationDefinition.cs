@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -655,6 +656,91 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// P75 variant swaps make declarative answers virtual. A previously
+        /// pinned row at the same stable path must therefore be removed before
+        /// the imperative Apply closure runs. Structured-leaf partials share
+        /// one persisted value row, so the destructive-confirmation unit is
+        /// the leaf row rather than an individual component.
+        ///
+        /// <para>P75: the pin is located body-then-virtual, the same order
+        /// every other member path resolves a bound child in. On a sparse root
+        /// an imperative write does NOT materialize the key — it shadows the
+        /// member's deterministic virtual id — so the pin to clear is that
+        /// shadow, and searching the ownership graph for it would neither find
+        /// it nor mean anything if it did.</para>
+        /// </summary>
+        internal void ClearInstanceOverride()
+        {
+            NeoMember leaf = ResolveLeafNode();
+            string? valueId = leaf.overrideValueId ?? leaf.value?.id;
+            if (string.IsNullOrEmpty(valueId)) return;
+            string? parentValueId = writableParent.overrideValueId
+                ?? writableParent.value?.id;
+            bool detached = false;
+            string? detachedValueId = null;
+            if (string.IsNullOrEmpty(parentValueId)
+                || !client.TryGetWritableValue(
+                    writableParent.ownership,
+                    parentValueId!,
+                    out ObjectMemberValue? storedParent)
+                || storedParent.value?.ContainsKey(writableKey) != true)
+            {
+                if (parentValueId is not null
+                    && client.TryGetVirtualClassChildValueId(
+                        parentValueId,
+                        writableKey,
+                        out string? virtualChildValueId)
+                    && virtualChildValueId == valueId)
+                {
+                    // The pin is a shadow of the member's virtual id. There is
+                    // no body key to detach; dropping the shadow is the clear.
+                    storedParent = null;
+                }
+                else if (client.TryFindOwnedParent(
+                        leaf.ownership,
+                        valueId!,
+                        out string? indexedParentId)
+                    && client.TryGetWritableValue(
+                        writableParent.ownership,
+                        indexedParentId,
+                        out storedParent))
+                {
+                    parentValueId = indexedParentId;
+                }
+                else
+                {
+                    storedParent = null;
+                }
+            }
+            if (storedParent?.value is not null)
+            {
+                if (client.CloneRowForWrite(storedParent) is not ObjectMemberValue next
+                    || next.value is not Dictionary<string, string> nextBody)
+                {
+                    throw new InvalidOperationException(
+                        $"Variant override parent '{storedParent.id}' is not a writable Class row.");
+                }
+                if (nextBody.TryGetValue(writableKey, out detachedValueId))
+                {
+                    nextBody.Remove(writableKey);
+                    client.SetWritableValue(writableParent.ownership, next, "value");
+                    detached = true;
+                }
+            }
+            if (detached)
+            {
+                client.RemoveWritableValueAndDescendantsIfUnlinked(
+                    leaf.ownership,
+                    detachedValueId!,
+                    leaf.member);
+            }
+            else
+            {
+                client.RemoveWritableShadow(leaf.ownership, valueId!);
+            }
+        }
+
+        /// <summary>
         /// Read-modify-write against the leaf's value <b>as it stands right
         /// now</b> (P42 §1.4). Returns null when the write must be skipped, with
         /// <paramref name="skipReason"/> describing why.
@@ -1230,16 +1316,39 @@ namespace NeoCompose.Runtime
         /// not defended against — push rejects duplicates, and silently
         /// preferring one would hide it.
         /// </summary>
+        /// <summary>
+        /// The effective row bound to <paramref name="schemaKey"/> on a class
+        /// row: the stored body first, then the P75 virtual index.
+        ///
+        /// <para>Segments and their frames are ordinary class instances, so a
+        /// collapse-stamped one omits every member its construction supplied
+        /// and nothing overrode. Reading the body alone drops exactly those —
+        /// a missing <c>Duration</c> abandons the whole segment and a missing
+        /// <c>Value</c> reads as an authored null, which actively clears the
+        /// channel rather than being ignored.</para>
+        /// </summary>
+        private MemberValue? ResolveClassMemberRow(
+            ObjectMemberValue row,
+            string schemaKey)
+        {
+            string? childId = null;
+            row.value?.TryGetValue(schemaKey, out childId);
+            if (string.IsNullOrWhiteSpace(childId))
+            {
+                client.TryGetVirtualClassChildValueId(row.id, schemaKey, out childId);
+            }
+            return string.IsNullOrWhiteSpace(childId)
+                ? null
+                : client.ResolveEffectiveRow(childId!);
+        }
+
         private void ReadContent(string rowId)
         {
-            if (client.ResolveEffectiveRow(rowId) is not ObjectMemberValue segmentRow
-                || segmentRow.value is null)
+            if (client.ResolveEffectiveRow(rowId) is not ObjectMemberValue segmentRow)
             {
                 return;
             }
-            if (!segmentRow.value.TryGetValue("Duration", out string? durationId)
-                || string.IsNullOrWhiteSpace(durationId)
-                || client.ResolveEffectiveRow(durationId!) is not NumberMemberValue durationRow
+            if (ResolveClassMemberRow(segmentRow, "Duration") is not NumberMemberValue durationRow
                 || durationRow.value is not double rawDuration)
             {
                 return;
@@ -1249,36 +1358,25 @@ namespace NeoCompose.Runtime
 
             var rows = new MemberValue?[duration];
             var authored = new bool[duration];
-            if (segmentRow.value.TryGetValue("Frames", out string? framesId)
-                && !string.IsNullOrWhiteSpace(framesId)
-                && client.ResolveEffectiveRow(framesId!) is ArrayMemberValue framesRow
+            if (ResolveClassMemberRow(segmentRow, "Frames") is ArrayMemberValue framesRow
                 && framesRow.value is not null)
             {
                 var ordered = new List<(int index, MemberValue? row)>();
                 foreach (string frameId in framesRow.value)
                 {
                     if (string.IsNullOrWhiteSpace(frameId)) continue;
-                    if (client.ResolveEffectiveRow(frameId) is not ObjectMemberValue frameRow
-                        || frameRow.value is null)
+                    if (client.ResolveEffectiveRow(frameId) is not ObjectMemberValue frameRow)
                     {
                         continue;
                     }
-                    if (!frameRow.value.TryGetValue("Index", out string? indexId)
-                        || string.IsNullOrWhiteSpace(indexId)
-                        || client.ResolveEffectiveRow(indexId!) is not NumberMemberValue indexRow
+                    if (ResolveClassMemberRow(frameRow, "Index") is not NumberMemberValue indexRow
                         || indexRow.value is not double rawIndex)
                     {
                         continue;
                     }
                     int index = (int)Math.Floor(rawIndex);
                     if (index < 0 || index >= duration) continue;
-                    MemberValue? valueRow = null;
-                    if (frameRow.value.TryGetValue("Value", out string? valueId)
-                        && !string.IsNullOrWhiteSpace(valueId))
-                    {
-                        valueRow = client.ResolveEffectiveRow(valueId!);
-                    }
-                    ordered.Add((index, valueRow));
+                    ordered.Add((index, ResolveClassMemberRow(frameRow, "Value")));
                 }
                 ordered.Sort((left, right) => left.index.CompareTo(right.index));
                 foreach ((int index, MemberValue? row) in ordered)
@@ -2499,7 +2597,8 @@ namespace NeoCompose.Runtime
             List<NeoAnimationCompiledWrite> writes,
             List<Action> selectorActions,
             string clipKey,
-            int frameIndex)
+            int frameIndex,
+            bool resolveSelectorsImmediately = false)
         {
             foreach (NeoMember item in childOverrides)
             {
@@ -2521,9 +2620,13 @@ namespace NeoCompose.Runtime
                     label,
                     clipKey,
                     $"frame {frameIndex} child override");
-                if (selector.Refresh == NeoSelectorRefreshKind.OnLoad)
+                if (selector.Refresh == NeoSelectorRefreshKind.OnLoad
+                    || resolveSelectorsImmediately)
                 {
-                    NeoMemberClass? placedChild = selector.ResolveOptional();
+                    NeoMemberClass? placedChild =
+                        selector.Refresh == NeoSelectorRefreshKind.OnLoad
+                            ? selector.ResolveOptional()
+                            : selector.Resolve();
                     if (placedChild is null) continue;
                     FlattenOverrides(
                         target.Client,

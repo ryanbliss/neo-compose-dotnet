@@ -3595,6 +3595,123 @@ namespace NeoCompose.Tests
             }
         }
 
+        /// <summary>
+        /// Smart tile <c>This</c>/<c>NotThis</c> are DEFINITION identity: the
+        /// web's <c>ISmartTileNeighborContext</c> pins the compared identity to
+        /// "ALWAYS the concrete tile class id ... never a per-derivation
+        /// summary id". Unity's built-in constants compare TileBase REFERENCE
+        /// identity instead, and the renderer caches one TileBase per placement
+        /// value id, so two placements of one tile class held different
+        /// instances and a painted run of that tile never joined up.
+        /// </summary>
+        /// <param name="neighborValueId">
+        /// The neighbor placement: a second value of the SMART TILE'S OWN class
+        /// (matches) or a value of an unrelated class (does not).
+        /// </param>
+        [TestCase(
+            NeoSmartTileOptionIds.ConditionThis,
+            "base-tile-twin",
+            true)]
+        [TestCase(
+            NeoSmartTileOptionIds.ConditionThis,
+            "other-tile",
+            false)]
+        [TestCase(
+            NeoSmartTileOptionIds.ConditionNotThis,
+            "base-tile-twin",
+            false)]
+        [TestCase(
+            NeoSmartTileOptionIds.ConditionNotThis,
+            "other-tile",
+            true)]
+        public void Render_ThisNeighborComparesTheTileClassNotThePlacementValue(
+            string condition,
+            string neighborValueId,
+            bool expectMatch)
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(
+                BuildClassBackedTileGridProjectData());
+            var factories = BuildInheritanceTileFactories();
+            var smartTileValue = (TestTile)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "base-tile",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
+            var neighborValue = (TestTile)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                neighborValueId,
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
+            Assert.AreNotEqual(
+                smartTileValue.valueId,
+                neighborValue.valueId,
+                "the two placements must be distinct values");
+
+            var defaultSprite = CreateTestSprite("smart-default");
+            var connectedSprite = CreateTestSprite("smart-connected");
+            var neighborSprite = CreateTestSprite("smart-neighbor");
+            smartTileValue.Sprite = defaultSprite;
+            neighborValue.Sprite = neighborSprite;
+            smartTileValue.SmartTile = SmartTileWithSelfNeighbor(
+                connectedSprite,
+                condition);
+
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>());
+            var layer = new MutableTestTileLayerRuntime(
+                "background-layer",
+                "Background",
+                TileClassId);
+            layer.SetTile(new NeoResolvedTileInstance(
+                "smart-origin",
+                "background-layer",
+                Vector2Int.zero,
+                smartTileValue,
+                0));
+            var content = new TestTileGridContent(primitive, new[] { layer });
+            var go = new GameObject("NeoTileGridRenderer smart This neighbor test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(content);
+
+                var tilemap = go.GetComponentInChildren<Tilemap>();
+                Assert.IsNotNull(tilemap);
+                Assert.IsInstanceOf<NeoRuleTile>(tilemap!.GetTile(Vector3Int.zero));
+
+                layer.SetTile(new NeoResolvedTileInstance(
+                    "smart-neighbor",
+                    "background-layer",
+                    new Vector2Int(1, 0),
+                    neighborValue,
+                    1));
+                primitive.NotifyTileLayerChanged(
+                    "background-layer",
+                    Array.Empty<Vector2Int>(),
+                    new[] { new Vector2Int(1, 0) },
+                    NeoTileGridChangeSourceKind.Direct,
+                    null);
+
+                Assert.AreSame(
+                    expectMatch ? connectedSprite : defaultSprite,
+                    tilemap.GetSprite(Vector3Int.zero),
+                    expectMatch
+                        ? $"'{condition}' must be satisfied by neighbor '{neighborValueId}'"
+                        : $"'{condition}' must be refused by neighbor '{neighborValueId}'");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(defaultSprite);
+                DestroyTestSprite(connectedSprite);
+                DestroyTestSprite(neighborSprite);
+            }
+        }
+
         [Test]
         public void Render_InheritsFromClassRuleRejectsUnrelatedNeighbor()
         {
@@ -5494,6 +5611,22 @@ namespace NeoCompose.Tests
             UnityEngine.Object.DestroyImmediate(sprite);
         }
 
+        private static TestSmartTile SmartTileWithSelfNeighbor(
+            Sprite connectedSprite,
+            string condition)
+        {
+            var rule = new TestSmartTileRule();
+            rule.Sprites.Add(connectedSprite);
+            rule.Neighbors.Add(new TestSmartTileNeighbor
+            {
+                Cell = new Vector2Int(1, 0),
+                Condition = condition,
+            });
+            var smartTile = new TestSmartTile();
+            smartTile.Rules.Add(rule);
+            return smartTile;
+        }
+
         private static TestSmartTile SmartTileWithInheritsClassNeighbor(
             Sprite connectedSprite,
             string tileClassId)
@@ -6712,6 +6845,11 @@ namespace NeoCompose.Tests
                     ["root-session-value"] = ObjectValue("root-session-value", rootClass.id),
                     ["floor-tile"] = ObjectValue("floor-tile", TileClassId),
                     ["base-tile"] = ObjectValue("base-tile", BaseTileClassId),
+                    // A SECOND placement value of the SAME tile class. Smart
+                    // tile `This` is definition identity, so these two must see
+                    // each other even though the renderer caches one TileBase
+                    // per placement value id.
+                    ["base-tile-twin"] = ObjectValue("base-tile-twin", BaseTileClassId),
                     ["sub-tile"] = ObjectValue("sub-tile", SubTileClassId),
                     ["other-tile"] = ObjectValue("other-tile", OtherTileClassId),
                     ["shop-object"] = ObjectValue("shop-object", ObjectClassId),
