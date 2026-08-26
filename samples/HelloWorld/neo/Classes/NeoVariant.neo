@@ -1,0 +1,48 @@
+/// One named configuration of a NeoObject class: how to construct a fresh
+/// instance, how to move an existing instance into the configuration, and the
+/// declarative overrides that follow either path.
+///
+/// Every member is a constructor parameter, because NeoScript has no
+/// executable object-initializer form: a variant global's `new(...)` is the
+/// only way authored source can settle these, so anything not reachable
+/// through the constructor would be unauthorable.
+///
+/// `Overrides` and `ChildOverrides` are nullable and default to null, which is
+/// the stored spelling of "empty". Neither an empty partial nor an empty list
+/// is a P65 constant a parameter default could spell, and a nullable parameter
+/// cannot initialize a non-nullable member, so null is the settled rest state
+/// on both sides: readers treat it as an empty partial and an empty list.
+///
+/// A variant is a record, never a value inside its class's own defaults, so
+/// this class only ever heads the value graph a `variant` record owns. It is
+/// reference-only: authored data points at variants, and nothing else may
+/// name the class in a type position.
+@id("system_d156018c-2f04-4bba-ab8a-2678ba3ca5b3")
+@hidden
+@storage(allowed: .Immutable)
+@system(kind: .WorldAuthoring, worldKind: .Variant)
+sealed class NeoVariant<
+  @id("system_ad79e72f-bf98-4e50-810f-ad1c946ffe1a")
+  TObject extends NeoObject
+>(NeoDelegate<TObject> initialize, NeoDelegate<void, TObject>? apply = null, TObject? overrides = null, List<NeoAnimationChildOverride<NeoObjectBase>>? childOverrides = null) {
+  @id("system_17458a32-1ce0-4548-bf0e-a6a2ee0b9c72")
+  @locked
+  @system(kind: .WorldAuthoring)
+  public virtual NeoDelegate<void, TObject>? Apply = apply;
+
+  @id("system_45ef9e9e-5a3a-4194-b79d-aeaaf7d76a3a")
+  @locked
+  @settings(kind: .Ordered)
+  @system(kind: .WorldAuthoring)
+  public virtual List<NeoAnimationChildOverride<NeoObjectBase>>? ChildOverrides = childOverrides;
+
+  @id("system_ad161739-c451-4f12-bebb-a65564f2d27c")
+  @locked
+  @system(kind: .WorldAuthoring)
+  public virtual NeoDelegate<TObject> Initialize = initialize;
+
+  @id("system_5bf10566-025f-4e42-854e-e88f98ea8110")
+  @locked
+  @system(kind: .WorldAuthoring)
+  public virtual Partial<TObject> Overrides = overrides;
+}

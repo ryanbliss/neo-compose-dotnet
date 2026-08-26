@@ -1,0 +1,17 @@
+/// A variant folder whose variants receive a row from a bound collection.
+@id("system_b3bd4d91-6e03-4034-b201-05afd78f7c72")
+@hidden
+@storage(allowed: .Immutable)
+@system(kind: .WorldAuthoring, worldKind: .LookupVariantFolder)
+sealed class NeoLookupVariantFolder<
+  @id("system_a5488f2b-966e-4643-93df-71995c9c24ad")
+  TObject extends NeoObject,
+  @id("system_39544f5d-e527-44fb-96b7-f584b7cd1a25")
+  TValue
+>(string path) {
+  @id("system_d36ebea5-151f-4d9d-95f2-28d8cfb05870")
+  @locked
+  @settings(localizable: false)
+  @system(kind: .WorldAuthoring)
+  public virtual string Path = path;
+}

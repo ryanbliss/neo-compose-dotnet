@@ -54,78 +54,78 @@ Root root = new() {
         ItemGetSfx = AudioClips.ItemGet,
         RocketThrustSfx = AudioClips.RocketThrust
       },
-      Computed = new ComputedText {
+      Computed = new ComputedText() {
         baseText = "Hello",
         optionalSuffix = "!"
       },
       Items = [
         @id("ca105d9d-2885-4f33-80d4-206d5e207173")
-        new Item {
+        new Item() {
           Name = "Earth OG Souvenir Hat",
           Value = 100
         },
     
         @id("c263523c-352c-4273-885c-934bb35f5d16")
-        new Item {
+        new Item() {
           Name = "Cloudsilk Parasol",
           Value = 180
         },
     
         @id("c8eb381b-9c3f-4120-b8c3-3872cdde5148")
-        new Item {
+        new Item() {
           Name = "Low-G Pitons",
           Value = 95
         },
     
         @id("0e9655ec-dc98-477c-b0ff-90d8f203040a")
-        new Item {
+        new Item() {
           Name = "Storm Corn",
           Value = 12
         },
     
         @id("fec825b2-2449-4ae2-a4bd-b29f8cf73e3c")
-        new Item {
+        new Item() {
           Name = "Abyssal Lantern",
           Value = 140
         },
     
         @id("18b9a621-ea41-4ac7-8a46-9cc443f2b480")
-        new Item {
+        new Item() {
           Name = "Helium-3 Flask",
           Value = 220
         },
     
         @id("0c962c81-359a-4f8b-9263-7b6bb33b42b7")
-        new Item {
+        new Item() {
           Name = "Smuggler's Manifest",
           Value = 425
         },
     
         @id("a840747f-9d6b-4d71-af3a-16b294ec436d")
-        new Item {
+        new Item() {
           Name = "Cryo Salve",
           Value = 60
         },
     
         @id("73a11098-70fa-4608-bfb6-0ab25571e576")
-        new Item {
+        new Item() {
           Name = "Gyro Stabilizer",
           Value = 310
         },
     
         @id("e812e95c-d4dc-4f5d-8f42-ce57e5501eab")
-        new Item {
+        new Item() {
           Name = "Plutonian Signet",
           Value = 999
         }
       ],
-      LookupContainer = new LookupContainer {
+      LookupContainer = new LookupContainer() {
         Lookup = Reference<LookupEntry>(id: "33d1c6b5-1310-4565-83c3-3c090f0c768c"),
         LookupList = {
-          "Item1": new LookupEntry {
+          "Item1": new LookupEntry() {
             Name = "Hello World!"
           },
-          "Item2": new LookupEntry {
+          "Item2": new LookupEntry() {
             Name = "Hello Worlds!"
           }
         }
@@ -148,7 +148,6 @@ Root root = new() {
         @id("913fd757-d6ee-488e-866f-c7af41aa544b")
         new Outpost {
           AnimatedImage = new AnimationInfo {
-            FPS = 30,
             Frames = [
               @id("c1fc5ba2-53c5-40e8-9cbd-6b40a5915287")
               Images.EarthDayAndNight.Slice(0),
@@ -321,7 +320,6 @@ Root root = new() {
         new JupiterOutpost {
           Image = Images.Io.Slice(0),
           Moon = .io,
-          Planet = .jupiter,
           Name = "Iowan"
         },
     
@@ -329,7 +327,6 @@ Root root = new() {
         new JupiterOutpost {
           Image = Images.Europa.Slice(0),
           Moon = .europa,
-          Planet = .jupiter,
           Name = "Europapas"
         },
     
@@ -337,7 +334,6 @@ Root root = new() {
         new JupiterOutpost {
           Image = Images.Ganymede.Slice(0),
           Moon = .ganymede,
-          Planet = .jupiter,
           Name = "Pour Lords"
         },
     
@@ -345,14 +341,12 @@ Root root = new() {
         new JupiterOutpost {
           Image = Images.Callisto.Slice(0),
           Moon = .callisto,
-          Planet = .jupiter,
           Name = "Ursa Major"
         },
     
         @id("c9cbef1c-4660-432c-83e1-0e9c10c897e0")
         new SaturnOutpost {
           Moon = .titan,
-          Planet = .saturn,
           Image = Images.Titan.Slice(0),
           Name = "Titan"
         },
@@ -360,7 +354,6 @@ Root root = new() {
         @id("bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f")
         new SaturnOutpost {
           Moon = .enceladus,
-          Planet = .saturn,
           Image = Images.Enceladus.Slice(0),
           Name = "Etna Diadem"
         },
@@ -386,3241 +379,3184 @@ Root root = new() {
           Planet = .pluto
         }
       ],
-      ScreenshotEmptyGrid = new OldConsoleLandingGrid {
-        DisplayName = "",
-        CellSize = new(1, 1, 0),
-        Children = [],
-        PixelsPerUnit = 100
-      },
+      ScreenshotEmptyGrid = new OldConsoleLandingGrid(),
       SortingLayers = [
         @id("88c0d53b-94ee-4f48-839b-9148d07828fb")
-        new NeoSortingLayer {
+        new NeoSortingLayer() {
           Name = "Default"
         }
       ],
       Worlds = new Worlds {
         OldConsoleLanding = new OldConsoleLandingGrid {
           DisplayName = "The Old Console Landing",
-          CellSize = new(1, 1, 0),
           Children = [
             @id("7ae2813f-432a-468e-829d-fe3e6ddc559d")
-            new BackgroundTileLayerLink {
-              Enabled = true,
+            new BackgroundTileLayerLink() {
               Name = "Background",
-              Position = new(0, 0, 0),
-              Size = new(1, 1, 0),
               Tiles = [
                 @id("0085b356-6f35-462e-b50d-5e7d85e96ec8")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, -4)
                 },
     
                 @id("00e6b81d-b575-462d-996d-a42c1288317a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, 7)
                 },
     
                 @id("0254425d-6020-4411-8125-8f51f2ea9250")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, 4)
                 },
     
                 @id("025ca948-3c0a-4428-9adf-2c7e478f019a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, -6)
                 },
     
                 @id("03052bf5-3396-42b6-ab3e-4ade6760c388")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, -6)
                 },
     
                 @id("033e6267-a21e-4f45-8df1-6961cdcb5f82")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, -5)
                 },
     
                 @id("03d81258-7e44-4298-ab4a-5602d5ec2a96")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, -2)
                 },
     
                 @id("03e343ba-1f51-4a7e-9965-8bee6921faab")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, -3)
                 },
     
                 @id("048ce285-e73d-41fa-88ee-24e9a3a2851c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, 0)
                 },
     
                 @id("0637ee0e-ab1a-4131-9ddf-800a980fabe6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, -7)
                 },
     
                 @id("073ddb35-aeb7-435c-9baa-e5edcd70fc4e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -8)
                 },
     
                 @id("075bdd1d-7b17-4cc9-b69c-d8867fb91734")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, -8)
                 },
     
                 @id("0795f31c-a35a-40e2-a0ed-95c5dd961e2b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, -4)
                 },
     
                 @id("08a29476-52b8-46b3-b709-8a1f99ca120e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, 5)
                 },
     
                 @id("08b1532c-ed10-46b2-9729-c705bcbb4cd2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, -11)
                 },
     
                 @id("08f631f5-8061-4240-b42b-f3b5bcc7023f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, -3)
                 },
     
                 @id("09339878-7094-4637-8d28-d7aeffe8a394")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, 3)
                 },
     
                 @id("0951e479-43f3-42e8-8683-0a430ef9954c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, -3)
                 },
     
                 @id("096b730b-936f-410e-ad0b-ee39420a0b15")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, -3)
                 },
     
                 @id("0a414c26-3c5d-42a0-a0b0-b7565babfbe9")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, 2)
                 },
     
                 @id("0a8e2698-950d-48f9-8b52-9a327329203f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, 3)
                 },
     
                 @id("0adb3379-a4af-4f1f-830a-05571ee5dc2d")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, 6)
                 },
     
                 @id("0adb768f-5750-44d3-98d7-d28dab57478f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -9)
                 },
     
                 @id("0af3a009-6a2c-4168-909c-481047c66b94")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, 6)
                 },
     
                 @id("0b251d39-2882-4aeb-91cc-cbdc36de3289")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, -4)
                 },
     
                 @id("0b501ab7-8156-421f-875c-e395729f8f97")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, 4)
                 },
     
                 @id("0bf16bd4-60ce-414b-99c9-261ec16b0b38")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, -11)
                 },
     
                 @id("0c0bdcac-51dd-42dd-aaf9-0a7cf9b96922")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, 2)
                 },
     
                 @id("0c8dcafc-7517-4cbb-8a33-730bfdbc2b96")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, -7)
                 },
     
                 @id("0d9d65a5-2900-42d7-a720-fe505ed4eb36")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, -7)
                 },
     
                 @id("0eb335a1-8eb1-4203-a85f-158af10e414d")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, 0)
                 },
     
                 @id("0eeb75de-273a-4b88-b46e-73c7fca2fb06")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, 0)
                 },
     
                 @id("0f3e7868-ce78-4efb-8588-761d95161db2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, -8)
                 },
     
                 @id("0f9a77da-1aa3-47bc-b622-eba7e2b5da67")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, -9)
                 },
     
                 @id("0fadf2b1-3f19-411f-83f4-3d3bbe00ab93")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, 7)
                 },
     
                 @id("0fe7ac87-d3ba-4707-a74e-7278188d1b56")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, -5)
                 },
     
                 @id("115008dd-bb33-4b40-a1c2-3860c506f619")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, 5)
                 },
     
                 @id("12246a3a-46d5-4ac0-b2a3-cdfb63dbe41b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, -11)
                 },
     
                 @id("1238f888-bfda-4eac-90a4-20df469928ad")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, 2)
                 },
     
                 @id("124c2ee8-8151-4e11-b881-8736a1a0f4cc")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, 3)
                 },
     
                 @id("132c9cb8-1949-4a82-8239-b05f2c7bd10e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, 8)
                 },
     
                 @id("137af2e6-a007-4a22-993b-f11d4bbf24d0")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, 0)
                 },
     
                 @id("1439ff2e-282f-4109-a8ab-c695d09d0f76")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, -11)
                 },
     
                 @id("147758d6-bc72-4a78-a135-90a7194d4fec")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, -6)
                 },
     
                 @id("14feafb2-4fd7-451c-a73e-f17bac3a79b1")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, 3)
                 },
     
                 @id("15687e11-f78e-466f-9004-9d8e74ccf924")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, -7)
                 },
     
                 @id("15755418-8783-472e-8d0d-ba8281afbc6a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, -4)
                 },
     
                 @id("16c706b7-8ddc-4aa5-8403-520a36dd938c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, 7)
                 },
     
                 @id("16fc739f-030a-4a0d-95aa-f2a11ce3a3d0")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, -1)
                 },
     
                 @id("172dc2f1-1f4c-4003-a0d4-bc1f199e8e58")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, 7)
                 },
     
                 @id("17969fdb-344c-4bd9-93d5-30897fd7cba2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, -2)
                 },
     
                 @id("19076621-9699-4f36-9160-8fbe0ab077d1")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, 0)
                 },
     
                 @id("1a2b798c-d0ac-44a4-8d94-631dff1d3803")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, -10)
                 },
     
                 @id("1a5a39bc-6e16-4cfb-a0d9-7271ac97d57c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, 0)
                 },
     
                 @id("1a94c759-161c-43ea-b033-8e98186680dc")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, -7)
                 },
     
                 @id("1b18c3f8-ae0f-428c-9220-6c80626310b0")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, -1)
                 },
     
                 @id("1b313e46-62d9-4f87-ac1f-6683c05fe3dc")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, -1)
                 },
     
                 @id("1b327d79-0488-4014-afdc-c71534daa7a3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, 6)
                 },
     
                 @id("1b9122c9-8061-4d07-b648-1015b3c89369")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, 3)
                 },
     
                 @id("1bb65406-d572-4743-85fd-08e89da1abf0")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, -9)
                 },
     
                 @id("1c374d71-d86a-44c3-851c-eb8f6c1d9ee2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, 1)
                 },
     
                 @id("1d13d73f-f691-4afd-9a19-382e30489c1f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, 0)
                 },
     
                 @id("1d3979a9-6b6a-4384-acf8-c64820403517")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, 7)
                 },
     
                 @id("1de895a9-7779-4993-8295-c0a3f9b225a7")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, -7)
                 },
     
                 @id("1e67ee1e-b637-49c3-88b3-03a7a1acdee2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, -10)
                 },
     
                 @id("1f597d8f-9e28-43f8-87c2-60cabf8116db")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, 0)
                 },
     
                 @id("1f8c740d-b192-4ff5-a11a-18df60075aa1")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, -9)
                 },
     
                 @id("1fce8e32-c38a-47b5-aa36-ccf959746e03")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, -9)
                 },
     
                 @id("210e4a0a-d67f-43f0-8614-cdce125de583")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, 2)
                 },
     
                 @id("21fa2f05-ad37-4d99-a98f-fcc6bdc9ab32")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, -10)
                 },
     
                 @id("227043b1-e5ab-47e1-9bff-ada5d479cab2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, 7)
                 },
     
                 @id("2509c20f-2bb6-4221-9f2c-9efec1710929")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, -9)
                 },
     
                 @id("25dbb6f0-76b9-4c46-9967-1752c678559d")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, -8)
                 },
     
                 @id("26237fe9-daa0-4148-bd7b-fd4540d98c33")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, -8)
                 },
     
                 @id("2663244b-271e-4c85-8520-26521c198da4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, 2)
                 },
     
                 @id("26851978-72f4-463a-8682-c54c9dbea4e5")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, 6)
                 },
     
                 @id("26b76905-3e9f-45fe-8eb6-e49cbe66d7e6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -3)
                 },
     
                 @id("27dba1c2-ebc0-443e-9187-8060b7180c0b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, 6)
                 },
     
                 @id("289e0f28-145b-4363-b2bf-d4ab64ec1e2e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, 4)
                 },
     
                 @id("28bb03db-7b6d-4669-bb61-2718fb1a6b63")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, 7)
                 },
     
                 @id("28e25f8d-07bf-4202-b54c-641fafcb4878")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, 1)
                 },
     
                 @id("29293468-9089-4728-ad75-eb633ac58ed8")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, -2)
                 },
     
                 @id("2971ab0f-5c0a-4b8b-9e13-7b8aad49b76a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, 4)
                 },
     
                 @id("29f79f65-6f91-4aa0-b3a3-a0ec84ee9a87")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, -8)
                 },
     
                 @id("2aa08d0d-fcaf-4e40-9c88-f2b66383c7fb")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, -6)
                 },
     
                 @id("2be49875-bebb-49d2-82fc-fd4ec5208dc1")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, -9)
                 },
     
                 @id("2bfff45c-9d3b-4931-a8b5-0dfa90338c90")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, 2)
                 },
     
                 @id("2c0867fe-7357-453e-bfa3-83f5e28415cf")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, -6)
                 },
     
                 @id("2c520fc3-e3e8-4813-a16f-c90937217861")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, -8)
                 },
     
                 @id("2c8ae9f1-f4e2-41e2-a328-e87e9ae201d9")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, -9)
                 },
     
                 @id("2d8a8160-72f8-4664-addd-9ba3cb304438")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, -3)
                 },
     
                 @id("2dc252e2-b9f4-45b1-89db-25c91b754006")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, 6)
                 },
     
                 @id("2ddd81c5-0e83-44c0-a834-52463812bcb2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, 5)
                 },
     
                 @id("2e28f9fc-4d66-4e67-a810-df8e3fa7e9d4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, -4)
                 },
     
                 @id("2e3452c4-c89b-44e4-9298-2d29617e111d")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, -9)
                 },
     
                 @id("2e508e2f-1efd-435b-ab6f-a9ff29ba383e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, 6)
                 },
     
                 @id("2f0736a5-38bd-457c-899d-25f5b09d20bb")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, 2)
                 },
     
                 @id("2f11970b-91b8-42c1-961c-b3826da6d7ba")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, -6)
                 },
     
                 @id("2f358f44-ef76-4203-bac8-4dd34df0cd8b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, -9)
                 },
     
                 @id("2f4f6023-eedf-4001-ab83-819e5338d265")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -4)
                 },
     
                 @id("2f61b0e3-8a2b-40a1-bb31-1ccae3528d5c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, 1)
                 },
     
                 @id("302237b3-13ef-4df7-9294-2129887e544b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, 8)
                 },
     
                 @id("30765228-9b5a-42d5-8062-7386b3e3b78c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, -1)
                 },
     
                 @id("309772cb-3447-4deb-8562-376b71244ee3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, -2)
                 },
     
                 @id("30bfb443-8dcf-46f9-a51b-e207c64dd652")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, 6)
                 },
     
                 @id("31e68c10-e9bd-43ba-8d76-6a4a7dcad45a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, -2)
                 },
     
                 @id("326eea28-08ea-4f89-a733-0c971bc3aa4f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -6)
                 },
     
                 @id("33736a42-3d8a-4dfe-94b7-2e5929f4ed83")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -11)
                 },
     
                 @id("33a23a77-34c9-49d1-86a3-faac4dd028d9")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, 5)
                 },
     
                 @id("33ac27ca-f516-4b7e-8040-e9d88a7fb978")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, -6)
                 },
     
                 @id("33ca3239-c68a-4d20-92de-66acac44f403")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, 7)
                 },
     
                 @id("342e9f46-048b-45c6-820a-131f0019af82")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, 4)
                 },
     
                 @id("34719209-f43d-4ec6-8fbb-0699c46f33cb")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, -10)
                 },
     
                 @id("34ad54d4-0e27-414e-b359-f6d3c410ca5a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, 3)
                 },
     
                 @id("3584de17-cad6-4f20-9abc-03319b491571")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, 1)
                 },
     
                 @id("35a0a80a-6b0b-41b5-8499-d4f7648ca815")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, 1)
                 },
     
                 @id("35be8240-9d9e-4c84-b6cc-1273a982c2aa")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, 6)
                 },
     
                 @id("3638f3d1-0d97-425b-a2bf-f2ccffa094e3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, 6)
                 },
     
                 @id("378559cb-abcd-4d14-9641-20e89d1c4854")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, 0)
                 },
     
                 @id("383acd8b-22dc-40cf-9ed0-ee535eb2339a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -9)
                 },
     
                 @id("38eab343-fb37-478d-bd12-c1c70fd66aa8")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, -5)
                 },
     
                 @id("392a40d9-616b-43b3-b7d2-60045ee79efb")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, 2)
                 },
     
                 @id("396be4c3-22d7-4198-ae41-89ec8504fc76")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, -5)
                 },
     
                 @id("39c48db5-d123-4db8-b9fa-4b5b3f82e766")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, 7)
                 },
     
                 @id("3ab8cf1f-a765-4718-83e8-89f6920e600d")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, -1)
                 },
     
                 @id("3abff3a8-a98c-4b85-9df7-4615acb2fda0")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, -10)
                 },
     
                 @id("3b1bdffa-43f7-4dc4-b71d-74dc327b8651")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, -9)
                 },
     
                 @id("3b2defa9-138b-41ec-975a-71e7ec6e933b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, -10)
                 },
     
                 @id("3bd9e6c6-cf7b-4d08-add7-1cad7bf5e52f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, -4)
                 },
     
                 @id("3c9a993d-248b-4e61-b120-b6e79803860e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, -7)
                 },
     
                 @id("3d4e425e-72d3-4261-ac26-728ceb06a352")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, -4)
                 },
     
                 @id("3d607e94-4d02-4691-a9c1-33142331a899")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, -7)
                 },
     
                 @id("3e911a66-15e5-45c7-aa7e-5f9134b32262")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, 1)
                 },
     
                 @id("3f30bc7a-fd0e-4bd9-b008-47068dade085")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, -10)
                 },
     
                 @id("3fe19cf2-2e34-4131-877d-71d9cdf5e8c7")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, -7)
                 },
     
                 @id("408c2619-c83e-4039-9ace-610dc8f0a782")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, -2)
                 },
     
                 @id("41a94aa9-7512-4b35-9ee9-6ecc5b7374cd")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, 0)
                 },
     
                 @id("41fa0797-8069-4de5-a3e9-5d5cd08e2e64")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, 6)
                 },
     
                 @id("42d4c4bb-dc24-4a67-a8f0-e1711a1e32ab")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, 1)
                 },
     
                 @id("43048388-5f55-4610-b69f-282bdf6f0489")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, 6)
                 },
     
                 @id("432283c0-fbb5-4576-ad7f-61e2d78143b6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, -1)
                 },
     
                 @id("44d5241e-644e-4441-a25e-e4988039b142")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, -7)
                 },
     
                 @id("45192d33-b516-436e-8be6-0b4e26594811")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, -1)
                 },
     
                 @id("4550f6e5-d95e-45b9-81c8-21d1a5b1210e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, -11)
                 },
     
                 @id("45c28b63-6a17-4190-82cb-9e129a151b6b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, 1)
                 },
     
                 @id("468b8585-ad85-435a-8a1c-a47e5570448b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, 5)
                 },
     
                 @id("46bbe384-4fb0-4927-8292-86d30209ea41")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, 5)
                 },
     
                 @id("470c4f67-6086-4646-a6c9-772d076c41b8")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, 5)
                 },
     
                 @id("47636f84-2ee0-4e7d-8d2d-a22841419ce0")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, -1)
                 },
     
                 @id("4778bfda-8168-4311-af5e-a47b98b41488")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, 7)
                 },
     
                 @id("47a88b5c-6f07-41cf-a924-02403eca9393")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, -6)
                 },
     
                 @id("4804e315-f75c-4bfa-a322-243b4bd1709e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, 3)
                 },
     
                 @id("48354c3e-8d92-4599-b2a9-96a583519b7b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, -8)
                 },
     
                 @id("4911845a-de97-4897-8d5e-8e116d6e8ad1")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, -8)
                 },
     
                 @id("4998d05d-3d77-4cc4-8ec9-5a9bafb09ef1")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, -10)
                 },
     
                 @id("49e113fa-446b-4cc3-94d4-bedb6196e076")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -11)
                 },
     
                 @id("49e679f3-1fed-4381-83aa-b3ef500937bd")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, 8)
                 },
     
                 @id("4a1271f2-f333-4a8c-b424-6357a372df16")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, -7)
                 },
     
                 @id("4a167cd0-1f0b-4758-80fa-c8b4e3588d56")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, 6)
                 },
     
                 @id("4b4cc617-8333-41ff-b809-fc78739e8c07")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, -5)
                 },
     
                 @id("4b59aafb-e46e-4719-83ce-2c5c35b768bc")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, -7)
                 },
     
                 @id("4b9ec2e7-4473-4120-bd6b-93eb3a7f9323")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, -4)
                 },
     
                 @id("4c105ee0-6df6-4f95-9dc7-2c15bbce2662")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, -2)
                 },
     
                 @id("4cac66eb-05dd-4208-abf7-25ec9e2fc8c2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, -1)
                 },
     
                 @id("4cdc137d-2492-42bf-9b57-34ccc01ea000")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, 1)
                 },
     
                 @id("4cfad126-27df-4089-99d5-822f0d85b4ab")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, -11)
                 },
     
                 @id("4dbe98bd-5186-4a0f-ac18-14fbf5a1ffdf")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, -10)
                 },
     
                 @id("4e34bdbd-7f44-47b2-9444-4dd9211a7446")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, -6)
                 },
     
                 @id("4ea94310-2561-40a9-8c88-e2b72cb0c69e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, 0)
                 },
     
                 @id("4ebbe84b-566c-4ec5-b62b-ef020626359a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, -7)
                 },
     
                 @id("4eee2947-54bc-4f9b-87fa-c3b96f136146")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, 1)
                 },
     
                 @id("4efc84c9-87e5-4235-bd12-5e0c89402a73")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, -5)
                 },
     
                 @id("504287d5-e199-4b31-9856-d0df1c5489ae")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, -2)
                 },
     
                 @id("50483c0d-491e-47cd-b0bf-9b5ca0a47cfa")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, 3)
                 },
     
                 @id("50559fc4-8956-4f52-9ba0-d47479e14ae3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, -4)
                 },
     
                 @id("50ac5289-959f-46f8-a020-5d7adec920ea")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, 1)
                 },
     
                 @id("50f3679a-7bd6-4a6b-8944-4d8a3fd045f3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, 4)
                 },
     
                 @id("51737391-519f-44c6-82da-68dc46a968c2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, 7)
                 },
     
                 @id("524cdf99-e9c6-48a0-9338-0d3348f13be5")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, 6)
                 },
     
                 @id("52ba8094-63fe-4406-b4e1-ff3acb173623")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, -5)
                 },
     
                 @id("52e5f208-d9c4-4915-84af-9edcd3fd849e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, -5)
                 },
     
                 @id("532d4552-4620-4d89-a850-d763feea7181")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, 5)
                 },
     
                 @id("534203f5-cbda-48ee-9ebe-aa2133becef8")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, -4)
                 },
     
                 @id("53c205c5-3828-4496-a911-1b45586848d3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -8)
                 },
     
                 @id("54670bb4-7522-42a1-ac9e-9f037da45fb8")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, 7)
                 },
     
                 @id("54ea8240-fff3-408f-973b-92caca5a91e4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, -4)
                 },
     
                 @id("558377eb-cade-4e84-8333-126c555f67de")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, 0)
                 },
     
                 @id("56bb6dbf-e9a3-4bc8-acf8-e95200558641")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, -4)
                 },
     
                 @id("56d4abc3-d2e5-4b02-bf0d-933c5a72549e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, 0)
                 },
     
                 @id("56d58131-85e1-456d-8d7c-c2e25fc37495")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, -4)
                 },
     
                 @id("57b0d019-eb61-428d-95aa-f557664c8957")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, 3)
                 },
     
                 @id("57b25f28-8872-40fd-b295-0b774cd8ae3b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, -10)
                 },
     
                 @id("57c5d5c0-24bd-4845-9b03-f06c246c18bc")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, -2)
                 },
     
                 @id("580f6e0e-db70-405c-9970-588a04905513")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, -6)
                 },
     
                 @id("58651c5e-30b8-48bf-a66f-a94c3c799573")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, -10)
                 },
     
                 @id("58a52ba1-f55a-4aec-ad8c-aa1b945214a9")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, -3)
                 },
     
                 @id("593778d3-a662-4d92-abd1-54a940523b21")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, 2)
                 },
     
                 @id("59602f36-b1f3-4d51-b276-04560bea8d70")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, -5)
                 },
     
                 @id("5993a1af-48a8-4618-a852-5fa33c8d5fe4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, -3)
                 },
     
                 @id("59aa8582-5888-45e6-9b9c-5c0dc398820a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, 5)
                 },
     
                 @id("5af863a8-944d-4828-979a-0e545719eb34")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, -6)
                 },
     
                 @id("5b26a6ad-c85c-4ea9-99d1-54872dcd26a4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, 0)
                 },
     
                 @id("5b690286-1ac7-4183-88f5-faf00cdb2ba1")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, -2)
                 },
     
                 @id("5b8e846d-5649-4299-8461-4240f9d413f2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, -3)
                 },
     
                 @id("5be68639-b2de-4c51-87ec-ff74d67ee82e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, 6)
                 },
     
                 @id("5c8a9af9-66a3-4e1b-a84b-d5ec9bff3dd4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, 6)
                 },
     
                 @id("5ce34f44-5552-4965-b0ef-1e1102fb28c4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, 4)
                 },
     
                 @id("5d72f0cb-82ff-4dd3-82e5-683c7be2e78b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, -9)
                 },
     
                 @id("5f14494e-57f1-4af4-9eb5-acbb3439a154")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, 6)
                 },
     
                 @id("5f25e01d-0d37-4782-976c-476aab99875c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, -1)
                 },
     
                 @id("6257fd92-413a-4c74-8883-42124128f802")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, 3)
                 },
     
                 @id("6293ca16-e656-4cd6-905c-1b471737cf94")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, 5)
                 },
     
                 @id("62b41100-3c24-4c65-bb12-15cbe7338e5b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, 5)
                 },
     
                 @id("636d7cf1-7d5a-4de8-a9a7-48a684ec4330")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, -11)
                 },
     
                 @id("653dfcb7-6c8a-440a-8e8d-19cd3276ed31")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, 5)
                 },
     
                 @id("6678aafd-4501-4fc3-bcf1-2ed7b007bed1")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, -4)
                 },
     
                 @id("672115dc-9d84-4b79-8a6e-353049e87c6a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, 3)
                 },
     
                 @id("67596927-68cd-417e-bfe4-2fffb57e55ba")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, -8)
                 },
     
                 @id("6779a8ac-90ec-4ce2-98fe-61f3f3ae061d")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, -4)
                 },
     
                 @id("682e1927-c1b0-4c0d-91ce-62e3932d1d86")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, 4)
                 },
     
                 @id("6a7379f0-a5b6-4e3d-965f-3b6f711edd8f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, 1)
                 },
     
                 @id("6aa1e519-38d9-4dc0-b8f9-a2b291c4b937")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, 8)
                 },
     
                 @id("6aaacb88-577e-4b84-bb3a-8028abe5cb0e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, -4)
                 },
     
                 @id("6b174c7a-56bd-4524-87d5-bbd7330ce380")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, 1)
                 },
     
                 @id("6b9a22bc-aae9-4ba4-8e43-4123b92a79cb")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, 5)
                 },
     
                 @id("6c5a0971-5bd7-421d-a554-927747adae15")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, -1)
                 },
     
                 @id("6c75c550-d38d-4c50-a1d9-55c794753ac8")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, -6)
                 },
     
                 @id("6ceef6f9-d96f-4254-9e9d-b594ac806ffd")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, 2)
                 },
     
                 @id("6e3f4263-8996-4099-8e8f-f6d8f7f41fad")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, 3)
                 },
     
                 @id("6eb4f86d-9537-4a6d-82eb-88484a3f5421")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, 0)
                 },
     
                 @id("6ed0e341-e140-444b-b4bc-150182a0dd08")
-                new NeoTileInstance {
-                  Cell = new(0, 0)
-                },
+                new NeoTileInstance(),
     
                 @id("6ee6045d-4ee2-48b7-8878-7f3173b2d190")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, -1)
                 },
     
                 @id("6fa9130f-f59a-4955-a48c-a75b567f3143")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, 7)
                 },
     
                 @id("70065463-6675-4803-8425-4257858e9a0c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, 0)
                 },
     
                 @id("7053ad7c-d8f2-4fa5-ba00-0c37a65c5c8f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, 5)
                 },
     
                 @id("71b47d31-2937-46fd-9fd3-8f15e14593d6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, -2)
                 },
     
                 @id("722daefc-72a7-4feb-848d-62c4ec489cfb")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, 0)
                 },
     
                 @id("72588d58-eec9-46f3-9c3d-46de24a2c0da")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, 1)
                 },
     
                 @id("72934aa8-0ab5-49d1-8a01-95b1e4979f16")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, 0)
                 },
     
                 @id("73d171a3-300f-4cb2-8568-4b80dc1c3973")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, 7)
                 },
     
                 @id("749abd80-1692-40ca-85ee-5d9883743063")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, -4)
                 },
     
                 @id("74c9db9a-aba4-41e6-9438-36b496688460")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, 3)
                 },
     
                 @id("75edde02-00c4-4fb2-b9f6-ae0a60547136")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, -8)
                 },
     
                 @id("75f2fd11-a484-483a-9a45-5490bcc8319f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, 2)
                 },
     
                 @id("76c6bdf0-51bc-4eb7-a254-0e92bd9f040d")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, -5)
                 },
     
                 @id("777ff4a9-b210-4e69-a66a-a07c384c8ec0")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, 3)
                 },
     
                 @id("784e8ed8-091b-4887-9c93-b68069f7ee93")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, 4)
                 },
     
                 @id("79b51464-60a7-4aee-960e-eb02efec890c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, 5)
                 },
     
                 @id("7bee20a5-ed5a-4729-bddc-823e964d445a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, 2)
                 },
     
                 @id("7c8b5433-c6aa-4d3d-ad2d-6508102c1f2f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -5)
                 },
     
                 @id("7cabd054-181c-4072-a6ca-d4ad4aa3dd93")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, 8)
                 },
     
                 @id("7d1e1520-1329-4fcf-aa74-8d7800cbe387")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, -6)
                 },
     
                 @id("7d4fbe4c-7ad1-458b-9fdd-7b8b518cb08a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, -8)
                 },
     
                 @id("7d6191d3-4ba7-46fe-992f-48225be92b0f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, -7)
                 },
     
                 @id("7e9dddf6-4665-4043-a61f-3eff5d8e0027")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, -5)
                 },
     
                 @id("7e9fca36-2a27-4075-8756-506a4469150a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, 3)
                 },
     
                 @id("7f21e9eb-fe10-4732-ba32-00a4132dde42")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, -6)
                 },
     
                 @id("7f51c201-b1b2-4578-880f-ac2c4fa22f0d")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, 8)
                 },
     
                 @id("7fc4ee4e-483d-4b7d-a1b1-8374753dc5c4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, -3)
                 },
     
                 @id("801de1b4-fec5-4b63-9798-bc556a8a08fb")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, 8)
                 },
     
                 @id("80f9bc9a-1f58-439b-8e98-f3563a755598")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, 1)
                 },
     
                 @id("8101ab03-cf3c-471c-924f-695f94dc80c4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, -3)
                 },
     
                 @id("81876bd4-3a4f-4ec8-ab02-4722f9e6e468")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, 1)
                 },
     
                 @id("824d3e05-ed8a-44ec-bd9e-4b2f5bb83979")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, -2)
                 },
     
                 @id("829cb39d-b2e7-4ab4-9ee3-d2e573714abf")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -3)
                 },
     
                 @id("82c14a36-7733-4f2f-ab15-6bb3b4d96209")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, -2)
                 },
     
                 @id("83f69ba3-1d30-4987-a0fe-4ca71291ab98")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, 8)
                 },
     
                 @id("84a1bb56-1e57-4d46-97bb-4778a5490081")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, 1)
                 },
     
                 @id("84de7dfe-1677-43fe-b473-e42ade031340")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -4)
                 },
     
                 @id("870ba172-f297-4f38-be1a-1b4e0fbb4e20")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, -4)
                 },
     
                 @id("8736c960-b028-4fa0-9806-16b7c19ad25f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, -11)
                 },
     
                 @id("874a863f-2617-4850-a962-d2b8851d2711")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, 6)
                 },
     
                 @id("875698ec-8444-477d-a17a-42bfb594ff72")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, -4)
                 },
     
                 @id("87ad87e0-c00c-4081-b8fc-3dde53c05e6b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, -8)
                 },
     
                 @id("87fa9cfa-c8b6-440f-8d87-f5d7341acc76")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, -11)
                 },
     
                 @id("89499ce6-4e5b-4a5f-89cf-2f8809b2883a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, 8)
                 },
     
                 @id("8989f96e-2215-4e65-a90c-60f8350c17e5")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, -11)
                 },
     
                 @id("8a5e495d-bd25-4c3e-9c1a-26b4b2c50053")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, 2)
                 },
     
                 @id("8b0d717b-e7bd-4c64-b15a-07a1c58b6066")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, 3)
                 },
     
                 @id("8b7774d2-46d1-4158-98f8-83b121364e7e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, -9)
                 },
     
                 @id("8bc2f196-442b-4ac0-babb-93472c178359")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, -3)
                 },
     
                 @id("8bc6f720-559b-4edf-84eb-db9c6f6cdb00")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, -4)
                 },
     
                 @id("8c1383d9-55d6-417f-8c11-03b275b34cb7")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, -8)
                 },
     
                 @id("8c63eb67-2f42-4d40-a436-efb07522ab66")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, 4)
                 },
     
                 @id("8c714e72-0cf6-46fc-81ad-8539b55915dd")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, -9)
                 },
     
                 @id("8c86a12e-1b0c-4140-b46b-b53e767daed3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, 1)
                 },
     
                 @id("8cd0915d-dddf-41ce-af57-a13b1b062f77")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, -11)
                 },
     
                 @id("8cf4c54d-1c2e-42c9-9357-eb466b9187d5")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, -9)
                 },
     
                 @id("8d92445f-9b87-4a17-a983-b2d05cba884e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, 3)
                 },
     
                 @id("8db3f894-4df5-4042-8044-b03e0ee97417")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, 8)
                 },
     
                 @id("8dbb8554-e0ca-44b4-8220-a3351961a2e0")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, -11)
                 },
     
                 @id("8df793db-c6ac-49c1-aafd-ef1907532b7b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, -1)
                 },
     
                 @id("8f9f990e-11d1-4736-a7a9-853604af9201")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, 5)
                 },
     
                 @id("8fbec3b0-3f18-4288-b15c-34fe0ab45e68")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, -3)
                 },
     
                 @id("8ffb7afe-87a9-437f-b154-6b8df8339257")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, 7)
                 },
     
                 @id("90afe806-a1f5-4711-a528-c651052a8072")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, -6)
                 },
     
                 @id("93929d22-0f2c-4c4e-a9c9-414104119827")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, 1)
                 },
     
                 @id("9499efd0-6cdd-4d82-9c63-4e9976894ac5")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, -8)
                 },
     
                 @id("94a67bee-153a-4b65-843f-00d7e55fcbb4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, -4)
                 },
     
                 @id("94c8d930-5bcb-4df6-9a9b-0727504f1ac5")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, 5)
                 },
     
                 @id("954a7310-5118-47f7-a1ac-8fc3dc4d66d1")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, -5)
                 },
     
                 @id("95fa0890-fa70-4d53-a7fc-1cd166bf8e23")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, 6)
                 },
     
                 @id("970c3af8-3afd-480f-9047-e127e21b042e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, -3)
                 },
     
                 @id("993b0b1b-6c1b-44f5-b4fb-c33361d3fab4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, 8)
                 },
     
                 @id("99832e7b-77cf-47a0-961e-7cc781a54c7e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, -3)
                 },
     
                 @id("9a3eb8b5-7d1c-44e0-95ed-eac3d03e2ca2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, 7)
                 },
     
                 @id("9b09261b-9e7c-46bf-98e1-210e38b0cf09")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, 1)
                 },
     
                 @id("9b9d29b4-ff67-4517-bd5c-b30c56b70df1")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, -8)
                 },
     
                 @id("9c406a97-627c-4424-a163-d012a75a3e51")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, 8)
                 },
     
                 @id("9c67f287-d0b1-4ce8-8368-78d21d58d2f4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, -10)
                 },
     
                 @id("9cfe11c2-941e-4e8c-908c-83a142eb3891")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, -9)
                 },
     
                 @id("9d248efd-59ef-4660-869f-7ebdd307119c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, -11)
                 },
     
                 @id("9e1fe76b-aaf3-4737-8841-d2c52557a19c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, -10)
                 },
     
                 @id("9e492e0b-0df0-4dbe-b72e-d9a661d52a06")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, 2)
                 },
     
                 @id("9e5ee48b-ce84-470f-b247-ec139a896cd6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, -4)
                 },
     
                 @id("9ea98ec5-9069-487c-85f6-e27121584d15")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, -3)
                 },
     
                 @id("9edb48d6-43b2-4936-a126-d23fb0709b01")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, -9)
                 },
     
                 @id("9ef8ffb3-74c1-4c9c-84da-3c3d35e620c5")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, 5)
                 },
     
                 @id("9f0ba45e-5245-4785-86c2-d22f7ea9475f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, 5)
                 },
     
                 @id("9f7ac9bf-9f25-4c49-ada9-3acae63cf9a4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, -5)
                 },
     
                 @id("a0778c2a-69df-453d-8d17-9c8be4d1a305")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, -7)
                 },
     
                 @id("a0a6be26-a0c7-42e2-bb59-7ddaba6ca31f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, 2)
                 },
     
                 @id("a0c5674f-1978-4269-b772-e6ec419a0f49")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, -2)
                 },
     
                 @id("a0e972d6-9f93-43a1-bef2-833953f6e497")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, -11)
                 },
     
                 @id("a196117c-ff0a-4e47-a4a8-52995f18fec4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, 8)
                 },
     
                 @id("a2122649-ab15-44c9-af8f-0bb246a31237")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, -2)
                 },
     
                 @id("a2638044-f281-4141-8dc2-e3933ce35fbc")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, 3)
                 },
     
                 @id("a2e34fb5-4b7c-4fbf-aebc-4aa9733878a1")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, 4)
                 },
     
                 @id("a478c85a-2459-4b47-9ece-16051fdabead")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, 8)
                 },
     
                 @id("a47d10f9-3e22-451a-901a-5f15a9f98576")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, -6)
                 },
     
                 @id("a4fd6615-7192-4c20-8add-cf50ff32236e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, -3)
                 },
     
                 @id("a50621b0-cc36-41b8-b4f1-ba26e98756ad")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, -7)
                 },
     
                 @id("a5336b00-c8df-4056-8091-8fbede50db65")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, -8)
                 },
     
                 @id("a5684fe4-b17d-41c5-80aa-40fe2a3614f2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, -10)
                 },
     
                 @id("a66b85fa-1f1b-4f80-a76f-e8cd5436ceb6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, -11)
                 },
     
                 @id("a9897115-1d5f-4245-99ef-01bf5b719e4a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, -6)
                 },
     
                 @id("a9ff002c-5b45-438d-977f-afb04942ab90")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, -6)
                 },
     
                 @id("aac216e5-d9bf-408f-8861-e786a00f4cdf")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, -11)
                 },
     
                 @id("ab4dc67b-d6ca-42b2-8806-c2e4182f400f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, 2)
                 },
     
                 @id("ab5ee0e0-1ea9-4fed-b462-6d574a726d20")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, 1)
                 },
     
                 @id("ac2780f5-9772-4eff-bf7b-2b46294c9670")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -7)
                 },
     
                 @id("acf4ddc9-18cb-4352-9e40-81499841da84")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, -5)
                 },
     
                 @id("acfba97f-cd84-4263-9b40-e00b6d47bf00")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, -8)
                 },
     
                 @id("ad5c54a8-27ff-470a-892d-1c64092d0678")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, -1)
                 },
     
                 @id("ada90ebe-0e0b-4934-8bff-5d9774ae5ba5")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, -2)
                 },
     
                 @id("ade4f4b6-763a-4065-a3f2-e105eba8961f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, 4)
                 },
     
                 @id("adec30c9-1063-49f8-9391-d0eb3820a2e1")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, -3)
                 },
     
                 @id("ae311f87-193e-492c-867a-0cfc1cc0a808")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, 1)
                 },
     
                 @id("af2d60d8-8580-40cc-9eb2-5ab27285e687")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, 7)
                 },
     
                 @id("af59ed51-8a3e-4e20-8fe3-b0a89b5be8e2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, 1)
                 },
     
                 @id("af6a6183-23af-45d9-939e-fcc3e10a29a2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, 0)
                 },
     
                 @id("af6e580c-0ed5-46cd-a456-23f7e32e36bd")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, 3)
                 },
     
                 @id("b0da1d5e-b954-4eb5-9318-6d4d7ae97a08")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, -1)
                 },
     
                 @id("b1249c72-114d-4316-84dd-656fac466b76")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, 2)
                 },
     
                 @id("b202fc7a-ec37-4f76-bba3-59e0d01948ab")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, 1)
                 },
     
                 @id("b2d8e911-01a6-4929-93f3-493442306013")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, -3)
                 },
     
                 @id("b370b233-111c-45c3-9ebb-ed192e0c950f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, -1)
                 },
     
                 @id("b4949926-7a03-4931-b659-a6b0cd767e47")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, -4)
                 },
     
                 @id("b4ca78b3-ba68-4366-84fc-84c050d38e93")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, -9)
                 },
     
                 @id("b4edf0f1-bce0-4571-b864-33a06b85f689")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, 8)
                 },
     
                 @id("b558d987-7f2f-459e-8afc-9be03a0260b8")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, -6)
                 },
     
                 @id("b59d2a9f-cc92-457d-8044-f29411330795")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, 8)
                 },
     
                 @id("b5a1fd97-d095-4c56-a8d1-e1e4f86369d9")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, 0)
                 },
     
                 @id("b5b254b5-79d4-401d-ac76-1c448074b8f6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, -9)
                 },
     
                 @id("b644b990-1e62-4dd5-9dc9-6a03a7097669")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, -1)
                 },
     
                 @id("b72d7300-5d9d-4d58-a29e-b2480be576a3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, -6)
                 },
     
                 @id("b7c6839e-9e92-41f6-92ff-4286ffc134a5")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, -4)
                 },
     
                 @id("b937f8d5-c503-4115-b119-d941d79b0e84")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -6)
                 },
     
                 @id("b960e662-cc4c-49dc-adc7-fce14b79f65f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, -8)
                 },
     
                 @id("b98ec789-b335-40fb-be2f-35b99d4363a6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -1)
                 },
     
                 @id("b9fe4f2f-84c7-48a3-a9e1-5ccad33a8c85")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, 4)
                 },
     
                 @id("bae0b4f3-77d2-4d79-b969-736509992f89")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, -1)
                 },
     
                 @id("bb28af12-e4ff-43ab-bad7-b7b5fe0f3f93")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, 5)
                 },
     
                 @id("bcab684a-f48c-4236-a035-2f3fd62eb31f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, -9)
                 },
     
                 @id("bccf81e8-f29e-48b8-a867-6e390cc630a4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, -11)
                 },
     
                 @id("bcf778fa-c9f8-4db0-ab4b-f1478f5e7ea8")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, 6)
                 },
     
                 @id("bd01dca0-c482-4356-a325-4f80f454c49b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, 4)
                 },
     
                 @id("bd0ad962-80ee-4863-ae62-a8e66ef2df08")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, 8)
                 },
     
                 @id("bd65e2cb-a1d0-4ef1-8066-5172312f4fc8")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, 2)
                 },
     
                 @id("bec492e4-9b8b-4574-a113-7cc407788435")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, 2)
                 },
     
                 @id("bf6aec06-0911-45eb-ba68-59f84aac9895")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -10)
                 },
     
                 @id("bf764be2-a3ec-4731-a075-c6ac651b91b9")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, 8)
                 },
     
                 @id("bf9f3c67-dea1-4caa-af18-d783abc848bf")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, 4)
                 },
     
                 @id("bfe5716b-53b1-4772-9913-b239791e85fa")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -5)
                 },
     
                 @id("c01e6cd5-4de3-49d4-934d-b9c6f8ab5010")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, -2)
                 },
     
                 @id("c0319b85-20c3-428b-91b9-697cfe7e439f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, -8)
                 },
     
                 @id("c055f856-eb2c-42fd-b2f2-04c113ac5544")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, 4)
                 },
     
                 @id("c0cf536d-d3ca-4b34-abb4-89f6fe681a7f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, 2)
                 },
     
                 @id("c112cf19-7499-4e2e-b8b7-4f7b34929ad7")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, 6)
                 },
     
                 @id("c313e620-81d6-419d-bf5b-3b2d92b728ca")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, 5)
                 },
     
                 @id("c32dde5d-c296-480a-a8ad-4210bd8fd964")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, 2)
                 },
     
                 @id("c34c2581-0568-42a6-9cf9-faf9cb1e4850")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, -7)
                 },
     
                 @id("c3ab518d-56d4-4bed-b155-d954fa606ea5")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, -10)
                 },
     
                 @id("c459ac2b-06ba-4b7b-90d0-28c0fd071596")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, 3)
                 },
     
                 @id("c4608322-9d88-4256-ab9b-2aef17c6e64f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, 8)
                 },
     
                 @id("c4e12c3f-3d18-4d7b-8426-8508c8f50947")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, -1)
                 },
     
                 @id("c5371e14-a76a-4bb2-9a99-edadc3c7a9c7")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, 8)
                 },
     
                 @id("c55364d3-a0ba-4aa1-9acd-2820035591ef")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, 6)
                 },
     
                 @id("c5d73815-ce57-4866-a960-8f4861e65914")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, -8)
                 },
     
                 @id("c5ec9f44-7216-4c5c-a39b-6b6b9c1a3c74")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, 4)
                 },
     
                 @id("c61a1167-269c-48a1-bb4d-5370298236c6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, 2)
                 },
     
                 @id("c61b650b-7107-4d91-a05a-4cc0acd8ad3a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, -9)
                 },
     
                 @id("c6421187-3a39-44af-b687-7cac9205e9cd")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, 5)
                 },
     
                 @id("c644c08b-67c2-4c9f-8261-bd66bb40c833")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -2)
                 },
     
                 @id("c71bcff1-46b8-4116-babd-398e51045023")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, 6)
                 },
     
                 @id("c71fa164-e8e3-42b8-9225-b9409a908eca")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, 3)
                 },
     
                 @id("c76368d1-8906-4b13-9b5d-2080c0f567d1")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, 1)
                 },
     
                 @id("c79bd39d-0191-4c7b-9af9-e19701564393")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, 6)
                 },
     
                 @id("c7fea3f7-b315-46aa-87f2-a99bffd480e2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -1)
                 },
     
                 @id("c847e5fc-dbd2-4e47-bca3-09b2dccf7ff0")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -10)
                 },
     
                 @id("c91b2e1a-f5f6-44b2-9e15-07643f2d1190")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, -7)
                 },
     
                 @id("c940cee0-b7be-4a89-8d49-3e7ecb773b55")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, -9)
                 },
     
                 @id("c9468694-c721-47df-8007-bbc778e54930")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, -5)
                 },
     
                 @id("ca8f24e4-5c0b-4941-abc4-04ee41260f81")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, 3)
                 },
     
                 @id("ccde74e5-32d6-4535-9539-b4dbd3d5e9c3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, -5)
                 },
     
                 @id("cd2f18ee-9e64-4148-a61d-b3af37a4bda1")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, -5)
                 },
     
                 @id("cd4959f5-8978-4fa6-a24a-431f494f940c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, 3)
                 },
     
                 @id("cd59af47-7b05-4681-9ee6-2cbd19c875eb")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, 5)
                 },
     
                 @id("cd60e5be-6b7a-48c1-8cc9-4264937214b3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, 7)
                 },
     
                 @id("cecd5940-7f76-4a13-8aff-5c6c574667c8")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, -5)
                 },
     
                 @id("cf548a84-b4e7-4223-920a-bf14cc9437db")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, -10)
                 },
     
                 @id("cf93c378-db81-4e60-8ed0-36df640f7647")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, 7)
                 },
     
                 @id("cfa2bbc2-8fd6-4112-89cf-cc890595b35e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, 8)
                 },
     
                 @id("cfa82d54-4675-4c01-970d-bcaa32dc98f6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, -8)
                 },
     
                 @id("cfc72bea-5225-43de-954e-52fec34717d6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, 0)
                 },
     
                 @id("d05878a8-2339-43e5-ab23-c87a8ceacffe")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, 5)
                 },
     
                 @id("d0e2c041-f969-4bba-8c93-7c8d02c6caa4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, -6)
                 },
     
                 @id("d10dbc48-8c3e-4fa0-aa2e-60a3a67f5497")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(11, 7)
                 },
     
                 @id("d1c53317-83eb-4bb1-9085-fc49838eae5a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, 6)
                 },
     
                 @id("d1c56845-144f-4bd2-867d-f61ef65169de")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, 7)
                 },
     
                 @id("d1cabcac-1e45-47b4-8c94-5dcfb02536f0")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, 4)
                 },
     
                 @id("d22b9780-c53c-40eb-801c-07274094fa7c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, 5)
                 },
     
                 @id("d2b305f9-1194-4b48-ac7f-1ad9bf29ae33")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, 4)
                 },
     
                 @id("d2e99778-61dd-4db4-ba31-7988407c5ab6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, -3)
                 },
     
                 @id("d31cda62-fdcf-42e7-af75-9e3f92380eb3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, -8)
                 },
     
                 @id("d463c9bf-bde6-4bd5-801f-ce9561526e35")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, 4)
                 },
     
                 @id("d4c26432-35ae-4a41-ad97-40727e52ff03")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, 0)
                 },
     
                 @id("d634ab87-a0d0-4a02-91e2-03e592a1ea4d")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, 5)
                 },
     
                 @id("d6d40330-5113-48a2-af0e-3d2d64debef6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, -5)
                 },
     
                 @id("d74952e3-996b-4faf-902b-00527b033cf7")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, 4)
                 },
     
                 @id("d7adce17-2ca3-4f69-b29e-989f3c9b58b8")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, -8)
                 },
     
                 @id("d7e071a2-e858-47ef-93b3-113bcaed8890")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, -3)
                 },
     
                 @id("d84a99e0-eaab-4087-8ded-01828905f519")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, 8)
                 },
     
                 @id("d84c4a89-f112-40b6-bd61-d36454460dc3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, 7)
                 },
     
                 @id("d93373ad-64b1-4e40-8adf-b0ec409b78de")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, 8)
                 },
     
                 @id("daac431f-81f4-4b7c-9cb2-8dbaca9be476")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, -2)
                 },
     
                 @id("dae18c41-5cb4-444c-a7a5-0673257f2d84")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, -5)
                 },
     
                 @id("dafa85f3-5afb-4530-9d64-529559a7dceb")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, 0)
                 },
     
                 @id("db17f322-6988-4599-a154-e8dc535e3d9c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, 7)
                 },
     
                 @id("db92473c-3298-49d5-a2f1-7b56ad535ef6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -2)
                 },
     
                 @id("dba034f4-3186-4352-815f-1449a49dff13")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, -3)
                 },
     
                 @id("dbc38483-c241-4e9b-9af7-dbd71b389a43")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, -3)
                 },
     
                 @id("dbf32fe4-604f-47ce-97ff-0cbf1d2b9d59")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, -3)
                 },
     
                 @id("dc9999ee-0454-43bd-8ee3-29e9d3c22f07")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, 1)
                 },
     
                 @id("dca18d20-4984-4bd0-8b51-8288b5b77e4e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, -6)
                 },
     
                 @id("dca88bf3-e516-4494-bb6d-fe6de19f06f5")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, -7)
                 },
     
                 @id("df293e11-aefe-40f6-979e-b86de37b426e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, -7)
                 },
     
                 @id("df6e0485-97ac-45d2-a58e-3935f1ed64dc")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, -10)
                 },
     
                 @id("e0064e30-796c-47ab-a856-2ee095f0759e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, 0)
                 },
     
                 @id("e02ea99a-6edf-4ef1-9020-e414a78b7a77")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, 7)
                 },
     
                 @id("e07864b9-4954-4374-9661-9bcb271c9716")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, -1)
                 },
     
                 @id("e0aab029-7f2c-4d7d-9ca7-883eea053a31")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, -11)
                 },
     
                 @id("e0b77304-bf4b-4b69-8dec-058019f873a9")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, -3)
                 },
     
                 @id("e0b96650-6d4e-4df6-b34e-6a29120cdda4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, -9)
                 },
     
                 @id("e10c0ce1-ced8-4c70-b708-f50bb0c905aa")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, -8)
                 },
     
                 @id("e11fe800-a349-4327-a130-1d38ba11f518")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, -2)
                 },
     
                 @id("e12f7358-3649-458a-a86e-976a68920a6d")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, 2)
                 },
     
                 @id("e15d294f-5bb1-4e55-bf71-bad6f4690331")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, 5)
                 },
     
                 @id("e23b6ae9-87bd-4f3c-9e16-8811a09a2f3e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, -2)
                 },
     
                 @id("e2d3c776-a0d7-42dc-8383-5fdf085a4ef4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, -1)
                 },
     
                 @id("e2ed4530-b35c-408a-8a5f-a8fe7733be9a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, -11)
                 },
     
                 @id("e30d1de4-df07-4da8-b0dd-8e745a84110e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, 2)
                 },
     
                 @id("e34df7af-2e28-4f88-8725-bd5ef556153c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, -6)
                 },
     
                 @id("e372ca02-42ef-4e2a-9c4f-d7ea570dc47a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, 8)
                 },
     
                 @id("e3a082af-a37b-423f-8325-523b5379bbcc")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, 4)
                 },
     
                 @id("e3acf6fb-3a5f-4b70-9acd-734c74d918ac")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, -7)
                 },
     
                 @id("e3b5924d-d055-4ec2-b67e-f16a6ac0d0ad")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, 3)
                 },
     
                 @id("e3ba3ef0-e467-4fb5-8867-4df087ff962b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, 4)
                 },
     
                 @id("e4a7eccb-e643-4fd3-b43f-d66f687a0532")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, 0)
                 },
     
                 @id("e4ad4946-789c-4fd2-81df-ca8368e6f02c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, -3)
                 },
     
                 @id("e53ae697-5975-4877-af4a-6ecd19639d6b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, -11)
                 },
     
                 @id("e6907feb-4946-4d46-9e42-16def32123fc")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, 2)
                 },
     
                 @id("e6f8dc35-041f-4bf8-b07e-7f0ec42d8489")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, 7)
                 },
     
                 @id("e75d02d3-e5ec-4617-973e-b6c00b1a2ec7")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, 4)
                 },
     
                 @id("e7707d40-8b31-4e50-8fc4-993cadc9df8c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, -7)
                 },
     
                 @id("e776cf36-244a-41cf-aec1-d10b590862bb")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, 6)
                 },
     
                 @id("e7b27e95-0fc0-4062-bc88-70e58e2e949a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, 7)
                 },
     
                 @id("e7e8416c-4e41-458f-becd-6ba2efeb454b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, 3)
                 },
     
                 @id("e96042d8-0c3a-45a3-b30c-90d74112073b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, -1)
                 },
     
                 @id("e9b58262-1698-4683-9308-9e5d5ed1897d")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, -6)
                 },
     
                 @id("ea20b707-764e-45ef-94ed-5ced039268b3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, -5)
                 },
     
                 @id("ea4928cb-2f41-4b30-9c4a-0e38b219c298")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, -2)
                 },
     
                 @id("eab57aa3-06a6-45fa-8f1c-09d1d2668057")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, -10)
                 },
     
                 @id("eb3d1a25-312c-4b06-bd75-8d34bf8eeed4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, -10)
                 },
     
                 @id("eb4573be-74af-45d4-a2ad-7f982a7a66d5")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, -10)
                 },
     
                 @id("eb62f6a3-dd29-4ba7-a181-211c192dd809")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, 0)
                 },
     
                 @id("eba871e4-59c2-4935-882f-7d502a665c44")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, 4)
                 },
     
                 @id("ebb26eeb-2386-4731-bdaa-d37fab7e37bd")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, -11)
                 },
     
                 @id("ec3f9574-9143-45d3-93be-ec727c6b0258")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, 2)
                 },
     
                 @id("ed16df45-314f-44f0-a3a7-a4994bd1fa27")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, -10)
                 },
     
                 @id("ed7cb73e-f85a-49e3-a971-e228fbca2cbf")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, -5)
                 },
     
                 @id("ed888f58-7b27-4630-b39b-cf6fca452860")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, 3)
                 },
     
                 @id("ed8cd7e2-cb16-4624-b4ac-4ba1c69f4c34")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, -9)
                 },
     
                 @id("ee24aefa-fe1b-4dce-a497-95c4ba9946e6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, 4)
                 },
     
                 @id("ee32610b-6671-422e-a2ba-b8ebf59e9aba")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, -10)
                 },
     
                 @id("ee43ee89-3cea-4b44-840e-ee37b523aa38")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, -7)
                 },
     
                 @id("ef80f625-df89-4559-95e9-335efa5d128e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, -11)
                 },
     
                 @id("efcfb619-a13f-46d2-94b6-cab2cb7f5319")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, -7)
                 },
     
                 @id("f04d402d-13fa-43c7-a6da-ff83f58d61a3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, -10)
                 },
     
                 @id("f21c4be5-8dcd-4175-b574-958056a9b67e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, 2)
                 },
     
                 @id("f2de62e5-cbf9-48f7-bd41-73a80af8e661")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, 6)
                 },
     
                 @id("f3dd9d36-70a7-45a5-bb8a-6441ad0d3a27")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, 8)
                 },
     
                 @id("f495e05c-216f-4aed-be11-8647806a7b90")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, 7)
                 },
     
                 @id("f49cb588-fa6f-49cd-8134-aeb4ca1e24bc")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, 4)
                 },
     
                 @id("f4de6b03-80b0-4d02-93d2-fb5885a23979")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, -1)
                 },
     
                 @id("f5257c2f-5de8-45ff-9f79-2ac15a4be4aa")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, -5)
                 },
     
                 @id("f538dc94-f722-4b29-baac-2beeb48da1ec")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, -2)
                 },
     
                 @id("f5431db8-c0e4-4035-b17d-6970ec6444e2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, -1)
                 },
     
                 @id("f561ff90-6fd1-4b9f-b41e-0687572c67e9")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, -9)
                 },
     
                 @id("f6c1acf2-c937-466c-8036-78c8bf80e645")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, 8)
                 },
     
                 @id("f81a8425-471c-435d-8b92-6377f48d5ed6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, 3)
                 },
     
                 @id("f81e772b-dba3-474c-a481-f3cffbb9075e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, -7)
                 },
     
                 @id("f8c96687-8419-42f4-9d31-df879ea00b61")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, -2)
                 },
     
                 @id("f8eef767-33d8-4cef-bb7d-570fc1049ce6")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, -10)
                 },
     
                 @id("f91e7152-981f-4385-a754-b033e55a92be")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, -11)
                 },
     
                 @id("f99c1281-3cd2-4323-8ca1-93ad6722c3a0")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, -2)
                 },
     
                 @id("f99ccab4-bf38-4b09-9b17-e1cc146db539")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, -11)
                 },
     
                 @id("fa2097a1-4f8b-478c-8b7f-8d43610e24f4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(12, -5)
                 },
     
                 @id("fa340f0e-9cea-4603-a350-9757e1edf869")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-11, -6)
                 },
     
                 @id("fa835304-6c27-4e3b-8101-635ccefbac18")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, -1)
                 },
     
                 @id("fc29b3e1-cb38-4d33-83dd-670510342c5e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, -5)
                 },
     
                 @id("fc664cda-246e-4a07-a88c-2747c355c90e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-12, -11)
                 },
     
                 @id("fcf5c3a8-b391-451d-ae35-aab8d78be344")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, -10)
                 },
     
                 @id("fd1e17ec-3487-4168-a990-3ae6251f7ada")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, 8)
                 },
     
                 @id("fe8665b9-5521-418f-9f39-5d279c1806cb")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -7)
                 },
     
                 @id("febbc9ee-9aed-468e-b2c9-39ad95ecb693")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, -4)
                 },
     
                 @id("ff208a02-0f7d-4251-b5aa-2b005b5f948f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, -2)
                 },
     
                 @id("ff6ed703-3c15-4bd2-bd5e-2ad7c13e7ed7")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-13, -8)
                 },
     
                 @id("ffa213d0-4fba-4c22-b3f5-291e34d0a35a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(13, -9)
                 },
     
                 @id("ffcd8c69-92ff-4e4c-91be-08db7f257fd8")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, 1)
                 }
               ]
             },
     
             @id("34f17eff-236f-4262-bf24-621b125c94f8")
-            new CollisionsTileLayerLink {
-              Enabled = true,
+            new CollisionsTileLayerLink() {
               Name = "Collisions",
-              Position = new(0, 0, 0),
-              Size = new(1, 1, 0),
               Tiles = [
                 @id("03c316d0-44a6-4b07-9edf-2efcb9ea9d62")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, 3)
                 },
     
                 @id("051e5523-1df7-4eb1-b96e-101ed5f9dabc")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -7)
                 },
     
                 @id("06c5ae60-6952-42c6-855b-87dba078560f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, 2)
                 },
     
                 @id("073dcea9-43d0-4443-8ea7-611416cb5de0")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, -2)
                 },
     
                 @id("0980532c-6f1a-46aa-8f8e-d7112419850e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, 3)
                 },
     
                 @id("0b24513f-c5b9-4333-bcea-d0a0d0bfb7af")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -1)
                 },
     
                 @id("16a04096-06d3-4bf9-b422-48936af85c9a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, 4)
                 },
     
                 @id("18897d38-f199-4106-8dba-a8fbe0fc1021")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, -8)
                 },
     
                 @id("198c86d5-cda5-4bed-b9f5-aa256137539d")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, 1)
                 },
     
                 @id("1a689242-60a7-4a75-b0e7-98965158a553")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, -2)
                 },
     
                 @id("1a70afd7-7c8d-4c45-bc50-62fcc68c2e69")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, 4)
                 },
     
                 @id("1badac53-ac1e-4270-a0b9-1c1ca1b63f2c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, 3)
                 },
     
                 @id("1c415873-bdab-414c-97a5-87862d36a4c7")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, 3)
                 },
     
                 @id("1f487247-4231-45ac-86fa-8f0df348e3ac")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, 3)
                 },
     
                 @id("2646ccd8-a261-4b89-bdb4-285920ebdc98")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, 5)
                 },
     
                 @id("273a8007-3207-4406-8787-35d4fe912681")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -6)
                 },
     
                 @id("2ff20577-c35f-4a33-9a47-3589cc439c2e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, 0)
                 },
     
                 @id("316f2d65-7bc5-4e72-89c8-ab5eb0463636")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, -4)
                 },
     
                 @id("32aa46ad-10d3-4c6d-8055-cd0dac231da5")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -2)
                 },
     
                 @id("3a593704-6e07-4b44-976e-9d90c6b1da80")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-1, 0)
                 },
     
                 @id("40c4f2d3-863d-4cfb-8a79-b356d472bf23")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, 5)
                 },
     
                 @id("458f0ce6-1f02-4252-a7b4-0b9c0b325e56")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, -2)
                 },
     
                 @id("48fc9561-14f6-436d-b366-b990dc4b25c0")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, -2)
                 },
     
                 @id("4b055c34-fe3b-4c4e-a84e-a9bad20bf476")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -4)
                 },
     
                 @id("5043e76c-26d3-44db-b824-4ba628aeb553")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(8, -2)
                 },
     
                 @id("57b31ba8-47b1-4762-a8cf-25435d0c0fac")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, -1)
                 },
     
                 @id("5c14e546-4d42-4fff-9f1e-e265c94ce37d")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, -8)
                 },
     
                 @id("6082db44-be32-4eb3-b918-d0cbb007151a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, 5)
                 },
     
                 @id("631c169f-5930-45b7-bf09-001fa0041b68")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -5)
                 },
     
                 @id("63467503-d65d-4f21-9ff4-62805f3fb260")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -4)
                 },
     
                 @id("650e1927-125d-4ef8-8076-3e56836a7dd9")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, -2)
                 },
     
                 @id("659edbb3-f241-4acc-abd8-f515e59a07dc")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, 0)
                 },
     
                 @id("68171387-fe78-453a-a8c4-d30cc18f4d70")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -5)
                 },
     
                 @id("68a02c5b-ae75-46f8-b6c4-4bdbcaf8d11c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(9, 5)
                 },
     
                 @id("6a825e00-a8a5-48c8-83a6-4e3abdc62ae5")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, 1)
                 },
     
                 @id("6de984af-12d0-41ff-936e-99e9600b5caf")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, -1)
                 },
     
                 @id("6e86c6ec-ef9e-49b7-9c2b-5df2254d20fe")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(1, 0)
                 },
     
                 @id("72dba0e0-4d40-483f-9284-950705aba514")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, 5)
                 },
     
                 @id("7535ee0c-3ed3-485c-997b-72f5ecc93ae9")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -7)
                 },
     
                 @id("7afd1741-28c8-4abd-85f8-14d30e6cb915")
-                new NeoTileInstance {
-                  Cell = new(0, 0)
-                },
+                new NeoTileInstance(),
     
                 @id("7bb5f1f2-88fa-4abd-b8b1-15d5d8c1ea97")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -8)
                 },
     
                 @id("84f139fa-bfa8-412d-951c-8dfe2599a584")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, -8)
                 },
     
                 @id("866cc2a1-7dc9-47ab-a31c-19a2f41203df")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, 5)
                 },
     
                 @id("876728ad-35e6-401e-ab21-44c98246c8ed")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, 3)
                 },
     
                 @id("8837cc23-3995-470f-9c22-0619eac68285")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, -8)
                 },
     
                 @id("88fea6da-73ee-4543-9365-452029018ffb")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(5, -2)
                 },
     
                 @id("8eeca6ec-4b2b-44f9-8ea2-5bacb20694f3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, -3)
                 },
     
                 @id("90d9a630-11c4-46d7-b503-278399c5e8a5")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, -8)
                 },
     
                 @id("93d9deb5-f03e-4c30-ab03-631ba9876e99")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, -4)
                 },
     
                 @id("95dd404f-479b-4a4f-b88a-473aefe22a40")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-8, 5)
                 },
     
                 @id("9c983a09-adab-4df7-94f3-35ef115fb62a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(2, 3)
                 },
     
                 @id("a148eee5-2a51-45c3-8b43-bf76ed4ed2e3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, 2)
                 },
     
                 @id("a3258769-8976-4be4-8333-1c97ccc0a233")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -1)
                 },
     
                 @id("a8d47aa6-72c3-468f-9f71-045c35cec0ca")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -2)
                 },
     
                 @id("a9ed5f65-6fba-42d9-a4b1-89d4fcff7d20")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-3, 3)
                 },
     
                 @id("ab186407-2062-4e23-acd9-88dd5d23bcb4")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(6, 5)
                 },
     
                 @id("af1fac6f-9d54-4ea0-9a8d-352caabc5f5d")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, 0)
                 },
     
                 @id("af7eb1f5-7d68-4a49-9a1e-8effc59477f7")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, -2)
                 },
     
                 @id("b6c06687-bf19-4567-ae01-ecc929bff803")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, -2)
                 },
     
                 @id("ba37aa5a-a5e9-40af-972a-ad3ff1e75f9a")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(3, -2)
                 },
     
                 @id("bade93a2-1742-4593-b5f7-79b4693b5875")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, -6)
                 },
     
                 @id("baf5f3a6-ffda-4240-9017-56e41b5bee2c")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, -4)
                 },
     
                 @id("bef7ca1e-772a-446a-8428-38796c96a432")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, -3)
                 },
     
                 @id("c400a740-ae74-43b9-98f6-5e684bbeed6b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, -2)
                 },
     
                 @id("c53c9cb3-c4f8-4a36-96ff-03d70776d50e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, 5)
                 },
     
                 @id("c6890db5-35e7-461f-9d2c-4ee584cfb74b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-6, -8)
                 },
     
                 @id("c81b5cd7-50c3-4bc0-bccf-a97bf31278a8")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, -2)
                 },
     
                 @id("caf1dceb-18fa-4bc7-88e8-1c73c819b42d")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, 5)
                 },
     
                 @id("cbfb3470-6681-4e35-824f-d44c847e608f")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, 4)
                 },
     
                 @id("cc18d5a3-9459-4dbe-8472-06d5bfc39649")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(4, 5)
                 },
     
                 @id("cd42bbef-cda5-41ac-a7c0-0a56c7724fb3")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-4, -4)
                 },
     
                 @id("ce5af1f5-06b8-4e36-b00a-a72b5d7626c1")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-9, 5)
                 },
     
                 @id("cf727566-87bc-4b77-ad60-b90d94e80d40")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, -8)
                 },
     
                 @id("d9056835-56aa-4224-af15-ff2d7dcc31f2")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-2, 0)
                 },
     
                 @id("db267402-d51c-45fc-813b-101a5d472c52")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, 0)
                 },
     
                 @id("deeb4cd7-2ccc-4961-a187-1d1c67ae401e")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, 3)
                 },
     
                 @id("e0640b10-6527-43c9-906c-cd1bdf4ac642")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, 0)
                 },
     
                 @id("e2b20d5f-90ee-45e9-b729-daaea281ff83")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(7, 5)
                 },
     
                 @id("e88c1008-9725-444b-9665-c5dbd42b95c1")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-7, 5)
                 },
     
                 @id("ecec4e88-2d94-4258-b509-600680e45542")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-10, 5)
                 },
     
                 @id("efae368b-5dd2-4381-93e3-353ac73333bc")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(-5, 5)
                 },
     
                 @id("ffc7aa8e-245b-4f13-8f8b-37fffb6a605b")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(10, 4)
                 }
               ]
             },
     
             @id("0e638a67-3d86-45c3-a13b-e0888a46d538")
-            new ObjectLayerLink {
-              Enabled = true,
+            new ObjectLayerLink() {
               Name = "Objects",
               Objects = [
                 @id("4406f40a-2a75-4773-bb54-93507bd9f83a")
-                new RecoveryCacheObject {
+                new RecoveryCacheObject() {
                   Children = [
                     @id("a5c5595a-f83e-4a22-b025-7a97b2791ece")
-                    new NeoSpriteObject {
-                      FlipX = false,
-                      FlipY = false,
-                      MaskInteraction = .None,
-                      Name = "",
-                      Sprite = Images.RecoveryCacheObject.Slice(0),
-                      Enabled = true,
-                      Position = new(0, 0, 0),
-                      Size = new(1, 1, 0)
+                    new NeoSpriteObject() {
+                      Sprite = Images.RecoveryCacheObject.Slice(0)
                     }
                   ],
-                  Name = "Recovery Cache",
                   PlacementTiles = [
                     @id("47b11808-1904-4168-a8a6-43f590f93101")
-                    new NeoObjectPlacementTile {
-                      Cell = new(0, 0)
-                    }
+                    new NeoObjectPlacementTile()
                   ],
-                  RecoveryCache = Reference<OldConsoleLandingRecoveryCache>(OldConsoleLandingRecoveryCache),
-                  Collider = new NeoCollider {
-                    size = new(0.781, 0.744),
-                    offset = new(0.512, 0.451),
-                    isTrigger = false
-                  },
-                  Enabled = true,
-                  Position = new(6, 2, 0),
-                  Size = new(1, 1, 0)
+                  Collider = new NeoCollider(),
+                  Position = new(6, 2, 0)
                 },
     
                 @id("7eb15a04-29e2-4b11-9727-c928fba742b1")
                 new PlayerSpawnObject {
-                  Name = "Player Spawn",
                   Children = [
                     @id("89f12e1d-3f07-47b5-a86e-8fb02b1152dd")
-                    new NeoSpriteObject {
-                      FlipX = false,
-                      FlipY = false,
-                      MaskInteraction = .None,
-                      Name = "",
-                      Sprite = Images.PlayerSpawnObject.Slice(0),
-                      Enabled = true,
-                      Position = new(0, 0, 0),
-                      Size = new(1, 1, 0)
+                    new NeoSpriteObject() {
+                      Sprite = Images.PlayerSpawnObject.Slice(0)
                     }
                   ],
                   PlacementTiles = [
                     @id("c999170b-36a0-4050-a383-8eb1bedece34")
-                    new NeoObjectPlacementTile {
-                      Cell = new(0, 0)
-                    }
+                    new NeoObjectPlacementTile()
                   ],
-                  Collider = new NeoCollider {
-                    size = new(0.961, 0.93),
-                    offset = new(0.506, 0.503),
-                    isTrigger = false
-                  },
-                  Position = new(-7, 2, 0),
-                  Enabled = true,
-                  Size = new(1, 1, 0)
+                  Collider = new NeoCollider(),
+                  Position = new(-7, 2, 0)
                 }
-              ],
-              Position = new(0, 0, 0),
-              Size = new(1, 1, 0)
+              ]
             },
     
             @id("432f5226-99d8-4d59-8cf0-4d86ca64462f")
-            new BlockedPath {
-              BootGlyphSealLocked = Reference<OldConsoleLandingBarrierLocked>(OldConsoleLandingBarrierLocked),
-              BootGlyphSealReady = Reference<OldConsoleLandingBarrierReady>(OldConsoleLandingBarrierReady),
-              Enabled = true,
+            new BlockedPath() {
               Name = "Blocked Path",
-              Position = new(0, 0, 0),
-              Size = new(1, 1, 0),
               Tiles = [
                 @id("6061777d-44a1-4ae5-9227-e8957c3d4d7d")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, 1)
                 },
     
                 @id("b4a02652-9ba7-4037-9fd9-dd1414a37d97")
-                new NeoTileInstance {
+                new NeoTileInstance() {
                   Cell = new(0, 2)
                 }
               ]
@@ -3636,104 +3572,37 @@ Root root = new() {
   @storage(allowed: .Save)
   Save Save =
     new() {
-      Bits = 1000,
-      Dead = false,
-      Inventory = [],
-      Location = Reference<Outpost>(id: "913fd757-d6ee-488e-866f-c7af41aa544b"),
-      NeoMemory = new NeoMemory {
-        DialogueMemories = {}
-      },
+      NeoMemory = new NeoMemory(),
       OutpostSaveMap = {
-        "0bfa8e27-27e0-41b2-b90b-6d3c9442905a": new OutpostSaveData {
-          Unlocked = false,
-          VisitCount = 0,
-          Reputation = 0
+        "0bfa8e27-27e0-41b2-b90b-6d3c9442905a": new OutpostSaveData(),
+        "18154c7e-8f9a-4767-b44c-a25b0e1ca234": new OutpostSaveData(),
+        "1c9e473a-3616-4c1c-82f7-461e080c9785": new OutpostSaveData(),
+        "424019cd-8b46-4dd9-9aac-3721331179bb": new OutpostSaveData(),
+        "763b50d2-c0b2-4346-b8fb-a092e7337af3": new OutpostSaveData(),
+        "7a91f55f-a90e-4a80-80f4-43ad6386891a": new OutpostSaveData(),
+        "83cc2935-5a85-4d71-9e50-4e4496f00631": new OutpostSaveData(),
+        "88cacaa9-25d2-4cfd-bd10-55db71139608": new OutpostSaveData(),
+        "913fd757-d6ee-488e-866f-c7af41aa544b": new OutpostSaveData() {
+          Unlocked = true
         },
-        "18154c7e-8f9a-4767-b44c-a25b0e1ca234": new OutpostSaveData {
-          Unlocked = false,
-          VisitCount = 0,
-          Reputation = 0
-        },
-        "1c9e473a-3616-4c1c-82f7-461e080c9785": new OutpostSaveData {
-          Unlocked = false,
-          VisitCount = 0,
-          Reputation = 0
-        },
-        "424019cd-8b46-4dd9-9aac-3721331179bb": new OutpostSaveData {
-          Unlocked = false,
-          VisitCount = 0,
-          Reputation = 0
-        },
-        "763b50d2-c0b2-4346-b8fb-a092e7337af3": new OutpostSaveData {
-          Unlocked = false,
-          VisitCount = 0,
-          Reputation = 0
-        },
-        "7a91f55f-a90e-4a80-80f4-43ad6386891a": new OutpostSaveData {
-          Unlocked = false,
-          VisitCount = 0,
-          Reputation = 0
-        },
-        "83cc2935-5a85-4d71-9e50-4e4496f00631": new OutpostSaveData {
-          Unlocked = false,
-          VisitCount = 0,
-          Reputation = 0
-        },
-        "88cacaa9-25d2-4cfd-bd10-55db71139608": new OutpostSaveData {
-          Unlocked = false,
-          VisitCount = 0,
-          Reputation = 0
-        },
-        "913fd757-d6ee-488e-866f-c7af41aa544b": new OutpostSaveData {
-          Unlocked = true,
-          VisitCount = 0,
-          Reputation = 0
-        },
-        "b81df7d3-be41-4685-9111-3cdc1821e693": new OutpostSaveData {
-          Unlocked = false,
-          VisitCount = 0,
-          Reputation = 0
-        },
-        "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f": new OutpostSaveData {
-          Unlocked = false,
-          VisitCount = 0,
-          Reputation = 0
-        },
-        "c9cbef1c-4660-432c-83e1-0e9c10c897e0": new OutpostSaveData {
-          Unlocked = false,
-          VisitCount = 0,
-          Reputation = 0
-        },
-        "ed141cc4-304c-40cd-8229-105f1ee9b99c": new OutpostSaveData {
-          Unlocked = false,
-          VisitCount = 0,
-          Reputation = 0
-        }
+        "b81df7d3-be41-4685-9111-3cdc1821e693": new OutpostSaveData(),
+        "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f": new OutpostSaveData(),
+        "c9cbef1c-4660-432c-83e1-0e9c10c897e0": new OutpostSaveData(),
+        "ed141cc4-304c-40cd-8229-105f1ee9b99c": new OutpostSaveData()
       },
-      Quest = new QuestState {
-        Ending = .none,
-        EvidenceArchive = false,
-        EvidenceFaith = false,
-        EvidenceLedger = false,
-        FlareClock = 0,
-        Reruns = 0,
-        Stage = .arrival
-      },
+      Quest = new QuestState(),
       Visited = [
         @id("9aa19862-e2df-4423-9fe0-1cfe24255436")
         new PlanetVisit {
           World = .earth,
           DateUnix = 1777766924
         }
-      ],
-      World = .earth
+      ]
     };
 
   @id("f0ce0706-def6-41ff-b8e9-baa2a7a84de6")
   @locked
   @storage(allowed: .Session)
   Session Session =
-    new() {
-      Position = new(0, 0, 0)
-    };
+    new();
 }

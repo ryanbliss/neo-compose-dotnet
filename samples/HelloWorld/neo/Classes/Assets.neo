@@ -40,7 +40,7 @@ class Assets {
   @system(kind: .WorldAuthoring)
   public virtual List<NeoSortingLayer> SortingLayers = [
     @id("88c0d53b-94ee-4f48-839b-9148d07828fb")
-    new NeoSortingLayer {
+    new NeoSortingLayer() {
       Name = "Default"
     }
   ];
