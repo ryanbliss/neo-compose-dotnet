@@ -2610,9 +2610,18 @@ namespace NeoCompose.Runtime
                         // AssertDeclaredConstructorRootIsComplete. Nested rows
                         // always keep the check; nothing writes into them
                         // between preparation and publication.
+                        // P75 replay parity: the web's replay omits a required
+                        // member it cannot construct — the sparse root's
+                        // materialized rows supply it in the overlay, and the
+                        // server-side collapse verifier proved MERGED
+                        // completeness. Requiring construction-only
+                        // completeness here rejected corpora the server
+                        // verified at zero flags (HelloWorld's stamped Assets
+                        // root).
                         if (!trustedMaterialization
                             && member.required
-                            && requireRequiredMembers)
+                            && requireRequiredMembers
+                            && !client.IsReplayingVirtualInstance)
                         {
                             throw new InvalidOperationException(
                                 $"Constructed Class row '{path}' is missing required member '{entry.schemaKey}'/'{entry.memberId}'.");
@@ -4407,6 +4416,12 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Declared constructor for '{resolved.classTypeInfo.classId}' left no readable root row.");
             }
+            // P75 replay parity: a replayed sparse instance's required members
+            // may be supplied by its MATERIALIZED rows in the overlay rather
+            // than by construction — the web's replay omits them the same way,
+            // and the server-side collapse verifier proved merged
+            // completeness.
+            if (client.IsReplayingVirtualInstance) return;
             foreach (MergedSchemaEntry entry in ResolveMergedSchema(
                 client,
                 resolved.classTypeInfo.classId))

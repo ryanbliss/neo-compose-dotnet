@@ -2696,19 +2696,63 @@ namespace NeoCompose.Runtime
                 string? receiverRowId = FindValueId(receiver, ctx);
                 object? key = Eval(lookupKeyOf.keyOf.key, scope, ctx);
                 rowId = null;
+                string lookupKey = ToStringKey(key, "Lookup member key");
                 if (receiverRowId is not null
                     && client.TryGetValue(receiverRowId, out ObjectMemberValue? receiverRow)
                     && receiverRow!.value is not null
-                    && receiverRow.value.TryGetValue(
-                        ToStringKey(key, "Lookup member key"), out string? memberRowId))
+                    && receiverRow.value.TryGetValue(lookupKey, out string? memberRowId))
                 {
                     rowId = memberRowId;
+                }
+                // P75: the save-side ref list's key is omitted on a
+                // collapse-stamped receiver; the deterministic virtual id is
+                // where the write materializes.
+                else if (receiverRowId is not null
+                    && client.TryGetVirtualClassChildValueId(
+                        receiverRowId,
+                        lookupKey,
+                        out string? virtualLookupId))
+                {
+                    rowId = virtualLookupId;
                 }
             }
             else
             {
                 object? value = Eval(target.pointer, scope, ctx);
                 rowId = FindValueId(value, ctx);
+                if (rowId is null && target.pointer is KeyOfPointer collectionKeyOf)
+                {
+                    // P75: a collection read on a sparse receiver resolves
+                    // through the virtual index and hands back a payload no
+                    // reverse map has seen. Resolve the target the way the
+                    // member-write path does — receiver row id plus schema
+                    // key, stored body first, then the deterministic virtual
+                    // id the write materializes under.
+                    object? receiver = Eval(collectionKeyOf.keyOf.pointer, scope, ctx);
+                    string? receiverRowId = FindValueId(receiver, ctx);
+                    object? key = Eval(collectionKeyOf.keyOf.key, scope, ctx);
+                    string schemaKey = ToStringKey(key, "Collection member key");
+                    if (receiverRowId is not null)
+                    {
+                        if (client.TryGetValue(
+                                receiverRowId,
+                                out ObjectMemberValue? receiverRow)
+                            && receiverRow!.value is not null
+                            && receiverRow.value.TryGetValue(
+                                schemaKey,
+                                out string? storedChildId))
+                        {
+                            rowId = storedChildId;
+                        }
+                        else if (client.TryGetVirtualClassChildValueId(
+                                receiverRowId,
+                                schemaKey,
+                                out string? virtualChildId))
+                        {
+                            rowId = virtualChildId;
+                        }
+                    }
+                }
             }
             if (rowId == null)
             {
