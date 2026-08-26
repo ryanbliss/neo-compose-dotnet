@@ -5,11 +5,7 @@ class NeoDialogueMemory {
   @id("system_2d86e022-b8da-44e1-834e-92f27f4afd56")
   @locked
   @system(kind: .DialogueMemorySchema)
-  public virtual bool HasVisited {
-    get {
-      return this.VisitCount > 0;
-    }
-  }
+  public virtual bool HasVisited => this.VisitCount > 0;
 
   @id("system_4a7b6632-0926-4f9d-8b44-8ac702d3d595")
   @locked

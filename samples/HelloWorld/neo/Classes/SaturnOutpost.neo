@@ -1,11 +1,7 @@
 @id("96818dab-90e5-4ab9-8f69-cce66e39e370")
 class SaturnOutpost : Outpost {
   @id("33e86f10-7989-4d82-9156-631a19e3bf06")
-  public override string FullDisplayText {
-    get {
-      return $"{this.Name}, {this.Moon}, {this.Planet}";
-    }
-  }
+  public override string FullDisplayText => $"{this.Name}, {this.Moon}, {this.Planet}";
 
   @id("a804bead-3d5b-4c68-a733-94e85e1e79b6")
   public virtual SaturnMoon Moon;

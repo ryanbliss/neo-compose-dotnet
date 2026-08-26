@@ -7,11 +7,7 @@ class Outpost : IHasName {
   native public virtual string DebugLog(string text);
 
   @id("514a79c5-dd23-4ede-9fc8-b07b3c866fe5")
-  public virtual string FullDisplayText {
-    get {
-      return $"{this.Name}, {this.Planet}";
-    }
-  }
+  public virtual string FullDisplayText => $"{this.Name}, {this.Planet}";
 
   @id("7ce8a389-265c-4ad4-90f4-42c3e91e7648")
   public virtual SpriteInfo Image;
@@ -27,18 +23,10 @@ class Outpost : IHasName {
   native public virtual async bool PlayAnimation();
 
   @id("cccadaa5-0623-4a0f-9197-7175726c0e8b")
-  public virtual OutpostSaveData Save {
-    get {
-      return this.SaveUnsafe!;
-    }
-  }
+  public virtual OutpostSaveData Save => this.SaveUnsafe!;
 
   @id("f66fba24-44d4-467c-98ac-4db1539910df")
-  public virtual OutpostSaveData? SaveUnsafe {
-    get {
-      return root.Save.OutpostSaveMap.FirstOrDefault((key, value) => { return key == this.Id; });
-    }
-  }
+  public virtual OutpostSaveData? SaveUnsafe => root.Save.OutpostSaveMap.FirstOrDefault((key, value) => { return key == this.Id; });
 
   @id("736ca2ec-5f56-4f93-8cc5-c8b2ae8f76a1")
   native public virtual bool ShowRelic();

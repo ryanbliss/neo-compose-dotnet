@@ -1,0 +1,20 @@
+/// A folder of variants under one class. Folders are records so that a
+/// variant's folder assignment is a stable id rather than a path string, which
+/// is what makes renaming a folder a one-record edit.
+///
+/// Reference-only under the same protection stack as `NeoVariant`: the record
+/// stores the path, so this class never heads a value graph at all.
+@id("system_c97b988a-0aae-4490-956c-5a9f74a84934")
+@hidden
+@storage(allowed: .Immutable)
+@system(kind: .WorldAuthoring, worldKind: .VariantFolder)
+sealed class NeoVariantFolder<
+  @id("system_966185ff-4071-4676-8992-f63223f0d122")
+  TObject extends NeoObject
+>(string path) {
+  @id("system_c8ab22de-6854-4330-a1aa-acf73af54e6c")
+  @locked
+  @settings(localizable: false)
+  @system(kind: .WorldAuthoring)
+  public virtual string Path = path;
+}

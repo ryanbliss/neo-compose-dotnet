@@ -1,11 +1,7 @@
 @id("a50efb7e-58f6-4342-906e-0b01f98b15af")
 class JupiterOutpost : Outpost {
   @id("48c7bc64-fc1a-41bc-becb-4d24da7df9aa")
-  public override string FullDisplayText {
-    get {
-      return $"{this.Name}, {this.Moon}, {this.Planet}";
-    }
-  }
+  public override string FullDisplayText => $"{this.Name}, {this.Moon}, {this.Planet}";
 
   @id("6133e24a-bf87-4d3a-a71e-3933eebcab25")
   @settings(template: PivotCenter16x16)

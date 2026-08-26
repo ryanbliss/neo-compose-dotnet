@@ -4,11 +4,7 @@ class OutpostSaveData {
   public virtual bool Unlocked = false;
 
   @id("0c02e45d-bb5b-44c3-8b48-91fa75171ff2")
-  public virtual bool Visited {
-    get {
-      return this.VisitCount > 0;
-    }
-  }
+  public virtual bool Visited => this.VisitCount > 0;
 
   @id("68cd6fe1-7683-4c67-8030-acd6334f77a2")
   @settings(min: 0)

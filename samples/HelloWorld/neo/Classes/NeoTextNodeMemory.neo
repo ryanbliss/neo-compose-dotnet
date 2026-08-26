@@ -11,11 +11,7 @@ class NeoTextNodeMemory {
   @id("system_e4b526eb-4a08-4d5a-890a-d88119962ffa")
   @locked
   @system(kind: .DialogueMemorySchema)
-  public virtual bool HasVisited {
-    get {
-      return this.VisitCount > 0;
-    }
-  }
+  public virtual bool HasVisited => this.VisitCount > 0;
 
   @id("system_b1715e93-5471-44ae-aeba-3b77088dafc2")
   @locked
