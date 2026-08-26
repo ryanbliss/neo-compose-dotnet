@@ -3556,14 +3556,60 @@ namespace NeoCompose.Runtime
                 this.ownership = ownership;
             }
 
+            /// <summary>
+            /// P75: the row bound to <see cref="key"/> on the parent, resolved
+            /// the way every other member path resolves it — the stored body
+            /// first, then the deterministic virtual child id.
+            ///
+            /// <para>A collapse-stamped root stores only the members that
+            /// differ from its construction, so an untouched member is absent
+            /// from the body and lives only in the instance index. Consulting
+            /// the body alone makes such a member read as null and write to a
+            /// freshly minted random id — two different ids for the one logical
+            /// member, where the web has one.</para>
+            /// </summary>
+            private bool TryResolveBoundChild(
+                NeoClient client,
+                string resolvedParentRowId,
+                ObjectMemberValue parent,
+                out string boundChildId,
+                out MemberValue? boundChild)
+            {
+                boundChildId = string.Empty;
+                boundChild = null;
+                if (parent.value is not null
+                    && parent.value.TryGetValue(key, out string bodyChildId)
+                    && client.TryGetValue(ownership, bodyChildId, out MemberValue? bodyChild))
+                {
+                    boundChildId = bodyChildId;
+                    boundChild = bodyChild;
+                    return true;
+                }
+                if (client.TryGetVirtualClassChildValueId(
+                        resolvedParentRowId,
+                        key,
+                        out string? virtualChildId)
+                    && client.TryGetValue(ownership, virtualChildId!, out MemberValue? virtualChild))
+                {
+                    boundChildId = virtualChildId!;
+                    boundChild = virtualChild;
+                    return true;
+                }
+                return false;
+            }
+
             public override object? ReadCurrentValue(
                 NeoClient client,
                 NSGetterEvaluator.Context ctx)
             {
                 if (!client.TryGetValue(ownership, parentRowId, out ObjectMemberValue? parent)
-                    || parent.value == null
-                    || !parent.value.TryGetValue(key, out string childId)
-                    || !client.TryGetValue(ownership, childId, out MemberValue? child))
+                    || !TryResolveBoundChild(
+                        client,
+                        parentRowId,
+                        parent,
+                        out _,
+                        out MemberValue? child)
+                    || child is null)
                 {
                     return null;
                 }
@@ -3584,9 +3630,19 @@ namespace NeoCompose.Runtime
                 var now = DateTime.UtcNow.ToString("o");
                 // Reusing the entry's stable id below clone-on-writes it
                 // (a fresh row at the same id shadows the authored default),
-                // so no path pre-materialization is needed.
-                if (parent.value.TryGetValue(key, out string existingId)
-                    && client.TryGetValue(ownership, existingId, out MemberValue? existing))
+                // so no path pre-materialization is needed. On a P75 sparse
+                // root that stable id is the deterministic virtual child id:
+                // writing there materializes the one member being changed and
+                // leaves the rest of the root omitted, which is exactly the
+                // "every value is its own instance, changing one materializes
+                // that one" contract the web already implements.
+                if (TryResolveBoundChild(
+                        client,
+                        writableParentRowId,
+                        parent,
+                        out string existingId,
+                        out MemberValue? existing)
+                    && existing is not null)
                 {
                     if (TryGetClassValueReferenceId(
                             value,

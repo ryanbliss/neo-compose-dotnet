@@ -628,6 +628,7 @@ namespace NeoCompose.Runtime
 
         private void ExpandVirtualInstanceRoot(ObjectMemberValue instanceRoot)
         {
+            var releasedVirtualIds = new HashSet<string>(StringComparer.Ordinal);
             if (virtualValueIdsByRoot.TryGetValue(
                     instanceRoot.id,
                     out HashSet<string>? priorVirtualIds))
@@ -636,6 +637,7 @@ namespace NeoCompose.Runtime
                 // A variant swap reuses stable virtual ids with new effective
                 // values, so release the prior wrappers before replacing the
                 // index or they keep serving the old variant indefinitely.
+                releasedVirtualIds.UnionWith(priorVirtualIds);
                 DisposeWrappersTouchingRows(priorVirtualIds);
             }
             ClearVirtualInstanceRoot(instanceRoot.id);
@@ -689,6 +691,28 @@ namespace NeoCompose.Runtime
                     instanceRoot.id,
                     ownership,
                     instanceRoot);
+                // The sweep above only covers ids that were ALREADY virtual.
+                // A member the previous pass found materialized contributed no
+                // prior id, so a pass that turns it back into a virtual one —
+                // an imperative pin being cleared, an override being removed —
+                // released nothing, and the wrapper still bound to that id
+                // keeps serving the row it held when the override vanished
+                // (null, since the shadow it named is gone). Release those too:
+                // the release set is every id this root answers afterwards, not
+                // just the ones it answered before.
+                if (virtualValueIdsByRoot.TryGetValue(
+                        instanceRoot.id,
+                        out HashSet<string>? publishedVirtualIds))
+                {
+                    var newlyVirtualIds = new HashSet<string>(
+                        publishedVirtualIds,
+                        StringComparer.Ordinal);
+                    newlyVirtualIds.ExceptWith(releasedVirtualIds);
+                    if (newlyVirtualIds.Count > 0)
+                    {
+                        DisposeWrappersTouchingRows(newlyVirtualIds);
+                    }
+                }
             }
             finally
             {

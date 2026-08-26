@@ -244,20 +244,15 @@ namespace NeoCompose.Tests
             Assert.IsFalse(thing.value!.value!.ContainsKey("Items"));
         }
 
-        // VERIFIED FAILING, deliberately not fixed here. Teaching
-        // NeoClassMemberWriteTarget the virtual index (the one-line twin of the
-        // lookup `SetSerializedValue` already does) makes this pass, but it then
-        // breaks P67's
-        // VariantApply_ResultsPinAndRepeatedSwapsDoNotGrowTheSession: once the
-        // Apply closure's write lands at the virtual id instead of
-        // materializing the key, `NeoAnimationCompiledWrite.ClearInstanceOverride`
-        // can no longer find it — that path locates the pin through the stored
-        // parent body and `NeoClient.TryFindOwnedParent`, both of which are
-        // themselves virtual-blind. The write target and the clear path have to
-        // be taught the virtual layer in the same change, and that change is a
-        // P67 §4.2 / P75 §6 precedence decision rather than a local repair.
+        // A NeoScript member write is an ordinary instance write: the value it
+        // names is its own instance whether or not it has been materialized
+        // yet, and writing it is what materializes it. The write target
+        // therefore resolves the bound child body-then-virtual, exactly like
+        // `SetSerializedValue`, and lands at the deterministic virtual id the
+        // web writes to. The variant-Apply pin path was taught the same layer
+        // in the same change — see P67VariantIRTests'
+        // VariantApply_ReappliedClosureWriteToAnOmittedMemberClearsItsPin.
         [Test]
-        [Ignore("Verified P75 defect; fix requires ClearInstanceOverride/TryFindOwnedParent to become virtual-aware in the same change. See comment above.")]
         public void NeoScriptAssignmentWritesAnOmittedMemberAtItsVirtualId()
         {
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
@@ -304,16 +299,89 @@ namespace NeoCompose.Tests
                 new Dictionary<string, object?> { ["__root__"] = root },
                 ctx);
 
-            // The NeoScript write target resolved the member off the stored
-            // body alone. On a sparse root the omitted member is absent there,
-            // so the write minted a fresh random id and materialized the spine
-            // instead of shadowing the deterministic virtual id both runtimes
-            // agree on.
+            // Body-only resolution made the write mint a fresh random id and
+            // materialize the spine instead of shadowing the deterministic
+            // virtual id both runtimes agree on.
             NeoMemberIntWritable count = client.save
                 .Get<NeoMemberClassWritable>("Thing")
                 .Get<NeoMemberIntWritable>("Count");
             Assert.AreEqual(virtualId, count.value!.id);
             Assert.AreEqual(9d, count.value.value);
+            // Only the member that changed materializes; the root stays sparse.
+            Assert.IsFalse(
+                client.save.Get<NeoMemberClassWritable>("Thing")
+                    .value!.value!.ContainsKey("Count"),
+                "a write to one omitted member must not materialize the key on the root");
+        }
+
+        /// <summary>
+        /// P62 §3.2 x P75 §6 — <c>action += listener</c> reads the current
+        /// listener set through the write target before writing the merged
+        /// set back. On a sparse root the action member is omitted, so a
+        /// body-only read answers null and the merged set silently DROPS every
+        /// listener the construction installed; the subscription then lands at
+        /// a fresh random id instead of the action's deterministic virtual one.
+        /// </summary>
+        [Test]
+        public void NeoScriptActionSubscriptionKeepsAnOmittedMembersConstructedListeners()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                BuildActionProjectData());
+            NeoMemberClassWritable thing =
+                client.save.Get<NeoMemberClassWritable>("Thing");
+            string virtualActionId = thing.Get<NeoMemberAction>("OnPing").value!.id;
+
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            Dictionary<string, object?> root = NeoScriptRuntimeRoot(client, ctx);
+            ctx = ctx.WithRoot(root);
+            var body = new FunctionWithReturnType
+            {
+                parameters = System.Array.Empty<Variable>(),
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                typeInfo = new VoidTypeInfo
+                {
+                    type = MemberKind.Void,
+                    required = true,
+                },
+                instructions = new Instruction[]
+                {
+                    new AddActionListenerInstruction
+                    {
+                        type = InstructionKind.AddActionListener,
+                        target = new WriteTarget
+                        {
+                            pointer = PointerKeyOf(
+                                PointerKeyOf(
+                                    PointerKeyOf(RootPointer(), "Save"),
+                                    "Thing"),
+                                "OnPing"),
+                            typeInfo = ActionTypeInfo(),
+                            writability = WritabilityKind.Save,
+                        },
+                        listener = ListenerPointer("thing-late"),
+                    },
+                },
+            };
+
+            NeoScriptExecutor.Execute(
+                client,
+                body,
+                new Dictionary<string, object?> { ["__root__"] = root },
+                ctx);
+
+            NeoMemberAction subscribed = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberAction>("OnPing");
+            Assert.AreEqual(
+                virtualActionId,
+                subscribed.value!.id,
+                "the subscription must land at the action's deterministic virtual id");
+            CollectionAssert.AreEqual(
+                new[] { "thing-early", "thing-late" },
+                subscribed.value.value!.listeners
+                    .Select(listener => listener.memberId)
+                    .ToArray(),
+                "`+=` must compose with the constructor-installed listener set");
         }
 
         [Test]
@@ -1024,6 +1092,124 @@ namespace NeoCompose.Tests
         {
             type = PointerKind.Variable,
             variableId = "__root__",
+        };
+
+        private static ActionTypeInfo ActionTypeInfo() => new()
+        {
+            type = MemberKind.NSAction,
+            required = true,
+            argumentTypes = Array.Empty<TypeInfo>(),
+        };
+
+        /// <summary>
+        /// The pointer form a method group lowers to at a delegate position
+        /// (P62 §3.2): a literal member target, never a closure.
+        /// </summary>
+        private static ValuePointer ListenerPointer(string memberId) => new()
+        {
+            type = PointerKind.Value,
+            value = new Value
+            {
+                typeInfo = ActionTypeInfo(),
+                value = new JObject
+                {
+                    ["memberId"] = memberId,
+                    ["valueId"] = JValue.CreateNull(),
+                },
+            },
+        };
+
+        /// <summary>
+        /// <see cref="BuildProjectData"/> plus an NSAction member on Thing
+        /// whose declaration default carries one listener — the "constructor
+        /// installed a listener set" shape — and two void NSFunctions to
+        /// subscribe.
+        /// </summary>
+        private static ProjectData BuildActionProjectData()
+        {
+            const string projectId = "p75-project";
+            ProjectData data = BuildProjectData();
+            data.classes["thing-class"].schema["OnPing"] = "thing-ping";
+            data.classes["thing-class"].schema["Early"] = "thing-early";
+            data.classes["thing-class"].schema["Late"] = "thing-late";
+            var earlyListeners = new NeoActionValue();
+            earlyListeners.listeners.Add(new NeoDelegateValue
+            {
+                memberId = "thing-early",
+                valueId = null,
+            });
+            data.members["thing-ping"] = new ActionMember
+            {
+                id = "thing-ping",
+                projectId = projectId,
+                name = "OnPing",
+                kind = MemberKind.NSAction,
+                // Never nullable: the empty set is the rest state (P62 §2.1).
+                required = false,
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                defaultValue = new ActionMemberValueBase { value = earlyListeners },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.members["thing-early"] = VoidNSFunction(projectId, "thing-early", "Early");
+            data.members["thing-late"] = VoidNSFunction(projectId, "thing-late", "Late");
+            return data;
+        }
+
+        private static NSFunctionMember VoidNSFunction(
+            string projectId,
+            string id,
+            string name) => new()
+        {
+            id = id,
+            projectId = projectId,
+            name = name,
+            kind = MemberKind.NSFunction,
+            code = "compiled test listener",
+            returnTypeInfo = new VoidTypeInfo
+            {
+                type = MemberKind.Void,
+                required = true,
+            },
+            argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+            deferred = false,
+            action = new FunctionWithReturnType
+            {
+                parameters = new[]
+                {
+                    new Variable
+                    {
+                        id = "__this__",
+                        typeInfo = new ClassTypeInfo
+                        {
+                            type = MemberKind.Class,
+                            required = true,
+                            classId = "thing-class",
+                        },
+                    },
+                    new Variable
+                    {
+                        id = "__root__",
+                        typeInfo = new ClassTypeInfo
+                        {
+                            type = MemberKind.Class,
+                            required = true,
+                            classId = "save-root-class",
+                        },
+                    },
+                },
+                instructions = Array.Empty<Instruction>(),
+                // A void NSFunction's compiled body carries the Null
+                // statement-body result marker, not Void.
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = MemberKind.Null,
+                    required = true,
+                },
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+            },
+            createdAt = "x",
+            updatedAt = "x",
         };
 
         private static ValuePointer IntLiteral(double value) => new()

@@ -661,6 +661,13 @@ namespace NeoCompose.Runtime
         /// the imperative Apply closure runs. Structured-leaf partials share
         /// one persisted value row, so the destructive-confirmation unit is
         /// the leaf row rather than an individual component.
+        ///
+        /// <para>P75: the pin is located body-then-virtual, the same order
+        /// every other member path resolves a bound child in. On a sparse root
+        /// an imperative write does NOT materialize the key — it shadows the
+        /// member's deterministic virtual id — so the pin to clear is that
+        /// shadow, and searching the ownership graph for it would neither find
+        /// it nor mean anything if it did.</para>
         /// </summary>
         internal void ClearInstanceOverride()
         {
@@ -678,7 +685,18 @@ namespace NeoCompose.Runtime
                     out ObjectMemberValue? storedParent)
                 || storedParent.value?.ContainsKey(writableKey) != true)
             {
-                if (client.TryFindOwnedParent(
+                if (parentValueId is not null
+                    && client.TryGetVirtualClassChildValueId(
+                        parentValueId,
+                        writableKey,
+                        out string? virtualChildValueId)
+                    && virtualChildValueId == valueId)
+                {
+                    // The pin is a shadow of the member's virtual id. There is
+                    // no body key to detach; dropping the shadow is the clear.
+                    storedParent = null;
+                }
+                else if (client.TryFindOwnedParent(
                         leaf.ownership,
                         valueId!,
                         out string? indexedParentId)

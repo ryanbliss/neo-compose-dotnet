@@ -28,7 +28,12 @@ namespace NeoCompose.Runtime
                 return NeoSmartTileRuleTileConverter.ToRuleTile(
                     smartTile,
                     matcher,
-                    fallbackSprite);
+                    fallbackSprite,
+                    // `This`/`NotThis` are definition identity, not asset
+                    // identity: the tile's own class id is what a neighbor is
+                    // compared against, matching the web's
+                    // `ISmartTileNeighborContext` contract.
+                    value.classId);
             }
 
             if (fallbackSprite == null) return null;

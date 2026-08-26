@@ -331,10 +331,24 @@ namespace NeoCompose.Runtime
 
     public static class NeoSmartTileRuleTileConverter
     {
+        /// <summary>
+        /// Builds the Unity <see cref="RuleTile"/> for one authored smart tile.
+        ///
+        /// <para><paramref name="selfTileClassId"/> is the CLASS id of the tile
+        /// this smart tile belongs to — the identity <c>This</c>/<c>NotThis</c>
+        /// compare a neighbor against. The web's
+        /// <c>ISmartTileNeighborContext</c> pins that identity to "ALWAYS the
+        /// concrete tile class id", so both runtimes have to compare the same
+        /// thing; see <see cref="ToUnityNeighbor"/> for why the built-in
+        /// constants cannot express it. Null or empty falls back to Unity's
+        /// built-in asset-identity matching, which is all an untyped caller
+        /// can offer.</para>
+        /// </summary>
         public static NeoRuleTile ToRuleTile(
             INeoSmartTile smartTile,
             INeoSmartTileNeighborMatcher? matcher = null,
-            Sprite? fallbackDefaultSprite = null)
+            Sprite? fallbackDefaultSprite = null,
+            string? selfTileClassId = null)
         {
             if (smartTile == null) throw new ArgumentNullException(nameof(smartTile));
 
@@ -362,7 +376,11 @@ namespace NeoCompose.Runtime
                         NeoSmartTileOptionIds.ParseTransform(smartRule.RuleTransform)),
                 };
 
-                rule.ApplyNeighbors(BuildUnityNeighbors(smartRule, ruleIndex, tile));
+                rule.ApplyNeighbors(BuildUnityNeighbors(
+                    smartRule,
+                    ruleIndex,
+                    tile,
+                    selfTileClassId));
                 tile.m_TilingRules.Add(rule);
             }
 
@@ -373,13 +391,19 @@ namespace NeoCompose.Runtime
         private static Dictionary<Vector3Int, int> BuildUnityNeighbors(
             INeoSmartTileRule smartRule,
             int ruleIndex,
-            NeoRuleTile tile)
+            NeoRuleTile tile,
+            string? selfTileClassId)
         {
             var result = new Dictionary<Vector3Int, int>();
             foreach (var neighbor in smartRule.Neighbors)
             {
                 var offset = new Vector3Int(neighbor.Cell.x, neighbor.Cell.y, 0);
-                result[offset] = ToUnityNeighbor(neighbor, ruleIndex, offset, tile);
+                result[offset] = ToUnityNeighbor(
+                    neighbor,
+                    ruleIndex,
+                    offset,
+                    tile,
+                    selfTileClassId);
             }
             return result;
         }
@@ -388,16 +412,42 @@ namespace NeoCompose.Runtime
             INeoSmartTileNeighbor neighbor,
             int ruleIndex,
             Vector3Int offset,
-            NeoRuleTile tile)
+            NeoRuleTile tile,
+            string? selfTileClassId)
         {
             var kind = NeoSmartTileOptionIds.ParseCondition(neighbor.Condition);
-            if (kind == NeoSmartTileNeighborKind.This)
+            if (kind == NeoSmartTileNeighborKind.This
+                || kind == NeoSmartTileNeighborKind.NotThis)
             {
-                return RuleTile.TilingRuleOutput.Neighbor.This;
-            }
-            if (kind == NeoSmartTileNeighborKind.NotThis)
-            {
-                return RuleTile.TilingRuleOutput.Neighbor.NotThis;
+                // Unity's built-in This/NotThis compare TileBase REFERENCE
+                // identity, and the renderer caches one TileBase per placement
+                // value id. Two placements of the same tile class therefore
+                // hold different instances and fail to see each other, so a
+                // painted run of one tile never joins up. The web compares the
+                // neighbor's CLASS id against the tile's own
+                // (`ISmartTileNeighborContext.assetId`, documented as always
+                // the concrete tile class id), which is what "same tile" means
+                // for a definition-identified tile. Route both through the
+                // Neo-owned exact-tile matcher against this tile's own class so
+                // the two runtimes decide it identically; `NotThis` stays the
+                // exact inverse, including the empty-neighbor case the matcher
+                // answers false for.
+                if (!string.IsNullOrEmpty(selfTileClassId))
+                {
+                    return tile.RegisterCustomNeighbor(
+                        new NeoRuleTileNeighbor(
+                            offset,
+                            kind == NeoSmartTileNeighborKind.This
+                                ? NeoSmartTileNeighborKind.ExactTile
+                                : NeoSmartTileNeighborKind.NotExactTile,
+                            selfTileClassId));
+                }
+                // No class identity to compare (an untyped or preview-only
+                // caller): Unity's asset-identity matching is the only answer
+                // available, and it is what this path did before.
+                return kind == NeoSmartTileNeighborKind.This
+                    ? RuleTile.TilingRuleOutput.Neighbor.This
+                    : RuleTile.TilingRuleOutput.Neighbor.NotThis;
             }
 
             // ParseCondition only returns This, NotThis, or the two
