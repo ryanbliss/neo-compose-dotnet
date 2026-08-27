@@ -1243,7 +1243,8 @@ namespace NeoCompose.Runtime.Json
         /// on telling them apart:</para>
         /// <list type="bullet">
         ///   <item><description><b>absent</b> — this property is
-        ///   <c>false</c>. The row predates P75 and names no construction.
+        ///   <c>false</c>. The row names no construction and is therefore not
+        ///   a sparse instance root, whatever <c>constructorArgs</c> holds.
         ///   </description></item>
         ///   <item><description><b>explicit null</b> — this property is
         ///   <c>true</c> and <see cref="instanceConstructorId"/> is
@@ -1263,8 +1264,8 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>
         /// P75 creation provenance: the declared constructor that produced
-        /// this instance, or <c>null</c> for the implicit <c>new()</c>. Absent
-        /// on rows that predate P75 — see
+        /// this instance, or <c>null</c> for the implicit <c>new()</c>. Every
+        /// writer stamps it beside <c>constructorArgs</c> — see
         /// <see cref="hasInstanceConstructorId"/> for the absent-vs-explicit-
         /// null distinction, which callers must respect rather than testing
         /// this property against <c>null</c>.
