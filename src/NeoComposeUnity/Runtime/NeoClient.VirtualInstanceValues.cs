@@ -79,18 +79,19 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// P75 root eligibility. A row is a sparse instance root when it
-        /// carries ANY arm of the creation-provenance stamp: an explicit
+        /// carries an arm of the creation-provenance stamp: an explicit
         /// <c>instanceConstructorId</c> (present even when its value is
-        /// null &#8212; the implicit <c>new()</c>), evaluated
-        /// <c>constructorArgs</c>, or a selected variant. The
-        /// <c>constructorArgs</c> arm matters on its own because the web's
-        /// schema-impact repair can produce a row that carries only the
-        /// arguments; without it that row would silently stop expanding.
+        /// null &#8212; the implicit <c>new()</c>) or a selected variant.
+        /// <c>constructorArgs</c> is not an arm: every writer stamps the
+        /// constructor key beside the arguments, and the web restores
+        /// historical bodies through the same convergence, so a row carrying
+        /// arguments alone names no construction. This must answer exactly as
+        /// the web's <c>isVirtualInstanceRootShape</c> does, or the same
+        /// persisted row expands in the editor and renders unresolved in game.
         /// </summary>
         internal static bool IsVirtualInstanceRoot(MemberValue row)
         {
             return row.hasInstanceConstructorId
-                || row.constructorArgs is not null
                 || row.instanceVariantId is not null;
         }
 
@@ -264,20 +265,6 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Whether the row NAMES its creation recipe rather than merely
-        /// carrying evaluated arguments. Pre-P75 corpora stamp
-        /// <c>constructorArgs</c> from P61 evaluation without recording which
-        /// overload ran, so an arguments-only row is shape-identical to a root
-        /// the web's schema-impact repair produced. Explicit rows are the only
-        /// ones a replay failure can be blamed on.
-        /// </summary>
-        private static bool HasExplicitInstanceProvenance(MemberValue row)
-        {
-            return row.hasInstanceConstructorId
-                || row.instanceVariantId is not null;
-        }
-
-        /// <summary>
         /// Expands one root, scoping any failure to that root. A malformed
         /// root must not gut the whole index: the live path keeps every other
         /// root's virtual values and surfaces the failure, mirroring how a
@@ -296,12 +283,6 @@ namespace NeoCompose.Runtime
             catch (Exception error)
             {
                 ClearVirtualInstanceRoot(root.id);
-                if (!HasExplicitInstanceProvenance(root))
-                {
-                    // Legacy arguments-only row. It loaded fully materialized
-                    // and stays that way; there is nothing to warn about.
-                    return;
-                }
                 if (failClosed) throw;
                 Debug.LogWarning(
                     $"[NeoCompose] P75 could not replay instance root '{root.id}' of class '{root.classId}' from the incoming live content; its virtual values are unavailable until the next successful apply. {error}");

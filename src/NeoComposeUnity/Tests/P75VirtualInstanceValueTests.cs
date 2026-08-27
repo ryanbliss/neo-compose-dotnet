@@ -517,13 +517,14 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ConstructorArgsAloneMakeARowASparseInstanceRoot()
+        public void ConstructorArgsAloneDoNotMakeARowASparseInstanceRoot()
         {
-            ProjectData data = BuildProjectData();
-            // The web's schema-impact repair can rewrite a row's arguments
-            // without re-stamping the constructor id.
-            var root = (ObjectMemberValue)data.values["thing-instance"];
-            data.values["thing-instance"] = Newtonsoft.Json.JsonConvert
+            // Arguments are not an eligibility arm. Every writer stamps the
+            // constructor key beside them and the web converges restored
+            // history through the same rule, so a row carrying arguments alone
+            // names no construction. Mirrors the web's
+            // `isVirtualInstanceRootShape`; the two must never disagree.
+            ObjectMemberValue argumentsOnly = Newtonsoft.Json.JsonConvert
                 .DeserializeObject<ObjectMemberValue>(@"{
   'id':'thing-instance',
   'classId':'thing-class',
@@ -532,17 +533,10 @@ namespace NeoCompose.Tests
   'createdAt':'2026-08-22T00:00:00.000Z',
   'updatedAt':'2026-08-22T00:00:00.000Z'
 }".Replace('\'', '"'))!;
-            Assert.IsFalse(data.values["thing-instance"].hasInstanceConstructorId);
-            Assert.AreEqual("thing-class", root.classId);
 
-            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
-
-            Assert.AreEqual(
-                5d,
-                client.save
-                    .Get<NeoMemberClassWritable>("Thing")
-                    .Get<NeoMemberIntWritable>("Count")
-                    .value!.value);
+            Assert.IsFalse(argumentsOnly.hasInstanceConstructorId);
+            Assert.IsNotNull(argumentsOnly.constructorArgs);
+            Assert.IsFalse(NeoClient.IsVirtualInstanceRoot(argumentsOnly));
         }
 
         [Test]
