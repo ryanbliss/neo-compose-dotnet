@@ -6685,9 +6685,14 @@ namespace NeoCompose.Runtime
                         }
                         MemberValue? initialized = rows.Find(
                             candidate => candidate.id == initEntryId);
-                        if (unordered && initialized is not null)
+                        if (unordered && initialized is null)
                         {
-                            initialized.containerId = rowId;
+                            throw new InvalidOperationException(
+                                $"Unordered List default for '{member.name}' initializer returned unowned value '{initEntryId}'.");
+                        }
+                        if (unordered)
+                        {
+                            initialized!.containerId = rowId;
                         }
                         value.Add(initEntryId);
                         continue;

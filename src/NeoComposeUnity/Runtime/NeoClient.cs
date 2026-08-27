@@ -3272,14 +3272,19 @@ namespace NeoCompose.Runtime
             return DirectlyReferencesValueId(parent!, childValueId);
         }
 
-        private static bool DirectlyReferencesValueId(
+        private bool DirectlyReferencesValueId(
             MemberValue parent,
             string childValueId)
         {
             switch (parent)
             {
                 case ObjectMemberValue obj when obj.value is not null:
-                    return obj.value.ContainsValue(childValueId);
+                    if (obj.value.ContainsValue(childValueId)) return true;
+                    foreach (var link in EnumerateConstructorSettledAggregateLinks(obj))
+                    {
+                        if (link.valueId == childValueId) return true;
+                    }
+                    return false;
                 case ArrayMemberValue arr when arr.value is not null:
                     return System.Array.IndexOf(arr.value, childValueId) >= 0;
                 default:
@@ -3760,18 +3765,10 @@ namespace NeoCompose.Runtime
             {
                 return false;
             }
-            foreach (MergedSchemaEntry entry in ResolveStoredInstanceSchema(parent.classId!))
+            foreach (var link in EnumerateConstructorSettledAggregateLinks(parent))
             {
-                if (!TryGetConstructorSettledAggregateChildValueId(
-                        parent,
-                        entry.schemaKey,
-                        out string? candidateId)
-                    || candidateId != childValueId
-                    || !TryGetMember(entry.memberId, out Member? candidate))
-                {
-                    continue;
-                }
-                member = candidate;
+                if (link.valueId != childValueId) continue;
+                member = link.member;
                 return true;
             }
             return false;

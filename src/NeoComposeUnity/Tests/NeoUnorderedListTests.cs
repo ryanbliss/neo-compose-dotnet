@@ -423,6 +423,16 @@ namespace NeoCompose.Tests
                 id = "nested-c-member", containerId = "nested-c", value = "c",
             });
 
+            Assert.IsTrue(client.TryFindOwnedParent(
+                NeoValueOwnership.Save,
+                "nested-c",
+                out string? constructorOwnedParent));
+            Assert.AreEqual("item-c", constructorOwnedParent);
+            Assert.IsTrue(client.StillHasOwnedChildReference(
+                NeoValueOwnership.Save,
+                "item-c",
+                "nested-c"));
+
             string clonedBagId = client.CloneValueReference("bag-value", NeoValueOwnership.Save);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,

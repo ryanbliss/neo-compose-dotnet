@@ -750,6 +750,15 @@ namespace NeoCompose.Runtime
             }
             finally
             {
+                // Replay constructs live wrappers over its temporary Session
+                // graph. Retire them before the first row-removal event fires:
+                // otherwise a wrapper can reinitialize against a half-deleted
+                // graph and try to materialize an init-backed declaration as a
+                // literal while cleanup is still in progress.
+                string[] temporaryIds = sessionData.values.Keys
+                    .Where(id => !before.Contains(id))
+                    .ToArray();
+                DisposeWrappersTouchingRows(temporaryIds);
                 IReadOnlyCollection<string> removed = RemoveTemporaryWritableValueGraph(
                     NeoValueOwnership.Session,
                     temporaryRootId);
