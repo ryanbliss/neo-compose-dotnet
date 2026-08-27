@@ -1230,8 +1230,10 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>
         /// P75 creation provenance. A string names the exact declared
-        /// constructor; null selects the implicit new(). Historical rows omit
-        /// both this field and constructorArgs.
+        /// constructor; null selects the implicit new(). A row that names no
+        /// construction at all omits this field and constructorArgs together
+        /// — the two travel as one set, and a row carrying arguments without
+        /// this key names a construction no reader will replay.
         /// </summary>
         private string? storedInstanceConstructorId;
 
