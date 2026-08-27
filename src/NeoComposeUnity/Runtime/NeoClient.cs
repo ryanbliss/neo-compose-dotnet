@@ -3003,6 +3003,33 @@ namespace NeoCompose.Runtime
                                     : pair.Value;
                         }
                         obj.value = remapped;
+                        if (sourceRow is ObjectMemberValue sourceObject
+                            && obj.constructorArgs is not null)
+                        {
+                            foreach (var link in
+                                EnumerateConstructorSettledAggregateLinks(sourceObject))
+                            {
+                                NeoValueOwnership childOwnership =
+                                    DeclaredOwnership(link.member) ?? sourceOwnership;
+                                if (!TryGetValue(
+                                        childOwnership,
+                                        link.valueId,
+                                        out MemberValue? _))
+                                {
+                                    continue;
+                                }
+                                string clonedChildId = CloneOwnedValueGraphWithFreshIds(
+                                    targetOwnership,
+                                    childOwnership,
+                                    link.valueId,
+                                    link.member,
+                                    path,
+                                    null,
+                                    createdValueIds);
+                                obj.constructorArgs[link.parameterId] =
+                                    new JValue(clonedChildId);
+                            }
+                        }
                         break;
                     }
                     case ArrayMemberValue arr when arr.value is not null:
@@ -3434,6 +3461,22 @@ namespace NeoCompose.Runtime
                             : pair.Value;
                     }
                     obj.value = remapped;
+                    if (sourceRow is ObjectMemberValue sourceObject
+                        && obj.constructorArgs is not null)
+                    {
+                        foreach (var link in
+                            EnumerateConstructorSettledAggregateLinks(sourceObject))
+                        {
+                            if (!TryGetValue(link.valueId, out MemberValue? _)) continue;
+                            string clonedChildId = CloneValueGraphToOwnership(
+                                targetOwnership,
+                                link.valueId,
+                                remappedIds,
+                                link.member);
+                            obj.constructorArgs[link.parameterId] =
+                                new JValue(clonedChildId);
+                        }
+                    }
                     break;
                 }
                 case ArrayMemberValue arr when arr.value is not null:
@@ -3474,6 +3517,10 @@ namespace NeoCompose.Runtime
                         {
                             yield return (pair.Value, childMember);
                         }
+                    }
+                    foreach (var link in EnumerateConstructorSettledAggregateLinks(obj))
+                    {
+                        yield return (link.valueId, link.member);
                     }
                     break;
                 case ArrayMemberValue arr when arr.value is not null:
@@ -3552,6 +3599,203 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        private bool IsAggregateStoredMember(Member member, string childValueId)
+        {
+            if (member is ClassMember or ListMember or DictionaryMember)
+            {
+                return true;
+            }
+            return member is GenericMember
+                && TryGetValue(childValueId, out MemberValue? child)
+                && child is ObjectMemberValue or ArrayMemberValue;
+        }
+
+        private bool TryResolveRecordedConstructorSettlement(
+            NeoGeneratedTypesSupport.NeoResolvedConstructorLink link,
+            string parameterName,
+            [NotNullWhen(true)] out MergedSchemaEntry? settled)
+        {
+            settled = null;
+            ConstructorRecord? constructor = link.record;
+            if (constructor is null) return false;
+            string classId = constructor.classId;
+
+            foreach (MergedSchemaEntry entry in ResolveStoredInstanceSchema(classId))
+            {
+                if (!TryGetMember(entry.memberId, out Member? member)) continue;
+                string? initializerCode = MemberValueFactory.InitializerOf(member)?.code;
+                if (initializerCode?.Trim() != parameterName) continue;
+                settled = entry;
+                return true;
+            }
+
+            if (!data.classes.TryGetValue(classId, out NeoSchemaClass? schemaClass)
+                || string.IsNullOrEmpty(schemaClass.extendsClassId)
+                || !data.classes.TryGetValue(
+                    schemaClass.extendsClassId!,
+                    out NeoSchemaClass? baseClass))
+            {
+                return false;
+            }
+
+            foreach (ConstructorBaseInitializerField field in
+                constructor.baseInitializerFields
+                    ?? System.Array.Empty<ConstructorBaseInitializerField>())
+            {
+                if (field.code?.Trim() != parameterName) continue;
+                MergedSchemaEntry? baseEntry = ResolveStoredInstanceSchema(baseClass.id)
+                    .FirstOrDefault(entry => entry.schemaKey == field.name);
+                if (baseEntry is null) continue;
+                settled = baseEntry;
+                return true;
+            }
+
+            ConstructorRecord? baseConstructor = link.baseLink?.record;
+            if (baseConstructor is null)
+            {
+                return false;
+            }
+            ConstructorBaseArgument[] baseArguments =
+                constructor.baseArguments ?? System.Array.Empty<ConstructorBaseArgument>();
+            for (int index = 0; index < baseArguments.Length; index++)
+            {
+                ConstructorBaseArgument argument = baseArguments[index];
+                if (argument.code?.Trim() != parameterName) continue;
+                if (index >= link.baseArgumentTargets.Length) return false;
+                int targetIndex = link.baseArgumentTargets[index];
+                if (targetIndex < 0
+                    || targetIndex >= baseConstructor.argumentTypes.Length)
+                {
+                    return false;
+                }
+                return TryResolveRecordedConstructorSettlement(
+                    link.baseLink!,
+                    baseConstructor.argumentTypes[targetIndex].name,
+                    out settled);
+            }
+            return false;
+        }
+
+        private bool TryGetConstructorSettledAggregateChildValueId(
+            ObjectMemberValue parent,
+            string schemaKey,
+            [NotNullWhen(true)] out string? childValueId)
+        {
+            childValueId = null;
+            foreach (var link in EnumerateConstructorSettledAggregateLinks(parent))
+            {
+                if (link.schemaKey != schemaKey) continue;
+                childValueId = link.valueId;
+                return true;
+            }
+            return false;
+        }
+
+        private IEnumerable<(
+            string parameterId,
+            string schemaKey,
+            string valueId,
+            Member member)> EnumerateConstructorSettledAggregateLinks(
+                ObjectMemberValue parent)
+        {
+            if (parent.constructorArgs is null
+                || parent.instanceConstructorId is not string constructorId
+                || !data.constructors.TryGetValue(
+                    constructorId,
+                    out ConstructorRecord? constructor)
+                || string.IsNullOrEmpty(parent.classId)
+                || constructor.classId != parent.classId)
+            {
+                yield break;
+            }
+            NeoGeneratedTypesSupport.NeoResolvedConstructorLink constructorLink =
+                NeoGeneratedTypesSupport.ResolveConstructorLink(
+                    this,
+                    constructor,
+                    new HashSet<string>());
+            for (int index = 0; index < constructor.argumentTypes.Length; index++)
+            {
+                FunctionArgumentTypeInfo parameter = constructor.argumentTypes[index];
+                if (!TryResolveRecordedConstructorSettlement(
+                        constructorLink,
+                        parameter.name,
+                        out MergedSchemaEntry? schemaEntry)
+                    || parent.value?.ContainsKey(schemaEntry.schemaKey) == true
+                    || !TryGetMember(schemaEntry.memberId, out Member? member))
+                {
+                    continue;
+                }
+                string parameterId = ConstructorParameterId(constructor, index);
+                if (!parent.constructorArgs.TryGetValue(parameterId, out JToken? token)
+                    || token?.Type != JTokenType.String)
+                {
+                    continue;
+                }
+                string? childValueId = token.Value<string>();
+                if (string.IsNullOrWhiteSpace(childValueId)
+                    || !IsAggregateStoredMember(member, childValueId!))
+                {
+                    continue;
+                }
+                yield return (
+                    parameterId,
+                    schemaEntry.schemaKey,
+                    childValueId!,
+                    member);
+            }
+        }
+
+        private bool TryResolveConstructorSettledAggregateMember(
+            ObjectMemberValue parent,
+            string childValueId,
+            [NotNullWhen(true)] out Member? member)
+        {
+            member = null;
+            // Ordinary stored objects have no constructor-settled placements.
+            // Avoid resolving (and caching) their merged schema here: callers
+            // can extend project metadata before value inference runs.
+            if (string.IsNullOrEmpty(parent.classId)
+                || string.IsNullOrEmpty(parent.instanceConstructorId)
+                || parent.constructorArgs == null)
+            {
+                return false;
+            }
+            foreach (MergedSchemaEntry entry in ResolveStoredInstanceSchema(parent.classId!))
+            {
+                if (!TryGetConstructorSettledAggregateChildValueId(
+                        parent,
+                        entry.schemaKey,
+                        out string? candidateId)
+                    || candidateId != childValueId
+                    || !TryGetMember(entry.memberId, out Member? candidate))
+                {
+                    continue;
+                }
+                member = candidate;
+                return true;
+            }
+            return false;
+        }
+
+        internal MemberValue? ResolveClassChildRow(
+            ObjectMemberValue row,
+            string schemaKey)
+        {
+            string? childId = null;
+            row.value?.TryGetValue(schemaKey, out childId);
+            if (string.IsNullOrWhiteSpace(childId)
+                && !TryGetConstructorSettledAggregateChildValueId(
+                    row,
+                    schemaKey,
+                    out childId))
+            {
+                TryGetVirtualClassChildValueId(row.id, schemaKey, out childId);
+            }
+            return string.IsNullOrWhiteSpace(childId)
+                ? null
+                : ResolveEffectiveRow(childId!);
+        }
+
         internal bool TryInferMemberForValueId(
             string valueId,
             [NotNullWhen(true)] out Member? member)
@@ -3603,6 +3847,15 @@ namespace NeoCompose.Runtime
 
             foreach (var parent in EnumerateAllValueRows())
             {
+                if (parent.Value is ObjectMemberValue constructedParent
+                    && TryResolveConstructorSettledAggregateMember(
+                        constructedParent,
+                        valueId,
+                        out Member? constructedMember))
+                {
+                    member = constructedMember;
+                    return true;
+                }
                 if (parent.Value is not ObjectMemberValue objectValue
                     || objectValue.value == null)
                 {
@@ -4061,7 +4314,8 @@ namespace NeoCompose.Runtime
                 valueId,
                 sourceMember,
                 new HashSet<string>(),
-                removed: null);
+                removed: null,
+                announceRemoval: true);
         }
 
         internal void RemoveWritableValueAndDescendants(
@@ -4074,7 +4328,8 @@ namespace NeoCompose.Runtime
                 valueId,
                 sourceMember,
                 new HashSet<string>(),
-                removed: null);
+                removed: null,
+                announceRemoval: true);
         }
 
         /// <summary>
@@ -4100,7 +4355,8 @@ namespace NeoCompose.Runtime
                 valueId,
                 sourceMember,
                 new HashSet<string>(),
-                removed);
+                removed,
+                announceRemoval: false);
             return removed;
         }
 
@@ -4109,7 +4365,8 @@ namespace NeoCompose.Runtime
             string valueId,
             Member? sourceMember,
             HashSet<string> visited,
-            HashSet<string>? removed)
+            HashSet<string>? removed,
+            bool announceRemoval)
         {
             if (!visited.Add(valueId)) return;
             var store = GetWritableStore(ownership);
@@ -4128,7 +4385,8 @@ namespace NeoCompose.Runtime
                     child.valueId,
                     child.member,
                     visited,
-                    removed);
+                    removed,
+                    announceRemoval);
             }
             if (sourceMember is ListMember list && IsUnorderedList(list))
             {
@@ -4144,7 +4402,8 @@ namespace NeoCompose.Runtime
                             memberId,
                             entryMember,
                             visited,
-                            removed);
+                            removed,
+                            announceRemoval);
                     }
                 }
             }
@@ -4153,15 +4412,18 @@ namespace NeoCompose.Runtime
             {
                 removed?.Add(valueId);
                 IndexStoreRemove(ownership, valueId);
-                TouchWritableStoreUpdatedAt(ownership);
-                OnWritableValueChanged?.Invoke(ownership, valueId);
-                if (memberContainerId is not null)
+                if (announceRemoval)
                 {
-                    RaiseContainerChanged(ownership, memberContainerId);
-                }
-                if (ownership == NeoValueOwnership.Save)
-                {
-                    RaiseSaveValueChanged(valueId);
+                    TouchWritableStoreUpdatedAt(ownership);
+                    OnWritableValueChanged?.Invoke(ownership, valueId);
+                    if (memberContainerId is not null)
+                    {
+                        RaiseContainerChanged(ownership, memberContainerId);
+                    }
+                    if (ownership == NeoValueOwnership.Save)
+                    {
+                        RaiseSaveValueChanged(valueId);
+                    }
                 }
             }
         }

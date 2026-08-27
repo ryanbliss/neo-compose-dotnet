@@ -517,26 +517,116 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ConstructorArgsAloneDoNotMakeARowASparseInstanceRoot()
+        public void ConstructorArgsWithoutAConstructorStampFailClosed()
         {
-            // Arguments are not an eligibility arm. Every writer stamps the
-            // constructor key beside them and the web converges restored
-            // history through the same rule, so a row carrying arguments alone
-            // names no construction. Mirrors the web's
-            // `isVirtualInstanceRootShape`; the two must never disagree.
-            ObjectMemberValue argumentsOnly = Newtonsoft.Json.JsonConvert
-                .DeserializeObject<ObjectMemberValue>(@"{
+            Newtonsoft.Json.JsonSerializationException error = Assert.Throws<
+                Newtonsoft.Json.JsonSerializationException>(() =>
+                Newtonsoft.Json.JsonConvert.DeserializeObject<ObjectMemberValue>(@"{
   'id':'thing-instance',
   'classId':'thing-class',
   'value':{},
   'constructorArgs':{},
   'createdAt':'2026-08-22T00:00:00.000Z',
   'updatedAt':'2026-08-22T00:00:00.000Z'
+}".Replace('\'', '"'))) !;
+
+            StringAssert.Contains(
+                "without a constructor or variant discriminator",
+                error.Message);
+        }
+
+        [Test]
+        public void ConstructorStampWithoutArgumentsFailsClosed()
+        {
+            Newtonsoft.Json.JsonSerializationException error = Assert.Throws<
+                Newtonsoft.Json.JsonSerializationException>(() =>
+                Newtonsoft.Json.JsonConvert.DeserializeObject<ObjectMemberValue>(@"{
+  'id':'thing-instance',
+  'classId':'thing-class',
+  'value':{},
+  'instanceConstructorId':'thing-ctor',
+  'createdAt':'2026-08-22T00:00:00.000Z',
+  'updatedAt':'2026-08-22T00:00:00.000Z'
+}".Replace('\'', '"'))) !;
+
+            StringAssert.Contains(
+                "names a constructor without a 'constructorArgs' object",
+                error.Message);
+        }
+
+        [Test]
+        public void ExplicitImplicitConstructorNeedsNoArgumentMap()
+        {
+            ObjectMemberValue row = Newtonsoft.Json.JsonConvert
+                .DeserializeObject<ObjectMemberValue>(@"{
+  'id':'thing-instance',
+  'classId':'thing-class',
+  'value':{},
+  'instanceConstructorId':null,
+  'createdAt':'2026-08-22T00:00:00.000Z',
+  'updatedAt':'2026-08-22T00:00:00.000Z'
 }".Replace('\'', '"'))!;
 
-            Assert.IsFalse(argumentsOnly.hasInstanceConstructorId);
-            Assert.IsNotNull(argumentsOnly.constructorArgs);
-            Assert.IsFalse(NeoClient.IsVirtualInstanceRoot(argumentsOnly));
+            Assert.IsTrue(row.hasInstanceConstructorId);
+            Assert.IsNull(row.instanceConstructorId);
+            Assert.IsNull(row.constructorArgs);
+        }
+
+        [Test]
+        public void VariantCanCarryArgumentsWithoutAConstructorStamp()
+        {
+            ObjectMemberValue row = Newtonsoft.Json.JsonConvert
+                .DeserializeObject<ObjectMemberValue>(@"{
+  'id':'thing-instance',
+  'classId':'thing-class',
+  'value':{},
+  'constructorArgs':{'parameter-id':4},
+  'instanceVariantId':'thing-variant',
+  'createdAt':'2026-08-22T00:00:00.000Z',
+  'updatedAt':'2026-08-22T00:00:00.000Z'
+}".Replace('\'', '"'))!;
+
+            Assert.AreEqual("thing-variant", row.instanceVariantId);
+            Assert.AreEqual(4, row.constructorArgs!["parameter-id"]!.Value<int>());
+        }
+
+        [Test]
+        public void VariantRowWithoutVariantFailsClosed()
+        {
+            Newtonsoft.Json.JsonSerializationException error = Assert.Throws<
+                Newtonsoft.Json.JsonSerializationException>(() =>
+                Newtonsoft.Json.JsonConvert.DeserializeObject<ObjectMemberValue>(@"{
+  'id':'thing-instance',
+  'classId':'thing-class',
+  'value':{},
+  'instanceVariantRowValueId':'thing-variant-row',
+  'createdAt':'2026-08-22T00:00:00.000Z',
+  'updatedAt':'2026-08-22T00:00:00.000Z'
+}".Replace('\'', '"'))) !;
+
+            StringAssert.Contains(
+                "without 'instanceVariantId'",
+                error.Message);
+        }
+
+        [Test]
+        public void ExplicitParameterlessConstructorRejectsArguments()
+        {
+            Newtonsoft.Json.JsonSerializationException error = Assert.Throws<
+                Newtonsoft.Json.JsonSerializationException>(() =>
+                Newtonsoft.Json.JsonConvert.DeserializeObject<ObjectMemberValue>(@"{
+  'id':'thing-instance',
+  'classId':'thing-class',
+  'value':{},
+  'constructorArgs':{'parameter-id':4},
+  'instanceConstructorId':null,
+  'createdAt':'2026-08-22T00:00:00.000Z',
+  'updatedAt':'2026-08-22T00:00:00.000Z'
+}".Replace('\'', '"'))) !;
+
+            StringAssert.Contains(
+                "implicit parameterless constructor",
+                error.Message);
         }
 
         [Test]

@@ -28,6 +28,7 @@ namespace NeoCompose.Runtime
         private const int MaxVirtualInstanceRebuildPasses = 8;
         private bool isInitializingVirtualInstanceValues;
         private bool isReplayingVirtualInstance;
+        private string? replayingVirtualInstanceRootId;
 
         /// <summary>
         /// True while a P75 sparse instance is replaying its construction.
@@ -40,6 +41,18 @@ namespace NeoCompose.Runtime
         /// exactly that check during replay, and nothing else.
         /// </summary>
         internal bool IsReplayingVirtualInstance => isReplayingVirtualInstance;
+
+        internal string? ReplayingVirtualInstanceRootId =>
+            replayingVirtualInstanceRootId;
+
+        internal bool IsReferenceOwnedByReplayingVirtualInstance(
+            NeoValueOwnership ownership,
+            string valueId)
+        {
+            return isReplayingVirtualInstance
+                && TryFindOwnedParent(ownership, valueId, out string? parentValueId)
+                && parentValueId == replayingVirtualInstanceRootId;
+        }
 
         /// <summary>
         /// False until the client constructor has assigned Assets, Save, and
@@ -523,10 +536,11 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Child value id -> the id of the row that owns it, over whichever
-        /// corpus is supplied: class/dictionary bodies, ordered-list bodies,
-        /// and unordered-list containment stamps.
+        /// corpus is supplied: class/dictionary bodies, constructor-settled
+        /// aggregate arguments, ordered-list bodies, and unordered-list
+        /// containment stamps.
         /// </summary>
-        private static Dictionary<string, string> BuildParentByValueId(
+        private Dictionary<string, string> BuildParentByValueId(
             IEnumerable<MemberValue> rows)
         {
             var parentByValueId = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -536,6 +550,17 @@ namespace NeoCompose.Runtime
                 {
                     foreach (string childId in objectRow.value.Values)
                         parentByValueId.TryAdd(childId, row.id);
+
+                    if (!string.IsNullOrEmpty(objectRow.classId)
+                        && !string.IsNullOrEmpty(objectRow.instanceConstructorId)
+                        && objectRow.constructorArgs != null)
+                    {
+                        foreach (var link in
+                            EnumerateConstructorSettledAggregateLinks(objectRow))
+                        {
+                            parentByValueId.TryAdd(link.valueId, row.id);
+                        }
+                    }
                 }
                 else if (row is ArrayMemberValue arrayRow && arrayRow.value is not null)
                 {
@@ -657,7 +682,9 @@ namespace NeoCompose.Runtime
                 StringComparer.Ordinal);
             NeoMemberClassWritable constructed;
             bool wasReplaying = isReplayingVirtualInstance;
+            string? previousReplayingRootId = replayingVirtualInstanceRootId;
             isReplayingVirtualInstance = true;
+            replayingVirtualInstanceRootId = instanceRoot.id;
             try
             {
                 constructed = ReplayVirtualInstance(instanceRoot);
@@ -671,6 +698,7 @@ namespace NeoCompose.Runtime
             finally
             {
                 isReplayingVirtualInstance = wasReplaying;
+                replayingVirtualInstanceRootId = previousReplayingRootId;
             }
 
             string temporaryRootId = constructed.value?.id
@@ -837,6 +865,9 @@ namespace NeoCompose.Runtime
             }
             return typeInfo.type switch
             {
+                MemberKind.Int => token.ToObject<int>(),
+                MemberKind.Float => token.ToObject<double>(),
+                MemberKind.Bool => token.ToObject<bool>(),
                 MemberKind.NSDelegate => token.ToObject<NeoDelegateValue>(),
                 MemberKind.NSAction => token.ToObject<NeoActionValue>(),
                 MemberKind.Vector2 or MemberKind.Vector2Int =>

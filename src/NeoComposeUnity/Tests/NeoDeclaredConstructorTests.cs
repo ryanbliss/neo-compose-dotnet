@@ -841,6 +841,67 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void StoredPlacementFollowsNamedBaseOverloadParameterForwarding()
+        {
+            NeoClient client = BuildClient();
+            var classes = (Dictionary<string, NeoSchemaClass>)client.classes;
+            var members = (Dictionary<string, JsonMember>)client.members;
+            var constructors = (Dictionary<string, ConstructorRecord>)client.constructors;
+            var values = (Dictionary<string, MemberValue>)client.values;
+
+            // Exercise a declared base overload, not the required-constructor
+            // shortcut: Cog(Seed) -> Gear(Bar: Seed), where Bar settles Parts.
+            classes["gear-class"].requiredConstructorId = null;
+            classes["gear-class"].constructorIds = new[] { "ctor-gear" };
+            var parts = (ListMember)members["gear-parts"];
+            parts.defaultValue = new ArrayMemberValueBase
+            {
+                init = new InitializerBody { code = "Bar" },
+            };
+            constructors["ctor-gear"].argumentTypes[0].type = MemberKind.List;
+            constructors["ctor-gear"].argumentTypes[0].entryTypeInfo =
+                new PrimitiveTypeInfo
+                {
+                    type = MemberKind.String,
+                    required = true,
+                };
+            constructors["ctor-cog"].argumentTypes[0].type = MemberKind.List;
+            constructors["ctor-cog"].argumentTypes[0].entryTypeInfo =
+                new PrimitiveTypeInfo
+                {
+                    type = MemberKind.String,
+                    required = true,
+                };
+
+            var frames = new ArrayMemberValue
+            {
+                id = "forwarded-parts",
+                value = Array.Empty<string>(),
+            };
+            var root = new ObjectMemberValue
+            {
+                id = "forwarded-cog",
+                classId = "cog-class",
+                value = new Dictionary<string, string>(),
+                instanceConstructorId = "ctor-cog",
+                constructorArgs = new Dictionary<string, JToken?>
+                {
+                    [NeoClient.ConstructorParameterId(
+                        constructors["ctor-cog"],
+                        0)] = frames.id,
+                },
+            };
+            values[frames.id] = frames;
+            values[root.id] = root;
+
+            Assert.AreSame(frames, client.ResolveClassChildRow(root, "Parts"));
+            Assert.IsTrue(client.TryInferMemberForValueId(
+                frames.id,
+                out JsonMember? inferred));
+            Assert.AreEqual(parts.id, inferred!.id);
+        }
+
+        [Test]
         public void RequiredConstructor_CallSiteBlockBeatsTheBaseClauseBlock()
         {
             NeoClient client = BuildClient();

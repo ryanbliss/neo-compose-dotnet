@@ -2439,7 +2439,10 @@ namespace NeoCompose.Runtime
                     && client.TryFindOwnedParent(
                         ownership,
                         reference.sourceValueId,
-                        out string? parentValueId))
+                        out string? parentValueId)
+                    && !client.IsReferenceOwnedByReplayingVirtualInstance(
+                        ownership,
+                        reference.sourceValueId))
                 {
                     throw new InvalidOperationException(
                         $"Constructed field '{reference.path}' cannot attach value '{reference.sourceValueId}' because it is already owned by parent value '{parentValueId}'. Call Clone() explicitly before constructing another owner.");
@@ -2468,7 +2471,12 @@ namespace NeoCompose.Runtime
                         : reference.sourceOwnership == NeoValueOwnership.Session
                             ? client.ImportValueReference(
                                 NeoValueOwnership.Session,
-                                reference.sourceValueId)
+                                reference.sourceValueId,
+                                client.IsReferenceOwnedByReplayingVirtualInstance(
+                                    NeoValueOwnership.Session,
+                                    reference.sourceValueId)
+                                        ? reference.sourceValueId
+                                        : null)
                             : client.CloneOwnedValueReferenceForNewParent(
                                 NeoValueOwnership.Session,
                                 reference.sourceOwnership,
@@ -3627,7 +3635,7 @@ namespace NeoCompose.Runtime
         /// otherwise the base's parameterless constructor runs implicitly, as
         /// in C#.
         /// </summary>
-        private static NeoResolvedConstructorLink ResolveConstructorLink(
+        internal static NeoResolvedConstructorLink ResolveConstructorLink(
             NeoClient client,
             ConstructorRecord record,
             HashSet<string> visited)
@@ -6080,10 +6088,12 @@ namespace NeoCompose.Runtime
             string nowIso,
             NeoConstructionScope scope,
             string path,
-            IReadOnlyDictionary<string, GenericBinding>? classArguments = null)
+            IReadOnlyDictionary<string, GenericBinding>? classArguments = null,
+            Dictionary<string, string>? clonedIdsBySourceId = null)
         {
             var result = new Dictionary<string, string>();
             if (source is null || source.Count == 0) return result;
+            clonedIdsBySourceId ??= new Dictionary<string, string>(StringComparer.Ordinal);
 
             var schemaByKey = new Dictionary<string, MergedSchemaEntry>();
             foreach (var entry in ResolveMergedSchema(client, classId, classArguments))
@@ -6134,11 +6144,82 @@ namespace NeoCompose.Runtime
                     nowIso,
                     scope,
                     env,
-                    $"{path}.{pair.Key}");
+                    $"{path}.{pair.Key}",
+                    clonedIdsBySourceId);
                 if (cloned is null) continue;
 
                 rows.Add(cloned);
                 result[pair.Key] = cloned.id;
+                clonedIdsBySourceId[sourceRow.id] = cloned.id;
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Clones the effective schema surface of a stored Class row. A P75
+        /// construction root may omit every constructor-settled key from its
+        /// persisted body, so enumerating <c>source.value</c> loses exactly the
+        /// defaults this path is responsible for reproducing.
+        /// </summary>
+        private static Dictionary<string, string> CloneEffectiveClassChildren(
+            NeoClient client,
+            ObjectMemberValue source,
+            string classId,
+            List<MemberValue> rows,
+            string nowIso,
+            NeoConstructionScope scope,
+            string path,
+            IReadOnlyDictionary<string, GenericBinding>? classArguments,
+            Dictionary<string, string> clonedIdsBySourceId)
+        {
+            var result = new Dictionary<string, string>();
+            var env = ResolveRuntimeInstanceEnv(client, classId, classArguments);
+            foreach (MergedSchemaEntry entry in ResolveMergedSchema(
+                client,
+                classId,
+                classArguments))
+            {
+                if (!client.TryGetMember(entry.memberId, out Member? member)) continue;
+                MemberValue? sourceRow = client.ResolveClassChildRow(
+                    source,
+                    entry.schemaKey);
+                if (sourceRow is null || sourceRow.IsRemoved) continue;
+                Member effectiveMember = NeoGenericResolution.SubstituteMember(
+                    client,
+                    member,
+                    env);
+                if (sourceRow.init is not null)
+                {
+                    string? initValueId = MaterializeInitializedValue(
+                        client,
+                        effectiveMember,
+                        sourceRow.init,
+                        rows,
+                        nowIso,
+                        scope,
+                        env,
+                        $"{path}.{entry.schemaKey}");
+                    if (initValueId is not null)
+                    {
+                        result[entry.schemaKey] = initValueId;
+                    }
+                    continue;
+                }
+
+                MemberValue? cloned = CloneStoredValueForMember(
+                    client,
+                    effectiveMember,
+                    sourceRow,
+                    rows,
+                    nowIso,
+                    scope,
+                    env,
+                    $"{path}.{entry.schemaKey}",
+                    clonedIdsBySourceId);
+                if (cloned is null) continue;
+                rows.Add(cloned);
+                result[entry.schemaKey] = cloned.id;
+                clonedIdsBySourceId[sourceRow.id] = cloned.id;
             }
             return result;
         }
@@ -6167,7 +6248,8 @@ namespace NeoCompose.Runtime
                 nowIso,
                 scope,
                 env,
-                path);
+                path,
+                new Dictionary<string, string>(StringComparer.Ordinal));
         }
 
         private static ArrayMemberValue? CreateDefaultListValueRow(
@@ -6194,7 +6276,8 @@ namespace NeoCompose.Runtime
                 nowIso,
                 scope,
                 env,
-                path);
+                path,
+                new Dictionary<string, string>(StringComparer.Ordinal));
         }
 
         private static MemberValue? CloneStoredValueForMember(
@@ -6205,7 +6288,8 @@ namespace NeoCompose.Runtime
             string nowIso,
             NeoConstructionScope scope,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
-            string path)
+            string path,
+            Dictionary<string, string> clonedIdsBySourceId)
         {
             switch (member)
             {
@@ -6316,23 +6400,33 @@ namespace NeoCompose.Runtime
                     };
                 case ClassMember classMember
                     when source is ObjectMemberValue sourceValue:
-                    return CreateWritableClassValueRow(
+                {
+                    string classId = sourceValue.classId ?? classMember.classId;
+                    ObjectMemberValue clone = CreateWritableClassValueRow(
                         client,
-                        sourceValue.classId ?? classMember.classId,
-                        CloneDefaultClassChildren(
+                        classId,
+                        CloneEffectiveClassChildren(
                             client,
-                            sourceValue.value,
-                            sourceValue.classId ?? classMember.classId,
+                            sourceValue,
+                            classId,
                             rows,
                             nowIso,
                             scope,
                             path,
-                            classMember.classArguments),
+                            classMember.classArguments,
+                            clonedIdsBySourceId),
                         rows,
                         nowIso,
                         scope,
                         path,
                         classMember.classArguments);
+                    CopyDefaultConstructionProvenance(
+                        client,
+                        sourceValue,
+                        clone,
+                        clonedIdsBySourceId);
+                    return clone;
+                }
                 case DictionaryMember dictionaryMember
                     when source is ObjectMemberValue sourceValue:
                     return CloneDictionaryValueRow(
@@ -6343,7 +6437,8 @@ namespace NeoCompose.Runtime
                         nowIso,
                         scope,
                         env,
-                        path);
+                        path,
+                        clonedIdsBySourceId);
                 case ListMember listMember
                     when source is ArrayMemberValue sourceValue:
                     return CloneListValueRow(
@@ -6354,10 +6449,83 @@ namespace NeoCompose.Runtime
                         nowIso,
                         scope,
                         env,
-                        path);
+                        path,
+                        clonedIdsBySourceId);
                 default:
                     return null;
             }
+        }
+
+        private static void CopyDefaultConstructionProvenance(
+            NeoClient client,
+            ObjectMemberValue source,
+            ObjectMemberValue clone,
+            IReadOnlyDictionary<string, string> clonedIdsBySourceId)
+        {
+            clone.genericBindings = source.genericBindings is null
+                ? null
+                : new Dictionary<string, string>(source.genericBindings);
+            clone.instanceVariantId = source.instanceVariantId;
+            clone.instanceVariantRowValueId = source.instanceVariantRowValueId;
+
+            Dictionary<string, JToken?>? constructorArgs = null;
+            if (source.constructorArgs is not null)
+            {
+                constructorArgs = new Dictionary<string, JToken?>(
+                    StringComparer.Ordinal);
+                foreach (KeyValuePair<string, JToken?> argument in source.constructorArgs)
+                {
+                    constructorArgs[argument.Key] = argument.Value?.DeepClone();
+                }
+            }
+            if (source.instanceConstructorId is string constructorId
+                && constructorArgs is not null
+                && client.TryGetConstructor(
+                    constructorId,
+                    out ConstructorRecord? constructor))
+            {
+                for (int index = 0; index < constructor.argumentTypes.Length; index++)
+                {
+                    FunctionArgumentTypeInfo parameter = constructor.argumentTypes[index];
+                    if (parameter.type is not (
+                        MemberKind.Class
+                        or MemberKind.Interface
+                        or MemberKind.List
+                        or MemberKind.Dictionary
+                        or MemberKind.Generic))
+                    {
+                        continue;
+                    }
+                    string parameterId = NeoClient.ConstructorParameterId(
+                        constructor,
+                        index);
+                    if (!constructorArgs.TryGetValue(parameterId, out JToken? token)
+                        || token?.Type != JTokenType.String
+                        || token.Value<string>() is not string sourceValueId
+                        || !clonedIdsBySourceId.TryGetValue(
+                            sourceValueId,
+                            out string clonedValueId))
+                    {
+                        continue;
+                    }
+                    constructorArgs[parameterId] = new JValue(clonedValueId);
+                }
+            }
+            if (!source.hasInstanceConstructorId)
+            {
+                clone.constructorArgs = constructorArgs;
+                return;
+            }
+            if (constructorArgs is null)
+            {
+                clone.instanceConstructorId = source.instanceConstructorId;
+                clone.constructorArgs = null;
+                return;
+            }
+            NeoClient.StampConstructionProvenance(
+                clone,
+                source.instanceConstructorId,
+                constructorArgs);
         }
 
         private static ObjectMemberValue CloneDictionaryValueRow(
@@ -6368,7 +6536,8 @@ namespace NeoCompose.Runtime
             string nowIso,
             NeoConstructionScope scope,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
-            string path)
+            string path,
+            Dictionary<string, string> clonedIdsBySourceId)
         {
             // The clone keeps the source row's immutable Decision-9 stamp
             // (falling back to a fresh computation from the creation env
@@ -6424,7 +6593,8 @@ namespace NeoCompose.Runtime
                         nowIso,
                         scope,
                         entryEnv,
-                        $"{path}[{pair.Key}]");
+                        $"{path}[{pair.Key}]",
+                        clonedIdsBySourceId);
                     if (cloned is null)
                     {
                         throw new InvalidOperationException(
@@ -6433,6 +6603,7 @@ namespace NeoCompose.Runtime
 
                     rows.Add(cloned);
                     value[pair.Key] = cloned.id;
+                    clonedIdsBySourceId[sourceRow.id] = cloned.id;
                 }
             }
 
@@ -6459,12 +6630,15 @@ namespace NeoCompose.Runtime
             string nowIso,
             NeoConstructionScope scope,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
-            string path)
+            string path,
+            Dictionary<string, string> clonedIdsBySourceId)
         {
             // Same stamp semantics as CloneDictionaryValueRow.
             var entryEnv = source.genericBindings is null
                 ? env
                 : NeoGenericResolution.EnvFromStamp(source.genericBindings);
+            string rowId = Guid.NewGuid().ToString();
+            bool unordered = member.listKind == NeoListKinds.Unordered;
             var value = new List<string>();
             if (source.value is not null)
             {
@@ -6476,7 +6650,13 @@ namespace NeoCompose.Runtime
                         $"List default for '{member.name}' references missing entry member '{member.entryMemberId}'.");
                 }
                 entryMember = NeoGenericResolution.SubstituteMember(client, entryMember, entryEnv);
-                foreach (var sourceId in source.value)
+                IEnumerable<string> sourceIds = source.value;
+                if (unordered
+                    && client.ResolveEffectiveRow(source.id) is not null)
+                {
+                    sourceIds = client.GetUnorderedListEntryIds(source.id);
+                }
+                foreach (string sourceId in sourceIds)
                 {
                     if (!client.TryGetValue(sourceId, out MemberValue? sourceRow))
                     {
@@ -6503,6 +6683,12 @@ namespace NeoCompose.Runtime
                             throw new InvalidOperationException(
                                 $"List default for '{member.name}' has an entry initializer that produced no value.");
                         }
+                        MemberValue? initialized = rows.Find(
+                            candidate => candidate.id == initEntryId);
+                        if (unordered && initialized is not null)
+                        {
+                            initialized.containerId = rowId;
+                        }
                         value.Add(initEntryId);
                         continue;
                     }
@@ -6514,7 +6700,8 @@ namespace NeoCompose.Runtime
                         nowIso,
                         scope,
                         entryEnv,
-                        $"{path}[{value.Count}]");
+                        $"{path}[{value.Count}]",
+                        clonedIdsBySourceId);
                     if (cloned is null)
                     {
                         throw new InvalidOperationException(
@@ -6522,16 +6709,18 @@ namespace NeoCompose.Runtime
                     }
 
                     rows.Add(cloned);
+                    if (unordered) cloned.containerId = rowId;
                     value.Add(cloned.id);
+                    clonedIdsBySourceId[sourceRow.id] = cloned.id;
                 }
             }
 
             var row = new ArrayMemberValue
             {
-                id = Guid.NewGuid().ToString(),
+                id = rowId,
                 createdAt = nowIso,
                 updatedAt = nowIso,
-                value = value.ToArray(),
+                value = unordered ? Array.Empty<string>() : value.ToArray(),
                 classId = source.classId,
                 genericBindings = source.genericBindings is null
                     ? null

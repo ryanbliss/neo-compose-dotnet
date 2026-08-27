@@ -5,9 +5,11 @@
 
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using Assets.Scripts.Neo;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using UnityEngine;
@@ -635,6 +637,314 @@ namespace NeoCompose.Tests
                 100,
                 NeoGeneratedTypesSupport.ReadInt(
                     hero.Get<NeoMemberInt>("Health")));
+        }
+
+        [Test]
+        public void GeneratedConstructor_ClonesSparseConstructedDefaultsWithTheirRecipe()
+        {
+            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
+            ProjectData data = stack.Synchronizer.Schema;
+            const string now = "1970-01-01T00:00:00.000Z";
+            const string countedClassId = "class-sparse-default-counted";
+            const string nestedClassId = "class-sparse-default-nested";
+            const string containerClassId = "class-sparse-default-container";
+            const string holderClassId = "class-sparse-default-holder";
+            const string sourceValueId = "value-sparse-default-counted";
+            const string nestedSourceValueId = "value-sparse-default-nested";
+            const string constructorId = "constructor-sparse-default-counted";
+
+            var countMember = new IntMember
+            {
+                id = "member-sparse-default-count",
+                name = "Count",
+                kind = MemberKind.Int,
+                required = true,
+                defaultValue = new NumberMemberValueBase { value = 5 },
+                createdAt = now,
+                updatedAt = now,
+            };
+            var nestedEntryMember = new StringMember
+            {
+                id = "member-sparse-default-nested-entry",
+                name = "Nested entry",
+                kind = MemberKind.String,
+                required = true,
+                createdAt = now,
+                updatedAt = now,
+            };
+            var nestedMember = new ListMember
+            {
+                id = "member-sparse-default-nested",
+                name = "Nested",
+                kind = MemberKind.List,
+                entryMemberId = nestedEntryMember.id,
+                listKind = NeoListKinds.Unordered,
+                required = true,
+                defaultValue = new ArrayMemberValueBase
+                {
+                    init = new InitializerBody { code = "Nested" },
+                },
+                createdAt = now,
+                updatedAt = now,
+            };
+            var countedMember = new ClassMember
+            {
+                id = "member-sparse-default-counted",
+                name = "Counted",
+                kind = MemberKind.Class,
+                classId = countedClassId,
+                valueId = sourceValueId,
+                required = true,
+                createdAt = now,
+                updatedAt = now,
+            };
+            var containerMember = new ClassMember
+            {
+                id = "member-sparse-default-container",
+                name = "Container",
+                kind = MemberKind.Class,
+                classId = containerClassId,
+                required = true,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    classId = containerClassId,
+                    value = new Dictionary<string, string>
+                    {
+                        ["Counted"] = sourceValueId,
+                    },
+                },
+                createdAt = now,
+                updatedAt = now,
+            };
+            data.members[countMember.id] = countMember;
+            data.members[nestedEntryMember.id] = nestedEntryMember;
+            data.members[nestedMember.id] = nestedMember;
+            data.members[countedMember.id] = countedMember;
+            data.members[containerMember.id] = containerMember;
+            data.classes[nestedClassId] = new NeoSchemaClass
+            {
+                id = nestedClassId,
+                name = "SparseDefaultNested",
+                allowedStorage = "session",
+                schema = new Dictionary<string, string>(),
+                createdAt = now,
+                updatedAt = now,
+            };
+            data.classes[countedClassId] = new NeoSchemaClass
+            {
+                id = countedClassId,
+                name = "SparseDefaultCounted",
+                allowedStorage = "session",
+                schema = new Dictionary<string, string>
+                {
+                    ["Count"] = countMember.id,
+                    ["Nested"] = nestedMember.id,
+                },
+                constructorIds = new[] { constructorId },
+                createdAt = now,
+                updatedAt = now,
+            };
+            data.classes[containerClassId] = new NeoSchemaClass
+            {
+                id = containerClassId,
+                name = "SparseDefaultContainer",
+                allowedStorage = "session",
+                schema = new Dictionary<string, string>
+                {
+                    ["Counted"] = countedMember.id,
+                },
+                createdAt = now,
+                updatedAt = now,
+            };
+            data.classes[holderClassId] = new NeoSchemaClass
+            {
+                id = holderClassId,
+                name = "SparseDefaultHolder",
+                allowedStorage = "session",
+                schema = new Dictionary<string, string>
+                {
+                    ["Container"] = containerMember.id,
+                },
+                createdAt = now,
+                updatedAt = now,
+            };
+            var labelArgument = new FunctionArgumentTypeInfo
+            {
+                name = "Label",
+                type = MemberKind.String,
+                required = true,
+            };
+            var nestedArgument = new FunctionArgumentTypeInfo
+            {
+                name = "Nested",
+                type = MemberKind.List,
+                entryTypeInfo = new PrimitiveTypeInfo
+                {
+                    type = MemberKind.String,
+                    required = true,
+                },
+                required = true,
+            };
+            var constructor = new ConstructorRecord
+            {
+                id = constructorId,
+                projectId = data.project.id,
+                classId = countedClassId,
+                argumentTypes = new[] { labelArgument, nestedArgument },
+                code = "",
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        new Variable
+                        {
+                            id = "__this__",
+                            typeInfo = new ClassTypeInfo
+                            {
+                                type = MemberKind.Class,
+                                required = true,
+                                classId = countedClassId,
+                            },
+                        },
+                        new Variable
+                        {
+                            id = "__root__",
+                            typeInfo = new ClassTypeInfo
+                            {
+                                type = MemberKind.Class,
+                                required = true,
+                                classId = ((ClassMember)data.members[
+                                    data.project.rootSessionMemberId]).classId,
+                            },
+                        },
+                        new Variable { id = "__arg_0__", typeInfo = labelArgument },
+                        new Variable
+                        {
+                            id = "__arg_1__",
+                            typeInfo = new CollectionTypeInfo
+                            {
+                                type = MemberKind.List,
+                                required = true,
+                                entryTypeInfo = new PrimitiveTypeInfo
+                                {
+                                    type = MemberKind.String,
+                                    required = true,
+                                },
+                            },
+                        },
+                    },
+                    instructions = System.Array.Empty<Instruction>(),
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Null,
+                        required = true,
+                    },
+                },
+            };
+            data.constructors ??= new Dictionary<string, ConstructorRecord>();
+            data.constructors[constructor.id] = constructor;
+            ((ArrayMemberValueBase)nestedMember.defaultValue!).init!.compiled =
+                new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = constructor.action.parameters,
+                    typeInfo = new CollectionTypeInfo
+                    {
+                        type = MemberKind.List,
+                        required = true,
+                        entryTypeInfo = new PrimitiveTypeInfo
+                        {
+                            type = MemberKind.String,
+                            required = true,
+                        },
+                    },
+                    instructions = new Instruction[]
+                    {
+                        new ReturnInstruction
+                        {
+                            type = InstructionKind.Return,
+                            pointer = new VariablePointer
+                            {
+                                type = PointerKind.Variable,
+                                variableId = "__arg_1__",
+                            },
+                        },
+                    },
+                };
+            var sparseSource = new ObjectMemberValue
+            {
+                id = sourceValueId,
+                classId = countedClassId,
+                value = new Dictionary<string, string>(),
+                constructorArgs = new Dictionary<string, Newtonsoft.Json.Linq.JToken?>
+                {
+                    [NeoClient.ConstructorParameterId(constructor, 0)] = "source label",
+                    [NeoClient.ConstructorParameterId(constructor, 1)] = nestedSourceValueId,
+                },
+                instanceConstructorId = constructorId,
+                createdAt = now,
+                updatedAt = now,
+            };
+            data.values[nestedSourceValueId] = new ArrayMemberValue
+            {
+                id = nestedSourceValueId,
+                value = System.Array.Empty<string>(),
+                createdAt = now,
+                updatedAt = now,
+            };
+            data.values["value-sparse-default-nested-entry"] =
+                new StringMemberValue
+                {
+                    id = "value-sparse-default-nested-entry",
+                    containerId = nestedSourceValueId,
+                    value = "entry",
+                    createdAt = now,
+                    updatedAt = now,
+                };
+            data.values[sparseSource.id] = sparseSource;
+
+            using TestProjectNeo app = TestProjectNeo.Load(stack.Synchronizer)
+                .GetAwaiter()
+                .GetResult();
+            NeoMemberClassWritable holder =
+                NeoGeneratedTypesSupport.CreateWritableClassValue(
+                    app.Client,
+                    holderClassId,
+                    new Dictionary<string, string>(),
+                    System.Array.Empty<MemberValue>());
+            NeoMemberClassWritable counted = holder
+                .Get<NeoMemberClassWritable>("Container")
+                .Get<NeoMemberClassWritable>("Counted");
+
+            Assert.AreEqual(
+                5,
+                NeoGeneratedTypesSupport.ReadInt(
+                    counted.Get<NeoMemberInt>("Count")),
+                "the clone must read the constructor-replayed effective child, not the sparse stored body");
+            ObjectMemberValue cloned = (ObjectMemberValue)app.Client
+                .ResolveEffectiveRow(counted.value!.id)!;
+            Assert.IsTrue(cloned.hasInstanceConstructorId);
+            Assert.AreEqual(constructorId, cloned.instanceConstructorId);
+            Assert.AreEqual(
+                "source label",
+                cloned.constructorArgs!["__arg_0__"]!.ToObject<string>());
+            NeoMemberList clonedNested = counted.Get<NeoMemberList>("Nested");
+            string clonedNestedId = clonedNested.value!.id;
+            Assert.AreEqual(
+                clonedNestedId,
+                cloned.constructorArgs!["__arg_1__"]!.ToObject<string>(),
+                "aggregate constructor arguments must follow the cloned graph");
+            Assert.AreNotEqual(nestedSourceValueId, clonedNestedId);
+            Assert.AreNotEqual(sourceValueId, cloned.id);
+            Assert.IsEmpty(((ArrayMemberValue)clonedNested.value).value!);
+            string clonedEntryId = app.Client
+                .GetUnorderedListEntryIds(clonedNestedId)
+                .Single();
+            Assert.AreNotEqual("value-sparse-default-nested-entry", clonedEntryId);
+            Assert.AreEqual(
+                clonedNestedId,
+                app.Client.ResolveEffectiveRow(clonedEntryId)!.containerId);
         }
 
         [Test]

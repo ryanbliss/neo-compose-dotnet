@@ -1689,10 +1689,14 @@ namespace NeoCompose.Runtime
             if (client.ResolveEffectiveRow(GridValueId) is not ObjectMemberValue gridRow) return links;
             if (gridRow.IsRemoved) return links;
             if (string.IsNullOrEmpty(gridRow.classId)) return links;
-            if (gridRow.value is null) return links;
             string? childrenKey = FindSchemaKey(gridRow.classId!, ChildrenKeyCandidates);
             if (childrenKey is null) return links;
-            if (!gridRow.value.TryGetValue(childrenKey, out string childrenListId)) return links;
+            if (client.ResolveClassChildRow(gridRow, childrenKey)
+                    is not ArrayMemberValue childrenList)
+            {
+                return links;
+            }
+            string childrenListId = childrenList.id;
 
             foreach (var linkValueId in ResolveListEntryIds(childrenListId, dependencyIds))
             {
@@ -1700,7 +1704,6 @@ namespace NeoCompose.Runtime
                 if (client.ResolveEffectiveRow(linkValueId) is not ObjectMemberValue linkRow) continue;
                 if (linkRow.IsRemoved) continue;
                 if (string.IsNullOrEmpty(linkRow.classId)) continue;
-                if (linkRow.value is null) continue;
                 var link = ResolveLinkModel(linkValueId, linkRow, dependencyIds);
                 if (link is not null) links.Add(link);
             }
@@ -1715,8 +1718,10 @@ namespace NeoCompose.Runtime
             string classId = linkRow.classId!;
             string? tilesKey = FindSchemaKey(classId, TilesKeyCandidates);
             if (tilesKey is not null
-                && linkRow.value!.TryGetValue(tilesKey, out string tilesListId))
+                && client.ResolveClassChildRow(linkRow, tilesKey)
+                    is ArrayMemberValue tilesList)
             {
+                string tilesListId = tilesList.id;
                 string layerId = NeoWorldLayerLinkResolver.ResolveTargetLayerClassId(
                     client,
                     linkValueId,
@@ -1740,8 +1745,10 @@ namespace NeoCompose.Runtime
 
             string? objectsKey = FindSchemaKey(classId, ObjectsKeyCandidates);
             if (objectsKey is not null
-                && linkRow.value!.TryGetValue(objectsKey, out string objectsListId))
+                && client.ResolveClassChildRow(linkRow, objectsKey)
+                    is ArrayMemberValue objectsList)
             {
+                string objectsListId = objectsList.id;
                 string layerId = NeoWorldLayerLinkResolver.ResolveTargetLayerClassId(
                     client,
                     linkValueId,
@@ -1771,9 +1778,11 @@ namespace NeoCompose.Runtime
             string layerClassId,
             HashSet<string>? dependencyIds)
         {
-            string? overrideValueId = ReadDirectReference(
-                linkRow.value!,
-                "layerOverrideValueId");
+            string? overrideValueId = linkRow.value is null
+                ? null
+                : ReadDirectReference(
+                    linkRow.value,
+                    "layerOverrideValueId");
             if (overrideValueId is null) return null;
             dependencyIds?.Add(overrideValueId);
             if (client.ResolveEffectiveRow(overrideValueId) is not ObjectMemberValue overrideRow)
@@ -1892,7 +1901,6 @@ namespace NeoCompose.Runtime
             if (client.ResolveEffectiveRow(objectValueId) is not ObjectMemberValue objectRow) return;
             if (objectRow.IsRemoved) return;
             if (string.IsNullOrEmpty(objectRow.classId)) return;
-            if (objectRow.value is null) return;
             Vector2Int origin = ReadObjectOrigin(objectRow, dependencyIds);
 
             int linkIndex = -1;
@@ -1943,10 +1951,14 @@ namespace NeoCompose.Runtime
             if (client.ResolveEffectiveRow(objectValueId) is not ObjectMemberValue objectRow) yield break;
             if (objectRow.IsRemoved) yield break;
             if (string.IsNullOrEmpty(objectRow.classId)) yield break;
-            if (objectRow.value is null) yield break;
             string? childrenKey = FindSchemaKey(objectRow.classId!, ChildrenKeyCandidates);
             if (childrenKey is null) yield break;
-            if (!objectRow.value.TryGetValue(childrenKey, out string childrenListId)) yield break;
+            if (client.ResolveClassChildRow(objectRow, childrenKey)
+                    is not ArrayMemberValue childrenList)
+            {
+                yield break;
+            }
+            string childrenListId = childrenList.id;
 
             int childIndex = -1;
             foreach (var childValueId in ResolveListEntryIds(childrenListId, dependencyIds))
@@ -1956,10 +1968,14 @@ namespace NeoCompose.Runtime
                 if (client.ResolveEffectiveRow(childValueId) is not ObjectMemberValue childRow) continue;
                 if (childRow.IsRemoved) continue;
                 if (string.IsNullOrEmpty(childRow.classId)) continue;
-                if (childRow.value is null) continue;
                 string? tilesKey = FindSchemaKey(childRow.classId!, TilesKeyCandidates);
                 if (tilesKey is null) continue;
-                if (!childRow.value.TryGetValue(tilesKey, out string tilesListId)) continue;
+                if (client.ResolveClassChildRow(childRow, tilesKey)
+                        is not ArrayMemberValue tilesList)
+                {
+                    continue;
+                }
+                string tilesListId = tilesList.id;
                 string targetLayerId = NeoWorldLayerLinkResolver.ResolveTargetLayerClassId(
                     client,
                     childValueId,
@@ -1997,8 +2013,10 @@ namespace NeoCompose.Runtime
                     entryRow.classId!,
                     LinkTilePositionKeyCandidates);
                 if (positionKey is not null
-                    && entryRow.value.TryGetValue(positionKey, out string positionRowId))
+                    && client.ResolveClassChildRow(entryRow, positionKey)
+                        is MemberValue positionRow)
                 {
+                    string positionRowId = positionRow.id;
                     cellValueId = positionRowId;
                     dependencyIds?.Add(positionRowId);
                     localCell = ReadCellRow(positionRowId) ?? Vector2Int.zero;
@@ -2006,11 +2024,12 @@ namespace NeoCompose.Runtime
                 int tileOrder = tileIndex;
                 string? orderKey = FindSchemaKey(entryRow.classId!, OrderKeyCandidates);
                 if (orderKey is not null
-                    && entryRow.value.TryGetValue(orderKey, out string orderRowId))
+                    && client.ResolveClassChildRow(entryRow, orderKey)
+                        is NumberMemberValue orderRow)
                 {
+                    string orderRowId = orderRow.id;
                     dependencyIds?.Add(orderRowId);
-                    if (client.ResolveEffectiveRow(orderRowId) is NumberMemberValue orderRow
-                        && orderRow.value is not null)
+                    if (orderRow.value is not null)
                     {
                         tileOrder = (int)orderRow.value.Value;
                     }
@@ -2044,11 +2063,15 @@ namespace NeoCompose.Runtime
             if (client.ResolveEffectiveRow(placementValueId) is not ObjectMemberValue placementRow) return null;
             if (placementRow.IsRemoved) return null;
             if (string.IsNullOrEmpty(placementRow.classId)) return null;
-            if (placementRow.value is null) return null;
 
             string? cellKey = FindSchemaKey(placementRow.classId!, cellKeyCandidates);
             if (cellKey is null) return null;
-            if (!placementRow.value.TryGetValue(cellKey, out string cellValueId)) return null;
+            if (client.ResolveClassChildRow(placementRow, cellKey)
+                    is not MemberValue cellRow)
+            {
+                return null;
+            }
+            string cellValueId = cellRow.id;
             dependencyIds?.Add(cellValueId);
             Vector2Int? cell = ReadCellRow(cellValueId);
             if (cell is null) return null;
@@ -2130,10 +2153,14 @@ namespace NeoCompose.Runtime
             ObjectMemberValue objectRow,
             HashSet<string>? dependencyIds)
         {
-            if (objectRow.value is null) return Vector2Int.zero;
             string? positionKey = FindSchemaKey(objectRow.classId!, PositionKeyCandidates);
             if (positionKey is null) return Vector2Int.zero;
-            if (!objectRow.value.TryGetValue(positionKey, out string positionRowId)) return Vector2Int.zero;
+            if (client.ResolveClassChildRow(objectRow, positionKey)
+                    is not MemberValue positionRow)
+            {
+                return Vector2Int.zero;
+            }
+            string positionRowId = positionRow.id;
             dependencyIds?.Add(positionRowId);
             return ReadCellRow(positionRowId) ?? Vector2Int.zero;
         }
@@ -2143,21 +2170,16 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             HashSet<string>? dependencyIds)
         {
-            if (objectRow.value is null)
-            {
-                return new[] { origin };
-            }
-
             string? placementTilesKey = FindSchemaKey(
                 objectRow.classId!,
                 PlacementTilesKeyCandidates);
             if (placementTilesKey is null
-                || !objectRow.value.TryGetValue(
-                    placementTilesKey,
-                    out string placementTilesListId))
+                || client.ResolveClassChildRow(objectRow, placementTilesKey)
+                    is not ArrayMemberValue placementTilesList)
             {
                 return new[] { origin };
             }
+            string placementTilesListId = placementTilesList.id;
 
             IReadOnlyList<string> placementValueIds = ResolveListEntryIds(
                 placementTilesListId,
@@ -2240,8 +2262,7 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 if (placementRow.IsRemoved
-                    || string.IsNullOrEmpty(placementRow.classId)
-                    || placementRow.value is null)
+                    || string.IsNullOrEmpty(placementRow.classId))
                 {
                     continue;
                 }
@@ -2257,10 +2278,12 @@ namespace NeoCompose.Runtime
                         CellKeyCandidates);
                 }
                 if (lastCellKey is null
-                    || !placementRow.value.TryGetValue(lastCellKey, out string cellValueId))
+                    || client.ResolveClassChildRow(placementRow, lastCellKey)
+                        is not MemberValue cellRow)
                 {
                     continue;
                 }
+                string cellValueId = cellRow.id;
 
                 dependencyIds?.Add(cellValueId);
                 Vector2Int? offset = ReadCellRow(cellValueId);
