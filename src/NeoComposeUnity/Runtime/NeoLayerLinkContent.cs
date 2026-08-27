@@ -445,13 +445,13 @@ namespace NeoCompose.Runtime
             ObjectMemberValue linkRow,
             string schemaKey)
         {
-            if (linkRow.value is null ||
-                !linkRow.value.TryGetValue(schemaKey, out string listValueId) ||
-                !client.TryGetValue(listValueId, out ArrayMemberValue? listRow) ||
+            if (client.ResolveClassChildRow(linkRow, schemaKey)
+                    is not ArrayMemberValue listRow ||
                 listRow?.value is null)
             {
                 return Array.Empty<string>();
             }
+            string listValueId = listRow.id;
 
             // Ordered lists store ids inline. Unordered lists use the
             // containment join; their inline array is only the present/null
@@ -468,9 +468,8 @@ namespace NeoCompose.Runtime
 
         private static Vector2Int ReadRowOrigin(NeoClient client, ObjectMemberValue linkRow)
         {
-            if (linkRow.value is null ||
-                !linkRow.value.TryGetValue("Position", out string positionValueId) ||
-                !client.TryGetValue(positionValueId, out Vector3MemberValue? positionRow) ||
+            if (client.ResolveClassChildRow(linkRow, "Position")
+                    is not Vector3MemberValue positionRow ||
                 positionRow?.value is null)
             {
                 return Vector2Int.zero;
@@ -485,11 +484,8 @@ namespace NeoCompose.Runtime
             NeoClient client,
             ObjectMemberValue objectRow)
         {
-            if (objectRow.value is null
-                || !objectRow.value.TryGetValue("Position", out string positionValueId)
-                || !client.TryGetValue(
-                    positionValueId,
-                    out Vector3MemberValue? positionRow)
+            if (client.ResolveClassChildRow(objectRow, "Position")
+                    is not Vector3MemberValue positionRow
                 || positionRow?.value is null)
             {
                 return Vector3.zero;
@@ -503,9 +499,9 @@ namespace NeoCompose.Runtime
         private static Vector2Int? ReadRowCell(NeoClient client, string tileInstanceValueId)
         {
             if (!client.TryGetValue(tileInstanceValueId, out ObjectMemberValue? instanceRow) ||
-                instanceRow?.value is null ||
-                !instanceRow.value.TryGetValue("Cell", out string cellValueId) ||
-                !client.TryGetValue(cellValueId, out Vector2MemberValue? cellRow) ||
+                instanceRow is null ||
+                client.ResolveClassChildRow(instanceRow, "Cell")
+                    is not Vector2MemberValue cellRow ||
                 cellRow?.value is null)
             {
                 return null;

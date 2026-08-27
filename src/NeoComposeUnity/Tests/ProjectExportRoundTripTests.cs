@@ -369,6 +369,7 @@ namespace NeoCompose.Tests
   ""id"": ""value-foo"",
   ""projectId"": ""project"",
   ""classId"": ""class-foo"",
+  ""instanceConstructorId"": ""constructor-foo"",
   ""value"": {
     ""Bar"": ""value-bar"",
     ""Selector"": ""value-selector""
@@ -434,6 +435,7 @@ namespace NeoCompose.Tests
             const string json = @"{
   ""id"": ""value-conflict"",
   ""projectId"": ""project"",
+  ""instanceConstructorId"": ""constructor-foo"",
   ""constructorArgs"": { ""param-bar"": ""bar"" },
   ""createdAt"": ""x"",
   ""updatedAt"": ""x""
@@ -454,6 +456,7 @@ namespace NeoCompose.Tests
   ""id"": ""value-conflict"",
   ""projectId"": ""project"",
   ""value"": {},
+  ""instanceConstructorId"": ""constructor-foo"",
   ""constructorArgs"": { ""param-bar"": ""bar"" },
   ""createdAt"": ""x"",
   ""updatedAt"": ""x""

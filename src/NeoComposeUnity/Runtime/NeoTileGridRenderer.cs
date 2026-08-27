@@ -2508,14 +2508,12 @@ namespace NeoCompose.Runtime
                     IsSourceChildValueId(row, "Size", valueId);
             }
 
-            private static bool IsSourceChildValueId(
+            private bool IsSourceChildValueId(
                 ObjectMemberValue row,
                 string key,
                 string valueId)
             {
-                return row.value is not null &&
-                    row.value.TryGetValue(key, out string childValueId) &&
-                    childValueId == valueId;
+                return source.Client.ResolveClassChildRow(row, key)?.id == valueId;
             }
 
             private void HandleSourceChanged(NeoChangeSource changeSource)
@@ -2556,13 +2554,13 @@ namespace NeoCompose.Runtime
                 var tiles = new Dictionary<Vector2Int, NeoResolvedTileInstance>();
                 string sourceValueId = source.valueId ?? dependency.SourceValueId;
                 if (!source.Client.TryGetValue(sourceValueId, out ObjectMemberValue? sourceRow) ||
-                    sourceRow.value is null ||
-                    !sourceRow.value.TryGetValue("Tiles", out string tilesValueId) ||
-                    !source.Client.TryGetValue(tilesValueId, out ArrayMemberValue? tilesRow) ||
+                    source.Client.ResolveClassChildRow(sourceRow, "Tiles")
+                        is not ArrayMemberValue tilesRow ||
                     tilesRow.value is null)
                 {
                     return tiles;
                 }
+                string tilesValueId = tilesRow.id;
 
                 // Ordered lists store ids inline. Unordered lists use the
                 // containment join.
@@ -2602,9 +2600,8 @@ namespace NeoCompose.Runtime
 
             private Vector2Int ReadSourceOrigin(ObjectMemberValue sourceRow)
             {
-                if (sourceRow.value is null ||
-                    !sourceRow.value.TryGetValue("Position", out string positionValueId) ||
-                    !source.Client.TryGetValue(positionValueId, out Vector3MemberValue? positionRow) ||
+                if (source.Client.ResolveClassChildRow(sourceRow, "Position")
+                        is not Vector3MemberValue positionRow ||
                     positionRow.value is null)
                 {
                     return Vector2Int.zero;
@@ -2619,9 +2616,8 @@ namespace NeoCompose.Runtime
                 out Vector2Int cell)
             {
                 cell = default;
-                if (tileInstanceRow.value is null ||
-                    !tileInstanceRow.value.TryGetValue("Cell", out string cellValueId) ||
-                    !source.Client.TryGetValue(cellValueId, out Vector2MemberValue? cellRow) ||
+                if (source.Client.ResolveClassChildRow(tileInstanceRow, "Cell")
+                        is not Vector2MemberValue cellRow ||
                     cellRow.value is null)
                 {
                     return false;

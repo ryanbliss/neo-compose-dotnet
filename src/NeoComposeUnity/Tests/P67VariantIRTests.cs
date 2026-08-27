@@ -515,6 +515,91 @@ namespace NeoCompose.Tests
             Assert.IsTrue(root.value!.ContainsKey("Initialize"));
         }
 
+        [Test]
+        public void VirtualReplay_NamedVariantUsesTheStoredGenericStamp()
+        {
+            const string paramT = "widget-param-t";
+            ProjectData data = BuildVariantProjectData();
+            NeoSchemaClass widget = data.classes[WidgetClassId];
+            widget.genericParams = new List<GenericParamDeclaration>
+            {
+                new() { id = paramT, name = "T" },
+            };
+            widget.schema["Payload"] = "widget-payload";
+            data.members["widget-payload"] = new GenericMember
+            {
+                id = "widget-payload",
+                projectId = ProjectId,
+                name = "Payload",
+                kind = MemberKind.Generic,
+                genericParamId = paramT,
+            };
+            data.members["widget-string-binding"] = new StringMember
+            {
+                id = "widget-string-binding",
+                projectId = ProjectId,
+                name = "StringBinding",
+                kind = MemberKind.String,
+                required = true,
+                defaultValue = new StringMemberValueBase { value = "from stamp" },
+            };
+            data.members["widget-int-binding"] = new IntMember
+            {
+                id = "widget-int-binding",
+                projectId = ProjectId,
+                name = "IntBinding",
+                kind = MemberKind.Int,
+                required = true,
+                defaultValue = new NumberMemberValueBase { value = 7 },
+            };
+            ((ClassMember)data.members["lookup-entry"]).classArguments =
+                new Dictionary<string, GenericBinding>
+                {
+                    [paramT] = new()
+                    {
+                        kind = NeoGenericBindingKinds.Member,
+                        memberId = "widget-string-binding",
+                    },
+                };
+
+            data.classes["root-class"].schema["Stored"] = "stored-widget";
+            data.members["stored-widget"] = new ClassMember
+            {
+                id = "stored-widget",
+                projectId = ProjectId,
+                name = "Stored",
+                kind = MemberKind.Class,
+                classId = WidgetClassId,
+                required = false,
+                storage = "save",
+                classArguments = new Dictionary<string, GenericBinding>
+                {
+                    [paramT] = new()
+                    {
+                        kind = NeoGenericBindingKinds.Member,
+                        memberId = "widget-int-binding",
+                    },
+                },
+            };
+            var stored = ObjectValue("stored-widget-value", WidgetClassId);
+            stored.instanceVariantId = "variant-up";
+            stored.genericBindings = new Dictionary<string, string>
+            {
+                [paramT] = "widget-string-binding",
+            };
+            data.values[stored.id] = stored;
+            ((ObjectMemberValue)data.values["value-save"]).value!["Stored"] = stored.id;
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable replayed = client.save
+                .Get<NeoMemberClassWritable>("Stored");
+
+            Assert.AreEqual("up", ReadLabel(client, replayed));
+            Assert.AreEqual(
+                "from stamp",
+                replayed.Get<NeoMemberStringWritable>("Payload").value!.value);
+        }
+
         // -------------------------------------------------------------------
         // Revision handshake.
         // -------------------------------------------------------------------

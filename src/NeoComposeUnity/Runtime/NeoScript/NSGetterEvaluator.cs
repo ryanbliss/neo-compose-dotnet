@@ -3001,6 +3001,12 @@ namespace NeoCompose.Runtime.NeoScript
             }
 
             NeoGeneratedTypesSupport.NeoResolvedDeclaredConstructor resolved;
+            ctx.client.TryGetReplayingVirtualInstanceClassContext(
+                info.schemaClassInfo.classId,
+                out IReadOnlyDictionary<string, GenericBinding>?
+                    replayClassArguments,
+                out IReadOnlyDictionary<string, string>?
+                    replayGenericBindings);
             try
             {
                 resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(
@@ -3008,7 +3014,9 @@ namespace NeoCompose.Runtime.NeoScript
                     info.schemaClassInfo,
                     info.constructorId,
                     argumentNames,
-                    fields);
+                    fields,
+                    replayClassArguments,
+                    replayGenericBindings);
             }
             catch (Exception error)
                 when (error is InvalidOperationException
@@ -3298,13 +3306,20 @@ namespace NeoCompose.Runtime.NeoScript
                         };
                     }
                     NeoGeneratedTypesSupport.RuntimeConstructorMetadata metadata;
+                    ctx.client.TryGetReplayingVirtualInstanceClassContext(
+                        constructor.info.schemaClassInfo.classId,
+                        out IReadOnlyDictionary<string, GenericBinding>?
+                            replayClassArguments,
+                        out IReadOnlyDictionary<string, string>?
+                            replayGenericBindings);
                     try
                     {
                         metadata = NeoGeneratedTypesSupport
                             .ValidateRuntimeClassConstructorMetadata(
                             ctx.client,
                             constructor.info.schemaClassInfo,
-                            fields);
+                            fields,
+                            replayClassArguments);
                     }
                     catch (Exception error)
                         when (error is InvalidOperationException
@@ -3347,6 +3362,13 @@ namespace NeoCompose.Runtime.NeoScript
                                 metadata,
                                 value => ConstructorReferenceOf(value, constructionCtx),
                                 constructionCtx);
+                        if (replayGenericBindings is not null)
+                        {
+                            node.value.genericBindings =
+                                new Dictionary<string, string>(
+                                    replayGenericBindings,
+                                    StringComparer.Ordinal);
+                        }
                         ctx.allocationTracker.RegisterSessionRoot(node.value.id);
                         object? unwrapped = UnwrapCached(
                             node.value,

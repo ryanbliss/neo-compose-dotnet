@@ -48,6 +48,204 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SparseImplicitInstanceReplaysItsPlacementMembersAuthoredDefault()
+        {
+            ProjectData data = BuildProjectData(defaultCount: 1);
+            var placement = (ClassMember)data.members["thing-member"];
+            placement.defaultValue = new ObjectMemberValueBase
+            {
+                classId = "thing-class",
+                value = new Dictionary<string, string>
+                {
+                    ["Count"] = "placement-count",
+                },
+            };
+            data.values["placement-count"] = new NumberMemberValue
+            {
+                id = "placement-count",
+                value = 5,
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            Assert.AreEqual(
+                5d,
+                client.save
+                    .Get<NeoMemberClassWritable>("Thing")
+                    .Get<NeoMemberIntWritable>("Count")
+                    .value!.value,
+                "An implicit construction pair delegates content to the placement declaration, not bare new C().");
+        }
+
+        [Test]
+        public void SparseGenericInstanceUsesItsStoredStampForAggregateArguments()
+        {
+            const string paramT = "thing-param-t";
+            ProjectData data = BuildProjectData();
+            NeoSchemaClass thingClass = data.classes["thing-class"];
+            thingClass.schema.Remove("Count");
+            thingClass.schema["Payload"] = "thing-payload";
+            thingClass.genericParams = new List<GenericParamDeclaration>
+            {
+                new() { id = paramT, name = "T" },
+            };
+            thingClass.constructorIds = new[] { "thing-ctor" };
+            data.members.Remove("thing-count");
+            data.members["thing-payload"] = new GenericMember
+            {
+                id = "thing-payload",
+                projectId = "p75-project",
+                name = "Payload",
+                kind = MemberKind.Generic,
+                genericParamId = paramT,
+            };
+
+            NeoSchemaClass payloadClass = SchemaClass(
+                "payload-class",
+                "Payload",
+                "save");
+            payloadClass.schema["Name"] = "payload-name";
+            data.classes[payloadClass.id] = payloadClass;
+            data.members["payload-name"] = new StringMember
+            {
+                id = "payload-name",
+                projectId = "p75-project",
+                name = "Name",
+                kind = MemberKind.String,
+                required = true,
+                defaultValue = new StringMemberValueBase { value = "default" },
+            };
+            data.members["payload-binding"] = new ClassMember
+            {
+                id = "payload-binding",
+                projectId = "p75-project",
+                name = "PayloadBinding",
+                kind = MemberKind.Class,
+                classId = payloadClass.id,
+                required = true,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    classId = payloadClass.id,
+                    value = new Dictionary<string, string>
+                    {
+                        ["Name"] = "payload-default-name",
+                    },
+                },
+            };
+            data.members["placement-string-binding"] = new StringMember
+            {
+                id = "placement-string-binding",
+                projectId = "p75-project",
+                name = "PlacementStringBinding",
+                kind = MemberKind.String,
+                required = true,
+                defaultValue = new StringMemberValueBase
+                {
+                    value = "placement fallback",
+                },
+            };
+            data.values["payload-default-name"] = new StringMemberValue
+            {
+                id = "payload-default-name",
+                value = "from generic default",
+            };
+            data.values["constructor-payload"] = ObjectValue(
+                "constructor-payload",
+                payloadClass.id,
+                new Dictionary<string, string>
+                {
+                    ["Name"] = "constructor-payload-name",
+                });
+            data.values["constructor-payload-name"] = new StringMemberValue
+            {
+                id = "constructor-payload-name",
+                value = "from constructor argument",
+            };
+
+            var placement = (ClassMember)data.members["thing-member"];
+            placement.classArguments = new Dictionary<string, GenericBinding>
+            {
+                [paramT] = new()
+                {
+                    kind = NeoGenericBindingKinds.Member,
+                    memberId = "placement-string-binding",
+                },
+            };
+            var root = (ObjectMemberValue)data.values["thing-instance"];
+            root.genericBindings = new Dictionary<string, string>
+            {
+                [paramT] = "payload-binding",
+            };
+            root.instanceConstructorId = "thing-ctor";
+            root.constructorArgs = new Dictionary<string, JToken?>
+            {
+                ["__arg_0__"] = JToken.FromObject("constructor-payload"),
+            };
+            var genericArgument = new FunctionArgumentTypeInfo
+            {
+                name = "Payload",
+                type = MemberKind.Generic,
+                required = true,
+                ownerClassId = thingClass.id,
+                genericParamId = paramT,
+            };
+            data.constructors["thing-ctor"] = new ConstructorRecord
+            {
+                id = "thing-ctor",
+                projectId = "p75-project",
+                classId = thingClass.id,
+                argumentTypes = new[] { genericArgument },
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        new Variable
+                        {
+                            id = "__this__",
+                            typeInfo = new ClassTypeInfo
+                            {
+                                type = MemberKind.Class,
+                                required = true,
+                                classId = thingClass.id,
+                            },
+                        },
+                        new Variable
+                        {
+                            id = "__root__",
+                            typeInfo = new ClassTypeInfo
+                            {
+                                type = MemberKind.Class,
+                                required = true,
+                                classId = "save-root-class",
+                            },
+                        },
+                        new Variable
+                        {
+                            id = "__arg_0__",
+                            typeInfo = genericArgument,
+                        },
+                    },
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Null,
+                        required = true,
+                    },
+                    instructions = Array.Empty<Instruction>(),
+                },
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable payload = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberClassWritable>("Payload");
+
+            Assert.AreEqual(
+                "from generic default",
+                payload.Get<NeoMemberStringWritable>("Name").value!.value);
+        }
+
+        [Test]
         public void SparseSpineRowsAtVirtualIdsPreserveDeeperOverrides()
         {
             string nestedId;
@@ -517,26 +715,116 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ConstructorArgsAloneDoNotMakeARowASparseInstanceRoot()
+        public void ConstructorArgsWithoutAConstructorStampFailClosed()
         {
-            // Arguments are not an eligibility arm. Every writer stamps the
-            // constructor key beside them and the web converges restored
-            // history through the same rule, so a row carrying arguments alone
-            // names no construction. Mirrors the web's
-            // `isVirtualInstanceRootShape`; the two must never disagree.
-            ObjectMemberValue argumentsOnly = Newtonsoft.Json.JsonConvert
-                .DeserializeObject<ObjectMemberValue>(@"{
+            Newtonsoft.Json.JsonSerializationException error = Assert.Throws<
+                Newtonsoft.Json.JsonSerializationException>(() =>
+                Newtonsoft.Json.JsonConvert.DeserializeObject<ObjectMemberValue>(@"{
   'id':'thing-instance',
   'classId':'thing-class',
   'value':{},
   'constructorArgs':{},
   'createdAt':'2026-08-22T00:00:00.000Z',
   'updatedAt':'2026-08-22T00:00:00.000Z'
+}".Replace('\'', '"'))) !;
+
+            StringAssert.Contains(
+                "without a constructor or variant discriminator",
+                error.Message);
+        }
+
+        [Test]
+        public void ConstructorStampWithoutArgumentsFailsClosed()
+        {
+            Newtonsoft.Json.JsonSerializationException error = Assert.Throws<
+                Newtonsoft.Json.JsonSerializationException>(() =>
+                Newtonsoft.Json.JsonConvert.DeserializeObject<ObjectMemberValue>(@"{
+  'id':'thing-instance',
+  'classId':'thing-class',
+  'value':{},
+  'instanceConstructorId':'thing-ctor',
+  'createdAt':'2026-08-22T00:00:00.000Z',
+  'updatedAt':'2026-08-22T00:00:00.000Z'
+}".Replace('\'', '"'))) !;
+
+            StringAssert.Contains(
+                "names a constructor without a 'constructorArgs' object",
+                error.Message);
+        }
+
+        [Test]
+        public void ExplicitImplicitConstructorNeedsNoArgumentMap()
+        {
+            ObjectMemberValue row = Newtonsoft.Json.JsonConvert
+                .DeserializeObject<ObjectMemberValue>(@"{
+  'id':'thing-instance',
+  'classId':'thing-class',
+  'value':{},
+  'instanceConstructorId':null,
+  'createdAt':'2026-08-22T00:00:00.000Z',
+  'updatedAt':'2026-08-22T00:00:00.000Z'
 }".Replace('\'', '"'))!;
 
-            Assert.IsFalse(argumentsOnly.hasInstanceConstructorId);
-            Assert.IsNotNull(argumentsOnly.constructorArgs);
-            Assert.IsFalse(NeoClient.IsVirtualInstanceRoot(argumentsOnly));
+            Assert.IsTrue(row.hasInstanceConstructorId);
+            Assert.IsNull(row.instanceConstructorId);
+            Assert.IsNull(row.constructorArgs);
+        }
+
+        [Test]
+        public void VariantCanCarryArgumentsWithoutAConstructorStamp()
+        {
+            ObjectMemberValue row = Newtonsoft.Json.JsonConvert
+                .DeserializeObject<ObjectMemberValue>(@"{
+  'id':'thing-instance',
+  'classId':'thing-class',
+  'value':{},
+  'constructorArgs':{'parameter-id':4},
+  'instanceVariantId':'thing-variant',
+  'createdAt':'2026-08-22T00:00:00.000Z',
+  'updatedAt':'2026-08-22T00:00:00.000Z'
+}".Replace('\'', '"'))!;
+
+            Assert.AreEqual("thing-variant", row.instanceVariantId);
+            Assert.AreEqual(4, row.constructorArgs!["parameter-id"]!.Value<int>());
+        }
+
+        [Test]
+        public void VariantRowWithoutVariantFailsClosed()
+        {
+            Newtonsoft.Json.JsonSerializationException error = Assert.Throws<
+                Newtonsoft.Json.JsonSerializationException>(() =>
+                Newtonsoft.Json.JsonConvert.DeserializeObject<ObjectMemberValue>(@"{
+  'id':'thing-instance',
+  'classId':'thing-class',
+  'value':{},
+  'instanceVariantRowValueId':'thing-variant-row',
+  'createdAt':'2026-08-22T00:00:00.000Z',
+  'updatedAt':'2026-08-22T00:00:00.000Z'
+}".Replace('\'', '"'))) !;
+
+            StringAssert.Contains(
+                "without 'instanceVariantId'",
+                error.Message);
+        }
+
+        [Test]
+        public void ExplicitParameterlessConstructorRejectsArguments()
+        {
+            Newtonsoft.Json.JsonSerializationException error = Assert.Throws<
+                Newtonsoft.Json.JsonSerializationException>(() =>
+                Newtonsoft.Json.JsonConvert.DeserializeObject<ObjectMemberValue>(@"{
+  'id':'thing-instance',
+  'classId':'thing-class',
+  'value':{},
+  'constructorArgs':{'parameter-id':4},
+  'instanceConstructorId':null,
+  'createdAt':'2026-08-22T00:00:00.000Z',
+  'updatedAt':'2026-08-22T00:00:00.000Z'
+}".Replace('\'', '"'))) !;
+
+            StringAssert.Contains(
+                "implicit parameterless constructor",
+                error.Message);
         }
 
         [Test]

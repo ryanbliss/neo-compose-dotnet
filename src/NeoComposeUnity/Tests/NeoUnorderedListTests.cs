@@ -332,6 +332,10 @@ namespace NeoCompose.Tests
                 kind = MemberKind.List,
                 entryMemberId = "nested-entry-member",
                 listKind = NeoListKinds.Unordered,
+                defaultValue = new ArrayMemberValueBase
+                {
+                    init = new InitializerBody { code = "Nested" },
+                },
             };
             members["nested-entry-member"] = new StringMember
             {
@@ -341,9 +345,40 @@ namespace NeoCompose.Tests
             };
             var classes = (Dictionary<string, NeoSchemaClass>)client.classes;
             classes[ItemClassId].schema!["Nested"] = "nested-items-member";
+            const string nestedConstructorId = "nested-items-constructor";
+            var nestedConstructor = new ConstructorRecord
+            {
+                id = nestedConstructorId,
+                projectId = "project-a",
+                classId = ItemClassId,
+                argumentTypes = new[]
+                {
+                    new FunctionArgumentTypeInfo
+                    {
+                        name = "Nested",
+                        type = MemberKind.List,
+                        required = true,
+                        entryTypeInfo = new PrimitiveTypeInfo
+                        {
+                            type = MemberKind.String,
+                            required = true,
+                        },
+                    },
+                },
+            };
+            ((Dictionary<string, ConstructorRecord>)client.constructors)[
+                nestedConstructorId] = nestedConstructor;
+            string nestedParameterId = NeoClient.ConstructorParameterId(
+                nestedConstructor,
+                0);
             var authored = (Dictionary<string, MemberValue>)client.values;
             ((ObjectMemberValue)authored["item-a"]).value!["Nested"] = "nested-a";
-            ((ObjectMemberValue)authored["item-b"]).value!["Nested"] = "nested-b";
+            var itemB = (ObjectMemberValue)authored["item-b"];
+            itemB.instanceConstructorId = nestedConstructorId;
+            itemB.constructorArgs = new Dictionary<string, Newtonsoft.Json.Linq.JToken?>
+            {
+                [nestedParameterId] = "nested-b",
+            };
             client.AddSaveValue("nested-a", new ArrayMemberValue
             {
                 id = "nested-a", value = System.Array.Empty<string>(),
@@ -372,7 +407,12 @@ namespace NeoCompose.Tests
                 id = "item-c",
                 classId = ItemClassId,
                 containerId = ItemsListValueId,
-                value = new Dictionary<string, string> { ["Nested"] = "nested-c" },
+                value = new Dictionary<string, string>(),
+                instanceConstructorId = nestedConstructorId,
+                constructorArgs = new Dictionary<string, Newtonsoft.Json.Linq.JToken?>
+                {
+                    [nestedParameterId] = "nested-c",
+                },
             });
             client.AddSaveValue("nested-c", new ArrayMemberValue
             {
@@ -382,6 +422,16 @@ namespace NeoCompose.Tests
             {
                 id = "nested-c-member", containerId = "nested-c", value = "c",
             });
+
+            Assert.IsTrue(client.TryFindOwnedParent(
+                NeoValueOwnership.Save,
+                "nested-c",
+                out string? constructorOwnedParent));
+            Assert.AreEqual("item-c", constructorOwnedParent);
+            Assert.IsTrue(client.StillHasOwnedChildReference(
+                NeoValueOwnership.Save,
+                "item-c",
+                "nested-c"));
 
             string clonedBagId = client.CloneValueReference("bag-value", NeoValueOwnership.Save);
             Assert.IsTrue(client.TryGetValue(
@@ -402,9 +452,15 @@ namespace NeoCompose.Tests
                     NeoValueOwnership.Session,
                     clonedItemId,
                     out ObjectMemberValue? clonedItem));
-                string clonedNestedId = clonedItem!.value!["Nested"];
+                var clonedNested = (ArrayMemberValue)client.ResolveClassChildRow(
+                    clonedItem!,
+                    "Nested")!;
+                string clonedNestedId = clonedNested.id;
                 Assert.AreNotEqual("nested-b", clonedNestedId);
                 Assert.AreNotEqual("nested-c", clonedNestedId);
+                Assert.AreEqual(
+                    clonedNestedId,
+                    clonedItem.constructorArgs![nestedParameterId]!.ToObject<string>());
                 string clonedNestedMemberId =
                     client.GetUnorderedListEntryIds(clonedNestedId).Single();
                 Assert.IsTrue(client.TryGetValue(
@@ -458,6 +514,10 @@ namespace NeoCompose.Tests
 
             // This scaling-shaped assertion exercises a long containment
             // chain without relying on machine-specific wall-clock timing.
+            Assert.IsTrue(client.TryInferMemberForValueId(
+                "deep-container-0",
+                out NeoCompose.Runtime.Json.Member? inferredContainer));
+            Assert.AreEqual("deep-list-member", inferredContainer!.id);
             CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
         }
 

@@ -861,9 +861,14 @@ namespace NeoCompose.Runtime
         private MemberValue? ReadCurrentLeafRow()
         {
             if (!writableParent.TryGet(writableKey, out NeoMember? leaf)) return null;
-            if (writableParent.value?.value is not null
-                && writableParent.value.value.TryGetValue(writableKey, out string leafValueId)
-                && client.TryGetOverlaidValue(leaf.ownership, leafValueId, out MemberValue? row))
+            MemberValue? effective = writableParent.value is null
+                ? null
+                : client.ResolveClassChildRow(writableParent.value, writableKey);
+            if (effective is not null
+                && client.TryGetOverlaidValue(
+                    leaf.ownership,
+                    effective.id,
+                    out MemberValue? row))
             {
                 return row;
             }
@@ -1254,13 +1259,8 @@ namespace NeoCompose.Runtime
             {
                 case LookupMember:
                 {
-                    if (trackRow.value is null) return null;
-                    if (!trackRow.value.TryGetValue(segmentKey, out string? slotId)
-                        || string.IsNullOrWhiteSpace(slotId))
-                    {
-                        return null;
-                    }
-                    if (client.ResolveEffectiveRow(slotId!) is not ArrayMemberValue lookupRow
+                    if (client.ResolveClassChildRow(trackRow, segmentKey)
+                            is not ArrayMemberValue lookupRow
                         || lookupRow.value is null
                         || lookupRow.value.Length == 0)
                     {
@@ -1294,13 +1294,7 @@ namespace NeoCompose.Runtime
                 }
                 case ClassMember:
                 {
-                    if (trackRow.value is null) return null;
-                    if (!trackRow.value.TryGetValue(segmentKey, out string? slotId)
-                        || string.IsNullOrWhiteSpace(slotId))
-                    {
-                        return null;
-                    }
-                    return slotId;
+                    return client.ResolveClassChildRow(trackRow, segmentKey)?.id;
                 }
                 default:
                     return null;
@@ -1331,15 +1325,7 @@ namespace NeoCompose.Runtime
             ObjectMemberValue row,
             string schemaKey)
         {
-            string? childId = null;
-            row.value?.TryGetValue(schemaKey, out childId);
-            if (string.IsNullOrWhiteSpace(childId))
-            {
-                client.TryGetVirtualClassChildValueId(row.id, schemaKey, out childId);
-            }
-            return string.IsNullOrWhiteSpace(childId)
-                ? null
-                : client.ResolveEffectiveRow(childId!);
+            return client.ResolveClassChildRow(row, schemaKey);
         }
 
         private void ReadContent(string rowId)
@@ -1875,16 +1861,22 @@ namespace NeoCompose.Runtime
             out ObjectMemberValue? record)
         {
             record = null;
-            if (targetRow?.value is not null
-                && targetRow.value.TryGetValue(schemaKey, out string mappedValueId))
+            bool hasStoredMapping = targetRow?.value?.ContainsKey(schemaKey) == true;
+            MemberValue? mapped = targetRow is null
+                ? null
+                : client.ResolveClassChildRow(targetRow, schemaKey);
+            if (mapped is not null)
             {
-                MemberValue? mapped = client.ResolveEffectiveRow(mappedValueId);
-                if (mapped is null || mapped.IsRemoved)
+                if (mapped.IsRemoved)
                 {
                     return NeoAnimationDefinitionPresence.NullValue;
                 }
                 record = mapped as ObjectMemberValue;
                 return RowPresence(mapped);
+            }
+            if (hasStoredMapping)
+            {
+                return NeoAnimationDefinitionPresence.NullValue;
             }
             NeoAnimationDefinitionPresence declared = DeclarationDefaultPresence(
                 declaration,
@@ -2440,15 +2432,16 @@ namespace NeoCompose.Runtime
                 || target.value?.value is null
                 || !target.value.value.TryGetValue("assetValueId", out string assetValueId)
                 || client.ResolveEffectiveRow(assetValueId) is not ObjectMemberValue asset
-                || asset.value is null
-                || !target.value.value.TryGetValue(path[0], out string placedChildId)
-                || !asset.value.TryGetValue(path[0], out string authoredChildId)
-                || !string.Equals(placedChildId, authoredChildId, StringComparison.Ordinal))
+                || client.ResolveClassChildRow(target.value, path[0])
+                    is not MemberValue placedChild
+                || client.ResolveClassChildRow(asset, path[0])
+                    is not MemberValue authoredChild
+                || !string.Equals(placedChild.id, authoredChild.id, StringComparison.Ordinal))
             {
                 return;
             }
             throw new InvalidOperationException(
-                $"Animation clip '{clipKey}' frame {frameIndex} path '{string.Join(".", path)}' still references shared authored row '{authoredChildId}' on placement '{target.value.id}'. Re-export with a placement-owned clone carrying sourceValueId before playback.");
+                $"Animation clip '{clipKey}' frame {frameIndex} path '{string.Join(".", path)}' still references shared authored row '{authoredChild.id}' on placement '{target.value.id}'. Re-export with a placement-owned clone carrying sourceValueId before playback.");
         }
 
         /// <summary>

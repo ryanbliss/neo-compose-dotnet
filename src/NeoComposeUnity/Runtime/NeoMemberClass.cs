@@ -40,7 +40,8 @@ namespace NeoCompose.Runtime
         /// Generic binding environment of the row's effective class
         /// (specs/class-generics.md §9): every param in the chain's
         /// scope resolved to its terminal binding at this class, overlaid
-        /// with the slot member's constructed <c>classArguments</c>
+        /// with the slot member's constructed <c>classArguments</c> and the
+        /// value row's immutable <c>genericBindings</c> stamp
         /// (§4.1) so instances of the declared open class resolve the params
         /// the slot binds at the usage site. Child
         /// member records substitute through this before node dispatch,
@@ -480,11 +481,17 @@ namespace NeoCompose.Runtime
                 // `GenericTest<Color>` slot) binds its params through the
                 // slot member's `classArguments`, not a named
                 // subclass's chain (specs/class-generics.md §4.1).
-                // Concrete documents pay nothing — the overlay is skipped
-                // when the slot carries no arguments.
+                // The value stamp is the durable environment the instance was
+                // authored under, so it wins over a stale or forwarding usage-
+                // site argument. Concrete documents pay nothing: both overlays
+                // are skipped when they carry no arguments.
+                IReadOnlyDictionary<string, GenericBinding>? classArguments =
+                    NeoGenericResolution.CloseClassArgumentsFromStamp(
+                        value?.genericBindings,
+                        member.classArguments);
                 GenericEnv = NeoGenericResolution.ResolveInstanceEnv(
                     inheritanceChain,
-                    member.classArguments);
+                    classArguments);
             }
             catch (CircularInheritanceError ex)
             {

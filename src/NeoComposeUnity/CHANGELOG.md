@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [0.29.1] - 2026-08-27
+
+### Fixed
+
+- Replay every stored P75 placement, including constructor-settled aggregate
+  arguments, placement-member defaults, inherited constructor settlement, and
+  nested animation and tile-grid values. Readers no longer require the retired
+  duplicate body key to find those rows.
+- Preserve closed generic bindings while replaying constructor and named
+  variant provenance. A stored instance may keep a different concrete generic
+  binding from the placement that contains it without resolving members
+  against the placement's type arguments.
+- Keep sparse writes and generated getters on the canonical virtual child id
+  across unordered-list, layer-link, animation, and tile-grid paths.
+
 ## [0.29.0] - 2026-08-26
 
 ### Changed

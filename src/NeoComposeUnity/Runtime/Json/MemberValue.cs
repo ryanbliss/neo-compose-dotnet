@@ -207,7 +207,29 @@ namespace NeoCompose.Runtime.Json
         internal static void Validate(JObject carrier, string subject)
         {
             JProperty? property = carrier.Property("constructorArgs");
-            if (property is null || property.Value.Type == JTokenType.Null) return;
+            JProperty? constructorProperty = carrier.Property("instanceConstructorId");
+            bool carriesVariant = carrier["instanceVariantId"]?.Type == JTokenType.String;
+            bool carriesVariantRow =
+                carrier["instanceVariantRowValueId"]?.Type == JTokenType.String;
+            if (carriesVariantRow && !carriesVariant)
+            {
+                throw new JsonSerializationException(
+                    $"{subject} carries 'instanceVariantRowValueId' without 'instanceVariantId'. Re-export the project from the current web app.");
+            }
+            if (property is null || property.Value.Type == JTokenType.Null)
+            {
+                if (constructorProperty?.Value.Type == JTokenType.String)
+                {
+                    throw new JsonSerializationException(
+                        $"{subject} names a constructor without a 'constructorArgs' object. Re-export the project from the current web app.");
+                }
+                return;
+            }
+            if (constructorProperty is null && !carriesVariant)
+            {
+                throw new JsonSerializationException(
+                    $"{subject} carries 'constructorArgs' without a constructor or variant discriminator. Re-export the project from the current web app.");
+            }
             if (property.Value is not JObject args)
             {
                 throw new JsonSerializationException(
@@ -231,6 +253,12 @@ namespace NeoCompose.Runtime.Json
                     throw new JsonSerializationException(
                         $"{subject} has an empty constructor parameter id in 'constructorArgs'. Re-export the project from the current web app.");
                 }
+            }
+            if (constructorProperty?.Value.Type == JTokenType.Null
+                && args.HasValues)
+            {
+                throw new JsonSerializationException(
+                    $"{subject} carries arguments for the implicit parameterless constructor. Re-export the project from the current web app.");
             }
         }
     }
