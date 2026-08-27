@@ -29,6 +29,11 @@ namespace NeoCompose.Runtime
         private bool isInitializingVirtualInstanceValues;
         private bool isReplayingVirtualInstance;
         private string? replayingVirtualInstanceRootId;
+        private string? replayingVirtualInstanceClassId;
+        private IReadOnlyDictionary<string, GenericBinding>?
+            replayingVirtualInstanceClassArguments;
+        private IReadOnlyDictionary<string, string>?
+            replayingVirtualInstanceGenericBindings;
 
         /// <summary>
         /// True while a P75 sparse instance is replaying its construction.
@@ -44,6 +49,30 @@ namespace NeoCompose.Runtime
 
         internal string? ReplayingVirtualInstanceRootId =>
             replayingVirtualInstanceRootId;
+
+        /// <summary>
+        /// The closed generic context of the P75 root currently being replayed.
+        /// A named variant constructs through its Initialize closure, so the
+        /// constructor intrinsic is several frames below the replay call and
+        /// cannot receive this placement context as an ordinary argument.
+        /// </summary>
+        internal bool TryGetReplayingVirtualInstanceClassContext(
+            string classId,
+            out IReadOnlyDictionary<string, GenericBinding>? classArguments,
+            out IReadOnlyDictionary<string, string>? storedGenericBindings)
+        {
+            classArguments = null;
+            storedGenericBindings = null;
+            if (!isReplayingVirtualInstance
+                || replayingVirtualInstanceClassId != classId
+                || replayingVirtualInstanceClassArguments is null)
+            {
+                return false;
+            }
+            classArguments = replayingVirtualInstanceClassArguments;
+            storedGenericBindings = replayingVirtualInstanceGenericBindings;
+            return true;
+        }
 
         internal bool IsReferenceOwnedByReplayingVirtualInstance(
             NeoValueOwnership ownership,
@@ -680,14 +709,39 @@ namespace NeoCompose.Runtime
             var before = new HashSet<string>(
                 sessionData.values.Keys,
                 StringComparer.Ordinal);
+            ClassMember? placementMember = null;
+            if (TryInferMemberForValueId(
+                    instanceRoot.id,
+                    out Member? inferredPlacement)
+                && inferredPlacement is ClassMember classPlacement)
+            {
+                placementMember = classPlacement;
+            }
+            IReadOnlyDictionary<string, GenericBinding>? replayClassArguments =
+                NeoGenericResolution.CloseClassArgumentsFromStamp(
+                    instanceRoot.genericBindings,
+                    placementMember?.classArguments);
             NeoMemberClassWritable constructed;
             bool wasReplaying = isReplayingVirtualInstance;
             string? previousReplayingRootId = replayingVirtualInstanceRootId;
+            string? previousReplayingClassId = replayingVirtualInstanceClassId;
+            IReadOnlyDictionary<string, GenericBinding>?
+                previousReplayingClassArguments =
+                    replayingVirtualInstanceClassArguments;
+            IReadOnlyDictionary<string, string>?
+                previousReplayingGenericBindings =
+                    replayingVirtualInstanceGenericBindings;
             isReplayingVirtualInstance = true;
             replayingVirtualInstanceRootId = instanceRoot.id;
+            replayingVirtualInstanceClassId = instanceRoot.classId;
+            replayingVirtualInstanceClassArguments = replayClassArguments;
+            replayingVirtualInstanceGenericBindings = instanceRoot.genericBindings;
             try
             {
-                constructed = ReplayVirtualInstance(instanceRoot);
+                constructed = ReplayVirtualInstance(
+                    instanceRoot,
+                    placementMember,
+                    replayClassArguments);
             }
             catch (Exception error)
             {
@@ -699,6 +753,11 @@ namespace NeoCompose.Runtime
             {
                 isReplayingVirtualInstance = wasReplaying;
                 replayingVirtualInstanceRootId = previousReplayingRootId;
+                replayingVirtualInstanceClassId = previousReplayingClassId;
+                replayingVirtualInstanceClassArguments =
+                    previousReplayingClassArguments;
+                replayingVirtualInstanceGenericBindings =
+                    previousReplayingGenericBindings;
             }
 
             string temporaryRootId = constructed.value?.id
@@ -775,7 +834,10 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private NeoMemberClassWritable ReplayVirtualInstance(ObjectMemberValue root)
+        private NeoMemberClassWritable ReplayVirtualInstance(
+            ObjectMemberValue root,
+            ClassMember? placementMember,
+            IReadOnlyDictionary<string, GenericBinding>? classArguments)
         {
             if (root.instanceVariantId is not null)
             {
@@ -796,6 +858,14 @@ namespace NeoCompose.Runtime
                     root.instanceVariantRowValueId);
             }
 
+            if (DerivesContentFromPlacementDefault(root, placementMember))
+            {
+                return NeoGeneratedTypesSupport.EvaluateStoredClassMemberDefault(
+                    this,
+                    placementMember!,
+                    root);
+            }
+
             ConstructorRecord? constructor = null;
             if (root.instanceConstructorId is string constructorId)
             {
@@ -814,6 +884,11 @@ namespace NeoCompose.Runtime
                     : throw new InvalidOperationException(
                         "Instance has no constructorArgs creation data."));
             var replayArguments = new List<NeoDeclaredConstructorArgument>();
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
+                NeoGenericResolution.ResolveInstanceEnv(
+                    this,
+                    root.classId!,
+                    classArguments);
             if (constructor is not null)
             {
                 for (int index = 0; index < constructor.argumentTypes.Length; index++)
@@ -826,16 +901,44 @@ namespace NeoCompose.Runtime
                         throw new InvalidOperationException(
                             $"Constructor '{constructor.id}' is missing argument '{parameterId}'.");
                     }
+                    TypeInfo replayType =
+                        NeoNSFunctionRuntime.ResolveInvocationTypeInfo(
+                            this,
+                            argument,
+                            genericEnv);
                     replayArguments.Add(new NeoDeclaredConstructorArgument(
                         argument.name,
-                        VirtualReplayArgument(value, argument)));
+                        VirtualReplayArgument(value, replayType)));
                 }
             }
-            return NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+            return NeoGeneratedTypesSupport.EvaluateStoredDeclaredConstructor(
                 this,
                 root.classId!,
                 root.instanceConstructorId,
-                replayArguments.ToArray());
+                replayArguments.ToArray(),
+                classArguments,
+                root.genericBindings);
+        }
+
+        /// <summary>
+        /// The web's declaration-default replay rule. An implicit construction
+        /// pair records no creation choice beyond "use the position's
+        /// declaration"; when that Class member carries authored content,
+        /// replaying bare <c>new C()</c> would silently discard it.
+        /// </summary>
+        private static bool DerivesContentFromPlacementDefault(
+            ObjectMemberValue root,
+            ClassMember? placementMember)
+        {
+            if (placementMember?.partial == true) return false;
+            if (placementMember?.defaultValue?.value is not { Count: > 0 })
+                return false;
+            string effectiveClassId = placementMember.defaultValue.classId
+                ?? placementMember.classId;
+            if (effectiveClassId != root.classId) return false;
+            if (root.instanceVariantId is not null) return false;
+            if (root.instanceConstructorId is not null) return false;
+            return root.constructorArgs is null || root.constructorArgs.Count == 0;
         }
 
         /// <summary>
@@ -858,7 +961,7 @@ namespace NeoCompose.Runtime
 
         private object? VirtualReplayArgument(
             JToken? token,
-            FunctionArgumentTypeInfo typeInfo)
+            TypeInfo typeInfo)
         {
             if (token is null || token.Type is JTokenType.Null or JTokenType.Undefined)
             {

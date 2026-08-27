@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
 using Member = NeoCompose.Runtime.Json.Member;
@@ -336,6 +337,43 @@ namespace NeoCompose.Runtime
                 env[pair.Key] = NeoGenericEnvEntry.Bound(pair.Value);
             }
             return env;
+        }
+
+        /// <summary>
+        /// Rebuilds a constructed Class placement from a value row's durable
+        /// generic stamp. The placement supplies any unstamped arguments; the
+        /// stamp wins for every parameter it closes.
+        /// </summary>
+        internal static IReadOnlyDictionary<string, GenericBinding>?
+            CloseClassArgumentsFromStamp(
+                IReadOnlyDictionary<string, string>? stamp,
+                IReadOnlyDictionary<string, GenericBinding>? placementArguments)
+        {
+            if ((stamp is null || stamp.Count == 0)
+                && (placementArguments is null || placementArguments.Count == 0))
+            {
+                return null;
+            }
+            if (stamp is null || stamp.Count == 0)
+            {
+                return placementArguments;
+            }
+            var result = placementArguments is null
+                ? new Dictionary<string, GenericBinding>(
+                    stamp.Count,
+                    StringComparer.Ordinal)
+                : new Dictionary<string, GenericBinding>(
+                    placementArguments,
+                    StringComparer.Ordinal);
+            foreach (KeyValuePair<string, string> binding in stamp)
+            {
+                result[binding.Key] = new GenericBinding
+                {
+                    kind = NeoGenericBindingKinds.Member,
+                    memberId = binding.Value,
+                };
+            }
+            return result;
         }
 
         /// <summary>

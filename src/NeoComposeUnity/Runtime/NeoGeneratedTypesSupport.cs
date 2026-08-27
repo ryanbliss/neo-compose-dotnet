@@ -3320,7 +3320,8 @@ namespace NeoCompose.Runtime
             NeoConstructionScope? constructionScope = null,
             bool requireSuppliedRequiredFields = true,
             bool requireCompleteRoot = true,
-            RuntimeConstructorMetadata? validatedMetadata = null)
+            RuntimeConstructorMetadata? validatedMetadata = null,
+            bool trustedRuntimeRows = false)
         {
             RuntimeConstructedClassValue constructed =
                 CreateSuppliedClassValueData(
@@ -3331,7 +3332,8 @@ namespace NeoCompose.Runtime
                     constructionScope,
                     requireSuppliedRequiredFields,
                     requireCompleteRoot,
-                    validatedMetadata);
+                    validatedMetadata,
+                    trustedRuntimeRows);
             return new NeoMemberClassWritable(
                 client,
                 constructed.member,
@@ -3435,6 +3437,8 @@ namespace NeoCompose.Runtime
             internal NeoSchemaClass schemaClass = null!;
             internal NeoResolvedConstructorLink link = null!;
             internal Dictionary<string, Member> membersBySchemaKey = null!;
+            internal RuntimeConstructorMetadata metadata = null!;
+            internal IReadOnlyDictionary<string, string>? storedGenericBindings;
             /// <summary>
             /// The class's closed generic environment, carried so a value
             /// supplied by generated C# can be expanded against the same
@@ -3458,14 +3462,17 @@ namespace NeoCompose.Runtime
             ClassTypeInfo classTypeInfo,
             string? constructorId,
             IReadOnlyList<string> argumentNames,
-            IReadOnlyList<RuntimeConstructorField> fields)
+            IReadOnlyList<RuntimeConstructorField> fields,
+            IReadOnlyDictionary<string, GenericBinding>? classArguments = null,
+            IReadOnlyDictionary<string, string>? storedGenericBindings = null)
         {
             RuntimeConstructorMetadata metadata =
                 ValidateRuntimeClassConstructorMetadataCore(
                     client,
                     classTypeInfo,
                     fields,
-                    requireSuppliedRequiredFields: false);
+                    requireSuppliedRequiredFields: false,
+                    classArguments: classArguments);
             if (!client.TryGetClass(classTypeInfo.classId, out NeoSchemaClass? schemaClass))
             {
                 throw new InvalidOperationException(
@@ -3508,7 +3515,9 @@ namespace NeoCompose.Runtime
                 schemaClass = schemaClass!,
                 link = link,
                 membersBySchemaKey = metadata.membersBySchemaKey,
+                metadata = metadata,
                 genericEnv = metadata.genericEnv,
+                storedGenericBindings = storedGenericBindings,
             };
         }
 
@@ -3954,10 +3963,18 @@ namespace NeoCompose.Runtime
                 scope.ValueReference,
                 scope,
                 requireSuppliedRequiredFields: false,
-                requireCompleteRoot: false);
+                requireCompleteRoot: false,
+                validatedMetadata: resolved.metadata,
+                trustedRuntimeRows: true);
             ObjectMemberValue root = node.value
                 ?? throw new InvalidOperationException(
                     $"Declared constructor for '{resolved.classTypeInfo.classId}' produced no root row.");
+            if (resolved.storedGenericBindings is not null)
+            {
+                root.genericBindings = new Dictionary<string, string>(
+                    resolved.storedGenericBindings,
+                    StringComparer.Ordinal);
+            }
 
             // `CreateSuppliedClassValue` PUBLISHES the whole graph, and every
             // step below can throw — a constructor body may `throw` outright.
@@ -4469,6 +4486,91 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// P75 declaration-default replay. The declaring member's authored
+        /// graph is the construction baseline, while the stored row's generic
+        /// stamp closes any open or forwarding placement arguments.
+        /// </summary>
+        internal static NeoMemberClassWritable EvaluateStoredClassMemberDefault(
+            NeoClient client,
+            ClassMember placementMember,
+            ObjectMemberValue storedRoot)
+        {
+            if (placementMember.defaultValue?.value is null)
+            {
+                throw new InvalidOperationException(
+                    $"Stored instance '{storedRoot.id}' has no authored Class default to replay.");
+            }
+            string classId = placementMember.defaultValue.classId
+                ?? placementMember.classId;
+            IReadOnlyDictionary<string, GenericBinding>? classArguments =
+                NeoGenericResolution.CloseClassArgumentsFromStamp(
+                    storedRoot.genericBindings,
+                    placementMember.classArguments);
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
+                ResolveRuntimeInstanceEnv(client, classId, classArguments);
+            RuntimeClassPlan classPlan = ResolveRuntimeClassPlan(
+                client,
+                classId,
+                genericEnv,
+                classArguments);
+            var scope = new NeoConstructionScope(client, null);
+            string nowIso = DateTime.UtcNow.ToString("o");
+            var rows = new List<MemberValue>();
+            Dictionary<string, string> provided = CloneDefaultClassChildren(
+                client,
+                placementMember.defaultValue.value,
+                classId,
+                rows,
+                nowIso,
+                scope,
+                classId,
+                classArguments);
+            RuntimeConstructedClassValue constructed =
+                CreateWritableClassValueDataCore(
+                    client,
+                    classId,
+                    provided,
+                    rows,
+                    scope,
+                    requireCompleteRoot: true,
+                    trustedRuntimeRows: true,
+                    trustedRootPlan: classPlan);
+            constructed.value.genericBindings = storedRoot.genericBindings is null
+                ? null
+                : new Dictionary<string, string>(
+                    storedRoot.genericBindings,
+                    StringComparer.Ordinal);
+            return new NeoMemberClassWritable(
+                client,
+                constructed.member,
+                constructed.value.id,
+                NeoValueOwnership.Session);
+        }
+
+        /// <summary>
+        /// P75 stored-replay seam. The row's immutable generic stamp closes an
+        /// otherwise open or forwarding placement before constructor metadata,
+        /// arguments, defaults, or bodies are evaluated.
+        /// </summary>
+        internal static NeoMemberClassWritable EvaluateStoredDeclaredConstructor(
+            NeoClient client,
+            string classId,
+            string? constructorId,
+            NeoDeclaredConstructorArgument[] arguments,
+            IReadOnlyDictionary<string, GenericBinding>? classArguments,
+            IReadOnlyDictionary<string, string>? storedGenericBindings)
+        {
+            return EvaluateDeclaredConstructorCore(
+                client,
+                classId,
+                constructorId,
+                arguments,
+                Array.Empty<NeoGeneratedConstructorValue>(),
+                classArguments,
+                storedGenericBindings);
+        }
+
+        /// <summary>
         /// P49 §4.4 — the seam a generated C# constructor calls when its class
         /// carries members the declared parameters do not cover: the declared
         /// parameters by name in <paramref name="arguments"/>, and the
@@ -4490,6 +4592,25 @@ namespace NeoCompose.Runtime
             string? constructorId,
             NeoDeclaredConstructorArgument[] arguments,
             NeoGeneratedConstructorValue[] suppliedValues)
+        {
+            return EvaluateDeclaredConstructorCore(
+                client,
+                classId,
+                constructorId,
+                arguments,
+                suppliedValues,
+                classArguments: null,
+                storedGenericBindings: null);
+        }
+
+        private static NeoMemberClassWritable EvaluateDeclaredConstructorCore(
+            NeoClient client,
+            string classId,
+            string? constructorId,
+            NeoDeclaredConstructorArgument[] arguments,
+            NeoGeneratedConstructorValue[] suppliedValues,
+            IReadOnlyDictionary<string, GenericBinding>? classArguments,
+            IReadOnlyDictionary<string, string>? storedGenericBindings)
         {
             if (client is null) throw new ArgumentNullException(nameof(client));
             if (classId is null) throw new ArgumentNullException(nameof(classId));
@@ -4525,7 +4646,9 @@ namespace NeoCompose.Runtime
                 classTypeInfo,
                 constructorId,
                 argumentNames,
-                fields);
+                fields,
+                classArguments,
+                storedGenericBindings);
 
             var ctx = new NeoScript.NSGetterEvaluator.Context(
                 client,
@@ -4684,11 +4807,16 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Declared constructor '{record.id}' on class '{resolved.schemaClass.name}' does not declare argument '{argument.name}'.");
             }
+            TypeInfo effectiveDeclared =
+                NeoNSFunctionRuntime.ResolveInvocationTypeInfo(
+                    client,
+                    declared,
+                    resolved.genericEnv);
             return NeoScriptValueMarshaller.Normalize(
                 client,
                 NeoValueOwnership.Session,
                 argument.value,
-                declared,
+                effectiveDeclared,
                 ctx,
                 $"argument '{argument.name}' of constructor '{record.id}'");
         }
@@ -4704,7 +4832,8 @@ namespace NeoCompose.Runtime
             ValidateRuntimeClassConstructorMetadata(
             NeoClient client,
             ClassTypeInfo classTypeInfo,
-            IReadOnlyList<RuntimeConstructorField> fields)
+            IReadOnlyList<RuntimeConstructorField> fields,
+            IReadOnlyDictionary<string, GenericBinding>? classArguments = null)
         {
             AssertMemberWiseConstructionIsAvailable(
                 client,
@@ -4712,20 +4841,23 @@ namespace NeoCompose.Runtime
             return ValidateRuntimeClassConstructorMetadataCore(
                 client,
                 classTypeInfo,
-                fields);
+                fields,
+                classArguments: classArguments);
         }
 
         private static RuntimeConstructorMetadata
             ValidateRuntimeClassConstructorMetadataCore(
                 NeoClient client,
                 ClassTypeInfo classTypeInfo,
-            IReadOnlyList<RuntimeConstructorField> fields,
-            bool requireSuppliedRequiredFields = true)
+                IReadOnlyList<RuntimeConstructorField> fields,
+                bool requireSuppliedRequiredFields = true,
+                IReadOnlyDictionary<string, GenericBinding>? classArguments = null)
         {
             ConstructorSchemaCache? constructorCache = null;
             ConstructorMetadataCacheKey cacheKey = default;
             bool cacheEmptyFieldMetadata = fields.Count == 0
-                && classTypeInfo.typeArguments is null;
+                && classTypeInfo.typeArguments is null
+                && classArguments is null;
             if (cacheEmptyFieldMetadata)
             {
                 constructorCache = ConstructorSchemaCaches.GetOrCreateValue(
@@ -4770,7 +4902,7 @@ namespace NeoCompose.Runtime
                 ResolveRuntimeInstanceEnv(
                     client,
                     classTypeInfo.classId,
-                    classArguments: null);
+                    classArguments);
             string? unboundParamId = NeoGenericResolution.FirstUnboundParamId(
                 genericEnv);
             if (unboundParamId is not null)
@@ -4785,7 +4917,8 @@ namespace NeoCompose.Runtime
             RuntimeClassPlan classPlan = ResolveRuntimeClassPlan(
                 client,
                 classTypeInfo.classId,
-                genericEnv);
+                genericEnv,
+                classArguments);
             IList<MergedSchemaEntry> schema = classPlan.schema;
             Dictionary<string, MergedSchemaEntry> schemaByKey =
                 classPlan.schemaByKey;
@@ -5795,17 +5928,21 @@ namespace NeoCompose.Runtime
             NeoClient client,
             string classId,
             IReadOnlyDictionary<string, NeoGenericEnvEntry>?
-                knownGenericEnv = null)
+                knownGenericEnv = null,
+            IReadOnlyDictionary<string, GenericBinding>? classArguments = null)
         {
             ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(
                 client);
-            lock (cache.gate)
+            if (classArguments is null)
             {
-                if (cache.classPlans.TryGetValue(
-                        classId,
-                        out RuntimeClassPlan? cached))
+                lock (cache.gate)
                 {
-                    return cached;
+                    if (cache.classPlans.TryGetValue(
+                            classId,
+                            out RuntimeClassPlan? cached))
+                    {
+                        return cached;
+                    }
                 }
             }
 
@@ -5813,10 +5950,11 @@ namespace NeoCompose.Runtime
                 knownGenericEnv ?? ResolveRuntimeInstanceEnv(
                     client,
                     classId,
-                    classArguments: null);
+                    classArguments);
             IList<MergedSchemaEntry> schema = ResolveMergedSchema(
                 client,
-                classId);
+                classId,
+                classArguments);
             var schemaByKey = new Dictionary<string, MergedSchemaEntry>(
                 schema.Count);
             var membersBySchemaKey = new Dictionary<string, Member>(schema.Count);
@@ -5850,11 +5988,19 @@ namespace NeoCompose.Runtime
                     name = "Factory",
                     kind = MemberKind.Class,
                     classId = classId,
+                    classArguments = classArguments is null
+                        ? null
+                        : new Dictionary<string, GenericBinding>(
+                            classArguments,
+                            StringComparer.Ordinal),
                 },
             };
-            lock (cache.gate)
+            if (classArguments is null)
             {
-                cache.classPlans[classId] = resolved;
+                lock (cache.gate)
+                {
+                    cache.classPlans[classId] = resolved;
+                }
             }
             return resolved;
         }

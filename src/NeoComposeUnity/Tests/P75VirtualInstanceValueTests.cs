@@ -48,6 +48,204 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SparseImplicitInstanceReplaysItsPlacementMembersAuthoredDefault()
+        {
+            ProjectData data = BuildProjectData(defaultCount: 1);
+            var placement = (ClassMember)data.members["thing-member"];
+            placement.defaultValue = new ObjectMemberValueBase
+            {
+                classId = "thing-class",
+                value = new Dictionary<string, string>
+                {
+                    ["Count"] = "placement-count",
+                },
+            };
+            data.values["placement-count"] = new NumberMemberValue
+            {
+                id = "placement-count",
+                value = 5,
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            Assert.AreEqual(
+                5d,
+                client.save
+                    .Get<NeoMemberClassWritable>("Thing")
+                    .Get<NeoMemberIntWritable>("Count")
+                    .value!.value,
+                "An implicit construction pair delegates content to the placement declaration, not bare new C().");
+        }
+
+        [Test]
+        public void SparseGenericInstanceUsesItsStoredStampForAggregateArguments()
+        {
+            const string paramT = "thing-param-t";
+            ProjectData data = BuildProjectData();
+            NeoSchemaClass thingClass = data.classes["thing-class"];
+            thingClass.schema.Remove("Count");
+            thingClass.schema["Payload"] = "thing-payload";
+            thingClass.genericParams = new List<GenericParamDeclaration>
+            {
+                new() { id = paramT, name = "T" },
+            };
+            thingClass.constructorIds = new[] { "thing-ctor" };
+            data.members.Remove("thing-count");
+            data.members["thing-payload"] = new GenericMember
+            {
+                id = "thing-payload",
+                projectId = "p75-project",
+                name = "Payload",
+                kind = MemberKind.Generic,
+                genericParamId = paramT,
+            };
+
+            NeoSchemaClass payloadClass = SchemaClass(
+                "payload-class",
+                "Payload",
+                "save");
+            payloadClass.schema["Name"] = "payload-name";
+            data.classes[payloadClass.id] = payloadClass;
+            data.members["payload-name"] = new StringMember
+            {
+                id = "payload-name",
+                projectId = "p75-project",
+                name = "Name",
+                kind = MemberKind.String,
+                required = true,
+                defaultValue = new StringMemberValueBase { value = "default" },
+            };
+            data.members["payload-binding"] = new ClassMember
+            {
+                id = "payload-binding",
+                projectId = "p75-project",
+                name = "PayloadBinding",
+                kind = MemberKind.Class,
+                classId = payloadClass.id,
+                required = true,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    classId = payloadClass.id,
+                    value = new Dictionary<string, string>
+                    {
+                        ["Name"] = "payload-default-name",
+                    },
+                },
+            };
+            data.members["placement-string-binding"] = new StringMember
+            {
+                id = "placement-string-binding",
+                projectId = "p75-project",
+                name = "PlacementStringBinding",
+                kind = MemberKind.String,
+                required = true,
+                defaultValue = new StringMemberValueBase
+                {
+                    value = "placement fallback",
+                },
+            };
+            data.values["payload-default-name"] = new StringMemberValue
+            {
+                id = "payload-default-name",
+                value = "from generic default",
+            };
+            data.values["constructor-payload"] = ObjectValue(
+                "constructor-payload",
+                payloadClass.id,
+                new Dictionary<string, string>
+                {
+                    ["Name"] = "constructor-payload-name",
+                });
+            data.values["constructor-payload-name"] = new StringMemberValue
+            {
+                id = "constructor-payload-name",
+                value = "from constructor argument",
+            };
+
+            var placement = (ClassMember)data.members["thing-member"];
+            placement.classArguments = new Dictionary<string, GenericBinding>
+            {
+                [paramT] = new()
+                {
+                    kind = NeoGenericBindingKinds.Member,
+                    memberId = "placement-string-binding",
+                },
+            };
+            var root = (ObjectMemberValue)data.values["thing-instance"];
+            root.genericBindings = new Dictionary<string, string>
+            {
+                [paramT] = "payload-binding",
+            };
+            root.instanceConstructorId = "thing-ctor";
+            root.constructorArgs = new Dictionary<string, JToken?>
+            {
+                ["__arg_0__"] = JToken.FromObject("constructor-payload"),
+            };
+            var genericArgument = new FunctionArgumentTypeInfo
+            {
+                name = "Payload",
+                type = MemberKind.Generic,
+                required = true,
+                ownerClassId = thingClass.id,
+                genericParamId = paramT,
+            };
+            data.constructors["thing-ctor"] = new ConstructorRecord
+            {
+                id = "thing-ctor",
+                projectId = "p75-project",
+                classId = thingClass.id,
+                argumentTypes = new[] { genericArgument },
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        new Variable
+                        {
+                            id = "__this__",
+                            typeInfo = new ClassTypeInfo
+                            {
+                                type = MemberKind.Class,
+                                required = true,
+                                classId = thingClass.id,
+                            },
+                        },
+                        new Variable
+                        {
+                            id = "__root__",
+                            typeInfo = new ClassTypeInfo
+                            {
+                                type = MemberKind.Class,
+                                required = true,
+                                classId = "save-root-class",
+                            },
+                        },
+                        new Variable
+                        {
+                            id = "__arg_0__",
+                            typeInfo = genericArgument,
+                        },
+                    },
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Null,
+                        required = true,
+                    },
+                    instructions = Array.Empty<Instruction>(),
+                },
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable payload = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberClassWritable>("Payload");
+
+            Assert.AreEqual(
+                "from generic default",
+                payload.Get<NeoMemberStringWritable>("Name").value!.value);
+        }
+
+        [Test]
         public void SparseSpineRowsAtVirtualIdsPreserveDeeperOverrides()
         {
             string nestedId;
