@@ -335,7 +335,7 @@ namespace NeoCompose.Runtime.Json
     public class ColorMemberValueBase : MemberValueBase<NeoColorValue?> { }
 
     /// <summary>
-    /// P42 decision D10 — a <c>$partial</c> structured-leaf envelope is legal
+    /// P42 decision D10 — a <c>~partial</c> structured-leaf envelope is legal
     /// <b>only</b> inside an animation override graph, and the position is
     /// statically knowable rather than inferred from the value's shape or the
     /// member's kind. A <see cref="Member.defaultValue"/> is never an override
@@ -345,7 +345,7 @@ namespace NeoCompose.Runtime.Json
     /// to hold one. An earlier revision declared it "so an envelope reaching
     /// the embedded-carrier converter resolves to a row that can report a
     /// precise error" — but nothing raised that error, so the envelope was
-    /// swallowed: a stray <c>$partial</c> under a Sprite declaration
+    /// swallowed: a stray <c>~partial</c> under a Sprite declaration
     /// deserialized into a <see cref="SpriteValue"/> with a null
     /// <c>fileId</c>, i.e. silently became "no value". The error is raised
     /// here instead, which leaves the carrier with nothing to carry.</para>
@@ -353,7 +353,7 @@ namespace NeoCompose.Runtime.Json
     internal static class PartialLeafPositionGuard
     {
         /// <summary>
-        /// Rejects a <c>$partial</c> envelope sitting in the <c>value</c> of a
+        /// Rejects a <c>~partial</c> envelope sitting in the <c>value</c> of a
         /// declaration-default carrier. <paramref name="carrier"/> is the
         /// <see cref="MemberValueBase"/> JSON object; <paramref name="subject"/>
         /// names the position for the message.
@@ -432,7 +432,7 @@ namespace NeoCompose.Runtime.Json
         internal static bool LooksLikeVector2Value(JToken token)
         {
             if (token.Type != JTokenType.Object) return false;
-            // P42: a `$partial` envelope is never a whole value, whatever
+            // P42: a `~partial` envelope is never a whole value, whatever
             // else it carries. The exact-count rule below already excludes
             // the canonical one-key envelope; this makes the exclusion
             // explicit rather than incidental.
@@ -646,7 +646,7 @@ namespace NeoCompose.Runtime.Json
     /// decision D1). On the wire it is an explicit envelope:
     ///
     /// <code>
-    /// { "$partial": { "sliceIndex": 1 } }
+    /// { "~partial": { "sliceIndex": 1 } }
     /// </code>
     ///
     /// <para>A row holding a <b>full</b> value is unchanged —
@@ -659,7 +659,7 @@ namespace NeoCompose.Runtime.Json
     /// makes the signal unambiguous without changing any existing row's
     /// bytes.</para>
     ///
-    /// <para>An empty envelope (<c>{"$partial":{}}</c>) is legal and means
+    /// <para>An empty envelope (<c>{"~partial":{}}</c>) is legal and means
     /// "no change".</para>
     ///
     /// <para>This is a plain data row and performs <b>no</b> resolution: it
@@ -681,8 +681,25 @@ namespace NeoCompose.Runtime.Json
     [JsonConverter(typeof(NeoPartialLeafValueConverter))]
     public sealed class NeoPartialLeafValue
     {
-        /// <summary>The single discriminating wire key, <c>"$partial"</c>.</summary>
-        public const string EnvelopeKey = "$partial";
+        /// <summary>
+        /// The single discriminating wire key, <c>"~partial"</c>. The
+        /// <c>~</c> prefix is load-bearing twice over:
+        ///
+        /// <para>It cannot collide with an authored key. A schema key, a
+        /// member name and a structured-leaf field key are all identifiers,
+        /// and <c>~</c> is not an identifier character in NeoScript or in
+        /// <c>.neo</c> source, so no author can write a record whose own key
+        /// is this one.</para>
+        ///
+        /// <para>It must not be <c>$</c>. Convex reserves the <c>$</c> prefix
+        /// for object field names and refuses such a key before a request
+        /// leaves the process, so a <c>$partial</c> spelling made the envelope
+        /// untransmittable. <c>~</c> is printable ASCII (0x7E), inside the
+        /// range Convex accepts, and reserved by nothing. Export schema 28 is
+        /// the gate that stops an older SDK from silently reading a
+        /// new-spelling envelope as a plain object row.</para>
+        /// </summary>
+        public const string EnvelopeKey = "~partial";
 
         /// <summary>
         /// The field tokens in wire order. Only scalars live here (string,
@@ -707,7 +724,7 @@ namespace NeoCompose.Runtime.Json
         /// <summary>Number of fields this partial writes.</summary>
         public int FieldCount => fields.Count;
 
-        /// <summary>True for <c>{"$partial":{}}</c> — writes nothing.</summary>
+        /// <summary>True for <c>{"~partial":{}}</c> — writes nothing.</summary>
         public bool IsEmpty => fields.Count == 0;
 
         /// <summary>
@@ -862,14 +879,14 @@ namespace NeoCompose.Runtime.Json
         ///
         /// <para>Deliberately looser than <see cref="FromEnvelope"/>: it
         /// claims anything that is recognisably an <i>attempted</i> envelope —
-        /// a <c>$partial</c> key whose value is an object, or a <c>$partial</c>
+        /// a <c>~partial</c> key whose value is an object, or a <c>~partial</c>
         /// key standing alone — so a malformed envelope lands on the partial
         /// row and is rejected there by name, instead of falling through to
         /// <c>ObjectMemberValue</c> and failing later with a Newtonsoft
         /// message about dictionaries.</para>
         ///
         /// <para>The "or standing alone" half is what keeps a Dictionary value
-        /// row that happens to contain a <c>$partial</c> <b>string</b> entry
+        /// row that happens to contain a <c>~partial</c> <b>string</b> entry
         /// alongside others resolving exactly as it did before P42 — dictionary
         /// and class rows are <c>Dictionary&lt;string, string&gt;</c>, so their
         /// entries are never objects.</para>
@@ -885,7 +902,7 @@ namespace NeoCompose.Runtime.Json
         /// <summary>
         /// Validates and materializes an envelope. The member kind is not
         /// available here, so this checks the <b>shape</b> only: exactly one
-        /// <c>$partial</c> key whose value is an object of scalars.
+        /// <c>~partial</c> key whose value is an object of scalars.
         /// </summary>
         internal static NeoPartialLeafValue FromEnvelope(JObject envelope)
         {
@@ -1057,7 +1074,7 @@ namespace NeoCompose.Runtime.Json
             RejectRemovedClassIdentityField(obj);
             // P42 decision D10 — a MemberValueBase is only ever a
             // Member.defaultValue, which is never an animation override
-            // graph, so a `$partial` envelope here is invalid wherever it
+            // graph, so a `~partial` envelope here is invalid wherever it
             // came from. Raised before dispatch: the context path would
             // otherwise force-feed the envelope into the declared kind's
             // payload (a Sprite default silently becoming a SpriteValue with
@@ -1118,7 +1135,7 @@ namespace NeoCompose.Runtime.Json
                     // it above, because this is a declaration-default
                     // position (decision D10). The negative envelope guard on
                     // each probe below still matters: it keeps a
-                    // {"$partial":{"fileId":"…"}} from being mistaken for a
+                    // {"~partial":{"fileId":"…"}} from being mistaken for a
                     // whole File value should any other caller reuse them.
                     if (NeoDelegateValueConverter.LooksLikeValue(token)) return typeof(DelegateMemberValueBase);
                     if (NeoActionValueConverter.LooksLikeValue(token)) return typeof(ActionMemberValueBase);
@@ -1423,7 +1440,7 @@ namespace NeoCompose.Runtime.Json
 
     /// <summary>
     /// Stored row holding a <b>partial</b> structured-leaf value — the P42
-    /// <c>$partial</c> envelope (decision D1). Legal only for a structured
+    /// <c>~partial</c> envelope (decision D1). Legal only for a structured
     /// leaf (Sprite / Vector2(Int) / Vector3(Int) / Color) inside an
     /// animation override graph; everywhere else it is invalid data and the
     /// kind-aware consumer must say so by name.
@@ -1506,7 +1523,7 @@ namespace NeoCompose.Runtime.Json
                 case JTokenType.Array:
                     return typeof(ArrayMemberValue);
                 case JTokenType.Object:
-                    // P42: the `$partial` envelope probe MUST come first —
+                    // P42: the `~partial` envelope probe MUST come first —
                     // see MemberValueBaseConverter.ResolveByShape.
                     if (NeoPartialLeafValue.IsEnvelope(token)) return typeof(PartialLeafMemberValue);
                     if (NeoDelegateValueConverter.LooksLikeValue(token)) return typeof(DelegateMemberValue);

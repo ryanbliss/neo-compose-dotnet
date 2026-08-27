@@ -13,6 +13,17 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 28 renames the structured-leaf field-override envelope key from
+        /// <c>$partial</c> to <c>~partial</c>: Convex reserves $-prefixed
+        /// field names in every serialized position, so the old spelling
+        /// could never cross the wire as a structured object. The key is the
+        /// only thing separating a FIELD override from a whole-leaf record —
+        /// <c>{"fileId": …}</c> is a valid whole sprite value — so an SDK at
+        /// 27 would not fail on the new spelling, it would silently read
+        /// every field override as a plain object row and mis-apply or drop
+        /// it. The exact-version gate is what turns that silent corruption
+        /// into a refusal.
+        ///
         /// 27 admits P75 sparse instance roots and their deterministic
         /// constructor/variant replay provenance. Older SDKs cannot resolve
         /// omitted instance rows and must reject the export before loading.
@@ -52,7 +63,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 27;
+        public const int CurrentSchemaVersion = 28;
     }
 
     public class ProjectExportMetadataSemver

@@ -2,6 +2,120 @@
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-08-26
+
+### Changed
+
+- **Breaking:** the P42 structured-leaf field-override envelope key is now
+  `~partial` rather than `$partial`, and the project export schema version is
+  now 28. Convex reserves `$`-prefixed field names in every serialized
+  position, so the old spelling could never cross the wire as a structured
+  object; `~` is printable ASCII and illegal in a NeoScript identifier, so it
+  keeps the collision-proof property `$` was chosen for. The envelope key is
+  the only thing separating a field override from a whole-leaf record
+  (`{"fileId": …}` is a valid whole sprite value), so an SDK at 27 would read
+  a new-spelling override as a plain object row rather than failing — the
+  exact-version gate is what turns that into a refusal. Re-export from a
+  matching web release.
+
+### Fixed
+
+- Load a project whose value partitions carry P75-collapsed rows. A world-grid
+  member inside the root tree auto-loads its partition, and the eager per-row
+  replay resolved `root` before Assets/Save/Session were assigned, throwing on
+  every sync of a project with a stamped partition row. Partition loads now
+  merge their rows and defer replay to the constructor's own full pass.
+- Accept a sparse root whose replay omits a required member the materialized
+  rows supply. Both constructed-graph gates — nested row validation and the
+  root completeness assert — relax that check during replay and only then,
+  which is the merged completeness the collapse verifier proves.
+- Resolve a collapsed member from a generated getter. NSGetter member dispatch
+  concluded from an absent stored key without consulting the virtual index, so
+  reading a collapsed member threw `Missing key`; the absent-key arm now
+  resolves the deterministic virtual child id.
+- Stop the writable-store reachability sweep from reporting a write under a
+  virtual container as unlinked, which the collector would then delete.
+  Ownership switches at declared member boundaries rather than being stamped
+  from the root, virtual ids seed their own ownership's sweep, and link edges
+  carry the member resolved from the parent's class schema, so dictionary
+  containers enumerate their entries.
+- Mutate a collection whose receiver's key collapsed. `root.Save.Inventory
+  .Add(...)` failed with "not backed by a Neo value row" because the mutation
+  reverse-mapped a payload a virtual read mints fresh; the Lookup arm and the
+  generic `keyOf` arm now resolve receiver and schema key stored-body first,
+  then the deterministic virtual id the write materializes under.
+
+## [0.28.0] - 2026-08-25
+
+### Added
+
+- Resolve P75 sparse instance values: an instance row may omit members its
+  declaration still supplies, and reads, writes, and unsets under an omitted
+  member resolve through the deterministic virtual child id the web derives
+  the same way, so a sparse root stays sparse instead of materializing. The id
+  derivation is pinned by cross-runtime parity literals, including the
+  `<inline>` sentinel for an id-less member.
+- Stamp creation provenance at runtime construction: constructing a declared
+  Class value records the constructor pair it ran (an explicit null id for the
+  implicit `new()`, plus the evaluated arguments), and variant construction
+  records the variant it was built from, so a runtime
+  `Variants.X.Initialize()` replays through that declarative layer instead of
+  freezing the row at its construction-time values.
+- `NeoSmartTile.ToRuleTile` gains an optional trailing `selfTileClassId`
+  parameter (source-compatible) so a converted tile can match itself by class
+  id.
+
+### Changed
+
+- **Breaking:** the project export schema version is now 27. Exports must be
+  regenerated from a matching web release: an SDK at 26 cannot resolve omitted
+  instance rows or their constructor/variant replay provenance, so it would
+  read a sparse root as a bare one and must refuse the export before loading.
+- Scope live invalidation to the roots a patch actually reaches. A live-content
+  message replayed every instance root, which is O(instances × expansion) for
+  a message that usually touches one row; expansion now records its footprint,
+  so untouched roots keep their index entries and live wrappers and a replay
+  no longer publishes change events for rows it is about to reclaim.
+- The commit warning points callers at `FindUnlinkedSaveValueIds` before the
+  destructive garbage collector.
+
+### Fixed
+
+- Follow the virtual index as a garbage-collection reachability edge. A write
+  under an omitted Class member links no key into the parent body, so the
+  sweep judged every such override unlinked: `RunGarbageCollector` deleted the
+  user's write and the value silently reverted, and `FindUnlinkedSaveValueIds`
+  reported a P75 write as save corruption.
+- Resolve sparse rows in the three paths that read raw bodies directly. The
+  generated `property = null` setter no longer no-ops on a constructed
+  instance, an unordered-list assignment lands at the deterministic virtual id
+  instead of minting a random one (or throwing "static record cannot gain new
+  keys" on an Asset-owned root), and animation `Duration`/`Frames`/`Index`/
+  `Value` resolve body-first-then-virtual, so segments that omit a duration
+  contribute their frames and sparse frames stop clearing their channel.
+- Materialize a NeoScript write to an omitted member at the deterministic
+  virtual id with its `classId` stamped, instead of minting a random id whose
+  read returns null — which dropped the constructor-installed listener set
+  behind an `NSAction +=`.
+- Release the stale wrapper for an id that flips from materialized back to
+  virtual during expansion, so the first read after a variant apply no longer
+  returns empty while storage is correct, and a rebuild that mints new rows at
+  the same ids no longer reuses a disposed child wrapper.
+- Preserve the virtual layer when a variant is cleared back to Base.
+  `instanceVariantId = null` is dropped by serialization, and it was the row's
+  only eligibility marker, so the instance lost its whole virtual layer on the
+  next apply; the clear now preserves or establishes the constructor pair.
+- Answer an ownership-scoped read only from a matching ownership. The virtual
+  fallthrough ignored the requested ownership, so an Asset-scoped read could
+  be served a Save-owned row.
+- Match smart-tile `This`/`NotThis` on the tile's own class id rather than
+  Unity's `TileBase` reference identity. Built-in neighbors compare the cached
+  per-placement asset, so two placements of one tile class never matched and a
+  shipped game bordered differently from the web editor. Callers with no class
+  id keep the Unity built-ins.
+
+## [0.27.0] - 2026-08-19
+
 ### Added
 
 - Evaluate NeoScript collection `Count` property/call IR, predicate-bearing
