@@ -3133,11 +3133,16 @@ namespace NeoCompose.Runtime
                         entryMemberId = id,
                     };
                 case MemberKind.Dictionary:
+                    var collectionTypeInfo = (CollectionTypeInfo)typeInfo;
                     return new DictionaryMember
                     {
                         id = id,
                         kind = MemberKind.Dictionary,
                         entryMemberId = id,
+                        keyKind = collectionTypeInfo.keyEnumId is null
+                            ? NeoDictionaryKeyKinds.String
+                            : NeoDictionaryKeyKinds.Enum,
+                        keyEnumId = collectionTypeInfo.keyEnumId,
                     };
                 case MemberKind.Enum:
                     return new EnumMember

@@ -333,7 +333,7 @@ namespace NeoCompose.Tests
         }
 
         // ------------------------------------------------------------------
-        // JSON layer: keyKind / keyEnumId read-compat.
+        // JSON layer: keyKind / keyEnumId contract.
         // ------------------------------------------------------------------
 
         [Test]
@@ -357,29 +357,6 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(NeoDictionaryKeyKinds.Enum, member.keyKind);
             Assert.AreEqual("enum-item-slot", member.keyEnumId);
-        }
-
-        [Test]
-        public void DictionaryMember_AbsentKeyKind_DefaultsToNullForReadCompat()
-        {
-            // Stale local exports predate the web-side backfill migration and
-            // omit both fields; null keyKind reads as string-keyed.
-            var member = (DictionaryMember)JsonConvert.DeserializeObject<Member>(
-                @"{
-                    ""id"": ""member-stats"",
-                    ""projectId"": ""p"",
-                    ""name"": ""Stats"",
-                    ""kind"": 5,
-                    ""locked"": false,
-                    ""required"": false,
-                    ""isStatic"": false, ""accessModifierKind"": ""public"",
-                    ""createdAt"": 0,
-                    ""updatedAt"": 0,
-                    ""entryMemberId"": ""member-entry""
-                }")!;
-
-            Assert.IsNull(member.keyKind);
-            Assert.IsNull(member.keyEnumId);
         }
 
         [Test]

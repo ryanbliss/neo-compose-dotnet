@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+## [0.29.2] - 2026-08-27
+
+### Changed
+
+- **Breaking:** require the current export's `variantFolders`,
+  `internalRecordRelations`, and dictionary `keyKind` fields. Layer links now
+  resolve their target only from `internalRecordRelations`; a `layerClassId`
+  payload key no longer participates in resolution.
+- **Breaking:** remove the unused public
+  `NSGetterEvaluator.Context.FunctionCallHandler` delegate and its optional
+  `Context` constructor parameter, the unused `snapshotHash` save fields, the
+  `ProjectData.tileGridContents` detector, and the obsolete public
+  `Schema8SaveEnvelopeConverter<T>`.
+- Reject a missing, malformed, older, or newer project export schema version
+  before deserializing its polymorphic records. The schema-8 field-name scan
+  no longer walks every project and save payload.
+
 ## [0.29.1] - 2026-08-27
 
 ### Fixed

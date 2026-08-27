@@ -135,7 +135,6 @@ namespace NeoCompose.Runtime.Json
     /// snapshot content is assembled from record state; the snapshot id and
     /// <see cref="snapshotRevision"/> drive synchronization and conflict detection.
     /// </summary>
-    [JsonConverter(typeof(Schema8SaveEnvelopeConverter<RemoteGameSave>))]
     public sealed class RemoteGameSave : NeoGameSaveBase
     {
         /// <summary>Opaque server document id.</summary>
@@ -197,7 +196,6 @@ namespace NeoCompose.Runtime.Json
     /// zero until the save has synchronized at least once (a from-scratch local
     /// save is local-only until its first commit).
     /// </summary>
-    [JsonConverter(typeof(Schema8SaveEnvelopeConverter<LocalGameSave>))]
     public sealed class LocalGameSave : NeoGameSaveBase
     {
         /// <summary>Stable client-generated save id; the primary local key.</summary>
@@ -217,12 +215,6 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>Last synchronized head snapshot id; null for local-only saves.</summary>
         public string? snapshotId;
-
-        /// <summary>
-        /// Legacy opaque local-artifact field retained so existing disk files
-        /// continue to round-trip without loss.
-        /// </summary>
-        public string? snapshotHash;
 
         /// <summary>Last fully-applied cloud record revision.</summary>
         public long snapshotRevision;

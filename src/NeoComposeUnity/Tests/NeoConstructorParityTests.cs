@@ -316,11 +316,19 @@ namespace NeoCompose.Tests
             JObject document = Document();
             var schema = new JObject
             {
+                ["metadata"] = new JObject
+                {
+                    ["schemaVersion"] = NeoProjectExportContract.CurrentSchemaVersion,
+                    ["projectId"] = "constructor-parity-project",
+                    ["versionId"] = "constructor-parity-version",
+                },
                 ["project"] = document["project"],
                 ["members"] = ById(document, "members"),
                 ["values"] = ById(document, "values"),
                 ["classes"] = ById(document, "classes"),
                 ["constructors"] = ById(document, "constructors"),
+                ["variantFolders"] = new JObject(),
+                ["internalRecordRelations"] = new JObject(),
                 ["enums"] = new JObject(),
             };
             return JsonConvert.DeserializeObject<ProjectData>(schema.ToString())

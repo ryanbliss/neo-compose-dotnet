@@ -534,7 +534,6 @@ namespace NeoCompose.Runtime
             // Strip server identity so the copy is a fresh local-only save.
             clone.serverId = null;
             clone.snapshotId = null;
-            clone.snapshotHash = null;
             clone.synchronizedAt = null;
 
             await core.LocalStore.CommitSaveAsync(

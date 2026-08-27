@@ -3,10 +3,7 @@
 
 #nullable enable
 
-using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Runtime.Json
 {
@@ -84,7 +81,6 @@ namespace NeoCompose.Runtime.Json
     /// authored default at the same id, so there is no override-map
     /// indirection.</para>
     /// </summary>
-    [JsonConverter(typeof(Schema8SaveEnvelopeConverter<ProjectSaveData>))]
     public class ProjectSaveData
     {
         /// <summary>
@@ -114,12 +110,6 @@ namespace NeoCompose.Runtime.Json
         /// than a silent overwrite. Null for a local-only or session graph.
         /// </summary>
         public string? snapshotId;
-
-        /// <summary>
-        /// Legacy opaque local-artifact field retained only so old developer
-        /// save files round-trip. Cloud synchronization ignores it.
-        /// </summary>
-        public string? snapshotHash;
 
         /// <summary>
         /// Last successful cloud sync time as epoch milliseconds; null when never
@@ -183,46 +173,5 @@ namespace NeoCompose.Runtime.Json
         /// The referenced value graph remains in <see cref="values"/>.
         /// </summary>
         public Dictionary<string, string?> staticBindings = new();
-    }
-
-    /// <summary>
-    /// Strict reader for schema-8 save envelopes. Value-row metadata is
-    /// checked for removed class/member fields while the authored payload
-    /// inside each row's <c>value</c> property remains opaque.
-    /// </summary>
-    public sealed class Schema8SaveEnvelopeConverter<T> : JsonConverter
-        where T : class, new()
-    {
-        public override bool CanConvert(Type objectType) => objectType == typeof(T);
-
-        public override bool CanWrite => false;
-
-        public override object? ReadJson(
-            JsonReader reader,
-            Type objectType,
-            object? existingValue,
-            JsonSerializer serializer)
-        {
-            if (reader.TokenType == JsonToken.Null) return null;
-
-            var obj = JObject.Load(reader);
-            Schema8LegacyFieldGuard.ValidateSaveEnvelope(obj);
-
-            var envelope = new T();
-            using (var subReader = obj.CreateReader())
-            {
-                serializer.Populate(subReader, envelope);
-            }
-            return envelope;
-        }
-
-        public override void WriteJson(
-            JsonWriter writer,
-            object? value,
-            JsonSerializer serializer)
-        {
-            throw new NotImplementedException(
-                "Schema8SaveEnvelopeConverter is read-only; default serialization handles writes.");
-        }
     }
 }

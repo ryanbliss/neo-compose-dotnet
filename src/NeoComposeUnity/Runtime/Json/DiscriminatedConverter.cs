@@ -66,9 +66,6 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null) return null;
             var obj = JObject.Load(reader);
-            Schema8LegacyFieldGuard.RejectRemovedReferenceFieldsShallow(
-                obj,
-                typeof(TBase).Name);
             ValidateObjectBeforeDiscriminator(obj);
             var disc = obj[DiscriminatorField];
             if (disc == null)

@@ -130,11 +130,7 @@ namespace NeoCompose.Runtime
             for (int i = 0; i < ancestry.Count; i++) sourceDepth[ancestry[i]] = i;
 
             var declarations = new List<InternalRecordRelation>();
-            IEnumerable<InternalRecordRelation> relationRows =
-                data.internalRecordRelations is null
-                    ? Array.Empty<InternalRecordRelation>()
-                    : data.internalRecordRelations.Values;
-            foreach (InternalRecordRelation relation in relationRows)
+            foreach (InternalRecordRelation relation in data.internalRecordRelations.Values)
             {
                 if (!string.Equals(relation.relationKind, relationKind, StringComparison.Ordinal))
                 {
@@ -289,11 +285,7 @@ namespace NeoCompose.Runtime
             }
 
             string? targetId = null;
-            IEnumerable<InternalRecordRelation> relationRows =
-                data.internalRecordRelations is null
-                    ? Array.Empty<InternalRecordRelation>()
-                    : data.internalRecordRelations.Values;
-            foreach (InternalRecordRelation relation in relationRows)
+            foreach (InternalRecordRelation relation in data.internalRecordRelations.Values)
             {
                 if (!string.Equals(relation.relationKind, relationKind, StringComparison.Ordinal)
                     || !string.Equals(

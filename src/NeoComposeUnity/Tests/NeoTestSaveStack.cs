@@ -140,6 +140,10 @@ namespace NeoCompose.Tests
                         string,
                         InternalRecordRelation>();
             }
+            schema.variantFolders ??=
+                new System.Collections.Generic.Dictionary<
+                    string,
+                    VariantFolderRecord>();
             return new NeoClient(
                 new SchemaOnlyLoader(schema),
                 loadedSaveContent,

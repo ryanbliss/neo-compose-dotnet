@@ -176,40 +176,17 @@ namespace NeoCompose.Tests
             Assert.AreEqual(99, app.Save.ElementStats[stale]);
         }
 
-        // ------------------------------------------------------------------
-        // JSON read-compat: keyKind absent ⇒ string-keyed.
-        // ------------------------------------------------------------------
-
-        /// <summary>
-        /// Stale local exports predate the web-side backfill migration and
-        /// omit <c>keyKind</c>/<c>keyEnumId</c>. A fixture variant with the
-        /// fields stripped must still load, expose a null <c>keyKind</c>,
-        /// and read its rows through the string-keyed single-arity wrapper.
-        /// </summary>
         [Test]
-        public void KeyKindAbsentInJson_ReadsAsStringKeyedDictionary()
+        public void KeyKindAbsentInCurrentExport_IsRejected()
         {
             var json = JObject.Parse(LoadFixture("synth-example.json"));
             var statsMember = (JObject)json["members"]!["member-elem-stats"]!;
             Assert.IsTrue(statsMember.Remove("keyKind"), "fixture should carry keyKind");
-            Assert.IsTrue(statsMember.Remove("keyEnumId"), "fixture should carry keyEnumId");
 
-            var client = NeoTestSaveStack.LoadClient(json.ToString());
-            if (!client.TryGetMember("member-elem-stats", out DictionaryMember? member))
-            {
-                Assert.Fail("member-elem-stats missing from the stripped fixture");
-            }
-            Assert.IsNull(member!.keyKind);
-            Assert.IsNull(member.keyEnumId);
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                NeoTestSaveStack.LoadClient(json.ToString()));
 
-            var node = client.save.Get<NeoMemberDictionaryWritable>("ElementStats");
-            // Same entry factory shape the codegen output constructs with.
-            var stringView = new NeoReadOnlyDictionary<int?>(
-                client,
-                node,
-                (_, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child));
-            Assert.AreEqual(12, stringView[Element.fire.optionId]);
-            Assert.AreEqual(99, stringView["storm"]);
+            Assert.That(error!.Message, Does.Contain("keyKind"));
         }
 
         // ------------------------------------------------------------------

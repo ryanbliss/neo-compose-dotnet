@@ -1099,7 +1099,6 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null) return null;
             var obj = JObject.Load(reader);
-            RejectRemovedClassIdentityField(obj);
             // P42 decision D10 — a MemberValueBase is only ever a
             // Member.defaultValue, which is never an animation override
             // graph, so a `~partial` envelope here is invalid wherever it
@@ -1125,11 +1124,6 @@ namespace NeoCompose.Runtime.Json
                 serializer.Populate(subReader, instance);
             }
             return instance;
-        }
-
-        internal static void RejectRemovedClassIdentityField(JObject obj)
-        {
-            Schema8LegacyFieldGuard.RejectRemovedMemberValueTypeId(obj);
         }
 
         public override void WriteJson(
@@ -1511,7 +1505,6 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null) return null;
             var obj = JObject.Load(reader);
-            MemberValueBaseConverter.RejectRemovedClassIdentityField(obj);
             InitializerVariantGuard.RejectConflictingVariant(
                 obj,
                 "A member value row");

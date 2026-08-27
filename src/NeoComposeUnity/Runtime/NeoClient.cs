@@ -609,7 +609,6 @@ namespace NeoCompose.Runtime
             ValidateReadOnlyMembers();
             ValidateInternalRecordRelations(data);
             InternalRecordRelations = new NeoInternalRecordRelationGraph(data);
-            ValidateNoLegacyTileGridContents(data);
             AdoptStampedMainValueRows();
             SaveOptions = saveOptions ?? new NeoSaveOptions();
             this.assetDatabase = assetDatabase;
@@ -1240,25 +1239,10 @@ namespace NeoCompose.Runtime
 
         private static void ValidateExportSchemaVersion(ProjectExportMetadata? metadata)
         {
-            // P61 §3 / §4 — 16 materializes every instance initializer at
-            // the push trust boundary. A 15 export may still carry an
-            // unmaterialized instance row whose `init` this runtime would
-            // incorrectly treat like declaration code, so it fails closed
-            // rather than constructing a second, divergent graph in-game.
-            const int currentVersion =
-                NeoProjectExportContract.CurrentSchemaVersion;
-            if (metadata is null)
+            string? error = NeoProjectExportContract.GetSchemaVersionError(metadata);
+            if (error is not null)
             {
-                throw new System.InvalidOperationException(
-                    $"Project export metadata is missing (this SDK requires schema version {currentVersion}). Re-export the project from the current web app.");
-            }
-            if (metadata.schemaVersion != currentVersion)
-            {
-                string action = metadata.schemaVersion < currentVersion
-                    ? "Re-export the project from the current web app."
-                    : "Update the NeoCompose SDK.";
-                throw new System.InvalidOperationException(
-                    $"Project export schema version {metadata.schemaVersion} is unsupported; this SDK accepts only schema version {currentVersion}. Older releases must be upgraded through the supported release-data migration boundary before loading. {action}");
+                throw new System.InvalidOperationException(error);
             }
         }
 
@@ -2304,17 +2288,6 @@ namespace NeoCompose.Runtime
         /// partition's rows merged in — re-rejecting or re-loading them would
         /// double-load. The stamp stays on the row either way.
         /// </summary>
-        private static void ValidateNoLegacyTileGridContents(ProjectData data)
-        {
-            // Defense in depth beside the schema-version gate: a hand-built or
-            // version-stripped export still may not smuggle legacy derived
-            // regions past the values-native contract.
-            if (data.tileGridContents is null) return;
-            if (data.tileGridContents.Count == 0) return;
-            throw new System.InvalidOperationException(
-                "Project export contains a non-empty 'tileGridContents' payload, which predates the values-native tile grid. Re-export the project from the current web app; tile data now ships exclusively in 'values'.");
-        }
-
         private void AdoptStampedMainValueRows()
         {
             // A freshly parsed export's `values` map carries no `mapKey` stamps
@@ -6004,15 +5977,6 @@ namespace NeoCompose.Runtime
         /// </summary>
         private void ValidateConstructorRecords()
         {
-            // An export written before P43 omits the collection entirely, and a
-            // hand-built ProjectData may leave it null. Both mean "declares
-            // none", so normalize once instead of null-checking every read.
-            data.constructors ??= new Dictionary<string, ConstructorRecord>();
-            // P67 §9 — same reasoning: an export written before P67 omits the
-            // collection and a hand-built ProjectData may leave it null. Both
-            // mean "declares no variants".
-            data.variants ??= new Dictionary<string, VariantRecord>();
-            data.variantFolders ??= new Dictionary<string, VariantFolderRecord>();
             var claimedByClass = new Dictionary<string, string>();
             foreach (var pair in data.classes)
             {

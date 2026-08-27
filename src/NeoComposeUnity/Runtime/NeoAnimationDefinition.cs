@@ -1851,7 +1851,8 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Mirrors the TS validator's <c>resolveDefinitionChild</c> precedence:
         /// an explicit instance mapping wins, then the declaration's
-        /// <c>defaultValue</c>, then the legacy <c>member.valueId</c> row.
+        /// <c>defaultValue</c>, then the retained member-level
+        /// <c>member.valueId</c> row.
         /// </summary>
         private static NeoAnimationDefinitionPresence ResolveDefinitionPresence(
             NeoClient client,
@@ -1884,13 +1885,13 @@ namespace NeoCompose.Runtime
             if (declared != NeoAnimationDefinitionPresence.Unknown) return declared;
             if (!string.IsNullOrWhiteSpace(declaration.valueId))
             {
-                MemberValue? legacy = client.ResolveEffectiveRow(declaration.valueId!);
-                if (legacy is null || legacy.IsRemoved)
+                MemberValue? memberValue = client.ResolveEffectiveRow(declaration.valueId!);
+                if (memberValue is null || memberValue.IsRemoved)
                 {
                     return NeoAnimationDefinitionPresence.NullValue;
                 }
-                record = legacy as ObjectMemberValue;
-                return RowPresence(legacy);
+                record = memberValue as ObjectMemberValue;
+                return RowPresence(memberValue);
             }
             return NeoAnimationDefinitionPresence.Unknown;
         }

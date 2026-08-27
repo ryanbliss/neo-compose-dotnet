@@ -130,11 +130,6 @@ namespace NeoCompose.Runtime.Json
 
     public class TypeInfoConverter : DiscriminatedConverter<TypeInfo>
     {
-        protected override void ValidateObject(JObject obj, Type concrete)
-        {
-            Schema8LegacyFieldGuard.RejectRemovedTypeInfoTypeId(obj);
-        }
-
         protected override Type? ResolveSubclass(JToken discriminator)
         {
             if (discriminator.Type == JTokenType.String)
@@ -190,11 +185,6 @@ namespace NeoCompose.Runtime.Json
 
     public class FunctionReturnTypeInfoConverter : DiscriminatedConverter<TypeInfo>
     {
-        protected override void ValidateObject(JObject obj, Type concrete)
-        {
-            Schema8LegacyFieldGuard.RejectRemovedTypeInfoTypeId(obj);
-        }
-
         protected override Type? ResolveSubclass(JToken discriminator)
         {
             if (discriminator.Type == JTokenType.String)

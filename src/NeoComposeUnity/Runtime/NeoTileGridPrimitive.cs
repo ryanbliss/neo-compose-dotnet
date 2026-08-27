@@ -1726,7 +1726,6 @@ namespace NeoCompose.Runtime
                     client,
                     linkValueId,
                     classId,
-                    linkRow.value,
                     isTileLink: true);
                 string? layerOverrideValueId = ResolveLayerOverrideValueId(
                     linkValueId,
@@ -1753,7 +1752,6 @@ namespace NeoCompose.Runtime
                     client,
                     linkValueId,
                     classId,
-                    linkRow.value,
                     isTileLink: false);
                 string? layerOverrideValueId = ResolveLayerOverrideValueId(
                     linkValueId,
@@ -1980,7 +1978,6 @@ namespace NeoCompose.Runtime
                     client,
                     childValueId,
                     childRow.classId!,
-                    childRow.value,
                     isTileLink: true);
                 dependencyIds?.Add(tilesListId);
                 yield return new ObjectCarriedLink(childValueId, targetLayerId, tilesListId, childIndex);
