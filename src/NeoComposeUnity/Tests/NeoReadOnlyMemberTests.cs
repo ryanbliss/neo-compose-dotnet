@@ -2025,6 +2025,7 @@ namespace NeoCompose.Tests
                 storage = "immutable",
                 isReadOnly = true,
                 entryMemberId = labelEntry.id,
+                keyKind = NeoDictionaryKeyKinds.String,
                 defaultValue = new ObjectMemberValueBase
                 {
                     value = new Dictionary<string, string>

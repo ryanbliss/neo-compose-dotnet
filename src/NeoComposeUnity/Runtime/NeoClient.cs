@@ -1359,6 +1359,18 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     "Project export is missing the required 'values' collection. Re-export the project with the schema-8 Class/Member contract.");
             }
+            foreach (var pair in data.members)
+            {
+                if (pair.Value is not DictionaryMember dictionary) continue;
+                string? error = NeoDictionaryMemberContract.GetValidationError(
+                    dictionary.keyKind,
+                    dictionary.keyEnumId);
+                if (error is not null)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Dictionary member '{pair.Key}' {error}");
+                }
+            }
         }
 
         internal IList<NeoSchemaClass> ResolveClassInheritanceChain(string classId)
