@@ -110,7 +110,6 @@ namespace NeoCompose.Runtime
 
         private NeoDelegateValue ResolveDelegateValue() =>
             value?.value
-                ?? member.defaultValue?.value
                 ?? throw new NSGetterRuntimeError(
                     $"NeoDelegate '{member.name}' has no bound value.");
 
@@ -202,6 +201,12 @@ namespace NeoCompose.Runtime
 
         internal void Set(NeoDelegateValue? newValue)
         {
+            if (member.required && newValue is null)
+            {
+                throw new ArgumentNullException(
+                    nameof(newValue),
+                    $"Cannot be null when {nameof(member)}.{nameof(member.required)} is true");
+            }
             string nowIso = DateTime.UtcNow.ToString("o");
             DelegateMemberValue? writable = EnsureWritableValue();
             if (writable is not null)

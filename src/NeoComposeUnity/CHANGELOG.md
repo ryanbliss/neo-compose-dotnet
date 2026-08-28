@@ -19,6 +19,13 @@
   before deserializing its polymorphic records. The schema-8 field-name scan
   no longer walks every project and save payload.
 
+### Fixed
+
+- Preserve an explicit null written to an optional NeoDelegate instead of
+  resolving its declaration default again. Generated getters and the runtime
+  wrapper now distinguish a present null value row from an absent row, and
+  required delegate setters reject null.
+
 ## [0.29.1] - 2026-08-27
 
 ### Fixed
