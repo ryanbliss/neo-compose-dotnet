@@ -5,7 +5,6 @@
 @system(kind: .WorldAuthoring, worldKind: .AnimationFrameBase)
 abstract class NeoAnimationFrameBase {
   @id("system_0dbdd0f9-9dd2-4b4b-9403-50180c1500dd")
-  @locked
   @settings(min: 0)
   @system(kind: .WorldAuthoring)
   public virtual int Index = 0;

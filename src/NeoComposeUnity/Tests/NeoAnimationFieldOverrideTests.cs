@@ -717,7 +717,7 @@ namespace NeoCompose.Tests
                 "idle-member", "Idle", clipClass.id, "idle-clip-value");
             members["overrides-member"] = ClassMemberDefinition(
                 "overrides-member", "Overrides", targetClass.id, valueId: null);
-            ((ClassMember)members["overrides-member"]).partial = true;
+            ((ClassMember)members["overrides-member"]).payload = NeoMemberPayloadKind.Partial;
             members["frame-entry-member"] = ClassMemberDefinition(
                 "frame-entry-member", "Frame", frameClass.id, valueId: null);
 
@@ -727,7 +727,7 @@ namespace NeoCompose.Tests
                 projectId = project,
                 name = "FPS",
                 kind = MemberKind.Int,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 valueId = "fps-value",
             };
             members["duration-member"] = new IntMember
@@ -736,7 +736,7 @@ namespace NeoCompose.Tests
                 projectId = project,
                 name = "Duration",
                 kind = MemberKind.Int,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 valueId = "duration-value",
             };
             members["index-member"] = new IntMember
@@ -745,7 +745,7 @@ namespace NeoCompose.Tests
                 projectId = project,
                 name = "Index",
                 kind = MemberKind.Int,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
             };
             members["frames-member"] = new ListMember
             {
@@ -753,7 +753,7 @@ namespace NeoCompose.Tests
                 projectId = project,
                 name = "Frames",
                 kind = MemberKind.List,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 valueId = "frames-value",
                 entryMemberId = "frame-entry-member",
             };
@@ -763,7 +763,7 @@ namespace NeoCompose.Tests
                 projectId = project,
                 name = "Sprite",
                 kind = MemberKind.Sprite,
-                storage = "save",
+                storage = NeoMemberStorage.Save,
             };
             members["locked-member"] = new SpriteMember
             {
@@ -771,7 +771,7 @@ namespace NeoCompose.Tests
                 projectId = project,
                 name = "Locked",
                 kind = MemberKind.Sprite,
-                storage = "immutable",
+                storage = NeoMemberStorage.Immutable,
             };
             members["position-member"] = new Vector3Member
             {
@@ -779,7 +779,7 @@ namespace NeoCompose.Tests
                 projectId = project,
                 name = "Position",
                 kind = MemberKind.Vector3,
-                storage = "save",
+                storage = NeoMemberStorage.Save,
             };
             members["offset-member"] = new Vector2Member
             {
@@ -787,7 +787,7 @@ namespace NeoCompose.Tests
                 projectId = project,
                 name = "Offset",
                 kind = MemberKind.Vector2,
-                storage = "save",
+                storage = NeoMemberStorage.Save,
             };
             members["cell-member"] = new Vector3IntMember
             {
@@ -795,7 +795,7 @@ namespace NeoCompose.Tests
                 projectId = project,
                 name = "Cell",
                 kind = MemberKind.Vector3Int,
-                storage = "save",
+                storage = NeoMemberStorage.Save,
             };
             members["grid-member"] = new Vector2IntMember
             {
@@ -803,7 +803,7 @@ namespace NeoCompose.Tests
                 projectId = project,
                 name = "Grid",
                 kind = MemberKind.Vector2Int,
-                storage = "save",
+                storage = NeoMemberStorage.Save,
             };
             members["tint-member"] = new ColorMember
             {
@@ -811,7 +811,7 @@ namespace NeoCompose.Tests
                 projectId = project,
                 name = "Tint",
                 kind = MemberKind.Color,
-                storage = "save",
+                storage = NeoMemberStorage.Save,
             };
             members["count-member"] = new IntMember
             {
@@ -819,7 +819,7 @@ namespace NeoCompose.Tests
                 projectId = project,
                 name = "Count",
                 kind = MemberKind.Int,
-                storage = "save",
+                storage = NeoMemberStorage.Save,
             };
 
             // --- clip values ---------------------------------------------
@@ -994,7 +994,7 @@ namespace NeoCompose.Tests
                 projectId = "project-p42",
                 name = name,
                 kind = MemberKind.Class,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 classId = classId,
                 valueId = valueId,
             };

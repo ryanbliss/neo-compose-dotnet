@@ -173,11 +173,11 @@ namespace NeoCompose.Runtime
         {
             if (schemaKey is null) throw new ArgumentNullException(nameof(schemaKey));
             ListIndexDefinition definition = ResolveIndexDefinition(schemaKey);
-            if (definition.unique != unique)
+            if (definition.EffectiveKind == NeoListIndexKind.Unique != unique)
             {
                 throw new InvalidOperationException(
                     $"List index '{schemaKey}' on member '{member.id}' is declared "
-                    + $"{(definition.unique ? "unique" : "many")}, but the generated runtime view expects "
+                    + $"{(definition.EffectiveKind == NeoListIndexKind.Unique ? "unique" : "many")}, but the generated runtime view expects "
                     + $"{(unique ? "unique" : "many")}.");
             }
             if (!derivedIndexes.TryGetValue(schemaKey, out NeoRawListIndex? index))
@@ -190,31 +190,16 @@ namespace NeoCompose.Runtime
 
         private ListIndexDefinition ResolveIndexDefinition(string schemaKey)
         {
-            ListMember? cursor = member;
-            var visited = new HashSet<string>();
-            while (cursor is not null && visited.Add(cursor.id))
+            if (member.indexes is not null)
             {
-                if (cursor.indexes is not null)
+                foreach (ListIndexDefinition definition in member.indexes)
                 {
-                    foreach (ListIndexDefinition definition in cursor.indexes)
+                    if (definition is not null
+                        && string.Equals(definition.schemaKey, schemaKey, StringComparison.Ordinal))
                     {
-                        if (definition is not null
-                            && string.Equals(definition.schemaKey, schemaKey, StringComparison.Ordinal))
-                        {
-                            return definition;
-                        }
+                        return definition;
                     }
-                    // An explicit array is authoritative. Empty and absent
-                    // both mean no local indexes, but only absence inherits an
-                    // older export's fully-defined List declaration.
-                    break;
                 }
-                if (string.IsNullOrEmpty(cursor.extendsMemberId)
-                    || !client.TryGetMember(cursor.extendsMemberId, out ListMember? parent))
-                {
-                    break;
-                }
-                cursor = parent;
             }
             throw new KeyNotFoundException(
                 $"List member '{member.id}' has no declared index named '{schemaKey}'.");
@@ -510,7 +495,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void AddSerialized(NeoValueWritePayload? entryValue)
         {
-            if (entryMember.required && (entryValue is null || entryValue.isNull))
+            if (entryMember.EffectiveRequirement == NeoMemberRequirementKind.Required && (entryValue is null || entryValue.isNull))
             {
                 throw new System.ArgumentNullException(
                     nameof(entryValue),
@@ -588,7 +573,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"List member '{member.id}' is unordered; entries have no position to replace at. Remove the entry and add the replacement instead.");
             }
-            if (entryMember.required && (entryValue is null || entryValue.isNull))
+            if (entryMember.EffectiveRequirement == NeoMemberRequirementKind.Required && (entryValue is null || entryValue.isNull))
             {
                 throw new System.ArgumentNullException(
                     nameof(entryValue),

@@ -31,44 +31,20 @@ namespace NeoCompose.Runtime.Json
         public string projectId = null!;
         public string name = null!;
         public MemberKind kind;
-        public bool locked;
-        public bool required;
+        /// <summary>Absent resolves through the override chain, then to Optional.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoMemberRequirementKind? requirement;
+        /// <summary>Declaration-local. Absent means Mutable.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoMemberMutabilityKind? mutability;
+        /// <summary>Absent resolves through the override chain, then to Virtual.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoMemberModifierKind? modifier;
         /// <summary>
-        /// Whether this declaration belongs to its declaring Class
-        /// rather than to each Class value instance. Schema-8 exports carry
-        /// this receiver classification explicitly for every member.
+        /// Declaration-local access projection. Absent means Public.
         /// </summary>
-        public bool isStatic;
-        /// <summary>
-        /// C#-style member accessibility: "public", "protected", or
-        /// "private" (specs/member-access-modifiers.md). Schema-10 exports
-        /// carry this explicitly on every member; override chains always
-        /// match their root declaration's value. Runtime persistence resolves
-        /// by schema key and value id, so this is codegen/contract metadata
-        /// only — the SDK never gates value access on it.
-        /// </summary>
-        public string accessModifierKind = null!;
-        /// <summary>
-        /// Whether declarations in extending classes may override this
-        /// schema member. Optional on override rows; <c>null</c> resolves
-        /// through the inherited declaration.
-        /// </summary>
-        public bool? isVirtual;
-        /// <summary>
-        /// Whether this declaration is an abstract schema member. Optional on
-        /// the wire; only <c>true</c> is abstract. An overriding row is the
-        /// implementation unless it explicitly declares this flag again.
-        /// </summary>
-        public bool? isAbstract;
-        /// <summary>
-        /// True when this instance property is getter-only. Concrete read-only
-        /// declarations are backed directly by their <c>defaultValue</c> and
-        /// have no key/value edge on individual Class rows. Abstract read-only
-        /// declarations are value-less getter contracts which a concrete class
-        /// must implement with a concrete read-only override. Optional on the
-        /// wire; only an explicit <c>true</c> enables the behavior.
-        /// </summary>
-        public bool? isReadOnly;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoMemberAccessKind? access;
         /// <summary>
         /// When set, this member is an *override* of the referenced
         /// member. Most other fields may be absent on overrides;
@@ -84,13 +60,12 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public string? valueId;
         /// <summary>
-        /// Storage class override (specs/member-storage.md): "immutable",
-        /// "save", or "session". Absent means the member inherits its
-        /// placement parent's effective storage. Resolved through the
-        /// <see cref="extendsMemberId"/> chain like other override
-        /// fields.
+        /// Storage class override. Absence inherits through the override
+        /// member chain. A present zero stops that chain and selects placement-
+        /// parent inheritance.
         /// </summary>
-        public string? storage;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoMemberStorage? storage;
         /// <summary>
         /// Storage-partition declaration
         /// (specs/list-member-and-tilegrid-scaling.md §6): values created
@@ -115,6 +90,165 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         internal string RuntimeDeclarationIdentity =>
             substitutedDeclarationIdentity ?? id;
+
+        [JsonIgnore]
+        internal NeoEffectiveMemberShape? effectiveShape;
+
+        [JsonIgnore]
+        private HashSet<string>? declaredWireFields;
+
+        [JsonIgnore]
+        private Dictionary<string, object?>? originalChainResolvedFields;
+
+        [JsonIgnore]
+        private Dictionary<string, object?>? materializedChainResolvedFields;
+
+        internal void RecordDeclaredWireFields(IEnumerable<JProperty> properties)
+        {
+            declaredWireFields = new HashSet<string>(StringComparer.Ordinal);
+            foreach (JProperty property in properties)
+            {
+                declaredWireFields.Add(property.Name);
+            }
+        }
+
+        internal void PrepareChainResolvedFields()
+        {
+            if (originalChainResolvedFields is not null)
+            {
+                if (materializedChainResolvedFields is not null)
+                {
+                    foreach (var pair in materializedChainResolvedFields)
+                    {
+                        if (!MemberChainResolvedFields.TryRead(this, pair.Key, out object? current)
+                            || Equals(current, pair.Value))
+                        {
+                            continue;
+                        }
+                        originalChainResolvedFields[pair.Key] = current;
+                        if (current is not null || !string.IsNullOrEmpty(extendsMemberId))
+                        {
+                            declaredWireFields!.Add(pair.Key);
+                        }
+                        else
+                        {
+                            declaredWireFields!.Remove(pair.Key);
+                        }
+                    }
+                }
+                foreach (var pair in originalChainResolvedFields)
+                {
+                    MemberChainResolvedFields.TryWrite(this, pair.Key, pair.Value);
+                }
+                materializedChainResolvedFields = null;
+                return;
+            }
+
+            bool inferDeclarations = declaredWireFields is null;
+            declaredWireFields ??= new HashSet<string>(StringComparer.Ordinal);
+            originalChainResolvedFields = new Dictionary<string, object?>(StringComparer.Ordinal);
+            foreach (string field in MemberChainResolvedFields.ResolutionFields)
+            {
+                if (!MemberChainResolvedFields.TryRead(this, field, out object? value))
+                {
+                    continue;
+                }
+                originalChainResolvedFields[field] = value;
+                if (inferDeclarations && value is not null)
+                {
+                    declaredWireFields.Add(field);
+                }
+            }
+            if (inferDeclarations
+                && this is LookupMember lookup
+                && lookup.CollectionValueIdWasAssigned)
+            {
+                declaredWireFields.Add("collectionValueId");
+            }
+        }
+
+        internal bool DeclaresWireField(string field)
+        {
+            if (declaredWireFields is not null)
+            {
+                return declaredWireFields.Contains(field);
+            }
+            if (field == "collectionValueId"
+                && this is LookupMember lookup
+                && lookup.CollectionValueIdWasAssigned)
+            {
+                return true;
+            }
+            return MemberChainResolvedFields.TryRead(this, field, out object? value)
+                && value is not null;
+        }
+
+        internal bool TryReadOriginalChainResolvedField(
+            string field,
+            out object? value)
+        {
+            if (originalChainResolvedFields is not null)
+            {
+                return originalChainResolvedFields.TryGetValue(field, out value);
+            }
+            return MemberChainResolvedFields.TryRead(this, field, out value);
+        }
+
+        internal void RecordMaterializedChainResolvedField(string field, object? value)
+        {
+            materializedChainResolvedFields ??=
+                new Dictionary<string, object?>(StringComparer.Ordinal);
+            materializedChainResolvedFields[field] = value;
+        }
+
+        private bool ShouldSerializeChainResolvedField(string field)
+        {
+            if (!DeclaresWireField(field)) return false;
+            TryReadOriginalChainResolvedField(field, out object? value);
+            return value is not null || !string.IsNullOrEmpty(extendsMemberId);
+        }
+
+        public bool ShouldSerializedefaultValue() => ShouldSerializeChainResolvedField("defaultValue");
+        public bool ShouldSerializestorageKey() => ShouldSerializeChainResolvedField("storageKey");
+        public bool ShouldSerializeminValue() => ShouldSerializeChainResolvedField("minValue");
+        public bool ShouldSerializemaxValue() => ShouldSerializeChainResolvedField("maxValue");
+        public bool ShouldSerializedecimalPoints() => ShouldSerializeChainResolvedField("decimalPoints");
+        public bool ShouldSerializeindexes() => ShouldSerializeChainResolvedField("indexes");
+        public bool ShouldSerializecolumnSettings() => ShouldSerializeChainResolvedField("columnSettings");
+        public bool ShouldSerializeschemaKeyOrder() => ShouldSerializeChainResolvedField("schemaKeyOrder");
+        public bool ShouldSerializeclassArguments() => ShouldSerializeChainResolvedField("classArguments");
+        public bool ShouldSerializecollectionValueId() => ShouldSerializeChainResolvedField("collectionValueId");
+        public bool ShouldSerializedeclaredTypeInfo() => ShouldSerializeChainResolvedField("declaredTypeInfo");
+        public bool ShouldSerializetargetTypeInfo() => ShouldSerializeChainResolvedField("targetTypeInfo");
+        public bool ShouldSerializevalueTypeInfo() => ShouldSerializeChainResolvedField("valueTypeInfo");
+        public bool ShouldSerializedialogueGroupId() => ShouldSerializeChainResolvedField("dialogueGroupId");
+        public bool ShouldSerializecode() => ShouldSerializeChainResolvedField("code");
+        public bool ShouldSerializesetterCode() => ShouldSerializeChainResolvedField("setterCode");
+        public bool ShouldSerializetemplateId() => ShouldSerializeChainResolvedField("templateId");
+        public bool ShouldSerializeuiAction() => ShouldSerializeChainResolvedField("uiAction");
+        public bool ShouldSerializegetter() => ShouldSerializeChainResolvedField("getter");
+        public bool ShouldSerializesetter() => ShouldSerializeChainResolvedField("setter");
+        public bool ShouldSerializeaction() => ShouldSerializeChainResolvedField("action");
+
+        [JsonIgnore]
+        public NeoMemberRequirementKind EffectiveRequirement =>
+            requirement ?? effectiveShape?.requirement ?? NeoMemberRequirementKind.Optional;
+
+        [JsonIgnore]
+        public NeoMemberMutabilityKind EffectiveMutability =>
+            mutability ?? effectiveShape?.mutability ?? NeoMemberMutabilityKind.Mutable;
+
+        [JsonIgnore]
+        public NeoMemberModifierKind EffectiveModifier =>
+            modifier ?? effectiveShape?.modifier ?? NeoMemberModifierKind.Virtual;
+
+        [JsonIgnore]
+        public NeoMemberAccessKind EffectiveAccess =>
+            access ?? effectiveShape?.access ?? NeoMemberAccessKind.Public;
+
+        [JsonIgnore]
+        public NeoMemberStorage EffectiveStorage =>
+            storage ?? effectiveShape?.storage ?? NeoMemberStorage.Inherit;
 
         /// <summary>
         /// Shallow member-wise copy preserving the concrete subclass.
@@ -192,13 +326,23 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Mirror of TS-side <c>TMemberString</c>.</summary>
     public class StringMember : Member<string?>
     {
-        public bool localizable = true;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoStringFormatKind? format;
         /// <summary>
         /// Opts this String into the per-instance search projection. A
         /// declaration-backed read-only field cannot enable it because no
         /// per-instance row exists to index.
         /// </summary>
-        public bool? searchKey;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoMemberSearchByKind? searchBy;
+
+        [JsonIgnore]
+        public NeoStringFormatKind EffectiveFormat =>
+            format ?? effectiveShape?.format ?? NeoStringFormatKind.Localized;
+
+        [JsonIgnore]
+        public NeoMemberSearchByKind EffectiveSearchBy =>
+            searchBy ?? effectiveShape?.searchBy ?? NeoMemberSearchByKind.None;
     }
 
     /// <summary>Mirror of TS-side <c>TMemberDictionary</c>.</summary>
@@ -207,16 +351,18 @@ namespace NeoCompose.Runtime.Json
         public string entryMemberId = null!;
 
         /// <summary>
-        /// Dictionary key kind (mirrors TS-side <c>TDictionaryKeyKind</c>):
-        /// "string" (free-text keys) or "enum" (keys are option ids of the
-        /// enum referenced by <see cref="keyEnumId"/>). Immutable after
-        /// creation.
+        /// Dictionary key kind. Absent means free-text string keys; Enum uses
+        /// option ids from the enum referenced by <see cref="keyEnumId"/>.
         /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string keyKind = null!;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoDictionaryKeyKind? keyKind;
+
+        [JsonIgnore]
+        public NeoDictionaryKeyKind EffectiveKeyKind =>
+            keyKind ?? effectiveShape?.dictionaryKeyKind ?? NeoDictionaryKeyKind.String;
 
         /// <summary>
-        /// Present iff <see cref="keyKind"/> is "enum": the enum whose
+        /// Present iff <see cref="keyKind"/> is Enum: the enum whose
         /// option ids are the only valid keys. The value wire shape is
         /// unchanged — entry keys are still strings that happen to be
         /// option ids of this enum.
@@ -224,43 +370,33 @@ namespace NeoCompose.Runtime.Json
         public string? keyEnumId;
     }
 
-    /// <summary>Well-known values for <see cref="DictionaryMember.keyKind"/>.</summary>
-    public static class NeoDictionaryKeyKinds
-    {
-        public const string String = "string";
-        public const string Enum = "enum";
-    }
-
     internal static class NeoDictionaryMemberContract
     {
         internal static string? GetValidationError(
-            string? keyKind,
+            NeoDictionaryKeyKind? keyKind,
             string? keyEnumId)
         {
-            if (keyKind is null)
+            NeoDictionaryKeyKind effectiveKind =
+                keyKind ?? NeoDictionaryKeyKind.String;
+            if (!System.Enum.IsDefined(typeof(NeoDictionaryKeyKind), effectiveKind))
             {
-                return "is missing required field 'keyKind'.";
+                return $"has unknown keyKind ordinal '{(int)effectiveKind}'.";
             }
-            if (keyKind != NeoDictionaryKeyKinds.String
-                && keyKind != NeoDictionaryKeyKinds.Enum)
-            {
-                return $"has unknown keyKind '{keyKind}'; expected \"string\" or \"enum\".";
-            }
-            if (keyKind == NeoDictionaryKeyKinds.Enum)
+            if (effectiveKind == NeoDictionaryKeyKind.Enum)
             {
                 if (keyEnumId is null)
                 {
-                    return "uses keyKind 'enum' but is missing required field 'keyEnumId'.";
+                    return "uses keyKind 'Enum' but is missing required field 'keyEnumId'.";
                 }
                 if (keyEnumId.Length == 0)
                 {
-                    return "uses keyKind 'enum' but field 'keyEnumId' is empty.";
+                    return "uses keyKind 'Enum' but field 'keyEnumId' is empty.";
                 }
                 return null;
             }
             if (keyEnumId is not null)
             {
-                return "uses keyKind 'string' but also defines field 'keyEnumId'.";
+                return "uses keyKind 'String' but also defines field 'keyEnumId'.";
             }
             return null;
         }
@@ -268,13 +404,41 @@ namespace NeoCompose.Runtime.Json
 
     /// <summary>
     /// One derived index declared by a List member. The key is read from
-    /// the Class entry field at <see cref="schemaKey"/>; <see cref="unique"/>
+    /// the Class entry field at <see cref="schemaKey"/>; <see cref="kind"/>
     /// selects zero-or-one versus zero-or-many lookup semantics.
     /// </summary>
     public sealed class ListIndexDefinition
     {
         public string schemaKey = null!;
-        public bool unique;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoListIndexKind? kind;
+
+        [JsonIgnore]
+        public NeoListIndexKind EffectiveKind => kind ?? NeoListIndexKind.Bucket;
+    }
+
+    /// <summary>Authoring layout for one Class field shown in a List.</summary>
+    public sealed class ListColumnSetting
+    {
+        public string memberKey = null!;
+        public double? width;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoColumnVisibilityKind? visibility;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoColumnPinKind? pin;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoColumnOverflowKind? overflow;
+
+        [JsonIgnore]
+        public NeoColumnVisibilityKind EffectiveVisibility =>
+            visibility ?? NeoColumnVisibilityKind.Visible;
+
+        [JsonIgnore]
+        public NeoColumnPinKind EffectivePin => pin ?? NeoColumnPinKind.None;
+
+        [JsonIgnore]
+        public NeoColumnOverflowKind EffectiveOverflow =>
+            overflow ?? NeoColumnOverflowKind.Clip;
     }
 
     /// <summary>Mirror of TS-side <c>TMemberList</c>.</summary>
@@ -283,16 +447,20 @@ namespace NeoCompose.Runtime.Json
         public string entryMemberId = null!;
 
         /// <summary>
-        /// List kind (mirrors TS-side <c>TListKind</c>): "ordered"
-        /// (or absent — today's behavior: entries stored inline as a
+        /// Ordered (or absent) stores entries inline as a
         /// <c>string[]</c> of entry value ids, array order is the list
-        /// order) or "unordered" (the stored value is ONLY the
+        /// order. Unordered uses the stored value only as the
         /// null-vs-present discriminator — <c>null</c> or <c>[]</c>;
         /// membership resolves by join over
         /// <see cref="MemberValue.containerId"/>). Immutable after
         /// creation.
         /// </summary>
-        public string? listKind;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoListKind? listKind;
+
+        [JsonIgnore]
+        public NeoListKind EffectiveListKind =>
+            listKind ?? effectiveShape?.listKind ?? NeoListKind.Ordered;
 
         /// <summary>
         /// Optional derived indexes over String or single-select Enum fields
@@ -300,13 +468,9 @@ namespace NeoCompose.Runtime.Json
         /// never serialized.
         /// </summary>
         public ListIndexDefinition[]? indexes;
-    }
 
-    /// <summary>Well-known values for <see cref="ListMember.listKind"/>.</summary>
-    public static class NeoListKinds
-    {
-        public const string Ordered = "ordered";
-        public const string Unordered = "unordered";
+        /// <summary>Optional authoring layout retained for export round trips.</summary>
+        public ListColumnSetting[]? columnSettings;
     }
 
     /// <summary>Mirror of TS-side <c>TMemberClass</c>.</summary>
@@ -315,10 +479,14 @@ namespace NeoCompose.Runtime.Json
         public string classId = null!;
 
         /// <summary>
-        /// True when this Class reference stores a recursive sparse override
-        /// graph rather than a complete Class value.
+        /// Selects a full Class value or recursive sparse override graph.
         /// </summary>
-        public bool? partial;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoMemberPayloadKind? payload;
+
+        [JsonIgnore]
+        public NeoMemberPayloadKind EffectivePayload =>
+            payload ?? effectiveShape?.payload ?? NeoMemberPayloadKind.Full;
 
         /// <summary>
         /// Present iff <see cref="classId"/> references a class with
@@ -329,6 +497,9 @@ namespace NeoCompose.Runtime.Json
         /// the same semantics as the web model.
         /// </summary>
         public Dictionary<string, GenericBinding>? classArguments;
+
+        /// <summary>Optional authored schema-key ordering metadata.</summary>
+        public string[]? schemaKeyOrder;
     }
 
     /// <summary>
@@ -338,7 +509,7 @@ namespace NeoCompose.Runtime.Json
     /// exists under a closed context where
     /// <c>NeoGenericResolution.SubstituteMember</c> has already replaced
     /// it with the terminal binding member), so <c>TValue</c> is
-    /// <c>object?</c> and <c>defaultValue</c>/<c>required</c> are never set
+    /// <c>object?</c> and <c>defaultValue</c>/<c>requirement</c> are never set
     /// (both travel with the binding — Decision 10).
     /// </summary>
     public class GenericMember : Member<object?>
@@ -347,32 +518,72 @@ namespace NeoCompose.Runtime.Json
         public string genericParamId = null!;
 
         /// <summary>
-        /// True when the generic slot is a recursive sparse Partial value.
+        /// Selects a full value or recursive sparse Partial value.
         /// Animation system definitions use this for Partial&lt;TTarget&gt;.
         /// </summary>
-        public bool? partial;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoMemberPayloadKind? payload;
+
+        [JsonIgnore]
+        public NeoMemberPayloadKind EffectivePayload =>
+            payload ?? effectiveShape?.payload ?? NeoMemberPayloadKind.Full;
     }
 
     /// <summary>Mirror of TS-side <c>TMemberEnum</c>.</summary>
     public class EnumMember : Member<string[]?>
     {
         public string enumId = null!;
-        public bool multiselect;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoMemberSelectionKind? selection;
+
+        [JsonIgnore]
+        public NeoMemberSelectionKind EffectiveSelection =>
+            selection ?? effectiveShape?.selection ?? NeoMemberSelectionKind.Single;
     }
 
     /// <summary>
     /// Mirror of TS-side <c>TMemberLookup</c>.
     /// <see cref="collectionValueId"/> is <c>string | null | undefined</c>
-    /// on the wire (distinct from absent — see the TS-side docs):
-    /// <c>null</c> means "use the parent collection's valueId";
-    /// a present id means "drill into that specific entry". Nullable
-    /// here preserves both cases.
+    /// on sparse overrides. Absence inherits the ancestor declaration while a
+    /// present <c>null</c> explicitly clears it. On a full declaration, null
+    /// and absence both mean that the runtime resolves the collection value
+    /// from its placement.
     /// </summary>
     public class LookupMember : Member<string[]?>
     {
         public string collectionMemberId = null!;
-        public string? collectionValueId;
-        public bool multiselect;
+        private string? _collectionValueId;
+        private bool collectionValueIdWasAssigned;
+
+        [JsonIgnore]
+        internal bool CollectionValueIdWasAssigned => collectionValueIdWasAssigned;
+
+        public string? collectionValueId
+        {
+            get => _collectionValueId;
+            set
+            {
+                _collectionValueId = value;
+                collectionValueIdWasAssigned = true;
+                effectiveShape?.SetChainResolvedValue("collectionValueId", value);
+            }
+        }
+
+        [JsonIgnore]
+        public string? EffectiveCollectionValueId =>
+            effectiveShape is null
+                ? _collectionValueId
+                : effectiveShape.GetChainResolvedValue<string>("collectionValueId");
+
+        /// <summary>Optional declared Lookup type metadata.</summary>
+        public TypeInfo? declaredTypeInfo;
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoMemberSelectionKind? selection;
+
+        [JsonIgnore]
+        public NeoMemberSelectionKind EffectiveSelection =>
+            selection ?? effectiveShape?.selection ?? NeoMemberSelectionKind.Single;
     }
 
     /// <summary>
@@ -385,7 +596,12 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class DialogueLookupMember : Member<string[]?>
     {
-        public bool multiselect;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoMemberSelectionKind? selection;
+
+        [JsonIgnore]
+        public NeoMemberSelectionKind EffectiveSelection =>
+            selection ?? effectiveShape?.selection ?? NeoMemberSelectionKind.Single;
         public string? dialogueGroupId;
     }
 
@@ -586,7 +802,12 @@ namespace NeoCompose.Runtime.Json
         [JsonConverter(typeof(FunctionReturnTypeInfoConverter))]
         public TypeInfo returnTypeInfo = null!;
         public FunctionArgumentTypeInfo[] argumentTypes = null!;
-        public bool? deferred;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoFunctionDispatchKind? dispatch;
+
+        [JsonIgnore]
+        public NeoFunctionDispatchKind EffectiveDispatch =>
+            dispatch ?? effectiveShape?.dispatch ?? NeoFunctionDispatchKind.Synchronous;
     }
 
     /// <summary>
@@ -601,9 +822,10 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>
         /// Optional authored body mode. Absent means custom NeoScript;
-        /// <c>ui</c> means <see cref="uiAction"/> is the logic-builder IR.
+        /// UI means <see cref="uiAction"/> is the logic-builder IR.
         /// </summary>
-        public string? bodyMode;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoFunctionBodyKind? bodyMode;
 
         /// <summary>
         /// Single-instruction UI action retained for round trip. The compiled
@@ -615,7 +837,16 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo returnTypeInfo = null!;
 
         public FunctionArgumentTypeInfo[] argumentTypes = null!;
-        public bool? deferred;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoFunctionDispatchKind? dispatch;
+
+        [JsonIgnore]
+        public NeoFunctionDispatchKind EffectiveDispatch =>
+            dispatch ?? effectiveShape?.dispatch ?? NeoFunctionDispatchKind.Synchronous;
+
+        [JsonIgnore]
+        public NeoFunctionBodyKind EffectiveBodyMode =>
+            bodyMode ?? effectiveShape?.bodyMode ?? NeoFunctionBodyKind.Code;
         public FunctionWithReturnType action = null!;
     }
 
@@ -643,8 +874,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
-    /// Reference to a callable member. Only locked system declarations may
-    /// use this value-bearing kind in schema 12.
+    /// Reference to a callable member.
     /// </summary>
     public sealed class FunctionRefMember : Member<Dictionary<string, string>?> { }
 
@@ -684,7 +914,11 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of TS-side <c>TMemberVariant</c>.</summary>
-    public class VariantMember : Member<VariantRefValue?> { }
+    public class VariantMember : Member<VariantRefValue?>
+    {
+        public TypeInfo? targetTypeInfo;
+        public TypeInfo? valueTypeInfo;
+    }
 
     /// <summary>Mirror of TS-side <c>TMemberSprite</c>.</summary>
     public class SpriteMember : Member<SpriteValue?>
@@ -736,36 +970,13 @@ namespace NeoCompose.Runtime.Json
     {
         protected override string DiscriminatorField => "kind";
 
+        protected override void ValidateObjectBeforeDiscriminator(JObject obj)
+        {
+            P80RecordShapeGuard.ValidateMemberRecord(obj);
+        }
+
         protected override void ValidateObject(JObject obj, Type concrete)
         {
-            if (!obj.TryGetValue("isStatic", out var isStatic))
-            {
-                throw new JsonSerializationException(
-                    $"Missing required field 'isStatic' on {concrete.Name}.");
-            }
-            if (isStatic.Type != JTokenType.Boolean)
-            {
-                throw new JsonSerializationException(
-                    $"Field 'isStatic' on {concrete.Name} must be a boolean.");
-            }
-            if (!obj.TryGetValue("accessModifierKind", out var accessModifierKind))
-            {
-                throw new JsonSerializationException(
-                    $"Missing required field 'accessModifierKind' on {concrete.Name}.");
-            }
-            if (accessModifierKind.Type != JTokenType.String)
-            {
-                throw new JsonSerializationException(
-                    $"Field 'accessModifierKind' on {concrete.Name} must be a string.");
-            }
-            var accessModifierValue = accessModifierKind.Value<string>();
-            if (accessModifierValue != "public"
-                && accessModifierValue != "protected"
-                && accessModifierValue != "private")
-            {
-                throw new JsonSerializationException(
-                    $"Field 'accessModifierKind' on {concrete.Name} has unknown value '{accessModifierValue}'; expected \"public\", \"protected\", or \"private\".");
-            }
             // P42 decision D10 — a declaration default is never an animation
             // override graph, so a `~partial` envelope in one is invalid.
             // MemberValueBaseConverter raises the same error, but only this
@@ -782,10 +993,10 @@ namespace NeoCompose.Runtime.Json
             JToken? keyKindToken = obj["keyKind"];
             if (keyKindToken is not null
                 && keyKindToken.Type != JTokenType.Null
-                && keyKindToken.Type != JTokenType.String)
+                && keyKindToken.Type != JTokenType.Integer)
             {
                 throw new JsonSerializationException(
-                    "Dictionary member field 'keyKind' must be a string.");
+                    "Dictionary member field 'keyKind' must be a numeric enum ordinal.");
             }
             JToken? keyEnumIdToken = obj["keyEnumId"];
             if (keyEnumIdToken is not null
@@ -797,12 +1008,19 @@ namespace NeoCompose.Runtime.Json
             }
 
             string? error = NeoDictionaryMemberContract.GetValidationError(
-                keyKindToken?.Value<string>(),
+                keyKindToken?.Type == JTokenType.Integer
+                    ? (NeoDictionaryKeyKind?)keyKindToken.Value<int>()
+                    : null,
                 keyEnumIdToken?.Value<string>());
             if (error is not null)
             {
                 throw new JsonSerializationException($"Dictionary member {error}");
             }
+        }
+
+        protected override void OnPopulated(JObject obj, Member instance)
+        {
+            instance.RecordDeclaredWireFields(obj.Properties());
         }
 
         protected override Type? ResolveSubclass(JToken discriminator)

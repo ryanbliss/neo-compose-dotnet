@@ -2,7 +2,6 @@
 @system(kind: .WorldAuthoring, worldKind: .TileInstance)
 class NeoTileInstance {
   @id("system_f4be2707-74f5-4833-9784-e81bb2474330")
-  @locked
   @system(kind: .WorldAuthoring)
   public virtual Vector2Int Cell = new(0, 0);
 }

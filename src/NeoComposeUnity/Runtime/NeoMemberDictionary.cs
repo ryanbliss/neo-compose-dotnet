@@ -191,7 +191,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void SetSerialized(string key, NeoValueWritePayload? setValue)
         {
-            if (entryMember.required && (setValue is null || setValue.isNull))
+            if (entryMember.EffectiveRequirement == NeoMemberRequirementKind.Required && (setValue is null || setValue.isNull))
             {
                 throw new System.ArgumentNullException(
                     nameof(setValue),

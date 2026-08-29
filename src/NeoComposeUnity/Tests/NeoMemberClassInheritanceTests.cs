@@ -110,7 +110,7 @@ namespace NeoCompose.Tests
                 projectId = "test-project",
                 name = "CategoryKind",
                 kind = MemberKind.Enum,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 enumId = enumId,
                 defaultValue = new ArrayMemberValueBase
                 {
@@ -137,7 +137,7 @@ namespace NeoCompose.Tests
                 projectId = "test-project",
                 name = "HatColor",
                 kind = MemberKind.Class,
-                required = false,
+                requirement = NeoMemberRequirementKind.Optional,
                 classId = selectorClassId,
                 defaultValue = new ObjectMemberValueBase
                 {
@@ -191,7 +191,7 @@ namespace NeoCompose.Tests
             // computed child that cannot be literalized.
             saveValue.value.Clear();
             var selectorMember = (ClassMember)data.members[selectorMemberId];
-            selectorMember.required = true;
+            selectorMember.requirement = NeoMemberRequirementKind.Required;
             selectorMember.defaultValue = new ObjectMemberValueBase
             {
                 value = new Dictionary<string, string>(),

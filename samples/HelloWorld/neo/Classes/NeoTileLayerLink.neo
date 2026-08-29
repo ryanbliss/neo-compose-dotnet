@@ -2,7 +2,6 @@
 @system(kind: .WorldAuthoring, worldKind: .TileLayerLink)
 abstract class NeoTileLayerLink : NeoLayerGroupBase {
   @id("system_98655d2b-ad0b-45e2-a901-62600b4d3a22")
-  @locked
   @settings(kind: .Unordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoTileInstance> Tiles = [];

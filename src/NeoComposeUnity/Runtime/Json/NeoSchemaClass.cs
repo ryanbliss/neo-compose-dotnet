@@ -31,12 +31,18 @@ namespace NeoCompose.Runtime.Json
         /// through <see cref="extendsClassId"/> are not repeated here.
         /// </summary>
         public List<string>? implementsInterfaceIds;
-        public bool hiddenInMemberSelector;
-        public bool isAbstract;
-        /// <summary>
-        /// Whether authored and generated types may derive from this class.
-        /// </summary>
-        public bool isSealed;
+        [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public NeoClassVisibilityKind? uiVisibility;
+        [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public NeoClassModifierKind? modifier;
+
+        [Newtonsoft.Json.JsonIgnore]
+        public NeoClassVisibilityKind EffectiveUiVisibility =>
+            uiVisibility ?? NeoClassVisibilityKind.Visible;
+
+        [Newtonsoft.Json.JsonIgnore]
+        public NeoClassModifierKind EffectiveModifier =>
+            modifier ?? NeoClassModifierKind.Open;
 
         /// <summary>
         /// Optional system metadata emitted for protected authoring classes.
@@ -46,12 +52,12 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public JObject? system;
         /// <summary>
-        /// Storage placement constraint (specs/member-storage.md §4.3):
-        /// "immutable", "save", or "session". Absent/null means the class may be
-        /// placed at any storage class. Inherited through
-        /// <see cref="extendsClassId"/> (narrow-only).
+        /// Storage placement constraint. Absent means
+        /// <see cref="NeoMemberStorage.Inherit"/> and resolves through
+        /// <see cref="extendsClassId"/>.
         /// </summary>
-        public string? allowedStorage;
+        [Newtonsoft.Json.JsonProperty(DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Ignore)]
+        public NeoMemberStorage allowedStorage;
         /// <summary>
         /// Ordered generic parameter declarations
         /// (specs/class-generics.md Decision 2). Absent/empty means a

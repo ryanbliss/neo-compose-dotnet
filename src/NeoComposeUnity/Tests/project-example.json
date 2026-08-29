@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 28,
+    "schemaVersion": 29,
     "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
     "versionId": "version-1",
     "semver": {
@@ -28,10 +28,6 @@
       "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c",
       "name": "Assets",
       "kind": 7,
-      "locked": true,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -39,17 +35,14 @@
       "valueId": "e5b02003-d505-46a7-95fb-c11f1a412b61",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-22T04:37:20.831Z",
-      "updatedAt": "2026-04-22T04:37:20.831Z"
+      "updatedAt": "2026-04-22T04:37:20.831Z",
+      "requirement": 1
     },
     "97f1760a-972a-469b-8ceb-67800332deb2": {
       "_id": "69e8508119f7c06f14880285",
       "classId": "eef03495-48c4-4760-8b4c-dc41b6d9e589",
       "name": "Save",
       "kind": 7,
-      "locked": true,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -57,17 +50,14 @@
       "valueId": "50455a56-c450-47d9-8a51-13a5146dfda6",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-22T04:37:21.099Z",
-      "updatedAt": "2026-04-22T04:37:21.099Z"
+      "updatedAt": "2026-04-22T04:37:21.099Z",
+      "requirement": 1
     },
     "0d5f42dd-f6c9-4d54-84dd-b69cb9ef7b3a": {
       "_id": "0d5f42dd-f6c9-4d54-84dd-b69cb9ef7b3a",
       "classId": "eef03495-48c4-4760-8b4c-dc41b6d9e589",
       "name": "Session",
       "kind": 7,
-      "locked": true,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -75,15 +65,12 @@
       "valueId": "2bf832e4-871f-4998-ae8f-b77e62f11099",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-22T04:37:21.099Z",
-      "updatedAt": "2026-04-22T04:37:21.099Z"
+      "updatedAt": "2026-04-22T04:37:21.099Z",
+      "requirement": 1
     },
     "9f54fe67-67b9-4fc9-b6e8-9001f3569613": {
       "_id": "69e850ad19f7c06f14880288",
       "name": "Name",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": ""
       },
@@ -92,15 +79,12 @@
       "valueId": "4181a582-2a2e-4b47-ab17-b85f308a6d54",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-22T04:38:05.153Z",
-      "updatedAt": "2026-04-22T04:38:05.153Z"
+      "updatedAt": "2026-04-22T04:38:05.153Z",
+      "requirement": 1
     },
     "7b457726-cc42-4c38-83bc-ec8f4d3baa65": {
       "_id": "69e8510d19f7c06f1488028f",
       "name": "Name",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": ""
       },
@@ -109,15 +93,12 @@
       "valueId": "e2303093-430f-4323-b4df-76a89ce2a583",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-22T04:39:41.641Z",
-      "updatedAt": "2026-04-22T04:39:41.641Z"
+      "updatedAt": "2026-04-22T04:39:41.641Z",
+      "requirement": 1
     },
     "d0c95142-c80b-4922-9a96-ed95aab7963e": {
       "_id": "69e8512319f7c06f14880292",
       "name": "Moneys",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": 0
       },
@@ -126,15 +107,12 @@
       "valueId": "44e04694-489b-4d55-9a09-7c79b6f33503",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-22T04:40:03.177Z",
-      "updatedAt": "2026-04-22T04:40:03.177Z"
+      "updatedAt": "2026-04-22T04:40:03.177Z",
+      "requirement": 1
     },
     "bcc25069-6ddc-4b7d-8135-9f8306a64782": {
       "_id": "69e8514b19f7c06f14880295",
       "name": "Enabled",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": true
       },
@@ -143,15 +121,12 @@
       "valueId": "d53bf090-7216-49a7-a5cb-8baf6d6f70c2",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-22T04:40:43.361Z",
-      "updatedAt": "2026-04-22T04:40:43.361Z"
+      "updatedAt": "2026-04-22T04:40:43.361Z",
+      "requirement": 1
     },
     "d70c80cf-3c6b-47d6-a375-bcb5db521670": {
       "_id": "69e8540c19f7c06f14880299",
       "name": "NPCs",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -161,15 +136,12 @@
       "valueId": "282f098e-3c0a-4edd-8d81-92e06d107b48",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-22T04:52:28.861Z",
-      "updatedAt": "2026-04-22T04:52:28.861Z"
+      "updatedAt": "2026-04-22T04:52:28.861Z",
+      "requirement": 1
     },
     "b9a9848a-fe80-4be6-80e3-f1f440959572": {
       "_id": "69e8540c19f7c06f1488029b",
       "name": "NPCs",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": []
       },
@@ -179,15 +151,12 @@
       "valueId": "efe458b7-64db-403f-9dad-1abeba5ae226",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-22T04:52:28.993Z",
-      "updatedAt": "2026-04-22T04:52:28.993Z"
+      "updatedAt": "2026-04-22T04:52:28.993Z",
+      "requirement": 1
     },
     "0f163f4e-0d27-48d0-9fde-7ee884aa6708": {
       "_id": "69e8553719f7c06f1488029e",
       "name": "Name",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": ""
       },
@@ -196,15 +165,12 @@
       "valueId": "346ed1da-4952-4da9-a53b-af7088c26b9e",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-22T04:57:27.910Z",
-      "updatedAt": "2026-04-22T04:57:27.910Z"
+      "updatedAt": "2026-04-22T04:57:27.910Z",
+      "requirement": 1
     },
     "52e741de-f518-4176-989b-2fbdc6a5ddbb": {
       "_id": "69e8555819f7c06f148802a0",
       "name": "Age",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": 18
       },
@@ -213,15 +179,12 @@
       "valueId": "b80cf04d-d8be-4077-91f4-315f569657b0",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-22T04:58:00.772Z",
-      "updatedAt": "2026-04-22T04:58:00.772Z"
+      "updatedAt": "2026-04-22T04:58:00.772Z",
+      "requirement": 1
     },
     "5813f00c-4002-4ca1-9a73-b3a3c5c0d498": {
       "_id": "69e8557619f7c06f148802a2",
       "name": "Can Romance",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": false
       },
@@ -230,15 +193,12 @@
       "valueId": "c9780fd0-318a-4e88-9de2-de51cbbe9330",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-22T04:58:30.253Z",
-      "updatedAt": "2026-04-22T04:58:30.253Z"
+      "updatedAt": "2026-04-22T04:58:30.253Z",
+      "requirement": 1
     },
     "d3788116-a26c-4966-b605-98241aefcae6": {
       "_id": "69e858b419f7c06f148802a8",
       "name": "Blah",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": ""
       },
@@ -247,15 +207,12 @@
       "valueId": "4e423c2f-b6c7-45bc-940b-a2d6f3a97cea",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-22T05:12:20.087Z",
-      "updatedAt": "2026-04-22T05:12:20.087Z"
+      "updatedAt": "2026-04-22T05:12:20.087Z",
+      "requirement": 1
     },
     "0f4de3bc-65eb-462d-ba32-225ebbb088f1": {
       "_id": "69e85d2519f7c06f148802ab",
       "name": "DictionaryText",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": ""
       },
@@ -264,15 +221,12 @@
       "valueId": "7e440695-1c39-4492-8042-85dadcf75033",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-22T05:31:17.654Z",
-      "updatedAt": "2026-04-22T05:31:17.654Z"
+      "updatedAt": "2026-04-22T05:31:17.654Z",
+      "requirement": 1
     },
     "bafdf6df-22df-43fd-92e0-31c9d0201316": {
       "_id": "69e85d2519f7c06f148802ad",
       "name": "Dictionary",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -283,15 +237,12 @@
       "valueId": "99466d75-e516-4b9b-86bf-fdbae178cb5d",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-22T05:31:17.750Z",
-      "updatedAt": "2026-04-22T05:31:17.750Z"
+      "updatedAt": "2026-04-22T05:31:17.750Z",
+      "requirement": 1
     },
     "15585361-6fe5-4a9b-803f-02d08bde68de": {
       "_id": "69e91337183cdae95a4129c9",
       "name": "Combo",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": [
           "A"
@@ -299,40 +250,33 @@
       },
       "kind": 8,
       "enumId": "3b2883b6-a8ac-4946-8b84-233612c23111",
-      "multiselect": false,
       "id": "15585361-6fe5-4a9b-803f-02d08bde68de",
       "valueId": "17967a08-8704-4026-bc7c-ef4f2551bc3a",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": {},
       "updatedAt": "2026-04-29T19:32:04.562Z",
-      "extendsMemberId": null
+      "extendsMemberId": null,
+      "requirement": 1
     },
     "7e4bca19-1083-4702-be96-ef8fa3e1f0ab": {
       "_id": "69e9397a7e9cf57d65201d3d",
       "name": "Combo Multi",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": []
       },
       "kind": 8,
       "enumId": "3b2883b6-a8ac-4946-8b84-233612c23111",
-      "multiselect": true,
       "id": "7e4bca19-1083-4702-be96-ef8fa3e1f0ab",
       "valueId": "ec5f10f3-9ee4-478d-84fa-7a92db78820f",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": {},
-      "updatedAt": "2026-04-29T19:32:04.627Z"
+      "updatedAt": "2026-04-29T19:32:04.627Z",
+      "requirement": 1,
+      "selection": 1
     },
     "ec4dea9f-a8b2-4a0e-9765-ccc6449c7e34": {
       "_id": "69e9c226eb4037f909be5062",
       "name": "InventoryItem",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -342,15 +286,12 @@
       "valueId": "7e365fca-f9ca-4ac9-b671-72081178e717",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-23T06:54:30.961Z",
-      "updatedAt": "2026-04-23T06:54:30.961Z"
+      "updatedAt": "2026-04-23T06:54:30.961Z",
+      "requirement": 1
     },
     "6947e152-b4f1-409b-afa2-e178107a1b34": {
       "_id": "69e9c227eb4037f909be5064",
       "name": "Inventory Items",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": []
       },
@@ -360,15 +301,12 @@
       "valueId": "54ad90ed-0b58-401e-9abb-75198448099f",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-23T06:54:31.066Z",
-      "updatedAt": "2026-04-23T06:54:31.066Z"
+      "updatedAt": "2026-04-23T06:54:31.066Z",
+      "requirement": 1
     },
     "7edda04d-3cf6-4169-8a65-34d9105f7246": {
       "_id": "69e9c7c3eb4037f909be5082",
       "name": "IDK",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": false
       },
@@ -377,15 +315,12 @@
       "valueId": "264a16f9-a8b9-4b1c-ad89-0425dcfb83f5",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-23T07:18:27.440Z",
-      "updatedAt": "2026-04-23T07:18:27.440Z"
+      "updatedAt": "2026-04-23T07:18:27.440Z",
+      "requirement": 1
     },
     "d0638e14-7a56-4559-b380-a3a8a323cbbc": {
       "_id": "69ea6f03e1f9696262bb38cb",
       "name": "Damage",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": 10
       },
@@ -395,15 +330,12 @@
       "valueId": "d8872f22-86d3-44ed-bb8b-0b15ecc5412f",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-23T19:12:03.338Z",
-      "updatedAt": "2026-04-23T19:12:03.338Z"
+      "updatedAt": "2026-04-23T19:12:03.338Z",
+      "requirement": 1
     },
     "80cf65c0-cc63-4e63-8615-1408fc6bc7dc": {
       "_id": "69eab2f7ddf5588456b399dc",
       "name": "NPCDict",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -413,15 +345,12 @@
       "valueId": "2df44813-951c-4c10-8001-04f3caa90dd1",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-24T00:01:59.611Z",
-      "updatedAt": "2026-04-24T00:01:59.611Z"
+      "updatedAt": "2026-04-24T00:01:59.611Z",
+      "requirement": 1
     },
     "bee397c8-7196-4d38-864e-7258169ef49f": {
       "_id": "69eab2f7ddf5588456b399de",
       "name": "NPCs",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -433,53 +362,42 @@
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-24T00:01:59.714Z",
       "updatedAt": "2026-04-30T00:49:41.623Z",
-      "extendsMemberId": null
+      "extendsMemberId": null,
+      "requirement": 1
     },
     "3fff8afc-a46e-49ec-a72f-836e464225c9": {
       "_id": "69ebd40addf5588456b399e6",
       "name": "ItemLookup",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": []
       },
       "kind": 9,
       "collectionMemberId": "6947e152-b4f1-409b-afa2-e178107a1b34",
-      "multiselect": false,
       "id": "3fff8afc-a46e-49ec-a72f-836e464225c9",
       "valueId": "023c0e26-4d5e-4cdd-8d59-62f62248ab56",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-24T20:35:22.725Z",
-      "updatedAt": "2026-04-24T20:35:22.725Z"
+      "updatedAt": "2026-04-24T20:35:22.725Z",
+      "requirement": 1
     },
     "437a8aff-785d-4efc-8203-cb6b6148f654": {
       "_id": "69ebd8c3ddf5588456b399e9",
       "name": "DictionaryClassLookup",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": []
       },
       "kind": 9,
       "collectionMemberId": "bee397c8-7196-4d38-864e-7258169ef49f",
-      "multiselect": false,
       "id": "437a8aff-785d-4efc-8203-cb6b6148f654",
       "valueId": "71e9d1c7-e211-4f64-8152-b6fb312fb7a1",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-24T20:55:31.699Z",
-      "updatedAt": "2026-04-24T20:55:31.699Z"
+      "updatedAt": "2026-04-24T20:55:31.699Z",
+      "requirement": 1
     },
     "28fc798c-3ebe-4875-8bf6-1f0bb7d8018b": {
       "_id": "69ebda38ddf5588456b399f7",
       "name": "NPCListText",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": ""
       },
@@ -488,15 +406,12 @@
       "valueId": "91425f2a-554d-4e1f-a736-47e15c239042",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-24T21:01:44.957Z",
-      "updatedAt": "2026-04-24T21:01:44.957Z"
+      "updatedAt": "2026-04-24T21:01:44.957Z",
+      "requirement": 1
     },
     "d73f1a94-5263-4884-82b5-8f04b677db00": {
       "_id": "69ebda39ddf5588456b399f9",
       "name": "SomeNPCList",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": []
       },
@@ -506,15 +421,12 @@
       "valueId": "ae3c3c4d-b18d-44bf-8fde-dcd2751af917",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-24T21:01:45.062Z",
-      "updatedAt": "2026-04-24T21:01:45.062Z"
+      "updatedAt": "2026-04-24T21:01:45.062Z",
+      "requirement": 1
     },
     "1ea5f6ce-7a39-4d1d-898c-f60902d5639f": {
       "_id": "69ec3fecddf5588456b39a08",
       "name": "Plant Name",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": ""
       },
@@ -523,15 +435,12 @@
       "valueId": "0cd3051c-cdbb-46ff-a4c1-b3f51bc3290e",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-25T04:15:40.040Z",
-      "updatedAt": "2026-04-25T04:15:40.040Z"
+      "updatedAt": "2026-04-25T04:15:40.040Z",
+      "requirement": 1
     },
     "4692c174-eae9-49bb-8ad6-ca78161d15e9": {
       "_id": "69f10355c643b8264fd6dfe9",
       "name": "TextGet",
-      "locked": false,
-      "required": false,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "kind": 10,
       "code": "    string itemName = this.ItemGetOptional?.Name ?? \"Unknown\";\n    string label = $\"Hello world!!! NPC: {this.NPCs.First().Name}, item: {itemName}\";\n    return label;",
       "returnTypeInfo": {
@@ -732,10 +641,6 @@
     "1b34eb13-ef37-45db-9ddc-7da0698ce4e0": {
       "_id": "69f114a7c643b8264fd6dfea",
       "name": "BoolGet",
-      "locked": false,
-      "required": false,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "kind": 10,
       "code": "    NPC npc = this.NPCs[\"James\"];\n    if (npc.Age >= 18) {\n        return npc.CanRomance;\n    }\n    return false;",
       "returnTypeInfo": {
@@ -947,10 +852,6 @@
     "9bc07de0-fd37-4469-81dc-10d04d00a52b": {
       "_id": "69f116a2c643b8264fd6dfeb",
       "name": "ListGet",
-      "locked": false,
-      "required": false,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "kind": 10,
       "code": "    return root.Assets.InventoryItems.Where((item) => { return item is ToolItem; })\n        .Select((item) => {\n            return item.Name;\n        });",
       "returnTypeInfo": {
@@ -1149,10 +1050,6 @@
     "6f36eba5-353f-48f4-871c-42a6cd72bcd8": {
       "_id": "69f11f20c643b8264fd6dfec",
       "name": "ItemGet",
-      "locked": false,
-      "required": false,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "kind": 10,
       "code": "    InventoryItem? item = this.ItemGetOptional;\n    if (!item) {\n        throw $\"item is unexpectedly null!\";\n    }\n    return item;",
       "returnTypeInfo": {
@@ -1316,10 +1213,6 @@
     "42f3f813-b0e5-4561-a96b-a7216e3ccef0": {
       "_id": "69f12321c643b8264fd6dfee",
       "name": "ComboGet",
-      "locked": false,
-      "required": false,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "kind": 10,
       "code": "\treturn this.Combo;",
       "returnTypeInfo": {
@@ -1408,10 +1301,6 @@
     "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b": {
       "_id": "69f13c18c643b8264fd6dfef",
       "name": "ItemGetOptional",
-      "locked": false,
-      "required": false,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "kind": 10,
       "code": "\tstring query = this.Name;\n    return root.Assets.InventoryItems.Find((check) => {\n        return check.Name == query;\n    });",
       "returnTypeInfo": {
@@ -1604,10 +1493,6 @@
     "c81d2773-032d-4354-8e9e-3fede8bbcddb": {
       "_id": "69f14544c643b8264fd6dff0",
       "name": "isAdult",
-      "locked": false,
-      "required": false,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "kind": 10,
       "code": "\treturn this.Age >= 18;",
       "returnTypeInfo": {
@@ -1716,10 +1601,6 @@
     "f8da8237-148c-4173-b907-21b7b70bf7f9": {
       "_id": "69f14634c643b8264fd6dff3",
       "name": "GameTime",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -1729,15 +1610,12 @@
       "valueId": "220414fe-de14-43ba-b29c-09309d7e0985",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-28T23:43:48.749Z",
-      "updatedAt": "2026-04-28T23:43:48.749Z"
+      "updatedAt": "2026-04-28T23:43:48.749Z",
+      "requirement": 1
     },
     "f66f7114-3a49-47cb-a1dc-621f0f641c0e": {
       "_id": "69f1464ac643b8264fd6dff6",
       "name": "Day",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": 1
       },
@@ -1748,15 +1626,12 @@
       "valueId": "76b50623-4d1e-4268-9fb7-3bb8601f9cbe",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-28T23:44:10.568Z",
-      "updatedAt": "2026-04-28T23:44:10.568Z"
+      "updatedAt": "2026-04-28T23:44:10.568Z",
+      "requirement": 1
     },
     "4f178bca-5b13-4e8f-b650-e92af7ef6177": {
       "_id": "69f14694c643b8264fd6dffa",
       "name": "Season",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": [
           "Spring"
@@ -1764,20 +1639,16 @@
       },
       "kind": 8,
       "enumId": "a3bf3055-4d46-4905-956e-2e21292094f9",
-      "multiselect": false,
       "id": "4f178bca-5b13-4e8f-b650-e92af7ef6177",
       "valueId": "85fa71ef-97ee-4f7f-8385-8c3fbd7bee3a",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": {},
-      "updatedAt": "2026-04-29T19:32:04.733Z"
+      "updatedAt": "2026-04-29T19:32:04.733Z",
+      "requirement": 1
     },
     "d3aac711-02c6-4d41-b6ed-b405ab661c04": {
       "_id": "69f146b2c643b8264fd6dfff",
       "name": "Birthday",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -1787,15 +1658,12 @@
       "valueId": "dd0c05cd-7c8b-4fe7-adc8-d1a7285bbef1",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-28T23:45:54.776Z",
-      "updatedAt": "2026-04-28T23:45:54.776Z"
+      "updatedAt": "2026-04-28T23:45:54.776Z",
+      "requirement": 1
     },
     "4c424986-db70-4a7c-9ef9-3f4d1ade01e0": {
       "_id": "69f146f1c643b8264fd6e003",
       "name": "isBirthday",
-      "locked": false,
-      "required": false,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "kind": 10,
       "code": "\treturn this.Birthday.Day == root.Save.GameTime.Day\n\t\t&& this.Birthday.Season == root.Save.GameTime.Season;",
       "returnTypeInfo": {
@@ -2093,10 +1961,6 @@
     "d25f7fe4-3598-4406-8d48-c8497f1554c5": {
       "_id": "69f1854e6c90927cb4cae514",
       "name": "ToolName",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": "[Tool]"
       },
@@ -2106,15 +1970,12 @@
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-29T04:13:02.567Z",
       "updatedAt": "2026-04-30T22:47:39.501Z",
-      "extendsMemberId": null
+      "extendsMemberId": null,
+      "requirement": 1
     },
     "411fa900-1172-4cc4-98e3-c8bf63aff4f1": {
       "_id": "69f187a46c90927cb4cae516",
       "name": "Name",
-      "locked": false,
-      "required": false,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "kind": 10,
       "code": "\tthrow \"Not implemented exception\";",
       "returnTypeInfo": {
@@ -2188,10 +2049,6 @@
     "75cb8c0c-3cbe-4902-a94e-5c237da24d40": {
       "_id": "69f18a5e6c90927cb4cae517",
       "name": "Name",
-      "locked": false,
-      "required": false,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "kind": 10,
       "code": "\treturn $\"{this.Material} {this.ToolName}\";",
       "returnTypeInfo": {
@@ -2326,10 +2183,6 @@
     "6f334ec8-0a0c-4398-9216-ba679540cc40": {
       "_id": "69f18b476c90927cb4cae519",
       "name": "Material",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": [
           "wood"
@@ -2337,20 +2190,16 @@
       },
       "kind": 8,
       "enumId": "a474257e-a686-46ba-ab6b-d8060c36f90e",
-      "multiselect": false,
       "id": "6f334ec8-0a0c-4398-9216-ba679540cc40",
       "valueId": "52664151-6a39-4478-a693-fdc4a47685f2",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": {},
-      "updatedAt": "2026-04-29T19:32:04.788Z"
+      "updatedAt": "2026-04-29T19:32:04.788Z",
+      "requirement": 1
     },
     "1bb9222a-63ab-40da-b282-a2ad9d2fde65": {
       "_id": "69f1901b6c90927cb4cae51b",
       "name": "ToolName",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": "Pickaxe"
       },
@@ -2360,15 +2209,12 @@
       "valueId": "da5b6344-4801-45c6-b375-f0608999a1f6",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-29T04:59:07.835Z",
-      "updatedAt": "2026-04-29T04:59:07.835Z"
+      "updatedAt": "2026-04-29T04:59:07.835Z",
+      "requirement": 1
     },
     "360189ef-f0ff-40c6-94d8-e0bdead1c4cf": {
       "_id": "69f190296c90927cb4cae51d",
       "name": "ToolName",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": "Hoe"
       },
@@ -2378,15 +2224,12 @@
       "valueId": "c8f15cad-ff16-46ba-b4b2-db0e8998bbc1",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-29T04:59:21.835Z",
-      "updatedAt": "2026-04-29T04:59:21.835Z"
+      "updatedAt": "2026-04-29T04:59:21.835Z",
+      "requirement": 1
     },
     "58ea30b4-dd12-4d15-b1e1-95e2820c02f2": {
       "_id": "69f1906e6c90927cb4cae51f",
       "name": "SeedName",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": "[Plant] Seed"
       },
@@ -2395,15 +2238,12 @@
       "valueId": "e2330f9b-1640-4248-b1ae-1e7e034b5373",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-29T05:00:30.547Z",
-      "updatedAt": "2026-04-29T05:00:30.547Z"
+      "updatedAt": "2026-04-29T05:00:30.547Z",
+      "requirement": 1
     },
     "85f60d99-54c7-4ff4-97a5-4d888911a963": {
       "_id": "69f190756c90927cb4cae520",
       "name": "Name",
-      "locked": false,
-      "required": false,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "kind": 10,
       "code": "\treturn this.SeedName;",
       "returnTypeInfo": {
@@ -2490,10 +2330,6 @@
     "0cd67be2-e40f-4f89-926e-6b0675ee9a51": {
       "_id": "69f3e021fb1d58e42309d3e5",
       "name": "Value",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": 0
       },
@@ -2503,15 +2339,12 @@
       "valueId": "6e2e5aa2-081d-4bed-85e7-762992e29cf2",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-30T23:05:05.314Z",
-      "updatedAt": "2026-04-30T23:05:05.314Z"
+      "updatedAt": "2026-04-30T23:05:05.314Z",
+      "requirement": 1
     },
     "member-elem-damage-entry": {
       "_id": "member-elem-damage-entry",
       "name": "Element Damage Entry",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": 0
       },
@@ -2520,35 +2353,29 @@
       "id": "member-elem-damage-entry",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
-      "updatedAt": "2026-07-07T00:00:00.000Z"
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "requirement": 1
     },
     "member-elem-damage": {
       "_id": "member-elem-damage",
       "name": "ElementDamage",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
       "entryMemberId": "member-elem-damage-entry",
-      "keyKind": "enum",
+      "keyKind": 1,
       "keyEnumId": "enum-element",
       "valueId": "v-elem-damage-default",
       "kind": 5,
       "id": "member-elem-damage",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
-      "updatedAt": "2026-07-07T00:00:00.000Z"
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "requirement": 1
     },
     "member-elem-stats-entry": {
       "_id": "member-elem-stats-entry",
       "name": "Element Stat Entry",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": 0
       },
@@ -2557,56 +2384,46 @@
       "id": "member-elem-stats-entry",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
-      "updatedAt": "2026-07-07T00:00:00.000Z"
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "requirement": 1
     },
     "member-elem-stats": {
       "_id": "member-elem-stats",
       "name": "ElementStats",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
       "entryMemberId": "member-elem-stats-entry",
-      "keyKind": "enum",
+      "keyKind": 1,
       "keyEnumId": "enum-element",
       "valueId": "v-elem-stats-default",
       "kind": 5,
       "id": "member-elem-stats",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
-      "updatedAt": "2026-07-07T00:00:00.000Z"
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "requirement": 1
     },
     "member-selected-element": {
       "_id": "member-selected-element",
       "name": "SelectedElement",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": [
           "water"
         ]
       },
       "enumId": "enum-element",
-      "multiselect": false,
       "valueId": "v-selected-element-default",
       "kind": 8,
       "id": "member-selected-element",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
-      "updatedAt": "2026-07-07T00:00:00.000Z"
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "requirement": 1
     },
     "member-elem-bonus-entry": {
       "_id": "member-elem-bonus-entry",
       "name": "Element Bonus Entry",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": 0
       },
@@ -2615,35 +2432,29 @@
       "id": "member-elem-bonus-entry",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
-      "updatedAt": "2026-07-07T00:00:00.000Z"
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "requirement": 1
     },
     "member-elem-bonus": {
       "_id": "member-elem-bonus",
       "name": "ElementBonus",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
       "entryMemberId": "member-elem-bonus-entry",
-      "keyKind": "enum",
+      "keyKind": 1,
       "keyEnumId": "enum-element",
       "valueId": "v-elem-bonus-default",
       "kind": 5,
       "id": "member-elem-bonus",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
-      "updatedAt": "2026-07-07T00:00:00.000Z"
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "requirement": 1
     },
     "member-elem-champion-entry": {
       "_id": "member-elem-champion-entry",
       "name": "Element Champion",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
@@ -2653,35 +2464,29 @@
       "id": "member-elem-champion-entry",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
-      "updatedAt": "2026-07-07T00:00:00.000Z"
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "requirement": 1
     },
     "member-elem-champions": {
       "_id": "member-elem-champions",
       "name": "ElementChampions",
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "defaultValue": {
         "value": {}
       },
       "entryMemberId": "member-elem-champion-entry",
-      "keyKind": "enum",
+      "keyKind": 1,
       "keyEnumId": "enum-element",
       "valueId": "v-elem-champions-default",
       "kind": 5,
       "id": "member-elem-champions",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
-      "updatedAt": "2026-07-07T00:00:00.000Z"
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "requirement": 1
     },
     "member-elem-fire-damage-get": {
       "_id": "member-elem-fire-damage-get",
       "name": "FireDamageGet",
-      "locked": false,
-      "required": false,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "kind": 10,
       "code": "\treturn this.ElementDamage[Element.fire] + root.Save.ElementStats[Element.fire];",
       "returnTypeInfo": {
@@ -2841,10 +2646,6 @@
     "member-elem-selected-damage-get": {
       "_id": "member-elem-selected-damage-get",
       "name": "SelectedDamageGet",
-      "locked": false,
-      "required": false,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "kind": 10,
       "code": "\treturn this.ElementDamage[this.SelectedElement];",
       "returnTypeInfo": {
@@ -3104,10 +2905,9 @@
       },
       "extendsClassId": null,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInMemberSelector": true,
       "createdAt": "2026-04-22T04:37:20.682Z",
       "updatedAt": "2026-04-30T00:49:59.169Z",
-      "isAbstract": false
+      "uiVisibility": 1
     },
     "eef03495-48c4-4760-8b4c-dc41b6d9e589": {
       "_id": "69e8508019f7c06f14880281",
@@ -3119,10 +2919,9 @@
       },
       "extendsClassId": null,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInMemberSelector": true,
       "createdAt": "2026-04-22T04:37:20.683Z",
       "updatedAt": "2026-04-28T23:43:48.858Z",
-      "isAbstract": false
+      "uiVisibility": 1
     },
     "316ef1ad-9c13-4330-949f-df6eb4a8d612": {
       "_id": "69e850fb19f7c06f1488028a",
@@ -3136,10 +2935,8 @@
       },
       "extendsClassId": null,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-22T04:39:23.326Z",
-      "updatedAt": "2026-04-25T02:28:49.124Z",
-      "isAbstract": false
+      "updatedAt": "2026-04-25T02:28:49.124Z"
     },
     "3d29df51-e11b-47c5-a139-d93e6315f2bb": {
       "_id": "69e8540c19f7c06f14880297",
@@ -3157,10 +2954,8 @@
       },
       "extendsClassId": null,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-22T04:52:28.715Z",
-      "updatedAt": "2026-04-28T23:46:57.741Z",
-      "isAbstract": false
+      "updatedAt": "2026-04-28T23:46:57.741Z"
     },
     "f5e97059-a204-4308-b0af-73092a6883fd": {
       "_id": "69e99141eb4037f909be505b",
@@ -3169,10 +2964,8 @@
       "schema": {},
       "extendsClassId": "316ef1ad-9c13-4330-949f-df6eb4a8d612",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-23T03:25:53.358Z",
-      "updatedAt": "2026-04-23T03:25:53.358Z",
-      "isAbstract": false
+      "updatedAt": "2026-04-23T03:25:53.358Z"
     },
     "a822fc0e-e07b-41b6-be3a-b47e409d1003": {
       "_id": "69e9c226eb4037f909be5060",
@@ -3183,11 +2976,10 @@
         "Value": "0cd67be2-e40f-4f89-926e-6b0675ee9a51"
       },
       "extendsClassId": null,
-      "isAbstract": true,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-23T06:54:30.804Z",
-      "updatedAt": "2026-04-30T23:05:05.418Z"
+      "updatedAt": "2026-04-30T23:05:05.418Z",
+      "modifier": 1
     },
     "2074e0c9-0cfe-4261-9c89-d2b9ec011fd4": {
       "_id": "69e9c6dfeb4037f909be506c",
@@ -3199,11 +2991,10 @@
         "Material": "6f334ec8-0a0c-4398-9216-ba679540cc40"
       },
       "extendsClassId": "a822fc0e-e07b-41b6-be3a-b47e409d1003",
-      "isAbstract": true,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-23T07:14:39.644Z",
-      "updatedAt": "2026-04-29T07:43:28.069Z"
+      "updatedAt": "2026-04-29T07:43:28.069Z",
+      "modifier": 1
     },
     "7937c71b-4c80-4a73-b63c-81135751f504": {
       "_id": "69e9c7aaeb4037f909be507b",
@@ -3216,9 +3007,7 @@
         "Name": "85f60d99-54c7-4ff4-97a5-4d888911a963"
       },
       "extendsClassId": "a822fc0e-e07b-41b6-be3a-b47e409d1003",
-      "isAbstract": false,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-23T07:18:02.390Z",
       "updatedAt": "2026-04-29T05:00:38.137Z"
     },
@@ -3231,9 +3020,7 @@
         "ToolName": "1bb9222a-63ab-40da-b282-a2ad9d2fde65"
       },
       "extendsClassId": "2074e0c9-0cfe-4261-9c89-d2b9ec011fd4",
-      "isAbstract": false,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-23T07:22:40.135Z",
       "updatedAt": "2026-04-29T04:59:07.941Z"
     },
@@ -3245,9 +3032,7 @@
         "ToolName": "360189ef-f0ff-40c6-94d8-e0bdead1c4cf"
       },
       "extendsClassId": "2074e0c9-0cfe-4261-9c89-d2b9ec011fd4",
-      "isAbstract": false,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-23T22:33:19.415Z",
       "updatedAt": "2026-04-29T04:59:21.942Z"
     },
@@ -3261,9 +3046,7 @@
         "ElementBonus": "member-elem-bonus"
       },
       "extendsClassId": null,
-      "isAbstract": false,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-28T23:43:48.574Z",
       "updatedAt": "2026-04-28T23:45:24.626Z"
     }

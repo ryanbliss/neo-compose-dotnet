@@ -13,6 +13,11 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 29 replaces project-record booleans and persisted string unions
+        /// with append-only numeric enums. Older SDKs would ignore the new
+        /// fields and silently treat abstract, static, read-only, required,
+        /// and other declarations as their defaults.
+        ///
         /// 28 renames the structured-leaf field-override envelope key from
         /// <c>$partial</c> to <c>~partial</c>: Convex reserves $-prefixed
         /// field names in every serialized position, so the old spelling
@@ -63,7 +68,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 28;
+        public const int CurrentSchemaVersion = 29;
 
         internal static string? GetSchemaVersionError(ProjectExportMetadata? metadata)
         {
@@ -420,6 +425,7 @@ namespace NeoCompose.Runtime.Json
 
             var obj = JObject.Load(reader);
             ValidateSchemaVersion(obj);
+            P80RecordShapeGuard.ValidateProjectData(obj);
 
             var projectData = new ProjectData();
             using (var subReader = obj.CreateReader())
@@ -469,6 +475,205 @@ namespace NeoCompose.Runtime.Json
             {
                 throw new JsonSerializationException(error);
             }
+        }
+    }
+
+    /// <summary>
+    /// Validates P80's retired record-shape spellings and numeric enum
+    /// ordinals. The schema-version gate handles older export generations;
+    /// this guard stays narrow so P81's retired schema-8 tree scan does not
+    /// return.
+    /// </summary>
+    internal static class P80RecordShapeGuard
+    {
+        internal static void ValidateProjectData(JObject root)
+        {
+            ValidateMembers(root["members"]);
+            ValidateClasses(root["classes"]);
+            ValidateInterfaces(root["interfaces"]);
+        }
+
+        internal static void ValidateMemberRecord(JObject member)
+        {
+            RejectRemoved(member, "locked", "Member");
+            Reject(member, "required", "requirement", "Member");
+            Reject(member, "isReadOnly", "mutability", "Member");
+            Reject(member, "isStatic", "modifier", "Member");
+            Reject(member, "isVirtual", "modifier", "Member");
+            Reject(member, "isAbstract", "modifier", "Member");
+            Reject(member, "accessModifierKind", "access", "Member");
+            Reject(member, "localizable", "format", "Member");
+            Reject(member, "searchKey", "searchBy", "Member");
+            Reject(member, "partial", "payload", "Member");
+            Reject(member, "multiselect", "selection", "Member");
+            Reject(member, "deferred", "dispatch", "Member");
+
+            StrictRecordShapeEnums.ValidateOptional<NeoMemberRequirementKind>(
+                member, "requirement", "Member");
+            StrictRecordShapeEnums.ValidateOptional<NeoMemberMutabilityKind>(
+                member, "mutability", "Member");
+            StrictRecordShapeEnums.ValidateOptional<NeoMemberModifierKind>(
+                member, "modifier", "Member");
+            StrictRecordShapeEnums.ValidateOptional<NeoMemberAccessKind>(
+                member, "access", "Member");
+            StrictRecordShapeEnums.ValidateOptional<NeoMemberStorage>(
+                member, "storage", "Member");
+            StrictRecordShapeEnums.ValidateOptional<NeoStringFormatKind>(
+                member, "format", "String member");
+            StrictRecordShapeEnums.ValidateOptional<NeoMemberSearchByKind>(
+                member, "searchBy", "String member");
+            StrictRecordShapeEnums.ValidateOptional<NeoDictionaryKeyKind>(
+                member, "keyKind", "Dictionary member");
+            StrictRecordShapeEnums.ValidateOptional<NeoListKind>(
+                member, "listKind", "List member");
+            StrictRecordShapeEnums.ValidateOptional<NeoMemberPayloadKind>(
+                member, "payload", "Member");
+            StrictRecordShapeEnums.ValidateOptional<NeoMemberSelectionKind>(
+                member, "selection", "Member");
+            StrictRecordShapeEnums.ValidateOptional<NeoFunctionDispatchKind>(
+                member, "dispatch", "Function member");
+            StrictRecordShapeEnums.ValidateOptional<NeoFunctionBodyKind>(
+                member, "bodyMode", "NSFunction member");
+
+            if (member["indexes"] is JArray indexes)
+            {
+                foreach (JToken token in indexes)
+                {
+                    if (token is not JObject index) continue;
+                    Reject(index, "unique", "kind", "List index");
+                    StrictRecordShapeEnums.ValidateOptional<NeoListIndexKind>(
+                        index, "kind", "List index");
+                }
+            }
+
+            if (member["columnSettings"] is not JArray columns) return;
+            foreach (JToken token in columns)
+            {
+                if (token is not JObject column) continue;
+                Reject(column, "hidden", "visibility", "List column");
+                Reject(column, "frozen", "pin", "List column");
+                Reject(column, "wrapContent", "overflow", "List column");
+                StrictRecordShapeEnums.ValidateOptional<NeoColumnVisibilityKind>(
+                    column, "visibility", "List column");
+                StrictRecordShapeEnums.ValidateOptional<NeoColumnPinKind>(
+                    column, "pin", "List column");
+                StrictRecordShapeEnums.ValidateOptional<NeoColumnOverflowKind>(
+                    column, "overflow", "List column");
+            }
+        }
+
+        internal static void ValidateInterfaceMember(JObject member)
+        {
+            Reject(member, "accessModifierKind", "access", "Interface member");
+            Reject(member, "settable", "accessors", "Interface member");
+            Reject(member, "deferred", "dispatch", "Interface member");
+            StrictRecordShapeEnums.ValidateOptional<NeoMemberAccessKind>(
+                member, "access", "Interface member");
+            StrictRecordShapeEnums.ValidateOptional<NeoPropertyAccessorsKind>(
+                member, "accessors", "Interface property");
+            StrictRecordShapeEnums.ValidateOptional<NeoFunctionDispatchKind>(
+                member, "dispatch", "Interface function");
+        }
+
+        internal static void ValidateGenericParamConstraint(JObject constraint)
+        {
+            StrictRecordShapeEnums.ValidateOptional<NeoGenericParamConstraintKind>(
+                constraint,
+                "kind",
+                "Generic param constraint");
+        }
+
+        internal static void ValidateGenericBinding(JObject binding)
+        {
+            StrictRecordShapeEnums.ValidateOptional<NeoGenericBindingKind>(
+                binding,
+                "kind",
+                "Generic binding");
+        }
+
+        private static void ValidateMembers(JToken? token)
+        {
+            if (token is not JObject members) return;
+            foreach (JProperty property in members.Properties())
+            {
+                if (property.Value is JObject member)
+                {
+                    ValidateMemberRecord(member);
+                }
+            }
+        }
+
+        private static void ValidateClasses(JToken? token)
+        {
+            if (token is not JObject classes) return;
+            foreach (JProperty property in classes.Properties())
+            {
+                if (property.Value is not JObject schemaClass) continue;
+                Reject(
+                    schemaClass,
+                    "hiddenInAttributeSelector",
+                    "uiVisibility",
+                    "Class",
+                    schemaVersion: 8);
+                Reject(
+                    schemaClass,
+                    "hiddenInMemberSelector",
+                    "uiVisibility",
+                    "Class");
+                Reject(schemaClass, "isAbstract", "modifier", "Class");
+                Reject(schemaClass, "isSealed", "modifier", "Class");
+                StrictRecordShapeEnums.ValidateOptional<NeoClassVisibilityKind>(
+                    schemaClass, "uiVisibility", "Class");
+                StrictRecordShapeEnums.ValidateOptional<NeoClassModifierKind>(
+                    schemaClass, "modifier", "Class");
+                StrictRecordShapeEnums.ValidateOptional<NeoMemberStorage>(
+                    schemaClass, "allowedStorage", "Class");
+            }
+        }
+
+        private static void ValidateInterfaces(JToken? token)
+        {
+            if (token is not JObject interfaces) return;
+            foreach (JProperty property in interfaces.Properties())
+            {
+                if (property.Value is not JObject neoInterface
+                    || neoInterface["members"] is not JObject members)
+                {
+                    continue;
+                }
+
+                foreach (JProperty memberProperty in members.Properties())
+                {
+                    if (memberProperty.Value is JObject member)
+                    {
+                        ValidateInterfaceMember(member);
+                    }
+                }
+            }
+        }
+
+        private static void RejectRemoved(
+            JObject obj,
+            string removedField,
+            string context)
+        {
+            if (obj.Property(removedField) is null) return;
+            throw new JsonSerializationException(
+                $"{context} uses removed field '{removedField}'; schema "
+                + $"{NeoProjectExportContract.CurrentSchemaVersion} removed it without replacement.");
+        }
+
+        private static void Reject(
+            JObject obj,
+            string removedField,
+            string replacementField,
+            string context,
+            int? schemaVersion = null)
+        {
+            if (obj.Property(removedField) is null) return;
+            throw new JsonSerializationException(
+                $"{context} uses removed field '{removedField}'; schema "
+                + $"{schemaVersion ?? NeoProjectExportContract.CurrentSchemaVersion} requires '{replacementField}'.");
         }
     }
 }

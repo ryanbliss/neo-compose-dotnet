@@ -332,7 +332,7 @@ namespace NeoCompose.Tests
                 projectId = "project-list-repeat-parity",
                 name = id,
                 kind = MemberKind.Class,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };

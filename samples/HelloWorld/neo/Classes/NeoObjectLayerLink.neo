@@ -2,7 +2,6 @@
 @system(kind: .WorldAuthoring, worldKind: .ObjectLayerLink)
 abstract class NeoObjectLayerLink : NeoLayerGroupBase {
   @id("system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2")
-  @locked
   @settings(kind: .Unordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoObjectBase> Objects = [];

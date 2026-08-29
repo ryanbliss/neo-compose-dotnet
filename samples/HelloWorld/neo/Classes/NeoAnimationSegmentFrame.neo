@@ -7,7 +7,6 @@ class NeoAnimationSegmentFrame<
   T
 >(T value) : NeoAnimationFrameBase {
   @id("system_b71d1f73-da72-49de-ab9a-911cc9bffa43")
-  @locked
   @system(kind: .WorldAuthoring)
   public virtual T Value = value;
 }

@@ -2478,7 +2478,7 @@ namespace NeoCompose.Runtime
                 && (!client.TryGetMember(
                         effectiveMemberId,
                         out JsonMember? staticMember)
-                    || !staticMember.isStatic
+                    || staticMember.EffectiveModifier != NeoMemberModifierKind.Static
                     || callGetter.receiver.memberId != effectiveMemberId))
             {
                 throw new NSGetterRuntimeError(
@@ -2596,15 +2596,9 @@ namespace NeoCompose.Runtime
             string memberId,
             NeoClient client)
         {
-            return NeoSchemaClassInheritance.WalkExtendsMemberChain(
-                memberId,
-                id => client.TryGetMember(id, out JsonMember? member)
-                    ? member
-                    : null,
-                member => member is NSPropertyMember property
-                    ? property.setter
-                    : null,
-                requireKind: MemberKind.NSProperty);
+            return client.TryGetMember(memberId, out NSPropertyMember? property)
+                ? property.setter
+                : null;
         }
 
         /// <summary>
@@ -2834,7 +2828,7 @@ namespace NeoCompose.Runtime
                 if (!string.IsNullOrEmpty(objectRow.classId)
                     && TryResolveClassMemberMember(client, objectRow.classId!, keyString, out JsonMember? memberMember))
                 {
-                    if (memberMember!.isReadOnly == true)
+                    if (memberMember!.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly)
                     {
                         throw new NSGetterRuntimeError(
                             $"Member '{memberMember.name}' is readonly and can only be changed through its class default.");
@@ -3060,30 +3054,30 @@ namespace NeoCompose.Runtime
         {
             return member switch
             {
-                NullMember => new PrimitiveTypeInfo { type = MemberKind.Null, required = member.required },
-                BoolMember => new PrimitiveTypeInfo { type = MemberKind.Bool, required = member.required },
-                IntMember => new PrimitiveTypeInfo { type = MemberKind.Int, required = member.required },
-                FloatMember => new PrimitiveTypeInfo { type = MemberKind.Float, required = member.required },
-                StringMember => new PrimitiveTypeInfo { type = MemberKind.String, required = member.required },
-                Vector2Member => new PrimitiveTypeInfo { type = MemberKind.Vector2, required = member.required },
-                Vector2IntMember => new PrimitiveTypeInfo { type = MemberKind.Vector2Int, required = member.required },
-                Vector3Member => new PrimitiveTypeInfo { type = MemberKind.Vector3, required = member.required },
-                Vector3IntMember => new PrimitiveTypeInfo { type = MemberKind.Vector3Int, required = member.required },
-                ColorMember => new PrimitiveTypeInfo { type = MemberKind.Color, required = member.required },
-                DecimalMember => new PrimitiveTypeInfo { type = MemberKind.Decimal, required = member.required },
+                NullMember => new PrimitiveTypeInfo { type = MemberKind.Null, required = member.EffectiveRequirement == NeoMemberRequirementKind.Required },
+                BoolMember => new PrimitiveTypeInfo { type = MemberKind.Bool, required = member.EffectiveRequirement == NeoMemberRequirementKind.Required },
+                IntMember => new PrimitiveTypeInfo { type = MemberKind.Int, required = member.EffectiveRequirement == NeoMemberRequirementKind.Required },
+                FloatMember => new PrimitiveTypeInfo { type = MemberKind.Float, required = member.EffectiveRequirement == NeoMemberRequirementKind.Required },
+                StringMember => new PrimitiveTypeInfo { type = MemberKind.String, required = member.EffectiveRequirement == NeoMemberRequirementKind.Required },
+                Vector2Member => new PrimitiveTypeInfo { type = MemberKind.Vector2, required = member.EffectiveRequirement == NeoMemberRequirementKind.Required },
+                Vector2IntMember => new PrimitiveTypeInfo { type = MemberKind.Vector2Int, required = member.EffectiveRequirement == NeoMemberRequirementKind.Required },
+                Vector3Member => new PrimitiveTypeInfo { type = MemberKind.Vector3, required = member.EffectiveRequirement == NeoMemberRequirementKind.Required },
+                Vector3IntMember => new PrimitiveTypeInfo { type = MemberKind.Vector3Int, required = member.EffectiveRequirement == NeoMemberRequirementKind.Required },
+                ColorMember => new PrimitiveTypeInfo { type = MemberKind.Color, required = member.EffectiveRequirement == NeoMemberRequirementKind.Required },
+                DecimalMember => new PrimitiveTypeInfo { type = MemberKind.Decimal, required = member.EffectiveRequirement == NeoMemberRequirementKind.Required },
                 ClassMember classMember => new ClassTypeInfo
                 {
                     type = MemberKind.Class,
-                    required = member.required,
+                    required = member.EffectiveRequirement == NeoMemberRequirementKind.Required,
                     classId = classMember.classId,
                 },
                 EnumMember enumMember => new EnumTypeInfo
                 {
                     type = MemberKind.Enum,
-                    required = member.required,
+                    required = member.EffectiveRequirement == NeoMemberRequirementKind.Required,
                     enumId = enumMember.enumId,
                 },
-                _ => new PrimitiveTypeInfo { type = member.kind, required = member.required },
+                _ => new PrimitiveTypeInfo { type = member.kind, required = member.EffectiveRequirement == NeoMemberRequirementKind.Required },
             };
         }
 
@@ -3140,8 +3134,8 @@ namespace NeoCompose.Runtime
                         kind = MemberKind.Dictionary,
                         entryMemberId = id,
                         keyKind = collectionTypeInfo.keyEnumId is null
-                            ? NeoDictionaryKeyKinds.String
-                            : NeoDictionaryKeyKinds.Enum,
+                            ? NeoDictionaryKeyKind.String
+                            : NeoDictionaryKeyKind.Enum,
                         keyEnumId = collectionTypeInfo.keyEnumId,
                     };
                 case MemberKind.Enum:

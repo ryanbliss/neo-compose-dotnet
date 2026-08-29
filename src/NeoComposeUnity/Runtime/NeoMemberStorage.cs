@@ -7,45 +7,39 @@ namespace NeoCompose.Runtime
 {
     /// <summary>
     /// Storage classes for member values (specs/member-storage.md).
-    /// Mirrors the TS-side <c>MemberStorage</c> enum; the wire values are
-    /// the lowercase strings "inherit" / "immutable" / "save" / "session".
+    /// Mirrors the TS-side <c>MemberStorageKind</c> enum. Persisted ordinals
+    /// are append-only and zero may be omitted on the wire.
     /// </summary>
     public enum NeoMemberStorage
     {
         /// <summary>No declared class — the placement parent decides.</summary>
-        Inherit,
+        Inherit = 0,
         /// <summary>Authored value only; read-only at runtime.</summary>
-        Immutable,
+        Immutable = 1,
         /// <summary>Writable; persisted in the save-file overlay.</summary>
-        Save,
+        Save = 2,
         /// <summary>Writable; in-memory only, resets each session.</summary>
-        Session,
+        Session = 3,
     }
 
     public static class NeoMemberStorageResolution
     {
         /// <summary>
-        /// Parses the wire string form. Absent (null) is
-        /// <see cref="NeoMemberStorage.Inherit"/>; unknown strings throw
-        /// so a future storage class fails loud instead of silently reading
-        /// as immutable.
+        /// Validates a persisted storage ordinal. The project reader rejects
+        /// strings before Newtonsoft can coerce an enum name.
         /// </summary>
-        public static NeoMemberStorage Parse(string? wire)
+        public static NeoMemberStorage Validate(NeoMemberStorage value)
         {
-            switch (wire)
+            switch (value)
             {
-                case null:
-                case "inherit":
-                    return NeoMemberStorage.Inherit;
-                case "immutable":
-                    return NeoMemberStorage.Immutable;
-                case "save":
-                    return NeoMemberStorage.Save;
-                case "session":
-                    return NeoMemberStorage.Session;
+                case NeoMemberStorage.Inherit:
+                case NeoMemberStorage.Immutable:
+                case NeoMemberStorage.Save:
+                case NeoMemberStorage.Session:
+                    return value;
                 default:
                     throw new System.InvalidOperationException(
-                        $"Unknown member storage class '{wire}'.");
+                        $"Unknown member storage ordinal '{(int)value}'.");
             }
         }
 

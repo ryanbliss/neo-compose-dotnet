@@ -165,7 +165,7 @@ namespace NeoCompose.Tests
         public void ColorMember_DeserializesByKindOrdinal()
         {
             var member = JsonConvert.DeserializeObject<NeoCompose.Runtime.Json.Member>(
-                "{\"id\":\"a1\",\"projectId\":\"p\",\"name\":\"Tint\",\"kind\":19,\"isStatic\":false,\"accessModifierKind\":\"public\"," +
+                "{\"id\":\"a1\",\"projectId\":\"p\",\"name\":\"Tint\",\"kind\":19," +
                 "\"defaultValue\":{\"value\":{\"r\":0.25,\"g\":0.5,\"b\":0.75,\"a\":1}}}");
             Assert.IsInstanceOf<ColorMember>(member);
             var color = (ColorMember)member!;
@@ -747,7 +747,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = id,
                 kind = MemberKind.Class,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };
@@ -765,7 +765,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = name,
                 kind = MemberKind.Color,
-                required = required,
+                requirement = required ? NeoMemberRequirementKind.Required : NeoMemberRequirementKind.Optional,
                 defaultValue = defaultValue is null
                     ? null
                     : new ColorMemberValueBase { value = defaultValue },

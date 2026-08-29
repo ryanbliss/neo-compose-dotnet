@@ -930,7 +930,7 @@ namespace NeoCompose.Runtime
             ObjectMemberValue root,
             ClassMember? placementMember)
         {
-            if (placementMember?.partial == true) return false;
+            if (placementMember?.EffectivePayload == NeoMemberPayloadKind.Partial) return false;
             if (placementMember?.defaultValue?.value is not { Count: > 0 })
                 return false;
             string effectiveClassId = placementMember.defaultValue.classId

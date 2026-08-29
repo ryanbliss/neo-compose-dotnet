@@ -9,6 +9,5 @@ class AnimationInfo {
   public virtual List<SpriteInfo> Frames;
 
   @id("8b8ac389-c9a7-4a0c-8335-2352865ee1b4")
-  @settings(localizable: true)
   public virtual string Name = "5c90af78-a25e-462a-b5c3-8082e5080037";
 }

@@ -1,9 +1,8 @@
 @id("system_57342999-9cf1-4e01-b6d1-18d26ad554f5")
-@hidden
+@visibility(.Hidden)
 @system(kind: .DialogueMemorySchema)
 class NeoMemory {
   @id("system_033184ac-e92c-4c30-9d32-c7fb7a7c2ea1")
-  @locked
   @system(kind: .DialogueMemoryContainer)
   public virtual Dictionary<string, NeoDialogueMemory> DialogueMemories;
 }

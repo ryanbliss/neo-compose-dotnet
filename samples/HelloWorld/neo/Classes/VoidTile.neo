@@ -10,7 +10,7 @@
 )
 class VoidTile : ConsoleTile {
   @id("neo-tile-grid-record-relations-v1-member-228d0ac0a4b310f0fcc6ca4c1e7f748a")
-  @settings(localizable: false)
+  @settings(format: .Plain)
   public override string Name = "Void";
 
   @id("neo-tile-grid-record-relations-v1-member-8f91e55864defb558c3e4327b8c47251")

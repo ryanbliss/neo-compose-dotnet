@@ -46,11 +46,11 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Set(decimal? newValue)
         {
-            if (member.required && newValue is null)
+            if (member.EffectiveRequirement == NeoMemberRequirementKind.Required && newValue is null)
             {
                 throw new System.ArgumentNullException(
                     nameof(newValue),
-                    $"Cannot be null when {nameof(member)}.{nameof(member.required)} is true");
+                    $"Cannot be null when {nameof(member)} requirement is Required");
             }
             string nowIso = System.DateTime.UtcNow.ToString("o");
             string? canonical = NeoDecimalValues.FormatOrNull(newValue);

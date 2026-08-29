@@ -210,7 +210,7 @@ namespace NeoCompose.Runtime
             NeoResolvedNSFunction function = NeoNSFunctionRuntime.ResolveSignature(
                 client,
                 member.id);
-            if (!function.Member.isStatic)
+            if (function.Member.EffectiveModifier != NeoMemberModifierKind.Static)
             {
                 throw new NSGetterRuntimeError(
                     $"NSFunction '{function.Member.name}' is an instance member and requires a receiver.");
@@ -373,7 +373,7 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions options)
         {
-            bool isStatic = function.Member.isStatic;
+            bool isStatic = function.Member.EffectiveModifier == NeoMemberModifierKind.Static;
             if (receiver is null && !isStatic)
             {
                 throw new NSGetterRuntimeError(
@@ -928,7 +928,7 @@ namespace NeoCompose.Runtime
                             new GenericTypeInfo
                             {
                                 type = MemberKind.Generic,
-                                required = generic.required,
+                                required = generic.EffectiveRequirement == NeoMemberRequirementKind.Required,
                                 genericParamId = generic.genericParamId,
                             },
                             genericEnv,
@@ -937,7 +937,7 @@ namespace NeoCompose.Runtime
                         return new ClassTypeInfo
                         {
                             type = MemberKind.Class,
-                            required = classMember.required,
+                            required = classMember.EffectiveRequirement == NeoMemberRequirementKind.Required,
                             classId = classMember.classId,
                             typeArguments = ResolveBindingTypeArguments(
                                 client,
@@ -949,7 +949,7 @@ namespace NeoCompose.Runtime
                         return new EnumTypeInfo
                         {
                             type = MemberKind.Enum,
-                            required = enumMember.required,
+                            required = enumMember.EffectiveRequirement == NeoMemberRequirementKind.Required,
                             enumId = enumMember.enumId,
                         };
                     case ListMember list:
@@ -981,7 +981,7 @@ namespace NeoCompose.Runtime
                         return new LookupTypeInfo
                         {
                             type = MemberKind.Lookup,
-                            required = lookup.required,
+                            required = lookup.EffectiveRequirement == NeoMemberRequirementKind.Required,
                             collectionMemberId = lookup.collectionMemberId,
                             collectionValueId = lookup.collectionValueId,
                             entryTypeInfo = TypeInfoFromBindingMember(
@@ -1005,7 +1005,7 @@ namespace NeoCompose.Runtime
                         return new DelegateTypeInfo
                         {
                             type = MemberKind.NSDelegate,
-                            required = delegateMember.required,
+                            required = delegateMember.EffectiveRequirement == NeoMemberRequirementKind.Required,
                             returnTypeInfo = delegateMember.returnTypeInfo is VoidTypeInfo
                                 ? delegateMember.returnTypeInfo
                                 : ResolveInvocationTypeInfo(
@@ -1030,7 +1030,7 @@ namespace NeoCompose.Runtime
                         return new ActionTypeInfo
                         {
                             type = MemberKind.NSAction,
-                            required = actionMember.required,
+                            required = actionMember.EffectiveRequirement == NeoMemberRequirementKind.Required,
                             argumentTypes = arguments,
                         };
                     }
@@ -1050,7 +1050,7 @@ namespace NeoCompose.Runtime
                         return new PrimitiveTypeInfo
                         {
                             type = member.kind,
-                            required = member.required,
+                            required = member.EffectiveRequirement == NeoMemberRequirementKind.Required,
                         };
                     default:
                         throw new NSGetterRuntimeError(
@@ -1075,11 +1075,11 @@ namespace NeoCompose.Runtime
             {
                 GenericBinding binding = pair.Value;
                 string? memberId;
-                if (binding.kind == NeoGenericBindingKinds.Member)
+                if (binding.kind == NeoGenericBindingKind.Member)
                 {
                     memberId = binding.memberId;
                 }
-                else if (binding.kind == NeoGenericBindingKinds.Generic
+                else if (binding.kind == NeoGenericBindingKind.Generic
                     && !string.IsNullOrEmpty(binding.genericParamId)
                     && genericEnv.TryGetValue(
                         binding.genericParamId!,
@@ -1127,7 +1127,7 @@ namespace NeoCompose.Runtime
             return new CollectionTypeInfo
             {
                 type = collection.kind,
-                required = collection.required,
+                required = collection.EffectiveRequirement == NeoMemberRequirementKind.Required,
                 keyEnumId = (collection as DictionaryMember)?.keyEnumId,
                 listMemberId = collection is ListMember ? collection.id : null,
                 entryTypeInfo = TypeInfoFromBindingMember(
@@ -1161,9 +1161,9 @@ namespace NeoCompose.Runtime
             string? cursor = memberId;
             NSFunctionMember? effectiveMember = null;
             FunctionWithReturnType? action = null;
+            bool actionResolved = false;
             TypeInfo? returnTypeInfo = null;
             FunctionArgumentTypeInfo[]? argumentTypes = null;
-            bool? deferred = null;
             for (int hops = 0; !string.IsNullOrEmpty(cursor) && hops < 32; hops++)
             {
                 if (!visited.Add(cursor!))
@@ -1176,14 +1176,18 @@ namespace NeoCompose.Runtime
                     return null;
                 }
                 effectiveMember ??= current;
-                action ??= current.action;
+                if (!actionResolved)
+                {
+                    // The centralized member projection already resolves an
+                    // inherited action or an authored-body null clear.
+                    action = current.action;
+                    actionResolved = true;
+                }
                 returnTypeInfo ??= current.returnTypeInfo;
                 argumentTypes ??= current.argumentTypes;
-                deferred ??= current.deferred;
                 if (action is not null
                     && returnTypeInfo is not null
-                    && argumentTypes is not null
-                    && deferred.HasValue)
+                    && argumentTypes is not null)
                 {
                     return client.CacheResolvedNSFunction(
                         new NeoResolvedNSFunction(
@@ -1192,7 +1196,8 @@ namespace NeoCompose.Runtime
                             action,
                             returnTypeInfo,
                             argumentTypes,
-                            deferred.Value));
+                            effectiveMember.EffectiveDispatch
+                                == NeoFunctionDispatchKind.Asynchronous));
                 }
                 cursor = current.extendsMemberId;
             }

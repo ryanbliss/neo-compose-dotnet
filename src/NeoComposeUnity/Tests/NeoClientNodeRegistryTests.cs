@@ -345,7 +345,7 @@ namespace NeoCompose.Tests
                         projectId = "project-defaults",
                         name = "Card",
                         kind = MemberKind.Class,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                         classId = cardClass.id,
                     },
                     ["member-container"] = new ClassMember
@@ -354,7 +354,7 @@ namespace NeoCompose.Tests
                         projectId = "project-defaults",
                         name = "Container",
                         kind = MemberKind.Class,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                         classId = containerClass.id,
                     },
                     ["member-default-name"] = new StringMember
@@ -363,7 +363,7 @@ namespace NeoCompose.Tests
                         projectId = "project-defaults",
                         name = "Name",
                         kind = MemberKind.String,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                         defaultValue = new StringMemberValueBase
                         {
                             value = "Default Name",
@@ -375,7 +375,7 @@ namespace NeoCompose.Tests
                         projectId = "project-defaults",
                         name = "Inherited Name",
                         kind = MemberKind.String,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                         defaultValue = new StringMemberValueBase
                         {
                             value = "Inherited Name",
@@ -387,7 +387,7 @@ namespace NeoCompose.Tests
                         projectId = "project-defaults",
                         name = "Items",
                         kind = MemberKind.List,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                         entryMemberId = "member-item-entry",
                     },
                     ["member-item-entry"] = new ClassMember
@@ -396,7 +396,7 @@ namespace NeoCompose.Tests
                         projectId = "project-defaults",
                         name = "Item Entry",
                         kind = MemberKind.Class,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                         classId = baseItemClass.id,
                     },
                     ["member-children"] = new ListMember
@@ -405,7 +405,7 @@ namespace NeoCompose.Tests
                         projectId = "project-defaults",
                         name = "Children",
                         kind = MemberKind.List,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                         entryMemberId = "member-list-entry",
                         defaultValue = new ArrayMemberValueBase
                         {
@@ -418,7 +418,7 @@ namespace NeoCompose.Tests
                         projectId = "project-defaults",
                         name = "Entry",
                         kind = MemberKind.String,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                     },
                 },
                 values = new Dictionary<string, MemberValue>
@@ -462,7 +462,7 @@ namespace NeoCompose.Tests
                 projectId = "project-defaults",
                 name = id,
                 kind = MemberKind.Class,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };

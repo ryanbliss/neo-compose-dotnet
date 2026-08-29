@@ -111,7 +111,7 @@ namespace NeoCompose.Tests
                 name = "Abstract Tile Layer Link",
                 schema = new Dictionary<string, string>(),
                 extendsClassId = TileLayerLinkSystemBaseClassId,
-                isAbstract = true,
+                modifier = NeoClassModifierKind.Abstract,
             };
             data.classes[TileLayerLinkClassId].extendsClassId = abstractLinkClassId;
             data.internalRecordRelations!["relation-link-target"].sourceRecordId =
@@ -146,7 +146,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Tile Layer Base",
                 schema = new Dictionary<string, string>(),
-                isAbstract = true,
+                modifier = NeoClassModifierKind.Abstract,
                 system = JObject.FromObject(new { worldKind = "tileLayer" }),
             };
             data.classes[BackgroundLayerClassId].extendsClassId = tileLayerBaseClassId;
@@ -256,7 +256,7 @@ namespace NeoCompose.Tests
         public void SchemaTenGridLinkRejectsAbstractTargetLayer()
         {
             var data = BuildClassBackedTileGridProjectData();
-            data.classes[BackgroundLayerClassId].isAbstract = true;
+            data.classes[BackgroundLayerClassId].modifier = NeoClassModifierKind.Abstract;
             var client = NeoTestSaveStack.ClientFromSchema(data);
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
                 client,
@@ -829,7 +829,7 @@ namespace NeoCompose.Tests
                     required = true,
                 },
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-                deferred = false,
+                dispatch = NeoFunctionDispatchKind.Synchronous,
             };
             ((ObjectMemberValue)data.values["parent-frame-0"]).value!["Actions"] =
                 "parent-frame-actions";
@@ -864,7 +864,7 @@ namespace NeoCompose.Tests
                 id = "generic-animation-owner",
                 projectId = "project-a",
                 name = "GenericAnimationOwner",
-                isAbstract = true,
+                modifier = NeoClassModifierKind.Abstract,
                 schema = new Dictionary<string, string>
                 {
                     ["InheritedClip"] = "generic-animation-slot",
@@ -885,7 +885,7 @@ namespace NeoCompose.Tests
                 {
                     [paramId] = new()
                     {
-                        kind = NeoGenericBindingKinds.Member,
+                        kind = NeoGenericBindingKind.Member,
                         memberId = "inherited-invalid-clip-binding",
                     },
                 },
@@ -1016,7 +1016,7 @@ namespace NeoCompose.Tests
         public void AnimationOverride_SaveOwnedLeafWritesOnlyToSaveOverlay()
         {
             ProjectData data = BuildPlacementAnimationProjectData();
-            data.members["object-position-member"].storage = "save";
+            data.members["object-position-member"].storage = NeoMemberStorage.Save;
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
             NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
             string positionId = PlacedChildPositionId(client, placed.InstanceId.Value);
@@ -5710,10 +5710,10 @@ namespace NeoCompose.Tests
             };
             ((ListMember)data.members["object-children-member"]).entryMemberId =
                 "object-child-entry-member";
-            data.members["object-position-member"].storage = "session";
+            data.members["object-position-member"].storage = NeoMemberStorage.Session;
             // Session-storage Enabled, the shape section 1.1 of the spec calls
             // for on a class that wants visibility written at runtime.
-            data.members["object-enabled-member"].storage = "session";
+            data.members["object-enabled-member"].storage = NeoMemberStorage.Session;
 
             data.classes[ObjectClassId].schema["Animate"] = "animate-member";
             data.classes[ObjectClassId].schema["TrackAnimate"] = "track-animate-member";
@@ -5835,7 +5835,7 @@ namespace NeoCompose.Tests
                 name = "Direction",
                 kind = MemberKind.Enum,
                 enumId = PlayDirectionEnumId,
-                multiselect = false,
+                selection = NeoMemberSelectionKind.Single,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -5885,7 +5885,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "ClipKey",
                 kind = MemberKind.String,
-                localizable = false,
+                format = NeoStringFormatKind.Plain,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -6047,7 +6047,7 @@ namespace NeoCompose.Tests
                     kind = MemberKind.Class,
                     classId = classId,
                     valueId = valueId,
-                    storage = "immutable",
+                    storage = NeoMemberStorage.Immutable,
                     createdAt = "x",
                     updatedAt = "x",
                 };
@@ -6147,7 +6147,7 @@ namespace NeoCompose.Tests
                 {
                     ["Tiles"] = "tile-layer-link-tiles-member",
                 },
-                isAbstract = true,
+                modifier = NeoClassModifierKind.Abstract,
                 system = JObject.FromObject(new { worldKind = "tileLayerLink" }),
             };
             data.classes[ObjectLayerLinkSystemBaseClassId] = new NeoSchemaClass
@@ -6159,7 +6159,7 @@ namespace NeoCompose.Tests
                 {
                     ["Objects"] = "object-layer-link-objects-member",
                 },
-                isAbstract = true,
+                modifier = NeoClassModifierKind.Abstract,
                 system = JObject.FromObject(new { worldKind = "objectLayerLink" }),
             };
             data.classes[TileLayerLinkClassId].extendsClassId =
@@ -6196,7 +6196,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Name",
                 kind = MemberKind.String,
-                localizable = false,
+                format = NeoStringFormatKind.Plain,
                 defaultValue = new StringMemberValueBase
                 {
                     value = "Default Background",
@@ -6210,7 +6210,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Description",
                 kind = MemberKind.String,
-                localizable = false,
+                format = NeoStringFormatKind.Plain,
                 defaultValue = new StringMemberValueBase
                 {
                     value = "Default layer description",
@@ -6752,7 +6752,7 @@ namespace NeoCompose.Tests
                         name = "Tiles",
                         kind = MemberKind.List,
                         entryMemberId = "tile-layer-link-tile-entry-member",
-                        storage = "save",
+                        storage = NeoMemberStorage.Save,
                     },
                     ["tile-layer-link-tile-entry-member"] = new ClassMember
                     {
@@ -6777,7 +6777,7 @@ namespace NeoCompose.Tests
                         name = "Objects",
                         kind = MemberKind.List,
                         entryMemberId = "object-layer-link-object-entry-member",
-                        listKind = NeoListKinds.Unordered,
+                        listKind = NeoListKind.Unordered,
                     },
                     ["object-layer-link-object-entry-member"] = new ClassMember
                     {
@@ -6949,7 +6949,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = id,
                 kind = MemberKind.Class,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };

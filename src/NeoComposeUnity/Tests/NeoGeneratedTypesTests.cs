@@ -463,8 +463,8 @@ namespace NeoCompose.Tests
         public void GeneratedConstructor_UsesMemberDefaultsForOmittedArguments()
         {
             var app = LoadGeneratedClient(out _);
-            RequireMember<StringMember>(app.Client, "member-name").required = true;
-            RequireMember<IntMember>(app.Client, "member-health").required = true;
+            RequireMember<StringMember>(app.Client, "member-name").requirement = NeoMemberRequirementKind.Required;
+            RequireMember<IntMember>(app.Client, "member-health").requirement = NeoMemberRequirementKind.Required;
 
             var hero = new Hero();
 
@@ -608,10 +608,10 @@ namespace NeoCompose.Tests
         public void GeneratedConstructor_RecursivelyCreatesNestedClassDefaults()
         {
             var app = LoadGeneratedClient(out _);
-            RequireMember<StringMember>(app.Client, "member-name").required = true;
-            RequireMember<IntMember>(app.Client, "member-health").required = true;
+            RequireMember<StringMember>(app.Client, "member-name").requirement = NeoMemberRequirementKind.Required;
+            RequireMember<IntMember>(app.Client, "member-health").requirement = NeoMemberRequirementKind.Required;
             var heroMember = RequireMember<ClassMember>(app.Client, "member-hero");
-            heroMember.required = true;
+            heroMember.requirement = NeoMemberRequirementKind.Required;
             heroMember.defaultValue!.value = new Dictionary<string, string>();
             var classes = (Dictionary<string, NeoSchemaClass>)app.Client.classes;
             classes["class-default-holder"] = new NeoSchemaClass
@@ -658,7 +658,7 @@ namespace NeoCompose.Tests
                 id = "member-sparse-default-count",
                 name = "Count",
                 kind = MemberKind.Int,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new NumberMemberValueBase { value = 5 },
                 createdAt = now,
                 updatedAt = now,
@@ -668,7 +668,7 @@ namespace NeoCompose.Tests
                 id = "member-sparse-default-nested-entry",
                 name = "Nested entry",
                 kind = MemberKind.String,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 createdAt = now,
                 updatedAt = now,
             };
@@ -678,8 +678,8 @@ namespace NeoCompose.Tests
                 name = "Nested",
                 kind = MemberKind.List,
                 entryMemberId = nestedEntryMember.id,
-                listKind = NeoListKinds.Unordered,
-                required = true,
+                listKind = NeoListKind.Unordered,
+                requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new ArrayMemberValueBase
                 {
                     init = new InitializerBody { code = "Nested" },
@@ -694,7 +694,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = countedClassId,
                 valueId = sourceValueId,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 createdAt = now,
                 updatedAt = now,
             };
@@ -704,7 +704,7 @@ namespace NeoCompose.Tests
                 name = "Container",
                 kind = MemberKind.Class,
                 classId = containerClassId,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new ObjectMemberValueBase
                 {
                     classId = containerClassId,
@@ -725,7 +725,7 @@ namespace NeoCompose.Tests
             {
                 id = nestedClassId,
                 name = "SparseDefaultNested",
-                allowedStorage = "session",
+                allowedStorage = NeoMemberStorage.Session,
                 schema = new Dictionary<string, string>(),
                 createdAt = now,
                 updatedAt = now,
@@ -734,7 +734,7 @@ namespace NeoCompose.Tests
             {
                 id = countedClassId,
                 name = "SparseDefaultCounted",
-                allowedStorage = "session",
+                allowedStorage = NeoMemberStorage.Session,
                 schema = new Dictionary<string, string>
                 {
                     ["Count"] = countMember.id,
@@ -748,7 +748,7 @@ namespace NeoCompose.Tests
             {
                 id = containerClassId,
                 name = "SparseDefaultContainer",
-                allowedStorage = "session",
+                allowedStorage = NeoMemberStorage.Session,
                 schema = new Dictionary<string, string>
                 {
                     ["Counted"] = countedMember.id,
@@ -760,7 +760,7 @@ namespace NeoCompose.Tests
             {
                 id = holderClassId,
                 name = "SparseDefaultHolder",
-                allowedStorage = "session",
+                allowedStorage = NeoMemberStorage.Session,
                 schema = new Dictionary<string, string>
                 {
                     ["Container"] = containerMember.id,
@@ -1507,7 +1507,7 @@ namespace NeoCompose.Tests
             {
                 id = classId,
                 name = "StaticClone",
-                allowedStorage = "immutable",
+                allowedStorage = NeoMemberStorage.Immutable,
                 schema = new Dictionary<string, string>(),
                 createdAt = "1970-01-01T00:00:00.000Z",
                 updatedAt = "1970-01-01T00:00:00.000Z",
@@ -1544,7 +1544,7 @@ namespace NeoCompose.Tests
                 name = "Child",
                 kind = MemberKind.Class,
                 classId = "class-hero",
-                storage = "save",
+                storage = NeoMemberStorage.Save,
                 createdAt = now,
                 updatedAt = now,
             };

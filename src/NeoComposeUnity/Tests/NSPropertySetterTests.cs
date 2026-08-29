@@ -698,13 +698,13 @@ namespace NeoCompose.Tests
                 "Save",
                 "class-root",
                 "value-save",
-                "save");
+                NeoMemberStorage.Save);
             var rootSession = ClassMember(
                 "member-root-session",
                 "Session",
                 "class-root",
                 "value-session",
-                "session");
+                NeoMemberStorage.Session);
             var receiverMember = ClassMember(
                 "member-receiver-value",
                 "Receiver",
@@ -746,7 +746,7 @@ namespace NeoCompose.Tests
                 {
                     FunctionArgument("value", propertyType),
                 },
-                deferred = false,
+                dispatch = NeoFunctionDispatchKind.Synchronous,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -762,7 +762,7 @@ namespace NeoCompose.Tests
                     required = true,
                 },
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-                deferred = true,
+                dispatch = NeoFunctionDispatchKind.Asynchronous,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1063,7 +1063,7 @@ namespace NeoCompose.Tests
             string name,
             string classId,
             string valueId,
-            string? storage = null)
+            NeoMemberStorage storage = NeoMemberStorage.Inherit)
         {
             return new ClassMember
             {

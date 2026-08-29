@@ -124,7 +124,7 @@ namespace NeoCompose.Runtime
             // missing asset error.
             if (IsEmptyValue(CurrentValue())) return null;
             var resolved = ResolveOrNull();
-            if (resolved == null && memberNode is not null && memberNode.member.required)
+            if (resolved == null && memberNode is not null && memberNode.member.EffectiveRequirement == NeoMemberRequirementKind.Required)
             {
                 throw new System.InvalidOperationException(
                     $"Required Sprite '{memberNode.member.name}' has no synchronized asset.");

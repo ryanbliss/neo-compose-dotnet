@@ -90,7 +90,7 @@ namespace NeoCompose.Runtime
             Member childMember,
             string? overrideValueId)
         {
-            if (childMember.isReadOnly == true)
+            if (childMember.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly)
             {
                 // Declaration-backed nodes are shared by member id across all
                 // containing instances. They deliberately have no containing
@@ -176,10 +176,10 @@ namespace NeoCompose.Runtime
         {
             if (!TryGetValueData(key, out TValue? value))
             {
-                if (member.required)
+                if (member.EffectiveRequirement == NeoMemberRequirementKind.Required)
                 {
                     throw new System.NullReferenceException(
-                        $"{member.required} is true, but value not found");
+                        $"{member.EffectiveRequirement == NeoMemberRequirementKind.Required} is true, but value not found");
                 }
                 return null;
             }
@@ -278,7 +278,7 @@ namespace NeoCompose.Runtime
             foreach (var child in childMembers.Values)
             {
                 child.OnChanged -= HandleChildChanged;
-                if (child.member.isReadOnly == true)
+                if (child.member.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly)
                 {
                     child.ReleaseDeclarationReference();
                 }
@@ -327,7 +327,7 @@ namespace NeoCompose.Runtime
             }
             foreach (var entry in mergedSchema)
             {
-                if (member.partial == true
+                if (member.EffectivePayload == NeoMemberPayloadKind.Partial
                     && (value?.value is null
                         || !value.value.ContainsKey(entry.schemaKey)))
                 {
@@ -336,7 +336,7 @@ namespace NeoCompose.Runtime
                 if (!client.TryGetMember(entry.memberId, out Member? childMember)) continue;
                 childMember = SubstituteChildMember(childMember);
                 string? childValueId = null;
-                if (childMember.isReadOnly != true)
+                if (childMember.EffectiveMutability != NeoMemberMutabilityKind.ReadOnly)
                 {
                     if (value?.value is not null
                         && value.value.TryGetValue(entry.schemaKey, out string valueIdForKey))
@@ -383,7 +383,7 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 var child = CreateChild(client, childMember, childValueId);
-                if (childMember.isReadOnly == true)
+                if (childMember.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly)
                 {
                     child.RetainDeclarationReference();
                 }
@@ -398,7 +398,7 @@ namespace NeoCompose.Runtime
             foreach (var child in children)
             {
                 child.OnChanged -= HandleChildChanged;
-                if (child.member.isReadOnly == true)
+                if (child.member.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly)
                 {
                     child.ReleaseDeclarationReference();
                 }
@@ -522,7 +522,7 @@ namespace NeoCompose.Runtime
             Member childMember,
             string? overrideValueId)
         {
-            if (childMember.isReadOnly == true)
+            if (childMember.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly)
             {
                 return Create(client, childMember, overrideValueId: null);
             }
@@ -728,7 +728,7 @@ namespace NeoCompose.Runtime
             // specs/class-generics.md Decision 10).
             childMember = SubstituteChildMember(childMember);
             RejectReadOnlyInstanceMutation(key, childMember);
-            if (childMember.required && (setValue is null || setValue.isNull))
+            if (childMember.EffectiveRequirement == NeoMemberRequirementKind.Required && (setValue is null || setValue.isNull))
             {
                 throw new System.ArgumentNullException(
                     nameof(setValue),
@@ -1057,7 +1057,7 @@ namespace NeoCompose.Runtime
             string key,
             Member childMember)
         {
-            if (childMember.isReadOnly != true) return;
+            if (childMember.EffectiveMutability != NeoMemberMutabilityKind.ReadOnly) return;
             throw new System.InvalidOperationException(
                 $"Cannot write '{key}': read-only declaration member '{childMember.name}' ({childMember.id}) cannot have an instance value. Change its class default instead.");
         }
@@ -1083,7 +1083,7 @@ namespace NeoCompose.Runtime
             {
                 childMember = SubstituteChildMember(childMember);
                 RejectReadOnlyInstanceMutation(key, childMember);
-                if (childMember.required)
+                if (childMember.EffectiveRequirement == NeoMemberRequirementKind.Required)
                 {
                     throw new System.InvalidOperationException(
                         $"Cannot unset required field '{key}'.");

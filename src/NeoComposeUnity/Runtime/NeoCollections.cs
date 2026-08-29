@@ -829,7 +829,7 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>
-    /// Read-only set of <see cref="NeoDialogueReference"/>s backing a multiselect
+    /// Read-only set of <see cref="NeoDialogueReference"/>s backing a multi-select
     /// DialogueLookup. Unlike <see cref="NeoReadOnlyLookupSet{T}"/> it is
     /// non-generic and resolves the stored <c>dialogueId</c>s directly (no
     /// collection <c>GetSelected()</c> walk). See spec §5.3.

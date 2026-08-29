@@ -111,9 +111,9 @@ namespace NeoCompose.Tests
         // -------------------------------------------------------------------
 
         [Test]
-        public void ExportSchemaVersion_CurrentContractIsTwentyEight()
+        public void ExportSchemaVersion_CurrentContractIsTwentyNine()
         {
-            Assert.AreEqual(28, NeoProjectExportContract.CurrentSchemaVersion);
+            Assert.AreEqual(29, NeoProjectExportContract.CurrentSchemaVersion);
         }
 
         [Test]
@@ -380,7 +380,7 @@ namespace NeoCompose.Tests
                 id = "member-chosen",
                 name = "Chosen",
                 kind = MemberKind.Variant,
-                required = required,
+                requirement = required ? NeoMemberRequirementKind.Required : NeoMemberRequirementKind.Optional,
                 createdAt = "1970-01-01T00:00:00.000Z",
                 updatedAt = "1970-01-01T00:00:00.000Z",
             };
@@ -519,14 +519,14 @@ namespace NeoCompose.Tests
         private static VariantMember RegisterHolderClass(
             NeoClient client,
             VariantMemberValueBase? declarationDefault = null,
-            string storage = "save")
+            NeoMemberStorage storage = NeoMemberStorage.Save)
         {
             var member = new VariantMember
             {
                 id = "member-holder-chosen",
                 name = "Chosen",
                 kind = MemberKind.Variant,
-                required = false,
+                requirement = NeoMemberRequirementKind.Optional,
                 storage = storage,
                 defaultValue = declarationDefault,
                 createdAt = "1970-01-01T00:00:00.000Z",

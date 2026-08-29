@@ -238,7 +238,7 @@ namespace NeoCompose.Tests
                 name = id,
                 schema = new Dictionary<string, string>(),
                 extendsClassId = extendsClassId,
-                isAbstract = isAbstract,
+                modifier = isAbstract ? NeoClassModifierKind.Abstract : NeoClassModifierKind.Open,
                 createdAt = "x",
                 updatedAt = "x",
             };

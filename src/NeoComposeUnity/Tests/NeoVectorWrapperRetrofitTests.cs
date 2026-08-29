@@ -619,7 +619,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Position",
                         kind = MemberKind.Vector2,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                     },
                     ["offset-member"] = new Vector2Member
                     {
@@ -634,7 +634,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Cell",
                         kind = MemberKind.Vector2Int,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                     },
                     ["anchor-member"] = new Vector2IntMember
                     {
@@ -656,7 +656,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Size",
                         kind = MemberKind.Vector3,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                     },
                     ["grid-member"] = new Vector3IntMember
                     {
@@ -664,7 +664,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Grid",
                         kind = MemberKind.Vector3Int,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                     },
                     // Required, and deliberately left without a value row (no
                     // entry in the save record below) so the missing-value
@@ -675,7 +675,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Bounds",
                         kind = MemberKind.Vector3,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                     },
                 },
                 values = new Dictionary<string, MemberValue>
@@ -722,7 +722,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = id,
                 kind = MemberKind.Class,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };

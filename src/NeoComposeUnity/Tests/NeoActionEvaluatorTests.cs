@@ -880,7 +880,7 @@ namespace NeoCompose.Tests
             ClassMember assets = RootClassMember(
                 "member-root-assets", "Assets", "class-root", "value-assets");
             ClassMember save = RootClassMember(
-                "member-root-save", "Save", "class-save-root", SaveRootValueId, "save");
+                "member-root-save", "Save", "class-save-root", SaveRootValueId, NeoMemberStorage.Save);
             ClassMember session = RootClassMember(
                 "member-root-session", "Session", "class-root", "value-session");
             var counter = new IntMember
@@ -889,7 +889,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Counter",
                 kind = MemberKind.Int,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 valueId = CounterValueId,
                 createdAt = "x",
                 updatedAt = "x",
@@ -901,7 +901,7 @@ namespace NeoCompose.Tests
                 name = "OnDamaged",
                 kind = MemberKind.NSAction,
                 // Never nullable: the empty set is the rest state (§2.1).
-                required = false,
+                requirement = NeoMemberRequirementKind.Optional,
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
                 valueId = ActionValueId,
                 defaultValue = new ActionMemberValueBase
@@ -920,8 +920,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "OnGlobalReset",
                 kind = MemberKind.NSAction,
-                required = false,
-                isStatic = true,
+                requirement = NeoMemberRequirementKind.Optional,
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
                 valueId = StaticActionValueId,
                 defaultValue = new ActionMemberValueBase
@@ -930,6 +929,7 @@ namespace NeoCompose.Tests
                 },
                 createdAt = "x",
                 updatedAt = "x",
+                modifier = NeoMemberModifierKind.Static,
             };
             NSFunctionMember bumpOne = Bump(BumpOneMemberId, "BumpOne", 1);
             // Deliberately absent from every class schema: a listener whose
@@ -950,7 +950,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Relay",
                 kind = MemberKind.NSDelegate,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 returnTypeInfo = new VoidTypeInfo
                 {
                     type = MemberKind.Void,
@@ -1094,7 +1094,7 @@ namespace NeoCompose.Tests
                 required = true,
             },
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-            deferred = false,
+            dispatch = NeoFunctionDispatchKind.Synchronous,
             action = new FunctionWithReturnType
             {
                 parameters = new[]
@@ -1151,7 +1151,7 @@ namespace NeoCompose.Tests
             string name,
             string classId,
             string valueId,
-            string? storage = null) => new()
+            NeoMemberStorage storage = NeoMemberStorage.Inherit) => new()
         {
             id = id,
             projectId = ProjectId,

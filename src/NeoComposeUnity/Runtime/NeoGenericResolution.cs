@@ -79,14 +79,14 @@ namespace NeoCompose.Runtime
         public MemberKind type;
         public bool required;
 
-        /// <summary>String only. Normalized: absent means localizable.</summary>
-        public bool? localizable;
+        /// <summary>String only. Normalized: absent means Localized.</summary>
+        public NeoStringFormatKind format;
 
         /// <summary>Enum only.</summary>
         public string? enumId;
 
         /// <summary>Enum only.</summary>
-        public bool? multiselect;
+        public NeoMemberSelectionKind selection;
 
         /// <summary>Class only.</summary>
         public string? classId;
@@ -94,13 +94,13 @@ namespace NeoCompose.Runtime
         /// <summary>Class only — recursive argument signatures by target param id.</summary>
         public Dictionary<string, NeoClassArgumentSignature>? args;
 
-        /// <summary>List only — "ordered" or "unordered" (absent normalizes to ordered).</summary>
-        public string? listKind;
+        /// <summary>List only; absent normalizes to Ordered.</summary>
+        public NeoListKind listKind;
 
-        /// <summary>Dictionary only — "string" or "enum".</summary>
-        public string? keyKind;
+        /// <summary>Dictionary only; absent normalizes to String.</summary>
+        public NeoDictionaryKeyKind keyKind;
 
-        /// <summary>Dictionary only — set iff <see cref="keyKind"/> is "enum".</summary>
+        /// <summary>Dictionary only — set iff <see cref="keyKind"/> is Enum.</summary>
         public string? keyEnumId;
 
         /// <summary>List / Dictionary only — recursive entry signature.</summary>
@@ -207,7 +207,7 @@ namespace NeoCompose.Runtime
                 {
                     return NeoGenericEnvEntry.Unbound(cursor);
                 }
-                if (binding.kind == NeoGenericBindingKinds.Member)
+                if (binding.kind == NeoGenericBindingKind.Member)
                 {
                     return NeoGenericEnvEntry.Bound(binding.memberId!);
                 }
@@ -369,7 +369,7 @@ namespace NeoCompose.Runtime
             {
                 result[binding.Key] = new GenericBinding
                 {
-                    kind = NeoGenericBindingKinds.Member,
+                    kind = NeoGenericBindingKind.Member,
                     memberId = binding.Value,
                 };
             }
@@ -529,11 +529,11 @@ namespace NeoCompose.Runtime
         /// <list type="bullet">
         ///   <item><description><b>Generic slots</b> resolve to their
         ///   binding member. The binding supplies <c>kind</c>, all
-        ///   per-kind config, <c>defaultValue</c>, and <c>required</c>
+        ///   per-kind config, <c>defaultValue</c>, and <c>requirement</c>
         ///   (nullability is part of the type — one <c>T</c> is one type).
         ///   The slot keeps its identity/placement fields: <c>id</c>,
-        ///   <c>name</c>, <c>locked</c>, <c>accessModifierKind</c>,
-        ///   <c>isVirtual</c>, <c>isAbstract</c>, <c>isReadOnly</c>, <c>storage</c>,
+        ///   <c>name</c>, <c>access</c>, <c>modifier</c>,
+        ///   <c>mutability</c>, <c>storage</c>,
         ///   <c>storageKey</c>.
         ///   Preserving <c>id</c> is what keeps parent-value records, child
         ///   node resolution, and NeoScript pointer IR working with zero
@@ -563,31 +563,64 @@ namespace NeoCompose.Runtime
                 Member substituted = binding.ShallowClone();
                 substituted.id = generic.id;
                 substituted.name = generic.name;
-                substituted.locked = generic.locked;
+                // Binding overrides may omit zero-valued fields inherited
+                // from another member. Bake their effective shape before
+                // detaching the substituted member from that inheritance
+                // graph, preserving absent versus explicit ordinal zero.
+                substituted.requirement = binding.EffectiveRequirement;
+                switch (substituted)
+                {
+                    case StringMember stringValue:
+                        stringValue.format = stringValue.EffectiveFormat;
+                        stringValue.searchBy = stringValue.EffectiveSearchBy;
+                        break;
+                    case DictionaryMember dictionaryValue:
+                        dictionaryValue.keyKind = dictionaryValue.EffectiveKeyKind;
+                        break;
+                    case ListMember listValue:
+                        listValue.listKind = listValue.EffectiveListKind;
+                        break;
+                    case EnumMember enumValue:
+                        enumValue.selection = enumValue.EffectiveSelection;
+                        break;
+                    case LookupMember lookupValue:
+                        lookupValue.selection = lookupValue.EffectiveSelection;
+                        break;
+                    case DialogueLookupMember dialogueValue:
+                        dialogueValue.selection = dialogueValue.EffectiveSelection;
+                        break;
+                    case FunctionMember functionValue:
+                        functionValue.dispatch = functionValue.EffectiveDispatch;
+                        break;
+                    case NSFunctionMember neoScriptFunctionValue:
+                        neoScriptFunctionValue.dispatch = neoScriptFunctionValue.EffectiveDispatch;
+                        neoScriptFunctionValue.bodyMode = neoScriptFunctionValue.EffectiveBodyMode;
+                        break;
+                }
                 // Accessibility is slot-owned (specs/member-access-modifiers.md
                 // §2) — a binding member's modifier must not change the
                 // declaring slot's visibility.
-                substituted.accessModifierKind = generic.accessModifierKind;
-                substituted.isVirtual = generic.isVirtual;
-                substituted.isAbstract = generic.isAbstract;
+                substituted.access = generic.EffectiveAccess;
+                substituted.modifier = generic.EffectiveModifier;
                 // Read-only changes the containing Class slot's stored shape,
                 // so it is declaration metadata rather than type-argument
                 // metadata. The binding must never add or remove an instance
                 // value edge.
-                substituted.isReadOnly = generic.isReadOnly;
+                substituted.mutability = generic.EffectiveMutability;
                 // Partial changes how a closed Class slot is materialized,
                 // so it belongs to the Generic declaration rather than the
                 // binding member (Partial<TTarget> must stay sparse).
                 if (substituted is ClassMember substitutedClassMember)
                 {
-                    substitutedClassMember.partial = generic.partial;
+                    substitutedClassMember.payload = generic.EffectivePayload;
                 }
                 // Placement fields are slot-owned. A null declaration means
                 // "inherit from placement parent" and must not fall back to
                 // the binding's own declaration (bindings are type
                 // arguments, not placements).
-                substituted.storage = generic.storage;
+                substituted.storage = generic.EffectiveStorage;
                 substituted.storageKey = generic.storageKey;
+                substituted.effectiveShape = null;
                 substituted.extendsMemberId = null;
                 substituted.substitutedDeclarationIdentity =
                     $"{generic.id}@{binding.id}";
@@ -622,7 +655,7 @@ namespace NeoCompose.Runtime
                     }
                     substitutedArgs[pair.Key] = new GenericBinding
                     {
-                        kind = NeoGenericBindingKinds.Member,
+                        kind = NeoGenericBindingKind.Member,
                         memberId = entry.memberId,
                     };
                     changed = true;
@@ -696,7 +729,7 @@ namespace NeoCompose.Runtime
                     env);
                 return SignatureOfMember(client, binding, env, seen);
             }
-            bool required = member.required;
+            bool required = member.EffectiveRequirement == NeoMemberRequirementKind.Required;
             if (member is EnumMember enumMember)
             {
                 return new NeoClassArgumentSignature
@@ -704,7 +737,7 @@ namespace NeoCompose.Runtime
                     type = MemberKind.Enum,
                     required = required,
                     enumId = enumMember.enumId,
-                    multiselect = enumMember.multiselect,
+                    selection = enumMember.EffectiveSelection,
                 };
             }
             if (member is ClassMember classMember)
@@ -731,7 +764,7 @@ namespace NeoCompose.Runtime
                 {
                     type = MemberKind.List,
                     required = required,
-                    listKind = listMember.listKind ?? NeoListKinds.Ordered,
+                    listKind = listMember.EffectiveListKind,
                     entry = EntrySignature(client, listMember.entryMemberId, env, seen),
                 };
             }
@@ -741,7 +774,7 @@ namespace NeoCompose.Runtime
                 {
                     type = MemberKind.Dictionary,
                     required = required,
-                    keyKind = dictionaryMember.keyKind,
+                    keyKind = dictionaryMember.EffectiveKeyKind,
                     keyEnumId = dictionaryMember.keyEnumId,
                     entry = EntrySignature(client, dictionaryMember.entryMemberId, env, seen),
                 };
@@ -752,10 +785,7 @@ namespace NeoCompose.Runtime
                 {
                     type = MemberKind.String,
                     required = required,
-                    // The field initializer defaults to true, so an absent
-                    // wire value and an explicit `true` signature identically
-                    // — the same normalization as the web module.
-                    localizable = stringMember.localizable,
+                    format = stringMember.EffectiveFormat,
                 };
             }
             return new NeoClassArgumentSignature
@@ -807,7 +837,7 @@ namespace NeoCompose.Runtime
                     client,
                     new GenericBinding
                     {
-                        kind = NeoGenericBindingKinds.Member,
+                        kind = NeoGenericBindingKind.Member,
                         memberId = entry.memberId,
                     },
                     env,
@@ -835,11 +865,11 @@ namespace NeoCompose.Runtime
             if (a.required != b.required) return false;
             if (a.type == MemberKind.String)
             {
-                return a.localizable == b.localizable;
+                return a.format == b.format;
             }
             if (a.type == MemberKind.Enum)
             {
-                return a.enumId == b.enumId && a.multiselect == b.multiselect;
+                return a.enumId == b.enumId && a.selection == b.selection;
             }
             if (a.type == MemberKind.Class)
             {
@@ -888,7 +918,7 @@ namespace NeoCompose.Runtime
         ///   class's terminal binding must signature-match the
         ///   context-substituted argument — invariantly.</description></item>
         /// </list>
-        /// <c>isAbstract</c> is deliberately not checked here — value
+        /// The Abstract class modifier is deliberately not checked here; value
         /// creation paths already reject abstract classes, and this function
         /// also tests mid-hierarchy compatibility. Generated writable
         /// setters that accept a caller-chosen subclass id (and any future
@@ -952,7 +982,7 @@ namespace NeoCompose.Runtime
                     client,
                     new GenericBinding
                     {
-                        kind = NeoGenericBindingKinds.Member,
+                        kind = NeoGenericBindingKind.Member,
                         memberId = valueBinding.memberId,
                     },
                     valueEnv);

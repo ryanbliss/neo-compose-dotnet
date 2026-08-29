@@ -335,10 +335,14 @@ namespace NeoCompose.Tests
         /// </summary>
         private static NeoClient BuildClient()
         {
-            var rootAssets = RootMember("member-root-assets", "Assets", "value-assets", null);
-            var rootSave = RootMember("member-root-save", "Save", "value-save", "save");
+            var rootAssets = RootMember(
+                "member-root-assets",
+                "Assets",
+                "value-assets",
+                NeoMemberStorage.Inherit);
+            var rootSave = RootMember("member-root-save", "Save", "value-save", NeoMemberStorage.Save);
             var rootSession = RootMember(
-                "member-root-session", "Session", "value-session", "session");
+                "member-root-session", "Session", "value-session", NeoMemberStorage.Session);
             var data = new ProjectData
             {
                 project = new Project
@@ -384,7 +388,7 @@ namespace NeoCompose.Tests
             string id,
             string name,
             string valueId,
-            string? storage)
+            NeoMemberStorage storage)
         {
             return new ClassMember
             {

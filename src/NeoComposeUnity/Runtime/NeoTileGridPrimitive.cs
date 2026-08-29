@@ -3367,7 +3367,7 @@ namespace NeoCompose.Runtime
                 }
 
                 if (source is null) continue;
-                if (ownership == NeoValueOwnership.Asset || member.isReadOnly == true)
+                if (ownership == NeoValueOwnership.Asset || member.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly)
                 {
                     // Immutable definitions (including clip graphs) remain
                     // shared authored content and are never runtime targets.
@@ -3432,7 +3432,7 @@ namespace NeoCompose.Runtime
                         MemberValue? entrySource = client.ResolveEffectiveRow(pair.Value);
                         mapped[pair.Key] = entrySource is null
                             || entryOwnership == NeoValueOwnership.Asset
-                            || dictionaryEntry.isReadOnly == true
+                            || dictionaryEntry.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly
                                 ? pair.Value
                                 : ClonePlacementOwnedRow(
                                     dictionaryEntry,
@@ -3460,14 +3460,14 @@ namespace NeoCompose.Runtime
                         MemberValue? entrySource = client.ResolveEffectiveRow(sourceId);
                         mapped[index] = entrySource is null
                             || entryOwnership == NeoValueOwnership.Asset
-                            || listEntry.isReadOnly == true
+                            || listEntry.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly
                                 ? sourceId
                                 : ClonePlacementOwnedRow(
                                     listEntry,
                                     entrySource,
                                     entryOwnership,
                                     mapKey,
-                                    listMember.listKind == NeoListKinds.Unordered
+                                    listMember.EffectiveListKind == NeoListKind.Unordered
                                         ? clone.id
                                         : null);
                     }

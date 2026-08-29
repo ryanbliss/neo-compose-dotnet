@@ -1,7 +1,6 @@
 // This file is read only.
 Root root = new() {
   @id("8f1dbf20-8d7c-49e0-9e0f-5e172da6f684")
-  @locked
   @storage(allowed: .Immutable)
   Assets Assets =
     new() {
@@ -3568,7 +3567,6 @@ Root root = new() {
     };
 
   @id("4a1a7058-e5ba-4479-9f2f-7686a649a6b5")
-  @locked
   @storage(allowed: .Save)
   Save Save =
     new() {
@@ -3601,7 +3599,6 @@ Root root = new() {
     };
 
   @id("f0ce0706-def6-41ff-b8e9-baa2a7a84de6")
-  @locked
   @storage(allowed: .Session)
   Session Session =
     new();

@@ -338,7 +338,7 @@ namespace NeoCompose.Runtime
             var result = new List<string>();
             foreach (NeoSchemaClass candidate in data.classes.Values)
             {
-                if (candidate.isAbstract) continue;
+                if (candidate.EffectiveModifier == NeoClassModifierKind.Abstract) continue;
                 if (ContainsClass(ResolveAncestry(candidate.id), classId))
                 {
                     result.Add(candidate.id);

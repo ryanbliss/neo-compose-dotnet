@@ -10,11 +10,10 @@
 )
 class PlayerSpawnObject : ConsoleObject {
   @id("neo-tile-grid-record-relations-v1-member-5544b0deacdcfd845f211f1bb0cf21da")
-  @settings(localizable: false)
+  @settings(format: .Plain)
   public override string Name = "Player Spawn";
 
   @id("35275ba0-4a3f-4b83-8b09-fccb7bd7a515")
-  @locked
   @settings(kind: .Ordered)
   public override List<NeoObjectBase> Children = [
     @id("d0d48343-8748-40bf-b35a-3e88cdd7e3a5")
@@ -31,7 +30,6 @@ class PlayerSpawnObject : ConsoleObject {
   ];
 
   @id("47c21aa5-e852-41d2-882c-b4f555aee9dd")
-  @locked
   @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public override List<NeoObjectPlacementTile> PlacementTiles = [
@@ -42,7 +40,6 @@ class PlayerSpawnObject : ConsoleObject {
   ];
 
   @id("e5f5125c-fe5c-46b4-9589-9c6ae6fcba19")
-  @locked
   public override NeoCollider? Collider = new NeoCollider {
     size = new(0.961, 0.93),
     offset = new(0.506, 0.503),
@@ -50,7 +47,6 @@ class PlayerSpawnObject : ConsoleObject {
   };
 
   @id("2b10e854-d60a-40a7-bc4c-8aede3e5049e")
-  @locked
   @storage(allowed: .Session)
   public override Vector3 Position;
 }

@@ -1,23 +1,20 @@
 @id("neo-tile-grid-record-relations-v1-class-d1b21a408630eedaf664ccf5720d874f")
 class DefaultObjectLayer : ConsoleObjectLayer {
   @id("neo-tile-grid-record-relations-v1-member-8e3b5316e8176abbb06cef17f9781068")
-  @settings(localizable: false)
+  @settings(format: .Plain)
   public override string DisplayName = "Objects";
 
   @id("neo-tile-grid-record-relations-v1-member-4e1f492f44046a1fb287ccd311801c1a")
-  @locked
-  @settings(localizable: false)
+  @settings(format: .Plain)
   @system(kind: .WorldAuthoring)
   public override string Name = "Objects";
 
   @id("neo-tile-grid-record-relations-v1-member-9d115a86ad7705f950cc44e5fb6f3946")
-  @locked
   @settings(collection: Assets.SortingLayers, collectionValue: Reference(root.Assets.SortingLayers))
   @system(kind: .WorldAuthoring)
   public override NeoSortingLayer SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
 
   @id("neo-tile-grid-record-relations-v1-member-1475dfc0d04c6432645b0e36230db041")
-  @locked
   @settings(min: -32768, max: 32767)
   @system(kind: .WorldAuthoring)
   public override int SortingOrder = 5;

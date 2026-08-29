@@ -2,18 +2,15 @@
 @system(kind: .WorldAuthoring, worldKind: .Tile)
 abstract class NeoTile {
   @id("system_3b02422f-1ef2-4a50-8386-155d5001082b")
-  @locked
-  @settings(localizable: false)
+  @settings(format: .Plain)
   @system(kind: .WorldAuthoring)
   public virtual string Name = "";
 
   @id("system_cbd6db9a-f473-44b5-b913-7cdc06452f35")
-  @locked
   @system(kind: .WorldAuthoring)
   public virtual SpriteInfo Sprite = SpriteInfo.Empty;
 
   @id("system_96cda8f5-3100-45b5-adcb-0552d21504dd")
-  @locked
   @system(kind: .WorldAuthoring)
   public virtual NeoSmartTile? SmartTile = null;
 }

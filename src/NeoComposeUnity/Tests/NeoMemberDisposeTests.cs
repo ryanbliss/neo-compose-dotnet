@@ -424,7 +424,7 @@ namespace NeoCompose.Tests
                 id = "test-detached-dictionary-member",
                 name = "Detached dictionary",
                 kind = MemberKind.Dictionary,
-                keyKind = "string",
+                keyKind = NeoDictionaryKeyKind.String,
                 entryMemberId = "member-tags",
             };
             client.SetSaveValue(new StringMemberValue
@@ -465,14 +465,14 @@ namespace NeoCompose.Tests
                 id = "test-session-entry",
                 name = "Session entry",
                 kind = MemberKind.String,
-                storage = "session",
+                storage = NeoMemberStorage.Session,
             };
             var dictionaryMember = new DictionaryMember
             {
                 id = "test-cross-storage-dictionary",
                 name = "Cross-storage dictionary",
                 kind = MemberKind.Dictionary,
-                keyKind = "string",
+                keyKind = NeoDictionaryKeyKind.String,
                 entryMemberId = "test-session-entry",
             };
             client.SetWritableValue(NeoValueOwnership.Session, new StringMemberValue
@@ -531,7 +531,7 @@ namespace NeoCompose.Tests
             var hero = (NeoMemberClassWritable)NeoMember.CreateWritable(client, heroMember, null);
             NeoGeneratedTypesSupport.SetValue(
                 hero, "Name", NeoGeneratedTypesSupport.Value("Aragorn"));
-            RequireMember<StringMember>(client, "member-name").required = true;
+            RequireMember<StringMember>(client, "member-name").requirement = NeoMemberRequirementKind.Required;
 
             Assert.Throws<System.InvalidOperationException>(() => hero.Unset("Name"));
         }

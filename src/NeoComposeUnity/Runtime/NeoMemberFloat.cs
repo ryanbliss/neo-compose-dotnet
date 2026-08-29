@@ -32,11 +32,11 @@ namespace NeoCompose.Runtime
 
         public void Set(float? newValue)
         {
-            if (member.required && newValue is null)
+            if (member.EffectiveRequirement == NeoMemberRequirementKind.Required && newValue is null)
             {
                 throw new System.ArgumentNullException(
                     nameof(newValue),
-                    $"Cannot be null when {nameof(member)}.{nameof(member.required)} is true");
+                    $"Cannot be null when {nameof(member)} requirement is Required");
             }
             string nowIso = System.DateTime.UtcNow.ToString("o");
             double? doubleValue = newValue.HasValue ? newValue.Value : (double?)null;

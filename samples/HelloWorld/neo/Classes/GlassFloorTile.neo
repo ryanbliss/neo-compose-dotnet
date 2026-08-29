@@ -10,14 +10,13 @@
 )
 class GlassFloorTile : ConsoleTile {
   @id("neo-tile-grid-record-relations-v1-member-17f945091605acd5df2df0b9bafc73ae")
-  @settings(localizable: false)
+  @settings(format: .Plain)
   public override string Name = "Glass Floor";
 
   @id("neo-tile-grid-record-relations-v1-member-f6d6fd3678ac2f76de89f885dd9d22d6")
   public override SpriteInfo Sprite = Images.GlassFloorTile.Slice(0);
 
   @id("neo-tile-grid-record-relations-v1-member-49e10224390d0b64abdf608051b2fcd5")
-  @locked
   @system(kind: .WorldAuthoring)
   public override NeoSmartTile? SmartTile = new NeoSmartTile {
     DefaultCollider = .Sprite,

@@ -167,7 +167,7 @@ namespace NeoCompose.Tests
                         projectId = ProjectId,
                         name = "Next",
                         kind = MemberKind.Class,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                         classId = ChainClassId(index + 1),
                         defaultValue = new ObjectMemberValueBase
                         {
@@ -202,9 +202,9 @@ namespace NeoCompose.Tests
                 };
             }
 
-            ClassMember rootAssets = RootMember("root-assets", "Assets", "immutable", "value-assets");
-            ClassMember rootSave = RootMember("root-save", "Save", "save", "value-save");
-            ClassMember rootSession = RootMember("root-session", "Session", "session", "value-session");
+            ClassMember rootAssets = RootMember("root-assets", "Assets", NeoMemberStorage.Immutable, "value-assets");
+            ClassMember rootSave = RootMember("root-save", "Save", NeoMemberStorage.Save, "value-save");
+            ClassMember rootSession = RootMember("root-session", "Session", NeoMemberStorage.Session, "value-session");
             members[rootAssets.id] = rootAssets;
             members[rootSave.id] = rootSave;
             members[rootSession.id] = rootSession;
@@ -235,7 +235,7 @@ namespace NeoCompose.Tests
         private static ClassMember RootMember(
             string id,
             string name,
-            string storage,
+            NeoMemberStorage storage,
             string valueId)
         {
             return new ClassMember
@@ -244,7 +244,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.Class,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 classId = "root-class",
                 storage = storage,
                 valueId = valueId,

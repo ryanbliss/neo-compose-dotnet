@@ -282,10 +282,10 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = "OnDamaged",
             kind = MemberKind.NSAction,
-            required = false,
+            requirement = NeoMemberRequirementKind.Optional,
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
             valueId = ActionValueId,
-            storage = "save",
+            storage = NeoMemberStorage.Save,
             createdAt = "x",
             updatedAt = "x",
         };
@@ -295,22 +295,22 @@ namespace NeoCompose.Tests
             ClassMember assets = RootClassMember(
                 "member-root-assets", "Assets", RootClassId, "value-assets");
             ClassMember save = RootClassMember(
-                "member-root-save", "Save", SaveRootClassId, SaveRootValueId, "save");
+                "member-root-save", "Save", SaveRootClassId, SaveRootValueId, NeoMemberStorage.Save);
             ClassMember session = RootClassMember(
                 "member-root-session",
                 "Session",
                 RootClassId,
                 SessionRootValueId,
-                "session");
+                NeoMemberStorage.Session);
             var counter = new IntMember
             {
                 id = CounterMemberId,
                 projectId = ProjectId,
                 name = "Counter",
                 kind = MemberKind.Int,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 valueId = CounterValueId,
-                storage = "save",
+                storage = NeoMemberStorage.Save,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -396,7 +396,7 @@ namespace NeoCompose.Tests
                 required = true,
             },
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-            deferred = false,
+            dispatch = NeoFunctionDispatchKind.Synchronous,
             action = new FunctionWithReturnType
             {
                 compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
@@ -448,7 +448,7 @@ namespace NeoCompose.Tests
             string name,
             string classId,
             string valueId,
-            string? storage = null) => new()
+            NeoMemberStorage storage = NeoMemberStorage.Inherit) => new()
         {
             id = id,
             projectId = ProjectId,

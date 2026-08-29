@@ -618,9 +618,9 @@ namespace NeoCompose.Tests
             var rootAssets = ClassMember(
                 "member-root-assets", "Assets", "class-root", "value-assets");
             var rootSave = ClassMember(
-                "member-root-save", "Save", "class-root", "value-save", "save");
+                "member-root-save", "Save", "class-root", "value-save", NeoMemberStorage.Save);
             var rootSession = ClassMember(
-                "member-root-session", "Session", "class-root", "value-session", "session");
+                "member-root-session", "Session", "class-root", "value-session", NeoMemberStorage.Session);
             var leafMember = ClassMember(
                 "member-leaf", "Leaf", "class-leaf", "value-leaf");
 
@@ -689,7 +689,7 @@ namespace NeoCompose.Tests
                         name = "Highlight",
                         kind = MemberKind.Color,
                         valueId = "value-highlight",
-                        required = false,
+                        requirement = NeoMemberRequirementKind.Optional,
                         createdAt = "x",
                         updatedAt = "x",
                     },
@@ -772,7 +772,7 @@ namespace NeoCompose.Tests
             string name,
             string classId,
             string valueId,
-            string? storage = null)
+            NeoMemberStorage storage = NeoMemberStorage.Inherit)
         {
             return new ClassMember
             {

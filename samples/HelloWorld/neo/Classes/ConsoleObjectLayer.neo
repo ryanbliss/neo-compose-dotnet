@@ -1,6 +1,6 @@
 @id("b737f725-5a4a-4d33-8bc5-c6953dbeff77")
 abstract class ConsoleObjectLayer : NeoObjectLayer {
   @id("248753df-f9b6-445a-b3c6-b12957f99ee2")
-  @settings(localizable: false)
+  @settings(format: .Plain)
   public virtual string DisplayName;
 }

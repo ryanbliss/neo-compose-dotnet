@@ -1,5 +1,5 @@
 @id("63b261c9-46f2-4d37-84e9-06f16af04e58")
-@hidden
+@visibility(.Hidden)
 class Session {
   @id("1c7de3b5-6474-483c-aef5-fc48265199b0")
   public virtual Vector3 Position = new(0, 0, 0);

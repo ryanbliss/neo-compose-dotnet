@@ -2,19 +2,16 @@
 @system(kind: .WorldAuthoring, worldKind: .TileGrid)
 abstract class NeoTileGrid {
   @id("system_3b523230-a851-4ab5-a6f2-c2d0745c116f")
-  @locked
   @system(kind: .WorldAuthoring)
   public virtual Vector3 CellSize = new(1, 1, 0);
 
   @id("system_98578ba3-a70e-4397-9283-996a898d44c8")
-  @locked
   @storage(key: "world:$parentClass")
   @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoLayerGroupBase> Children = [];
 
   @id("system_8ece74e4-e17e-4e56-9ef6-8dc2bc9f59f0")
-  @locked
   @system(kind: .WorldAuthoring)
   public virtual int PixelsPerUnit = 100;
 }

@@ -13,7 +13,7 @@ namespace NeoCompose.Runtime
     /// (in the target collection) as a string-array value. The target
     /// collection is the member named by
     /// <see cref="LookupMember.collectionMemberId"/>; the target
-    /// value is either <see cref="LookupMember.collectionValueId"/>
+    /// value is either <see cref="LookupMember.EffectiveCollectionValueId"/>
     /// (when set) or the target member's own <c>valueId</c>.
     /// </summary>
     public class NeoMemberLookup
@@ -32,7 +32,7 @@ namespace NeoCompose.Runtime
         /// Resolves the selected ids against the looked-up collection
         /// and returns the matching <see cref="NeoMember"/>s.
         /// Walks: <c>collectionMemberId</c> → target member →
-        /// target value (using <c>collectionValueId</c> if set, else
+        /// target value (using the effective <c>collectionValueId</c> if set, else
         /// the target member's <c>valueId</c>) → entries indexed by
         /// each selected id.
         ///
@@ -131,7 +131,7 @@ namespace NeoCompose.Runtime
         {
             return client.TryResolveLookupCollectionValueId(
                 targetMember.id,
-                member.collectionValueId,
+                member.EffectiveCollectionValueId,
                 out string? targetValueId)
                     ? targetValueId
                     : null;
@@ -165,20 +165,20 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Overwrites the selected ids. When
-        /// <see cref="LookupMember.multiselect"/> is false, only
+        /// <see cref="LookupMember.EffectiveSelection == NeoMemberSelectionKind.Multi"/> is false, only
         /// the first id is honored.
         /// </summary>
         public void Set(string[]? selectedIds)
         {
-            if (member.required && (selectedIds is null || selectedIds.Length == 0))
+            if (member.EffectiveRequirement == NeoMemberRequirementKind.Required && (selectedIds is null || selectedIds.Length == 0))
             {
                 throw new System.ArgumentNullException(
                     nameof(selectedIds),
-                    $"Cannot be null/empty when {nameof(member)}.{nameof(member.required)} is true");
+                    $"Cannot be null/empty when {nameof(member)} requirement is Required");
             }
 
             string[]? normalized = selectedIds;
-            if (normalized is not null && !member.multiselect && normalized.Length > 1)
+            if (normalized is not null && member.EffectiveSelection != NeoMemberSelectionKind.Multi && normalized.Length > 1)
             {
                 normalized = new[] { normalized[0] };
             }

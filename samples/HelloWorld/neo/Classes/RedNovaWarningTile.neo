@@ -10,7 +10,7 @@
 )
 class RedNovaWarningTile : ConsoleTile {
   @id("neo-tile-grid-record-relations-v1-member-a66bf1dee22709e5f2c1554b0cd68958")
-  @settings(localizable: false)
+  @settings(format: .Plain)
   public override string Name = "Red Nova Warning";
 
   @id("neo-tile-grid-record-relations-v1-member-799d3d5310a3b19d7395302039f97847")

@@ -10,14 +10,13 @@
 )
 class HullPlatingTile : ConsoleTile {
   @id("neo-tile-grid-record-relations-v1-member-9a08564ac837f8674e2e13c1f9937ccd")
-  @settings(localizable: false)
+  @settings(format: .Plain)
   public override string Name = "Hull Plating";
 
   @id("neo-tile-grid-record-relations-v1-member-ff2fa3d156f0a3df6b066f1599049c70")
   public override SpriteInfo Sprite = Images.HullWallTile.Slice(0);
 
   @id("neo-tile-grid-record-relations-v1-member-636b8784cd42599650e36ab6b0999e6c")
-  @locked
   @system(kind: .WorldAuthoring)
   public override NeoSmartTile? SmartTile = new NeoSmartTile {
     DefaultCollider = .Sprite,

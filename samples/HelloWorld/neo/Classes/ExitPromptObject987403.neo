@@ -10,7 +10,6 @@
 )
 class ExitPromptObject987403 : ExitPromptObject {
   @id("neo-tile-grid-record-relations-v1-member-f5cbad50312ebc69397239b2f2035a87")
-  @locked
   @settings(kind: .Ordered)
   public override List<NeoObjectBase> Children = [
     @id("b9de5fe2-8ddc-4b79-bfb2-bd802d8a4fa4")
@@ -41,7 +40,6 @@ class ExitPromptObject987403 : ExitPromptObject {
   ];
 
   @id("neo-tile-grid-record-relations-v1-member-ff953f886996cd9b7f725ce578fe90cc")
-  @locked
   @system(kind: .WorldAuthoring)
   public override NeoCollider? Collider = new NeoCollider {
     size = new(0.857, 0.845),
@@ -50,11 +48,10 @@ class ExitPromptObject987403 : ExitPromptObject {
   };
 
   @id("neo-tile-grid-record-relations-v1-member-b4b64e2fc5bb9ca854c58419e63e8409")
-  @settings(localizable: false)
+  @settings(format: .Plain)
   public override string Name = "Exit Prompt";
 
   @id("neo-tile-grid-record-relations-v1-member-8b86fa92f77a420dc3e61fca997644f5")
-  @locked
   @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public override List<NeoObjectPlacementTile> PlacementTiles = [
@@ -70,12 +67,10 @@ class ExitPromptObject987403 : ExitPromptObject {
   ];
 
   @id("neo-tile-grid-record-relations-v1-member-df3924f038bd73f8515d31f77f04683d")
-  @locked
   @system(kind: .WorldAuthoring)
   public override Vector3 Position = new(6, -1, 0);
 
   @id("neo-tile-grid-record-relations-v1-member-f87a1ce82507a55782cd5f947b46b5f5")
-  @locked
   @system(kind: .WorldAuthoring)
   public override Vector3 Size = new(2, 1, 0);
 }

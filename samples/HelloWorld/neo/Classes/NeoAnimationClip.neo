@@ -13,25 +13,21 @@ class NeoAnimationClip<
   TTarget extends NeoObjectBase
 > {
   @id("system_e1a1ba86-2599-43dc-a19a-46d08a2e4256")
-  @locked
   @settings(min: 1)
   @system(kind: .WorldAuthoring)
   public virtual int Duration = 1;
 
   @id("system_af2d8db8-817b-46f0-adbe-cf9113b77155")
-  @locked
   @settings(min: 1)
   @system(kind: .WorldAuthoring)
   public virtual int FPS = 8;
 
   @id("system_485b0f05-ec7b-4e61-ba80-9a5d7d262b39")
-  @locked
   @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoAnimationFrame<TTarget>> Frames = [];
 
   @id("system_eb602654-04a9-4766-860f-300b443be86e")
-  @locked
   @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoAnimationTrackBase> Tracks = [];

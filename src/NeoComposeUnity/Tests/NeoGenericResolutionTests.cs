@@ -67,7 +67,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "EnchantCard",
                 extendsClassId = cardBase.id,
-                isAbstract = true,
+                modifier = NeoClassModifierKind.Abstract,
                 schema = new Dictionary<string, string>
                 {
                     ["Speed"] = "member-speed",
@@ -93,7 +93,7 @@ namespace NeoCompose.Tests
                 {
                     [ParamT] = new()
                     {
-                        kind = NeoGenericBindingKinds.Generic,
+                        kind = NeoGenericBindingKind.Generic,
                         genericParamId = ParamU,
                     },
                 },
@@ -109,7 +109,7 @@ namespace NeoCompose.Tests
                 {
                     [ParamU] = new()
                     {
-                        kind = NeoGenericBindingKinds.Member,
+                        kind = NeoGenericBindingKind.Member,
                         memberId = "member-binding-float",
                     },
                 },
@@ -125,7 +125,7 @@ namespace NeoCompose.Tests
                 {
                     [ParamT] = new()
                     {
-                        kind = NeoGenericBindingKinds.Member,
+                        kind = NeoGenericBindingKind.Member,
                         memberId = "member-binding-string",
                     },
                 },
@@ -141,7 +141,7 @@ namespace NeoCompose.Tests
                 {
                     [ParamT] = new()
                     {
-                        kind = NeoGenericBindingKinds.Member,
+                        kind = NeoGenericBindingKind.Member,
                         memberId = "member-binding-float-optional",
                     },
                 },
@@ -170,7 +170,7 @@ namespace NeoCompose.Tests
                         name = "Card",
                         kind = MemberKind.Class,
                         classId = damage.id,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                     },
                     ["member-string-card"] = new ClassMember
                     {
@@ -179,7 +179,7 @@ namespace NeoCompose.Tests
                         name = "StringCard",
                         kind = MemberKind.Class,
                         classId = stringCard.id,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                     },
                     ["member-speed"] = new GenericMember
                     {
@@ -188,12 +188,10 @@ namespace NeoCompose.Tests
                         name = "Speed",
                         kind = MemberKind.Generic,
                         genericParamId = ParamT,
-                        locked = true,
                         // Deliberately differs from the binding's modifier so
                         // the partition test can prove slot ownership.
-                        accessModifierKind = "protected",
-                        isVirtual = false,
-                        isAbstract = true,
+                        access = NeoMemberAccessKind.Protected,
+                        modifier = NeoMemberModifierKind.Abstract,
                     },
                     ["member-values"] = new ListMember
                     {
@@ -225,15 +223,14 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "FloatBinding",
                         kind = MemberKind.Float,
-                        required = true,
+                        requirement = NeoMemberRequirementKind.Required,
                         minValue = 0f,
-                        accessModifierKind = "public",
-                        isVirtual = true,
-                        isAbstract = false,
+                        access = NeoMemberAccessKind.Public,
                         // The binding's storage must NOT leak into the slot
                         // (substitution partition — Decision 10).
-                        storage = "save",
+                        storage = NeoMemberStorage.Save,
                         defaultValue = new NumberMemberValueBase { value = 3.5 },
+                        modifier = NeoMemberModifierKind.Virtual,
                     },
                     ["member-binding-float-optional"] = new FloatMember
                     {
@@ -241,7 +238,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "OptionalFloatBinding",
                         kind = MemberKind.Float,
-                        required = false,
+                        requirement = NeoMemberRequirementKind.Optional,
                     },
                     ["member-binding-string"] = new StringMember
                     {
@@ -249,8 +246,8 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "StringBinding",
                         kind = MemberKind.String,
-                        required = false,
-                        localizable = false,
+                        requirement = NeoMemberRequirementKind.Optional,
+                        format = NeoStringFormatKind.Plain,
                     },
                     ["member-constructed-slot"] = new ClassMember
                     {
@@ -263,7 +260,7 @@ namespace NeoCompose.Tests
                         {
                             [ParamT] = new()
                             {
-                                kind = NeoGenericBindingKinds.Member,
+                                kind = NeoGenericBindingKind.Member,
                                 memberId = "member-binding-float",
                             },
                         },
@@ -323,7 +320,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = id,
                 kind = MemberKind.Class,
-                required = true,
+                requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };
@@ -372,11 +369,11 @@ namespace NeoCompose.Tests
                 ""genericParams"": [
                     { ""id"": ""p1"", ""name"": ""T"" },
                     { ""id"": ""p2"", ""name"": ""U"",
-                      ""constraint"": { ""kind"": ""enum"", ""enumId"": ""e1"" } }
+                      ""constraint"": { ""kind"": 1, ""enumId"": ""e1"" } }
                 ],
                 ""extendsGenericBindings"": {
-                    ""pp1"": { ""kind"": ""generic"", ""genericParamId"": ""p1"" },
-                    ""pp2"": { ""kind"": ""member"", ""memberId"": ""a1"" }
+                    ""pp1"": { ""kind"": 0, ""genericParamId"": ""p1"" },
+                    ""pp2"": { ""kind"": 1, ""memberId"": ""a1"" }
                 }
             }";
             var schemaClass = JsonConvert.DeserializeObject<NeoSchemaClass>(json)!;
@@ -384,7 +381,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(2, schemaClass.genericParams!.Count);
             Assert.AreEqual("p1", schemaClass.genericParams[0].id);
             Assert.IsNull(schemaClass.genericParams[0].constraint);
-            Assert.AreEqual(NeoGenericConstraintKinds.Enum, schemaClass.genericParams[1].constraint!.kind);
+            Assert.AreEqual(NeoGenericParamConstraintKind.Enum, schemaClass.genericParams[1].constraint!.kind);
             Assert.AreEqual("e1", schemaClass.genericParams[1].constraint!.enumId);
 
             Assert.AreEqual(2, schemaClass.extendsGenericBindings!.Count);
@@ -406,39 +403,37 @@ namespace NeoCompose.Tests
         [Test]
         public void Json_GenericMember_ReadsOrdinal21()
         {
-            const string json = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Slot"", ""kind"": 21, ""isStatic"": false, ""accessModifierKind"": ""public"", ""genericParamId"": ""p1""}";
+            const string json = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Slot"", ""kind"": 21, ""genericParamId"": ""p1""}";
             var member = JsonConvert.DeserializeObject<Member>(json);
             Assert.IsInstanceOf<GenericMember>(member);
             Assert.AreEqual("p1", ((GenericMember)member!).genericParamId);
         }
 
         [Test]
-        public void Json_MemberVirtualAndAbstractFlagsPreserveAbsenceAndValues()
+        public void Json_MemberModifierPreservesAbsenceAndNumericValues()
         {
-            const string absentJson = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false, ""accessModifierKind"": ""public"", ""entryMemberId"": ""entry"", ""keyKind"": ""string""}";
-            const string trueJson = @"{""id"": ""a2"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false, ""accessModifierKind"": ""public"", ""entryMemberId"": ""entry"", ""keyKind"": ""string"", ""isVirtual"": true, ""isAbstract"": true}";
-            const string falseJson = @"{""id"": ""a3"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false, ""accessModifierKind"": ""public"", ""entryMemberId"": ""entry"", ""keyKind"": ""string"", ""isVirtual"": false, ""isAbstract"": false}";
+            const string absentJson = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5}";
+            const string virtualJson = @"{""id"": ""a2"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""modifier"": 0}";
+            const string abstractJson = @"{""id"": ""a3"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""modifier"": 2}";
 
             var absent = JsonConvert.DeserializeObject<Member>(absentJson)!;
-            var trueValues = JsonConvert.DeserializeObject<Member>(trueJson)!;
-            var falseValues = JsonConvert.DeserializeObject<Member>(falseJson)!;
+            var virtualMember = JsonConvert.DeserializeObject<Member>(virtualJson)!;
+            var abstractMember = JsonConvert.DeserializeObject<Member>(abstractJson)!;
 
-            Assert.IsNull(absent.isVirtual);
-            Assert.IsNull(absent.isAbstract);
-            Assert.AreEqual(true, trueValues.isVirtual);
-            Assert.AreEqual(true, trueValues.isAbstract);
-            Assert.AreEqual(false, falseValues.isVirtual);
-            Assert.AreEqual(false, falseValues.isAbstract);
+            Assert.IsNull(absent.modifier);
+            Assert.AreEqual(NeoMemberModifierKind.Virtual, absent.EffectiveModifier);
+            Assert.AreEqual(NeoMemberModifierKind.Virtual, virtualMember.modifier);
+            Assert.AreEqual(NeoMemberModifierKind.Abstract, abstractMember.modifier);
         }
 
         [Test]
         public void Json_ClassMember_ReadsClassArguments()
         {
             const string json = @"{
-                ""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Slot"", ""kind"": 7, ""isStatic"": false, ""accessModifierKind"": ""public"",
+                ""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Slot"", ""kind"": 7,
                 ""classId"": ""t1"",
                 ""classArguments"": {
-                    ""p1"": { ""kind"": ""member"", ""memberId"": ""a2"" }
+                    ""p1"": { ""kind"": 1, ""memberId"": ""a2"" }
                 }
             }";
             var member = JsonConvert.DeserializeObject<Member>(json);
@@ -545,7 +540,7 @@ namespace NeoCompose.Tests
                 {
                     [NeoGenericTestFixture.ParamT] = new()
                     {
-                        kind = NeoGenericBindingKinds.Member,
+                        kind = NeoGenericBindingKind.Member,
                         memberId = "member-binding-string",
                     },
                 });
@@ -568,7 +563,7 @@ namespace NeoCompose.Tests
                 {
                     [NeoGenericTestFixture.ParamT] = new()
                     {
-                        kind = NeoGenericBindingKinds.Generic,
+                        kind = NeoGenericBindingKind.Generic,
                         genericParamId = NeoGenericTestFixture.ParamU,
                     },
                 });
@@ -600,45 +595,43 @@ namespace NeoCompose.Tests
             // Slot identity/placement fields win.
             Assert.AreEqual("member-speed", substituted.id);
             Assert.AreEqual("Speed", substituted.name);
-            Assert.IsTrue(substituted.locked);
-            Assert.AreEqual("protected", substituted.accessModifierKind,
+            Assert.AreEqual(NeoMemberAccessKind.Protected, substituted.EffectiveAccess,
                 "the slot's accessibility must not come from its binding");
-            Assert.AreEqual(false, substituted.isVirtual,
+            Assert.AreEqual(false, substituted.EffectiveModifier == NeoMemberModifierKind.Virtual,
                 "the slot's virtual declaration must not come from its binding");
-            Assert.AreEqual(true, substituted.isAbstract,
+            Assert.AreEqual(true, substituted.EffectiveModifier == NeoMemberModifierKind.Abstract,
                 "the slot's abstract declaration must not come from its binding");
-            Assert.IsNull(substituted.storage,
+            Assert.AreEqual(NeoMemberStorage.Inherit, substituted.storage,
                 "the binding's storage declaration must not leak into the slot");
             Assert.IsNull(substituted.extendsMemberId);
             // Binding type/config/required/defaultValue win.
             var substitutedFloat = (FloatMember)substituted;
-            Assert.IsTrue(substitutedFloat.required);
+            Assert.IsTrue(substitutedFloat.EffectiveRequirement == NeoMemberRequirementKind.Required);
             Assert.AreEqual(0f, substitutedFloat.minValue);
             Assert.AreEqual(3.5, substitutedFloat.defaultValue!.value);
         }
 
         [Test]
-        public void SubstituteMember_AbsentSlotFlagsClearBindingFlags()
+        public void SubstituteMember_AbsentSlotShapeClearsBindingModifier()
         {
             var client = LoadClient();
             var env = NeoGenericResolution.ResolveEnv(client, "class-damage");
             var slot = client.members["member-speed"];
-            slot.isVirtual = null;
-            slot.isAbstract = null;
+            slot.modifier = null;
             var binding = client.members["member-binding-float"];
-            binding.isVirtual = false;
-            binding.isAbstract = true;
+            binding.modifier = NeoMemberModifierKind.Abstract;
+            NeoMemberShapeResolution.ResolveAll(client.members);
 
             var substituted = NeoGenericResolution.SubstituteMember(client, slot, env);
 
-            Assert.IsNull(substituted.isVirtual,
-                "an absent slot declaration must clear the binding's virtual flag");
-            Assert.IsNull(substituted.isAbstract,
-                "an absent slot declaration must clear the binding's abstract flag");
+            Assert.AreEqual(NeoMemberModifierKind.Virtual, substituted.EffectiveModifier,
+                "an absent slot declaration must use the default Virtual modifier");
+            Assert.AreNotEqual(NeoMemberModifierKind.Abstract, substituted.EffectiveModifier,
+                "an absent slot declaration must clear the binding's Abstract modifier");
         }
 
         [Test]
-        public void SubstituteMember_GenericPartialFlagSurvivesClassBinding()
+        public void SubstituteMember_GenericPartialPayloadSurvivesClassBinding()
         {
             ProjectData data = NeoGenericTestFixture.BuildProjectData();
             data.members["member-binding-class"] = new ClassMember
@@ -648,7 +641,7 @@ namespace NeoCompose.Tests
                 name = "TargetBinding",
                 kind = MemberKind.Class,
                 classId = "class-card-base",
-                partial = false,
+                payload = NeoMemberPayloadKind.Full,
             };
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
             var slot = new GenericMember
@@ -658,7 +651,7 @@ namespace NeoCompose.Tests
                 name = "Overrides",
                 kind = MemberKind.Generic,
                 genericParamId = NeoGenericTestFixture.ParamT,
-                partial = true,
+                payload = NeoMemberPayloadKind.Partial,
             };
             var env = new Dictionary<string, NeoGenericEnvEntry>
             {
@@ -671,7 +664,7 @@ namespace NeoCompose.Tests
                 slot,
                 env);
 
-            Assert.AreEqual(true, substituted.partial);
+            Assert.AreEqual(NeoMemberPayloadKind.Partial, substituted.EffectivePayload);
             Assert.AreEqual("class-card-base", substituted.classId);
             Assert.AreEqual(slot.id, substituted.id);
         }
