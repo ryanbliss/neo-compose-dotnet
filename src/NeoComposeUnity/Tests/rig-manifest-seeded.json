@@ -1,5 +1,5 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "rigId": "rig-20260810-brisk-ocelot",
   "createdAt": "2026-08-10T09:04:41.882Z",
   "expiresAt": "2026-08-13T09:04:41.882Z",
@@ -24,19 +24,27 @@
     "siteUrl": "https://brisk-ocelot-412.convex.site"
   },
   "web": {
-    "origin": "http://127.0.0.1:31200",
+    "origin": "https://rig-20260810-brisk-ocelot.neodev.party",
+    "localOrigin": "http://127.0.0.1:31200",
     "port": 31200,
-    "partyServerOrigin": "http://127.0.0.1:31201",
+    "partyServerOrigin": "https://party-rig-20260810-brisk-ocelot.neodev.party",
+    "partyServerLocalOrigin": "http://127.0.0.1:31201",
     "partyServerPort": 31201
+  },
+  "cloudflareTunnel": {
+    "id": "00000000-0000-4000-8000-000000000002",
+    "name": "neo-compose-rig-rig-20260810-brisk-ocelot",
+    "appDnsRecordId": "app-dns-2",
+    "partyDnsRecordId": "party-dns-2"
+  },
+  "storage": {
+    "ownedPrefix": "rigs/rig-20260810-brisk-ocelot/"
   },
   "seed": {
     "id": "helloworld-2026-08-10",
     "sha256": "6f0b2a1d84c37e59b0d1fa4c8e2735916ad0be47c53182f6a9d40b7e1c85f302",
     "schemaEpoch": 17,
-    "migrationReceipts": [
-      "stampWorldPartitions",
-      "backfillAnimationSegments"
-    ],
+    "migrationReceipts": ["stampWorldPartitions", "backfillAnimationSegments"],
     "neoComposeCommit": "4d0a83f16b27c9e5108ab4d7e3f2905c6b1d8e47",
     "neoComposeDotnetCommit": "b3b3dd4c7e1a92f0"
   },
