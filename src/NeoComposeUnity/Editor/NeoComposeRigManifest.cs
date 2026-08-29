@@ -41,13 +41,28 @@ namespace NeoCompose.Unity.Editor
         public string siteUrl = "";
     }
 
-    /// <summary>The rig's local web app and PartyServer origins.</summary>
+    /// <summary>The rig's public identity and loopback tunnel targets.</summary>
     public sealed class NeoComposeRigWeb
     {
         public string origin = "";
+        public string localOrigin = "";
         public int port;
         public string partyServerOrigin = "";
+        public string partyServerLocalOrigin = "";
         public int partyServerPort;
+    }
+
+    public sealed class NeoComposeRigCloudflareTunnel
+    {
+        public string id = "";
+        public string name = "";
+        public string appDnsRecordId = "";
+        public string partyDnsRecordId = "";
+    }
+
+    public sealed class NeoComposeRigStorage
+    {
+        public string ownedPrefix = "";
     }
 
     /// <summary>The seed the rig's deployment was materialized from.</summary>
@@ -102,6 +117,8 @@ namespace NeoCompose.Unity.Editor
         public NeoComposeRigRepositories repositories = new();
         public NeoComposeRigDeployment deployment = new();
         public NeoComposeRigWeb web = new();
+        public NeoComposeRigCloudflareTunnel cloudflareTunnel = new();
+        public NeoComposeRigStorage storage = new();
 
         /// <summary>Null until a durable seed catalog exists.</summary>
         public NeoComposeRigSeed? seed;
@@ -121,7 +138,7 @@ namespace NeoCompose.Unity.Editor
         /// The only manifest format this reader understands. A newer coordinator
         /// bumps it and this reader refuses rather than guessing.
         /// </summary>
-        public const int SupportedFormatVersion = 1;
+        public const int SupportedFormatVersion = 2;
 
         /// <summary>
         /// Mirrors the coordinator's <c>SECRET_FIELD_PATTERN</c>. Kept as a field
@@ -210,9 +227,58 @@ namespace NeoCompose.Unity.Editor
                 throw new InvalidOperationException($"Rig manifest {sourcePath} is missing web.origin.");
             }
 
-            if (document["web"]?["port"]?.Value<int?>() == null)
+            var webPort = document["web"]?["port"]?.Value<int?>();
+            if (webPort == null)
             {
                 throw new InvalidOperationException($"Rig manifest {sourcePath} is missing web.port.");
+            }
+
+            if (webPort <= 0)
+            {
+                throw new InvalidOperationException(
+                    $"Rig manifest {sourcePath} web.port must be positive.");
+            }
+
+            var partyServerPort = document["web"]?["partyServerPort"]?.Value<int?>();
+            if (partyServerPort == null)
+            {
+                throw new InvalidOperationException(
+                    $"Rig manifest {sourcePath} is missing web.partyServerPort.");
+            }
+
+            if (partyServerPort <= 0)
+            {
+                throw new InvalidOperationException(
+                    $"Rig manifest {sourcePath} web.partyServerPort must be positive.");
+            }
+
+            foreach (var field in new[]
+                     {
+                         "localOrigin",
+                         "partyServerOrigin",
+                         "partyServerLocalOrigin",
+                     })
+            {
+                if (string.IsNullOrWhiteSpace(document["web"]?[field]?.Value<string>()))
+                {
+                    throw new InvalidOperationException(
+                        $"Rig manifest {sourcePath} is missing web.{field}.");
+                }
+            }
+
+            foreach (var field in new[] { "id", "name", "appDnsRecordId", "partyDnsRecordId" })
+            {
+                if (string.IsNullOrWhiteSpace(document["cloudflareTunnel"]?[field]?.Value<string>()))
+                {
+                    throw new InvalidOperationException(
+                        $"Rig manifest {sourcePath} is missing cloudflareTunnel.{field}.");
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(document["storage"]?["ownedPrefix"]?.Value<string>()))
+            {
+                throw new InvalidOperationException(
+                    $"Rig manifest {sourcePath} is missing storage.ownedPrefix.");
             }
 
             if (string.IsNullOrWhiteSpace(document["deployment"]?["url"]?.Value<string>()))
@@ -226,6 +292,64 @@ namespace NeoCompose.Unity.Editor
             if (manifest == null)
             {
                 throw new InvalidOperationException($"Rig manifest {sourcePath} could not be deserialized.");
+            }
+
+            if (manifest.storage.ownedPrefix != $"rigs/{manifest.rigId}/")
+            {
+                throw new InvalidOperationException(
+                    $"Rig manifest {sourcePath} storage prefix does not belong to {manifest.rigId}.");
+            }
+
+            if (manifest.cloudflareTunnel.name != $"neo-compose-rig-{manifest.rigId}")
+            {
+                throw new InvalidOperationException(
+                    $"Rig manifest {sourcePath} tunnel name does not belong to {manifest.rigId}.");
+            }
+
+            if (manifest.web.localOrigin != $"http://127.0.0.1:{manifest.web.port}")
+            {
+                throw new InvalidOperationException(
+                    $"Rig manifest {sourcePath} local web origin does not match its port.");
+            }
+
+            if (manifest.web.partyServerLocalOrigin !=
+                $"http://127.0.0.1:{manifest.web.partyServerPort}")
+            {
+                throw new InvalidOperationException(
+                    $"Rig manifest {sourcePath} local PartyServer origin does not match its port.");
+            }
+
+            if (!Uri.TryCreate(manifest.web.origin, UriKind.Absolute, out var appUri))
+            {
+                throw new InvalidOperationException(
+                    $"Rig manifest {sourcePath} web.origin is not a valid URL.");
+            }
+
+            if (appUri.Scheme != Uri.UriSchemeHttps)
+            {
+                throw new InvalidOperationException(
+                    $"Rig manifest {sourcePath} web.origin must use HTTPS.");
+            }
+
+            if (appUri.GetLeftPart(UriPartial.Authority) != manifest.web.origin)
+            {
+                throw new InvalidOperationException(
+                    $"Rig manifest {sourcePath} web.origin cannot include a path.");
+            }
+
+            var appHostPrefix = $"{manifest.rigId}.";
+            if (!appUri.Host.StartsWith(appHostPrefix, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Rig manifest {sourcePath} web.origin does not belong to {manifest.rigId}.");
+            }
+
+            var baseDomain = appUri.Host.Substring(appHostPrefix.Length);
+            var expectedPartyOrigin = $"https://party-{manifest.rigId}.{baseDomain}";
+            if (manifest.web.partyServerOrigin != expectedPartyOrigin)
+            {
+                throw new InvalidOperationException(
+                    $"Rig manifest {sourcePath} PartyServer origin must be {expectedPartyOrigin}.");
             }
 
             return manifest;

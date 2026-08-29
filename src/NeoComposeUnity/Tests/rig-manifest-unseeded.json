@@ -1,5 +1,5 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "rigId": "rig-20260810-formal-toucan",
   "createdAt": "2026-08-10T14:22:05.317Z",
   "expiresAt": "2026-08-13T14:22:05.317Z",
@@ -19,10 +19,21 @@
     "siteUrl": "https://formal-toucan-689.convex.site"
   },
   "web": {
-    "origin": "http://127.0.0.1:31100",
+    "origin": "https://rig-20260810-formal-toucan.neodev.party",
+    "localOrigin": "http://127.0.0.1:31100",
     "port": 31100,
-    "partyServerOrigin": "http://127.0.0.1:31101",
+    "partyServerOrigin": "https://party-rig-20260810-formal-toucan.neodev.party",
+    "partyServerLocalOrigin": "http://127.0.0.1:31101",
     "partyServerPort": 31101
+  },
+  "cloudflareTunnel": {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "name": "neo-compose-rig-rig-20260810-formal-toucan",
+    "appDnsRecordId": "app-dns-1",
+    "partyDnsRecordId": "party-dns-1"
+  },
+  "storage": {
+    "ownedPrefix": "rigs/rig-20260810-formal-toucan/"
   },
   "seed": null,
   "sample": null

@@ -15,7 +15,7 @@ namespace NeoCompose.Tests
     /// </summary>
     /// <remarks>
     /// The two fixtures under <c>Packages/com.ryanbliss.neocompose/Tests/</c> are
-    /// the shapes the Neo rig coordinator writes at <c>formatVersion</c> 1: an
+    /// the shapes the Neo rig coordinator writes at <c>formatVersion</c> 2: an
     /// unseeded rig (no seed catalog entry, no sample project yet) and a seeded
     /// one carrying the canonical HelloWorld fixture. Unity must consume both
     /// without the coordinator having to trim anything.
@@ -57,7 +57,7 @@ namespace NeoCompose.Tests
                 LoadFixture(UnseededFixture),
                 UnseededFixture);
 
-            Assert.AreEqual(1, manifest.formatVersion);
+            Assert.AreEqual(2, manifest.formatVersion);
             Assert.AreEqual("rig-20260810-formal-toucan", manifest.rigId);
             Assert.AreEqual("2026-08-10T14:22:05.317Z", manifest.createdAt);
             Assert.AreEqual("2026-08-13T14:22:05.317Z", manifest.expiresAt);
@@ -65,9 +65,13 @@ namespace NeoCompose.Tests
             Assert.AreEqual("dev:formal-toucan-689", manifest.deployment.reference);
             Assert.AreEqual("https://formal-toucan-689.convex.cloud", manifest.deployment.url);
             Assert.AreEqual("https://formal-toucan-689.convex.site", manifest.deployment.siteUrl);
-            Assert.AreEqual("http://127.0.0.1:31100", manifest.web.origin);
+            Assert.AreEqual("https://rig-20260810-formal-toucan.neodev.party", manifest.web.origin);
+            Assert.AreEqual("http://127.0.0.1:31100", manifest.web.localOrigin);
             Assert.AreEqual(31100, manifest.web.port);
-            Assert.AreEqual("http://127.0.0.1:31101", manifest.web.partyServerOrigin);
+            Assert.AreEqual(
+                "https://party-rig-20260810-formal-toucan.neodev.party",
+                manifest.web.partyServerOrigin);
+            Assert.AreEqual("http://127.0.0.1:31101", manifest.web.partyServerLocalOrigin);
             Assert.AreEqual(31101, manifest.web.partyServerPort);
             Assert.IsNotNull(manifest.repositories.neoCompose);
             // App-only rigs never select an SDK worktree.
@@ -89,7 +93,11 @@ namespace NeoCompose.Tests
             Assert.AreEqual("rig-20260810-brisk-ocelot", manifest.rigId);
             Assert.AreEqual("neo-compose-dotnet", manifest.source);
             Assert.AreEqual("brisk-ocelot-412", manifest.deployment.name);
-            Assert.AreEqual("http://127.0.0.1:31200", manifest.web.origin);
+            Assert.AreEqual("https://rig-20260810-brisk-ocelot.neodev.party", manifest.web.origin);
+            Assert.AreEqual("rigs/rig-20260810-brisk-ocelot/", manifest.storage.ownedPrefix);
+            Assert.AreEqual(
+                "00000000-0000-4000-8000-000000000002",
+                manifest.cloudflareTunnel.id);
             Assert.IsNotNull(manifest.repositories.neoComposeDotnet);
             Assert.AreEqual(
                 "b3b3dd4c7e1a92f0",
@@ -115,13 +123,25 @@ namespace NeoCompose.Tests
         [Test]
         public void RigManifest_RejectsUnsupportedFormatVersion()
         {
-            var json = LoadFixture(UnseededFixture).Replace("\"formatVersion\": 1", "\"formatVersion\": 2");
+            var json = LoadFixture(UnseededFixture).Replace("\"formatVersion\": 2", "\"formatVersion\": 3");
 
             var exception = Assert.Throws<InvalidOperationException>(
                 () => NeoComposeRigManifestReader.Parse(json, "rig.json"));
             Assert.AreEqual(
-                "Rig manifest rig.json declares formatVersion 2; this reader understands 1.",
+                "Rig manifest rig.json declares formatVersion 3; this reader understands 2.",
                 exception!.Message);
+        }
+
+        [Test]
+        public void RigManifest_RejectsCrossRigResourceIdentity()
+        {
+            var json = LoadFixture(SeededFixture).Replace(
+                "\"ownedPrefix\": \"rigs/rig-20260810-brisk-ocelot/\"",
+                "\"ownedPrefix\": \"rigs/another-rig/\"");
+
+            var exception = Assert.Throws<InvalidOperationException>(
+                () => NeoComposeRigManifestReader.Parse(json, "rig.json"));
+            StringAssert.Contains("storage prefix does not belong", exception!.Message);
         }
 
         [Test]
@@ -149,7 +169,9 @@ namespace NeoCompose.Tests
                     .Message.Contains("missing deployment.name"));
 
             var missingWebOrigin = LoadFixture(UnseededFixture)
-                .Replace("\"origin\": \"http://127.0.0.1:31100\"", "\"origin\": \"\"");
+                .Replace(
+                    "\"origin\": \"https://rig-20260810-formal-toucan.neodev.party\"",
+                    "\"origin\": \"\"");
             Assert.IsTrue(
                 Assert.Throws<InvalidOperationException>(
                         () => NeoComposeRigManifestReader.Parse(missingWebOrigin, "rig.json"))!
@@ -189,11 +211,9 @@ namespace NeoCompose.Tests
         [Test]
         public void RigManifest_RejectsSecretBearingFieldNamesInsideArrays()
         {
-            const string json =
-                "{\"formatVersion\":1,\"rigId\":\"r\"," +
-                "\"deployment\":{\"name\":\"d\",\"url\":\"https://d.convex.cloud\"}," +
-                "\"web\":{\"origin\":\"http://127.0.0.1:1\",\"port\":1}," +
-                "\"extras\":[{\"sessionCookie\":\"x\"}]}";
+            var json = LoadFixture(UnseededFixture).Replace(
+                "\"sample\": null",
+                "\"extras\":[{\"sessionCookie\":\"x\"}],\n  \"sample\": null");
 
             var exception = Assert.Throws<InvalidOperationException>(
                 () => NeoComposeRigManifestReader.Parse(json, "rig.json"));
