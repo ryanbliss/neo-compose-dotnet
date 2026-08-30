@@ -631,6 +631,39 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void MemberShapeResolution_GenericOverrideResetsRequirementAndDefault()
+        {
+            var inherited = new FloatMember
+            {
+                id = "member-inherited-float",
+                projectId = "project-a",
+                name = "Inherited",
+                requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new NumberMemberValueBase { value = 4.5 },
+            };
+            var generic = new GenericMember
+            {
+                id = "member-generic-override",
+                projectId = "project-a",
+                name = "Generic",
+                extendsMemberId = inherited.id,
+                genericParamId = NeoGenericTestFixture.ParamT,
+            };
+            var members = new Dictionary<string, Member>
+            {
+                [inherited.id] = inherited,
+                [generic.id] = generic,
+            };
+
+            NeoMemberShapeResolution.ResolveAll(members);
+
+            Assert.AreEqual(
+                NeoMemberRequirementKind.Optional,
+                generic.EffectiveRequirement);
+            Assert.IsNull(generic.defaultValue);
+        }
+
+        [Test]
         public void SubstituteMember_GenericPartialPayloadSurvivesClassBinding()
         {
             ProjectData data = NeoGenericTestFixture.BuildProjectData();

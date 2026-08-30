@@ -435,9 +435,13 @@ namespace NeoCompose.Runtime.Json
             Member member,
             NeoEffectiveMemberShape inherited)
         {
+            bool genericReset = member is GenericMember;
             var effective = new NeoEffectiveMemberShape
             {
-                requirement = member.requirement ?? inherited.requirement,
+                requirement = member.requirement
+                    ?? (genericReset
+                        ? NeoMemberRequirementKind.Optional
+                        : inherited.requirement),
                 // Access and mutability are declaration-local projections in
                 // the TS resolver. Unlike the other sparse override axes,
                 // absence resets them to their canonical default.
@@ -474,6 +478,11 @@ namespace NeoCompose.Runtime.Json
                 bodyMode = (member as NSFunctionMember)?.bodyMode ?? inherited.bodyMode,
             };
             MemberChainResolvedFields.Apply(member, inherited, effective);
+            if (genericReset && !member.DeclaresWireField("defaultValue"))
+            {
+                effective.ClearChainResolvedValue(
+                    MemberChainResolvedFields.IndexOf("defaultValue"));
+            }
             return effective;
         }
 

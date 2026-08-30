@@ -896,6 +896,25 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ProjectData_OldHiddenInAttributeSelectorPointsToUiVisibility()
+        {
+            var root = JObject.Parse(@"{
+  'project':{},'members':{},'values':{},'enums':{},
+  'classes':{'class-a':{
+    'id':'class-a','projectId':'project','name':'A','schema':{},
+    'hiddenInAttributeSelector':true
+  }}
+}");
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                Deserialize(root.ToString()));
+
+            Assert.AreEqual(
+                "Class uses removed field 'hiddenInAttributeSelector'; schema 8 requires 'uiVisibility'.",
+                error!.Message);
+        }
+
+        [Test]
         public void ProjectData_CurrentVersionDeserializesThePayloadAfterTheFence()
         {
             var root = new JObject
@@ -938,7 +957,6 @@ namespace NeoCompose.Tests
             Assert.That(error!.Message, Does.Contain("variantFolders"));
         }
 
-        [TestCase("locked", "no replacement")]
         [TestCase("required", "requirement")]
         [TestCase("isReadOnly", "mutability")]
         [TestCase("isStatic", "modifier")]
@@ -965,6 +983,21 @@ namespace NeoCompose.Tests
 
             Assert.That(error!.Message, Does.Contain($"removed field '{removedField}'"));
             Assert.That(error.Message, Does.Contain($"requires '{replacementField}'"));
+        }
+
+        [Test]
+        public void Member_P80LockedFieldIsRejectedWithoutReplacement()
+        {
+            var json = JObject.Parse(@"{
+  'id':'member-a','projectId':'project','name':'A','kind':2,
+  'createdAt':0,'updatedAt':0,'locked':true
+}");
+            var exception = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Member>(json.ToString()));
+
+            StringAssert.Contains(
+                "schema 29 removed it without replacement",
+                exception!.Message);
         }
 
         [TestCase("requirement")]
@@ -1035,7 +1068,7 @@ namespace NeoCompose.Tests
             json["classes"]!["class-a"]![removedField] = true;
 
             var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<ProjectData>(json.ToString()));
+                Deserialize(json.ToString()));
 
             Assert.That(error!.Message, Does.Contain($"removed field '{removedField}'"));
             Assert.That(error.Message, Does.Contain($"requires '{replacementField}'"));
@@ -1055,13 +1088,13 @@ namespace NeoCompose.Tests
             fieldToken[field] = "legacy-string";
             Assert.That(
                 Assert.Throws<JsonSerializationException>(() =>
-                    JsonConvert.DeserializeObject<ProjectData>(json.ToString()))!.Message,
+                    Deserialize(json.ToString()))!.Message,
                 Does.Contain($"field '{field}' must be a numeric enum ordinal"));
 
             fieldToken[field] = 99;
             Assert.That(
                 Assert.Throws<JsonSerializationException>(() =>
-                    JsonConvert.DeserializeObject<ProjectData>(json.ToString()))!.Message,
+                    Deserialize(json.ToString()))!.Message,
                 Does.Contain($"field '{field}' has unknown ordinal '99'"));
         }
 
@@ -1087,13 +1120,13 @@ namespace NeoCompose.Tests
                 Assert.IsFalse(memberJson.ContainsKey(field), field);
             }
 
-            var project = JsonConvert.DeserializeObject<ProjectData>(@"{
+            var project = Deserialize(@"{
   'project':{},'members':{},'values':{},'enums':{},
   'classes':{'class-a':{
     'id':'class-a','projectId':'project','name':'A','schema':{},
     'uiVisibility':null,'modifier':null,'allowedStorage':null
   }}
-}")!;
+}");
             NeoSchemaClass schemaClass = project.classes["class-a"];
             Assert.AreEqual(NeoClassVisibilityKind.Visible, schemaClass.EffectiveUiVisibility);
             Assert.AreEqual(NeoClassModifierKind.Open, schemaClass.EffectiveModifier);

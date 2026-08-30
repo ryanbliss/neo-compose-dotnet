@@ -125,11 +125,9 @@ namespace NeoCompose.Runtime
     ///   (<see cref="SignatureOfMember"/> /
     ///   <see cref="ConstructedSlotAccepts"/>).</description></item>
     /// </list>
-    /// One deliberate deviation from the web module: the SDK operates on
-    /// wire records directly rather than resolving <c>extendsMemberId</c>
-    /// override chains first — the export ships full records and every
-    /// other runtime consumer (node construction, NSProperty getter evaluation)
-    /// already reads them the same way.
+    /// Sparse <c>extendsMemberId</c> override chains are resolved by
+    /// <c>NeoMemberShapeResolution</c> before this module substitutes generic
+    /// slots, matching the web runtime's effective-member semantics.
     /// </summary>
     public static class NeoGenericResolution
     {
