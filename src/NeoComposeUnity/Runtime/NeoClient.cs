@@ -2050,7 +2050,7 @@ namespace NeoCompose.Runtime
                 }
             }
             readOnlyAuthoredRows = rows;
-            readOnlyAuthoredClassIds = BuildTrustedEffectiveClassIds(rows);
+            readOnlyAuthoredClassIds = BuildTrustedClassIds(rows);
         }
 
         private void ReleaseReadOnlyAuthoredValueContext()
@@ -2059,7 +2059,7 @@ namespace NeoCompose.Runtime
             readOnlyAuthoredClassIds = new Dictionary<string, string>();
         }
 
-        private Dictionary<string, string> BuildTrustedEffectiveClassIds(
+        private Dictionary<string, string> BuildTrustedClassIds(
             IReadOnlyDictionary<string, MemberValue> rows,
             IReadOnlyDictionary<string, string?>? staticBindings = null,
             bool skipIncompatiblePlacements = false)
@@ -2228,7 +2228,7 @@ namespace NeoCompose.Runtime
             var overlaidRows = new Dictionary<string, MemberValue>(readOnlyAuthoredRows);
             foreach (var pair in saveData.values) overlaidRows[pair.Key] = pair.Value;
             IReadOnlyDictionary<string, string> effectiveClassIds =
-                BuildTrustedEffectiveClassIds(
+                BuildTrustedClassIds(
                     overlaidRows,
                     saveData.staticBindings,
                     skipIncompatiblePlacements: true);
@@ -3139,7 +3139,7 @@ namespace NeoCompose.Runtime
                 return true;
             }
 
-            foreach (var candidate in EnumerateEffectiveParentRows())
+            foreach (var candidate in EnumerateParentRows())
             {
                 string candidateId = candidate.valueId;
                 MemberValue parent = candidate.row;
@@ -3269,7 +3269,7 @@ namespace NeoCompose.Runtime
         }
 
         private IEnumerable<(string valueId, MemberValue row, NeoValueOwnership ownership)>
-            EnumerateEffectiveParentRows()
+            EnumerateParentRows()
         {
             // Inspect each writable overlay independently. The same stable id
             // can legitimately be present in both stores with different row
@@ -3766,7 +3766,7 @@ namespace NeoCompose.Runtime
             }
             return string.IsNullOrWhiteSpace(childId)
                 ? null
-                : ResolveEffectiveRow(childId!);
+                : ResolveValueRow(childId!);
         }
 
         internal bool TryInferMemberForValueId(
@@ -4712,7 +4712,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void EnsureWorldPartitionLoaded(string gridValueId)
         {
-            string? gridClassId = ResolveEffectiveRow(gridValueId)?.classId;
+            string? gridClassId = ResolveValueRow(gridValueId)?.classId;
             if (string.IsNullOrEmpty(gridClassId)) return;
             string mapKey = MakeWorldPartitionKey(gridClassId!);
             if (loadedPartitionRowIds.ContainsKey(mapKey)) return;
@@ -4921,7 +4921,7 @@ namespace NeoCompose.Runtime
                 return;
             }
             if (string.IsNullOrEmpty(value.containerId)) return;
-            value.mapKey = ResolveEffectiveRow(value.containerId!)?.mapKey;
+            value.mapKey = ResolveValueRow(value.containerId!)?.mapKey;
         }
 
         /// <summary>
@@ -4969,7 +4969,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal IReadOnlyCollection<string> GetUnorderedListEntryIds(string containerValueId)
         {
-            var containerRow = ResolveEffectiveRow(containerValueId);
+            var containerRow = ResolveValueRow(containerValueId);
             if (containerRow is null) return System.Array.Empty<string>();
             if (containerRow.IsRemoved) return System.Array.Empty<string>();
             if (containerRow is not ArrayMemberValue arrayRow) return System.Array.Empty<string>();
@@ -4995,7 +4995,7 @@ namespace NeoCompose.Runtime
             foreach (var memberId in candidates)
             {
                 if (!seen.Add(memberId)) continue;
-                var effective = ResolveEffectiveRow(memberId);
+                var effective = ResolveValueRow(memberId);
                 if (effective is null) continue;
                 if (effective.IsRemoved) continue;
                 members.Add(memberId);
@@ -5005,7 +5005,7 @@ namespace NeoCompose.Runtime
         /// <summary>Raw overlay resolution (session → save → authored) WITHOUT
         /// tombstone fallthrough — a tombstone row is returned as-is so callers
         /// can distinguish "explicitly removed" from "absent".</summary>
-        internal MemberValue? ResolveEffectiveRow(string valueId)
+        internal MemberValue? ResolveValueRow(string valueId)
         {
             if (sessionData.values.TryGetValue(valueId, out MemberValue sessionRow)) return sessionRow;
             if (saveData.values.TryGetValue(valueId, out MemberValue saveRow)) return saveRow;
@@ -6011,7 +6011,7 @@ namespace NeoCompose.Runtime
                     claimedByClass[constructorId] = pair.Key;
 
                     foreach (string signature in
-                        ConstructorEffectivePositionalSignatures(record))
+                        ConstructorCallablePositionalSignatures(record))
                     {
                         if (positionalSignatures.TryGetValue(
                                 signature,
@@ -6265,7 +6265,7 @@ namespace NeoCompose.Runtime
         /// signature here, exactly as the web-side declaration-time check
         /// keys them.</para>
         /// </summary>
-        private static IReadOnlyList<string> ConstructorEffectivePositionalSignatures(
+        private static IReadOnlyList<string> ConstructorCallablePositionalSignatures(
             ConstructorRecord record)
         {
             FunctionArgumentTypeInfo[] argumentTypes =

@@ -30,7 +30,7 @@ namespace NeoCompose.Unity.Editor
     /// </para>
     /// <para>
     /// The configuration comes from the committed asset with the active rig
-    /// manifest overlaid (see <see cref="NeoComposeEffectiveConfig"/>), and every
+    /// manifest overlaid (see <see cref="NeoComposeResolvedConfig"/>), and every
     /// prompt is answered by
     /// <see cref="NeoComposeNonInteractiveConfirmationService"/>, so no dialog can
     /// open. Deferred post-synchronize work (tile/rule-tile generation, which
@@ -68,7 +68,7 @@ namespace NeoCompose.Unity.Editor
         /// </summary>
         public static Task<NeoComposeSyncResult> SynchronizeAsync(Action<string>? onProgress = null)
         {
-            var config = ResolveEffectiveConfig();
+            var config = ResolveConfig();
             var synchronizer = new NeoComposeSynchronizer(
                 new NeoComposeEditorApiClient(),
                 new NeoComposeNonInteractiveConfirmationService(),
@@ -81,9 +81,9 @@ namespace NeoCompose.Unity.Editor
         /// a rig is bound but its wiring or manifest is inconsistent, so a headless
         /// run fails loudly instead of synchronizing against the wrong deployment.
         /// </summary>
-        public static NeoComposeConfig ResolveEffectiveConfig()
+        public static NeoComposeConfig ResolveConfig()
         {
-            return NeoComposeEffectiveConfig.Resolve(NeoComposeConfigProvider.LoadOrCreate());
+            return NeoComposeResolvedConfig.Resolve(NeoComposeConfigProvider.LoadOrCreate());
         }
 
         private static void Start(bool exitOnCompletion)
@@ -93,7 +93,7 @@ namespace NeoCompose.Unity.Editor
             Task<NeoComposeSyncResult> synchronize;
             try
             {
-                var rigStatus = NeoComposeEffectiveConfig.DescribeActiveRig();
+                var rigStatus = NeoComposeResolvedConfig.DescribeActiveRig();
                 Debug.Log($"{LogPrefix} {rigStatus ?? "No rig manifest is bound; using the committed configuration."}");
                 synchronize = SynchronizeAsync(message => Debug.Log($"{LogPrefix} {message}"));
             }

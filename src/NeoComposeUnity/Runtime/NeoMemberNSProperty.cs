@@ -211,7 +211,7 @@ namespace NeoCompose.Runtime
                 return SetterError("Cannot invoke setter on a null receiver.");
             }
 
-            string effectiveMemberId = NeoScriptExecutor.ResolveEffectiveSetterMemberId(
+            string effectiveMemberId = NeoScriptExecutor.ResolveSetterMemberId(
                 client,
                 member.id,
                 boundThis,

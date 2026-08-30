@@ -253,7 +253,7 @@ namespace NeoCompose.Runtime
             {
                 if (string.IsNullOrEmpty(entryId)) continue;
                 if (!seen.Add(entryId)) continue;
-                var row = client.ResolveEffectiveRow(entryId);
+                var row = client.ResolveValueRow(entryId);
                 if (row is null || row.IsRemoved) continue;
                 ids.Add(entryId);
             }
@@ -838,7 +838,7 @@ namespace NeoCompose.Runtime
             // (owned children of the new member) have no containment edge, so
             // they are stamped here.
             string? partitionMapKey =
-                client.ResolveEffectiveRow(containerValueId)?.mapKey ?? containerRow.mapKey;
+                client.ResolveValueRow(containerValueId)?.mapKey ?? containerRow.mapKey;
             if (partitionMapKey is not null && entryValue?.value is NeoValuePayload wrappedPayload)
             {
                 foreach (var payloadRow in wrappedPayload.valueRows)
@@ -997,7 +997,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership entryOwnership,
             string entryValueId)
         {
-            var effectiveRow = client.ResolveEffectiveRow(entryValueId);
+            var effectiveRow = client.ResolveValueRow(entryValueId);
             bool isJoinedMember = effectiveRow?.containerId == value?.id
                 || (client.TryResolveContainerIdForValueId(entryValueId, out string? containerId)
                     && containerId == value?.id);

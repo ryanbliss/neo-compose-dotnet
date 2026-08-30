@@ -2469,7 +2469,7 @@ namespace NeoCompose.Runtime
 
             string effectiveMemberId = isStatic
                 ? callGetter.memberId
-                : ResolveEffectiveSetterMemberId(
+                : ResolveSetterMemberId(
                     client,
                     callGetter.memberId,
                     receiver!,
@@ -2551,7 +2551,7 @@ namespace NeoCompose.Runtime
             return value;
         }
 
-        internal static string ResolveEffectiveSetterMemberId(
+        internal static string ResolveSetterMemberId(
             NeoClient client,
             string staticMemberId,
             object receiver,

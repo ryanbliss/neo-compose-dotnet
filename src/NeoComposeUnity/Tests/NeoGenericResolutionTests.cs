@@ -631,6 +631,203 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SubstituteMember_PreservesGenericSlotInitializer()
+        {
+            using NeoClient client = LoadClient();
+            var slot = (GenericMember)client.members["member-speed"];
+            slot.defaultValue = new NullMemberValueBase
+            {
+                init = new InitializerBody { code = "value" },
+            };
+            var env = NeoGenericResolution.ResolveEnv(client, "class-damage");
+
+            var substituted = (FloatMember)NeoGenericResolution.SubstituteMember(
+                client,
+                client.members[slot.id],
+                env);
+
+            Assert.AreEqual("value", substituted.defaultValue?.init?.code);
+            Assert.IsNull(substituted.defaultValue?.value,
+                "the binding's literal fallback must not replace the declaration initializer");
+            Assert.AreEqual(NeoMemberRequirementKind.Required, substituted.Requirement,
+                "the concrete binding still owns the slot's nullability");
+        }
+
+        [Test]
+        public void SubstituteMember_ConcretizesPartiallyGenericClassBinding()
+        {
+            ProjectData data = NeoGenericTestFixture.BuildProjectData();
+            data.members["member-forwarded-class-binding"] = new ClassMember
+            {
+                id = "member-forwarded-class-binding",
+                projectId = "project-a",
+                name = "ForwardedClassBinding",
+                kind = MemberKind.Class,
+                classId = "class-enchant",
+                classArguments = new Dictionary<string, GenericBinding>
+                {
+                    [NeoGenericTestFixture.ParamT] = new()
+                    {
+                        kind = NeoGenericBindingKind.Generic,
+                        genericParamId = NeoGenericTestFixture.ParamU,
+                    },
+                },
+            };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var env = new Dictionary<string, NeoGenericEnvEntry>
+            {
+                [NeoGenericTestFixture.ParamT] =
+                    NeoGenericEnvEntry.Bound("member-forwarded-class-binding"),
+                [NeoGenericTestFixture.ParamU] =
+                    NeoGenericEnvEntry.Bound("member-binding-float"),
+            };
+
+            var substituted = (ClassMember)NeoGenericResolution.SubstituteMember(
+                client,
+                client.members["member-speed"],
+                env);
+
+            Assert.AreEqual("member-speed", substituted.id);
+            Assert.AreEqual("Speed", substituted.name);
+            Assert.AreEqual(
+                "member-binding-float",
+                substituted.classArguments![NeoGenericTestFixture.ParamT].memberId);
+            Assert.AreEqual(
+                NeoGenericBindingKind.Member,
+                substituted.classArguments[NeoGenericTestFixture.ParamT].kind);
+        }
+
+        [Test]
+        public void SubstituteMember_ConcretizesDelegateAndActionTypePositions()
+        {
+            using NeoClient client = LoadClient();
+            var env = new Dictionary<string, NeoGenericEnvEntry>
+            {
+                [NeoGenericTestFixture.ParamT] =
+                    NeoGenericEnvEntry.Bound("member-binding-float"),
+                [NeoGenericTestFixture.ParamU] =
+                    NeoGenericEnvEntry.Bound("member-binding-string"),
+            };
+            var callable = new DelegateMember
+            {
+                id = "member-callable",
+                projectId = "project-a",
+                name = "Callable",
+                kind = MemberKind.NSDelegate,
+                returnTypeInfo = new GenericTypeInfo
+                {
+                    type = MemberKind.Generic,
+                    ownerClassId = "class-middle",
+                    genericParamId = NeoGenericTestFixture.ParamT,
+                },
+                argumentTypes = new[]
+                {
+                    new FunctionArgumentTypeInfo
+                    {
+                        name = "values",
+                        type = MemberKind.List,
+                        entryTypeInfo = new GenericTypeInfo
+                        {
+                            type = MemberKind.Generic,
+                            ownerClassId = "class-middle",
+                            genericParamId = NeoGenericTestFixture.ParamU,
+                        },
+                    },
+                },
+            };
+            var action = new ActionMember
+            {
+                id = "member-action",
+                projectId = "project-a",
+                name = "Action",
+                kind = MemberKind.NSAction,
+                argumentTypes = new[]
+                {
+                    new FunctionArgumentTypeInfo
+                    {
+                        name = "value",
+                        type = MemberKind.Generic,
+                        ownerClassId = "class-middle",
+                        genericParamId = NeoGenericTestFixture.ParamT,
+                    },
+                },
+            };
+
+            var substitutedDelegate = (DelegateMember)
+                NeoGenericResolution.SubstituteMember(client, callable, env);
+            var substitutedAction = (ActionMember)
+                NeoGenericResolution.SubstituteMember(client, action, env);
+
+            Assert.AreEqual(MemberKind.Float, substitutedDelegate.returnTypeInfo.type);
+            Assert.IsTrue(substitutedDelegate.returnTypeInfo.required);
+            Assert.AreEqual("values", substitutedDelegate.argumentTypes[0].name);
+            Assert.AreEqual(MemberKind.String,
+                substitutedDelegate.argumentTypes[0].entryTypeInfo!.type);
+            Assert.IsFalse(
+                substitutedDelegate.argumentTypes[0].entryTypeInfo!.required);
+            Assert.AreEqual("value", substitutedAction.argumentTypes[0].name);
+            Assert.AreEqual(MemberKind.Float,
+                substitutedAction.argumentTypes[0].type);
+            Assert.IsTrue(substitutedAction.argumentTypes[0].required);
+            Assert.AreEqual(MemberKind.Generic, callable.returnTypeInfo.type,
+                "substitution must not mutate the declared open signature");
+        }
+
+        [Test]
+        public void SubstituteMember_ConcretizesOnlyVariantTargetType()
+        {
+            ProjectData data = NeoGenericTestFixture.BuildProjectData();
+            data.members["member-binding-class"] = new ClassMember
+            {
+                id = "member-binding-class",
+                projectId = "project-a",
+                name = "ClassBinding",
+                kind = MemberKind.Class,
+                classId = "class-card-base",
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var env = new Dictionary<string, NeoGenericEnvEntry>
+            {
+                [NeoGenericTestFixture.ParamT] =
+                    NeoGenericEnvEntry.Bound("member-binding-class"),
+                [NeoGenericTestFixture.ParamU] =
+                    NeoGenericEnvEntry.Bound("member-binding-float"),
+            };
+            var valueTypeInfo = new GenericTypeInfo
+            {
+                type = MemberKind.Generic,
+                ownerClassId = "class-middle",
+                genericParamId = NeoGenericTestFixture.ParamU,
+            };
+            var variant = new VariantMember
+            {
+                id = "member-variant",
+                projectId = "project-a",
+                name = "Variant",
+                kind = MemberKind.Variant,
+                targetTypeInfo = new GenericTypeInfo
+                {
+                    type = MemberKind.Generic,
+                    ownerClassId = "class-middle",
+                    genericParamId = NeoGenericTestFixture.ParamT,
+                },
+                valueTypeInfo = valueTypeInfo,
+            };
+
+            var substituted = (VariantMember)
+                NeoGenericResolution.SubstituteMember(client, variant, env);
+
+            var target = (ClassTypeInfo)substituted.targetTypeInfo!;
+            Assert.AreEqual("class-card-base", target.classId);
+            Assert.IsTrue(target.required);
+            Assert.AreSame(valueTypeInfo, substituted.valueTypeInfo,
+                "the canonical web substitution changes only targetTypeInfo");
+            Assert.AreEqual(MemberKind.Generic, variant.targetTypeInfo!.type,
+                "substitution must not mutate the declared open target");
+        }
+
+        [Test]
         public void MemberShapeResolution_GenericOverrideResetsRequirementAndDefault()
         {
             var inherited = new FloatMember

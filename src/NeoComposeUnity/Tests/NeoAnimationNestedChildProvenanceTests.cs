@@ -275,7 +275,7 @@ namespace NeoCompose.Tests
 
         private static float PositionOf(NeoClient client, string partId)
         {
-            MemberValue? row = client.ResolveEffectiveRow(PositionId(partId));
+            MemberValue? row = client.ResolveValueRow(PositionId(partId));
             if (row is not Vector3MemberValue vector || vector.value is null)
             {
                 throw new AssertionException($"'{partId}' has no Vector3 Position row.");

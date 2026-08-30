@@ -186,6 +186,87 @@ namespace NeoCompose.Runtime
             };
         }
 
+        /// <summary>
+        /// Replaces a concrete member's default with an initializer-backed
+        /// carrier of the matching value type. Generic declaration slots use
+        /// this after substitution because their initializer belongs to the
+        /// slot while the carrier type comes from the concrete binding.
+        /// </summary>
+        internal static void SetInitializer(
+            Member schemaMember,
+            InitializerBody initializer)
+        {
+            switch (schemaMember)
+            {
+                case NullMember member:
+                    member.defaultValue = new NullMemberValueBase { init = initializer };
+                    break;
+                case BoolMember member:
+                    member.defaultValue = new BoolMemberValueBase { init = initializer };
+                    break;
+                case IntMember member:
+                    member.defaultValue = new NumberMemberValueBase { init = initializer };
+                    break;
+                case FloatMember member:
+                    member.defaultValue = new NumberMemberValueBase { init = initializer };
+                    break;
+                case StringMember member:
+                    member.defaultValue = new StringMemberValueBase { init = initializer };
+                    break;
+                case DictionaryMember member:
+                    member.defaultValue = new ObjectMemberValueBase { init = initializer };
+                    break;
+                case ListMember member:
+                    member.defaultValue = new ArrayMemberValueBase { init = initializer };
+                    break;
+                case ClassMember member:
+                    member.defaultValue = new ObjectMemberValueBase { init = initializer };
+                    break;
+                case EnumMember member:
+                    member.defaultValue = new ArrayMemberValueBase { init = initializer };
+                    break;
+                case LookupMember member:
+                    member.defaultValue = new ArrayMemberValueBase { init = initializer };
+                    break;
+                case DialogueLookupMember member:
+                    member.defaultValue = new ArrayMemberValueBase { init = initializer };
+                    break;
+                case SpriteMember member:
+                    member.defaultValue = new SpriteMemberValueBase { init = initializer };
+                    break;
+                case AudioMember member:
+                    member.defaultValue = new FileMemberValueBase { init = initializer };
+                    break;
+                case Vector2Member member:
+                    member.defaultValue = new Vector2MemberValueBase { init = initializer };
+                    break;
+                case Vector2IntMember member:
+                    member.defaultValue = new Vector2MemberValueBase { init = initializer };
+                    break;
+                case Vector3Member member:
+                    member.defaultValue = new Vector3MemberValueBase { init = initializer };
+                    break;
+                case Vector3IntMember member:
+                    member.defaultValue = new Vector3MemberValueBase { init = initializer };
+                    break;
+                case ColorMember member:
+                    member.defaultValue = new ColorMemberValueBase { init = initializer };
+                    break;
+                case DecimalMember member:
+                    member.defaultValue = new StringMemberValueBase { init = initializer };
+                    break;
+                case DelegateMember member:
+                    member.defaultValue = new DelegateMemberValueBase { init = initializer };
+                    break;
+                case ActionMember member:
+                    member.defaultValue = new ActionMemberValueBase { init = initializer };
+                    break;
+                default:
+                    throw new System.InvalidOperationException(
+                        $"Member '{schemaMember.id}' ({schemaMember.name}) cannot carry an initializer-backed default.");
+            }
+        }
+
         public static MemberValue? CreateFromDefault(
             Member schemaMember,
             string id,

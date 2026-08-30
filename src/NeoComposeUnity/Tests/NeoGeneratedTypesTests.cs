@@ -923,7 +923,7 @@ namespace NeoCompose.Tests
                     counted.Get<NeoMemberInt>("Count")),
                 "the clone must read the constructor-replayed effective child, not the sparse stored body");
             ObjectMemberValue cloned = (ObjectMemberValue)app.Client
-                .ResolveEffectiveRow(counted.value!.id)!;
+                .ResolveValueRow(counted.value!.id)!;
             Assert.IsTrue(cloned.hasInstanceConstructorId);
             Assert.AreEqual(constructorId, cloned.instanceConstructorId);
             Assert.AreEqual(
@@ -944,7 +944,7 @@ namespace NeoCompose.Tests
             Assert.AreNotEqual("value-sparse-default-nested-entry", clonedEntryId);
             Assert.AreEqual(
                 clonedNestedId,
-                app.Client.ResolveEffectiveRow(clonedEntryId)!.containerId);
+                app.Client.ResolveValueRow(clonedEntryId)!.containerId);
         }
 
         [Test]

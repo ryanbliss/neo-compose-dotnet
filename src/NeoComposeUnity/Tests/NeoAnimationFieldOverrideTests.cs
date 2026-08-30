@@ -501,7 +501,7 @@ namespace NeoCompose.Tests
 
         private static MemberValue Row(NeoClient client, string valueId)
         {
-            MemberValue? row = client.ResolveEffectiveRow(valueId);
+            MemberValue? row = client.ResolveValueRow(valueId);
             Assert.IsNotNull(row, $"No value row '{valueId}'.");
             return row!;
         }

@@ -334,7 +334,7 @@ namespace NeoCompose.Tests
                 out string? virtualLabelId));
             Assert.AreEqual(
                 "plain",
-                ((StringMemberValue)client.ResolveEffectiveRow(virtualLabelId!)!).value);
+                ((StringMemberValue)client.ResolveValueRow(virtualLabelId!)!).value);
             Assert.AreEqual("plain", ReadRowLabel(client, targetId));
         }
 

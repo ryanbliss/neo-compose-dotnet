@@ -6307,7 +6307,7 @@ namespace NeoCompose.Runtime
         /// persisted body, so enumerating <c>source.value</c> loses exactly the
         /// defaults this path is responsible for reproducing.
         /// </summary>
-        private static Dictionary<string, string> CloneEffectiveClassChildren(
+        private static Dictionary<string, string> CloneResolvedClassChildren(
             NeoClient client,
             ObjectMemberValue source,
             string classId,
@@ -6551,7 +6551,7 @@ namespace NeoCompose.Runtime
                     ObjectMemberValue clone = CreateWritableClassValueRow(
                         client,
                         classId,
-                        CloneEffectiveClassChildren(
+                        CloneResolvedClassChildren(
                             client,
                             sourceValue,
                             classId,
@@ -6798,7 +6798,7 @@ namespace NeoCompose.Runtime
                 entryMember = NeoGenericResolution.SubstituteMember(client, entryMember, entryEnv);
                 IEnumerable<string> sourceIds = source.value;
                 if (unordered
-                    && client.ResolveEffectiveRow(source.id) is not null)
+                    && client.ResolveValueRow(source.id) is not null)
                 {
                     sourceIds = client.GetUnorderedListEntryIds(source.id);
                 }

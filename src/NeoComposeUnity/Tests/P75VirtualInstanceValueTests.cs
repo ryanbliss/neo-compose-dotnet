@@ -351,14 +351,14 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ResolveEffectiveRowReadsVirtualValuesForUntypedConsumers()
+        public void ResolveValueRowReadsVirtualValuesForUntypedConsumers()
         {
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
             NeoMemberIntWritable count = client.save
                 .Get<NeoMemberClassWritable>("Thing")
                 .Get<NeoMemberIntWritable>("Count");
 
-            NumberMemberValue row = (NumberMemberValue)client.ResolveEffectiveRow(
+            NumberMemberValue row = (NumberMemberValue)client.ResolveValueRow(
                 count.value!.id)!;
 
             Assert.AreEqual(5d, row.value);
@@ -390,7 +390,7 @@ namespace NeoCompose.Tests
                     out string? containerId));
                 Assert.AreEqual(items.value.id, containerId);
                 Assert.IsInstanceOf<StringMemberValue>(
-                    client.ResolveEffectiveRow(entryId));
+                    client.ResolveValueRow(entryId));
             }
         }
 

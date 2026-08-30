@@ -110,7 +110,7 @@ namespace NeoCompose.Unity.Editor
 
         private void OnEnable()
         {
-            config = LoadEffectiveConfig();
+            config = LoadResolvedConfig();
             runtimeSecret = NeoComposeRuntimeSecretProvider.Find();
             runtimeApiKey = runtimeSecret?.RuntimeApiKey ?? "";
             synchronizer = new NeoComposeSynchronizer(
@@ -1599,7 +1599,7 @@ namespace NeoCompose.Unity.Editor
 
         private void RefreshConfigForDisplay()
         {
-            config = LoadEffectiveConfig();
+            config = LoadResolvedConfig();
         }
 
         /// <summary>
@@ -1609,12 +1609,12 @@ namespace NeoCompose.Unity.Editor
         /// rather than an exception, because the window has to keep drawing to
         /// show it.
         /// </summary>
-        private NeoComposeConfig LoadEffectiveConfig()
+        private NeoComposeConfig LoadResolvedConfig()
         {
             var committed = NeoComposeConfigProvider.LoadOrCreate();
             try
             {
-                return NeoComposeEffectiveConfig.Resolve(committed);
+                return NeoComposeResolvedConfig.Resolve(committed);
             }
             catch (Exception exception)
             {
@@ -1633,7 +1633,7 @@ namespace NeoCompose.Unity.Editor
             string? rigStatus;
             try
             {
-                rigStatus = NeoComposeEffectiveConfig.DescribeActiveRig();
+                rigStatus = NeoComposeResolvedConfig.DescribeActiveRig();
             }
             catch (Exception exception)
             {

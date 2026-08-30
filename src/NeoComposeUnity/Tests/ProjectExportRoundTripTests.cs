@@ -1789,6 +1789,58 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GenericClassConstraint_RoundTripsConstructedArguments()
+        {
+            const string json = @"{
+  'classId':'class-open',
+  'classArguments':{
+    'param-t':{'kind':1,'memberId':'member-string'},
+    'param-u':{'genericParamId':'param-v'}
+  }
+}";
+
+            var constraint = JsonConvert.DeserializeObject<GenericParamConstraint>(json)!;
+
+            Assert.AreEqual("member-string", constraint.classArguments!["param-t"].memberId);
+            Assert.AreEqual(NeoGenericBindingKind.Member,
+                constraint.classArguments["param-t"].kind);
+            Assert.AreEqual("param-v", constraint.classArguments["param-u"].genericParamId);
+            Assert.AreEqual(NeoGenericBindingKind.Generic,
+                constraint.classArguments["param-u"].kind);
+
+            JObject roundTrip = JObject.Parse(JsonConvert.SerializeObject(constraint));
+            Assert.IsNull(roundTrip["enumId"]);
+            Assert.AreEqual(1, roundTrip["classArguments"]!["param-t"]!["kind"]!.Value<int>());
+            Assert.IsNull(roundTrip["classArguments"]!["param-t"]!["genericParamId"]);
+            Assert.IsNull(roundTrip["classArguments"]!["param-u"]!["kind"],
+                "the zero Generic binding discriminator stays omitted");
+            Assert.IsNull(roundTrip["classArguments"]!["param-u"]!["memberId"]);
+        }
+
+        [Test]
+        public void GenericEnumConstraint_RejectsClassArguments()
+        {
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<GenericParamConstraint>(@"{
+  'kind':1,
+  'enumId':'enum-a',
+  'classArguments':{}
+}"));
+
+            Assert.That(error!.Message, Does.Contain("cannot declare 'classId' or 'classArguments'"));
+        }
+
+        [TestCase("{'genericParamId':'param-t','memberId':'member-a'}")]
+        [TestCase("{'kind':1,'memberId':'member-a','genericParamId':'param-t'}")]
+        public void GenericBinding_RejectsOppositeArmField(string json)
+        {
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<GenericBinding>(json));
+
+            Assert.That(error!.Message, Does.Contain("cannot declare"));
+        }
+
+        [Test]
         public void InterfaceMember_RetiredAccessModifierKindIsRejected()
         {
             var error = Assert.Throws<JsonSerializationException>(() =>

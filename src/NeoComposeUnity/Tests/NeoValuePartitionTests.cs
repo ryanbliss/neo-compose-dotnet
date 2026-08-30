@@ -227,15 +227,15 @@ namespace NeoCompose.Tests
             Assert.AreEqual(true, enabled.value.value);
             Assert.AreEqual(
                 WorldPartitionKey,
-                client.ResolveEffectiveRow(virtualId)!.mapKey);
+                client.ResolveValueRow(virtualId)!.mapKey);
 
             client.UnloadValuePartition(WorldPartitionKey);
-            Assert.IsNull(client.ResolveEffectiveRow(virtualId));
+            Assert.IsNull(client.ResolveValueRow(virtualId));
 
             client.LoadValuePartition(WorldPartitionKey);
             Assert.AreEqual(
                 true,
-                ((BoolMemberValue)client.ResolveEffectiveRow(virtualId)!).value);
+                ((BoolMemberValue)client.ResolveValueRow(virtualId)!).value);
         }
 
         [Test]

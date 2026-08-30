@@ -543,6 +543,9 @@ namespace NeoCompose.Runtime
         ///   <item><description><b>Collections pass through unchanged</b> —
         ///   entry substitution is lazy at entry sites via the value row's
         ///   <c>genericBindings</c> stamp.</description></item>
+        ///   <item><description><b>Callable and Variant type positions</b>
+        ///   recursively substitute Generic type info while preserving the
+        ///   member kind and argument names.</description></item>
         ///   <item><description>Everything else is identity.</description></item>
         /// </list>
         /// </summary>
@@ -551,13 +554,43 @@ namespace NeoCompose.Runtime
             Member member,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
         {
+            return SubstituteMember(
+                client,
+                member,
+                env,
+                new HashSet<string>(StringComparer.Ordinal));
+        }
+
+        private static Member SubstituteMember(
+            NeoClient client,
+            Member member,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
+            HashSet<string> activeGenericMembers)
+        {
             if (member is GenericMember generic)
             {
-                Member binding = ResolveTerminalBinding(
-                    client,
-                    generic.genericParamId,
-                    generic.name,
-                    env);
+                if (!activeGenericMembers.Add(generic.id))
+                {
+                    throw new System.InvalidOperationException(
+                        $"SubstituteMember revisited Generic member '{generic.id}' ({generic.name}) — generic bindings form a reference cycle.");
+                }
+                Member binding;
+                try
+                {
+                    binding = SubstituteMember(
+                        client,
+                        ResolveTerminalBinding(
+                            client,
+                            generic.genericParamId,
+                            generic.name,
+                            env),
+                        env,
+                        activeGenericMembers);
+                }
+                finally
+                {
+                    activeGenericMembers.Remove(generic.id);
+                }
                 Member substituted = binding.ShallowClone();
                 substituted.id = generic.id;
                 substituted.name = generic.name;
@@ -618,6 +651,14 @@ namespace NeoCompose.Runtime
                 // arguments, not placements).
                 substituted.DeclaredStorage = generic.Storage;
                 substituted.storageKey = generic.storageKey;
+                InitializerBody? declarationInitializer =
+                    MemberValueFactory.InitializerOf(generic);
+                if (declarationInitializer is not null)
+                {
+                    MemberValueFactory.SetInitializer(
+                        substituted,
+                        declarationInitializer);
+                }
                 substituted.extendsMemberId = null;
                 substituted.substitutedDeclarationIdentity =
                     $"{generic.id}@{binding.id}";
@@ -662,7 +703,464 @@ namespace NeoCompose.Runtime
                 substitutedClass.classArguments = substitutedArgs;
                 return substitutedClass;
             }
+            if (member is DelegateMember delegateMember)
+            {
+                TypeInfo returnTypeInfo = SubstituteNestedTypeInfo(
+                    client,
+                    delegateMember.returnTypeInfo,
+                    env);
+                FunctionArgumentTypeInfo[] argumentTypes =
+                    SubstituteFunctionArguments(
+                        client,
+                        delegateMember.argumentTypes,
+                        env,
+                        out bool argumentsChanged);
+                if (ReferenceEquals(returnTypeInfo, delegateMember.returnTypeInfo)
+                    && !argumentsChanged)
+                {
+                    return member;
+                }
+                var substitutedDelegate =
+                    (DelegateMember)delegateMember.ShallowClone();
+                substitutedDelegate.returnTypeInfo = returnTypeInfo;
+                substitutedDelegate.argumentTypes = argumentTypes;
+                return substitutedDelegate;
+            }
+            if (member is ActionMember actionMember)
+            {
+                FunctionArgumentTypeInfo[] argumentTypes =
+                    SubstituteFunctionArguments(
+                        client,
+                        actionMember.argumentTypes,
+                        env,
+                        out bool argumentsChanged);
+                if (!argumentsChanged) return member;
+                var substitutedAction = (ActionMember)actionMember.ShallowClone();
+                substitutedAction.argumentTypes = argumentTypes;
+                return substitutedAction;
+            }
+            if (member is VariantMember variantMember
+                && variantMember.targetTypeInfo is not null)
+            {
+                TypeInfo targetTypeInfo = SubstituteNestedTypeInfo(
+                    client,
+                    variantMember.targetTypeInfo,
+                    env);
+                if (ReferenceEquals(targetTypeInfo, variantMember.targetTypeInfo))
+                {
+                    return member;
+                }
+                var substitutedVariant =
+                    (VariantMember)variantMember.ShallowClone();
+                substitutedVariant.targetTypeInfo = targetTypeInfo;
+                return substitutedVariant;
+            }
             return member;
+        }
+
+        private static FunctionArgumentTypeInfo[] SubstituteFunctionArguments(
+            NeoClient client,
+            FunctionArgumentTypeInfo[] arguments,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
+            out bool changed)
+        {
+            changed = false;
+            FunctionArgumentTypeInfo[]? substituted = null;
+            for (int index = 0; index < arguments.Length; index++)
+            {
+                FunctionArgumentTypeInfo argument = arguments[index];
+                FunctionArgumentTypeInfo next = SubstituteFunctionArgument(
+                    client,
+                    argument,
+                    env);
+                if (ReferenceEquals(next, argument)) continue;
+                substituted ??= (FunctionArgumentTypeInfo[])arguments.Clone();
+                substituted[index] = next;
+                changed = true;
+            }
+            return substituted ?? arguments;
+        }
+
+        private static FunctionArgumentTypeInfo SubstituteFunctionArgument(
+            NeoClient client,
+            FunctionArgumentTypeInfo argument,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
+        {
+            if (argument.type == MemberKind.Generic)
+            {
+                NeoClassArgumentSignature? signature = GenericBindingSignature(
+                    client,
+                    argument.genericParamId,
+                    env,
+                    "callable type");
+                return signature is null
+                    ? argument
+                    : FunctionArgumentFromSignature(argument.name, signature);
+            }
+            if (argument.type == MemberKind.List
+                || argument.type == MemberKind.Dictionary
+                || argument.type == MemberKind.Lookup)
+            {
+                TypeInfo entryTypeInfo = SubstituteNestedTypeInfo(
+                    client,
+                    argument.entryTypeInfo!,
+                    env);
+                if (ReferenceEquals(entryTypeInfo, argument.entryTypeInfo))
+                {
+                    return argument;
+                }
+                var substituted =
+                    (FunctionArgumentTypeInfo)argument.ShallowClone();
+                substituted.entryTypeInfo = entryTypeInfo;
+                return substituted;
+            }
+            if (argument.type == MemberKind.Class)
+            {
+                if (argument.typeArguments is null) return argument;
+                Dictionary<string, TypeInfo> typeArguments =
+                    SubstituteTypeArguments(
+                        client,
+                        argument.typeArguments,
+                        env);
+                if (ReferenceEquals(typeArguments, argument.typeArguments))
+                {
+                    return argument;
+                }
+                var substituted =
+                    (FunctionArgumentTypeInfo)argument.ShallowClone();
+                substituted.typeArguments = typeArguments;
+                return substituted;
+            }
+            if (argument.type == MemberKind.NSDelegate)
+            {
+                TypeInfo returnTypeInfo = SubstituteNestedTypeInfo(
+                    client,
+                    argument.returnTypeInfo!,
+                    env);
+                TypeInfo[] argumentTypes = SubstituteNestedTypeInfos(
+                    client,
+                    argument.argumentTypes!,
+                    env);
+                if (ReferenceEquals(returnTypeInfo, argument.returnTypeInfo)
+                    && ReferenceEquals(argumentTypes, argument.argumentTypes))
+                {
+                    return argument;
+                }
+                var substituted =
+                    (FunctionArgumentTypeInfo)argument.ShallowClone();
+                substituted.returnTypeInfo = returnTypeInfo;
+                substituted.argumentTypes = argumentTypes;
+                return substituted;
+            }
+            if (argument.type == MemberKind.NSAction)
+            {
+                TypeInfo[] argumentTypes = SubstituteNestedTypeInfos(
+                    client,
+                    argument.argumentTypes!,
+                    env);
+                if (ReferenceEquals(argumentTypes, argument.argumentTypes))
+                {
+                    return argument;
+                }
+                var substituted =
+                    (FunctionArgumentTypeInfo)argument.ShallowClone();
+                substituted.argumentTypes = argumentTypes;
+                return substituted;
+            }
+            return argument;
+        }
+
+        private static TypeInfo SubstituteNestedTypeInfo(
+            NeoClient client,
+            TypeInfo typeInfo,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
+        {
+            if (typeInfo is FunctionArgumentTypeInfo argument)
+            {
+                return SubstituteFunctionArgument(client, argument, env);
+            }
+            if (typeInfo is GenericTypeInfo generic)
+            {
+                return GenericBindingTypeInfo(
+                        client,
+                        generic.genericParamId,
+                        env,
+                        "callable type")
+                    ?? typeInfo;
+            }
+            if (typeInfo is CollectionTypeInfo collection)
+            {
+                TypeInfo entryTypeInfo = SubstituteNestedTypeInfo(
+                    client,
+                    collection.entryTypeInfo,
+                    env);
+                if (ReferenceEquals(entryTypeInfo, collection.entryTypeInfo))
+                {
+                    return typeInfo;
+                }
+                var substituted =
+                    (CollectionTypeInfo)collection.ShallowClone();
+                substituted.entryTypeInfo = entryTypeInfo;
+                return substituted;
+            }
+            if (typeInfo is LookupTypeInfo lookup)
+            {
+                TypeInfo entryTypeInfo = SubstituteNestedTypeInfo(
+                    client,
+                    lookup.entryTypeInfo,
+                    env);
+                if (ReferenceEquals(entryTypeInfo, lookup.entryTypeInfo))
+                {
+                    return typeInfo;
+                }
+                var substituted = (LookupTypeInfo)lookup.ShallowClone();
+                substituted.entryTypeInfo = entryTypeInfo;
+                return substituted;
+            }
+            if (typeInfo is ClassTypeInfo classType)
+            {
+                if (classType.typeArguments is null) return typeInfo;
+                Dictionary<string, TypeInfo> typeArguments =
+                    SubstituteTypeArguments(
+                        client,
+                        classType.typeArguments,
+                        env);
+                if (ReferenceEquals(typeArguments, classType.typeArguments))
+                {
+                    return typeInfo;
+                }
+                var substituted = (ClassTypeInfo)classType.ShallowClone();
+                substituted.typeArguments = typeArguments;
+                return substituted;
+            }
+            if (typeInfo is DelegateTypeInfo delegateType)
+            {
+                TypeInfo returnTypeInfo = SubstituteNestedTypeInfo(
+                    client,
+                    delegateType.returnTypeInfo,
+                    env);
+                TypeInfo[] argumentTypes = SubstituteNestedTypeInfos(
+                    client,
+                    delegateType.argumentTypes,
+                    env);
+                if (ReferenceEquals(returnTypeInfo, delegateType.returnTypeInfo)
+                    && ReferenceEquals(argumentTypes, delegateType.argumentTypes))
+                {
+                    return typeInfo;
+                }
+                var substituted =
+                    (DelegateTypeInfo)delegateType.ShallowClone();
+                substituted.returnTypeInfo = returnTypeInfo;
+                substituted.argumentTypes = argumentTypes;
+                return substituted;
+            }
+            if (typeInfo is ActionTypeInfo actionType)
+            {
+                TypeInfo[] argumentTypes = SubstituteNestedTypeInfos(
+                    client,
+                    actionType.argumentTypes,
+                    env);
+                if (ReferenceEquals(argumentTypes, actionType.argumentTypes))
+                {
+                    return typeInfo;
+                }
+                var substituted = (ActionTypeInfo)actionType.ShallowClone();
+                substituted.argumentTypes = argumentTypes;
+                return substituted;
+            }
+            return typeInfo;
+        }
+
+        private static Dictionary<string, TypeInfo> SubstituteTypeArguments(
+            NeoClient client,
+            Dictionary<string, TypeInfo> arguments,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
+        {
+            Dictionary<string, TypeInfo>? substituted = null;
+            foreach (var pair in arguments)
+            {
+                TypeInfo next = SubstituteNestedTypeInfo(
+                    client,
+                    pair.Value,
+                    env);
+                if (ReferenceEquals(next, pair.Value)) continue;
+                substituted ??= new Dictionary<string, TypeInfo>(arguments);
+                substituted[pair.Key] = next;
+            }
+            return substituted ?? arguments;
+        }
+
+        private static TypeInfo[] SubstituteNestedTypeInfos(
+            NeoClient client,
+            TypeInfo[] typeInfos,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
+        {
+            TypeInfo[]? substituted = null;
+            for (int index = 0; index < typeInfos.Length; index++)
+            {
+                TypeInfo next = SubstituteNestedTypeInfo(
+                    client,
+                    typeInfos[index],
+                    env);
+                if (ReferenceEquals(next, typeInfos[index])) continue;
+                substituted ??= (TypeInfo[])typeInfos.Clone();
+                substituted[index] = next;
+            }
+            return substituted ?? typeInfos;
+        }
+
+        private static NeoClassArgumentSignature? GenericBindingSignature(
+            NeoClient client,
+            string? genericParamId,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
+            string position)
+        {
+            if (string.IsNullOrEmpty(genericParamId)
+                || !env.TryGetValue(genericParamId, out NeoGenericEnvEntry entry))
+            {
+                throw new System.InvalidOperationException(
+                    $"SubstituteMember: {position} references generic param '{genericParamId}', which is not present in the binding environment.");
+            }
+            if (!entry.IsBound) return null;
+            if (!client.TryGetMember(entry.memberId!, out Member? binding))
+            {
+                throw new System.InvalidOperationException(
+                    $"SubstituteMember: {position} binding member '{entry.memberId}' for generic param '{genericParamId}' does not exist in the document.");
+            }
+            return SignatureOfMember(client, binding, env);
+        }
+
+        private static TypeInfo? GenericBindingTypeInfo(
+            NeoClient client,
+            string? genericParamId,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
+            string position)
+        {
+            NeoClassArgumentSignature? signature = GenericBindingSignature(
+                client,
+                genericParamId,
+                env,
+                position);
+            return signature is null
+                ? null
+                : TypeInfoFromArgumentSignature(signature);
+        }
+
+        private static TypeInfo TypeInfoFromArgumentSignature(
+            NeoClassArgumentSignature signature)
+        {
+            if (signature.type == MemberKind.Class)
+            {
+                var typeArguments = new Dictionary<string, TypeInfo>();
+                if (signature.args is not null)
+                {
+                    foreach (var pair in signature.args)
+                    {
+                        typeArguments[pair.Key] =
+                            TypeInfoFromArgumentSignature(pair.Value);
+                    }
+                }
+                return new ClassTypeInfo
+                {
+                    type = signature.type,
+                    required = signature.required,
+                    classId = signature.classId!,
+                    typeArguments = typeArguments.Count == 0
+                        ? null
+                        : typeArguments,
+                };
+            }
+            if (signature.type == MemberKind.Enum)
+            {
+                return new EnumTypeInfo
+                {
+                    type = signature.type,
+                    required = signature.required,
+                    enumId = signature.enumId!,
+                };
+            }
+            if (signature.type == MemberKind.List
+                || signature.type == MemberKind.Dictionary)
+            {
+                return new CollectionTypeInfo
+                {
+                    type = signature.type,
+                    required = signature.required,
+                    entryTypeInfo = TypeInfoFromArgumentSignature(
+                        signature.entry!),
+                    keyEnumId = signature.keyEnumId,
+                };
+            }
+            if (IsPrimitiveTypeInfoKind(signature.type))
+            {
+                return new PrimitiveTypeInfo
+                {
+                    type = signature.type,
+                    required = signature.required,
+                };
+            }
+            throw new System.InvalidOperationException(
+                $"SubstituteMember: generic binding kind {signature.type} cannot appear in a NeoScript callable type.");
+        }
+
+        private static bool IsPrimitiveTypeInfoKind(MemberKind kind)
+        {
+            return kind == MemberKind.Null
+                || kind == MemberKind.Bool
+                || kind == MemberKind.Int
+                || kind == MemberKind.Float
+                || kind == MemberKind.String
+                || kind == MemberKind.DialogueLookup
+                || kind == MemberKind.Sprite
+                || kind == MemberKind.Audio
+                || kind == MemberKind.Vector2
+                || kind == MemberKind.Vector2Int
+                || kind == MemberKind.Vector3
+                || kind == MemberKind.Vector3Int
+                || kind == MemberKind.Color
+                || kind == MemberKind.Decimal;
+        }
+
+        private static FunctionArgumentTypeInfo FunctionArgumentFromSignature(
+            string name,
+            NeoClassArgumentSignature signature)
+        {
+            var argument = new FunctionArgumentTypeInfo
+            {
+                name = name,
+                type = signature.type,
+                required = signature.required,
+            };
+            if (signature.type == MemberKind.Class)
+            {
+                argument.classId = signature.classId;
+                if (signature.args is not null && signature.args.Count > 0)
+                {
+                    argument.typeArguments = new Dictionary<string, TypeInfo>();
+                    foreach (var pair in signature.args)
+                    {
+                        argument.typeArguments[pair.Key] =
+                            TypeInfoFromArgumentSignature(pair.Value);
+                    }
+                }
+            }
+            else if (signature.type == MemberKind.Enum)
+            {
+                argument.enumId = signature.enumId;
+            }
+            else if (signature.type == MemberKind.List
+                || signature.type == MemberKind.Dictionary)
+            {
+                argument.entryTypeInfo =
+                    TypeInfoFromArgumentSignature(signature.entry!);
+                argument.keyEnumId = signature.keyEnumId;
+            }
+            else if (!IsPrimitiveTypeInfoKind(signature.type))
+            {
+                throw new System.InvalidOperationException(
+                    $"SubstituteMember: generic binding kind {signature.type} cannot appear in a NeoScript callable type.");
+            }
+            return argument;
         }
 
         /// <summary>

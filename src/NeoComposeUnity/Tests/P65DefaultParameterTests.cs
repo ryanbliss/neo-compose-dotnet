@@ -423,7 +423,7 @@ namespace NeoCompose.Tests
         // -------------------------------------------------------------------
 
         [Test]
-        public void ConstructorRecords_EffectiveArityCollisionIsRejectedAtLoad()
+        public void ConstructorRecords_CallableArityCollisionIsRejectedAtLoad()
         {
             ProjectData data = BuildConstructorProjectData();
             // `Foo(int A)` alongside `Foo(int A, int B = 2)`: the defaulted
@@ -450,7 +450,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ConstructorRecords_DistinctEffectiveAritiesStillLoad()
+        public void ConstructorRecords_DistinctCallableAritiesStillLoad()
         {
             ProjectData data = BuildConstructorProjectData();
             // (string) + (string, string) prefixes never collide with the

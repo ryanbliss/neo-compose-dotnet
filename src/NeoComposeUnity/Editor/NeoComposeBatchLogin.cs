@@ -109,7 +109,7 @@ namespace NeoCompose.Unity.Editor
         /// </summary>
         internal static string ResolveRigOrigin()
         {
-            var rig = NeoComposeEffectiveConfig.ResolveActiveRig();
+            var rig = NeoComposeResolvedConfig.ResolveActiveRig();
             if (rig == null)
             {
                 throw new InvalidOperationException(

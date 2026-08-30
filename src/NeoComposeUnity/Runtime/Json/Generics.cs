@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -23,9 +24,19 @@ namespace NeoCompose.Runtime.Json
         public NeoGenericParamConstraintKind kind;
 
         /// <summary>Set iff <see cref="kind"/> is Class.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string? classId;
 
+        /// <summary>
+        /// Optional constructed arguments for a Class constraint. Bindings use
+        /// the same canonical numeric discriminators as class arguments on a
+        /// member.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Dictionary<string, GenericBinding>? classArguments;
+
         /// <summary>Set iff <see cref="kind"/> is Enum.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string? enumId;
     }
 
@@ -57,9 +68,11 @@ namespace NeoCompose.Runtime.Json
         public NeoGenericBindingKind kind;
 
         /// <summary>Set iff <see cref="kind"/> is Generic.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string? genericParamId;
 
         /// <summary>Set iff <see cref="kind"/> is Member.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string? memberId;
 
         /// <summary>True when this binding forwards an in-scope param.</summary>
@@ -96,16 +109,56 @@ namespace NeoCompose.Runtime.Json
                 NeoGenericParamConstraintKind.Class);
             if (kind == NeoGenericParamConstraintKind.Class)
             {
+                if (obj.Property("enumId") is not null)
+                {
+                    throw new JsonSerializationException(
+                        "Generic param constraint of kind 'Class' cannot declare 'enumId'.");
+                }
                 var classId = obj.Value<string>("classId");
                 if (string.IsNullOrEmpty(classId))
                 {
                     throw new JsonSerializationException(
                         "Generic param constraint of kind 'Class' is missing 'classId'.");
                 }
-                return new GenericParamConstraint { kind = kind, classId = classId };
+                Dictionary<string, GenericBinding>? classArguments = null;
+                if (obj.Property("classArguments") is JProperty argumentsProperty)
+                {
+                    if (argumentsProperty.Value is not JObject)
+                    {
+                        throw new JsonSerializationException(
+                            "Generic param constraint field 'classArguments' must be an object when present.");
+                    }
+                    classArguments = argumentsProperty.Value.ToObject<
+                        Dictionary<string, GenericBinding>>(serializer);
+                    if (classArguments is null)
+                    {
+                        throw new JsonSerializationException(
+                            "Generic param constraint field 'classArguments' could not be read.");
+                    }
+                    foreach (var pair in classArguments)
+                    {
+                        if (string.IsNullOrEmpty(pair.Key) || pair.Value is null)
+                        {
+                            throw new JsonSerializationException(
+                                "Generic param constraint field 'classArguments' must map non-empty parameter ids to bindings.");
+                        }
+                    }
+                }
+                return new GenericParamConstraint
+                {
+                    kind = kind,
+                    classId = classId,
+                    classArguments = classArguments,
+                };
             }
             if (kind == NeoGenericParamConstraintKind.Enum)
             {
+                if (obj.Property("classId") is not null
+                    || obj.Property("classArguments") is not null)
+                {
+                    throw new JsonSerializationException(
+                        "Generic param constraint of kind 'Enum' cannot declare 'classId' or 'classArguments'.");
+                }
                 var enumId = obj.Value<string>("enumId");
                 if (string.IsNullOrEmpty(enumId))
                 {
@@ -158,6 +211,11 @@ namespace NeoCompose.Runtime.Json
                 NeoGenericBindingKind.Generic);
             if (kind == NeoGenericBindingKind.Generic)
             {
+                if (obj.Property("memberId") is not null)
+                {
+                    throw new JsonSerializationException(
+                        "Generic binding of kind 'Generic' cannot declare 'memberId'.");
+                }
                 var genericParamId = obj.Value<string>("genericParamId");
                 if (string.IsNullOrEmpty(genericParamId))
                 {
@@ -168,6 +226,11 @@ namespace NeoCompose.Runtime.Json
             }
             if (kind == NeoGenericBindingKind.Member)
             {
+                if (obj.Property("genericParamId") is not null)
+                {
+                    throw new JsonSerializationException(
+                        "Generic binding of kind 'Member' cannot declare 'genericParamId'.");
+                }
                 var memberId = obj.Value<string>("memberId");
                 if (string.IsNullOrEmpty(memberId))
                 {

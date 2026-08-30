@@ -1249,7 +1249,7 @@ namespace NeoCompose.Runtime
             // still touches a node, because Compute takes an explicit receiver
             // id and never reads the node's own cached value.
             if (string.IsNullOrWhiteSpace(trackValueId)) return null;
-            if (client.ResolveEffectiveRow(trackValueId!) is not ObjectMemberValue trackRow
+            if (client.ResolveValueRow(trackValueId!) is not ObjectMemberValue trackRow
                 || string.IsNullOrWhiteSpace(trackRow.classId))
             {
                 return null;
@@ -1330,7 +1330,7 @@ namespace NeoCompose.Runtime
 
         private void ReadContent(string rowId)
         {
-            if (client.ResolveEffectiveRow(rowId) is not ObjectMemberValue segmentRow)
+            if (client.ResolveValueRow(rowId) is not ObjectMemberValue segmentRow)
             {
                 return;
             }
@@ -1351,7 +1351,7 @@ namespace NeoCompose.Runtime
                 foreach (string frameId in framesRow.value)
                 {
                     if (string.IsNullOrWhiteSpace(frameId)) continue;
-                    if (client.ResolveEffectiveRow(frameId) is not ObjectMemberValue frameRow)
+                    if (client.ResolveValueRow(frameId) is not ObjectMemberValue frameRow)
                     {
                         continue;
                     }
@@ -1590,7 +1590,7 @@ namespace NeoCompose.Runtime
                     "Child",
                     clipKey,
                     frameIndex: null);
-                if (client.ResolveEffectiveRow(legacyChildId) is not ObjectMemberValue child
+                if (client.ResolveValueRow(legacyChildId) is not ObjectMemberValue child
                     || string.IsNullOrWhiteSpace(child.classId)
                     || !client.TryGetClass(child.classId!, out legacyChildClass))
                 {
@@ -1820,7 +1820,7 @@ namespace NeoCompose.Runtime
             string where)
         {
             if (leafKind == NeoAnimationLeafKind.None) return;
-            if (client.ResolveEffectiveRow(overrideValueId) is not ObjectMemberValue) return;
+            if (client.ResolveValueRow(overrideValueId) is not ObjectMemberValue) return;
             throw new InvalidOperationException(
                 $"{where} addresses a field path deeper than one level. Structured leaves are one level deep: a '~partial' envelope names fields, never sub-fields.");
         }
@@ -1885,7 +1885,7 @@ namespace NeoCompose.Runtime
             if (declared != NeoAnimationDefinitionPresence.Unknown) return declared;
             if (!string.IsNullOrWhiteSpace(declaration.valueId))
             {
-                MemberValue? memberValue = client.ResolveEffectiveRow(declaration.valueId!);
+                MemberValue? memberValue = client.ResolveValueRow(declaration.valueId!);
                 if (memberValue is null || memberValue.IsRemoved)
                 {
                     return NeoAnimationDefinitionPresence.NullValue;
@@ -2432,7 +2432,7 @@ namespace NeoCompose.Runtime
             if (path.Length == 0
                 || target.value?.value is null
                 || !target.value.value.TryGetValue("assetValueId", out string assetValueId)
-                || client.ResolveEffectiveRow(assetValueId) is not ObjectMemberValue asset
+                || client.ResolveValueRow(assetValueId) is not ObjectMemberValue asset
                 || client.ResolveClassChildRow(target.value, path[0])
                     is not MemberValue placedChild
                 || client.ResolveClassChildRow(asset, path[0])

@@ -352,7 +352,7 @@ namespace NeoCompose.Runtime
             foreach (string valueId in changedValueIds)
             {
                 // The row is (or has become) a root in its own right.
-                MemberValue? current = ResolveEffectiveRow(valueId);
+                MemberValue? current = ResolveValueRow(valueId);
                 if (current is ObjectMemberValue currentRoot
                     && currentRoot.classId is not null
                     && IsVirtualInstanceRoot(currentRoot))
@@ -403,7 +403,7 @@ namespace NeoCompose.Runtime
                 .OrderBy(id => AuthoredContainmentDepth(id, parentByValueId))
                 .ThenBy(id => id, StringComparer.Ordinal))
             {
-                if (ResolveEffectiveRow(rootId) is not ObjectMemberValue root) continue;
+                if (ResolveValueRow(rootId) is not ObjectMemberValue root) continue;
                 ExpandVirtualInstanceRootOrReport(root, failClosed);
             }
             RefreshAllVirtualWrapperTrees();
@@ -418,7 +418,7 @@ namespace NeoCompose.Runtime
         {
             foreach (string rootId in virtualFootprintByRoot.Keys)
             {
-                if (ResolveEffectiveRow(rootId) is not ObjectMemberValue root) continue;
+                if (ResolveValueRow(rootId) is not ObjectMemberValue root) continue;
                 if (root.constructorArgs is null) continue;
                 foreach (JToken? argument in root.constructorArgs.Values)
                 {
@@ -1276,7 +1276,7 @@ namespace NeoCompose.Runtime
                     StringComparer.Ordinal);
                 foreach (string entryId in GetUnorderedListEntryIds(effectiveId))
                 {
-                    MemberValue? entry = ResolveEffectiveRow(entryId);
+                    MemberValue? entry = ResolveValueRow(entryId);
                     if (string.IsNullOrEmpty(entry?.sourceValueId)) continue;
                     if (!materializedBySource.TryGetValue(
                             entry!.sourceValueId!,

@@ -2187,7 +2187,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void DirectDeferredNativeCallRejectsImmediateEffectiveSignature()
+        public void DirectDeferredNativeCallRejectsImmediateSignature()
         {
             FunctionMember native = NativeFunction(
                 "fn-immediate-native",

@@ -793,7 +793,7 @@ namespace NeoCompose.Tests
 
         private static string? ReadLabel(NeoClient client, string valueId)
         {
-            MemberValue? row = client.ResolveEffectiveRow(valueId);
+            MemberValue? row = client.ResolveValueRow(valueId);
             Assert.IsNotNull(row, $"No value row '{valueId}'.");
             return ((SpriteMemberValue)row!).value?.fileId;
         }
