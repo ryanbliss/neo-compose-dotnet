@@ -31,12 +31,38 @@ namespace NeoCompose.Runtime.Json
         /// through <see cref="extendsClassId"/> are not repeated here.
         /// </summary>
         public List<string>? implementsInterfaceIds;
-        public bool hiddenInMemberSelector;
-        public bool isAbstract;
-        /// <summary>
-        /// Whether authored and generated types may derive from this class.
-        /// </summary>
-        public bool isSealed;
+        [Newtonsoft.Json.JsonProperty("uiVisibility", NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        private NeoClassVisibilityKind? uiVisibility;
+        [Newtonsoft.Json.JsonProperty("modifier", NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        private NeoClassModifierKind? modifier;
+
+        [Newtonsoft.Json.JsonIgnore]
+        public NeoClassVisibilityKind UiVisibility
+        {
+            get => uiVisibility ?? NeoClassVisibilityKind.Visible;
+            set => uiVisibility = value;
+        }
+
+        [Newtonsoft.Json.JsonIgnore]
+        public NeoClassModifierKind Modifier
+        {
+            get => modifier ?? NeoClassModifierKind.Open;
+            set => modifier = value;
+        }
+
+        [Newtonsoft.Json.JsonIgnore]
+        internal NeoClassVisibilityKind? DeclaredUiVisibility
+        {
+            get => uiVisibility;
+            set => uiVisibility = value;
+        }
+
+        [Newtonsoft.Json.JsonIgnore]
+        internal NeoClassModifierKind? DeclaredModifier
+        {
+            get => modifier;
+            set => modifier = value;
+        }
 
         /// <summary>
         /// Optional system metadata emitted for protected authoring classes.
@@ -46,12 +72,12 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public JObject? system;
         /// <summary>
-        /// Storage placement constraint (specs/member-storage.md §4.3):
-        /// "immutable", "save", or "session". Absent/null means the class may be
-        /// placed at any storage class. Inherited through
-        /// <see cref="extendsClassId"/> (narrow-only).
+        /// Storage placement constraint. Absent means
+        /// <see cref="NeoMemberStorage.Inherit"/> and resolves through
+        /// <see cref="extendsClassId"/>.
         /// </summary>
-        public string? allowedStorage;
+        [Newtonsoft.Json.JsonProperty(DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Ignore)]
+        public NeoMemberStorage allowedStorage;
         /// <summary>
         /// Ordered generic parameter declarations
         /// (specs/class-generics.md Decision 2). Absent/empty means a

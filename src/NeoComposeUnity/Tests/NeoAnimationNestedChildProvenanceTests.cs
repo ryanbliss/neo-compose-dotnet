@@ -275,7 +275,7 @@ namespace NeoCompose.Tests
 
         private static float PositionOf(NeoClient client, string partId)
         {
-            MemberValue? row = client.ResolveEffectiveRow(PositionId(partId));
+            MemberValue? row = client.ResolveValueRow(PositionId(partId));
             if (row is not Vector3MemberValue vector || vector.value is null)
             {
                 throw new AssertionException($"'{partId}' has no Vector3 Position row.");
@@ -466,7 +466,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Position",
                 kind = MemberKind.Vector3,
-                storage = "save",
+                Storage = NeoMemberStorage.Save,
             };
             members["part-children-member"] = new ListMember
             {
@@ -522,7 +522,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "ClipKey",
                 kind = MemberKind.String,
-                localizable = false,
+                Format = NeoStringFormatKind.Plain,
             };
             members["track-start-member"] = IntMemberOf("track-start-member", "StartFrame");
 
@@ -749,7 +749,7 @@ namespace NeoCompose.Tests
                 name = name,
                 kind = MemberKind.Class,
                 classId = PartClassId,
-                partial = true,
+                Payload = NeoMemberPayloadKind.Partial,
             };
         }
 
@@ -763,7 +763,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = ClipClassId,
                 valueId = valueId,
-                storage = "immutable",
+                Storage = NeoMemberStorage.Immutable,
             };
         }
 

@@ -110,9 +110,9 @@ namespace NeoCompose.Tests
                         name = "Inventory",
                         kind = MemberKind.Dictionary,
                         entryMemberId = "entry-member",
-                        keyKind = NeoDictionaryKeyKinds.Enum,
+                        KeyKind = NeoDictionaryKeyKind.Enum,
                         keyEnumId = EnumId,
-                        required = true,
+                        Requirement = NeoMemberRequirementKind.Required,
                     },
                     ["entry-member"] = new StringMember
                     {
@@ -120,7 +120,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Item Name",
                         kind = MemberKind.String,
-                        localizable = false,
+                        Format = NeoStringFormatKind.Plain,
                     },
                 },
                 values = new Dictionary<string, MemberValue>
@@ -167,7 +167,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = id,
                 kind = MemberKind.Class,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };
@@ -346,18 +346,34 @@ namespace NeoCompose.Tests
                     ""projectId"": ""p"",
                     ""name"": ""Stats"",
                     ""kind"": 5,
-                    ""locked"": false,
-                    ""required"": false,
-                    ""isStatic"": false, ""accessModifierKind"": ""public"",
                     ""createdAt"": 0,
                     ""updatedAt"": 0,
                     ""entryMemberId"": ""member-entry"",
-                    ""keyKind"": ""enum"",
+                    ""keyKind"": 1,
                     ""keyEnumId"": ""enum-item-slot""
                 }")!;
 
-            Assert.AreEqual(NeoDictionaryKeyKinds.Enum, member.keyKind);
+            Assert.AreEqual(NeoDictionaryKeyKind.Enum, member.DeclaredKeyKind);
             Assert.AreEqual("enum-item-slot", member.keyEnumId);
+        }
+
+        [Test]
+        public void DictionaryMember_AbsentKeyKind_DefaultsToNullForReadCompat()
+        {
+            // the canonical format omits the zero ordinal; null keyKind reads as string-keyed.
+            var member = (DictionaryMember)JsonConvert.DeserializeObject<Member>(
+                @"{
+                    ""id"": ""member-stats"",
+                    ""projectId"": ""p"",
+                    ""name"": ""Stats"",
+                    ""kind"": 5,
+                    ""createdAt"": 0,
+                    ""updatedAt"": 0,
+                    ""entryMemberId"": ""member-entry""
+                }")!;
+
+            Assert.IsNull(member.DeclaredKeyKind);
+            Assert.IsNull(member.keyEnumId);
         }
 
         [Test]
@@ -369,26 +385,23 @@ namespace NeoCompose.Tests
                     ""projectId"": ""p"",
                     ""name"": ""Stats"",
                     ""kind"": 5,
-                    ""locked"": false,
-                    ""required"": false,
-                    ""isStatic"": false, ""accessModifierKind"": ""public"",
                     ""createdAt"": 0,
                     ""updatedAt"": 0,
                     ""entryMemberId"": ""member-entry"",
-                    ""keyKind"": ""string""
+                    ""keyKind"": 0
                 }")!;
 
-            Assert.AreEqual(NeoDictionaryKeyKinds.String, member.keyKind);
+            Assert.AreEqual(NeoDictionaryKeyKind.String, member.DeclaredKeyKind);
             Assert.IsNull(member.keyEnumId);
         }
 
-        [TestCase(null, null, "keyKind")]
-        [TestCase("unsupported", null, "keyKind")]
-        [TestCase("enum", null, "keyEnumId")]
-        [TestCase("enum", "", "keyEnumId")]
-        [TestCase("string", "enum-item-slot", "keyEnumId")]
+        [TestCase(99, null, "keyKind")]
+        [TestCase(1, null, "keyEnumId")]
+        [TestCase(1, "", "keyEnumId")]
+        [TestCase(0, "enum-item-slot", "keyEnumId")]
+        [TestCase(null, "enum-item-slot", "keyEnumId")]
         public void DictionaryMember_InvalidKeyContractIsRejectedByJsonAndClient(
-            string? keyKind,
+            int? keyKind,
             string? keyEnumId,
             string expectedField)
         {
@@ -397,17 +410,14 @@ namespace NeoCompose.Tests
                 ""projectId"": ""p"",
                 ""name"": ""Stats"",
                 ""kind"": 5,
-                ""locked"": false,
-                ""required"": false,
-                ""isStatic"": false,
-                ""accessModifierKind"": ""public"",
                 ""createdAt"": 0,
                 ""updatedAt"": 0,
                 ""entryMemberId"": ""member-entry""
             }");
-            json["keyKind"] = keyKind is null
-                ? JValue.CreateNull()
-                : JValue.CreateString(keyKind);
+            if (keyKind is not null)
+            {
+                json["keyKind"] = keyKind.Value;
+            }
             if (keyEnumId is not null)
             {
                 json["keyEnumId"] = keyEnumId;
@@ -419,7 +429,9 @@ namespace NeoCompose.Tests
 
             ProjectData data = BuildProjectData();
             var dictionary = (DictionaryMember)data.members["inventory-member"];
-            dictionary.keyKind = keyKind!;
+            dictionary.DeclaredKeyKind = keyKind is null
+                ? null
+                : (NeoDictionaryKeyKind)keyKind.Value;
             dictionary.keyEnumId = keyEnumId;
 
             var clientError = Assert.Throws<InvalidOperationException>(() =>

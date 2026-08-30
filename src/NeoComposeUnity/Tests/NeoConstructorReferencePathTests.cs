@@ -175,8 +175,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Name",
                 kind = MemberKind.String,
-                required = true,
-                localizable = false,
+                Requirement = NeoMemberRequirementKind.Required,
+                Format = NeoStringFormatKind.Plain,
                 defaultValue = new StringMemberValueBase { value = "unnamed" },
             };
             var holderItem = new ClassMember
@@ -185,7 +185,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Item",
                 kind = MemberKind.Class,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 classId = widgetClass.id,
             };
             var holderItems = new ListMember
@@ -194,7 +194,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Items",
                 kind = MemberKind.List,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 entryMemberId = holderItem.id,
                 defaultValue = new ArrayMemberValueBase
                 {
@@ -211,17 +211,16 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "SavedWidget",
                 kind = MemberKind.Class,
-                required = true,
-                isStatic = true,
-                isVirtual = false,
-                storage = "save",
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Save,
                 classId = widgetClass.id,
                 valueId = SavedWidgetValueId,
+                Modifier = NeoMemberModifierKind.Static,
             };
 
-            ClassMember rootAssets = RootMember("root-assets", "Assets", "immutable", "value-assets");
-            ClassMember rootSave = RootMember("root-save", "Save", "save", "value-save");
-            ClassMember rootSession = RootMember("root-session", "Session", "session", "value-session");
+            ClassMember rootAssets = RootMember("root-assets", "Assets", NeoMemberStorage.Immutable, "value-assets");
+            ClassMember rootSave = RootMember("root-save", "Save", NeoMemberStorage.Save, "value-save");
+            ClassMember rootSession = RootMember("root-session", "Session", NeoMemberStorage.Session, "value-session");
 
             return new ProjectData
             {
@@ -306,7 +305,7 @@ namespace NeoCompose.Tests
         private static ClassMember RootMember(
             string id,
             string name,
-            string storage,
+            NeoMemberStorage storage,
             string valueId)
         {
             return new ClassMember
@@ -315,9 +314,9 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.Class,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 classId = "root-class",
-                storage = storage,
+                Storage = storage,
                 valueId = valueId,
             };
         }

@@ -1103,7 +1103,7 @@ namespace NeoCompose.Runtime
             VariantRefValue? selection = node.value?.value;
             if (selection is null)
             {
-                if (!node.member.required) return null;
+                if (node.member.Requirement != NeoMemberRequirementKind.Required) return null;
                 throw new InvalidOperationException(
                     $"Required variant member '{node.member.name}' has no selection.");
             }
@@ -1150,7 +1150,7 @@ namespace NeoCompose.Runtime
             VariantRefValue? selection = node.value?.value;
             if (selection is null)
             {
-                if (!node.member.required) return null;
+                if (node.member.Requirement != NeoMemberRequirementKind.Required) return null;
                 throw new InvalidOperationException(
                     $"Required lookup variant member '{node.member.name}' has no selection.");
             }
@@ -2306,7 +2306,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Cannot construct missing Class '{classId}'.");
             }
-            if (schemaClass!.isAbstract)
+            if (schemaClass!.Modifier == NeoClassModifierKind.Abstract)
             {
                 throw new InvalidOperationException(
                     $"Cannot construct abstract Class '{schemaClass.name}'.");
@@ -2598,7 +2598,7 @@ namespace NeoCompose.Runtime
                         if (!trustedMaterialization
                             && row.value.ContainsKey(entry.schemaKey))
                         {
-                            if (member.isReadOnly == true)
+                            if (member.Mutability == NeoMemberMutabilityKind.ReadOnly)
                             {
                                 throw new InvalidOperationException(
                                     $"Constructed Class row '{path}' contains read-only declaration member '{entry.schemaKey}'; read-only declaration members cannot have instance values.");
@@ -2627,7 +2627,7 @@ namespace NeoCompose.Runtime
                         // verified at zero flags (HelloWorld's stamped Assets
                         // root).
                         if (!trustedMaterialization
-                            && member.required
+                            && member.Requirement == NeoMemberRequirementKind.Required
                             && requireRequiredMembers
                             && !client.IsReplayingVirtualInstance)
                         {
@@ -2983,7 +2983,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Constructed field '{path}' has row shape '{row.GetType().Name}', incompatible with schema member '{member.id}' ({member.kind}).");
             }
-            if (member.required && IsNullStoredValue(row))
+            if (member.Requirement == NeoMemberRequirementKind.Required && IsNullStoredValue(row))
             {
                 throw new InvalidOperationException(
                     $"Constructed required field '{path}' has a null value.");
@@ -4350,7 +4350,7 @@ namespace NeoCompose.Runtime
             foreach (RuntimeConstructorField field in fields)
             {
                 Member member = resolved.membersBySchemaKey[field.schemaKey];
-                if (field.value is null && member.required)
+                if (field.value is null && member.Requirement == NeoMemberRequirementKind.Required)
                 {
                     throw new InvalidOperationException(
                         $"Constructor field '{field.schemaKey}' on '{resolved.schemaClass.name}' is required and cannot be null.");
@@ -4458,7 +4458,7 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 if (!IsStoredConstructorMember(member)) continue;
-                if (!member.required) continue;
+                if (member.Requirement != NeoMemberRequirementKind.Required) continue;
                 if (root.value.ContainsKey(entry.schemaKey)) continue;
                 throw new InvalidOperationException(
                     $"Declared constructor for '{resolved.schemaClass.name}' left required member '{entry.schemaKey}'/'{entry.memberId}' unset. Assign it in the constructor body, give it a default, or pass it at the call site.");
@@ -4880,7 +4880,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"NeoScript construction references missing class '{classTypeInfo.classId}'.");
             }
-            if (schemaClass!.isAbstract)
+            if (schemaClass!.Modifier == NeoClassModifierKind.Abstract)
             {
                 throw new InvalidOperationException(
                     $"Cannot construct abstract class '{schemaClass.name}'.");
@@ -4961,7 +4961,7 @@ namespace NeoCompose.Runtime
                 Member member = membersBySchemaKey[field.schemaKey];
                 if (!IsStoredConstructorMember(member))
                 {
-                    if (member.isReadOnly == true)
+                    if (member.Mutability == NeoMemberMutabilityKind.ReadOnly)
                     {
                         throw new InvalidOperationException(
                             $"Class constructor field '{field.schemaKey}' references read-only declaration member '{entry.memberId}'. Regenerate the NeoScript IR; readonly fields are never constructor parameters.");
@@ -5023,7 +5023,7 @@ namespace NeoCompose.Runtime
             Member member)
         {
             if (typeInfo.type != member.kind
-                || typeInfo.required != member.required)
+                || typeInfo.required != (member.Requirement == NeoMemberRequirementKind.Required))
             {
                 return false;
             }
@@ -5065,13 +5065,13 @@ namespace NeoCompose.Runtime
         private static bool RequiresRuntimeConstructorArgument(
             Member member)
         {
-            return member.required && !HasExplicitDefaultValue(member);
+            return member.Requirement == NeoMemberRequirementKind.Required && !HasExplicitDefaultValue(member);
         }
 
         private static bool IsStoredConstructorMember(Member member)
         {
-            return !member.isStatic
-                && member.isReadOnly != true
+            return member.Modifier != NeoMemberModifierKind.Static
+                && member.Mutability != NeoMemberMutabilityKind.ReadOnly
                 && member is not NSPropertyMember
                 && member is not FunctionMember
                 && member is not NSFunctionMember;
@@ -5178,7 +5178,7 @@ namespace NeoCompose.Runtime
         {
             if (runtimeValue is null)
             {
-                if (member.required)
+                if (member.Requirement == NeoMemberRequirementKind.Required)
                 {
                     throw new InvalidOperationException(
                         $"Required constructor field '{member.name}' received null.");
@@ -5264,7 +5264,7 @@ namespace NeoCompose.Runtime
                     ? provider.ToNeoValuePayload()
                     : null;
             object? suppliedValue = wrappedPayload?.value ?? runtimeValue;
-            if (suppliedValue is null && member.required)
+            if (suppliedValue is null && member.Requirement == NeoMemberRequirementKind.Required)
             {
                 throw new InvalidOperationException(
                     $"Required constructor field '{member.name}' received null.");
@@ -5453,7 +5453,7 @@ namespace NeoCompose.Runtime
             string[] result = optionIds.ToArray();
             ValidateConstructorSelectionCardinality(
                 result,
-                member.multiselect,
+                member.Selection == NeoMemberSelectionKind.Multi,
                 member.name,
                 "Enum");
             return result;
@@ -5604,7 +5604,7 @@ namespace NeoCompose.Runtime
                 $"Lookup constructor field '{member.name}'");
             ValidateConstructorSelectionCardinality(
                 ids,
-                member.multiselect,
+                member.Selection == NeoMemberSelectionKind.Multi,
                 member.name,
                 "Lookup");
             return ids;
@@ -5625,7 +5625,7 @@ namespace NeoCompose.Runtime
                 $"DialogueLookup constructor field '{member.name}'");
             ValidateConstructorSelectionCardinality(
                 ids,
-                member.multiselect,
+                member.Selection == NeoMemberSelectionKind.Multi,
                 member.name,
                 "DialogueLookup");
             return ids;
@@ -5660,11 +5660,11 @@ namespace NeoCompose.Runtime
 
         private static void ValidateConstructorSelectionCardinality(
             string[] ids,
-            bool multiselect,
+            bool allowsMultiple,
             string memberName,
             string kind)
         {
-            if (!multiselect && ids.Length != 1)
+            if (!allowsMultiple && ids.Length != 1)
             {
                 throw new InvalidOperationException(
                     $"{kind} constructor field '{memberName}' requires exactly one selection.");
@@ -5797,7 +5797,7 @@ namespace NeoCompose.Runtime
                         continue;
                     }
 
-                    if (!member.required) continue;
+                    if (member.Requirement != NeoMemberRequirementKind.Required) continue;
 
                     var defaultRow = CreateDefaultValueRow(
                         client,
@@ -5852,7 +5852,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Cannot create default class value for missing class '{classId}'.");
             }
-            if (schemaClass.isAbstract)
+            if (schemaClass.Modifier == NeoClassModifierKind.Abstract)
             {
                 throw new InvalidOperationException(
                     $"Cannot create default class value for abstract class '{schemaClass.name}'.");
@@ -6307,7 +6307,7 @@ namespace NeoCompose.Runtime
         /// persisted body, so enumerating <c>source.value</c> loses exactly the
         /// defaults this path is responsible for reproducing.
         /// </summary>
-        private static Dictionary<string, string> CloneEffectiveClassChildren(
+        private static Dictionary<string, string> CloneResolvedClassChildren(
             NeoClient client,
             ObjectMemberValue source,
             string classId,
@@ -6551,7 +6551,7 @@ namespace NeoCompose.Runtime
                     ObjectMemberValue clone = CreateWritableClassValueRow(
                         client,
                         classId,
-                        CloneEffectiveClassChildren(
+                        CloneResolvedClassChildren(
                             client,
                             sourceValue,
                             classId,
@@ -6784,7 +6784,7 @@ namespace NeoCompose.Runtime
                 ? env
                 : NeoGenericResolution.EnvFromStamp(source.genericBindings);
             string rowId = Guid.NewGuid().ToString();
-            bool unordered = member.listKind == NeoListKinds.Unordered;
+            bool unordered = member.ListKind == NeoListKind.Unordered;
             var value = new List<string>();
             if (source.value is not null)
             {
@@ -6798,7 +6798,7 @@ namespace NeoCompose.Runtime
                 entryMember = NeoGenericResolution.SubstituteMember(client, entryMember, entryEnv);
                 IEnumerable<string> sourceIds = source.value;
                 if (unordered
-                    && client.ResolveEffectiveRow(source.id) is not null)
+                    && client.ResolveValueRow(source.id) is not null)
                 {
                     sourceIds = client.GetUnorderedListEntryIds(source.id);
                 }
@@ -7308,7 +7308,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Flattens a set of <see cref="NeoDialogueReference"/>s to their stored
-        /// <c>dialogueId</c>s for serialization (multiselect DialogueLookup).
+        /// <c>dialogueId</c>s for serialization (multi-select DialogueLookup).
         /// </summary>
         public static string[] DialogueReferenceIds(
             IEnumerable<NeoDialogueReference>? references)

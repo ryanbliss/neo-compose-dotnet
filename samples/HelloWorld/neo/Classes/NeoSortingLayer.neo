@@ -2,8 +2,7 @@
 @system(kind: .WorldAuthoring, worldKind: .SortingLayer)
 class NeoSortingLayer {
   @id("system_e963862e-6228-4594-8220-8ef06098c253")
-  @locked
-  @settings(localizable: false)
+  @settings(format: .Plain)
   @system(kind: .WorldAuthoring)
   public virtual string Name = "";
 }

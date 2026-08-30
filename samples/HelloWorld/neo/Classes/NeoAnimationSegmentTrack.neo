@@ -14,13 +14,11 @@ abstract class NeoAnimationSegmentTrack<
 >(NeoDelegate<TChild> selector) : NeoAnimationTrackBase(selector: selector) {
   /// The sequence of values this lane plays. Your subclass decides where it comes from — a value you store, a lookup, or a getter you write — and it is resolved again on every frame that plays.
   @id("system_d2d0bf9b-211f-4b2f-bff3-3d6da5766abd")
-  @locked
   @system(kind: .WorldAuthoring)
   public abstract NeoAnimationSegment<TValue> Segment { get; }
 
   /// The child this lane plays against, typed as the child class you derived with, so a Segment getter can read that child's own members.
   @id("system_b29e7ab9-0b8e-4399-84c1-1203070b75dd")
-  @locked
   @system(kind: .WorldAuthoring)
   public override NeoDelegate<TChild> Selector = selector;
 }

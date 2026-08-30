@@ -436,7 +436,7 @@ namespace NeoCompose.Runtime
                 var resolvedValueId = valueId;
                 if (resolvedValueId is null)
                 {
-                    if (member.isReadOnly == true)
+                    if (member.Mutability == NeoMemberMutabilityKind.ReadOnly)
                     {
                         return client.CreateDeclarationDefaultValue(
                             member,

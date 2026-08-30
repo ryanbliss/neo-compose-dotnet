@@ -10,16 +10,14 @@
 )
 class ExitPromptObject37f67d : ExitPromptObject {
   @id("neo-tile-grid-record-relations-v1-member-31465119e4c7dde8767888fe5d0bf854")
-  @locked
   @system(kind: .WorldAuthoring)
   public override Vector3 Position = new(-9, 1, 0);
 
   @id("neo-tile-grid-record-relations-v1-member-442255d20f462313816617f1d53f0df5")
-  @locked
   @system(kind: .WorldAuthoring)
   public override Vector3 Size = new(1, 3, 0);
 
   @id("neo-tile-grid-record-relations-v1-member-aca47cf88b746e63e89984552bb68261")
-  @settings(localizable: false)
+  @settings(format: .Plain)
   public override string Name = "ExitPromptObject";
 }

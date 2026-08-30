@@ -10,7 +10,7 @@
 )
 class VaultPlaqueObject : ConsoleObject {
   @id("neo-tile-grid-record-relations-v1-member-6600a0b0a8a2c976fd3b76e3199a91f7")
-  @settings(localizable: false)
+  @settings(format: .Plain)
   public override string Name = "Vault Plaque";
 
   @id("502c9308-974b-446d-935b-c22adde5a9d2")
@@ -20,7 +20,6 @@ class VaultPlaqueObject : ConsoleObject {
   public virtual Dialogue VaultPlaqueReward = Reference<Dialogue>(id: "bbda459e-c77e-4084-9047-22b1dfbb0bff");
 
   @id("c481dc1e-b5fd-4352-a76b-536cc3e17f71")
-  @locked
   @settings(kind: .Ordered)
   public override List<NeoObjectBase> Children = [
     @id("522f0109-97d2-4ac1-ad7c-70357d278035")
@@ -37,7 +36,6 @@ class VaultPlaqueObject : ConsoleObject {
   ];
 
   @id("430fca56-b45a-4896-9ab2-795a3faf57f6")
-  @locked
   @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public override List<NeoObjectPlacementTile> PlacementTiles = [
@@ -48,7 +46,6 @@ class VaultPlaqueObject : ConsoleObject {
   ];
 
   @id("neo-tile-grid-record-relations-v1-member-f7282b53bd3722c4d54307079bf7e242")
-  @locked
   @system(kind: .WorldAuthoring)
   public override Vector3 Position = new(0, 0, 0);
 }

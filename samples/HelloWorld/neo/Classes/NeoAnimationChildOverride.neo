@@ -8,17 +8,14 @@ class NeoAnimationChildOverride<
   TEntry extends NeoObjectBase
 >(NeoDelegate<TEntry> selector, TEntry overrides) {
   @id("system_819b3743-0c3d-4896-b679-9aeeb73255f4")
-  @locked
   @system(kind: .WorldAuthoring)
   public virtual Partial<TEntry> Overrides = overrides;
 
   @id("system_ba319c4b-3419-4301-a0d6-8bc5a89e20d1")
-  @locked
   @system(kind: .WorldAuthoring)
   public virtual NeoSelectorRefreshKind Refresh = .OnLoad;
 
   @id("system_48e66117-43fe-4429-97a8-964165f063ea")
-  @locked
   @system(kind: .WorldAuthoring)
   public virtual NeoDelegate<TEntry> Selector = selector;
 }

@@ -32,7 +32,6 @@ namespace NeoCompose.Tests
         {
             const string json = @"{
                 'id':'action-member','projectId':'project-action','name':'OnDamaged','kind':26,
-                'isStatic':false,'accessModifierKind':'public','required':false,
                 'argumentTypes':[{'name':'amount','type':2,'required':true}],
                 'defaultValue':{'value':{'listeners':[
                     {'memberId':'listener-first','valueId':null},
@@ -481,7 +480,7 @@ namespace NeoCompose.Tests
         public void Load_RejectsAnActionMemberDeclaredRequired()
         {
             ActionMember member = ActionMember();
-            member.required = true;
+            member.DeclaredRequirement = NeoMemberRequirementKind.Required;
 
             var error = Assert.Throws<InvalidOperationException>(
                 () => BuildClient(new JsonMember[] { member }).Dispose());
@@ -529,9 +528,9 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = "OnDamaged",
             kind = MemberKind.NSAction,
-            required = false,
+            Requirement = NeoMemberRequirementKind.Optional,
             valueId = valueId,
-            storage = valueId is null ? null : "session",
+            Storage = valueId is null ? NeoMemberStorage.Inherit : NeoMemberStorage.Session,
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
             createdAt = "x",
             updatedAt = "x",
@@ -543,14 +542,14 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = id,
             kind = MemberKind.Function,
-            isStatic = true,
+            Modifier = NeoMemberModifierKind.Static,
             returnTypeInfo = new VoidTypeInfo
             {
                 type = MemberKind.Void,
                 required = true,
             },
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-            deferred = false,
+            Dispatch = NeoFunctionDispatchKind.Synchronous,
             createdAt = "x",
             updatedAt = "x",
         };
@@ -568,8 +567,8 @@ namespace NeoCompose.Tests
             params (string memberId, Action handler)[] listeners)
         {
             ClassMember assets = RootMember("root-assets", "Assets", "root-assets-value");
-            ClassMember save = RootMember("root-save", "Save", "root-save-value", "save");
-            ClassMember session = RootMember("root-session", "Session", "root-session-value", "session");
+            ClassMember save = RootMember("root-save", "Save", "root-save-value", NeoMemberStorage.Save);
+            ClassMember session = RootMember("root-session", "Session", "root-session-value", NeoMemberStorage.Session);
             var members = new Dictionary<string, JsonMember>
             {
                 [assets.id] = assets,
@@ -646,7 +645,7 @@ namespace NeoCompose.Tests
             string id,
             string name,
             string valueId,
-            string? storage = null) => new()
+            NeoMemberStorage storage = NeoMemberStorage.Inherit) => new()
         {
             id = id,
             projectId = ProjectId,
@@ -654,7 +653,7 @@ namespace NeoCompose.Tests
             kind = MemberKind.Class,
             classId = "root-class",
             valueId = valueId,
-            storage = storage,
+            Storage = storage,
             createdAt = "x",
             updatedAt = "x",
         };

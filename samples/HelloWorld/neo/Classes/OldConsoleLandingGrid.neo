@@ -49,6 +49,6 @@
 )
 class OldConsoleLandingGrid : NeoTileGrid {
   @id("f7493cd5-3da1-44ef-a275-5997d765b640")
-  @settings(localizable: false)
+  @settings(format: .Plain)
   public virtual string DisplayName;
 }

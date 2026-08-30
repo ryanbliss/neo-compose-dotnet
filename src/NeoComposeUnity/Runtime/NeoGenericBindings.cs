@@ -106,7 +106,7 @@ namespace NeoCompose.Runtime
     ///   <item><description>Int → <c>int</c> (†)</description></item>
     ///   <item><description>Float → <c>double</c> (†)</description></item>
     ///   <item><description>Decimal → <c>decimal</c> (†)</description></item>
-    ///   <item><description>String → <c>string</c> (localizable strings read
+    ///   <item><description>String → <c>string</c> (localized strings read
     ///   resolved text)</description></item>
     ///   <item><description>Color → <c>NeoReadOnlyColor</c> /
     ///   <c>NeoColor</c> (bound wrappers; unset optional reads null), or the
@@ -120,7 +120,7 @@ namespace NeoCompose.Runtime
     ///   wrapper class (matched by its implicit string conversions — the
     ///   cross-repo wrapper contract) or raw <c>string</c> option
     ///   id</description></item>
-    ///   <item><description>Enum (multiselect) →
+    ///   <item><description>Enum (multiSelect) →
     ///   <c>IReadOnlyList&lt;Wrapper&gt;</c> or raw
     ///   <c>string[]</c></description></item>
     ///   <item><description>Class → the generated class; dispatched through
@@ -408,15 +408,15 @@ namespace NeoCompose.Runtime
             {
                 throw Mismatch<T>(member, "string");
             }
-            bool localizable = member is StringMember stringMember
-                && stringMember.localizable;
+            bool localized = member is StringMember stringMember
+                && stringMember.Format == NeoStringFormatKind.Localized;
             return Adapt<T, string?>(new NeoGenericBinding<string?>(
                 MemberKind.String,
                 node =>
                 {
                     var stringNode = RequireNode<NeoMemberString>(node, member);
-                    string? text = localizable ? stringNode.Text : stringNode.value?.value;
-                    if (text is null && member.required)
+                    string? text = localized ? stringNode.Text : stringNode.value?.value;
+                    if (text is null && member.Requirement == NeoMemberRequirementKind.Required)
                     {
                         throw new InvalidOperationException(
                             $"Required string '{member.name}' ({member.id}) has no value.");
@@ -762,7 +762,7 @@ namespace NeoCompose.Runtime
                 node =>
                 {
                     var resolved = RequireNode<NeoMemberAudio>(node, member).Resolve();
-                    if (resolved is null && member.required)
+                    if (resolved is null && member.Requirement == NeoMemberRequirementKind.Required)
                     {
                         throw new InvalidOperationException(
                             $"Required Audio '{member.name}' ({member.id}) has no synchronized asset.");
@@ -807,8 +807,8 @@ namespace NeoCompose.Runtime
 
         private static NeoGenericBinding<T> EnumCodec<T>(Member member)
         {
-            bool multiselect = member is EnumMember enumMember && enumMember.multiselect;
-            if (multiselect)
+            bool multiSelect = member is EnumMember enumMember && enumMember.Selection == NeoMemberSelectionKind.Multi;
+            if (multiSelect)
             {
                 if (typeof(T) == typeof(string[]))
                 {
@@ -961,7 +961,7 @@ namespace NeoCompose.Runtime
                     var classNode = RequireNode<NeoMemberClass>(node, member);
                     if (classNode.value is null)
                     {
-                        if (member.required)
+                        if (member.Requirement == NeoMemberRequirementKind.Required)
                         {
                             throw new InvalidOperationException(
                                 $"Required class member '{member.name}' ({member.id}) has no value.");

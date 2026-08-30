@@ -191,16 +191,16 @@ namespace NeoCompose.Runtime
         /// not exist in a player build — a shipped game always loads the committed
         /// release configuration.
         /// </remarks>
-        internal static Func<NeoComposeConfig, NeoComposeConfig>? EditorEffectiveConfigResolver;
+        internal static Func<NeoComposeConfig, NeoComposeConfig>? EditorResolvedConfigResolver;
 #endif
 
         public static NeoComposeConfig? LoadDefault()
         {
             var config = Resources.Load<NeoComposeConfig>(NeoComposeDefaults.ConfigResourcePath);
 #if UNITY_EDITOR
-            if (config != null && EditorEffectiveConfigResolver != null)
+            if (config != null && EditorResolvedConfigResolver != null)
             {
-                return EditorEffectiveConfigResolver(config);
+                return EditorResolvedConfigResolver(config);
             }
 #endif
             return config;

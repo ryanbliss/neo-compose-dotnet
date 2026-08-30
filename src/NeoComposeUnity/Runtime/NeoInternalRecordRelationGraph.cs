@@ -9,9 +9,9 @@ using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
 {
-    public sealed class NeoEffectiveInternalRecordRelation
+    public sealed class NeoResolvedInternalRecordRelation
     {
-        internal NeoEffectiveInternalRecordRelation(
+        internal NeoResolvedInternalRecordRelation(
             InternalRecordRelation declaration,
             string targetRecordId,
             int sourceAncestryDepth)
@@ -100,7 +100,7 @@ namespace NeoCompose.Runtime
             };
 
         private readonly ProjectData data;
-        private readonly Dictionary<string, IReadOnlyList<NeoEffectiveInternalRecordRelation>> cache =
+        private readonly Dictionary<string, IReadOnlyList<NeoResolvedInternalRecordRelation>> cache =
             new(StringComparer.Ordinal);
 
         public NeoInternalRecordRelationGraph(ProjectData data)
@@ -108,7 +108,7 @@ namespace NeoCompose.Runtime
             this.data = data ?? throw new ArgumentNullException(nameof(data));
         }
 
-        public IReadOnlyList<NeoEffectiveInternalRecordRelation> Resolve(
+        public IReadOnlyList<NeoResolvedInternalRecordRelation> Resolve(
             string relationKind,
             string sourceClassId)
         {
@@ -140,7 +140,7 @@ namespace NeoCompose.Runtime
                 declarations.Add(relation);
             }
 
-            IReadOnlyList<NeoEffectiveInternalRecordRelation> result;
+            IReadOnlyList<NeoResolvedInternalRecordRelation> result;
             if (contract.Merge == MergeKind.NearestSingle)
             {
                 declarations.Sort((left, right) =>
@@ -170,10 +170,10 @@ namespace NeoCompose.Runtime
                     }
                 }
                 result = declarations.Count == 0
-                    ? Array.Empty<NeoEffectiveInternalRecordRelation>()
+                    ? Array.Empty<NeoResolvedInternalRecordRelation>()
                     : new[]
                     {
-                        new NeoEffectiveInternalRecordRelation(
+                        new NeoResolvedInternalRecordRelation(
                             declarations[0],
                             declarations[0].targetRecordId,
                             sourceDepth[declarations[0].sourceRecordId]),
@@ -208,10 +208,10 @@ namespace NeoCompose.Runtime
                     }
                 }
 
-                var effective = new List<NeoEffectiveInternalRecordRelation>();
+                var effective = new List<NeoResolvedInternalRecordRelation>();
                 foreach (var pair in byTarget)
                 {
-                    var relation = new NeoEffectiveInternalRecordRelation(
+                    var relation = new NeoResolvedInternalRecordRelation(
                         pair.Value.Selected,
                         pair.Key,
                         pair.Value.SelectedDepth);
@@ -338,7 +338,7 @@ namespace NeoCompose.Runtime
             var result = new List<string>();
             foreach (NeoSchemaClass candidate in data.classes.Values)
             {
-                if (candidate.isAbstract) continue;
+                if (candidate.Modifier == NeoClassModifierKind.Abstract) continue;
                 if (ContainsClass(ResolveAncestry(candidate.id), classId))
                 {
                     result.Add(candidate.id);

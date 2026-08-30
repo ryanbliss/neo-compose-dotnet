@@ -51,6 +51,8 @@ namespace NeoCompose.Runtime.Json
 
         protected virtual void ValidateObject(JObject obj, Type concrete) { }
 
+        protected virtual void OnPopulated(JObject obj, TBase instance) { }
+
         public override bool CanConvert(Type objectType)
         {
             return typeof(TBase).IsAssignableFrom(objectType);
@@ -97,7 +99,9 @@ namespace NeoCompose.Runtime.Json
             {
                 serializer.Populate(subReader, instance);
             }
-            return instance;
+            var typedInstance = (TBase)instance;
+            OnPopulated(obj, typedInstance);
+            return typedInstance;
         }
 
         public override void WriteJson(

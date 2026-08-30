@@ -1,6 +1,6 @@
 @id("1c859b34-ff59-40f8-a763-cd0f04dc96c0")
 abstract class ConsoleTile : NeoTile {
   @id("d611cb73-fc9b-44e8-a3d9-5784253cae6f")
-  @settings(localizable: false)
+  @settings(format: .Plain)
   public override string Name = "ConsoleTile";
 }

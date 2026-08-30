@@ -1686,7 +1686,7 @@ namespace NeoCompose.Runtime
         {
             var links = new List<NeoGridLayerLinkModel>();
             dependencyIds?.Add(GridValueId);
-            if (client.ResolveEffectiveRow(GridValueId) is not ObjectMemberValue gridRow) return links;
+            if (client.ResolveValueRow(GridValueId) is not ObjectMemberValue gridRow) return links;
             if (gridRow.IsRemoved) return links;
             if (string.IsNullOrEmpty(gridRow.classId)) return links;
             string? childrenKey = FindSchemaKey(gridRow.classId!, ChildrenKeyCandidates);
@@ -1701,7 +1701,7 @@ namespace NeoCompose.Runtime
             foreach (var linkValueId in ResolveListEntryIds(childrenListId, dependencyIds))
             {
                 dependencyIds?.Add(linkValueId);
-                if (client.ResolveEffectiveRow(linkValueId) is not ObjectMemberValue linkRow) continue;
+                if (client.ResolveValueRow(linkValueId) is not ObjectMemberValue linkRow) continue;
                 if (linkRow.IsRemoved) continue;
                 if (string.IsNullOrEmpty(linkRow.classId)) continue;
                 var link = ResolveLinkModel(linkValueId, linkRow, dependencyIds);
@@ -1783,7 +1783,7 @@ namespace NeoCompose.Runtime
                     "layerOverrideValueId");
             if (overrideValueId is null) return null;
             dependencyIds?.Add(overrideValueId);
-            if (client.ResolveEffectiveRow(overrideValueId) is not ObjectMemberValue overrideRow)
+            if (client.ResolveValueRow(overrideValueId) is not ObjectMemberValue overrideRow)
             {
                 throw new InvalidOperationException(
                     $"Layer link '{linkValueId}' references missing layer override value '{overrideValueId}'.");
@@ -1820,7 +1820,7 @@ namespace NeoCompose.Runtime
         {
             dependencyIds?.Add(listValueId);
             var ids = new List<string>();
-            if (client.ResolveEffectiveRow(listValueId) is not ArrayMemberValue listRow) return ids;
+            if (client.ResolveValueRow(listValueId) is not ArrayMemberValue listRow) return ids;
             if (listRow.IsRemoved) return ids;
             if (listRow.value is null) return ids;
             var seen = new HashSet<string>();
@@ -1828,7 +1828,7 @@ namespace NeoCompose.Runtime
             {
                 if (string.IsNullOrEmpty(entryId)) continue;
                 if (!seen.Add(entryId)) continue;
-                var entryRow = client.ResolveEffectiveRow(entryId);
+                var entryRow = client.ResolveValueRow(entryId);
                 if (entryRow is null || entryRow.IsRemoved) continue;
                 ids.Add(entryId);
             }
@@ -1896,7 +1896,7 @@ namespace NeoCompose.Runtime
             HashSet<string>? dependencyIds)
         {
             dependencyIds?.Add(objectValueId);
-            if (client.ResolveEffectiveRow(objectValueId) is not ObjectMemberValue objectRow) return;
+            if (client.ResolveValueRow(objectValueId) is not ObjectMemberValue objectRow) return;
             if (objectRow.IsRemoved) return;
             if (string.IsNullOrEmpty(objectRow.classId)) return;
             Vector2Int origin = ReadObjectOrigin(objectRow, dependencyIds);
@@ -1946,7 +1946,7 @@ namespace NeoCompose.Runtime
             HashSet<string>? dependencyIds)
         {
             dependencyIds?.Add(objectValueId);
-            if (client.ResolveEffectiveRow(objectValueId) is not ObjectMemberValue objectRow) yield break;
+            if (client.ResolveValueRow(objectValueId) is not ObjectMemberValue objectRow) yield break;
             if (objectRow.IsRemoved) yield break;
             if (string.IsNullOrEmpty(objectRow.classId)) yield break;
             string? childrenKey = FindSchemaKey(objectRow.classId!, ChildrenKeyCandidates);
@@ -1963,7 +1963,7 @@ namespace NeoCompose.Runtime
             {
                 childIndex += 1;
                 dependencyIds?.Add(childValueId);
-                if (client.ResolveEffectiveRow(childValueId) is not ObjectMemberValue childRow) continue;
+                if (client.ResolveValueRow(childValueId) is not ObjectMemberValue childRow) continue;
                 if (childRow.IsRemoved) continue;
                 if (string.IsNullOrEmpty(childRow.classId)) continue;
                 string? tilesKey = FindSchemaKey(childRow.classId!, TilesKeyCandidates);
@@ -1994,7 +1994,7 @@ namespace NeoCompose.Runtime
             HashSet<string>? dependencyIds)
         {
             dependencyIds?.Add(entryId);
-            if (client.ResolveEffectiveRow(entryId) is not ObjectMemberValue entryRow) return null;
+            if (client.ResolveValueRow(entryId) is not ObjectMemberValue entryRow) return null;
             if (entryRow.IsRemoved) return null;
             // Parity with the retired export derivation: entries without a
             // classId are not composed.
@@ -2057,7 +2057,7 @@ namespace NeoCompose.Runtime
             HashSet<string>? dependencyIds)
         {
             dependencyIds?.Add(placementValueId);
-            if (client.ResolveEffectiveRow(placementValueId) is not ObjectMemberValue placementRow) return null;
+            if (client.ResolveValueRow(placementValueId) is not ObjectMemberValue placementRow) return null;
             if (placementRow.IsRemoved) return null;
             if (string.IsNullOrEmpty(placementRow.classId)) return null;
 
@@ -2121,7 +2121,7 @@ namespace NeoCompose.Runtime
                 foreach (var objectValueId in ResolveListEntryIds(link.ListValueId, dependencyIds))
                 {
                     dependencyIds?.Add(objectValueId);
-                    if (client.ResolveEffectiveRow(objectValueId) is not ObjectMemberValue objectRow) continue;
+                    if (client.ResolveValueRow(objectValueId) is not ObjectMemberValue objectRow) continue;
                     if (objectRow.IsRemoved) continue;
                     if (string.IsNullOrEmpty(objectRow.classId)) continue;
                     string? assetClassId = objectRow.value is null
@@ -2194,7 +2194,7 @@ namespace NeoCompose.Runtime
         {
             IReadOnlyDictionary<string, string>? authoredValues =
                 objectValueId is not null
-                && client.ResolveEffectiveRow(objectValueId) is ObjectMemberValue assetRow
+                && client.ResolveValueRow(objectValueId) is ObjectMemberValue assetRow
                     ? assetRow.value
                     : null;
             MergedSchemaEntry? placementTilesEntry = FindSchemaEntry(
@@ -2253,7 +2253,7 @@ namespace NeoCompose.Runtime
             foreach (string placementValueId in placementValueIds)
             {
                 dependencyIds?.Add(placementValueId);
-                if (client.ResolveEffectiveRow(placementValueId)
+                if (client.ResolveValueRow(placementValueId)
                     is not ObjectMemberValue placementRow)
                 {
                     continue;
@@ -2336,7 +2336,7 @@ namespace NeoCompose.Runtime
 
         private Vector2? ReadVectorRow(string valueId)
         {
-            switch (client.ResolveEffectiveRow(valueId))
+            switch (client.ResolveValueRow(valueId))
             {
                 case Vector2MemberValue v2 when v2.value is not null:
                     return new Vector2(v2.value.x, v2.value.y);
@@ -3211,7 +3211,7 @@ namespace NeoCompose.Runtime
             // its containerId; its owned Cell child has no
             // containment edge of their own, so the whole subtree is stamped
             // here at creation.
-            string? partitionMapKey = client.ResolveEffectiveRow(link.ListValueId)?.mapKey;
+            string? partitionMapKey = client.ResolveValueRow(link.ListValueId)?.mapKey;
             var cellRow = new Vector2MemberValue
             {
                 id = Guid.NewGuid().ToString(),
@@ -3263,11 +3263,11 @@ namespace NeoCompose.Runtime
             var now = NeoTimestamp.Now();
             // Storage partitions: the spawned object's subtree lives in its
             // container's partition (see CreatePlacementRows).
-            string? partitionMapKey = client.ResolveEffectiveRow(link.ListValueId)?.mapKey;
+            string? partitionMapKey = client.ResolveValueRow(link.ListValueId)?.mapKey;
             var record = ClonePlacementClassChildren(
                 objectClassId,
                 assetValueId is not null
-                    && client.ResolveEffectiveRow(assetValueId) is ObjectMemberValue assetRow
+                    && client.ResolveValueRow(assetValueId) is ObjectMemberValue assetRow
                         ? assetRow.value
                         : null,
                 writeOwnership,
@@ -3275,7 +3275,7 @@ namespace NeoCompose.Runtime
                 positionKey,
                 sizeKey);
             if (assetValueId is not null
-                && client.ResolveEffectiveRow(assetValueId) is ObjectMemberValue)
+                && client.ResolveValueRow(assetValueId) is ObjectMemberValue)
             {
                 record["assetValueId"] = assetValueId;
             }
@@ -3351,11 +3351,11 @@ namespace NeoCompose.Runtime
                 if (authoredValues is not null
                     && authoredValues.TryGetValue(entry.schemaKey, out string sourceId))
                 {
-                    source = client.ResolveEffectiveRow(sourceId);
+                    source = client.ResolveValueRow(sourceId);
                 }
                 else if (member.valueId is not null)
                 {
-                    source = client.ResolveEffectiveRow(member.valueId);
+                    source = client.ResolveValueRow(member.valueId);
                 }
                 else
                 {
@@ -3367,7 +3367,7 @@ namespace NeoCompose.Runtime
                 }
 
                 if (source is null) continue;
-                if (ownership == NeoValueOwnership.Asset || member.isReadOnly == true)
+                if (ownership == NeoValueOwnership.Asset || member.Mutability == NeoMemberMutabilityKind.ReadOnly)
                 {
                     // Immutable definitions (including clip graphs) remain
                     // shared authored content and are never runtime targets.
@@ -3429,10 +3429,10 @@ namespace NeoCompose.Runtime
                     var mapped = new Dictionary<string, string>();
                     foreach (var pair in dictionaryClone.value)
                     {
-                        MemberValue? entrySource = client.ResolveEffectiveRow(pair.Value);
+                        MemberValue? entrySource = client.ResolveValueRow(pair.Value);
                         mapped[pair.Key] = entrySource is null
                             || entryOwnership == NeoValueOwnership.Asset
-                            || dictionaryEntry.isReadOnly == true
+                            || dictionaryEntry.Mutability == NeoMemberMutabilityKind.ReadOnly
                                 ? pair.Value
                                 : ClonePlacementOwnedRow(
                                     dictionaryEntry,
@@ -3457,17 +3457,17 @@ namespace NeoCompose.Runtime
                     for (int index = 0; index < listClone.value.Length; index++)
                     {
                         string sourceId = listClone.value[index];
-                        MemberValue? entrySource = client.ResolveEffectiveRow(sourceId);
+                        MemberValue? entrySource = client.ResolveValueRow(sourceId);
                         mapped[index] = entrySource is null
                             || entryOwnership == NeoValueOwnership.Asset
-                            || listEntry.isReadOnly == true
+                            || listEntry.Mutability == NeoMemberMutabilityKind.ReadOnly
                                 ? sourceId
                                 : ClonePlacementOwnedRow(
                                     listEntry,
                                     entrySource,
                                     entryOwnership,
                                     mapKey,
-                                    listMember.listKind == NeoListKinds.Unordered
+                                    listMember.ListKind == NeoListKind.Unordered
                                         ? clone.id
                                         : null);
                     }

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using NeoCompose.Runtime;
+using NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
@@ -173,14 +174,18 @@ namespace HelloWorld.Assets.Tests
             var systemBase = (JObject)classes[NeoObjectLayerLinkClassId]!;
             var authoredLink = (JObject)classes[ObjectLayerLinkClassId]!;
 
-            Assert.IsTrue(tileSystemBase["isAbstract"]!.Value<bool>());
+            Assert.AreEqual(
+                (int)NeoClassModifierKind.Abstract,
+                tileSystemBase["modifier"]!.Value<int>());
             Assert.AreEqual("NeoTileLayerLink", tileSystemBase["name"]!.Value<string>());
             Assert.AreEqual("tileLayerLink", tileSystemBase["system"]!["worldKind"]!.Value<string>());
             Assert.AreEqual(
                 "system_98655d2b-ad0b-45e2-a901-62600b4d3a22",
                 tileSystemBase["schema"]!["Tiles"]!.Value<string>());
 
-            Assert.IsTrue(systemBase["isAbstract"]!.Value<bool>());
+            Assert.AreEqual(
+                (int)NeoClassModifierKind.Abstract,
+                systemBase["modifier"]!.Value<int>());
             Assert.AreEqual("NeoObjectLayerLink", systemBase["name"]!.Value<string>());
             Assert.AreEqual("objectLayerLink", systemBase["system"]!["worldKind"]!.Value<string>());
             Assert.AreEqual(

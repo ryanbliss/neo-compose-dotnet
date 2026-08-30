@@ -104,7 +104,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Returns the current node or an unbound empty view. Collection and
-        /// multiselect generated getters use this to preserve their ordinary
+        /// multi-select generated getters use this to preserve their ordinary
         /// non-null wrapper shape without turning a read into materialization;
         /// their mutation callback calls <see cref="GetOrCreateWritableNode{TNode}"/>
         /// when the first write actually occurs.

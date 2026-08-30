@@ -141,7 +141,7 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>
         /// Projects a merged Class schema to the fields owned by each
-        /// value instance. Class-owned (<see cref="Member.isStatic"/>)
+        /// value instance. Class-owned (<see cref="NeoMemberModifierKind.Static"/>)
         /// declarations are separate roots and must never be materialized or
         /// traversed through an instance record.
         /// </summary>
@@ -154,7 +154,7 @@ namespace NeoCompose.Runtime.Json
             foreach (MergedSchemaEntry entry in merged)
             {
                 Member? member = memberLookup(entry.memberId);
-                if (member?.isStatic == true) continue;
+                if (member?.Modifier == NeoMemberModifierKind.Static) continue;
                 result.Add(entry);
             }
             return result;
@@ -184,7 +184,7 @@ namespace NeoCompose.Runtime.Json
             foreach (MergedSchemaEntry entry in surface)
             {
                 Member? member = memberLookup(entry.memberId);
-                if (member?.isReadOnly == true) continue;
+                if (member?.Mutability == NeoMemberMutabilityKind.ReadOnly) continue;
                 result.Add(entry);
             }
             return result;
@@ -205,7 +205,8 @@ namespace NeoCompose.Runtime.Json
             foreach (MergedSchemaEntry entry in surface)
             {
                 Member? member = memberLookup(entry.memberId);
-                if (member?.isReadOnly != true || member.isAbstract == true) continue;
+                if (member?.Mutability != NeoMemberMutabilityKind.ReadOnly
+                    || member.Modifier == NeoMemberModifierKind.Abstract) continue;
                 result.Add(entry);
             }
             return result;
@@ -226,7 +227,7 @@ namespace NeoCompose.Runtime.Json
             foreach (MergedSchemaEntry entry in merged)
             {
                 Member? member = memberLookup(entry.memberId);
-                if (member?.isStatic != true) continue;
+                if (member?.Modifier != NeoMemberModifierKind.Static) continue;
                 result.Add(entry);
             }
             return result;

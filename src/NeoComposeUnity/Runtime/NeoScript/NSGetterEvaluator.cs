@@ -1126,7 +1126,7 @@ namespace NeoCompose.Runtime.NeoScript
                     if (!ctx.client.TryGetMember(
                             staticPointer.memberId,
                             out JsonMember? staticMember)
-                        || !staticMember.isStatic)
+                        || staticMember.Modifier != NeoMemberModifierKind.Static)
                     {
                         throw new NSGetterRuntimeError(
                             $"Static member '{staticPointer.memberId}' was not found.");
@@ -1971,7 +1971,7 @@ namespace NeoCompose.Runtime.NeoScript
                     $"NSAction target '{member.name}' has an invalid stored value.");
             }
 
-            if (member.isStatic)
+            if (member.Modifier == NeoMemberModifierKind.Static)
             {
                 // A static action has no receiver to read through, but it
                 // does have a live row: subscriptions write to it, so the
@@ -2218,7 +2218,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (!ctx.client.TryGetMember(
                     targetMemberId,
                     out JsonMember? member)
-                || !member.isStatic)
+                || member.Modifier != NeoMemberModifierKind.Static)
             {
                 throw new NSGetterRuntimeError(
                     $"Static {callableKind} target '{targetMemberId}' is missing or is not static.");
@@ -2555,7 +2555,7 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember member,
             Context ctx)
         {
-            if (member.isReadOnly != true)
+            if (member.Mutability != NeoMemberMutabilityKind.ReadOnly)
             {
                 return DispatchResult.NoInfo(matchedMember: true);
             }
@@ -2573,7 +2573,7 @@ namespace NeoCompose.Runtime.NeoScript
                 NeoValueOwnership.Asset,
                 member);
             if (member is LookupMember lookup
-                && !lookup.multiselect
+                && lookup.Selection != NeoMemberSelectionKind.Multi
                 && unwrapped is object?[] selections
                 && selections.Length == 1
                 && selections[0] is string selectedId)
@@ -2584,10 +2584,9 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// Cycle-checked recursive evaluation of an NSProperty member by
-        /// id. Walks <c>extendsMemberId</c> for the first compiled
-        /// <c>getter</c>, then runs it with the receiver as
-        /// <c>__this__</c>.
+        /// Cycle-checked recursive evaluation of an NSProperty member by id.
+        /// The compiled getter is already projected through its sparse
+        /// override chain, including authored-code null clears.
         /// </summary>
         private static object? DispatchNSGetterById(
             string memberId,
@@ -2615,11 +2614,9 @@ namespace NeoCompose.Runtime.NeoScript
         private static FunctionWithReturnType? ResolveCompiledGetter(
             string memberId, NeoClient client)
         {
-            return NeoSchemaClassInheritance.WalkExtendsMemberChain(
-                memberId,
-                id => client.TryGetMember(id, out JsonMember? a) ? a : null,
-                a => a is NSPropertyMember ng ? ng.getter : null,
-                requireKind: MemberKind.NSProperty);
+            return client.TryGetMember(memberId, out NSPropertyMember? property)
+                ? property.getter
+                : null;
         }
 
         // ---------------------------------------------------------------
@@ -5418,7 +5415,7 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx)
         {
             if (value.value == null) return null;
-            if (!member.localizable) return value.value;
+            if (member.Format == NeoStringFormatKind.Plain) return value.value;
             if (value.neoLocalizationMode == NeoStringLocalizationMode.Literal) return value.value;
             return ctx.client.Localization.ResolveText(value.value);
         }

@@ -1,23 +1,20 @@
 @id("neo-tile-grid-record-relations-v1-class-9f889dbed89e6fdd2a883fb5a87fea19")
 class BackgroundTileLayer : ConsoleTileLayer {
   @id("neo-tile-grid-record-relations-v1-member-19bb46903f92e702276a608d54e9ac49")
-  @settings(localizable: false)
+  @settings(format: .Plain)
   public override string DisplayName = "Background";
 
   @id("neo-tile-grid-record-relations-v1-member-a37891a546e2e1bfb8365f499e4d0b27")
-  @locked
-  @settings(localizable: false)
+  @settings(format: .Plain)
   @system(kind: .WorldAuthoring)
   public override string Name = "Background";
 
   @id("neo-tile-grid-record-relations-v1-member-05518aaa5d34a1a6a242fe8e0f6b6134")
-  @locked
   @settings(collection: Assets.SortingLayers, collectionValue: Reference(root.Assets.SortingLayers))
   @system(kind: .WorldAuthoring)
   public override NeoSortingLayer SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
 
   @id("neo-tile-grid-record-relations-v1-member-bfb14c8f7f3c5d6ceaec91328dd7d46c")
-  @locked
   @settings(min: -32768, max: 32767)
   @system(kind: .WorldAuthoring)
   public override int SortingOrder = 0;

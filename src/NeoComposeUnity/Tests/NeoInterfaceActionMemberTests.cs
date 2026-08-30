@@ -25,9 +25,8 @@ namespace NeoCompose.Tests
         {
             InterfaceMember member = Deserialize(
                 $@"{{
-  ""kind"": ""property"",
-  ""accessModifierKind"": ""public"",
-  ""settable"": false,
+  ""kind"": 0,
+  ""accessors"": 0,
   ""typeInfo"": {{
     ""type"": {NSActionKind},
     ""argumentTypes"": [{{ ""type"": {IntKind} }}]
@@ -48,9 +47,8 @@ namespace NeoCompose.Tests
             var error = Assert.Throws<JsonSerializationException>(() =>
                 Deserialize(
                     $@"{{
-  ""kind"": ""property"",
-  ""accessModifierKind"": ""public"",
-  ""settable"": false,
+  ""kind"": 0,
+  ""accessors"": 0,
   ""typeInfo"": {{ ""type"": {NSActionKind} }}
 }}"));
 
@@ -64,9 +62,7 @@ namespace NeoCompose.Tests
         {
             InterfaceMember member = Deserialize(
                 $@"{{
-  ""kind"": ""function"",
-  ""accessModifierKind"": ""public"",
-  ""deferred"": false,
+  ""kind"": 1,
   ""returnTypeInfo"": {{ ""type"": {IntKind} }},
   ""argumentTypes"": [{{
     ""name"": ""onDamaged"",
@@ -89,9 +85,7 @@ namespace NeoCompose.Tests
             var error = Assert.Throws<JsonSerializationException>(() =>
                 Deserialize(
                     $@"{{
-  ""kind"": ""function"",
-  ""accessModifierKind"": ""public"",
-  ""deferred"": false,
+  ""kind"": 1,
   ""returnTypeInfo"": {{ ""type"": {IntKind} }},
   ""argumentTypes"": [{{ ""name"": ""onDamaged"", ""type"": {NSActionKind} }}]
 }}"));

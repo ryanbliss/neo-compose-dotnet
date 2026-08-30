@@ -13,7 +13,7 @@ class Outpost : IHasName {
   public virtual SpriteInfo Image;
 
   @id("b56410b3-b2da-4681-897f-a25ce0a0ceb1")
-  @settings(localizable: true, searchKey: true)
+  @settings(searchBy: .MemberKey)
   public virtual string Name;
 
   @id("3166fd08-4bdb-4df9-b100-ecccec859443")

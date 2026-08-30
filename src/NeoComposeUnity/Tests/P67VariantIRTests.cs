@@ -334,7 +334,7 @@ namespace NeoCompose.Tests
                 out string? virtualLabelId));
             Assert.AreEqual(
                 "plain",
-                ((StringMemberValue)client.ResolveEffectiveRow(virtualLabelId!)!).value);
+                ((StringMemberValue)client.ResolveValueRow(virtualLabelId!)!).value);
             Assert.AreEqual("plain", ReadRowLabel(client, targetId));
         }
 
@@ -540,7 +540,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "StringBinding",
                 kind = MemberKind.String,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new StringMemberValueBase { value = "from stamp" },
             };
             data.members["widget-int-binding"] = new IntMember
@@ -549,7 +549,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "IntBinding",
                 kind = MemberKind.Int,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new NumberMemberValueBase { value = 7 },
             };
             ((ClassMember)data.members["lookup-entry"]).classArguments =
@@ -557,7 +557,7 @@ namespace NeoCompose.Tests
                 {
                     [paramT] = new()
                     {
-                        kind = NeoGenericBindingKinds.Member,
+                        kind = NeoGenericBindingKind.Member,
                         memberId = "widget-string-binding",
                     },
                 };
@@ -570,13 +570,13 @@ namespace NeoCompose.Tests
                 name = "Stored",
                 kind = MemberKind.Class,
                 classId = WidgetClassId,
-                required = false,
-                storage = "save",
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Save,
                 classArguments = new Dictionary<string, GenericBinding>
                 {
                     [paramT] = new()
                     {
-                        kind = NeoGenericBindingKinds.Member,
+                        kind = NeoGenericBindingKind.Member,
                         memberId = "widget-int-binding",
                     },
                 },
@@ -909,9 +909,9 @@ namespace NeoCompose.Tests
             };
 
             ClassMember rootAssets = RootMember("root-assets", "Assets", "value-assets");
-            ClassMember rootSave = RootMember("root-save", "Save", "value-save", "save");
+            ClassMember rootSave = RootMember("root-save", "Save", "value-save", NeoMemberStorage.Save);
             ClassMember rootSession =
-                RootMember("root-session", "Session", "value-session", "session");
+                RootMember("root-session", "Session", "value-session", NeoMemberStorage.Session);
 
             var values = new Dictionary<string, MemberValue>
             {
@@ -1052,8 +1052,8 @@ namespace NeoCompose.Tests
                         projectId = ProjectId,
                         name = "Chosen",
                         kind = MemberKind.Variant,
-                        required = false,
-                        storage = "session",
+                        Requirement = NeoMemberRequirementKind.Optional,
+                        Storage = NeoMemberStorage.Session,
                         createdAt = "x",
                         updatedAt = "x",
                     },
@@ -1064,8 +1064,8 @@ namespace NeoCompose.Tests
                         name = "Entry",
                         kind = MemberKind.Class,
                         classId = WidgetClassId,
-                        required = true,
-                        storage = "immutable",
+                        Requirement = NeoMemberRequirementKind.Required,
+                        Storage = NeoMemberStorage.Immutable,
                         createdAt = "x",
                         updatedAt = "x",
                     },
@@ -1076,8 +1076,8 @@ namespace NeoCompose.Tests
                         name = "Catalog",
                         kind = MemberKind.List,
                         entryMemberId = "lookup-entry",
-                        required = true,
-                        storage = "immutable",
+                        Requirement = NeoMemberRequirementKind.Required,
+                        Storage = NeoMemberStorage.Immutable,
                         createdAt = "x",
                         updatedAt = "x",
                     },
@@ -1404,7 +1404,7 @@ namespace NeoCompose.Tests
             string id,
             string name,
             string valueId,
-            string? storage = null) => new()
+            NeoMemberStorage storage = NeoMemberStorage.Inherit) => new()
         {
             id = id,
             projectId = ProjectId,
@@ -1412,7 +1412,7 @@ namespace NeoCompose.Tests
             kind = MemberKind.Class,
             classId = "root-class",
             valueId = valueId,
-            storage = storage,
+            Storage = storage,
             createdAt = "x",
             updatedAt = "x",
         };
@@ -1450,10 +1450,10 @@ namespace NeoCompose.Tests
             kind = MemberKind.String,
             // Settleable without a call-site argument, so the base selection's
             // bare construction (§3.4) succeeds.
-            required = false,
+            Requirement = NeoMemberRequirementKind.Optional,
             defaultValue = new StringMemberValueBase { value = "unset" },
-            localizable = false,
-            storage = "session",
+            Format = NeoStringFormatKind.Plain,
+            Storage = NeoMemberStorage.Session,
             createdAt = "x",
             updatedAt = "x",
         };
@@ -1467,8 +1467,8 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = name,
             kind = MemberKind.NSDelegate,
-            required = false,
-            storage = "immutable",
+            Requirement = NeoMemberRequirementKind.Optional,
+            Storage = NeoMemberStorage.Immutable,
             returnTypeInfo = returnTypeInfo,
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
             createdAt = "x",
@@ -1482,9 +1482,9 @@ namespace NeoCompose.Tests
             name = name,
             kind = MemberKind.Class,
             classId = WidgetClassId,
-            partial = true,
-            required = false,
-            storage = "immutable",
+            Payload = NeoMemberPayloadKind.Partial,
+            Requirement = NeoMemberRequirementKind.Optional,
+            Storage = NeoMemberStorage.Immutable,
             createdAt = "x",
             updatedAt = "x",
         };

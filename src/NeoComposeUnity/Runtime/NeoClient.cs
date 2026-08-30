@@ -605,6 +605,7 @@ namespace NeoCompose.Runtime
             this.data = loader.Schema;
             ValidateExportSchemaVersion(data.metadata);
             ValidateClassMemberPayload(data);
+            NeoMemberShapeResolution.ResolveAll(data.members);
             NormalizeClassSchemas();
             ValidateReadOnlyMembers();
             ValidateInternalRecordRelations(data);
@@ -877,7 +878,7 @@ namespace NeoCompose.Runtime
             foreach (Member member in data.members.Values)
             {
                 if (member.valueId is null) continue;
-                if (member.isStatic)
+                if (member.Modifier == NeoMemberModifierKind.Static)
                 {
                     WalkAuthoredOwnership(
                         member.valueId,
@@ -949,7 +950,7 @@ namespace NeoCompose.Runtime
             foreach (NeoSchemaClass schemaClass in ResolveClassInheritanceChain(classId))
             {
                 NeoValueOwnership? declared = NeoMemberStorageResolution.ToOwnership(
-                    NeoMemberStorageResolution.Parse(schemaClass.allowedStorage));
+                    NeoMemberStorageResolution.Validate(schemaClass.allowedStorage));
                 if (declared is not null)
                 {
                     ownership = declared.Value;
@@ -967,14 +968,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal NeoMemberStorage DeclaredStorage(Member member)
         {
-            string? storage = NeoSchemaClassInheritance.WalkExtendsMemberChain(
-                member,
-                id => data.members.TryGetValue(id, out Member? value) ? value : null,
-                current => NeoMemberStorageResolution.Parse(current.storage)
-                    == NeoMemberStorage.Inherit
-                        ? null
-                        : current.storage);
-            return NeoMemberStorageResolution.Parse(storage);
+            return NeoMemberStorageResolution.Validate(member.Storage);
         }
 
         /// <summary>
@@ -994,10 +988,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal string DeclaredStorageKey(Member member)
         {
-            string? storageKey = NeoSchemaClassInheritance.WalkExtendsMemberChain(
-                member,
-                id => data.members.TryGetValue(id, out Member? value) ? value : null,
-                current => current.storageKey);
+            string? storageKey = member.storageKey;
             return storageKey is null
                 ? "inherit"
                 : NormalizeStorageKey(storageKey);
@@ -1037,7 +1028,7 @@ namespace NeoCompose.Runtime
 
         internal string? ResolveStaticMapKey(Member member)
         {
-            if (!member.isStatic)
+            if (member.Modifier != NeoMemberModifierKind.Static)
             {
                 throw new System.InvalidOperationException(
                     $"Member '{member.id}' is not a static Class member.");
@@ -1083,7 +1074,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal NeoValueOwnership ResolveStaticOwnership(Member member)
         {
-            if (!member.isStatic)
+            if (member.Modifier != NeoMemberModifierKind.Static)
             {
                 throw new System.InvalidOperationException(
                     $"Member '{member.id}' is not a static Class member.");
@@ -1176,7 +1167,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Static member '{member.name}' belongs to {resolvedOwnership} storage, not {ownership}.");
             }
-            if (valueId is null && member.required)
+            if (valueId is null && member.Requirement == NeoMemberRequirementKind.Required)
             {
                 throw new System.ArgumentNullException(
                     nameof(valueId),
@@ -1347,23 +1338,23 @@ namespace NeoCompose.Runtime
             if (data.classes is null)
             {
                 throw new System.InvalidOperationException(
-                    "Project export is missing the required 'classes' collection. Re-export the project with the schema-8 Class/Member contract.");
+                    $"Project export is missing the required 'classes' collection. Re-export the project with the schema-{NeoProjectExportContract.CurrentSchemaVersion} Class/Member contract.");
             }
             if (data.members is null)
             {
                 throw new System.InvalidOperationException(
-                    "Project export is missing the required 'members' collection. Re-export the project with the schema-8 Class/Member contract.");
+                    $"Project export is missing the required 'members' collection. Re-export the project with the schema-{NeoProjectExportContract.CurrentSchemaVersion} Class/Member contract.");
             }
             if (data.values is null)
             {
                 throw new System.InvalidOperationException(
-                    "Project export is missing the required 'values' collection. Re-export the project with the schema-8 Class/Member contract.");
+                    $"Project export is missing the required 'values' collection. Re-export the project with the schema-{NeoProjectExportContract.CurrentSchemaVersion} Class/Member contract.");
             }
             foreach (var pair in data.members)
             {
                 if (pair.Value is not DictionaryMember dictionary) continue;
                 string? error = NeoDictionaryMemberContract.GetValidationError(
-                    dictionary.keyKind,
+                    dictionary.DeclaredKeyKind,
                     dictionary.keyEnumId);
                 if (error is not null)
                 {
@@ -1453,7 +1444,7 @@ namespace NeoCompose.Runtime
 
         private void ValidateReadOnlyMembers()
         {
-            if (!data.members.Values.Any(member => member.isReadOnly == true))
+            if (!data.members.Values.Any(member => member.Mutability == NeoMemberMutabilityKind.ReadOnly))
             {
                 return;
             }
@@ -1526,7 +1517,7 @@ namespace NeoCompose.Runtime
 
             foreach (Member declaration in data.members.Values)
             {
-                if (declaration.isReadOnly != true) continue;
+                if (declaration.Mutability != NeoMemberMutabilityKind.ReadOnly) continue;
                 string subject = $"Read-only member '{declaration.name}' ({declaration.id})";
                 if (!placements.TryGetValue(declaration.id, out var memberPlacements)
                     || memberPlacements.Count == 0)
@@ -1543,7 +1534,7 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"{subject} has a non-Class placement; read-only is valid only on concrete Class fields.");
                 }
-                if (declaration.isStatic)
+                if (declaration.Modifier == NeoMemberModifierKind.Static)
                 {
                     throw new InvalidOperationException(
                         $"{subject} cannot be static.");
@@ -1565,7 +1556,7 @@ namespace NeoCompose.Runtime
                         $"{subject} cannot declare per-instance List indexes.");
                 }
                 if (declaration is StringMember searchable
-                    && searchable.searchKey == true)
+                    && searchable.SearchBy == NeoMemberSearchByKind.MemberKey)
                 {
                     throw new InvalidOperationException(
                         $"{subject} cannot opt into the per-instance String search index.");
@@ -1578,8 +1569,8 @@ namespace NeoCompose.Runtime
                     declarationPlacements = memberPlacements;
                 }
 
-                bool isAbstract = declaration.isAbstract == true;
-                if (isAbstract && HasExplicitDefaultValue(declaration))
+                bool isAbstract = declaration.Modifier == NeoMemberModifierKind.Abstract;
+                if (isAbstract && HasResolvedDefaultValue(declaration))
                 {
                     throw new InvalidOperationException(
                         $"{subject} is an abstract getter contract and cannot declare a defaultValue.");
@@ -1620,10 +1611,10 @@ namespace NeoCompose.Runtime
                         // declaration's concrete default graph.
                         continue;
                     }
-                    if (!HasExplicitDefaultValue(resolved))
+                    if (!HasResolvedDefaultValue(resolved))
                     {
                         throw new InvalidOperationException(
-                            $"{subject} at Class '{placement.owner.name}' key '{placement.key}' requires an explicit defaultValue.");
+                            $"{subject} at Class '{placement.owner.name}' key '{placement.key}' requires an effective defaultValue.");
                     }
                     ValidateReadOnlyOwnedSchema(resolved, subject, new HashSet<string>());
                     ValidateReadOnlyLookupDefault(resolved, subject);
@@ -1664,7 +1655,7 @@ namespace NeoCompose.Runtime
                     id => data.members.TryGetValue(id, out Member? value) ? value : null,
                     current =>
                     {
-                        if (current.id == member.id || current.isAbstract != true)
+                        if (current.id == member.id || current.Modifier != NeoMemberModifierKind.Abstract)
                         {
                             return null;
                         }
@@ -1673,15 +1664,15 @@ namespace NeoCompose.Runtime
                     });
                 if (abstractContract is null) continue;
 
-                if (abstractContract.isReadOnly == true
-                    && member.isReadOnly != true)
+                if (abstractContract.Mutability == NeoMemberMutabilityKind.ReadOnly
+                    && member.Mutability != NeoMemberMutabilityKind.ReadOnly)
                 {
                     throw new InvalidOperationException(
                         $"Member '{member.name}' ({member.id}) cannot implement abstract read-only member '{abstractContract.name}' ({abstractContract.id}) with a non-read-only, instance-backed override.");
                 }
 
-                if (member.isReadOnly == true
-                    && abstractContract.isReadOnly != true
+                if (member.Mutability == NeoMemberMutabilityKind.ReadOnly
+                    && abstractContract.Mutability != NeoMemberMutabilityKind.ReadOnly
                     && !IsGetterOnlyAbstractContract(abstractContract))
                 {
                     throw new InvalidOperationException(
@@ -1693,13 +1684,13 @@ namespace NeoCompose.Runtime
             {
                 IList<MergedSchemaEntry> surface =
                     ResolveInstanceSurfaceSchema(schemaClass.id);
-                if (!schemaClass.isAbstract)
+                if (schemaClass.Modifier != NeoClassModifierKind.Abstract)
                 {
                     foreach (MergedSchemaEntry entry in surface)
                     {
                         if (!data.members.TryGetValue(entry.memberId, out Member? member)
-                            || member.isAbstract != true
-                            || member.isReadOnly != true)
+                            || member.Modifier != NeoMemberModifierKind.Abstract
+                            || member.Mutability != NeoMemberMutabilityKind.ReadOnly)
                         {
                             continue;
                         }
@@ -1731,7 +1722,7 @@ namespace NeoCompose.Runtime
             foreach (MergedSchemaEntry entry in surface)
             {
                 if (data.members.TryGetValue(entry.memberId, out Member? member)
-                    && member.isReadOnly == true)
+                    && member.Mutability == NeoMemberMutabilityKind.ReadOnly)
                 {
                     readOnlyKeys[entry.schemaKey] = member;
                 }
@@ -1768,8 +1759,8 @@ namespace NeoCompose.Runtime
             {
                 foreach (var pair in contract.members)
                 {
-                    if (pair.Value.kind != "property"
-                        || pair.Value.settable != true
+                    if (pair.Value.kind != NeoInterfaceMemberKind.Property
+                        || pair.Value.Accessors != NeoPropertyAccessorsKind.GetSet
                         || !readOnlyKeys.TryGetValue(pair.Key, out Member? member))
                     {
                         continue;
@@ -1798,7 +1789,7 @@ namespace NeoCompose.Runtime
             && member is not NSFunctionMember
             && member is not GenericMember;
 
-        private static bool HasExplicitDefaultValue(Member member) => member switch
+        private static bool HasResolvedDefaultValue(Member member) => member switch
         {
             Member<object?> typed => typed.defaultValue is not null,
             BoolMember typed => typed.defaultValue is not null,
@@ -1844,17 +1835,17 @@ namespace NeoCompose.Runtime
                 $"__neo_readonly_default_validation:{lookup.RuntimeDeclarationIdentity}")
                 as ArrayMemberValue;
             string[] selections = defaultValue?.value ?? System.Array.Empty<string>();
-            if (!lookup.multiselect && selections.Length > 1)
+            if (lookup.Selection != NeoMemberSelectionKind.Multi && selections.Length > 1)
             {
                 throw new InvalidOperationException(
                     $"{subject} defaultValue selects {selections.Length} Lookup entries, but the Lookup is single-select.");
             }
-            if (lookup.collectionValueId?.StartsWith(
+            if (lookup.CollectionValueId?.StartsWith(
                     "__neo_readonly_default:",
                     System.StringComparison.Ordinal) == true)
             {
                 throw new InvalidOperationException(
-                    $"{subject} defaultValue references runtime-only synthetic Lookup collection value '{lookup.collectionValueId}'. Persisted project data must target an authored collection value.");
+                    $"{subject} defaultValue references runtime-only synthetic Lookup collection value '{lookup.CollectionValueId}'. Persisted project data must target an authored collection value.");
             }
             if (selections.Length == 0) return;
 
@@ -1869,7 +1860,7 @@ namespace NeoCompose.Runtime
                     $"{subject} defaultValue Lookup target '{lookup.collectionMemberId}' is not a List or Dictionary.");
             }
 
-            string? collectionValueId = lookup.collectionValueId
+            string? collectionValueId = lookup.CollectionValueId
                 ?? ResolveAuthoredLookupCollectionValueId(collectionMember);
             if (collectionValueId?.StartsWith(
                     "__neo_readonly_default:",
@@ -2059,7 +2050,7 @@ namespace NeoCompose.Runtime
                 }
             }
             readOnlyAuthoredRows = rows;
-            readOnlyAuthoredClassIds = BuildTrustedEffectiveClassIds(rows);
+            readOnlyAuthoredClassIds = BuildTrustedClassIds(rows);
         }
 
         private void ReleaseReadOnlyAuthoredValueContext()
@@ -2068,7 +2059,7 @@ namespace NeoCompose.Runtime
             readOnlyAuthoredClassIds = new Dictionary<string, string>();
         }
 
-        private Dictionary<string, string> BuildTrustedEffectiveClassIds(
+        private Dictionary<string, string> BuildTrustedClassIds(
             IReadOnlyDictionary<string, MemberValue> rows,
             IReadOnlyDictionary<string, string?>? staticBindings = null,
             bool skipIncompatiblePlacements = false)
@@ -2233,11 +2224,11 @@ namespace NeoCompose.Runtime
 
         private void RecoverReadOnlySaveInstanceKeys()
         {
-            if (!data.members.Values.Any(member => member.isReadOnly == true)) return;
+            if (!data.members.Values.Any(member => member.Mutability == NeoMemberMutabilityKind.ReadOnly)) return;
             var overlaidRows = new Dictionary<string, MemberValue>(readOnlyAuthoredRows);
             foreach (var pair in saveData.values) overlaidRows[pair.Key] = pair.Value;
             IReadOnlyDictionary<string, string> effectiveClassIds =
-                BuildTrustedEffectiveClassIds(
+                BuildTrustedClassIds(
                     overlaidRows,
                     saveData.staticBindings,
                     skipIncompatiblePlacements: true);
@@ -3106,7 +3097,7 @@ namespace NeoCompose.Runtime
                 yield break;
             }
             if (!data.values.TryGetValue(containerId, out MemberValue authoredContainer)
-                || EffectiveAuthoredOwnership(containerId, authoredContainer) != sourceOwnership)
+                || ResolveAuthoredOwnership(containerId, authoredContainer) != sourceOwnership)
             {
                 yield break;
             }
@@ -3137,7 +3128,7 @@ namespace NeoCompose.Runtime
             var childStore = GetWritableStore(childOwnership);
             if (!childStore.values.TryGetValue(childValueId, out child)
                 && data.values.TryGetValue(childValueId, out MemberValue authoredChild)
-                && EffectiveAuthoredOwnership(childValueId, authoredChild) == childOwnership)
+                && ResolveAuthoredOwnership(childValueId, authoredChild) == childOwnership)
             {
                 child = authoredChild;
             }
@@ -3148,7 +3139,7 @@ namespace NeoCompose.Runtime
                 return true;
             }
 
-            foreach (var candidate in EnumerateEffectiveParentRows())
+            foreach (var candidate in EnumerateParentRows())
             {
                 string candidateId = candidate.valueId;
                 MemberValue parent = candidate.row;
@@ -3189,7 +3180,7 @@ namespace NeoCompose.Runtime
                 }
                 else if (data.values.TryGetValue(childValueId, out MemberValue authoredRoot))
                 {
-                    effective = EffectiveAuthoredOwnership(childValueId, authoredRoot);
+                    effective = ResolveAuthoredOwnership(childValueId, authoredRoot);
                 }
                 else
                 {
@@ -3209,7 +3200,7 @@ namespace NeoCompose.Runtime
             // Session-static aggregate beneath a second parent.
             foreach (Member candidate in data.members.Values)
             {
-                if (!candidate.isStatic
+                if (candidate.Modifier != NeoMemberModifierKind.Static
                     || !TryResolveStaticBinding(
                         candidate.id,
                         out _,
@@ -3278,7 +3269,7 @@ namespace NeoCompose.Runtime
         }
 
         private IEnumerable<(string valueId, MemberValue row, NeoValueOwnership ownership)>
-            EnumerateEffectiveParentRows()
+            EnumerateParentRows()
         {
             // Inspect each writable overlay independently. The same stable id
             // can legitimately be present in both stores with different row
@@ -3294,7 +3285,7 @@ namespace NeoCompose.Runtime
             foreach (var pair in data.values)
             {
                 NeoValueOwnership authoredOwnershipForRow =
-                    EffectiveAuthoredOwnership(pair.Key, pair.Value);
+                    ResolveAuthoredOwnership(pair.Key, pair.Value);
                 // A writable shadow replaces this authored row only in its
                 // own graph. A distinct shadow in the other store does not.
                 if (authoredOwnershipForRow != NeoValueOwnership.Asset
@@ -3306,7 +3297,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private NeoValueOwnership EffectiveAuthoredOwnership(
+        private NeoValueOwnership ResolveAuthoredOwnership(
             string valueId,
             MemberValue row)
         {
@@ -3367,7 +3358,7 @@ namespace NeoCompose.Runtime
             ProjectSaveData targetStore = GetWritableStore(targetOwnership);
             if (targetStore.values.ContainsKey(valueId)
                 || data.values.TryGetValue(valueId, out MemberValue authored)
-                    && EffectiveAuthoredOwnership(valueId, authored) == targetOwnership
+                    && ResolveAuthoredOwnership(valueId, authored) == targetOwnership
                 || TryFindOwnedParent(targetOwnership, valueId, out _))
             {
                 return true;
@@ -3775,7 +3766,7 @@ namespace NeoCompose.Runtime
             }
             return string.IsNullOrWhiteSpace(childId)
                 ? null
-                : ResolveEffectiveRow(childId!);
+                : ResolveValueRow(childId!);
         }
 
         internal bool TryInferMemberForValueId(
@@ -3999,7 +3990,7 @@ namespace NeoCompose.Runtime
                 rows.Add((
                     pair.Key,
                     pair.Value,
-                    EffectiveAuthoredOwnership(pair.Key, pair.Value)));
+                    ResolveAuthoredOwnership(pair.Key, pair.Value)));
             }
             if (!rows.Any(entry => entry.valueId == receiverValueId))
             {
@@ -4721,7 +4712,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void EnsureWorldPartitionLoaded(string gridValueId)
         {
-            string? gridClassId = ResolveEffectiveRow(gridValueId)?.classId;
+            string? gridClassId = ResolveValueRow(gridValueId)?.classId;
             if (string.IsNullOrEmpty(gridClassId)) return;
             string mapKey = MakeWorldPartitionKey(gridClassId!);
             if (loadedPartitionRowIds.ContainsKey(mapKey)) return;
@@ -4930,7 +4921,7 @@ namespace NeoCompose.Runtime
                 return;
             }
             if (string.IsNullOrEmpty(value.containerId)) return;
-            value.mapKey = ResolveEffectiveRow(value.containerId!)?.mapKey;
+            value.mapKey = ResolveValueRow(value.containerId!)?.mapKey;
         }
 
         /// <summary>
@@ -4978,7 +4969,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal IReadOnlyCollection<string> GetUnorderedListEntryIds(string containerValueId)
         {
-            var containerRow = ResolveEffectiveRow(containerValueId);
+            var containerRow = ResolveValueRow(containerValueId);
             if (containerRow is null) return System.Array.Empty<string>();
             if (containerRow.IsRemoved) return System.Array.Empty<string>();
             if (containerRow is not ArrayMemberValue arrayRow) return System.Array.Empty<string>();
@@ -5004,7 +4995,7 @@ namespace NeoCompose.Runtime
             foreach (var memberId in candidates)
             {
                 if (!seen.Add(memberId)) continue;
-                var effective = ResolveEffectiveRow(memberId);
+                var effective = ResolveValueRow(memberId);
                 if (effective is null) continue;
                 if (effective.IsRemoved) continue;
                 members.Add(memberId);
@@ -5014,7 +5005,7 @@ namespace NeoCompose.Runtime
         /// <summary>Raw overlay resolution (session → save → authored) WITHOUT
         /// tombstone fallthrough — a tombstone row is returned as-is so callers
         /// can distinguish "explicitly removed" from "absent".</summary>
-        internal MemberValue? ResolveEffectiveRow(string valueId)
+        internal MemberValue? ResolveValueRow(string valueId)
         {
             if (sessionData.values.TryGetValue(valueId, out MemberValue sessionRow)) return sessionRow;
             if (saveData.values.TryGetValue(valueId, out MemberValue saveRow)) return saveRow;
@@ -5085,15 +5076,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal bool IsUnorderedList(ListMember member)
         {
-            string? listKind = NeoSchemaClassInheritance.WalkExtendsMemberChain(
-                member,
-                id => data.members.TryGetValue(id, out Member? value) ? value : null,
-                current => current is ListMember list
-                    && !string.IsNullOrEmpty(list.listKind)
-                        ? list.listKind
-                        : null,
-                requireKind: MemberKind.List);
-            return listKind == NeoListKinds.Unordered;
+            return member.ListKind == NeoListKind.Unordered;
         }
 
         internal bool TryResolveLookupCollectionValueId(
@@ -5116,7 +5099,7 @@ namespace NeoCompose.Runtime
             string? collectionValueId)
         {
             if (collectionValueId is not null) return collectionValueId;
-            if (collectionMember.isStatic)
+            if (collectionMember.Modifier == NeoMemberModifierKind.Static)
             {
                 return TryResolveStaticBinding(
                     collectionMember.id,
@@ -5620,7 +5603,7 @@ namespace NeoCompose.Runtime
             FunctionMember member,
             object? receiver)
         {
-            if (member.isStatic)
+            if (member.Modifier == NeoMemberModifierKind.Static)
             {
                 if (receiver is not null)
                 {
@@ -5652,7 +5635,8 @@ namespace NeoCompose.Runtime
                     memberId, out Member? effectiveMember)
                 ? effectiveMember.name
                 : signature.name;
-            bool actualDeferred = signature.deferred == true;
+            bool actualDeferred =
+                signature.Dispatch == NeoFunctionDispatchKind.Asynchronous;
             if (actualDeferred != expectedDeferred)
             {
                 string expected = expectedDeferred ? "deferred" : "immediate";
@@ -5925,7 +5909,7 @@ namespace NeoCompose.Runtime
         internal bool IsNativeFunctionDeferred(string memberId)
         {
             return TryResolveFunctionMember(memberId, out var member)
-                && member.deferred == true;
+                && member.Dispatch == NeoFunctionDispatchKind.Asynchronous;
         }
 
         private NeoDeferredFunctionBase CreateTypedDeferredFunction(
@@ -5964,8 +5948,7 @@ namespace NeoCompose.Runtime
                 }
                 if (current is FunctionMember function
                     && function.returnTypeInfo is not null
-                    && function.argumentTypes is not null
-                    && function.deferred.HasValue)
+                    && function.argumentTypes is not null)
                 {
                     member = function;
                     return true;
@@ -6028,7 +6011,7 @@ namespace NeoCompose.Runtime
                     claimedByClass[constructorId] = pair.Key;
 
                     foreach (string signature in
-                        ConstructorEffectivePositionalSignatures(record))
+                        ConstructorCallablePositionalSignatures(record))
                     {
                         if (positionalSignatures.TryGetValue(
                                 signature,
@@ -6282,7 +6265,7 @@ namespace NeoCompose.Runtime
         /// signature here, exactly as the web-side declaration-time check
         /// keys them.</para>
         /// </summary>
-        private static IReadOnlyList<string> ConstructorEffectivePositionalSignatures(
+        private static IReadOnlyList<string> ConstructorCallablePositionalSignatures(
             ConstructorRecord record)
         {
             FunctionArgumentTypeInfo[] argumentTypes =
@@ -6443,7 +6426,7 @@ namespace NeoCompose.Runtime
                         function,
                         function.returnTypeInfo,
                         function.argumentTypes,
-                        function.deferred,
+                        function.DeclaredDispatch,
                         "Function",
                         rejectOverrideFields: false);
                     continue;
@@ -6453,7 +6436,7 @@ namespace NeoCompose.Runtime
                     nsFunction,
                     nsFunction.returnTypeInfo,
                     nsFunction.argumentTypes,
-                    nsFunction.deferred,
+                    nsFunction.DeclaredDispatch,
                     "NSFunction",
                     rejectOverrideFields: true);
                 ValidateNSFunctionMember(nsFunction);
@@ -6550,7 +6533,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"NSAction member '{member.id}' exceeds the 16-argument arity cap.");
             }
-            if (member.required)
+            if (member.Requirement == NeoMemberRequirementKind.Required)
             {
                 throw new System.InvalidOperationException(
                     $"NSAction member '{member.id}' declares required; an action is never nullable, and its rest state is an empty listener set.");
@@ -6583,7 +6566,7 @@ namespace NeoCompose.Runtime
             Member member,
             Json.TypeInfo? returnTypeInfo,
             FunctionArgumentTypeInfo[]? argumentTypes,
-            bool? deferred,
+            NeoFunctionDispatchKind? dispatch,
             string kind,
             bool rejectOverrideFields)
         {
@@ -6593,10 +6576,10 @@ namespace NeoCompose.Runtime
                 if (rejectOverrideFields
                     && (returnTypeInfo is not null
                     || argumentTypes is not null
-                    || deferred.HasValue))
+                    || dispatch.HasValue))
                 {
                     throw new System.InvalidOperationException(
-                        $"{kind} override '{member.id}' must inherit returnTypeInfo, argumentTypes, and deferred from its declaration.");
+                        $"{kind} override '{member.id}' must inherit returnTypeInfo, argumentTypes, and dispatch from its declaration.");
                 }
                 return;
             }
@@ -6610,46 +6593,59 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"{kind} member '{member.id}' is missing argumentTypes.");
             }
-            if (!deferred.HasValue)
-            {
-                throw new System.InvalidOperationException(
-                    $"{kind} member '{member.id}' is missing deferred.");
-            }
         }
 
         private void ValidateNSFunctionMember(NSFunctionMember member)
         {
-            if (member.bodyMode is not null && member.bodyMode != "ui")
+            if (member.DeclaredBodyMode.HasValue
+                && !System.Enum.IsDefined(
+                    typeof(NeoFunctionBodyKind),
+                    member.DeclaredBodyMode.Value))
             {
                 throw new System.InvalidOperationException(
-                    $"NSFunction member '{member.id}' has unsupported bodyMode '{member.bodyMode}'.");
+                    $"NSFunction member '{member.id}' has unsupported bodyMode ordinal '{(int)member.DeclaredBodyMode.Value}'.");
             }
-            if (member.bodyMode == "ui" && member.uiAction is null)
+            bool hasLocalCodeField = member.DeclaresWireField("code")
+                && member.code is not null;
+            bool hasLocalAction = member.DeclaresWireField("action")
+                && member.action is not null;
+            bool hasLocalBody = string.IsNullOrEmpty(member.extendsMemberId)
+                || member.DeclaredBodyMode.HasValue
+                || member.DeclaresWireField("uiAction")
+                || member.DeclaresWireField("code")
+                || member.DeclaresWireField("action");
+            if (hasLocalBody
+                && member.BodyMode == NeoFunctionBodyKind.UI
+                && member.uiAction is null)
             {
                 throw new System.InvalidOperationException(
                     $"UI-mode NSFunction member '{member.id}' is missing uiAction.");
             }
-            if (member.bodyMode is null && member.uiAction is not null)
+            if (hasLocalBody
+                && member.BodyMode == NeoFunctionBodyKind.Code
+                && member.uiAction is not null)
             {
                 throw new System.InvalidOperationException(
                     $"Custom-code NSFunction member '{member.id}' cannot declare uiAction.");
             }
-            if (member.required
+            if (member.Requirement == NeoMemberRequirementKind.Required
                 || member.defaultValue is not null
                 || !string.IsNullOrEmpty(member.valueId)
-                || !string.IsNullOrEmpty(member.storage))
+                || member.DeclaredStorage.HasValue)
             {
                 throw new System.InvalidOperationException(
                     $"NSFunction member '{member.id}' is value-less and cannot declare required/default/value/storage fields.");
             }
-            bool hasLocalCodeField = member.code is not null;
-            bool hasLocalAction = member.action is not null;
-            if (member.bodyMode == "ui" && !hasLocalAction)
+            if (hasLocalBody
+                && member.BodyMode == NeoFunctionBodyKind.UI
+                && !hasLocalAction)
             {
                 throw new System.InvalidOperationException(
                     $"UI-mode NSFunction member '{member.id}' is missing its compiled action.");
             }
-            if (member.bodyMode is null && hasLocalCodeField != hasLocalAction)
+            if (hasLocalBody
+                && member.BodyMode == NeoFunctionBodyKind.Code
+                && hasLocalCodeField != hasLocalAction)
             {
                 throw new System.InvalidOperationException(
                     $"NSFunction member '{member.id}' must export its local code and compiled action together.");
@@ -6659,7 +6655,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"NSFunction member '{member.id}' local code must not be empty.");
             }
-            if (member.isAbstract == true) return;
+            if (member.Modifier == NeoMemberModifierKind.Abstract) return;
 
             if (string.IsNullOrEmpty(member.extendsMemberId)
                 && !hasLocalAction)
@@ -6722,7 +6718,6 @@ namespace NeoCompose.Runtime
                 current => current is NSFunctionMember function
                     && function.returnTypeInfo is not null
                     && function.argumentTypes is not null
-                    && function.deferred.HasValue
                         ? function
                         : null,
                 requireKind: MemberKind.NSFunction);
@@ -6730,13 +6725,10 @@ namespace NeoCompose.Runtime
 
         private FunctionWithReturnType? ResolveNSFunctionAction(string memberId)
         {
-            return NeoSchemaClassInheritance.WalkExtendsMemberChain(
-                memberId,
-                id => data.members.TryGetValue(id, out Member? value) ? value : null,
-                current => current is NSFunctionMember function
+            return data.members.TryGetValue(memberId, out Member? member)
+                && member is NSFunctionMember function
                     ? function.action
-                    : null,
-                requireKind: MemberKind.NSFunction);
+                    : null;
         }
 
         private static bool TypeInfoMatches(Json.TypeInfo? left, Json.TypeInfo? right)
@@ -7273,7 +7265,7 @@ namespace NeoCompose.Runtime
             // for ordinary orphan collection.
             foreach (Member staticMember in data.members.Values)
             {
-                if (!staticMember.isStatic
+                if (staticMember.Modifier != NeoMemberModifierKind.Static
                     || ResolveStaticOwnership(staticMember) != ownership)
                 {
                     continue;

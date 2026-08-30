@@ -1,32 +1,25 @@
 @id("system_663d4d74-035e-4412-871a-24bd114b4686")
-@hidden
+@visibility(.Hidden)
 @system(kind: .DialogueMemorySchema)
 class NeoTextNodeMemory {
   @id("system_6da8a0c2-e738-4cfa-82cc-c17a0f1a93b5")
-  @locked
   @settings(kind: .Ordered)
   @system(kind: .DialogueMemoryContainer)
   public virtual List<NeoChoiceLog> ChoiceHistory = [];
 
   @id("system_e4b526eb-4a08-4d5a-890a-d88119962ffa")
-  @locked
   @system(kind: .DialogueMemorySchema)
   public virtual bool HasVisited => this.VisitCount > 0;
 
   @id("system_b1715e93-5471-44ae-aeba-3b77088dafc2")
-  @locked
-  @settings(localizable: true)
   @system(kind: .DialogueMemorySchema)
   public virtual string? LastVisitedAt = null;
 
   @id("system_957ad509-4ca7-4f06-aeef-32828007fab3")
-  @locked
-  @settings(localizable: true)
   @system(kind: .DialogueMemorySchema)
   public virtual string? MostRecentChoiceId = null;
 
   @id("system_0b1b9067-5162-416a-95ae-33696d759652")
-  @locked
   @system(kind: .DialogueMemorySchema)
   public virtual int VisitCount = 0;
 }

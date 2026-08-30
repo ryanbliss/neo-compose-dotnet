@@ -24,7 +24,7 @@ namespace NeoCompose.Unity.Editor
     /// serialize it. Player builds never see any of this — the resolver is only
     /// installed under <c>UNITY_EDITOR</c>.
     /// </remarks>
-    public static class NeoComposeEffectiveConfig
+    public static class NeoComposeResolvedConfig
     {
         /// <summary>
         /// Appended to the clone's object name. Doubles as the marker that
@@ -177,11 +177,11 @@ namespace NeoCompose.Unity.Editor
     /// lives here, and a player build has neither.
     /// </summary>
     [InitializeOnLoad]
-    internal static class NeoComposeEffectiveConfigInstaller
+    internal static class NeoComposeResolvedConfigInstaller
     {
-        static NeoComposeEffectiveConfigInstaller()
+        static NeoComposeResolvedConfigInstaller()
         {
-            NeoComposeConfig.EditorEffectiveConfigResolver = NeoComposeEffectiveConfig.Resolve;
+            NeoComposeConfig.EditorResolvedConfigResolver = NeoComposeResolvedConfig.Resolve;
         }
     }
 }

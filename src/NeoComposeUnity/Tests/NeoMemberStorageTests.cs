@@ -22,17 +22,14 @@ namespace NeoCompose.Tests
         private const string ProjectId = "project-storage";
 
         [Test]
-        public void Parse_AcceptsWireVocabularyAndRejectsUnknown()
+        public void Validate_AcceptsKnownOrdinalsAndRejectsUnknown()
         {
-            Assert.AreEqual(NeoMemberStorage.Inherit, NeoMemberStorageResolution.Parse(null));
-            Assert.AreEqual(NeoMemberStorage.Inherit, NeoMemberStorageResolution.Parse("inherit"));
-            Assert.AreEqual(NeoMemberStorage.Immutable, NeoMemberStorageResolution.Parse("immutable"));
-            Assert.AreEqual(NeoMemberStorage.Save, NeoMemberStorageResolution.Parse("save"));
-            Assert.AreEqual(NeoMemberStorage.Session, NeoMemberStorageResolution.Parse("session"));
+            Assert.AreEqual(NeoMemberStorage.Inherit, NeoMemberStorageResolution.Validate(NeoMemberStorage.Inherit));
+            Assert.AreEqual(NeoMemberStorage.Immutable, NeoMemberStorageResolution.Validate(NeoMemberStorage.Immutable));
+            Assert.AreEqual(NeoMemberStorage.Save, NeoMemberStorageResolution.Validate(NeoMemberStorage.Save));
+            Assert.AreEqual(NeoMemberStorage.Session, NeoMemberStorageResolution.Validate(NeoMemberStorage.Session));
             Assert.Throws<System.InvalidOperationException>(
-                () => NeoMemberStorageResolution.Parse("static"));
-            Assert.Throws<System.InvalidOperationException>(
-                () => NeoMemberStorageResolution.Parse("persistent"));
+                () => NeoMemberStorageResolution.Validate((NeoMemberStorage)4));
         }
 
         [Test]
@@ -94,7 +91,7 @@ namespace NeoCompose.Tests
                 name = "PartialOutpost",
                 kind = MemberKind.Class,
                 classId = "class-outpost",
-                partial = true,
+                Payload = NeoMemberPayloadKind.Partial,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -355,7 +352,7 @@ namespace NeoCompose.Tests
                 NeoTestSaveStack.ClientFromSchema(invalid));
 
             StringAssert.Contains("required 'classes' collection", error!.Message);
-            StringAssert.Contains("schema-8 Class/Member contract", error.Message);
+            StringAssert.Contains("schema-29 Class/Member contract", error.Message);
         }
 
         [Test]
@@ -368,7 +365,7 @@ namespace NeoCompose.Tests
                 NeoTestSaveStack.ClientFromSchema(invalid));
 
             StringAssert.Contains("required 'members' collection", error!.Message);
-            StringAssert.Contains("schema-8 Class/Member contract", error.Message);
+            StringAssert.Contains("schema-29 Class/Member contract", error.Message);
         }
 
         private static NeoClient LoadStorageClient()
@@ -391,8 +388,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Health",
                 kind = MemberKind.Int,
-                required = true,
-                storage = "save",
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Save,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -412,7 +409,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Label",
                 kind = MemberKind.String,
-                localizable = false,
+                Format = NeoStringFormatKind.Plain,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -422,8 +419,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Mood",
                 kind = MemberKind.String,
-                localizable = false,
-                storage = "session",
+                Format = NeoStringFormatKind.Plain,
+                Storage = NeoMemberStorage.Session,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -433,8 +430,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "BuildLabel",
                 kind = MemberKind.String,
-                localizable = false,
-                storage = "immutable",
+                Format = NeoStringFormatKind.Plain,
+                Storage = NeoMemberStorage.Immutable,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -448,9 +445,9 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
             };
-            var rootAssets = RootMember("member-root-assets", "Assets", "class-root-assets", "v-root-assets", "immutable");
-            var rootSave = RootMember("member-root-save", "Save", "class-root-save", "v-root-save", "save");
-            var rootSession = RootMember("member-root-session", "Session", "class-root-session", "v-root-session", "session");
+            var rootAssets = RootMember("member-root-assets", "Assets", "class-root-assets", "v-root-assets", NeoMemberStorage.Immutable);
+            var rootSave = RootMember("member-root-save", "Save", "class-root-save", "v-root-save", NeoMemberStorage.Save);
+            var rootSession = RootMember("member-root-session", "Session", "class-root-session", "v-root-session", NeoMemberStorage.Session);
 
             return new ProjectData
             {
@@ -548,7 +545,7 @@ namespace NeoCompose.Tests
             string name,
             string classId,
             string valueId,
-            string storage)
+            NeoMemberStorage storage)
         {
             return new ClassMember
             {
@@ -558,7 +555,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = classId,
                 valueId = valueId,
-                storage = storage,
+                Storage = storage,
                 createdAt = "x",
                 updatedAt = "x",
             };

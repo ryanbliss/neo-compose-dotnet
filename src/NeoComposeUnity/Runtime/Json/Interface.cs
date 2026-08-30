@@ -18,20 +18,22 @@ namespace NeoCompose.Runtime.Json
     [JsonConverter(typeof(InterfaceMemberConverter))]
     public class InterfaceMember
     {
-        public string kind = null!;
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public NeoInterfaceMemberKind kind;
 
         /// <summary>
         /// Contract accessibility (specs/member-access-modifiers.md Decision
         /// 3): the accessibility the implementing class member must declare.
-        /// Schema-10 exports carry this explicitly on every interface member.
+        /// Absent means Public.
         /// </summary>
-        public string accessModifierKind = null!;
+        [JsonProperty("access", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberAccessKind? access;
 
         // Property signature.
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public TypeInfo? typeInfo;
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public bool? settable;
+        [JsonProperty("accessors", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoPropertyAccessorsKind? accessors;
 
         // Function signature.
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -39,8 +41,38 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo? returnTypeInfo;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public List<FunctionArgumentTypeInfo>? argumentTypes;
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public bool? deferred;
+        [JsonProperty("dispatch", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoFunctionDispatchKind? dispatch;
+
+        [JsonIgnore]
+        public NeoMemberAccessKind Access
+        {
+            get => access ?? NeoMemberAccessKind.Public;
+            set => access = value;
+        }
+
+        [JsonIgnore]
+        public NeoPropertyAccessorsKind Accessors
+        {
+            get => accessors ?? NeoPropertyAccessorsKind.Get;
+            set => accessors = value;
+        }
+
+        [JsonIgnore]
+        public NeoFunctionDispatchKind Dispatch
+        {
+            get => dispatch ?? NeoFunctionDispatchKind.Synchronous;
+            set => dispatch = value;
+        }
+
+        [JsonIgnore]
+        internal NeoMemberAccessKind? DeclaredAccess => access;
+
+        [JsonIgnore]
+        internal NeoPropertyAccessorsKind? DeclaredAccessors => accessors;
+
+        [JsonIgnore]
+        internal NeoFunctionDispatchKind? DeclaredDispatch => dispatch;
     }
 
     /// <summary>
@@ -77,37 +109,23 @@ namespace NeoCompose.Runtime.Json
             if (reader.TokenType == JsonToken.Null) return null;
 
             var json = JObject.Load(reader);
-            var kind = json.Value<string>("kind") ?? throw new JsonSerializationException(
-                "Interface member is missing 'kind'.");
-            if (!json.TryGetValue("accessModifierKind", out var accessModifierKind))
-            {
-                throw new JsonSerializationException(
-                    "Interface member is missing required field 'accessModifierKind'.");
-            }
-            if (accessModifierKind.Type != JTokenType.String)
-            {
-                throw new JsonSerializationException(
-                    "Interface member field 'accessModifierKind' must be a string.");
-            }
-            var accessModifierValue = accessModifierKind.Value<string>();
-            if (accessModifierValue != "public"
-                && accessModifierValue != "protected"
-                && accessModifierValue != "private")
-            {
-                throw new JsonSerializationException(
-                    $"Interface member field 'accessModifierKind' has unknown value '{accessModifierValue}'; expected \"public\", \"protected\", or \"private\".");
-            }
+            RecordShapeContractGuard.ValidateInterfaceMember(json);
+            var kind = StrictRecordShapeEnums.ReadDefaulted(
+                json,
+                "kind",
+                "Interface member",
+                NeoInterfaceMemberKind.Property);
             switch (kind)
             {
-                case "property":
+                case NeoInterfaceMemberKind.Property:
                     ValidateProperty(json);
                     break;
-                case "function":
+                case NeoInterfaceMemberKind.Function:
                     ValidateFunction(json);
                     break;
                 default:
                     throw new JsonSerializationException(
-                        $"Unknown interface member kind '{kind}'.");
+                        $"Unknown interface member kind '{(int)kind}'.");
             }
 
             var member = new InterfaceMember();
@@ -130,10 +148,13 @@ namespace NeoCompose.Runtime.Json
         private static void ValidateProperty(JObject json)
         {
             RequireNonNull(json, "typeInfo", "Property interface member");
-            RequireBoolean(json, "settable", "Property interface member");
+            StrictRecordShapeEnums.ValidateOptional<NeoPropertyAccessorsKind>(
+                json,
+                "accessors",
+                "Property interface member");
             RejectPresent(json, "returnTypeInfo", "Property interface member");
             RejectPresent(json, "argumentTypes", "Property interface member");
-            RejectPresent(json, "deferred", "Property interface member");
+            RejectPresent(json, "dispatch", "Property interface member");
         }
 
         private static void ValidateFunction(JObject json)
@@ -144,9 +165,12 @@ namespace NeoCompose.Runtime.Json
                 throw new JsonSerializationException(
                     "Function interface member requires an 'argumentTypes' array.");
             }
-            RequireBoolean(json, "deferred", "Function interface member");
+            StrictRecordShapeEnums.ValidateOptional<NeoFunctionDispatchKind>(
+                json,
+                "dispatch",
+                "Function interface member");
             RejectPresent(json, "typeInfo", "Function interface member");
-            RejectPresent(json, "settable", "Function interface member");
+            RejectPresent(json, "accessors", "Function interface member");
         }
 
         private static void RequireNonNull(
@@ -158,18 +182,6 @@ namespace NeoCompose.Runtime.Json
             {
                 throw new JsonSerializationException(
                     $"{subject} requires '{propertyName}'.");
-            }
-        }
-
-        private static void RequireBoolean(
-            JObject json,
-            string propertyName,
-            string subject)
-        {
-            if (json[propertyName]?.Type != JTokenType.Boolean)
-            {
-                throw new JsonSerializationException(
-                    $"{subject} requires boolean '{propertyName}'.");
             }
         }
 
@@ -187,7 +199,7 @@ namespace NeoCompose.Runtime.Json
 
         private static void ValidateSupportedTypeInfos(InterfaceMember member)
         {
-            if (member.kind == "property")
+            if (member.kind == NeoInterfaceMemberKind.Property)
             {
                 RejectUnsupportedTypeInfo(member.typeInfo!, "Property interface member");
                 return;

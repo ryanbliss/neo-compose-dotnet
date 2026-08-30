@@ -13,13 +13,11 @@ abstract class NeoAnimationSegment<
   T
 > {
   @id("system_8a159870-36a4-40e4-98bf-15919410650a")
-  @locked
   @settings(min: 1)
   @system(kind: .WorldAuthoring)
   public virtual int Duration = 1;
 
   @id("system_40658ad2-b4a5-4404-bb6d-ed778088a772")
-  @locked
   @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoAnimationSegmentFrame<T>> Frames = [];

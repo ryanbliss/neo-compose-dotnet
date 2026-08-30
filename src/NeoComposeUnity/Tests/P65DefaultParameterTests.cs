@@ -423,7 +423,7 @@ namespace NeoCompose.Tests
         // -------------------------------------------------------------------
 
         [Test]
-        public void ConstructorRecords_EffectiveArityCollisionIsRejectedAtLoad()
+        public void ConstructorRecords_CallableArityCollisionIsRejectedAtLoad()
         {
             ProjectData data = BuildConstructorProjectData();
             // `Foo(int A)` alongside `Foo(int A, int B = 2)`: the defaulted
@@ -450,7 +450,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ConstructorRecords_DistinctEffectiveAritiesStillLoad()
+        public void ConstructorRecords_DistinctCallableAritiesStillLoad()
         {
             ProjectData data = BuildConstructorProjectData();
             // (string) + (string, string) prefixes never collide with the
@@ -467,18 +467,18 @@ namespace NeoCompose.Tests
         // -------------------------------------------------------------------
 
         [Test]
-        public void ExportSchemaVersion_PreP42RenameTwentySevenIsRejectedClosed()
+        public void ExportSchemaVersion_PreviousTwentyEightIsRejectedClosed()
         {
             ProjectData data = BuildConstructorProjectData();
             data.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 27,
+                schemaVersion = 28,
                 projectId = ProjectId,
                 versionId = "version-1",
             };
             var error = Assert.Throws<InvalidOperationException>(() =>
                 NeoTestSaveStack.ClientFromSchema(data))!;
-            StringAssert.Contains("schema version 27", error.Message);
+            StringAssert.Contains("schema version 28", error.Message);
             StringAssert.Contains(
                 $"accepts only schema version {NeoProjectExportContract.CurrentSchemaVersion}",
                 error.Message);
@@ -486,9 +486,9 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ExportSchemaVersion_CurrentContractIsTwentyEight()
+        public void ExportSchemaVersion_CurrentContractIsTwentyNine()
         {
-            Assert.AreEqual(28, NeoProjectExportContract.CurrentSchemaVersion);
+            Assert.AreEqual(29, NeoProjectExportContract.CurrentSchemaVersion);
         }
 
         // -------------------------------------------------------------------
@@ -539,7 +539,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Function,
                 returnTypeInfo = StringType(),
                 argumentTypes = new[] { name, suffix },
-                deferred = false,
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -576,8 +576,8 @@ namespace NeoCompose.Tests
             NeoSchemaClass receiverClass)
         {
             ClassMember assets = RootMember("root-assets", "Assets", "root-assets-value");
-            ClassMember save = RootMember("root-save", "Save", "root-save-value", "save");
-            ClassMember session = RootMember("root-session", "Session", "root-session-value", "session");
+            ClassMember save = RootMember("root-save", "Save", "root-save-value", NeoMemberStorage.Save);
+            ClassMember session = RootMember("root-session", "Session", "root-session-value", NeoMemberStorage.Session);
             var members = new Dictionary<string, JsonMember>
             {
                 [assets.id] = assets,
@@ -672,8 +672,8 @@ namespace NeoCompose.Tests
             };
 
             ClassMember rootAssets = RootMember("root-assets", "Assets", "value-assets");
-            ClassMember rootSave = RootMember("root-save", "Save", "value-save", "save");
-            ClassMember rootSession = RootMember("root-session", "Session", "value-session", "session");
+            ClassMember rootSave = RootMember("root-save", "Save", "value-save", NeoMemberStorage.Save);
+            ClassMember rootSession = RootMember("root-session", "Session", "value-session", NeoMemberStorage.Session);
 
             FunctionArgumentTypeInfo fillA = Argument("A", MemberKind.String);
             FunctionArgumentTypeInfo fillB = Argument("B", MemberKind.String);
@@ -741,8 +741,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.String,
-                required = true,
-                localizable = false,
+                Requirement = NeoMemberRequirementKind.Required,
+                Format = NeoStringFormatKind.Plain,
                 defaultValue = new StringMemberValueBase { value = "base" },
                 createdAt = "x",
                 updatedAt = "x",
@@ -897,7 +897,7 @@ namespace NeoCompose.Tests
                 code = "compiled test function",
                 returnTypeInfo = returnType,
                 argumentTypes = arguments,
-                deferred = false,
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
                 action = new FunctionWithReturnType
                 {
                     parameters = parameters,
@@ -929,7 +929,7 @@ namespace NeoCompose.Tests
             string id,
             string name,
             string valueId,
-            string? storage = null) => new()
+            NeoMemberStorage storage = NeoMemberStorage.Inherit) => new()
         {
             id = id,
             projectId = ProjectId,
@@ -937,7 +937,7 @@ namespace NeoCompose.Tests
             kind = MemberKind.Class,
             classId = "root-class",
             valueId = valueId,
-            storage = storage,
+            Storage = storage,
             createdAt = "x",
             updatedAt = "x",
         };

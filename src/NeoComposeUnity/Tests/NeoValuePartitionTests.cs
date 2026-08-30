@@ -227,15 +227,15 @@ namespace NeoCompose.Tests
             Assert.AreEqual(true, enabled.value.value);
             Assert.AreEqual(
                 WorldPartitionKey,
-                client.ResolveEffectiveRow(virtualId)!.mapKey);
+                client.ResolveValueRow(virtualId)!.mapKey);
 
             client.UnloadValuePartition(WorldPartitionKey);
-            Assert.IsNull(client.ResolveEffectiveRow(virtualId));
+            Assert.IsNull(client.ResolveValueRow(virtualId));
 
             client.LoadValuePartition(WorldPartitionKey);
             Assert.AreEqual(
                 true,
-                ((BoolMemberValue)client.ResolveEffectiveRow(virtualId)!).value);
+                ((BoolMemberValue)client.ResolveValueRow(virtualId)!).value);
         }
 
         [Test]
@@ -492,7 +492,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Neo Tile Layer",
                 schema = new Dictionary<string, string>(),
-                isAbstract = true,
+                Modifier = NeoClassModifierKind.Abstract,
                 system = JObject.FromObject(new { worldKind = "tileLayer" }),
             };
             var tileInstanceClass = new NeoSchemaClass
@@ -511,7 +511,7 @@ namespace NeoCompose.Tests
                 id = TileLayerLinkBaseClassId,
                 projectId = "project-a",
                 name = "Neo Tile Layer Link",
-                isAbstract = true,
+                Modifier = NeoClassModifierKind.Abstract,
                 schema = new Dictionary<string, string>
                 {
                     ["Tiles"] = "tile-layer-link-tiles-member",
@@ -594,7 +594,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Cell",
                         kind = MemberKind.Vector2Int,
-                        required = true,
+                        Requirement = NeoMemberRequirementKind.Required,
                         defaultValue = new Vector2MemberValueBase
                         {
                             value = new NeoVector2Value { x = 0, y = 0 },
@@ -606,7 +606,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Enabled",
                         kind = MemberKind.Bool,
-                        required = true,
+                        Requirement = NeoMemberRequirementKind.Required,
                         defaultValue = new BoolMemberValueBase { value = true },
                     },
                     ["tile-layer-link-tiles-member"] = new ListMember
@@ -616,7 +616,7 @@ namespace NeoCompose.Tests
                         name = "Tiles",
                         kind = MemberKind.List,
                         entryMemberId = "tile-layer-link-tile-entry-member",
-                        listKind = NeoListKinds.Unordered,
+                        ListKind = NeoListKind.Unordered,
                         storageKey = WorldPartitionKey,
                     },
                     ["tile-layer-link-tile-entry-member"] = new ClassMember
@@ -733,7 +733,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = id,
                 kind = MemberKind.Class,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };

@@ -1,10 +1,8 @@
 @id("system_8b540423-5920-4c83-a632-1415448e7fd7")
-@hidden
+@visibility(.Hidden)
 @system(kind: .DialogueMemorySchema)
 class NeoChoiceLog {
   @id("system_c7dcce0f-557f-430b-aaeb-c953e85934be")
-  @locked
-  @settings(localizable: true)
   @system(kind: .DialogueMemorySchema)
   public virtual string ChoiceId = "48020dd6-3fb9-4b73-98be-fba38e00285b";
 }

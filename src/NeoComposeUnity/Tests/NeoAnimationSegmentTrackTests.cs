@@ -206,7 +206,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Selector",
                 kind = MemberKind.NSDelegate,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 returnTypeInfo = new ClassTypeInfo
                 {
                     type = MemberKind.Class,
@@ -313,7 +313,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Selector",
                 kind = MemberKind.NSDelegate,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 returnTypeInfo = new ClassTypeInfo
                 {
                     type = MemberKind.Class,
@@ -400,7 +400,9 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = "Selector",
             kind = MemberKind.NSDelegate,
-            required = required,
+            Requirement = required
+                ? NeoMemberRequirementKind.Required
+                : NeoMemberRequirementKind.Optional,
             returnTypeInfo = new ClassTypeInfo
             {
                 type = MemberKind.Class,
@@ -451,7 +453,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Selector",
                 kind = MemberKind.NSDelegate,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 returnTypeInfo = new ClassTypeInfo
                 {
                     type = MemberKind.Class,
@@ -460,7 +462,7 @@ namespace NeoCompose.Tests
                 },
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
                 valueId = authored.id,
-                storage = "session",
+                Storage = NeoMemberStorage.Session,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -587,7 +589,7 @@ namespace NeoCompose.Tests
             ProjectData data = BuildEquipProjectData();
             // Storage is a per-member author choice (P48 §1.2): a game that
             // wants a runtime-writable segment length simply declares one.
-            data.members["segment-duration-member"].storage = "session";
+            data.members["segment-duration-member"].DeclaredStorage = NeoMemberStorage.Session;
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
             using var target = OpenRig(client);
             using NeoAnimationDefinition definition =
@@ -791,7 +793,7 @@ namespace NeoCompose.Tests
 
         private static string? ReadLabel(NeoClient client, string valueId)
         {
-            MemberValue? row = client.ResolveEffectiveRow(valueId);
+            MemberValue? row = client.ResolveValueRow(valueId);
             Assert.IsNotNull(row, $"No value row '{valueId}'.");
             return ((SpriteMemberValue)row!).value?.fileId;
         }
@@ -1273,7 +1275,7 @@ namespace NeoCompose.Tests
                     projectId = ProjectId,
                     name = "Enabled",
                     kind = MemberKind.Bool,
-                    storage = "session",
+                    Storage = NeoMemberStorage.Session,
                     createdAt = "x",
                     updatedAt = "x",
                 },
@@ -1308,7 +1310,7 @@ namespace NeoCompose.Tests
                     name = "Direction",
                     kind = MemberKind.Enum,
                     enumId = PlayDirectionEnumId,
-                    multiselect = false,
+                    Selection = NeoMemberSelectionKind.Single,
                     createdAt = "x",
                     updatedAt = "x",
                 },
@@ -1318,7 +1320,7 @@ namespace NeoCompose.Tests
                     projectId = ProjectId,
                     name = "ClipKey",
                     kind = MemberKind.String,
-                    localizable = false,
+                    Format = NeoStringFormatKind.Plain,
                     createdAt = "x",
                     updatedAt = "x",
                 },
@@ -1331,7 +1333,7 @@ namespace NeoCompose.Tests
                     "track-segment-lookup-member",
                     "Segment",
                     "catalog-member",
-                    storage: "session"),
+                    storage: NeoMemberStorage.Session),
                 ["catalog-member"] = ListMemberOf(
                     "catalog-member",
                     "Catalog",
@@ -1471,7 +1473,7 @@ namespace NeoCompose.Tests
                 name = name,
                 schema = schema,
                 extendsClassId = extendsClassId,
-                isAbstract = isAbstract,
+                Modifier = isAbstract ? NeoClassModifierKind.Abstract : NeoClassModifierKind.Open,
                 targetMemberId = targetMemberId,
                 system = worldKind is null
                     ? null
@@ -1491,7 +1493,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = classId,
                 valueId = valueId,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1502,14 +1504,14 @@ namespace NeoCompose.Tests
             string classId)
         {
             ClassMember member = ClassMemberOf(id, name, classId, null);
-            member.partial = true;
+            member.DeclaredPayload = NeoMemberPayloadKind.Partial;
             return member;
         }
 
         private static ClassMember ClipMemberOf(string id, string name, string valueId)
         {
             ClassMember member = ClassMemberOf(id, name, ClipClassId, valueId);
-            member.storage = "immutable";
+            member.DeclaredStorage = NeoMemberStorage.Immutable;
             return member;
         }
 
@@ -1525,7 +1527,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.List,
                 entryMemberId = entryMemberId,
                 valueId = valueId,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1534,14 +1536,14 @@ namespace NeoCompose.Tests
             string id,
             string name,
             string collectionMemberId,
-            string? storage = null) => new()
+            NeoMemberStorage storage = NeoMemberStorage.Inherit) => new()
             {
                 id = id,
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.Lookup,
                 collectionMemberId = collectionMemberId,
-                storage = storage,
+                Storage = storage,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1549,13 +1551,13 @@ namespace NeoCompose.Tests
         private static IntMember IntMemberOf(
             string id,
             string name,
-            string? storage = null) => new()
+            NeoMemberStorage storage = NeoMemberStorage.Inherit) => new()
             {
                 id = id,
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.Int,
-                storage = storage,
+                Storage = storage,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1566,7 +1568,7 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = name,
             kind = MemberKind.Sprite,
-            storage = "session",
+            Storage = NeoMemberStorage.Session,
             createdAt = "x",
             updatedAt = "x",
         };

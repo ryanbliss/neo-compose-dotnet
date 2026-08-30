@@ -36,20 +36,20 @@ namespace NeoCompose.Runtime
             IReadOnlyNeoTileLayerRuntime layer,
             INeoTileGridContent? content,
             Transform parent,
-            int effectiveSortingOrder)
+            int sortingOrder)
         {
             Renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
             Layer = layer ?? throw new ArgumentNullException(nameof(layer));
             Content = content;
             Parent = parent ?? throw new ArgumentNullException(nameof(parent));
-            EffectiveSortingOrder = effectiveSortingOrder;
+            SortingOrder = sortingOrder;
         }
 
         public NeoTileGridRenderer Renderer { get; }
         public IReadOnlyNeoTileLayerRuntime Layer { get; }
         public INeoTileGridContent? Content { get; }
         public Transform Parent { get; }
-        public int EffectiveSortingOrder { get; }
+        public int SortingOrder { get; }
     }
 
     public sealed class NeoTileLayerRenderTarget

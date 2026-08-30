@@ -201,11 +201,11 @@ namespace NeoCompose.Runtime
 
         internal void Set(NeoDelegateValue? newValue)
         {
-            if (member.required && newValue is null)
+            if (member.Requirement == NeoMemberRequirementKind.Required && newValue is null)
             {
                 throw new ArgumentNullException(
                     nameof(newValue),
-                    $"Cannot be null when {nameof(member)}.{nameof(member.required)} is true");
+                    $"Cannot be null when {nameof(member)} requirement is Required");
             }
             string nowIso = DateTime.UtcNow.ToString("o");
             DelegateMemberValue? writable = EnsureWritableValue();

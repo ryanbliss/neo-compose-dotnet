@@ -103,7 +103,7 @@ namespace NeoCompose.Tests
             NeoSchemaClass payloadClass = SchemaClass(
                 "payload-class",
                 "Payload",
-                "save");
+                NeoMemberStorage.Save);
             payloadClass.schema["Name"] = "payload-name";
             data.classes[payloadClass.id] = payloadClass;
             data.members["payload-name"] = new StringMember
@@ -112,7 +112,7 @@ namespace NeoCompose.Tests
                 projectId = "p75-project",
                 name = "Name",
                 kind = MemberKind.String,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new StringMemberValueBase { value = "default" },
             };
             data.members["payload-binding"] = new ClassMember
@@ -122,7 +122,7 @@ namespace NeoCompose.Tests
                 name = "PayloadBinding",
                 kind = MemberKind.Class,
                 classId = payloadClass.id,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new ObjectMemberValueBase
                 {
                     classId = payloadClass.id,
@@ -138,7 +138,7 @@ namespace NeoCompose.Tests
                 projectId = "p75-project",
                 name = "PlacementStringBinding",
                 kind = MemberKind.String,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new StringMemberValueBase
                 {
                     value = "placement fallback",
@@ -167,7 +167,7 @@ namespace NeoCompose.Tests
             {
                 [paramT] = new()
                 {
-                    kind = NeoGenericBindingKinds.Member,
+                    kind = NeoGenericBindingKind.Member,
                     memberId = "placement-string-binding",
                 },
             };
@@ -351,14 +351,14 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ResolveEffectiveRowReadsVirtualValuesForUntypedConsumers()
+        public void ResolveValueRowReadsVirtualValuesForUntypedConsumers()
         {
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
             NeoMemberIntWritable count = client.save
                 .Get<NeoMemberClassWritable>("Thing")
                 .Get<NeoMemberIntWritable>("Count");
 
-            NumberMemberValue row = (NumberMemberValue)client.ResolveEffectiveRow(
+            NumberMemberValue row = (NumberMemberValue)client.ResolveValueRow(
                 count.value!.id)!;
 
             Assert.AreEqual(5d, row.value);
@@ -390,7 +390,7 @@ namespace NeoCompose.Tests
                     out string? containerId));
                 Assert.AreEqual(items.value.id, containerId);
                 Assert.IsInstanceOf<StringMemberValue>(
-                    client.ResolveEffectiveRow(entryId));
+                    client.ResolveValueRow(entryId));
             }
         }
 
@@ -398,7 +398,7 @@ namespace NeoCompose.Tests
         public void UnsetTombstonesAnOmittedMemberOnASparseRoot()
         {
             ProjectData data = BuildProjectData();
-            ((IntMember)data.members["thing-count"]).required = false;
+            ((IntMember)data.members["thing-count"]).DeclaredRequirement = NeoMemberRequirementKind.Optional;
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
             NeoMemberClassWritable thing =
                 client.save.Get<NeoMemberClassWritable>("Thing");
@@ -1120,8 +1120,8 @@ namespace NeoCompose.Tests
                 name = "Other",
                 kind = MemberKind.Class,
                 classId = "thing-class",
-                required = true,
-                storage = "save",
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Save,
             };
             ObjectMemberValue other = ObjectValue("other-instance", "thing-class");
             other.constructorArgs = new Dictionary<string, JToken?>();
@@ -1134,10 +1134,10 @@ namespace NeoCompose.Tests
         private static ProjectData BuildProjectData(double defaultCount = 5)
         {
             const string projectId = "p75-project";
-            var assetsRootClass = SchemaClass("assets-root-class", "AssetsRoot", "immutable");
-            var saveRootClass = SchemaClass("save-root-class", "SaveRoot", "save");
-            var sessionRootClass = SchemaClass("session-root-class", "SessionRoot", "session");
-            var thingClass = SchemaClass("thing-class", "Thing", "save");
+            var assetsRootClass = SchemaClass("assets-root-class", "AssetsRoot", NeoMemberStorage.Immutable);
+            var saveRootClass = SchemaClass("save-root-class", "SaveRoot", NeoMemberStorage.Save);
+            var sessionRootClass = SchemaClass("session-root-class", "SessionRoot", NeoMemberStorage.Session);
+            var thingClass = SchemaClass("thing-class", "Thing", NeoMemberStorage.Save);
 
             saveRootClass.schema["Thing"] = "thing-member";
             thingClass.schema["Count"] = "thing-count";
@@ -1147,21 +1147,21 @@ namespace NeoCompose.Tests
                 "assets-root",
                 "Assets",
                 assetsRootClass.id,
-                "immutable",
+                NeoMemberStorage.Immutable,
                 "value-assets");
             var saveRoot = RootMember(
                 projectId,
                 "save-root",
                 "Save",
                 saveRootClass.id,
-                "save",
+                NeoMemberStorage.Save,
                 "value-save");
             var sessionRoot = RootMember(
                 projectId,
                 "session-root",
                 "Session",
                 sessionRootClass.id,
-                "session",
+                NeoMemberStorage.Session,
                 "value-session");
             var thingMember = new ClassMember
             {
@@ -1170,8 +1170,8 @@ namespace NeoCompose.Tests
                 name = "Thing",
                 kind = MemberKind.Class,
                 classId = thingClass.id,
-                required = true,
-                storage = "save",
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Save,
             };
             var countMember = new IntMember
             {
@@ -1179,7 +1179,7 @@ namespace NeoCompose.Tests
                 projectId = projectId,
                 name = "Count",
                 kind = MemberKind.Int,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new NumberMemberValueBase { value = defaultCount },
             };
             var thing = ObjectValue("thing-instance", thingClass.id);
@@ -1240,7 +1240,7 @@ namespace NeoCompose.Tests
                 projectId = "p75-project",
                 name = "Item",
                 kind = MemberKind.String,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
             };
             data.members["thing-items"] = new ListMember
             {
@@ -1248,8 +1248,8 @@ namespace NeoCompose.Tests
                 projectId = "p75-project",
                 name = "Items",
                 kind = MemberKind.List,
-                required = true,
-                listKind = NeoListKinds.Unordered,
+                Requirement = NeoMemberRequirementKind.Required,
+                ListKind = NeoListKind.Unordered,
                 entryMemberId = "thing-item",
                 defaultValue = new ArrayMemberValueBase { value = entryValueIds },
             };
@@ -1277,7 +1277,7 @@ namespace NeoCompose.Tests
                 name = "Nested",
                 kind = MemberKind.Class,
                 classId = "nested-class",
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
             };
             data.members["nested-deep"] = new ClassMember
             {
@@ -1286,7 +1286,7 @@ namespace NeoCompose.Tests
                 name = "Deep",
                 kind = MemberKind.Class,
                 classId = "deep-class",
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
             };
             data.members["deep-count"] = new IntMember
             {
@@ -1294,18 +1294,18 @@ namespace NeoCompose.Tests
                 projectId = "p75-project",
                 name = "Count",
                 kind = MemberKind.Int,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new NumberMemberValueBase { value = 5 },
             };
             data.classes["nested-class"] = SchemaClass(
                 "nested-class",
                 "Nested",
-                "save");
+                NeoMemberStorage.Save);
             data.classes["nested-class"].schema["Deep"] = "nested-deep";
             data.classes["deep-class"] = SchemaClass(
                 "deep-class",
                 "Deep",
-                "save");
+                NeoMemberStorage.Save);
             data.classes["deep-class"].schema["Count"] = "deep-count";
             return data;
         }
@@ -1313,7 +1313,7 @@ namespace NeoCompose.Tests
         private static NeoSchemaClass SchemaClass(
             string id,
             string name,
-            string storage)
+            NeoMemberStorage storage)
         {
             return new NeoSchemaClass
             {
@@ -1330,7 +1330,7 @@ namespace NeoCompose.Tests
             string id,
             string name,
             string classId,
-            string storage,
+            NeoMemberStorage storage,
             string valueId)
         {
             return new ClassMember
@@ -1340,8 +1340,8 @@ namespace NeoCompose.Tests
                 name = name,
                 kind = MemberKind.Class,
                 classId = classId,
-                required = true,
-                storage = storage,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = storage,
                 valueId = valueId,
             };
         }
@@ -1427,7 +1427,7 @@ namespace NeoCompose.Tests
                 name = "OnPing",
                 kind = MemberKind.NSAction,
                 // Never nullable: the empty set is the rest state (P62 §2.1).
-                required = false,
+                Requirement = NeoMemberRequirementKind.Optional,
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
                 defaultValue = new ActionMemberValueBase { value = earlyListeners },
                 createdAt = "x",
@@ -1454,7 +1454,7 @@ namespace NeoCompose.Tests
                 required = true,
             },
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-            deferred = false,
+            Dispatch = NeoFunctionDispatchKind.Synchronous,
             action = new FunctionWithReturnType
             {
                 parameters = new[]

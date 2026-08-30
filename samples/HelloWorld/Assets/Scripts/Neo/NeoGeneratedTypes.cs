@@ -1245,7 +1245,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
         }
 
-        public override string Name
+        public new virtual string Name
         {
             get
             {
@@ -14737,8 +14737,6 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new IReadOnlyNeoCollider? Collider { get; }
 
-        new string Name { get; }
-
         NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
     }
 
@@ -14911,19 +14909,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 var child = node.Get<NeoMemberClass>("Collider");
                 return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, child);
-            }
-        }
-
-        public new virtual string Name
-        {
-            get
-            {
-                return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoObject.Name");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
 

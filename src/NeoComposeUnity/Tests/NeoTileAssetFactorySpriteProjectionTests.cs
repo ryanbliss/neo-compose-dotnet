@@ -268,7 +268,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Portrait",
                         kind = MemberKind.Sprite,
-                        required = true,
+                        Requirement = NeoMemberRequirementKind.Required,
                     },
                 },
                 values = new Dictionary<string, MemberValue>
@@ -302,7 +302,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = id,
                 kind = MemberKind.Class,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };

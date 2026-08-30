@@ -40,7 +40,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Overwrites the selected dialogue ids. Honors the single-select clamp
-        /// (only the first id survives when <see cref="DialogueLookupMember.multiselect"/>
+        /// (only the first id survives when <see cref="DialogueLookupMember.Selection == NeoMemberSelectionKind.Multi"/>
         /// is false) and enforces the <see cref="DialogueLookupMember.dialogueGroupId"/>
         /// scope. This is the single write choke point — <see cref="Add"/>,
         /// <see cref="Remove"/>, <see cref="Clear"/>, and the generated property
@@ -49,15 +49,15 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Set(string[]? selectedIds)
         {
-            if (member.required && (selectedIds is null || selectedIds.Length == 0))
+            if (member.Requirement == NeoMemberRequirementKind.Required && (selectedIds is null || selectedIds.Length == 0))
             {
                 throw new System.ArgumentNullException(
                     nameof(selectedIds),
-                    $"Cannot be null/empty when {nameof(member)}.{nameof(member.required)} is true");
+                    $"Cannot be null/empty when {nameof(member)} requirement is Required");
             }
 
             string[]? normalized = selectedIds;
-            if (normalized is not null && !member.multiselect && normalized.Length > 1)
+            if (normalized is not null && member.Selection != NeoMemberSelectionKind.Multi && normalized.Length > 1)
             {
                 normalized = new[] { normalized[0] };
             }

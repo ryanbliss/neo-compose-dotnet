@@ -112,7 +112,7 @@ namespace NeoCompose.Tests
   ""values"": {},
   ""staticBindings"": {}
 }";
-            var client = LoadLocalizedStringClient(localizable: true, saveBuffer);
+            var client = LoadLocalizedStringClient(localized: true, saveBuffer);
 
             var serialized = JObject.Parse(client.SerializeSaveData());
             Assert.AreEqual("ancient-button-321", serialized["name"]!.Value<string>());
@@ -130,7 +130,7 @@ namespace NeoCompose.Tests
   ""values"": {},
   ""staticBindings"": {}
 }";
-            var client = LoadLocalizedStringClient(localizable: true, saveBuffer);
+            var client = LoadLocalizedStringClient(localized: true, saveBuffer);
 
             var serializedBeforeSave = JObject.Parse(client.SerializeSaveData());
             Assert.AreEqual("quiet-fox-456", serializedBeforeSave["name"]!.Value<string>());
@@ -146,7 +146,7 @@ namespace NeoCompose.Tests
         public void SaveData_UpdatedAtChangesWhenSaveOverrideValueChanges()
         {
             var client = LoadLocalizedStringClient(
-                localizable: true,
+                localized: true,
                 @"{
   ""name"": ""quiet-fox-456"",
   ""projectId"": ""project-1"",
@@ -170,7 +170,7 @@ namespace NeoCompose.Tests
         public void SaveData_UpdatedAtDoesNotChangeWhenSessionOverrideValueChanges()
         {
             var client = LoadLocalizedStringClient(
-                localizable: true,
+                localized: true,
                 @"{
   ""name"": ""quiet-fox-456"",
   ""projectId"": ""project-1"",
@@ -208,7 +208,7 @@ namespace NeoCompose.Tests
             var data = JsonConvert.DeserializeObject<ProjectData>(
                 @"{
   ""metadata"": {
-    ""schemaVersion"": 28,
+    ""schemaVersion"": 29,
     ""projectId"": ""project-1"",
     ""versionId"": ""version-1""
   },
@@ -513,7 +513,7 @@ namespace NeoCompose.Tests
         [Test]
         public void NeoMemberString_TextResolvesLocalizableTextIds()
         {
-            var client = LoadLocalizedStringClient(localizable: true);
+            var client = LoadLocalizedStringClient(localized: true);
             var member = RequireMember<StringMember>(client, "member-title");
             var node = new NeoMemberString(client, member, null);
 
@@ -524,7 +524,7 @@ namespace NeoCompose.Tests
         [Test]
         public void NeoMemberString_TextKeepsNonLocalizableStringsLiteral()
         {
-            var client = LoadLocalizedStringClient(localizable: false);
+            var client = LoadLocalizedStringClient(localized: false);
             var member = RequireMember<StringMember>(client, "member-title");
             var node = new NeoMemberString(client, member, null);
 
@@ -535,7 +535,7 @@ namespace NeoCompose.Tests
         [Test]
         public void NeoMemberString_SetLiteralOverrideDoesNotOverwriteLocalizedValue()
         {
-            var client = LoadLocalizedStringClient(localizable: true);
+            var client = LoadLocalizedStringClient(localized: true);
             var member = RequireMember<StringMember>(client, "member-title");
             var node = new NeoMemberStringWritable(client, member, null, NeoValueOwnership.Save);
 
@@ -556,7 +556,7 @@ namespace NeoCompose.Tests
         [Test]
         public void NeoMemberString_SetLiteralOverrideSupportsNullUnlessRequired()
         {
-            var client = LoadLocalizedStringClient(localizable: true);
+            var client = LoadLocalizedStringClient(localized: true);
             var member = RequireMember<StringMember>(client, "member-title");
             var node = new NeoMemberStringWritable(client, member, null, NeoValueOwnership.Save);
 
@@ -566,7 +566,7 @@ namespace NeoCompose.Tests
             Assert.IsNull(node.TextId);
             Assert.AreEqual(NeoStringLocalizationMode.Literal, node.value!.neoLocalizationMode);
 
-            member.required = true;
+            member.DeclaredRequirement = NeoMemberRequirementKind.Required;
 
             Assert.Throws<System.ArgumentNullException>(() => node.SetLiteralOverride(null));
         }
@@ -590,11 +590,11 @@ namespace NeoCompose.Tests
             return NeoTestSaveStack.LoadClient(projectJson, options, source);
         }
 
-        private static NeoClient LoadLocalizedStringClient(bool localizable, string initialSave = "")
+        private static NeoClient LoadLocalizedStringClient(bool localized, string initialSave = "")
         {
             var projectJson = $@"{{
   ""metadata"": {{
-    ""schemaVersion"": 28,
+    ""schemaVersion"": 29,
     ""projectId"": ""project-1"",
     ""versionId"": ""version-1""
   }},
@@ -612,7 +612,6 @@ namespace NeoCompose.Tests
       ""projectId"": ""project-1"",
       ""name"": ""Assets"",
       ""kind"": 7,
-      ""isStatic"": false, ""accessModifierKind"": ""public"",
       ""classId"": ""class-root"",
       ""valueId"": ""assets-value""
     }},
@@ -621,7 +620,6 @@ namespace NeoCompose.Tests
       ""projectId"": ""project-1"",
       ""name"": ""Save"",
       ""kind"": 7,
-      ""isStatic"": false, ""accessModifierKind"": ""public"",
       ""classId"": ""class-root""
     }},
     ""root-session"": {{
@@ -629,7 +627,6 @@ namespace NeoCompose.Tests
       ""projectId"": ""project-1"",
       ""name"": ""Session"",
       ""kind"": 7,
-      ""isStatic"": false, ""accessModifierKind"": ""public"",
       ""classId"": ""class-root""
     }},
     ""member-title"": {{
@@ -637,9 +634,8 @@ namespace NeoCompose.Tests
       ""projectId"": ""project-1"",
       ""name"": ""Title"",
       ""kind"": 3,
-      ""isStatic"": false, ""accessModifierKind"": ""public"",
       ""valueId"": ""title-value"",
-      ""localizable"": {localizable.ToString().ToLowerInvariant()}
+      ""format"": {(localized ? 0 : 1)}
     }}
   }},
   ""classes"": {{

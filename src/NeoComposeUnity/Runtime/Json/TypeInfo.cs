@@ -21,6 +21,8 @@ namespace NeoCompose.Runtime.Json
     {
         public MemberKind type;
         public bool required;
+
+        internal TypeInfo ShallowClone() => (TypeInfo)MemberwiseClone();
     }
 
     /// <summary>

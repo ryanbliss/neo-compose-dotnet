@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 28,
+    "schemaVersion": 29,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -64,126 +64,93 @@
       "projectId": "test-project",
       "name": "Assets",
       "kind": 7,
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "classId": "static-smoke-root-class",
       "createdAt": 0,
-      "updatedAt": 0
+      "updatedAt": 0,
+      "requirement": 1
     },
     "root-save": {
       "id": "root-save",
       "projectId": "test-project",
       "name": "Save",
       "kind": 7,
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "classId": "static-smoke-root-class",
       "createdAt": 0,
-      "updatedAt": 0
+      "updatedAt": 0,
+      "requirement": 1
     },
     "root-session": {
       "id": "root-session",
       "projectId": "test-project",
       "name": "Session",
       "kind": 7,
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
       "classId": "static-smoke-root-class",
       "createdAt": 0,
-      "updatedAt": 0
+      "updatedAt": 0,
+      "requirement": 1
     },
     "static-smoke-count": {
       "id": "static-smoke-count",
       "projectId": "test-project",
       "name": "Global Count",
       "kind": 2,
-      "locked": false,
-      "required": true,
-      "isStatic": true,
-      "accessModifierKind": "public",
-      "isVirtual": false,
-      "storage": "session",
+      "storage": 3,
       "valueId": "static-smoke-count-value",
       "createdAt": 0,
-      "updatedAt": 0
+      "updatedAt": 0,
+      "requirement": 1,
+      "modifier": 3
     },
     "static-smoke-motto": {
       "id": "static-smoke-motto",
       "projectId": "test-project",
       "name": "Motto",
       "kind": 3,
-      "locked": false,
-      "required": true,
-      "isStatic": true,
-      "accessModifierKind": "public",
-      "isVirtual": false,
-      "localizable": false,
-      "storage": "immutable",
+      "storage": 1,
       "valueId": "static-smoke-motto-value",
       "createdAt": 0,
-      "updatedAt": 0
+      "updatedAt": 0,
+      "requirement": 1,
+      "modifier": 3,
+      "format": 1
     },
     "static-smoke-entry": {
       "id": "static-smoke-entry",
       "projectId": "test-project",
       "name": "Entry",
       "kind": 3,
-      "locked": false,
-      "required": true,
-      "isStatic": false,
-      "accessModifierKind": "public",
-      "localizable": false,
       "createdAt": 0,
-      "updatedAt": 0
+      "updatedAt": 0,
+      "requirement": 1,
+      "format": 1
     },
     "static-smoke-names": {
       "id": "static-smoke-names",
       "projectId": "test-project",
       "name": "Names",
       "kind": 6,
-      "locked": false,
-      "required": false,
-      "isStatic": true,
-      "accessModifierKind": "public",
-      "isVirtual": false,
-      "storage": "save",
+      "storage": 2,
       "entryMemberId": "static-smoke-entry",
-      "listKind": "ordered",
       "createdAt": 0,
-      "updatedAt": 0
+      "updatedAt": 0,
+      "modifier": 3
     },
     "static-smoke-current": {
       "id": "static-smoke-current",
       "projectId": "test-project",
       "name": "Current",
       "kind": 7,
-      "locked": false,
-      "required": false,
-      "isStatic": true,
-      "accessModifierKind": "public",
-      "isVirtual": false,
-      "storage": "session",
+      "storage": 3,
       "classId": "static-smoke-item-class",
       "createdAt": 0,
-      "updatedAt": 0
+      "updatedAt": 0,
+      "modifier": 3
     },
     "static-smoke-reset": {
       "id": "static-smoke-reset",
       "projectId": "test-project",
       "name": "Reset",
       "kind": 13,
-      "locked": false,
-      "required": false,
-      "isStatic": true,
-      "accessModifierKind": "public",
-      "isVirtual": false,
-      "deferred": false,
       "argumentTypes": [
         {
           "name": "amount",
@@ -213,38 +180,29 @@
         "required": true
       },
       "createdAt": 0,
-      "updatedAt": 0
+      "updatedAt": 0,
+      "modifier": 3
     },
     "static-smoke-wait": {
       "id": "static-smoke-wait",
       "projectId": "test-project",
       "name": "Wait",
       "kind": 13,
-      "locked": false,
-      "required": false,
-      "isStatic": true,
-      "accessModifierKind": "public",
-      "isVirtual": false,
-      "deferred": true,
       "argumentTypes": [],
       "returnTypeInfo": {
         "type": "Void",
         "required": true
       },
       "createdAt": 0,
-      "updatedAt": 0
+      "updatedAt": 0,
+      "modifier": 3,
+      "dispatch": 1
     },
     "static-smoke-calculate": {
       "id": "static-smoke-calculate",
       "projectId": "test-project",
       "name": "Calculate",
       "kind": 23,
-      "locked": false,
-      "required": false,
-      "isStatic": true,
-      "accessModifierKind": "public",
-      "isVirtual": false,
-      "deferred": false,
       "code": "return amount + 1;",
       "argumentTypes": [
         {
@@ -266,19 +224,14 @@
         "required": true
       },
       "createdAt": 0,
-      "updatedAt": 0
+      "updatedAt": 0,
+      "modifier": 3
     },
     "static-smoke-greet": {
       "id": "static-smoke-greet",
       "projectId": "test-project",
       "name": "Greet",
       "kind": 13,
-      "locked": false,
-      "required": false,
-      "isStatic": false,
-      "accessModifierKind": "public",
-      "isVirtual": false,
-      "deferred": false,
       "argumentTypes": [
         {
           "name": "name",
@@ -294,7 +247,8 @@
         "required": true
       },
       "createdAt": 0,
-      "updatedAt": 0
+      "updatedAt": 0,
+      "modifier": 1
     }
   },
   "enums": {
@@ -330,8 +284,7 @@
       "members": {
         "Greet": {
           "id": "static-smoke-greeter-greet",
-          "kind": "function",
-          "accessModifierKind": "public",
+          "kind": 1,
           "returnTypeInfo": {
             "type": 3,
             "required": true
@@ -345,8 +298,7 @@
                 "value": "friend"
               }
             }
-          ],
-          "deferred": false
+          ]
         }
       },
       "memberKeyOrder": [
@@ -363,8 +315,6 @@
       "projectId": "test-project",
       "name": "Smoke Root",
       "schema": {},
-      "hiddenInMemberSelector": false,
-      "isAbstract": false,
       "createdAt": 0,
       "updatedAt": 0
     },
@@ -373,8 +323,6 @@
       "projectId": "test-project",
       "name": "Smoke Item",
       "schema": {},
-      "hiddenInMemberSelector": false,
-      "isAbstract": false,
       "createdAt": 0,
       "updatedAt": 0,
       "requiredConstructorId": "static-smoke-item-ctor"
@@ -393,8 +341,6 @@
         "Calculate": "static-smoke-calculate",
         "Greet": "static-smoke-greet"
       },
-      "hiddenInMemberSelector": false,
-      "isAbstract": false,
       "createdAt": 0,
       "updatedAt": 0,
       "implementsInterfaceIds": [

@@ -1,25 +1,20 @@
 @id("system_98cebff1-0590-4c59-8ef0-618d2c14f905")
-@hidden
+@visibility(.Hidden)
 @system(kind: .DialogueMemorySchema)
 class NeoDialogueMemory {
   @id("system_2d86e022-b8da-44e1-834e-92f27f4afd56")
-  @locked
   @system(kind: .DialogueMemorySchema)
   public virtual bool HasVisited => this.VisitCount > 0;
 
   @id("system_4a7b6632-0926-4f9d-8b44-8ac702d3d595")
-  @locked
-  @settings(localizable: true)
   @system(kind: .DialogueMemorySchema)
   public virtual string? LastVisitedAt = null;
 
   @id("system_d29ff4e5-f8e2-4c18-a7c6-c83053fa5e70")
-  @locked
   @system(kind: .DialogueMemoryContainer)
   public virtual Dictionary<string, NeoTextNodeMemory> TextNodeMemories;
 
   @id("system_73ca1552-6c09-44fd-96c7-9801345b21cc")
-  @locked
   @system(kind: .DialogueMemorySchema)
   public virtual int VisitCount = 0;
 }

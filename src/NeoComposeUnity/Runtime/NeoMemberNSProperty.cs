@@ -21,11 +21,10 @@ namespace NeoCompose.Runtime
     /// while <see cref="Set(object?, object?)"/> executes the optional
     /// compiled setter and lets that NeoScript mutate its own targets.
     /// <see cref="Compute"/> walks the IR via
-    /// <see cref="NSGetterEvaluator"/>; <see cref="resolvedGetter"/>
-    /// and <see cref="resolvedReturnTypeInfo"/> handle the
-    /// <c>extendsMemberId</c> chain so override-form NSProperty
-    /// rows that omit their own <c>getter</c> / <c>returnTypeInfo</c>
-    /// fall through to the parent's compiled IR.</para>
+    /// <see cref="NSGetterEvaluator"/>; <see cref="resolvedGetter"/> exposes
+    /// the centralized effective compiled body, while
+    /// <see cref="resolvedReturnTypeInfo"/> walks inherited signature
+    /// metadata.</para>
     /// </summary>
     public class NeoMemberNSProperty
         : NeoMember<NSPropertyMember, NullMemberValue>
@@ -37,35 +36,20 @@ namespace NeoCompose.Runtime
             : base(client, member, overrideValueId, ownership) { }
 
         /// <summary>
-        /// The compiled getter for this member, walking
-        /// <c>extendsMemberId</c> when this row is an override that
-        /// inherits its IR from a parent. Returns null when no
-        /// ancestor has a compiled getter.
+        /// The effective compiled getter for this member. Sparse inheritance
+        /// and authored-code null clears are projected during client load.
         /// </summary>
         public FunctionWithReturnType? resolvedGetter
         {
-            get
-            {
-                if (member.getter is not null) return member.getter;
-                return NeoSchemaClassInheritance.WalkExtendsMemberChain(
-                    member.id,
-                    id => client.TryGetMember(id, out Member? a) ? a : null,
-                    a => a is NSPropertyMember ng ? ng.getter : null,
-                    requireKind: MemberKind.NSProperty);
-            }
+            get => member.getter;
         }
 
         /// <summary>
-        /// The compiled setter for this property, walking the override chain
-        /// independently from the getter body.
+        /// The effective compiled setter for this property.
         /// </summary>
         public FunctionWithReturnType? resolvedSetter
         {
-            get
-            {
-                if (member.setter is not null) return member.setter;
-                return NeoScriptExecutor.ResolveCompiledSetter(member.id, client);
-            }
+            get => member.setter;
         }
 
         /// <summary>
@@ -227,7 +211,7 @@ namespace NeoCompose.Runtime
                 return SetterError("Cannot invoke setter on a null receiver.");
             }
 
-            string effectiveMemberId = NeoScriptExecutor.ResolveEffectiveSetterMemberId(
+            string effectiveMemberId = NeoScriptExecutor.ResolveSetterMemberId(
                 client,
                 member.id,
                 boundThis,

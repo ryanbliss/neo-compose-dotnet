@@ -23,7 +23,7 @@ namespace NeoCompose.Tests
         {
             const string json = @"{
                 'id':'selector','projectId':'project-function','name':'Selector','kind':25,
-                'isStatic':false,'accessModifierKind':'public','required':true,
+                'requirement':1,
                 'returnTypeInfo':{'type':21,'required':true,'ownerClassId':'track','genericParamId':'child'},
                 'argumentTypes':[{'name':'amount','type':2,'required':true}],
                 'defaultValue':{'value':{'code':'amount => amount','action':{
@@ -65,8 +65,7 @@ namespace NeoCompose.Tests
         {
             const string json = @"{
                 'id':'selector','projectId':'project-function','name':'Selector','kind':25,
-                'isStatic':false,'accessModifierKind':'private','isVirtual':false,
-                'required':false,
+                'requirement':0,
                 'returnTypeInfo':{'type':'Void','required':true},
                 'argumentTypes':[],
                 'defaultValue':{'value':null},
@@ -370,7 +369,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Transform",
                 kind = MemberKind.NSDelegate,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 returnTypeInfo = IntType(),
                 argumentTypes = new[] { argument },
                 defaultValue = new DelegateMemberValueBase
@@ -546,7 +545,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Count",
                 kind = MemberKind.Int,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -615,10 +614,10 @@ namespace NeoCompose.Tests
         public void MemberDto_UsesOrdinal23AndGeneralFunctionCallIr()
         {
             const string json = @"{
-                'id':'fn','projectId':'project-function','name':'Compute','kind':23,'isStatic':false,'accessModifierKind':'public',
+                'id':'fn','projectId':'project-function','name':'Compute','kind':23,
                 'code':'return RequiredLevel;','returnTypeInfo':{'type':2,'required':true},
                 'argumentTypes':[{'name':'RequiredLevel','type':2,'required':true}],
-                'deferred':false,'createdAt':'x','updatedAt':'x',
+                'createdAt':'x','updatedAt':'x',
                 'action':{
                     'parameters':[
                         {'id':'__this__','typeInfo':{'type':7,'required':true,'classId':'receiver-class'},'pointer':{'type':'variable','variableId':'__this__'}},
@@ -1159,7 +1158,7 @@ namespace NeoCompose.Tests
 
             FunctionMember deserialized =
                 JsonConvert.DeserializeObject<FunctionMember>(
-                    "{'kind':13,'isStatic':false,'accessModifierKind':'public','returnTypeInfo':{'type':18,'required':true}}")!;
+                    "{'kind':13,'returnTypeInfo':{'type':18,'required':true}}")!;
             Assert.AreEqual(
                 MemberKind.DialogueLookup,
                 deserialized.returnTypeInfo.type);
@@ -1193,7 +1192,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Generic Decimal Binding",
                 kind = MemberKind.Decimal,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1224,7 +1223,7 @@ namespace NeoCompose.Tests
                 {
                     [genericParamId] = new()
                     {
-                        kind = NeoGenericBindingKinds.Member,
+                        kind = NeoGenericBindingKind.Member,
                         memberId = binding.id,
                     },
                 },
@@ -1361,7 +1360,7 @@ namespace NeoCompose.Tests
                 name = "Generic Enum Binding",
                 kind = MemberKind.Enum,
                 enumId = enumId,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1396,7 +1395,7 @@ namespace NeoCompose.Tests
                 {
                     [genericParamId] = new()
                     {
-                        kind = NeoGenericBindingKinds.Member,
+                        kind = NeoGenericBindingKind.Member,
                         memberId = binding.id,
                     },
                 },
@@ -1462,7 +1461,7 @@ namespace NeoCompose.Tests
                 name = "Constructed Enum Binding",
                 kind = MemberKind.Enum,
                 enumId = enumId,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1477,11 +1476,11 @@ namespace NeoCompose.Tests
                 {
                     [boxParamId] = new GenericBinding
                     {
-                        kind = NeoGenericBindingKinds.Generic,
+                        kind = NeoGenericBindingKind.Generic,
                         genericParamId = forwardedParamId,
                     },
                 },
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1564,7 +1563,7 @@ namespace NeoCompose.Tests
                 name = "Cyclic Box Binding",
                 kind = MemberKind.Class,
                 classId = "cyclic-box-class",
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1572,7 +1571,7 @@ namespace NeoCompose.Tests
             {
                 [boxParamId] = new GenericBinding
                 {
-                    kind = NeoGenericBindingKinds.Member,
+                    kind = NeoGenericBindingKind.Member,
                     memberId = cyclicBinding.id,
                 },
             };
@@ -1843,7 +1842,7 @@ namespace NeoCompose.Tests
                 extendsMemberId = baseFunction.id,
                 returnTypeInfo = null!,
                 argumentTypes = null!,
-                deferred = null,
+                DeclaredDispatch = null,
                 action = Action(
                     IntType(),
                     Array.Empty<FunctionArgumentTypeInfo>(),
@@ -2188,7 +2187,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void DirectDeferredNativeCallRejectsImmediateEffectiveSignature()
+        public void DirectDeferredNativeCallRejectsImmediateSignature()
         {
             FunctionMember native = NativeFunction(
                 "fn-immediate-native",
@@ -2319,14 +2318,14 @@ namespace NeoCompose.Tests
                     IntType(),
                     Array.Empty<FunctionArgumentTypeInfo>(),
                     Return(Number(1))));
-            function.bodyMode = "code";
+            function.DeclaredBodyMode = (NeoFunctionBodyKind)99;
 
             InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
                 BuildClient(
                     new JsonMember[] { function },
                     ReceiverClass(("BodyMode", function.id))))!;
 
-            StringAssert.Contains("unsupported bodyMode 'code'", error.Message);
+            StringAssert.Contains("unsupported bodyMode ordinal '99'", error.Message);
         }
 
         [Test]
@@ -4758,8 +4757,8 @@ namespace NeoCompose.Tests
             MemberValue[]? additionalValues = null)
         {
             ClassMember assets = RootMember("root-assets", "Assets", "root-assets-value");
-            ClassMember save = RootMember("root-save", "Save", "root-save-value", "save");
-            ClassMember session = RootMember("root-session", "Session", "root-session-value", "session");
+            ClassMember save = RootMember("root-save", "Save", "root-save-value", NeoMemberStorage.Save);
+            ClassMember session = RootMember("root-session", "Session", "root-session-value", NeoMemberStorage.Session);
             var members = new Dictionary<string, JsonMember>
             {
                 [assets.id] = assets,
@@ -4829,7 +4828,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "LookupEntry",
                 kind = MemberKind.Int,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -4841,7 +4840,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.List,
                 entryMemberId = entryMember.id,
                 valueId = LookupSourceListValueId,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -4853,10 +4852,10 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Lookup,
                 collectionMemberId = sourceMember.id,
                 collectionValueId = sourceMember.valueId,
-                multiselect = true,
+                Selection = NeoMemberSelectionKind.Multi,
                 valueId = LookupSelectorValueId,
-                storage = "save",
-                required = true,
+                Storage = NeoMemberStorage.Save,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -4936,11 +4935,11 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = "save-root-class",
                 valueId = "root-save-value",
-                storage = "save",
+                Storage = NeoMemberStorage.Save,
                 createdAt = "x",
                 updatedAt = "x",
             };
-            ClassMember session = RootMember("root-session", "Session", "root-session-value", "session");
+            ClassMember session = RootMember("root-session", "Session", "root-session-value", NeoMemberStorage.Session);
             var levelMember = new IntMember
             {
                 id = "save-level",
@@ -4948,7 +4947,7 @@ namespace NeoCompose.Tests
                 name = "Level",
                 kind = MemberKind.Int,
                 valueId = "save-level-value",
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -5034,7 +5033,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = "save-root-class",
                 valueId = "root-save-value",
-                storage = "save",
+                Storage = NeoMemberStorage.Save,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -5042,7 +5041,7 @@ namespace NeoCompose.Tests
                 "root-session",
                 "Session",
                 "root-session-value",
-                "session");
+                NeoMemberStorage.Session);
             var flagMember = new BoolMember
             {
                 id = "save-flag",
@@ -5050,7 +5049,7 @@ namespace NeoCompose.Tests
                 name = "Flag",
                 kind = MemberKind.Bool,
                 valueId = "save-flag-value",
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -5102,7 +5101,7 @@ namespace NeoCompose.Tests
                     kind = MemberKind.Class,
                     classId = "save-child-class",
                     valueId = "save-child-value",
-                    required = true,
+                    Requirement = NeoMemberRequirementKind.Required,
                     createdAt = "x",
                     updatedAt = "x",
                 };
@@ -5165,7 +5164,7 @@ namespace NeoCompose.Tests
             string id,
             string name,
             string valueId,
-            string? storage = null) => new()
+            NeoMemberStorage storage = NeoMemberStorage.Inherit) => new()
         {
             id = id,
             projectId = ProjectId,
@@ -5173,7 +5172,7 @@ namespace NeoCompose.Tests
             kind = MemberKind.Class,
             classId = "root-class",
             valueId = valueId,
-            storage = storage,
+            Storage = storage,
             createdAt = "x",
             updatedAt = "x",
         };
@@ -5209,7 +5208,7 @@ namespace NeoCompose.Tests
             code = "compiled test function",
             returnTypeInfo = returnType,
             argumentTypes = arguments,
-            deferred = deferred,
+            Dispatch = deferred ? NeoFunctionDispatchKind.Asynchronous : NeoFunctionDispatchKind.Synchronous,
             action = action,
             createdAt = "x",
             updatedAt = "x",
@@ -5224,7 +5223,7 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = name,
             kind = MemberKind.NSDelegate,
-            required = true,
+            Requirement = NeoMemberRequirementKind.Required,
             returnTypeInfo = IntType(),
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
             defaultValue = new DelegateMemberValueBase
@@ -5251,7 +5250,7 @@ namespace NeoCompose.Tests
             kind = MemberKind.Function,
             returnTypeInfo = returnType ?? IntType(),
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-            deferred = deferred,
+            Dispatch = deferred ? NeoFunctionDispatchKind.Asynchronous : NeoFunctionDispatchKind.Synchronous,
             createdAt = "x",
             updatedAt = "x",
         };

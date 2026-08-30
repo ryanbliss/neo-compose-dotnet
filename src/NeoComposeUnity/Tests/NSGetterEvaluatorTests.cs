@@ -134,16 +134,12 @@ namespace NeoCompose.Tests
                     ""projectId"": ""test-project"",
                     ""name"": ""BeginAnimation"",
                     ""kind"": 13,
-                    ""locked"": false,
-                    ""required"": false,
-                    ""isStatic"": false, ""accessModifierKind"": ""public"",
                     ""createdAt"": ""2024-01-01T00:00:00.000Z"",
                     ""updatedAt"": ""2024-01-01T00:00:00.000Z"",
                     ""returnTypeInfo"": { ""type"": ""Void"", ""required"": true },
                     ""argumentTypes"": [
                         { ""name"": ""animationName"", ""type"": 3, ""required"": true }
-                    ],
-                    ""deferred"": false
+                    ]
                 }");
 
             Assert.IsInstanceOf<FunctionMember>(member);
@@ -152,7 +148,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(MemberKind.Void, function.returnTypeInfo.type);
             Assert.AreEqual("animationName", function.argumentTypes[0].name);
             Assert.AreEqual(MemberKind.String, function.argumentTypes[0].type);
-            Assert.AreEqual(false, function.deferred);
+            Assert.AreEqual(false, function.Dispatch == NeoFunctionDispatchKind.Asynchronous);
 
             Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<TypeInfo>(
@@ -949,7 +945,7 @@ namespace NeoCompose.Tests
                 out ClassMember testMember,
                 out ObjectMemberValue readOnlyRow,
                 out _);
-            RequireMember<StringMember>(client, "member-string").localizable = true;
+            RequireMember<StringMember>(client, "member-string").DeclaredFormat = NeoStringFormatKind.Localized;
             ((StringMemberValue)client.values["v-string"]).value = "text-string";
             var readOnlyNode = (NeoMemberClass)NeoMember.Create(
                 client,
@@ -1419,7 +1415,7 @@ namespace NeoCompose.Tests
                         required = true,
                     },
                 },
-                deferred = false,
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1681,17 +1677,16 @@ namespace NeoCompose.Tests
             out IntMember abstractDamage)
         {
             abstractDamage = IntMember("member-abstract-damage", "Damage");
-            abstractDamage.required = true;
-            abstractDamage.storage = "immutable";
-            abstractDamage.isVirtual = true;
-            abstractDamage.isAbstract = true;
-            abstractDamage.isReadOnly = true;
+            abstractDamage.DeclaredRequirement = NeoMemberRequirementKind.Required;
+            abstractDamage.DeclaredStorage = NeoMemberStorage.Immutable;
+            abstractDamage.DeclaredModifier = NeoMemberModifierKind.Abstract;
+            abstractDamage.DeclaredMutability = NeoMemberMutabilityKind.ReadOnly;
 
             var concreteDamage = IntMember("member-concrete-damage", "Damage");
-            concreteDamage.required = true;
-            concreteDamage.storage = "immutable";
-            concreteDamage.isVirtual = true;
-            concreteDamage.isReadOnly = true;
+            concreteDamage.DeclaredRequirement = NeoMemberRequirementKind.Required;
+            concreteDamage.DeclaredStorage = NeoMemberStorage.Immutable;
+            concreteDamage.DeclaredModifier = NeoMemberModifierKind.Virtual;
+            concreteDamage.DeclaredMutability = NeoMemberMutabilityKind.ReadOnly;
             concreteDamage.extendsMemberId = abstractDamage.id;
             concreteDamage.defaultValue = new NumberMemberValueBase { value = 42 };
 
@@ -1699,9 +1694,9 @@ namespace NeoCompose.Tests
                 "member-readonly-stats",
                 "Stats",
                 "class-abstract-stats");
-            statsMember.required = true;
-            statsMember.storage = "immutable";
-            statsMember.isReadOnly = true;
+            statsMember.DeclaredRequirement = NeoMemberRequirementKind.Required;
+            statsMember.DeclaredStorage = NeoMemberStorage.Immutable;
+            statsMember.DeclaredMutability = NeoMemberMutabilityKind.ReadOnly;
             statsMember.defaultValue = new ObjectMemberValueBase
             {
                 classId = "class-concrete-stats",
@@ -1717,12 +1712,12 @@ namespace NeoCompose.Tests
                 "member-abstract-readonly-root-save",
                 "Save",
                 "class-abstract-readonly-root");
-            rootSaveMember.storage = "save";
+            rootSaveMember.DeclaredStorage = NeoMemberStorage.Save;
             var rootSessionMember = ClassMember(
                 "member-abstract-readonly-root-session",
                 "Session",
                 "class-abstract-readonly-root");
-            rootSessionMember.storage = "session";
+            rootSessionMember.DeclaredStorage = NeoMemberStorage.Session;
 
             var rootClass = NeoSchemaClass(
                 "class-abstract-readonly-root",
@@ -1732,7 +1727,7 @@ namespace NeoCompose.Tests
                 "class-abstract-stats",
                 "AbstractStats",
                 new Dictionary<string, string> { ["Damage"] = abstractDamage.id });
-            abstractStatsClass.isAbstract = true;
+            abstractStatsClass.DeclaredModifier = NeoClassModifierKind.Abstract;
             var concreteStatsClass = NeoSchemaClass(
                 "class-concrete-stats",
                 "ConcreteStats",
@@ -1949,7 +1944,7 @@ namespace NeoCompose.Tests
                 name = name,
                 kind = MemberKind.Dictionary,
                 entryMemberId = entryMemberId,
-                keyKind = NeoDictionaryKeyKinds.String,
+                KeyKind = NeoDictionaryKeyKind.String,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -2003,7 +1998,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Lookup,
                 collectionMemberId = collectionMemberId,
                 collectionValueId = collectionValueId,
-                multiselect = true,
+                Selection = NeoMemberSelectionKind.Multi,
                 createdAt = "x",
                 updatedAt = "x",
             };

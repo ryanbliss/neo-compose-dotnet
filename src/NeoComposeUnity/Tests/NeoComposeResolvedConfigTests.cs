@@ -18,7 +18,7 @@ namespace NeoCompose.Tests
     /// committed asset is never mutated, endpoints always come from the rig, and
     /// developer-owned fields keep their latch.
     /// </summary>
-    public class NeoComposeEffectiveConfigTests
+    public class NeoComposeResolvedConfigTests
     {
         private const string PackageRoot =
             "Packages/com.ryanbliss.neocompose/Tests";
@@ -29,7 +29,7 @@ namespace NeoCompose.Tests
         [SetUp]
         public void SetUp()
         {
-            NeoComposeEffectiveConfig.ResetForTests();
+            NeoComposeResolvedConfig.ResetForTests();
             committed = ScriptableObject.CreateInstance<NeoComposeConfig>();
             committed.name = "NeoComposeConfig";
             committed.apiBaseUrl = "https://neocompose.app";
@@ -49,10 +49,10 @@ namespace NeoCompose.Tests
             if (committed != null) UnityEngine.Object.DestroyImmediate(committed);
             overlay = null;
             committed = null;
-            NeoComposeEffectiveConfig.ResetForTests();
+            NeoComposeResolvedConfig.ResetForTests();
         }
 
-        private const string TempRoot = "Assets/NeoComposeEffectiveConfigTestsTemp";
+        private const string TempRoot = "Assets/NeoComposeResolvedConfigTestsTemp";
 
         private static void CleanupTempRoot()
         {
@@ -65,7 +65,7 @@ namespace NeoCompose.Tests
         private static void EnsureTempRoot()
         {
             CleanupTempRoot();
-            AssetDatabase.CreateFolder("Assets", "NeoComposeEffectiveConfigTestsTemp");
+            AssetDatabase.CreateFolder("Assets", "NeoComposeResolvedConfigTestsTemp");
         }
 
         private static NeoComposeRigManifest LoadManifest(string fileName)
@@ -80,7 +80,7 @@ namespace NeoCompose.Tests
         {
             var manifest = LoadManifest("rig-manifest-unseeded.json");
 
-            overlay = NeoComposeEffectiveConfig.Apply(committed!, manifest);
+            overlay = NeoComposeResolvedConfig.Apply(committed!, manifest);
 
             Assert.AreEqual(manifest.web.origin, overlay.apiBaseUrl);
             Assert.AreEqual(manifest.deployment.url, overlay.convexUrl);
@@ -97,7 +97,7 @@ namespace NeoCompose.Tests
         {
             var manifest = LoadManifest("rig-manifest-seeded.json");
 
-            overlay = NeoComposeEffectiveConfig.Apply(committed!, manifest);
+            overlay = NeoComposeResolvedConfig.Apply(committed!, manifest);
 
             Assert.AreEqual(manifest.web.origin, overlay.apiBaseUrl);
             Assert.AreEqual(manifest.deployment.url, overlay.convexUrl);
@@ -120,7 +120,7 @@ namespace NeoCompose.Tests
         {
             var manifest = LoadManifest("rig-manifest-seeded.json");
 
-            overlay = NeoComposeEffectiveConfig.Apply(committed!, manifest);
+            overlay = NeoComposeResolvedConfig.Apply(committed!, manifest);
 
             Assert.AreNotSame(committed, overlay);
             Assert.AreEqual("https://neocompose.app", committed!.apiBaseUrl);
@@ -135,7 +135,7 @@ namespace NeoCompose.Tests
             committed!.runtimeOAuthOverridden = true;
             var manifest = LoadManifest("rig-manifest-seeded.json");
 
-            overlay = NeoComposeEffectiveConfig.Apply(committed, manifest);
+            overlay = NeoComposeResolvedConfig.Apply(committed, manifest);
 
             // Project identity still follows the rig; the hand-edited runtime OAuth
             // fields are developer-owned and stick.
@@ -149,12 +149,12 @@ namespace NeoCompose.Tests
         [Test]
         public void Overlay_IsRecognizedAsARigOverlay()
         {
-            overlay = NeoComposeEffectiveConfig.Apply(
+            overlay = NeoComposeResolvedConfig.Apply(
                 committed!,
                 LoadManifest("rig-manifest-unseeded.json"));
 
-            Assert.IsTrue(NeoComposeEffectiveConfig.IsRigOverlay(overlay));
-            Assert.IsFalse(NeoComposeEffectiveConfig.IsRigOverlay(committed!));
+            Assert.IsTrue(NeoComposeResolvedConfig.IsRigOverlay(overlay));
+            Assert.IsFalse(NeoComposeResolvedConfig.IsRigOverlay(committed!));
         }
 
         [Test]
@@ -170,7 +170,7 @@ namespace NeoCompose.Tests
                 NeoComposeConfigProvider.Save(committedAsset);
                 var serializedBefore = File.ReadAllText(assetPath);
 
-                overlay = NeoComposeEffectiveConfig.Apply(
+                overlay = NeoComposeResolvedConfig.Apply(
                     committedAsset,
                     LoadManifest("rig-manifest-seeded.json"));
                 overlay.projectName = "Edited in rig mode";
@@ -190,14 +190,14 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void LoadDefault_ReturnsTheEditorEffectiveConfig()
+        public void LoadDefault_ReturnsTheEditorResolvedConfig()
         {
-            var installed = NeoComposeConfig.EditorEffectiveConfigResolver;
+            var installed = NeoComposeConfig.EditorResolvedConfigResolver;
             var sentinel = ScriptableObject.CreateInstance<NeoComposeConfig>();
             sentinel.name = "SentinelOverlay";
             try
             {
-                NeoComposeConfig.EditorEffectiveConfigResolver = _ => sentinel;
+                NeoComposeConfig.EditorResolvedConfigResolver = _ => sentinel;
 
                 var resolved = NeoComposeConfig.LoadDefault();
                 if (resolved == null)
@@ -211,7 +211,7 @@ namespace NeoCompose.Tests
             }
             finally
             {
-                NeoComposeConfig.EditorEffectiveConfigResolver = installed;
+                NeoComposeConfig.EditorResolvedConfigResolver = installed;
                 UnityEngine.Object.DestroyImmediate(sentinel);
             }
         }
@@ -219,10 +219,10 @@ namespace NeoCompose.Tests
         [Test]
         public void LoadDefault_ReturnsTheCommittedAssetWithoutAResolver()
         {
-            var installed = NeoComposeConfig.EditorEffectiveConfigResolver;
+            var installed = NeoComposeConfig.EditorResolvedConfigResolver;
             try
             {
-                NeoComposeConfig.EditorEffectiveConfigResolver = null;
+                NeoComposeConfig.EditorResolvedConfigResolver = null;
 
                 var resolved = NeoComposeConfig.LoadDefault();
                 var committedAsset = Resources.Load<NeoComposeConfig>(
@@ -232,7 +232,7 @@ namespace NeoCompose.Tests
             }
             finally
             {
-                NeoComposeConfig.EditorEffectiveConfigResolver = installed;
+                NeoComposeConfig.EditorResolvedConfigResolver = installed;
             }
         }
 
@@ -250,9 +250,9 @@ namespace NeoCompose.Tests
                 Assert.Ignore("A rig is bound to this checkout; committed-mode assertion does not apply.");
             }
 
-            Assert.IsNull(NeoComposeEffectiveConfig.ResolveActiveRig());
-            Assert.IsNull(NeoComposeEffectiveConfig.DescribeActiveRig());
-            Assert.AreSame(committed, NeoComposeEffectiveConfig.Resolve(committed!));
+            Assert.IsNull(NeoComposeResolvedConfig.ResolveActiveRig());
+            Assert.IsNull(NeoComposeResolvedConfig.DescribeActiveRig());
+            Assert.AreSame(committed, NeoComposeResolvedConfig.Resolve(committed!));
         }
     }
 }

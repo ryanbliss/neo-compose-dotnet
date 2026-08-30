@@ -175,7 +175,7 @@ namespace NeoCompose.Tests
             var error = Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<NeoCompose.Runtime.Json.Member>(
                     "{\"id\":\"portrait-member\",\"projectId\":\"p\",\"name\":\"Portrait\","
-                    + "\"kind\":11,\"isStatic\":false,\"accessModifierKind\":\"public\","
+                    + "\"kind\":11,"
                     + "\"defaultValue\":{\"value\":{\"~partial\":{\"sliceIndex\":1}}}}"));
             StringAssert.Contains("SpriteMember 'Portrait' (portrait-member)", error!.ToString());
             StringAssert.Contains("animation override graph", error.ToString());
@@ -186,7 +186,7 @@ namespace NeoCompose.Tests
         {
             var member = JsonConvert.DeserializeObject<NeoCompose.Runtime.Json.Member>(
                 "{\"id\":\"portrait-member\",\"projectId\":\"p\",\"name\":\"Portrait\","
-                + "\"kind\":11,\"isStatic\":false,\"accessModifierKind\":\"public\","
+                + "\"kind\":11,"
                 + "\"defaultValue\":{\"value\":{\"fileId\":\"file-a\",\"sliceIndex\":1}}}");
             var sprite = (SpriteMember)member!;
             Assert.AreEqual("file-a", sprite.defaultValue!.value!.fileId);
@@ -575,7 +575,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = id,
                 kind = MemberKind.Class,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };
@@ -589,7 +589,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = name,
                 kind = MemberKind.Sprite,
-                required = false,
+                Requirement = NeoMemberRequirementKind.Optional,
             };
         }
 

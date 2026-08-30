@@ -44,7 +44,8 @@ namespace NeoCompose.Runtime
         internal Member EntryMember => entryMember;
 
         /// <summary>
-        /// True when the member declares <c>listKind: "unordered"</c>:
+        /// True when the member declares <see cref="NeoListKind.Unordered"/>
+        /// through its numeric <c>listKind</c> enum value:
         /// the stored value is only the null-vs-present discriminator
         /// (<c>null</c> or <c>[]</c>) and membership resolves by join over
         /// <see cref="MemberValue.containerId"/>, enumerated id-sorted.
@@ -173,11 +174,11 @@ namespace NeoCompose.Runtime
         {
             if (schemaKey is null) throw new ArgumentNullException(nameof(schemaKey));
             ListIndexDefinition definition = ResolveIndexDefinition(schemaKey);
-            if (definition.unique != unique)
+            if (definition.Kind == NeoListIndexKind.Unique != unique)
             {
                 throw new InvalidOperationException(
                     $"List index '{schemaKey}' on member '{member.id}' is declared "
-                    + $"{(definition.unique ? "unique" : "many")}, but the generated runtime view expects "
+                    + $"{(definition.Kind == NeoListIndexKind.Unique ? "unique" : "many")}, but the generated runtime view expects "
                     + $"{(unique ? "unique" : "many")}.");
             }
             if (!derivedIndexes.TryGetValue(schemaKey, out NeoRawListIndex? index))
@@ -190,31 +191,16 @@ namespace NeoCompose.Runtime
 
         private ListIndexDefinition ResolveIndexDefinition(string schemaKey)
         {
-            ListMember? cursor = member;
-            var visited = new HashSet<string>();
-            while (cursor is not null && visited.Add(cursor.id))
+            if (member.indexes is not null)
             {
-                if (cursor.indexes is not null)
+                foreach (ListIndexDefinition definition in member.indexes)
                 {
-                    foreach (ListIndexDefinition definition in cursor.indexes)
+                    if (definition is not null
+                        && string.Equals(definition.schemaKey, schemaKey, StringComparison.Ordinal))
                     {
-                        if (definition is not null
-                            && string.Equals(definition.schemaKey, schemaKey, StringComparison.Ordinal))
-                        {
-                            return definition;
-                        }
+                        return definition;
                     }
-                    // An explicit array is authoritative. Empty and absent
-                    // both mean no local indexes, but only absence inherits an
-                    // older export's fully-defined List declaration.
-                    break;
                 }
-                if (string.IsNullOrEmpty(cursor.extendsMemberId)
-                    || !client.TryGetMember(cursor.extendsMemberId, out ListMember? parent))
-                {
-                    break;
-                }
-                cursor = parent;
             }
             throw new KeyNotFoundException(
                 $"List member '{member.id}' has no declared index named '{schemaKey}'.");
@@ -267,7 +253,7 @@ namespace NeoCompose.Runtime
             {
                 if (string.IsNullOrEmpty(entryId)) continue;
                 if (!seen.Add(entryId)) continue;
-                var row = client.ResolveEffectiveRow(entryId);
+                var row = client.ResolveValueRow(entryId);
                 if (row is null || row.IsRemoved) continue;
                 ids.Add(entryId);
             }
@@ -510,7 +496,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void AddSerialized(NeoValueWritePayload? entryValue)
         {
-            if (entryMember.required && (entryValue is null || entryValue.isNull))
+            if (entryMember.Requirement == NeoMemberRequirementKind.Required && (entryValue is null || entryValue.isNull))
             {
                 throw new System.ArgumentNullException(
                     nameof(entryValue),
@@ -588,7 +574,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"List member '{member.id}' is unordered; entries have no position to replace at. Remove the entry and add the replacement instead.");
             }
-            if (entryMember.required && (entryValue is null || entryValue.isNull))
+            if (entryMember.Requirement == NeoMemberRequirementKind.Required && (entryValue is null || entryValue.isNull))
             {
                 throw new System.ArgumentNullException(
                     nameof(entryValue),
@@ -852,7 +838,7 @@ namespace NeoCompose.Runtime
             // (owned children of the new member) have no containment edge, so
             // they are stamped here.
             string? partitionMapKey =
-                client.ResolveEffectiveRow(containerValueId)?.mapKey ?? containerRow.mapKey;
+                client.ResolveValueRow(containerValueId)?.mapKey ?? containerRow.mapKey;
             if (partitionMapKey is not null && entryValue?.value is NeoValuePayload wrappedPayload)
             {
                 foreach (var payloadRow in wrappedPayload.valueRows)
@@ -1011,7 +997,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership entryOwnership,
             string entryValueId)
         {
-            var effectiveRow = client.ResolveEffectiveRow(entryValueId);
+            var effectiveRow = client.ResolveValueRow(entryValueId);
             bool isJoinedMember = effectiveRow?.containerId == value?.id
                 || (client.TryResolveContainerIdForValueId(entryValueId, out string? containerId)
                     && containerId == value?.id);

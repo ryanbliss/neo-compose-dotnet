@@ -39,7 +39,7 @@ namespace NeoCompose.Tests
         public void DecimalMember_DeserializesByKindOrdinal()
         {
             var member = JsonConvert.DeserializeObject<NeoCompose.Runtime.Json.Member>(
-                "{\"id\":\"a1\",\"projectId\":\"p\",\"name\":\"Speed\",\"kind\":20,\"isStatic\":false,\"accessModifierKind\":\"public\"," +
+                "{\"id\":\"a1\",\"projectId\":\"p\",\"name\":\"Speed\",\"kind\":20," +
                 "\"minValue\":\"0\",\"maxValue\":\"100.5\",\"decimalPoints\":4," +
                 "\"defaultValue\":{\"value\":\"1.25\"}}");
             Assert.IsInstanceOf<DecimalMember>(member);
@@ -98,7 +98,7 @@ namespace NeoCompose.Tests
             var speed = client.save.Get<NeoMemberDecimalWritable>("Speed");
 
             var error = Assert.Throws<System.ArgumentNullException>(() => speed.Set(null));
-            StringAssert.Contains("required", error!.Message);
+            StringAssert.Contains("requirement is Required", error!.Message);
         }
 
         [Test]
@@ -189,7 +189,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = id,
                 kind = MemberKind.Class,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };
@@ -207,7 +207,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = name,
                 kind = MemberKind.Decimal,
-                required = required,
+                Requirement = required ? NeoMemberRequirementKind.Required : NeoMemberRequirementKind.Optional,
                 defaultValue = defaultValue is null
                     ? null
                     : new StringMemberValueBase { value = defaultValue },

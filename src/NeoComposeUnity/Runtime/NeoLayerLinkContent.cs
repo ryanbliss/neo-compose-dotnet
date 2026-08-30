@@ -611,7 +611,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"{label} layer link '{linkValueId}' references missing link class '{linkClassId}'.");
             }
-            if (linkClass.isAbstract)
+            if (linkClass.Modifier == NeoClassModifierKind.Abstract)
             {
                 throw new InvalidOperationException(
                     $"{label} layer link '{linkValueId}' uses abstract link class '{linkClassId}'. Layer-link values require a concrete project-authored class.");
@@ -628,7 +628,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"{label} layer link '{linkValueId}' uses class '{linkClassId}', whose inherited world kind is '{actualWorldKind ?? "<missing>"}' instead of '{expectedWorldKind}'.");
             }
-            if (!systemBase.isAbstract
+            if (systemBase.Modifier != NeoClassModifierKind.Abstract
                 || string.Equals(systemBase.id, linkClassId, StringComparison.Ordinal))
             {
                 throw new InvalidOperationException(
@@ -650,7 +650,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"{label} layer link '{linkValueId}' targets missing layer class '{targetClassId}'.");
             }
-            if (targetClass.isAbstract)
+            if (targetClass.Modifier == NeoClassModifierKind.Abstract)
             {
                 throw new InvalidOperationException(
                     $"{label} layer link '{linkValueId}' targets abstract layer class '{targetClassId}'.");

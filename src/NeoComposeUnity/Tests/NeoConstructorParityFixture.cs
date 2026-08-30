@@ -22,7 +22,7 @@ namespace NeoCompose.Tests
     public static class NeoConstructorParityFixture
     {
         public const string Json = @"{
-  ""$comment"": ""P43 \u00a76.1 cross-runtime declared-constructor parity fixture. Construction is the one place two evaluators can agree on every individual step and still disagree on the ANSWER, because the answer is an ORDER: member initializers, then the base chain, then the body, then the call-site initializer block \u2014 with the last one winning even for a member the body wrote (\u00a71.2, \u00a76.1 step 4). That order is pinned here as executable IR rather than prose. Consumed by src/models/neoscript/neoscript-constructor-parity.test.ts (web) and NeoConstructorParityTests (neo-compose-dotnet, vendored copy at src/NeoComposeUnity/Tests/NeoConstructorParityFixture.cs). Hand-maintained: a fixture generated from one runtime cannot catch a divergence in the other's source of truth. Each evaluateCases entry is a compiled getter whose sole instruction returns a `declaredConstructor` pointer; run it against `document` with `__this__` = null and `__root__` built from the project's three root members, then read the produced record's schemaKey -> row value for `expectedFields`, or assert the thrown message contains `expectedErrorContains`. P49 \u00a71 extends it with a required constructor: `Gate` and `Latch` carry `requiredConstructorId` rather than `constructorIds`, and `ctor-latch` is a class header's constructor whose `baseArguments` pass the header parameter to the base's required constructor, whose `baseInitializerFields` settle an inherited member from the base clause, and whose `code` is the `init` block. The three P49 cases pin the stage order that adds (base clause block, then init body, then call-site block) and the implicit `new` \u00a71.3 disables."",
+  ""$comment"": ""P43 §6.1 cross-runtime declared-constructor parity fixture. Construction is the one place two evaluators can agree on every individual step and still disagree on the ANSWER, because the answer is an ORDER: member initializers, then the base chain, then the body, then the call-site initializer block — with the last one winning even for a member the body wrote (§1.2, §6.1 step 4). That order is pinned here as executable IR rather than prose. Consumed by src/models/neoscript/neoscript-constructor-parity.test.ts (web) and NeoConstructorParityTests (neo-compose-dotnet, vendored copy at src/NeoComposeUnity/Tests/NeoConstructorParityFixture.cs). Hand-maintained: a fixture generated from one runtime cannot catch a divergence in the other's source of truth. Each evaluateCases entry is a compiled getter whose sole instruction returns a `declaredConstructor` pointer; run it against `document` with `__this__` = null and `__root__` built from the project's three root members, then read the produced record's schemaKey -> row value for `expectedFields`, or assert the thrown message contains `expectedErrorContains`. P49 §1 extends it with a required constructor: `Gate` and `Latch` carry `requiredConstructorId` rather than `constructorIds`, and `ctor-latch` is a class header's constructor whose `baseArguments` pass the header parameter to the base's required constructor, whose `baseInitializerFields` settle an inherited member from the base clause, and whose `code` is the `init` block. The three P49 cases pin the stage order that adds (base clause block, then init body, then call-site block) and the implicit `new` §1.3 disables."",
   ""document"": {
     ""project"": {
       ""id"": ""project-p43"",
@@ -48,8 +48,6 @@ namespace NeoCompose.Tests
     ""classes"": [
       {
         ""projectId"": ""project-p43"",
-        ""isAbstract"": false,
-        ""hiddenInMemberSelector"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""class-base"",
@@ -57,12 +55,12 @@ namespace NeoCompose.Tests
         ""schema"": {
           ""Tag"": ""member-tag""
         },
-        ""constructorIds"": [""ctor-base""]
+        ""constructorIds"": [
+          ""ctor-base""
+        ]
       },
       {
         ""projectId"": ""project-p43"",
-        ""isAbstract"": false,
-        ""hiddenInMemberSelector"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""class-derived"",
@@ -72,12 +70,13 @@ namespace NeoCompose.Tests
           ""Note"": ""member-note"",
           ""Prefix"": ""member-prefix""
         },
-        ""constructorIds"": [""ctor-derived"", ""ctor-derived-prefixed""]
+        ""constructorIds"": [
+          ""ctor-derived"",
+          ""ctor-derived-prefixed""
+        ]
       },
       {
         ""projectId"": ""project-p43"",
-        ""isAbstract"": false,
-        ""hiddenInMemberSelector"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""class-foo"",
@@ -87,12 +86,12 @@ namespace NeoCompose.Tests
           ""Count"": ""member-count"",
           ""Items"": ""member-items""
         },
-        ""constructorIds"": [""ctor-foo""]
+        ""constructorIds"": [
+          ""ctor-foo""
+        ]
       },
       {
         ""projectId"": ""project-p43"",
-        ""isAbstract"": false,
-        ""hiddenInMemberSelector"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""class-thrower"",
@@ -100,12 +99,12 @@ namespace NeoCompose.Tests
         ""schema"": {
           ""ThrowTag"": ""member-throw-tag""
         },
-        ""constructorIds"": [""ctor-thrower""]
+        ""constructorIds"": [
+          ""ctor-thrower""
+        ]
       },
       {
         ""projectId"": ""project-p43"",
-        ""isAbstract"": false,
-        ""hiddenInMemberSelector"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""class-reader"",
@@ -113,12 +112,12 @@ namespace NeoCompose.Tests
         ""schema"": {
           ""Count"": ""member-reader-count""
         },
-        ""constructorIds"": [""ctor-reader""]
+        ""constructorIds"": [
+          ""ctor-reader""
+        ]
       },
       {
         ""projectId"": ""project-p43"",
-        ""isAbstract"": false,
-        ""hiddenInMemberSelector"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""class-holder"",
@@ -129,8 +128,6 @@ namespace NeoCompose.Tests
       },
       {
         ""projectId"": ""project-p43"",
-        ""isAbstract"": false,
-        ""hiddenInMemberSelector"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""class-boom"",
@@ -141,8 +138,6 @@ namespace NeoCompose.Tests
       },
       {
         ""projectId"": ""project-p43"",
-        ""isAbstract"": false,
-        ""hiddenInMemberSelector"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""class-node"",
@@ -153,8 +148,6 @@ namespace NeoCompose.Tests
       },
       {
         ""projectId"": ""project-p43"",
-        ""isAbstract"": false,
-        ""hiddenInMemberSelector"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""class-root-assets"",
@@ -163,8 +156,6 @@ namespace NeoCompose.Tests
       },
       {
         ""projectId"": ""project-p43"",
-        ""isAbstract"": false,
-        ""hiddenInMemberSelector"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""class-root-save"",
@@ -175,8 +166,6 @@ namespace NeoCompose.Tests
       },
       {
         ""projectId"": ""project-p43"",
-        ""isAbstract"": false,
-        ""hiddenInMemberSelector"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""class-root-session"",
@@ -185,8 +174,6 @@ namespace NeoCompose.Tests
       },
       {
         ""projectId"": ""project-p43"",
-        ""isAbstract"": false,
-        ""hiddenInMemberSelector"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""class-nullable"",
@@ -198,8 +185,6 @@ namespace NeoCompose.Tests
       },
       {
         ""projectId"": ""project-p43"",
-        ""isAbstract"": false,
-        ""hiddenInMemberSelector"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""class-gate"",
@@ -212,8 +197,6 @@ namespace NeoCompose.Tests
       },
       {
         ""projectId"": ""project-p43"",
-        ""isAbstract"": false,
-        ""hiddenInMemberSelector"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""class-latch"",
@@ -228,104 +211,82 @@ namespace NeoCompose.Tests
     ""members"": [
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-tag"",
         ""name"": ""Tag"",
         ""kind"": 3,
-        ""required"": true,
         ""defaultValue"": {
           ""value"": ""tag""
-        }
+        },
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-note"",
         ""name"": ""Note"",
         ""kind"": 3,
-        ""required"": true,
         ""defaultValue"": {
           ""value"": ""note""
-        }
+        },
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-bar"",
         ""name"": ""Bar"",
         ""kind"": 3,
-        ""required"": true,
         ""defaultValue"": {
           ""value"": ""Bar""
-        }
+        },
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-count"",
         ""name"": ""Count"",
         ""kind"": 2,
-        ""required"": true,
         ""defaultValue"": {
           ""value"": 1
-        }
+        },
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-items"",
         ""name"": ""Items"",
         ""kind"": 6,
         ""entryMemberId"": ""member-items-entry"",
-        ""required"": true,
         ""defaultValue"": {
           ""value"": []
-        }
+        },
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-items-entry"",
         ""name"": ""Item"",
         ""kind"": 7,
         ""classId"": ""class-holder"",
-        ""required"": true
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-label"",
         ""name"": ""Label"",
         ""kind"": 3,
-        ""required"": true,
         ""defaultValue"": {
           ""init"": {
             ""code"": ""\""computed\"""",
@@ -390,19 +351,16 @@ namespace NeoCompose.Tests
               }
             }
           }
-        }
+        },
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-boom-label"",
         ""name"": ""BoomLabel"",
         ""kind"": 3,
-        ""required"": true,
         ""defaultValue"": {
           ""init"": {
             ""code"": ""Explode(\""initializer exploded\"")"",
@@ -465,20 +423,17 @@ namespace NeoCompose.Tests
               }
             }
           }
-        }
+        },
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-node-child"",
         ""name"": ""Child"",
         ""kind"": 7,
         ""classId"": ""class-node"",
-        ""required"": true,
         ""defaultValue"": {
           ""init"": {
             ""code"": ""new Node()"",
@@ -548,184 +503,148 @@ namespace NeoCompose.Tests
               }
             }
           }
-        }
+        },
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-throw-tag"",
         ""name"": ""ThrowTag"",
         ""kind"": 3,
-        ""required"": true,
         ""defaultValue"": {
           ""value"": ""quiet""
-        }
+        },
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-reader-count"",
         ""name"": ""Count"",
         ""kind"": 2,
-        ""required"": true,
         ""defaultValue"": {
           ""value"": 1
-        }
+        },
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-world-time"",
         ""name"": ""WorldTime"",
         ""kind"": 2,
-        ""required"": true,
         ""defaultValue"": {
           ""value"": 7
-        }
+        },
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-root-assets"",
         ""name"": ""Assets"",
         ""kind"": 7,
         ""classId"": ""class-root-assets"",
-        ""required"": true,
-        ""valueId"": ""value-root-assets""
+        ""valueId"": ""value-root-assets"",
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-root-save"",
         ""name"": ""Save"",
         ""kind"": 7,
         ""classId"": ""class-root-save"",
-        ""required"": true,
-        ""valueId"": ""value-root-save""
+        ""valueId"": ""value-root-save"",
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-root-session"",
         ""name"": ""Session"",
         ""kind"": 7,
         ""classId"": ""class-root-session"",
-        ""required"": true,
-        ""valueId"": ""value-root-session""
+        ""valueId"": ""value-root-session"",
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-prefix"",
         ""name"": ""Prefix"",
         ""kind"": 3,
-        ""required"": true,
         ""defaultValue"": {
           ""value"": ""pre""
-        }
+        },
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-maybe"",
         ""name"": ""Maybe"",
         ""kind"": 3,
-        ""required"": false,
         ""defaultValue"": {
           ""value"": ""maybe""
         }
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-kept"",
         ""name"": ""Kept"",
         ""kind"": 3,
-        ""required"": true,
         ""defaultValue"": {
           ""value"": ""kept""
-        }
+        },
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-gate-mark"",
         ""name"": ""Mark"",
         ""kind"": 3,
-        ""required"": true,
         ""defaultValue"": {
           ""value"": ""mark-initializer""
-        }
+        },
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-gate-seal"",
         ""name"": ""Seal"",
         ""kind"": 3,
-        ""required"": true,
         ""defaultValue"": {
           ""value"": ""seal-initializer""
-        }
+        },
+        ""requirement"": 1
       },
       {
         ""projectId"": ""project-p43"",
-        ""accessModifierKind"": ""public"",
-        ""locked"": false,
-        ""isStatic"": false,
         ""createdAt"": 1,
         ""updatedAt"": 1,
         ""id"": ""member-latch-note"",
         ""name"": ""Note"",
         ""kind"": 3,
-        ""required"": true,
         ""defaultValue"": {
           ""value"": ""note-initializer""
-        }
+        },
+        ""requirement"": 1
       }
     ],
     ""values"": [

@@ -1,6 +1,6 @@
 /// A variant folder whose variants receive a row from a bound collection.
 @id("system_b3bd4d91-6e03-4034-b201-05afd78f7c72")
-@hidden
+@visibility(.Hidden)
 @storage(allowed: .Immutable)
 @system(kind: .WorldAuthoring, worldKind: .LookupVariantFolder)
 sealed class NeoLookupVariantFolder<
@@ -10,8 +10,7 @@ sealed class NeoLookupVariantFolder<
   TValue
 >(string path) {
   @id("system_d36ebea5-151f-4d9d-95f2-28d8cfb05870")
-  @locked
-  @settings(localizable: false)
+  @settings(format: .Plain)
   @system(kind: .WorldAuthoring)
   public virtual string Path = path;
 }

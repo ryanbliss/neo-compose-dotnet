@@ -2,7 +2,6 @@
 @system(kind: .WorldAuthoring, worldKind: .ObjectPlacementTile)
 class NeoObjectPlacementTile {
   @id("system_b0b3c45c-a87d-4218-b056-7418ef46aac5")
-  @locked
   @system(kind: .WorldAuthoring)
   public virtual Vector2Int Cell = new(0, 0);
 }

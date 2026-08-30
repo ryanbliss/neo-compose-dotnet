@@ -80,23 +80,22 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Overwrites the selected option ids. Each id is validated
-        /// against the linked enum's options. When
-        /// <c>multiselect</c> is false, only the first id in
-        /// <paramref name="optionIds"/> is honored.
+        /// against the linked enum's options. In single-select mode, only the
+        /// first id in <paramref name="optionIds"/> is honored.
         /// </summary>
         public void Set(string[]? optionIds)
         {
-            if (member.required && (optionIds is null || optionIds.Length == 0))
+            if (member.Requirement == NeoMemberRequirementKind.Required && (optionIds is null || optionIds.Length == 0))
             {
                 throw new System.ArgumentNullException(
                     nameof(optionIds),
-                    $"Cannot be null/empty when {nameof(member)}.{nameof(member.required)} is true");
+                    $"Cannot be null/empty when {nameof(member)} requirement is Required");
             }
 
             string[]? normalized = optionIds;
             if (normalized is not null)
             {
-                if (!member.multiselect && normalized.Length > 1)
+                if (member.Selection != NeoMemberSelectionKind.Multi && normalized.Length > 1)
                 {
                     normalized = new[] { normalized[0] };
                 }

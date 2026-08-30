@@ -1,6 +1,6 @@
 /// A NeoObject configuration parameterized by a row from a bound collection.
 @id("system_38ddb113-5df8-4385-9324-1cecf7f3bd99")
-@hidden
+@visibility(.Hidden)
 @storage(allowed: .Immutable)
 @system(kind: .WorldAuthoring, worldKind: .LookupVariant)
 sealed class NeoLookupVariant<
@@ -10,23 +10,19 @@ sealed class NeoLookupVariant<
   TValue
 >(NeoDelegate<TObject, TValue> initialize, NeoDelegate<void, TObject, TValue>? apply = null, TObject? overrides = null, List<NeoAnimationChildOverride<NeoObjectBase>>? childOverrides = null) {
   @id("system_42da97f6-c714-47b6-b750-232232ec4f83")
-  @locked
   @system(kind: .WorldAuthoring)
   public virtual NeoDelegate<void, TObject, TValue>? Apply = apply;
 
   @id("system_ae23d675-2531-44a2-b792-8a121d99aec2")
-  @locked
   @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoAnimationChildOverride<NeoObjectBase>>? ChildOverrides = childOverrides;
 
   @id("system_ddff93cb-2e4e-43ed-ae1a-b523eb53e0e9")
-  @locked
   @system(kind: .WorldAuthoring)
   public virtual NeoDelegate<TObject, TValue> Initialize = initialize;
 
   @id("system_070ae22a-7603-48cf-94e2-528d88b72825")
-  @locked
   @system(kind: .WorldAuthoring)
   public virtual Partial<TObject> Overrides = overrides;
 }

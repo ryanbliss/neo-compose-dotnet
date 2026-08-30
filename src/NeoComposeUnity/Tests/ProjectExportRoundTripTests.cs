@@ -124,23 +124,23 @@ namespace NeoCompose.Tests
         {
             const string classJson = @"{
   'id':'partial','projectId':'project','name':'Overrides','kind':7,
-  'locked':true,'required':false,'isStatic':false,'accessModifierKind':'public',
-  'classId':'target','partial':true,'createdAt':'x','updatedAt':'x'
+
+  'classId':'target','payload':1,'createdAt':'x','updatedAt':'x'
 }";
             var partial = (ClassMember)JsonConvert.DeserializeObject<Member>(classJson)!;
-            Assert.AreEqual(true, partial.partial);
+            Assert.AreEqual(true, partial.Payload == NeoMemberPayloadKind.Partial);
 
             const string genericJson = @"{
   'id':'generic-partial','projectId':'project','name':'Overrides','kind':21,
-  'locked':true,'required':false,'isStatic':false,'accessModifierKind':'public',
-  'genericParamId':'target-param','partial':true,'createdAt':'x','updatedAt':'x'
+
+  'genericParamId':'target-param','payload':1,'createdAt':'x','updatedAt':'x'
 }";
             var generic = (GenericMember)JsonConvert.DeserializeObject<Member>(genericJson)!;
-            Assert.AreEqual(true, generic.partial);
+            Assert.AreEqual(true, generic.Payload == NeoMemberPayloadKind.Partial);
 
             const string functionRefJson = @"{
   'id':'action-ref','projectId':'project','name':'Action','kind':24,
-  'locked':true,'required':true,'isStatic':false,'accessModifierKind':'public',
+  'requirement':1,
   'defaultValue':{'value':{'functionMemberId':'function-a'}},
   'createdAt':'x','updatedAt':'x'
 }";
@@ -150,18 +150,18 @@ namespace NeoCompose.Tests
 
             const string nsFunctionJson = @"{
   'id':'ui-function','projectId':'project','name':'OnFrame','kind':23,
-  'locked':false,'required':false,'isStatic':false,'accessModifierKind':'public',
-  'code':'return;','bodyMode':'ui','returnTypeInfo':{'type':'Void','required':true},
-  'argumentTypes':[],'deferred':false,'createdAt':'x','updatedAt':'x',
+
+  'code':'return;','bodyMode':1,'returnTypeInfo':{'type':'Void','required':true},
+  'argumentTypes':[],'createdAt':'x','updatedAt':'x',
   'uiAction':{'parameters':[],'instructions':[],'typeInfo':{'type':0,'required':true}},
   'action':{'parameters':[],'instructions':[],'typeInfo':{'type':0,'required':true}}
 }";
             var nsFunction = (NSFunctionMember)JsonConvert.DeserializeObject<Member>(nsFunctionJson)!;
-            Assert.AreEqual("ui", nsFunction.bodyMode);
+            Assert.AreEqual(NeoFunctionBodyKind.UI, nsFunction.BodyMode);
             Assert.IsNotNull(nsFunction.uiAction);
 
             JObject serialized = JObject.Parse(JsonConvert.SerializeObject(nsFunction));
-            Assert.AreEqual("ui", serialized.Value<string>("bodyMode"));
+            Assert.AreEqual(1, serialized.Value<int>("bodyMode"));
             Assert.IsNotNull(serialized["uiAction"]);
 
             const string placedChildJson = @"{
@@ -192,8 +192,7 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = "Score",
                 kind = MemberKind.NSProperty,
-                isStatic = true,
-                accessModifierKind = "public",
+                Access = NeoMemberAccessKind.Public,
                 code = "return root.Save.Score;",
                 returnTypeInfo = typeInfo,
                 getter = new FunctionWithReturnType
@@ -237,6 +236,7 @@ namespace NeoCompose.Tests
                 },
                 createdAt = "x",
                 updatedAt = "x",
+                Modifier = NeoMemberModifierKind.Static,
             };
 
             string json = JsonConvert.SerializeObject(source);
@@ -244,7 +244,7 @@ namespace NeoCompose.Tests
                 .DeserializeObject<Member>(json)!;
 
             Assert.AreEqual(source.setterCode, roundTripped.setterCode);
-            Assert.IsTrue(roundTripped.isStatic);
+            Assert.IsTrue(roundTripped.Modifier == NeoMemberModifierKind.Static);
             Assert.IsNotNull(roundTripped.setter);
             var assign = (AssignInstruction)roundTripped.setter!.instructions[0];
             Assert.AreEqual(WritabilityKind.Setter, assign.target.writability);
@@ -314,10 +314,7 @@ namespace NeoCompose.Tests
   ""projectId"": ""project"",
   ""name"": ""Loud"",
   ""kind"": 3,
-  ""locked"": false,
-  ""required"": true,
-  ""isStatic"": false,
-  ""accessModifierKind"": ""public"",
+  ""requirement"": 1,
   ""defaultValue"": {
     ""init"": {
       ""code"": ""StaticFunc(\""bar\"")"",
@@ -526,7 +523,7 @@ namespace NeoCompose.Tests
         public void ConstructorRecord_AndClassConstructorIdsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 28, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 29, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -537,8 +534,6 @@ namespace NeoCompose.Tests
       ""projectId"": ""project"",
       ""name"": ""Foo"",
       ""schema"": {},
-      ""hiddenInMemberSelector"": false,
-      ""isAbstract"": false,
       ""constructorIds"": [""ctor-foo"", ""ctor-foo-loud""],
       ""createdAt"": ""x"",
       ""updatedAt"": ""x""
@@ -595,7 +590,7 @@ namespace NeoCompose.Tests
         public void RequiredConstructorId_AndBaseInitializerFieldsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 28, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 29, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -606,8 +601,6 @@ namespace NeoCompose.Tests
       ""projectId"": ""project"",
       ""name"": ""Bar"",
       ""schema"": {},
-      ""hiddenInMemberSelector"": false,
-      ""isAbstract"": false,
       ""extendsClassId"": ""class-foo"",
       ""requiredConstructorId"": ""ctor-bar"",
       ""createdAt"": ""x"",
@@ -664,7 +657,7 @@ namespace NeoCompose.Tests
         public void ConstructorCode_IsAbsentWhenNoInitBlockIsDeclared()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 28, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 29, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -675,8 +668,6 @@ namespace NeoCompose.Tests
       ""projectId"": ""project"",
       ""name"": ""Bar"",
       ""schema"": {},
-      ""hiddenInMemberSelector"": false,
-      ""isAbstract"": false,
       ""requiredConstructorId"": ""ctor-null"",
       ""createdAt"": ""x"",
       ""updatedAt"": ""x""
@@ -798,7 +789,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Member_MissingIsStaticIsRejected()
+        public void Member_AbsentModifierDefaultsToVirtual()
         {
             var source = new IntMember
             {
@@ -806,19 +797,13 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = "Count",
                 kind = MemberKind.Int,
-                accessModifierKind = "public",
+                Access = NeoMemberAccessKind.Public,
                 createdAt = "x",
                 updatedAt = "x",
             };
-            var json = JObject.FromObject(source);
-            json.Remove("isStatic");
-
-            var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<Member>(json.ToString()));
-
-            Assert.That(
-                error!.Message,
-                Does.Contain("Missing required field 'isStatic' on IntMember."));
+            var result = JsonConvert.DeserializeObject<Member>(
+                JsonConvert.SerializeObject(source))!;
+            Assert.AreEqual(NeoMemberModifierKind.Virtual, result.Modifier);
         }
 
         [Test]
@@ -911,6 +896,25 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ProjectData_OldHiddenInAttributeSelectorPointsToUiVisibility()
+        {
+            var root = JObject.Parse(@"{
+  'project':{},'members':{},'values':{},'enums':{},
+  'classes':{'class-a':{
+    'id':'class-a','projectId':'project','name':'A','schema':{},
+    'hiddenInAttributeSelector':true
+  }}
+}");
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                Deserialize(root.ToString()));
+
+            Assert.AreEqual(
+                "Class uses removed field 'hiddenInAttributeSelector'; schema 8 requires 'uiVisibility'.",
+                error!.Message);
+        }
+
+        [Test]
         public void ProjectData_CurrentVersionDeserializesThePayloadAfterTheFence()
         {
             var root = new JObject
@@ -953,8 +957,593 @@ namespace NeoCompose.Tests
             Assert.That(error!.Message, Does.Contain("variantFolders"));
         }
 
+        [TestCase("required", "requirement")]
+        [TestCase("isReadOnly", "mutability")]
+        [TestCase("isStatic", "modifier")]
+        [TestCase("isVirtual", "modifier")]
+        [TestCase("isAbstract", "modifier")]
+        [TestCase("accessModifierKind", "access")]
+        [TestCase("localizable", "format")]
+        [TestCase("searchKey", "searchBy")]
+        [TestCase("partial", "payload")]
+        [TestCase("multiselect", "selection")]
+        [TestCase("deferred", "dispatch")]
+        public void Member_RetiredFieldsAreRejected(
+            string removedField,
+            string replacementField)
+        {
+            var json = JObject.Parse(@"{
+  'id':'member-a','projectId':'project','name':'A','kind':2,
+  'createdAt':0,'updatedAt':0
+}");
+            json[removedField] = true;
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Member>(json.ToString()));
+
+            Assert.That(error!.Message, Does.Contain($"removed field '{removedField}'"));
+            Assert.That(error.Message, Does.Contain($"requires '{replacementField}'"));
+        }
+
         [Test]
-        public void Member_NonBooleanIsStaticIsRejected()
+        public void Member_LockedFieldIsRejectedWithoutReplacement()
+        {
+            var json = JObject.Parse(@"{
+  'id':'member-a','projectId':'project','name':'A','kind':2,
+  'createdAt':0,'updatedAt':0,'locked':true
+}");
+            var exception = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Member>(json.ToString()));
+
+            StringAssert.Contains(
+                "schema 29 removed it without replacement",
+                exception!.Message);
+        }
+
+        [TestCase("requirement")]
+        [TestCase("mutability")]
+        [TestCase("modifier")]
+        [TestCase("access")]
+        [TestCase("storage")]
+        [TestCase("format")]
+        [TestCase("searchBy")]
+        [TestCase("keyKind")]
+        [TestCase("listKind")]
+        [TestCase("payload")]
+        [TestCase("selection")]
+        [TestCase("dispatch")]
+        [TestCase("bodyMode")]
+        public void Member_EnumsRejectStringValues(string field)
+        {
+            var json = JObject.Parse(@"{
+  'id':'member-a','projectId':'project','name':'A','kind':2,
+  'createdAt':0,'updatedAt':0
+}");
+            json[field] = "legacy-string";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Member>(json.ToString()));
+
+            Assert.That(error!.Message, Does.Contain($"field '{field}' must be a numeric enum ordinal"));
+        }
+
+        [TestCase("requirement")]
+        [TestCase("mutability")]
+        [TestCase("modifier")]
+        [TestCase("access")]
+        [TestCase("storage")]
+        [TestCase("format")]
+        [TestCase("searchBy")]
+        [TestCase("keyKind")]
+        [TestCase("listKind")]
+        [TestCase("payload")]
+        [TestCase("selection")]
+        [TestCase("dispatch")]
+        [TestCase("bodyMode")]
+        public void Member_EnumsRejectUnknownOrdinals(string field)
+        {
+            var json = JObject.Parse(@"{
+  'id':'member-a','projectId':'project','name':'A','kind':2,
+  'createdAt':0,'updatedAt':0
+}");
+            json[field] = 99;
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Member>(json.ToString()));
+
+            Assert.That(error!.Message, Does.Contain($"field '{field}' has unknown ordinal '99'"));
+        }
+
+        [TestCase("hiddenInMemberSelector", "uiVisibility")]
+        [TestCase("isAbstract", "modifier")]
+        [TestCase("isSealed", "modifier")]
+        public void Class_RetiredFieldsAreRejected(
+            string removedField,
+            string replacementField)
+        {
+            var json = JObject.Parse(@"{
+  'project':{},'members':{},'values':{},'enums':{},
+  'classes':{'class-a':{'id':'class-a','projectId':'project','name':'A','schema':{}}}
+}");
+            json["classes"]!["class-a"]![removedField] = true;
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                Deserialize(json.ToString()));
+
+            Assert.That(error!.Message, Does.Contain($"removed field '{removedField}'"));
+            Assert.That(error.Message, Does.Contain($"requires '{replacementField}'"));
+        }
+
+        [TestCase("uiVisibility")]
+        [TestCase("modifier")]
+        [TestCase("allowedStorage")]
+        public void Class_EnumsRejectStringsAndUnknownOrdinals(string field)
+        {
+            var json = JObject.Parse(@"{
+  'project':{},'members':{},'values':{},'enums':{},
+  'classes':{'class-a':{'id':'class-a','projectId':'project','name':'A','schema':{}}}
+}");
+            var fieldToken = (JObject)json["classes"]!["class-a"]!;
+
+            fieldToken[field] = "legacy-string";
+            Assert.That(
+                Assert.Throws<JsonSerializationException>(() =>
+                    Deserialize(json.ToString()))!.Message,
+                Does.Contain($"field '{field}' must be a numeric enum ordinal"));
+
+            fieldToken[field] = 99;
+            Assert.That(
+                Assert.Throws<JsonSerializationException>(() =>
+                    Deserialize(json.ToString()))!.Message,
+                Does.Contain($"field '{field}' has unknown ordinal '99'"));
+        }
+
+        [Test]
+        public void OptionalEnumNullsAreReadAsAbsentAndWrittenCanonically()
+        {
+            var member = JsonConvert.DeserializeObject<Member>(@"{
+  'id':'string-a','projectId':'project','name':'Name','kind':3,
+  'requirement':null,'mutability':null,'modifier':null,'access':null,
+  'storage':null,'format':null,'searchBy':null,'createdAt':0,'updatedAt':0
+}")!;
+            Assert.AreEqual(NeoMemberRequirementKind.Optional, member.Requirement);
+            Assert.AreEqual(NeoMemberMutabilityKind.Mutable, member.Mutability);
+            Assert.AreEqual(NeoMemberModifierKind.Virtual, member.Modifier);
+            Assert.AreEqual(NeoMemberAccessKind.Public, member.Access);
+            JObject memberJson = JObject.Parse(JsonConvert.SerializeObject(member));
+            foreach (string field in new[]
+            {
+                "requirement", "mutability", "modifier", "access",
+                "storage", "format", "searchBy",
+            })
+            {
+                Assert.IsFalse(memberJson.ContainsKey(field), field);
+            }
+
+            var project = Deserialize(@"{
+  'project':{},'members':{},'values':{},'enums':{},
+  'classes':{'class-a':{
+    'id':'class-a','projectId':'project','name':'A','schema':{},
+    'uiVisibility':null,'modifier':null,'allowedStorage':null
+  }}
+}");
+            NeoSchemaClass schemaClass = project.classes["class-a"];
+            Assert.AreEqual(NeoClassVisibilityKind.Visible, schemaClass.UiVisibility);
+            Assert.AreEqual(NeoClassModifierKind.Open, schemaClass.Modifier);
+            JObject projectJson = JObject.Parse(JsonConvert.SerializeObject(project));
+            JObject classJson = (JObject)projectJson["classes"]!["class-a"]!;
+            foreach (string field in new[] { "uiVisibility", "modifier", "allowedStorage" })
+            {
+                Assert.IsFalse(classJson.ContainsKey(field), field);
+            }
+        }
+
+        [Test]
+        public void ListLayout_EnumsAreStrictAndRetiredBooleansAreRejected()
+        {
+            var member = JObject.Parse(@"{
+  'id':'list-a','projectId':'project','name':'Items','kind':6,
+  'entryMemberId':'entry-a','indexes':[{'schemaKey':'Name'}],
+  'columnSettings':[{'memberKey':'Name'}],'createdAt':0,'updatedAt':0
+}");
+
+            member["indexes"]![0]!["unique"] = true;
+            Assert.That(
+                Assert.Throws<JsonSerializationException>(() =>
+                    JsonConvert.DeserializeObject<Member>(member.ToString()))!.Message,
+                Does.Contain("removed field 'unique'"));
+            ((JObject)member["indexes"]![0]!).Remove("unique");
+            member["indexes"]![0]!["kind"] = "unique";
+            Assert.That(
+                Assert.Throws<JsonSerializationException>(() =>
+                    JsonConvert.DeserializeObject<Member>(member.ToString()))!.Message,
+                Does.Contain("field 'kind' must be a numeric enum ordinal"));
+
+            ((JObject)member["indexes"]![0]!).Remove("kind");
+            member["columnSettings"]![0]!["wrapContent"] = true;
+            Assert.That(
+                Assert.Throws<JsonSerializationException>(() =>
+                    JsonConvert.DeserializeObject<Member>(member.ToString()))!.Message,
+                Does.Contain("removed field 'wrapContent'"));
+            ((JObject)member["columnSettings"]![0]!).Remove("wrapContent");
+            member["columnSettings"]![0]!["overflow"] = 99;
+            Assert.That(
+                Assert.Throws<JsonSerializationException>(() =>
+                    JsonConvert.DeserializeObject<Member>(member.ToString()))!.Message,
+                Does.Contain("field 'overflow' has unknown ordinal '99'"));
+
+            ((JObject)member["columnSettings"]![0]!).Remove("overflow");
+            member["indexes"]![0]!["kind"] = (int)NeoListIndexKind.Unique;
+            member["columnSettings"]![0]!["width"] = 240;
+            member["columnSettings"]![0]!["visibility"] = (int)NeoColumnVisibilityKind.Hidden;
+            member["columnSettings"]![0]!["pin"] = (int)NeoColumnPinKind.Leading;
+            member["columnSettings"]![0]!["overflow"] = (int)NeoColumnOverflowKind.Wrap;
+
+            var roundTripped = (ListMember)JsonConvert.DeserializeObject<Member>(
+                member.ToString())!;
+
+            Assert.AreEqual(NeoListIndexKind.Unique, roundTripped.indexes![0].Kind);
+            Assert.AreEqual(240, roundTripped.columnSettings![0].width);
+            Assert.AreEqual(
+                NeoColumnVisibilityKind.Hidden,
+                roundTripped.columnSettings[0].Visibility);
+            Assert.AreEqual(
+                NeoColumnPinKind.Leading,
+                roundTripped.columnSettings[0].Pin);
+            Assert.AreEqual(
+                NeoColumnOverflowKind.Wrap,
+                roundTripped.columnSettings[0].Overflow);
+        }
+
+        [Test]
+        public void ResolvedShape_PreservesInheritedAbsenceAndExplicitZero()
+        {
+            var root = new StringMember
+            {
+                id = "root",
+                Requirement = NeoMemberRequirementKind.Required,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
+                Modifier = NeoMemberModifierKind.Sealed,
+                Access = NeoMemberAccessKind.Protected,
+                Storage = NeoMemberStorage.Save,
+                Format = NeoStringFormatKind.Plain,
+            };
+            var inherited = new StringMember { id = "inherited", extendsMemberId = "root" };
+            var explicitZero = new StringMember
+            {
+                id = "explicit-zero",
+                extendsMemberId = "root",
+                Requirement = NeoMemberRequirementKind.Optional,
+                Modifier = NeoMemberModifierKind.Virtual,
+                Storage = NeoMemberStorage.Inherit,
+                Format = NeoStringFormatKind.Localized,
+            };
+            var afterExplicitZero = new StringMember
+            {
+                id = "after-explicit-zero",
+                extendsMemberId = "explicit-zero",
+            };
+            var members = new Dictionary<string, Member>
+            {
+                [root.id] = root,
+                [inherited.id] = inherited,
+                [explicitZero.id] = explicitZero,
+                [afterExplicitZero.id] = afterExplicitZero,
+            };
+
+            NeoMemberShapeResolution.ResolveAll(members);
+
+            Assert.IsNull(inherited.DeclaredRequirement);
+            Assert.AreEqual(NeoMemberRequirementKind.Required, inherited.Requirement);
+            Assert.AreEqual(NeoMemberMutabilityKind.Mutable, inherited.Mutability);
+            Assert.AreEqual(NeoMemberModifierKind.Sealed, inherited.Modifier);
+            Assert.AreEqual(NeoMemberAccessKind.Public, inherited.Access);
+            Assert.AreEqual(NeoMemberStorage.Save, inherited.Storage);
+            Assert.AreEqual(NeoStringFormatKind.Plain, inherited.Format);
+            Assert.AreEqual(NeoMemberRequirementKind.Optional, explicitZero.Requirement);
+            Assert.AreEqual(NeoMemberModifierKind.Virtual, explicitZero.Modifier);
+            Assert.AreEqual(NeoMemberStorage.Inherit, explicitZero.Storage);
+            Assert.AreEqual(NeoStringFormatKind.Localized, explicitZero.Format);
+            Assert.AreEqual(NeoMemberStorage.Inherit, afterExplicitZero.Storage);
+
+            var inheritedJson = JObject.Parse(JsonConvert.SerializeObject(inherited));
+            var explicitZeroJson = JObject.Parse(JsonConvert.SerializeObject(explicitZero));
+            Assert.IsFalse(inheritedJson.ContainsKey("storage"));
+            Assert.AreEqual(0, explicitZeroJson.Value<int>("storage"));
+        }
+
+        [Test]
+        public void LookupCollectionValue_AbsentInheritsButNullClears()
+        {
+            var root = (LookupMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'root','projectId':'project','name':'Root','kind':9,
+  'collectionMemberId':'collection','collectionValueId':'root-value',
+  'createdAt':0,'updatedAt':0
+}")!;
+            var inherited = (LookupMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'inherited','projectId':'project','name':'Inherited','kind':9,
+  'collectionMemberId':'collection','extendsMemberId':'root',
+  'createdAt':0,'updatedAt':0
+}")!;
+            var cleared = (LookupMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'cleared','projectId':'project','name':'Cleared','kind':9,
+  'collectionMemberId':'collection','extendsMemberId':'inherited',
+  'collectionValueId':null,'createdAt':0,'updatedAt':0
+}")!;
+            var afterClear = (LookupMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'after-clear','projectId':'project','name':'After Clear','kind':9,
+  'collectionMemberId':'collection','extendsMemberId':'cleared',
+  'createdAt':0,'updatedAt':0
+}")!;
+            var members = new Dictionary<string, Member>
+            {
+                [root.id] = root,
+                [inherited.id] = inherited,
+                [cleared.id] = cleared,
+                [afterClear.id] = afterClear,
+            };
+
+            NeoMemberShapeResolution.ResolveAll(members);
+
+            Assert.AreEqual("root-value", inherited.CollectionValueId);
+            Assert.IsNull(cleared.CollectionValueId);
+            Assert.IsNull(afterClear.CollectionValueId);
+
+            var serializedClear = JObject.Parse(JsonConvert.SerializeObject(cleared));
+            Assert.AreEqual(JTokenType.Null, serializedClear["collectionValueId"]!.Type);
+
+            var fullWithoutValue = new LookupMember
+            {
+                id = "full",
+                collectionMemberId = "collection",
+                collectionValueId = null,
+            };
+            var serializedFull = JObject.Parse(JsonConvert.SerializeObject(fullWithoutValue));
+            Assert.IsFalse(serializedFull.ContainsKey("collectionValueId"));
+        }
+
+        [Test]
+        public void ChainResolvedScalars_ExplicitNullStopsInheritance()
+        {
+            var root = new StringMember
+            {
+                id = "scalar-root",
+                storageKey = "vault",
+                defaultValue = new StringMemberValueBase { value = "root-default" },
+            };
+            var inherited = (StringMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'scalar-inherited','kind':3,'extendsMemberId':'scalar-root'
+}")!;
+            var cleared = (StringMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'scalar-cleared','kind':3,'extendsMemberId':'scalar-inherited',
+  'storageKey':null,'defaultValue':null
+}")!;
+            var afterClear = (StringMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'scalar-after-clear','kind':3,'extendsMemberId':'scalar-cleared'
+}")!;
+
+            NeoMemberShapeResolution.ResolveAll(new Dictionary<string, Member>
+            {
+                [root.id] = root,
+                [inherited.id] = inherited,
+                [cleared.id] = cleared,
+                [afterClear.id] = afterClear,
+            });
+
+            Assert.AreEqual("vault", inherited.storageKey);
+            Assert.AreEqual("root-default", inherited.defaultValue!.value);
+            Assert.IsNull(cleared.storageKey);
+            Assert.IsNull(cleared.defaultValue);
+            Assert.IsNull(afterClear.storageKey);
+            Assert.IsNull(afterClear.defaultValue);
+            var serializedInherited = JObject.Parse(JsonConvert.SerializeObject(inherited));
+            var serializedClear = JObject.Parse(JsonConvert.SerializeObject(cleared));
+            Assert.IsFalse(serializedInherited.ContainsKey("storageKey"));
+            Assert.IsFalse(serializedInherited.ContainsKey("defaultValue"));
+            Assert.AreEqual(JTokenType.Null, serializedClear["storageKey"]!.Type);
+            Assert.AreEqual(JTokenType.Null, serializedClear["defaultValue"]!.Type);
+        }
+
+        [Test]
+        public void ChainResolvedFieldContract_MatchesCanonicalShape()
+        {
+            CollectionAssert.AreEqual(
+                new[]
+                {
+                    "defaultValue",
+                    "storageKey",
+                    "minValue",
+                    "maxValue",
+                    "decimalPoints",
+                    "indexes",
+                    "columnSettings",
+                    "schemaKeyOrder",
+                    "classArguments",
+                    "collectionValueId",
+                    "declaredTypeInfo",
+                    "targetTypeInfo",
+                    "valueTypeInfo",
+                    "dialogueGroupId",
+                    "code",
+                    "setterCode",
+                    "templateId",
+                    "uiAction",
+                },
+                MemberChainResolvedFields.CanonicalFields);
+        }
+
+        [Test]
+        public void ChainResolvedListCollections_ExplicitNullStopsInheritance()
+        {
+            var root = new ListMember
+            {
+                id = "list-root",
+                indexes = new[] { new ListIndexDefinition { schemaKey = "Name" } },
+                columnSettings = new[] { new ListColumnSetting { memberKey = "Name" } },
+            };
+            var inherited = (ListMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'list-inherited','kind':6,'extendsMemberId':'list-root'
+}")!;
+            var cleared = (ListMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'list-cleared','kind':6,'extendsMemberId':'list-inherited',
+  'indexes':null,'columnSettings':null
+}")!;
+            var afterClear = (ListMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'list-after-clear','kind':6,'extendsMemberId':'list-cleared'
+}")!;
+
+            NeoMemberShapeResolution.ResolveAll(new Dictionary<string, Member>
+            {
+                [root.id] = root,
+                [inherited.id] = inherited,
+                [cleared.id] = cleared,
+                [afterClear.id] = afterClear,
+            });
+
+            Assert.AreEqual("Name", inherited.indexes![0].schemaKey);
+            Assert.AreEqual("Name", inherited.columnSettings![0].memberKey);
+            Assert.IsNull(cleared.indexes);
+            Assert.IsNull(cleared.columnSettings);
+            Assert.IsNull(afterClear.indexes);
+            Assert.IsNull(afterClear.columnSettings);
+
+            var serializedInherited = JObject.Parse(JsonConvert.SerializeObject(inherited));
+            var serializedClear = JObject.Parse(JsonConvert.SerializeObject(cleared));
+            Assert.IsFalse(serializedInherited.ContainsKey("indexes"));
+            Assert.AreEqual(JTokenType.Null, serializedClear["indexes"]!.Type);
+        }
+
+        [Test]
+        public void ChainResolvedTypeInfos_ExplicitNullStopsInheritance()
+        {
+            var target = new PrimitiveTypeInfo { type = MemberKind.String, required = true };
+            var value = new PrimitiveTypeInfo { type = MemberKind.Int, required = true };
+            var root = new VariantMember
+            {
+                id = "variant-root",
+                targetTypeInfo = target,
+                valueTypeInfo = value,
+            };
+            var inherited = (VariantMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'variant-inherited','kind':27,'extendsMemberId':'variant-root'
+}")!;
+            var cleared = (VariantMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'variant-cleared','kind':27,'extendsMemberId':'variant-inherited',
+  'targetTypeInfo':null,'valueTypeInfo':null
+}")!;
+            var afterClear = (VariantMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'variant-after-clear','kind':27,'extendsMemberId':'variant-cleared'
+}")!;
+
+            NeoMemberShapeResolution.ResolveAll(new Dictionary<string, Member>
+            {
+                [root.id] = root,
+                [inherited.id] = inherited,
+                [cleared.id] = cleared,
+                [afterClear.id] = afterClear,
+            });
+
+            Assert.AreSame(target, inherited.targetTypeInfo);
+            Assert.AreSame(value, inherited.valueTypeInfo);
+            Assert.IsNull(cleared.targetTypeInfo);
+            Assert.IsNull(cleared.valueTypeInfo);
+            Assert.IsNull(afterClear.targetTypeInfo);
+            Assert.IsNull(afterClear.valueTypeInfo);
+        }
+
+        [Test]
+        public void ChainResolvedAuthoredBodies_ClearCompiledCompanions()
+        {
+            var getter = new FunctionWithReturnType();
+            var setter = new FunctionWithReturnType();
+            var propertyRoot = new NSPropertyMember
+            {
+                id = "property-root",
+                code = "return true",
+                getter = getter,
+                setterCode = "set value",
+                setter = setter,
+            };
+            var propertyInherited = (NSPropertyMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'property-inherited','kind':10,'extendsMemberId':'property-root'
+}")!;
+            var propertyCleared = (NSPropertyMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'property-cleared','kind':10,'extendsMemberId':'property-inherited',
+  'code':null,'setterCode':null
+}")!;
+            var propertyAfterClear = (NSPropertyMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'property-after-clear','kind':10,'extendsMemberId':'property-cleared'
+}")!;
+
+            var action = new FunctionWithReturnType();
+            var functionRoot = new NSFunctionMember
+            {
+                id = "function-root",
+                uiAction = action,
+                action = action,
+            };
+            var functionCleared = (NSFunctionMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'function-cleared','kind':23,'extendsMemberId':'function-root',
+  'uiAction':null
+}")!;
+            var functionAfterClear = (NSFunctionMember)JsonConvert.DeserializeObject<Member>(@"{
+  'id':'function-after-clear','kind':23,'extendsMemberId':'function-cleared'
+}")!;
+
+            NeoMemberShapeResolution.ResolveAll(new Dictionary<string, Member>
+            {
+                [propertyRoot.id] = propertyRoot,
+                [propertyInherited.id] = propertyInherited,
+                [propertyCleared.id] = propertyCleared,
+                [propertyAfterClear.id] = propertyAfterClear,
+                [functionRoot.id] = functionRoot,
+                [functionCleared.id] = functionCleared,
+                [functionAfterClear.id] = functionAfterClear,
+            });
+
+            Assert.AreSame(getter, propertyInherited.getter);
+            Assert.AreSame(setter, propertyInherited.setter);
+            Assert.IsNull(propertyCleared.code);
+            Assert.IsNull(propertyCleared.getter);
+            Assert.IsNull(propertyCleared.setterCode);
+            Assert.IsNull(propertyCleared.setter);
+            Assert.IsNull(propertyAfterClear.getter);
+            Assert.IsNull(propertyAfterClear.setter);
+            Assert.IsNull(functionCleared.uiAction);
+            Assert.IsNull(functionCleared.action);
+            Assert.IsNull(functionAfterClear.uiAction);
+            Assert.IsNull(functionAfterClear.action);
+        }
+
+        [Test]
+        public void ResolvedShape_LongOverrideChainDoesNotUseTheCallStack()
+        {
+            const int chainLength = 4096;
+            var members = new Dictionary<string, Member>();
+            for (int index = chainLength; index > 0; index--)
+            {
+                string id = $"member-{index}";
+                members[id] = new IntMember
+                {
+                    id = id,
+                    extendsMemberId = $"member-{index - 1}",
+                };
+            }
+            members["member-0"] = new IntMember
+            {
+                id = "member-0",
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+
+            NeoMemberShapeResolution.ResolveAll(members);
+
+            Assert.AreEqual(
+                NeoMemberRequirementKind.Required,
+                members[$"member-{chainLength}"].Requirement);
+        }
+
+        [Test]
+        public void Member_RetiredIsStaticFieldRejectsStringValue()
         {
             var source = new IntMember
             {
@@ -962,7 +1551,7 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = "Count",
                 kind = MemberKind.Int,
-                accessModifierKind = "public",
+                Access = NeoMemberAccessKind.Public,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -974,11 +1563,11 @@ namespace NeoCompose.Tests
 
             Assert.That(
                 error!.Message,
-                Does.Contain("Field 'isStatic' on IntMember must be a boolean."));
+                Does.Contain("removed field 'isStatic'"));
         }
 
         [Test]
-        public void Member_MissingAccessModifierKindIsRejected()
+        public void Member_AbsentAccessDefaultsToPublic()
         {
             var source = new IntMember
             {
@@ -986,24 +1575,17 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = "Count",
                 kind = MemberKind.Int,
-                accessModifierKind = "public",
+                Access = NeoMemberAccessKind.Public,
                 createdAt = "x",
                 updatedAt = "x",
             };
-            var json = JObject.FromObject(source);
-            json.Remove("accessModifierKind");
-
-            var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<Member>(json.ToString()));
-
-            Assert.That(
-                error!.Message,
-                Does.Contain(
-                    "Missing required field 'accessModifierKind' on IntMember."));
+            var result = JsonConvert.DeserializeObject<Member>(
+                JsonConvert.SerializeObject(source))!;
+            Assert.AreEqual(NeoMemberAccessKind.Public, result.Access);
         }
 
         [Test]
-        public void Member_NonStringAccessModifierKindIsRejected()
+        public void Member_RetiredAccessModifierKindRejectsBooleanValue()
         {
             var source = new IntMember
             {
@@ -1011,7 +1593,7 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = "Count",
                 kind = MemberKind.Int,
-                accessModifierKind = "public",
+                Access = NeoMemberAccessKind.Public,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1024,11 +1606,11 @@ namespace NeoCompose.Tests
             Assert.That(
                 error!.Message,
                 Does.Contain(
-                    "Field 'accessModifierKind' on IntMember must be a string."));
+                    "removed field 'accessModifierKind'"));
         }
 
         [Test]
-        public void Member_UnknownAccessModifierKindIsRejected()
+        public void Member_RetiredAccessModifierKindRejectsStringValue()
         {
             var source = new IntMember
             {
@@ -1036,7 +1618,7 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = "Count",
                 kind = MemberKind.Int,
-                accessModifierKind = "public",
+                Access = NeoMemberAccessKind.Public,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1049,21 +1631,26 @@ namespace NeoCompose.Tests
             Assert.That(
                 error!.Message,
                 Does.Contain(
-                    "Field 'accessModifierKind' on IntMember has unknown value 'internal'"));
+                    "removed field 'accessModifierKind'"));
         }
 
         [Test]
-        public void Member_AccessModifierKindRoundTripsAllLiterals()
+        public void Member_AccessRoundTripsAllOrdinals()
         {
-            foreach (string literal in new[] { "public", "protected", "private" })
+            foreach (NeoMemberAccessKind value in new[]
+            {
+                NeoMemberAccessKind.Public,
+                NeoMemberAccessKind.Protected,
+                NeoMemberAccessKind.Private,
+            })
             {
                 var source = new IntMember
                 {
-                    id = $"member-access-{literal}",
+                    id = $"member-access-{value}",
                     projectId = "project",
                     name = "Count",
                     kind = MemberKind.Int,
-                    accessModifierKind = literal,
+                    Access = value,
                     createdAt = "x",
                     updatedAt = "x",
                 };
@@ -1071,41 +1658,203 @@ namespace NeoCompose.Tests
                 var roundTripped = JsonConvert.DeserializeObject<Member>(
                     JsonConvert.SerializeObject(source))!;
 
-                Assert.AreEqual(literal, roundTripped.accessModifierKind);
+                Assert.AreEqual(value, roundTripped.Access);
             }
         }
 
         [Test]
-        public void InterfaceMember_MissingAccessModifierKindIsRejected()
+        public void InterfaceMember_AbsentAccessDefaultsToPublic()
         {
-            var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<InterfaceMember>(@"{
-  ""kind"": ""property"",
+            var member = JsonConvert.DeserializeObject<InterfaceMember>(@"{
+  ""kind"": 0,
   ""typeInfo"": { ""type"": 2, ""required"": true },
-  ""settable"": false
-}"));
-
-            Assert.That(
-                error!.Message,
-                Does.Contain(
-                    "Interface member is missing required field 'accessModifierKind'."));
+  ""accessors"": 0
+}")!;
+            Assert.AreEqual(NeoMemberAccessKind.Public, member.Access);
         }
 
         [Test]
-        public void InterfaceMember_UnknownAccessModifierKindIsRejected()
+        public void InterfaceMember_AbsentPropertyKindDefaultsToZero()
+        {
+            var member = JsonConvert.DeserializeObject<InterfaceMember>(@"{
+  ""typeInfo"": { ""type"": 2, ""required"": true }
+}")!;
+
+            Assert.AreEqual(NeoInterfaceMemberKind.Property, member.kind);
+            Assert.IsFalse(
+                JObject.Parse(JsonConvert.SerializeObject(member)).ContainsKey("kind"));
+        }
+
+        [Test]
+        public void InterfaceMember_EnumsRejectStringsAndUnknownOrdinals()
+        {
+            const string property = @"{
+  'kind':0,'typeInfo':{'type':2,'required':true},'accessors':0
+}";
+            var propertyJson = JObject.Parse(property);
+            foreach (string field in new[] { "kind", "access", "accessors" })
+            {
+                var candidate = (JObject)propertyJson.DeepClone();
+                candidate[field] = "legacy-string";
+                Assert.That(
+                    Assert.Throws<JsonSerializationException>(() =>
+                        JsonConvert.DeserializeObject<InterfaceMember>(candidate.ToString()))!.Message,
+                    Does.Contain($"field '{field}' must be a numeric enum ordinal"));
+
+                candidate[field] = 99;
+                Assert.That(
+                    Assert.Throws<JsonSerializationException>(() =>
+                        JsonConvert.DeserializeObject<InterfaceMember>(candidate.ToString()))!.Message,
+                    Does.Contain($"field '{field}' has unknown ordinal '99'"));
+            }
+
+            var functionJson = JObject.Parse(@"{
+  'kind':1,'returnTypeInfo':{'type':2,'required':true},'argumentTypes':[]
+}");
+            functionJson["dispatch"] = "async";
+            Assert.That(
+                Assert.Throws<JsonSerializationException>(() =>
+                    JsonConvert.DeserializeObject<InterfaceMember>(functionJson.ToString()))!.Message,
+                Does.Contain("field 'dispatch' must be a numeric enum ordinal"));
+            functionJson["dispatch"] = 99;
+            Assert.That(
+                Assert.Throws<JsonSerializationException>(() =>
+                    JsonConvert.DeserializeObject<InterfaceMember>(functionJson.ToString()))!.Message,
+                Does.Contain("field 'dispatch' has unknown ordinal '99'"));
+        }
+
+        [TestCase("accessModifierKind", "access")]
+        [TestCase("settable", "accessors")]
+        [TestCase("deferred", "dispatch")]
+        public void InterfaceMember_RetiredFieldsAreRejected(
+            string removedField,
+            string replacementField)
+        {
+            var json = JObject.Parse(@"{
+  'kind':0,'typeInfo':{'type':2,'required':true},'accessors':0
+}");
+            json[removedField] = true;
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<InterfaceMember>(json.ToString()));
+
+            Assert.That(error!.Message, Does.Contain($"removed field '{removedField}'"));
+            Assert.That(error.Message, Does.Contain($"requires '{replacementField}'"));
+        }
+
+        [Test]
+        public void GenericDiscriminators_RejectStringsAndUnknownOrdinals()
+        {
+            foreach (string kind in new[] { "class", "enum" })
+            {
+                var error = Assert.Throws<JsonSerializationException>(() =>
+                    JsonConvert.DeserializeObject<GenericParamConstraint>(
+                        $"{{'kind':'{kind}','classId':'class-a','enumId':'enum-a'}}"));
+                Assert.That(error!.Message, Does.Contain("must be a numeric enum ordinal"));
+            }
+            Assert.That(
+                Assert.Throws<JsonSerializationException>(() =>
+                    JsonConvert.DeserializeObject<GenericParamConstraint>(
+                        "{'kind':99,'classId':'class-a'}"))!.Message,
+                Does.Contain("unknown ordinal '99'"));
+
+            Assert.That(
+                Assert.Throws<JsonSerializationException>(() =>
+                    JsonConvert.DeserializeObject<GenericBinding>(
+                        "{'kind':'member','memberId':'member-a'}"))!.Message,
+                Does.Contain("must be a numeric enum ordinal"));
+            Assert.That(
+                Assert.Throws<JsonSerializationException>(() =>
+                    JsonConvert.DeserializeObject<GenericBinding>(
+                        "{'kind':99,'memberId':'member-a'}"))!.Message,
+                Does.Contain("unknown ordinal '99'"));
+        }
+
+        [Test]
+        public void GenericDiscriminators_AbsentKindsDefaultToZero()
+        {
+            var constraint = JsonConvert.DeserializeObject<GenericParamConstraint>(
+                "{'classId':'class-a'}")!;
+            var binding = JsonConvert.DeserializeObject<GenericBinding>(
+                "{'genericParamId':'param-t'}")!;
+
+            Assert.AreEqual(NeoGenericParamConstraintKind.Class, constraint.kind);
+            Assert.AreEqual("class-a", constraint.classId);
+            Assert.AreEqual(NeoGenericBindingKind.Generic, binding.kind);
+            Assert.AreEqual("param-t", binding.genericParamId);
+            Assert.IsFalse(
+                JObject.Parse(JsonConvert.SerializeObject(constraint)).ContainsKey("kind"));
+            Assert.IsFalse(
+                JObject.Parse(JsonConvert.SerializeObject(binding)).ContainsKey("kind"));
+        }
+
+        [Test]
+        public void GenericClassConstraint_RoundTripsConstructedArguments()
+        {
+            const string json = @"{
+  'classId':'class-open',
+  'classArguments':{
+    'param-t':{'kind':1,'memberId':'member-string'},
+    'param-u':{'genericParamId':'param-v'}
+  }
+}";
+
+            var constraint = JsonConvert.DeserializeObject<GenericParamConstraint>(json)!;
+
+            Assert.AreEqual("member-string", constraint.classArguments!["param-t"].memberId);
+            Assert.AreEqual(NeoGenericBindingKind.Member,
+                constraint.classArguments["param-t"].kind);
+            Assert.AreEqual("param-v", constraint.classArguments["param-u"].genericParamId);
+            Assert.AreEqual(NeoGenericBindingKind.Generic,
+                constraint.classArguments["param-u"].kind);
+
+            JObject roundTrip = JObject.Parse(JsonConvert.SerializeObject(constraint));
+            Assert.IsNull(roundTrip["enumId"]);
+            Assert.AreEqual(1, roundTrip["classArguments"]!["param-t"]!["kind"]!.Value<int>());
+            Assert.IsNull(roundTrip["classArguments"]!["param-t"]!["genericParamId"]);
+            Assert.IsNull(roundTrip["classArguments"]!["param-u"]!["kind"],
+                "the zero Generic binding discriminator stays omitted");
+            Assert.IsNull(roundTrip["classArguments"]!["param-u"]!["memberId"]);
+        }
+
+        [Test]
+        public void GenericEnumConstraint_RejectsClassArguments()
+        {
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<GenericParamConstraint>(@"{
+  'kind':1,
+  'enumId':'enum-a',
+  'classArguments':{}
+}"));
+
+            Assert.That(error!.Message, Does.Contain("cannot declare 'classId' or 'classArguments'"));
+        }
+
+        [TestCase("{'genericParamId':'param-t','memberId':'member-a'}")]
+        [TestCase("{'kind':1,'memberId':'member-a','genericParamId':'param-t'}")]
+        public void GenericBinding_RejectsOppositeArmField(string json)
+        {
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<GenericBinding>(json));
+
+            Assert.That(error!.Message, Does.Contain("cannot declare"));
+        }
+
+        [Test]
+        public void InterfaceMember_RetiredAccessModifierKindIsRejected()
         {
             var error = Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<InterfaceMember>(@"{
-  ""kind"": ""property"",
+  ""kind"": 0,
   ""accessModifierKind"": ""internal"",
   ""typeInfo"": { ""type"": 2, ""required"": true },
-  ""settable"": false
+  ""accessors"": 0
 }"));
 
             Assert.That(
                 error!.Message,
                 Does.Contain(
-                    "Interface member field 'accessModifierKind' has unknown value 'internal'"));
+                    "removed field 'accessModifierKind'"));
         }
 
         [Test]
@@ -1181,19 +1930,19 @@ namespace NeoCompose.Tests
                         {
                             ["Health"] = new InterfaceMember
                             {
-                                kind = "property",
-                                accessModifierKind = "public",
+                                kind = NeoInterfaceMemberKind.Property,
+                                Access = NeoMemberAccessKind.Public,
                                 typeInfo = new PrimitiveTypeInfo
                                 {
                                     type = MemberKind.Int,
                                     required = true,
                                 },
-                                settable = true,
+                                Accessors = NeoPropertyAccessorsKind.GetSet,
                             },
                             ["FindTarget"] = new InterfaceMember
                             {
-                                kind = "function",
-                                accessModifierKind = "public",
+                                kind = NeoInterfaceMemberKind.Function,
+                                Access = NeoMemberAccessKind.Public,
                                 returnTypeInfo = new InterfaceTypeInfo
                                 {
                                     type = MemberKind.Interface,
@@ -1210,7 +1959,7 @@ namespace NeoCompose.Tests
                                         interfaceId = "interface-damageable",
                                     },
                                 },
-                                deferred = true,
+                                Dispatch = NeoFunctionDispatchKind.Asynchronous,
                             },
                         },
                         memberKeyOrder = new List<string> { "Health", "FindTarget" },
@@ -1242,10 +1991,10 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(
                 new[] { "interface-entity" },
                 declaration.extendsInterfaceIds);
-            Assert.AreEqual(true, declaration.members["Health"].settable);
+            Assert.AreEqual(true, declaration.members["Health"].Accessors == NeoPropertyAccessorsKind.GetSet);
 
             var function = declaration.members["FindTarget"];
-            Assert.AreEqual(true, function.deferred);
+            Assert.AreEqual(true, function.Dispatch == NeoFunctionDispatchKind.Asynchronous);
             var returnType = (InterfaceTypeInfo)function.returnTypeInfo!;
             Assert.AreEqual("interface-damageable", returnType.interfaceId);
             Assert.AreEqual(
@@ -1277,7 +2026,6 @@ namespace NeoCompose.Tests
             Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<InterfaceMember>(@"{
   ""kind"": ""function"",
-  ""accessModifierKind"": ""public"",
   ""returnTypeInfo"": { ""type"": 2, ""required"": true },
   ""argumentTypes"": []
 }"));
@@ -1285,13 +2033,12 @@ namespace NeoCompose.Tests
             Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<InterfaceMember>(@"{
   ""kind"": ""function"",
-  ""accessModifierKind"": ""public"",
   ""returnTypeInfo"": { ""type"": 2, ""required"": true },
   ""argumentTypes"": [
     {
       ""name"": ""value"",
       ""type"": 21,
-      ""required"": true,
+      ""requirement"": 1,
       ""ownerClassId"": ""class-owner"",
       ""genericParamId"": ""param-t""
     }
@@ -1437,9 +2184,7 @@ namespace NeoCompose.Tests
       ""projectId"": ""project-a"",
       ""name"": ""Title"",
       ""kind"": 4,
-      ""locked"": false,
-      ""required"": true,
-      ""isStatic"": false, ""accessModifierKind"": ""public"",
+      ""requirement"": 1,
       ""valueId"": ""value-a"",
       ""createdAt"": ""1970-01-01T00:00:00.000Z"",
       ""updatedAt"": ""1970-01-01T00:00:00.000Z""
@@ -1485,9 +2230,7 @@ namespace NeoCompose.Tests
       ""projectId"": ""project-a"",
       ""name"": ""Portrait"",
       ""kind"": 11,
-      ""locked"": false,
-      ""required"": true,
-      ""isStatic"": false, ""accessModifierKind"": ""public"",
+      ""requirement"": 1,
       ""templateId"": ""texture-template-1"",
       ""valueId"": ""sprite-value"",
       ""defaultValue"": { ""value"": { ""fileId"": ""file-1"", ""sliceIndex"": 2 } },
@@ -1500,9 +2243,6 @@ namespace NeoCompose.Tests
       ""projectId"": ""project-a"",
       ""name"": ""Voice"",
       ""kind"": 12,
-      ""locked"": false,
-      ""required"": false,
-      ""isStatic"": false, ""accessModifierKind"": ""public"",
       ""templateId"": ""audio-template-1"",
       ""valueId"": ""audio-value"",
       ""defaultValue"": { ""value"": { ""fileId"": ""file-2"" } },
@@ -2156,11 +2896,11 @@ namespace NeoCompose.Tests
         {
             const string json = @"{
                 ""id"": ""leaf"", ""projectId"": ""project"", ""name"": ""Leaf"",
-                ""schema"": {}, ""isSealed"": true
+                ""schema"": {}, ""modifier"": 2
             }";
 
             var schemaClass = JsonConvert.DeserializeObject<NeoSchemaClass>(json)!;
-            Assert.IsTrue(schemaClass.isSealed);
+            Assert.IsTrue(schemaClass.Modifier == NeoClassModifierKind.Sealed);
         }
 
         [Test]
@@ -2333,9 +3073,6 @@ namespace NeoCompose.Tests
                 ""projectId"": ""p"",
                 ""name"": ""X"",
                 ""kind"": 3,
-                ""locked"": false,
-                ""required"": false,
-                ""isStatic"": false, ""accessModifierKind"": ""public"",
                 ""defaultValue"": { ""value"": null, ""classId"": ""carrier-class"" },
                 ""createdAt"": ""1970-01-01T00:00:00.000Z"",
                 ""updatedAt"": ""1970-01-01T00:00:00.000Z""

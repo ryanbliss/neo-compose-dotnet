@@ -7,11 +7,10 @@ abstract class ExitPromptObject : ConsoleObject {
   public virtual Dialogue ExitPromptQuiet = Reference<Dialogue>(id: "7a6bcb67-d42a-4eb8-9934-0263d506e85c");
 
   @id("14ec578e-0aa7-4d12-8d02-47463e03a1f3")
-  @settings(localizable: false)
+  @settings(format: .Plain)
   public override string Name = "Exit Prompt";
 
   @id("de93c887-ea29-49bd-bfea-a6255b8b9a54")
-  @locked
   @settings(kind: .Ordered)
   public override List<NeoObjectBase> Children = [
     @id("6dbdfc93-1071-4e62-85f4-eb6d0cc33f73")
@@ -42,12 +41,10 @@ abstract class ExitPromptObject : ConsoleObject {
   ];
 
   @id("8e8c5ddf-6273-4440-869e-f1f9ca5dc51b")
-  @locked
   @system(kind: .WorldAuthoring)
   public override Vector3 Size = new(2, 1, 0);
 
   @id("571a0e0b-b36c-45f3-ae9a-5fde39045c11")
-  @locked
   @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public override List<NeoObjectPlacementTile> PlacementTiles = [

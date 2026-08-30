@@ -21,16 +21,17 @@ namespace NeoCompose.Tests
         private const string ProjectId = "project-readonly";
 
         [Test]
-        public void MemberDto_RoundTripsSparseNullableReadOnlyFlag()
+        public void MemberDto_RoundTripsSparseNullableMutability()
         {
             var absent = JsonConvert.DeserializeObject<Member>(
-                "{\"id\":\"m1\",\"projectId\":\"p\",\"name\":\"Damage\",\"kind\":2,\"isStatic\":false,\"accessModifierKind\":\"public\"}");
+                "{\"id\":\"m1\",\"projectId\":\"p\",\"name\":\"Damage\",\"kind\":2}");
             var enabled = JsonConvert.DeserializeObject<Member>(
-                "{\"id\":\"m2\",\"projectId\":\"p\",\"name\":\"Damage\",\"kind\":2,\"isStatic\":false,\"accessModifierKind\":\"public\",\"isReadOnly\":true}");
+                "{\"id\":\"m2\",\"projectId\":\"p\",\"name\":\"Damage\",\"kind\":2,\"mutability\":1}");
 
-            Assert.IsNull(absent!.isReadOnly);
-            Assert.AreEqual(true, enabled!.isReadOnly);
-            StringAssert.Contains("\"isReadOnly\":true", JsonConvert.SerializeObject(enabled));
+            Assert.IsNull(absent!.DeclaredMutability);
+            Assert.AreEqual(NeoMemberMutabilityKind.Mutable, absent.Mutability);
+            Assert.AreEqual(NeoMemberMutabilityKind.ReadOnly, enabled!.Mutability);
+            StringAssert.Contains("\"mutability\":1", JsonConvert.SerializeObject(enabled));
         }
 
         [Test]
@@ -122,7 +123,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void RegularOverrideWithoutDefault_DoesNotInheritBaseDefault()
+        public void RegularOverrideWithoutDefault_InheritsBaseDefault()
         {
             ProjectData data = BuildProjectData();
             var baseMember = new IntMember
@@ -151,7 +152,7 @@ namespace NeoCompose.Tests
             NeoClient client = LoadClient(data);
             var node = new NeoMemberInt(client, overrideMember, overrideValueId: null);
 
-            Assert.IsNull(node.value);
+            Assert.AreEqual(5, node.value!.value);
         }
 
         [Test]
@@ -322,8 +323,9 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "BaseDamage",
                 kind = MemberKind.Int,
-                required = true,
-                storage = "immutable",
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Immutable,
+                Mutability = NeoMemberMutabilityKind.Mutable,
                 extendsMemberId = "member-base-damage",
                 createdAt = "x",
                 updatedAt = "x",
@@ -374,9 +376,9 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "InterfaceDamage",
                 kind = MemberKind.Int,
-                required = true,
-                storage = "immutable",
-                isReadOnly = true,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Immutable,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
                 defaultValue = new NumberMemberValueBase { value = 44 },
                 createdAt = "x",
                 updatedAt = "x",
@@ -398,14 +400,14 @@ namespace NeoCompose.Tests
                 {
                     ["InterfaceDamage"] = new InterfaceMember
                     {
-                        kind = "property",
-                        accessModifierKind = "public",
+                        kind = NeoInterfaceMemberKind.Property,
+                        Access = NeoMemberAccessKind.Public,
                         typeInfo = new PrimitiveTypeInfo
                         {
                             type = MemberKind.Int,
                             required = true,
                         },
-                        settable = false,
+                        Accessors = NeoPropertyAccessorsKind.Get,
                     },
                 },
                 createdAt = "x",
@@ -450,10 +452,10 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Title",
                 kind = MemberKind.String,
-                required = true,
-                storage = "immutable",
-                isReadOnly = true,
-                localizable = true,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Immutable,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
+                Format = NeoStringFormatKind.Localized,
                 defaultValue = new StringMemberValueBase
                 {
                     value = "text-readonly-title",
@@ -588,11 +590,11 @@ namespace NeoCompose.Tests
             Assert.IsNull(roundTripped["keyOf"]!["memberId"]);
         }
 
-        [TestCase("save", null, false, false, "Immutable storage")]
-        [TestCase("immutable", null, true, false, "cannot be static")]
-        [TestCase("immutable", "value-illegal", false, false, "valueId")]
+        [TestCase(NeoMemberStorage.Save, null, false, false, "Immutable storage")]
+        [TestCase(NeoMemberStorage.Immutable, null, true, false, "cannot be static")]
+        [TestCase(NeoMemberStorage.Immutable, "value-illegal", false, false, "valueId")]
         public void SchemaValidation_RejectsInvalidReadOnlyDeclaration(
-            string storage,
+            NeoMemberStorage storage,
             string? valueId,
             bool isStatic,
             bool isAbstract,
@@ -600,10 +602,13 @@ namespace NeoCompose.Tests
         {
             ProjectData data = BuildProjectData();
             var member = (IntMember)data.members["member-base-damage"];
-            member.storage = storage;
+            member.DeclaredStorage = storage;
             member.valueId = valueId;
-            member.isStatic = isStatic;
-            member.isAbstract = isAbstract;
+            member.DeclaredModifier = isStatic
+                ? NeoMemberModifierKind.Static
+                : isAbstract
+                    ? NeoMemberModifierKind.Abstract
+                    : NeoMemberModifierKind.Virtual;
 
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 NeoTestSaveStack.ClientFromSchema(data));
@@ -617,7 +622,7 @@ namespace NeoCompose.Tests
             ((IntMember)missingDefault.members["member-base-damage"]).defaultValue = null;
             var defaultError = Assert.Throws<System.InvalidOperationException>(() =>
                 NeoTestSaveStack.ClientFromSchema(missingDefault));
-            StringAssert.Contains("explicit defaultValue", defaultError!.Message);
+            StringAssert.Contains("effective defaultValue", defaultError!.Message);
 
             ProjectData instanceKey = BuildProjectData();
             ((ObjectMemberValue)instanceKey.values["value-weapon-asset"]).value!["BaseDamage"] =
@@ -635,7 +640,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void SchemaValidation_RejectsReadOnlyOverrideWithInheritedOnlyDefault()
+        public void SchemaValidation_AcceptsReadOnlyOverrideWithInheritedDefault()
         {
             ProjectData data = BuildProjectData();
             var inheritedDefault = new IntMember
@@ -654,9 +659,9 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "InheritedOnly",
                 kind = MemberKind.Int,
-                required = true,
-                storage = "immutable",
-                isReadOnly = true,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Immutable,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
                 extendsMemberId = inheritedDefault.id,
                 createdAt = "x",
                 updatedAt = "x",
@@ -665,11 +670,10 @@ namespace NeoCompose.Tests
             data.members[readOnlyOverride.id] = readOnlyOverride;
             data.classes["class-weapon"].schema["InheritedOnly"] = readOnlyOverride.id;
 
-            var error = Assert.Throws<System.InvalidOperationException>(() =>
-                LoadClient(data));
+            NeoClient client = LoadClient(data);
+            var node = new NeoMemberInt(client, readOnlyOverride, overrideValueId: null);
 
-            StringAssert.Contains("Read-only member 'InheritedOnly'", error!.Message);
-            StringAssert.Contains("explicit defaultValue", error.Message);
+            Assert.AreEqual(5, node.value!.value);
         }
 
         [Test]
@@ -719,11 +723,11 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Computed",
                 kind = MemberKind.NSProperty,
-                storage = "immutable",
-                isAbstract = true,
-                isReadOnly = true,
+                Storage = NeoMemberStorage.Immutable,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
                 createdAt = "x",
                 updatedAt = "x",
+                Modifier = NeoMemberModifierKind.Abstract,
             };
             data.members[computed.id] = computed;
             data.classes["class-weapon"].schema["Computed"] = computed.id;
@@ -784,7 +788,7 @@ namespace NeoCompose.Tests
             ConfigureAbstractDamageContract(
                 data,
                 baseReadOnly: false,
-                baseStorage: "save");
+                baseStorage: NeoMemberStorage.Save);
 
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 LoadClient(data));
@@ -805,14 +809,14 @@ namespace NeoCompose.Tests
                 {
                     ["BaseDamage"] = new InterfaceMember
                     {
-                        kind = "property",
-                        accessModifierKind = "public",
+                        kind = NeoInterfaceMemberKind.Property,
+                        Access = NeoMemberAccessKind.Public,
                         typeInfo = new PrimitiveTypeInfo
                         {
                             type = MemberKind.Int,
                             required = true,
                         },
-                        settable = true,
+                        Accessors = NeoPropertyAccessorsKind.GetSet,
                     },
                 },
                 createdAt = "x",
@@ -870,7 +874,7 @@ namespace NeoCompose.Tests
                 name = "ComputedDetails",
                 kind = MemberKind.Class,
                 classId = "class-details",
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new ObjectMemberValueBase
                 {
                     init = new InitializerBody { code = "CreateDetails()" },
@@ -888,7 +892,7 @@ namespace NeoCompose.Tests
                 {
                     ["ComputedDetails"] = computedDetails.id,
                 },
-                isAbstract = true,
+                Modifier = NeoClassModifierKind.Abstract,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -929,9 +933,9 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Secret",
                 kind = MemberKind.Int,
-                required = true,
-                storage = "immutable",
-                isReadOnly = true,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Immutable,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
                 defaultValue = new NumberMemberValueBase { value = 3 },
                 createdAt = "x",
                 updatedAt = "x",
@@ -1028,7 +1032,7 @@ namespace NeoCompose.Tests
                 name = "Targets",
                 kind = MemberKind.List,
                 entryMemberId = unrelatedEntry.id,
-                listKind = NeoListKinds.Ordered,
+                ListKind = NeoListKind.Ordered,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1076,10 +1080,10 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Targets",
                 kind = MemberKind.List,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 extendsMemberId = targets.id,
                 entryMemberId = targets.entryMemberId,
-                listKind = targets.listKind,
+                ListKind = targets.ListKind,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1442,7 +1446,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Binding",
                 kind = MemberKind.Int,
-                isReadOnly = false,
+                Mutability = NeoMemberMutabilityKind.Mutable,
                 defaultValue = new NumberMemberValueBase { value = 7 },
                 createdAt = "x",
                 updatedAt = "x",
@@ -1454,15 +1458,15 @@ namespace NeoCompose.Tests
                 name = "Value",
                 kind = MemberKind.Generic,
                 genericParamId = "param-t",
-                isReadOnly = null,
-                storage = "immutable",
+                DeclaredMutability = null,
+                Storage = NeoMemberStorage.Immutable,
                 createdAt = "x",
                 updatedAt = "x",
             };
             data.members[binding.id] = binding;
             data.members[slot.id] = slot;
             NeoClient client = LoadClient(data);
-            slot.isReadOnly = true;
+            slot.DeclaredMutability = NeoMemberMutabilityKind.ReadOnly;
 
             Member substituted = NeoGenericResolution.SubstituteMember(
                 client,
@@ -1473,7 +1477,7 @@ namespace NeoCompose.Tests
                 });
 
             Assert.IsInstanceOf<IntMember>(substituted);
-            Assert.AreEqual(true, substituted.isReadOnly);
+            Assert.AreEqual(true, substituted.Mutability == NeoMemberMutabilityKind.ReadOnly);
             Assert.AreEqual(7, ((IntMember)substituted).defaultValue!.value);
         }
 
@@ -1487,7 +1491,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Binding",
                 kind = MemberKind.Int,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1497,7 +1501,7 @@ namespace NeoCompose.Tests
                 NeoTestSaveStack.ClientFromSchema(data));
 
             StringAssert.Contains("GenericClosed", error!.Message);
-            StringAssert.Contains("explicit defaultValue", error.Message);
+            StringAssert.Contains("effective defaultValue", error.Message);
         }
 
         [Test]
@@ -1510,7 +1514,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Binding",
                 kind = MemberKind.Int,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1538,8 +1542,8 @@ namespace NeoCompose.Tests
                 name = "Value",
                 kind = MemberKind.Generic,
                 genericParamId = "param-t",
-                storage = "immutable",
-                isReadOnly = true,
+                Storage = NeoMemberStorage.Immutable,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1549,7 +1553,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Binding A",
                 kind = MemberKind.Int,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new NumberMemberValueBase { value = 7 },
                 createdAt = "x",
                 updatedAt = "x",
@@ -1560,7 +1564,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Binding B",
                 kind = MemberKind.Int,
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new NumberMemberValueBase { value = 9 },
                 createdAt = "x",
                 updatedAt = "x",
@@ -1643,7 +1647,7 @@ namespace NeoCompose.Tests
             {
                 ["param-t"] = new()
                 {
-                    kind = NeoGenericBindingKinds.Member,
+                    kind = NeoGenericBindingKind.Member,
                     memberId = bindingMemberId,
                 },
             },
@@ -1784,9 +1788,9 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Secret",
                 kind = MemberKind.Int,
-                required = true,
-                storage = "immutable",
-                isReadOnly = true,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Immutable,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
                 defaultValue = new NumberMemberValueBase { value = 7 },
                 createdAt = "x",
                 updatedAt = "x",
@@ -1798,7 +1802,7 @@ namespace NeoCompose.Tests
                 name = "Nested",
                 kind = MemberKind.Class,
                 classId = "class-nested-readonly",
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1819,14 +1823,16 @@ namespace NeoCompose.Tests
             bool addOverride = true,
             bool overrideReadOnly = true,
             bool baseReadOnly = true,
-            string baseStorage = "immutable")
+            NeoMemberStorage baseStorage = NeoMemberStorage.Immutable)
         {
             var abstractDamage = (IntMember)data.members["member-base-damage"];
-            abstractDamage.isAbstract = true;
-            abstractDamage.isReadOnly = baseReadOnly ? true : null;
-            abstractDamage.storage = baseStorage;
+            abstractDamage.DeclaredModifier = NeoMemberModifierKind.Abstract;
+            abstractDamage.DeclaredMutability = baseReadOnly
+                ? NeoMemberMutabilityKind.ReadOnly
+                : null;
+            abstractDamage.DeclaredStorage = baseStorage;
             abstractDamage.defaultValue = null;
-            data.classes["class-weapon"].isAbstract = true;
+            data.classes["class-weapon"].DeclaredModifier = NeoClassModifierKind.Abstract;
 
             var concrete = new NeoSchemaClass
             {
@@ -1848,9 +1854,12 @@ namespace NeoCompose.Tests
                     projectId = ProjectId,
                     name = "BaseDamage",
                     kind = MemberKind.Int,
-                    required = true,
-                    storage = "immutable",
-                    isReadOnly = overrideReadOnly ? true : null,
+                    Requirement = NeoMemberRequirementKind.Required,
+                    Storage = NeoMemberStorage.Immutable,
+                    Modifier = NeoMemberModifierKind.Virtual,
+                    Mutability = overrideReadOnly
+                        ? NeoMemberMutabilityKind.ReadOnly
+                        : NeoMemberMutabilityKind.Mutable,
                     extendsMemberId = abstractDamage.id,
                     defaultValue = overrideReadOnly
                         ? new NumberMemberValueBase { value = 27 }
@@ -1881,11 +1890,11 @@ namespace NeoCompose.Tests
                 name = "Value",
                 kind = MemberKind.Generic,
                 genericParamId = "param-t",
-                storage = "immutable",
-                isAbstract = isAbstract ? true : null,
-                isReadOnly = true,
+                Storage = NeoMemberStorage.Immutable,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
                 createdAt = "x",
                 updatedAt = "x",
+                DeclaredModifier = isAbstract ? NeoMemberModifierKind.Abstract : null,
             };
             data.members[slot.id] = slot;
             data.members[binding.id] = binding;
@@ -1899,7 +1908,7 @@ namespace NeoCompose.Tests
                 {
                     new() { id = "param-t", name = "T" },
                 },
-                isAbstract = isAbstract,
+                Modifier = isAbstract ? NeoClassModifierKind.Abstract : NeoClassModifierKind.Open,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1914,11 +1923,11 @@ namespace NeoCompose.Tests
                 {
                     ["param-t"] = new()
                     {
-                        kind = NeoGenericBindingKinds.Member,
+                        kind = NeoGenericBindingKind.Member,
                         memberId = binding.id,
                     },
                 },
-                isAbstract = closedClassIsAbstract,
+                Modifier = closedClassIsAbstract ? NeoClassModifierKind.Abstract : NeoClassModifierKind.Open,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1932,9 +1941,9 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Secret",
                 kind = MemberKind.Int,
-                required = true,
-                storage = "immutable",
-                isReadOnly = true,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Immutable,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
                 defaultValue = new NumberMemberValueBase { value = 8 },
                 createdAt = "x",
                 updatedAt = "x",
@@ -1946,7 +1955,7 @@ namespace NeoCompose.Tests
                 name = "NestedA",
                 kind = MemberKind.Class,
                 classId = "class-conflict-a",
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1957,7 +1966,7 @@ namespace NeoCompose.Tests
                 name = "NestedB",
                 kind = MemberKind.Class,
                 classId = "class-conflict-b",
-                required = true,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1993,10 +2002,10 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Bonuses",
                 kind = MemberKind.List,
-                required = true,
-                storage = "immutable",
-                isReadOnly = true,
-                listKind = NeoListKinds.Ordered,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Immutable,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
+                ListKind = NeoListKind.Ordered,
                 entryMemberId = bonusEntry.id,
                 defaultValue = new ArrayMemberValueBase
                 {
@@ -2011,7 +2020,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "LabelEntry",
                 kind = MemberKind.String,
-                localizable = false,
+                Format = NeoStringFormatKind.Plain,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -2021,11 +2030,11 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Labels",
                 kind = MemberKind.Dictionary,
-                required = true,
-                storage = "immutable",
-                isReadOnly = true,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Immutable,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
                 entryMemberId = labelEntry.id,
-                keyKind = NeoDictionaryKeyKinds.String,
+                KeyKind = NeoDictionaryKeyKind.String,
                 defaultValue = new ObjectMemberValueBase
                 {
                     value = new Dictionary<string, string>
@@ -2052,8 +2061,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Targets",
                 kind = MemberKind.List,
-                required = true,
-                listKind = NeoListKinds.Ordered,
+                Requirement = NeoMemberRequirementKind.Required,
+                ListKind = NeoListKind.Ordered,
                 entryMemberId = targetEntry.id,
                 valueId = "value-target-list",
                 createdAt = "x",
@@ -2065,12 +2074,12 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Favorite",
                 kind = MemberKind.Lookup,
-                required = true,
-                storage = "immutable",
-                isReadOnly = true,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Immutable,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
                 collectionMemberId = targets.id,
                 collectionValueId = "value-target-list",
-                multiselect = false,
+                Selection = NeoMemberSelectionKind.Single,
                 defaultValue = new ArrayMemberValueBase
                 {
                     value = new[] { "value-target-details" },
@@ -2177,9 +2186,9 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "BaseDamage",
                 kind = MemberKind.Int,
-                required = true,
-                storage = "immutable",
-                isReadOnly = true,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Immutable,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
                 defaultValue = new NumberMemberValueBase { value = 12 },
                 createdAt = "x",
                 updatedAt = "x",
@@ -2190,8 +2199,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Name",
                 kind = MemberKind.String,
-                required = true,
-                localizable = false,
+                Requirement = NeoMemberRequirementKind.Required,
+                Format = NeoStringFormatKind.Plain,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -2202,9 +2211,9 @@ namespace NeoCompose.Tests
                 name = "Details",
                 kind = MemberKind.Class,
                 classId = "class-details",
-                required = true,
-                storage = "immutable",
-                isReadOnly = true,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Immutable,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
                 defaultValue = new ObjectMemberValueBase
                 {
                     classId = "class-details",
@@ -2222,8 +2231,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "RolledDamage",
                 kind = MemberKind.Int,
-                required = false,
-                storage = "immutable",
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Immutable,
                 defaultValue = new NumberMemberValueBase { value = 10 },
                 createdAt = "x",
                 updatedAt = "x",
@@ -2233,11 +2242,11 @@ namespace NeoCompose.Tests
             var saveWeapon = ClassMemberOf(
                 "member-save-weapon", "Weapon", "class-weapon", "value-weapon-save");
             var rootAssets = RootMember(
-                "member-root-assets", "Assets", "class-root-assets", "value-root-assets", "immutable");
+                "member-root-assets", "Assets", "class-root-assets", "value-root-assets", NeoMemberStorage.Immutable);
             var rootSave = RootMember(
-                "member-root-save", "Save", "class-root-save", "value-root-save", "save");
+                "member-root-save", "Save", "class-root-save", "value-root-save", NeoMemberStorage.Save);
             var rootSession = RootMember(
-                "member-root-session", "Session", "class-root-session", "value-root-session", "session");
+                "member-root-session", "Session", "class-root-session", "value-root-session", NeoMemberStorage.Session);
 
             return new ProjectData
             {
@@ -2335,10 +2344,10 @@ namespace NeoCompose.Tests
             string name,
             string classId,
             string valueId,
-            string storage)
+            NeoMemberStorage storage)
         {
             ClassMember member = ClassMemberOf(id, name, classId, valueId);
-            member.storage = storage;
+            member.DeclaredStorage = storage;
             return member;
         }
 
