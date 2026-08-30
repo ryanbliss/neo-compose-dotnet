@@ -197,28 +197,7 @@ namespace NeoCompose.Tests
         public void DelegateSelector_ResolvesAuthoredReferenceToPlacedChildByProvenance()
         {
             ProjectData data = BuildEquipProjectData();
-            data.classes[TrackBaseClassId].schema.Remove("Child");
-            data.classes[TrackBaseClassId].schema["Selector"] =
-                "track-selector-member";
-            data.members["track-selector-member"] = new DelegateMember
-            {
-                id = "track-selector-member",
-                projectId = ProjectId,
-                name = "Selector",
-                kind = MemberKind.NSDelegate,
-                Requirement = NeoMemberRequirementKind.Required,
-                returnTypeInfo = new ClassTypeInfo
-                {
-                    type = MemberKind.Class,
-                    required = true,
-                    classId = RigClassId,
-                },
-                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-                createdAt = "x",
-                updatedAt = "x",
-            };
             ObjectMemberValue track = (ObjectMemberValue)data.values["track-0"];
-            track.value!.Remove("Child");
             track.value["Selector"] = "track-selector-value";
             data.values["authored-c-value"] = ObjectValue(
                 "authored-c-value",
@@ -691,11 +670,11 @@ namespace NeoCompose.Tests
         }
 
         // ------------------------------------------------------------------
-        // P48 §7 — the load-time half of the target rule.
+        // P48 §7 — the runtime half of the target rule.
         // ------------------------------------------------------------------
 
         [Test]
-        public void SegmentTrackTargetingAMemberTheChildDoesNotDeclare_FailsDuringLoad()
+        public void SegmentTrackTargetingAMemberTheChildDoesNotDeclare_FailsDuringPlayback()
         {
             ProjectData data = BuildEquipProjectData();
             // The clip's row is a LookupSegmentTrackClassId instance, so its
@@ -711,8 +690,13 @@ namespace NeoCompose.Tests
                 updatedAt = "x",
             };
 
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            using var target = OpenRig(client);
+            using NeoAnimationDefinition definition =
+                NeoAnimationCompiler.Compile(target, "Clip");
+            definition.PreparePlayback();
             var error = Assert.Throws<InvalidOperationException>(
-                () => NeoTestSaveStack.ClientFromSchema(data));
+                () => definition.ApplyFrame(0, useResolvedState: false));
 
             StringAssert.Contains("targets member 'missing-member'", error!.Message);
             StringAssert.Contains("does not declare", error.Message);
@@ -905,11 +889,12 @@ namespace NeoCompose.Tests
                 LookupSegmentTrackClassId,
                 new Dictionary<string, string>
                 {
-                    ["Child"] = "track-0-child",
+                    ["Selector"] = "track-0-child",
                     ["StartFrame"] = "track-0-start",
                     ["Segment"] = "track-0-segment",
                 });
-            data.values["track-0-child"] = ArrayValue("track-0-child", "c-value");
+            data.values["track-0-child"] = SelectorValue(
+                "track-0-child", "c-value", RigClassId);
             data.values["track-0-start"] = Number("track-0-start", 0);
             data.values["track-0-segment"] = ArrayValue("track-0-segment", "seg-a");
 
@@ -975,12 +960,13 @@ namespace NeoCompose.Tests
         {
             var row = new Dictionary<string, string>
             {
-                ["Child"] = $"{trackId}-child",
+                ["Selector"] = $"{trackId}-child",
                 ["ClipKey"] = $"{trackId}-key",
                 ["StartFrame"] = $"{trackId}-start",
                 ["Direction"] = $"{trackId}-direction",
             };
-            data.values[$"{trackId}-child"] = ArrayValue($"{trackId}-child", "c-value");
+            data.values[$"{trackId}-child"] = SelectorValue(
+                $"{trackId}-child", "c-value", RigClassId);
             data.values[$"{trackId}-key"] = new StringMemberValue
             {
                 id = $"{trackId}-key",
@@ -1016,11 +1002,11 @@ namespace NeoCompose.Tests
                     ChildOverrideClassId,
                     new Dictionary<string, string>
                     {
-                        ["Child"] = $"{frameId}-child-lookup",
+                        ["Selector"] = $"{frameId}-child-lookup",
                         ["Overrides"] = $"{frameId}-overrides",
                     });
-                data.values[$"{frameId}-child-lookup"] =
-                    ArrayValue($"{frameId}-child-lookup", "g-value");
+                data.values[$"{frameId}-child-lookup"] = SelectorValue(
+                    $"{frameId}-child-lookup", "g-value", RigClassId);
                 data.values[$"{frameId}-child-overrides"] =
                     ArrayValue($"{frameId}-child-overrides", $"{frameId}-child-override");
                 data.values[frameId] = ObjectValue(
@@ -1069,12 +1055,13 @@ namespace NeoCompose.Tests
         {
             var row = new Dictionary<string, string>
             {
-                ["Child"] = $"{trackId}-child",
+                ["Selector"] = $"{trackId}-child",
                 ["StartFrame"] = $"{trackId}-start",
                 ["Direction"] = $"{trackId}-direction",
                 ["Segment"] = segmentId,
             };
-            data.values[$"{trackId}-child"] = ArrayValue($"{trackId}-child", childValueId);
+            data.values[$"{trackId}-child"] = SelectorValue(
+                $"{trackId}-child", childValueId, RigClassId);
             data.values[$"{trackId}-start"] =
                 Number($"{trackId}-start", (int)track["startFrame"]!);
             data.values[$"{trackId}-direction"] = DirectionValue(
@@ -1195,7 +1182,7 @@ namespace NeoCompose.Tests
                     "animationChildOverride",
                     new()
                     {
-                        ["Child"] = "co-child-member",
+                        ["Selector"] = "co-selector-member",
                         ["Overrides"] = "co-overrides-member",
                     }),
                 [TrackBaseClassId] = Class(
@@ -1204,7 +1191,7 @@ namespace NeoCompose.Tests
                     "animationTrack",
                     new()
                     {
-                        ["Child"] = "track-child-member",
+                        ["Selector"] = "track-selector-member",
                         ["StartFrame"] = "track-start-member",
                         ["Direction"] = "track-direction-member",
                         ["OffsetStartIndex"] = "track-offset-start-member",
@@ -1297,9 +1284,11 @@ namespace NeoCompose.Tests
                     "ChildOverride",
                     ChildOverrideClassId,
                     null),
-                ["co-child-member"] = LookupMemberOf("co-child-member", "Child", "children-member"),
+                ["co-selector-member"] = SelectorMemberOf(
+                    "co-selector-member", "Selector", RigClassId),
                 ["co-overrides-member"] = PartialClassMemberOf("co-overrides-member", "Overrides", RigClassId),
-                ["track-child-member"] = LookupMemberOf("track-child-member", "Child", "children-member"),
+                ["track-selector-member"] = SelectorMemberOf(
+                    "track-selector-member", "Selector", RigClassId),
                 ["track-start-member"] = IntMemberOf("track-start-member", "StartFrame"),
                 ["track-offset-start-member"] = IntMemberOf("track-offset-start-member", "OffsetStartIndex"),
                 ["track-offset-end-member"] = IntMemberOf("track-offset-end-member", "OffsetEndIndex"),
@@ -1410,7 +1399,7 @@ namespace NeoCompose.Tests
                     ["Tracks"] = "child-clip-tracks",
                 }),
             };
-            // The clip's Child lookup matches on P44 provenance, and an
+            // The clip's Selector resolves through P44 provenance, and an
             // authored graph played in place IS its own authored source.
             values["c-value"].sourceValueId = "c-value";
             values["g-value"].sourceValueId = "g-value";
@@ -1548,6 +1537,27 @@ namespace NeoCompose.Tests
                 updatedAt = "x",
             };
 
+        private static DelegateMember SelectorMemberOf(
+            string id,
+            string name,
+            string classId) => new()
+            {
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                kind = MemberKind.NSDelegate,
+                Requirement = NeoMemberRequirementKind.Required,
+                returnTypeInfo = new ClassTypeInfo
+                {
+                    type = MemberKind.Class,
+                    required = true,
+                    classId = classId,
+                },
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                createdAt = "x",
+                updatedAt = "x",
+            };
+
         private static IntMember IntMemberOf(
             string id,
             string name,
@@ -1587,6 +1597,71 @@ namespace NeoCompose.Tests
         {
             id = id,
             value = entries,
+        };
+
+        private static DelegateMemberValue SelectorValue(
+            string id,
+            string selectedValueId,
+            string selectedClassId) => new()
+            {
+                id = id,
+                createdAt = "x",
+                updatedAt = "x",
+                value = new NeoDelegateValue
+                {
+                    code = $"() => Reference(id: \"{selectedValueId}\", withProvenance: true)",
+                    action = new FunctionWithReturnType
+                    {
+                        compilerRevision = 7,
+                        parameters = new[]
+                        {
+                            EnvelopeVariable("__this__"),
+                            EnvelopeVariable("__root__"),
+                        },
+                        instructions = new Instruction[]
+                        {
+                            new ReturnInstruction
+                            {
+                                type = InstructionKind.Return,
+                                pointer = new ReferencePointer
+                                {
+                                    type = PointerKind.Reference,
+                                    valueId = selectedValueId,
+                                    withProvenance = true,
+                                },
+                            },
+                        },
+                        typeInfo = new ClassTypeInfo
+                        {
+                            type = MemberKind.Class,
+                            required = true,
+                            classId = selectedClassId,
+                        },
+                    },
+                },
+            };
+
+        private static Variable EnvelopeVariable(string id) => new()
+        {
+            id = id,
+            typeInfo = new PrimitiveTypeInfo
+            {
+                type = MemberKind.Null,
+                required = false,
+            },
+            pointer = new ValuePointer
+            {
+                type = PointerKind.Value,
+                value = new Value
+                {
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Null,
+                        required = false,
+                    },
+                    value = JValue.CreateNull(),
+                },
+            },
         };
 
         private static NumberMemberValue Number(string id, double value) => new()

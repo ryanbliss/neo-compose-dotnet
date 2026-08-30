@@ -10586,15 +10586,15 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoCollider writable);
 
-        bool? isTrigger { get; }
+        new bool? IsTrigger { get; }
 
 
         /// <summary>
         /// Offset from the object's origin-cell corner, measured in cells, matching Unity's BoxCollider2D model. (0.5, 0.5) centers a 1x1 collider on the origin cell.
         /// </summary>
-        NeoReadOnlyVector2? offset { get; }
+        new NeoReadOnlyVector2? Offset { get; }
 
-        NeoReadOnlyVector2 size { get; }
+        new NeoReadOnlyVector2 Size { get; }
     }
 
     public partial class NeoCollider : NeoGeneratedClassValue, IReadOnlyNeoCollider, INeoCollider
@@ -10604,20 +10604,20 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public NeoCollider(NeoVector2? size = null, NeoVector2? offset = null, bool? isTrigger = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(size, offset, isTrigger), false, NeoValueOwnership.Session)
+        public NeoCollider(NeoVector2? Size = null, NeoVector2? Offset = null, bool? IsTrigger = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Size, Offset, IsTrigger), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(NeoVector2? size = null, NeoVector2? offset = null, bool? isTrigger = null)
+        private static NeoMemberClassWritable CreateFactoryNode(NeoVector2? Size = null, NeoVector2? Offset = null, bool? IsTrigger = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("size", "system_c66c17e3-ecfc-4f41-96de-6a53bb2acd4f", size),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("offset", "system_ec5b5d5e-7053-4378-87d1-9cceec30ff1a", offset),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("isTrigger", "system_6ed1890b-0ae6-4979-bf5b-6f216d69f432", isTrigger)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_c66c17e3-ecfc-4f41-96de-6a53bb2acd4f", Size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Offset", "system_ec5b5d5e-7053-4378-87d1-9cceec30ff1a", Offset),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("IsTrigger", "system_6ed1890b-0ae6-4979-bf5b-6f216d69f432", IsTrigger)
             );
         }
 
@@ -10665,67 +10665,66 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoCollider>(out writable);
         }
 
-        NeoReadOnlyVector2 INeoCollider.Size => size;
-        NeoReadOnlyVector2? INeoCollider.Offset => offset;
-        bool? INeoCollider.IsTrigger => isTrigger;
+        NeoReadOnlyVector2 INeoCollider.Size => Size;
+        NeoReadOnlyVector2? INeoCollider.Offset => Offset;
 
-        public virtual bool? isTrigger
+        public virtual bool? IsTrigger
         {
             get
             {
-                return node.Get<NeoMemberBool>("isTrigger").value?.value;
+                return node.Get<NeoMemberBool>("IsTrigger").value?.value;
             }
             set
             {
-                ThrowIfReadOnly("NeoCollider.isTrigger");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "isTrigger", NeoGeneratedTypesSupport.Value(value));
+                ThrowIfReadOnly("NeoCollider.IsTrigger");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "IsTrigger", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
         /// <summary>
         /// Offset from the object's origin-cell corner, measured in cells, matching Unity's BoxCollider2D model. (0.5, 0.5) centers a 1x1 collider on the origin cell.
         /// </summary>
-        public virtual NeoVector2? offset
+        public virtual NeoVector2? Offset
         {
             get
             {
-                var child = writableNode.Get<NeoMemberVector2Writable>("offset");
+                var child = writableNode.Get<NeoMemberVector2Writable>("Offset");
                 return child.value is null ? null : new NeoVector2(child, this);
             }
             set
             {
-                ThrowIfReadOnly("NeoCollider.offset");
-                NeoGeneratedTypesSupport.SetVector2OrClear(writableNode, "offset", value);
+                ThrowIfReadOnly("NeoCollider.Offset");
+                NeoGeneratedTypesSupport.SetVector2OrClear(writableNode, "Offset", value);
             }
         }
 
-        NeoReadOnlyVector2? IReadOnlyNeoCollider.offset
+        NeoReadOnlyVector2? IReadOnlyNeoCollider.Offset
         {
             get
             {
-                var child = node.Get<NeoMemberVector2>("offset");
+                var child = node.Get<NeoMemberVector2>("Offset");
                 return child.value is null ? null : new NeoReadOnlyVector2(child);
             }
         }
 
-        public virtual NeoVector2 size
+        public virtual NeoVector2 Size
         {
             get
             {
-                return new NeoVector2(writableNode.Get<NeoMemberVector2Writable>("size"), this);
+                return new NeoVector2(writableNode.Get<NeoMemberVector2Writable>("Size"), this);
             }
             set
             {
-                ThrowIfReadOnly("NeoCollider.size");
-                NeoGeneratedTypesSupport.SetVector2(writableNode, "size", value);
+                ThrowIfReadOnly("NeoCollider.Size");
+                NeoGeneratedTypesSupport.SetVector2(writableNode, "Size", value);
             }
         }
 
-        NeoReadOnlyVector2 IReadOnlyNeoCollider.size
+        NeoReadOnlyVector2 IReadOnlyNeoCollider.Size
         {
             get
             {
-                return new NeoReadOnlyVector2(node.Get<NeoMemberVector2>("size"));
+                return new NeoReadOnlyVector2(node.Get<NeoMemberVector2>("Size"));
             }
         }
 
@@ -10733,20 +10732,20 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<NeoVector2> size = new("size");
+            public static readonly NeoField<NeoVector2> Size = new("Size");
 
-            public static readonly NeoField<NeoVector2?> offset = new("offset");
+            public static readonly NeoField<NeoVector2?> Offset = new("Offset");
 
-            public static readonly NeoField<bool?> isTrigger = new("isTrigger");
+            public static readonly NeoField<bool?> IsTrigger = new("IsTrigger");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.size] = () => null,
-                [Fields.offset] = () => null,
-                [Fields.isTrigger] = () => null,
+                [Fields.Size] = () => null,
+                [Fields.Offset] = () => null,
+                [Fields.IsTrigger] = () => null,
             };
         }
 
@@ -10764,9 +10763,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.size] = () => size,
-                [Fields.offset] = () => offset,
-                [Fields.isTrigger] = () => isTrigger,
+                [Fields.Size] = () => Size,
+                [Fields.Offset] = () => Offset,
+                [Fields.IsTrigger] = () => IsTrigger,
             };
         }
 
