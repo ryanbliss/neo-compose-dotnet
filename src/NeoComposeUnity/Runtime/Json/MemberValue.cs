@@ -1326,7 +1326,8 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>
         /// Set iff this row is an entry of an <b>unordered</b> List value
-        /// (<see cref="ListMember.listKind"/> == "unordered"): the list
+        /// (<see cref="ListMember.listKind"/> ==
+        /// <see cref="NeoListKind.Unordered"/>): the list
         /// VALUE id the row belongs to. Stamped at creation and immutable
         /// thereafter — membership of an unordered list is the set of live
         /// rows carrying its id here; the list value itself stores only the

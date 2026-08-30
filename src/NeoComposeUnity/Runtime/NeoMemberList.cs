@@ -44,7 +44,8 @@ namespace NeoCompose.Runtime
         internal Member EntryMember => entryMember;
 
         /// <summary>
-        /// True when the member declares <c>listKind: "unordered"</c>:
+        /// True when the member declares <see cref="NeoListKind.Unordered"/>
+        /// through its numeric <c>listKind</c> enum value:
         /// the stored value is only the null-vs-present discriminator
         /// (<c>null</c> or <c>[]</c>) and membership resolves by join over
         /// <see cref="MemberValue.containerId"/>, enumerated id-sorted.
