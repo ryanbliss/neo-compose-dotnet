@@ -409,14 +409,14 @@ namespace NeoCompose.Runtime
                 throw Mismatch<T>(member, "string");
             }
             bool localized = member is StringMember stringMember
-                && stringMember.EffectiveFormat == NeoStringFormatKind.Localized;
+                && stringMember.Format == NeoStringFormatKind.Localized;
             return Adapt<T, string?>(new NeoGenericBinding<string?>(
                 MemberKind.String,
                 node =>
                 {
                     var stringNode = RequireNode<NeoMemberString>(node, member);
                     string? text = localized ? stringNode.Text : stringNode.value?.value;
-                    if (text is null && member.EffectiveRequirement == NeoMemberRequirementKind.Required)
+                    if (text is null && member.Requirement == NeoMemberRequirementKind.Required)
                     {
                         throw new InvalidOperationException(
                             $"Required string '{member.name}' ({member.id}) has no value.");
@@ -762,7 +762,7 @@ namespace NeoCompose.Runtime
                 node =>
                 {
                     var resolved = RequireNode<NeoMemberAudio>(node, member).Resolve();
-                    if (resolved is null && member.EffectiveRequirement == NeoMemberRequirementKind.Required)
+                    if (resolved is null && member.Requirement == NeoMemberRequirementKind.Required)
                     {
                         throw new InvalidOperationException(
                             $"Required Audio '{member.name}' ({member.id}) has no synchronized asset.");
@@ -807,7 +807,7 @@ namespace NeoCompose.Runtime
 
         private static NeoGenericBinding<T> EnumCodec<T>(Member member)
         {
-            bool multiSelect = member is EnumMember enumMember && enumMember.EffectiveSelection == NeoMemberSelectionKind.Multi;
+            bool multiSelect = member is EnumMember enumMember && enumMember.Selection == NeoMemberSelectionKind.Multi;
             if (multiSelect)
             {
                 if (typeof(T) == typeof(string[]))
@@ -961,7 +961,7 @@ namespace NeoCompose.Runtime
                     var classNode = RequireNode<NeoMemberClass>(node, member);
                     if (classNode.value is null)
                     {
-                        if (member.EffectiveRequirement == NeoMemberRequirementKind.Required)
+                        if (member.Requirement == NeoMemberRequirementKind.Required)
                         {
                             throw new InvalidOperationException(
                                 $"Required class member '{member.name}' ({member.id}) has no value.");

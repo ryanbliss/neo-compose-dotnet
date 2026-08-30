@@ -746,7 +746,7 @@ namespace NeoCompose.Tests
                 {
                     FunctionArgument("value", propertyType),
                 },
-                dispatch = NeoFunctionDispatchKind.Synchronous,
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -762,7 +762,7 @@ namespace NeoCompose.Tests
                     required = true,
                 },
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-                dispatch = NeoFunctionDispatchKind.Asynchronous,
+                Dispatch = NeoFunctionDispatchKind.Asynchronous,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1073,7 +1073,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = classId,
                 valueId = valueId,
-                storage = storage,
+                Storage = storage,
                 createdAt = "x",
                 updatedAt = "x",
             };

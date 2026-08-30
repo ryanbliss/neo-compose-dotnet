@@ -398,7 +398,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = "class-root",
                 valueId = valueId,
-                storage = storage,
+                Storage = storage,
                 createdAt = "x",
                 updatedAt = "x",
             };

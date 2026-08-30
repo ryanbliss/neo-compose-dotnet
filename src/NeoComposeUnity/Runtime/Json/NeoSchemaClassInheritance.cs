@@ -154,7 +154,7 @@ namespace NeoCompose.Runtime.Json
             foreach (MergedSchemaEntry entry in merged)
             {
                 Member? member = memberLookup(entry.memberId);
-                if (member?.EffectiveModifier == NeoMemberModifierKind.Static) continue;
+                if (member?.Modifier == NeoMemberModifierKind.Static) continue;
                 result.Add(entry);
             }
             return result;
@@ -184,7 +184,7 @@ namespace NeoCompose.Runtime.Json
             foreach (MergedSchemaEntry entry in surface)
             {
                 Member? member = memberLookup(entry.memberId);
-                if (member?.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly) continue;
+                if (member?.Mutability == NeoMemberMutabilityKind.ReadOnly) continue;
                 result.Add(entry);
             }
             return result;
@@ -205,8 +205,8 @@ namespace NeoCompose.Runtime.Json
             foreach (MergedSchemaEntry entry in surface)
             {
                 Member? member = memberLookup(entry.memberId);
-                if (member?.EffectiveMutability != NeoMemberMutabilityKind.ReadOnly
-                    || member.EffectiveModifier == NeoMemberModifierKind.Abstract) continue;
+                if (member?.Mutability != NeoMemberMutabilityKind.ReadOnly
+                    || member.Modifier == NeoMemberModifierKind.Abstract) continue;
                 result.Add(entry);
             }
             return result;
@@ -227,7 +227,7 @@ namespace NeoCompose.Runtime.Json
             foreach (MergedSchemaEntry entry in merged)
             {
                 Member? member = memberLookup(entry.memberId);
-                if (member?.EffectiveModifier != NeoMemberModifierKind.Static) continue;
+                if (member?.Modifier != NeoMemberModifierKind.Static) continue;
                 result.Add(entry);
             }
             return result;

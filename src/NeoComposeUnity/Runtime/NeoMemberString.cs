@@ -26,7 +26,7 @@ namespace NeoCompose.Runtime
         {
             get
             {
-                if (member.EffectiveFormat == NeoStringFormatKind.Plain) return null;
+                if (member.Format == NeoStringFormatKind.Plain) return null;
                 if (value?.neoLocalizationMode == NeoStringLocalizationMode.Literal) return null;
                 return value?.value;
             }
@@ -35,7 +35,7 @@ namespace NeoCompose.Runtime
         protected string? ResolveText(StringMemberValue? row)
         {
             if (row?.value == null) return null;
-            if (member.EffectiveFormat == NeoStringFormatKind.Plain) return row.value;
+            if (member.Format == NeoStringFormatKind.Plain) return row.value;
             if (row.neoLocalizationMode == NeoStringLocalizationMode.Literal) return row.value;
             return client.Localization.ResolveText(row.value);
         }
@@ -65,7 +65,7 @@ namespace NeoCompose.Runtime
 
         public void SetLiteralOverride(string? newValue)
         {
-            if (member.EffectiveRequirement == NeoMemberRequirementKind.Required && newValue is null)
+            if (member.Requirement == NeoMemberRequirementKind.Required && newValue is null)
             {
                 throw new System.ArgumentNullException(
                     nameof(newValue),

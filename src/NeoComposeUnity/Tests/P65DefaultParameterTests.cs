@@ -467,7 +467,7 @@ namespace NeoCompose.Tests
         // -------------------------------------------------------------------
 
         [Test]
-        public void ExportSchemaVersion_PreP80TwentyEightIsRejectedClosed()
+        public void ExportSchemaVersion_PreviousTwentyEightIsRejectedClosed()
         {
             ProjectData data = BuildConstructorProjectData();
             data.metadata = new ProjectExportMetadata
@@ -539,7 +539,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Function,
                 returnTypeInfo = StringType(),
                 argumentTypes = new[] { name, suffix },
-                dispatch = NeoFunctionDispatchKind.Synchronous,
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -741,8 +741,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Required,
-                format = NeoStringFormatKind.Plain,
+                Requirement = NeoMemberRequirementKind.Required,
+                Format = NeoStringFormatKind.Plain,
                 defaultValue = new StringMemberValueBase { value = "base" },
                 createdAt = "x",
                 updatedAt = "x",
@@ -897,7 +897,7 @@ namespace NeoCompose.Tests
                 code = "compiled test function",
                 returnTypeInfo = returnType,
                 argumentTypes = arguments,
-                dispatch = NeoFunctionDispatchKind.Synchronous,
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
                 action = new FunctionWithReturnType
                 {
                     parameters = parameters,
@@ -937,7 +937,7 @@ namespace NeoCompose.Tests
             kind = MemberKind.Class,
             classId = "root-class",
             valueId = valueId,
-            storage = storage,
+            Storage = storage,
             createdAt = "x",
             updatedAt = "x",
         };

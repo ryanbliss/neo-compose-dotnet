@@ -425,7 +425,7 @@ namespace NeoCompose.Runtime.Json
 
             var obj = JObject.Load(reader);
             ValidateSchemaVersion(obj);
-            P80RecordShapeGuard.ValidateProjectData(obj);
+            RecordShapeContractGuard.ValidateProjectData(obj);
 
             var projectData = new ProjectData();
             using (var subReader = obj.CreateReader())
@@ -479,12 +479,11 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
-    /// Validates P80's retired record-shape spellings and numeric enum
+    /// Validates retired record-shape spellings and numeric enum
     /// ordinals. The schema-version gate handles older export generations;
-    /// this guard stays narrow so P81's retired schema-8 tree scan does not
-    /// return.
+    /// this guard stays narrow to the current record-shape contract.
     /// </summary>
-    internal static class P80RecordShapeGuard
+    internal static class RecordShapeContractGuard
     {
         internal static void ValidateProjectData(JObject root)
         {

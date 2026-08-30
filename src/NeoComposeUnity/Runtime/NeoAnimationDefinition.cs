@@ -1791,8 +1791,8 @@ namespace NeoCompose.Runtime
         {
             if (child is NeoMemberList or NeoMemberDictionary
                 || child.member is FunctionMember or NSFunctionMember or NSPropertyMember
-                || child.member.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly
-                || child.member.EffectiveModifier == NeoMemberModifierKind.Static)
+                || child.member.Mutability == NeoMemberMutabilityKind.ReadOnly
+                || child.member.Modifier == NeoMemberModifierKind.Static)
             {
                 throw new InvalidOperationException(
                     $"{where} is not an eligible runtime-writable leaf.");
@@ -2007,7 +2007,7 @@ namespace NeoCompose.Runtime
                     ValidateActionSignature(
                         native.returnTypeInfo,
                         native.argumentTypes,
-                        native.EffectiveDispatch == NeoFunctionDispatchKind.Asynchronous,
+                        native.Dispatch == NeoFunctionDispatchKind.Asynchronous,
                         memberId,
                         clipKey,
                         frameIndex);
@@ -2347,8 +2347,8 @@ namespace NeoCompose.Runtime
             if (child is NeoMemberList or NeoMemberDictionary
                 || child.member is FunctionMember or NSFunctionMember
                 || child.member is NSPropertyMember
-                || child.member.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly
-                || child.member.EffectiveModifier == NeoMemberModifierKind.Static)
+                || child.member.Mutability == NeoMemberMutabilityKind.ReadOnly
+                || child.member.Modifier == NeoMemberModifierKind.Static)
             {
                 throw new InvalidOperationException(
                     $"{where} is not an eligible runtime-writable leaf.");
@@ -3297,7 +3297,7 @@ namespace NeoCompose.Runtime
                 ValidateActionSignature(
                     native.returnTypeInfo,
                     native.argumentTypes,
-                    native.EffectiveDispatch == NeoFunctionDispatchKind.Asynchronous,
+                    native.Dispatch == NeoFunctionDispatchKind.Asynchronous,
                     memberId,
                     clipKey,
                     frameIndex);

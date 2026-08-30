@@ -466,7 +466,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Position",
                 kind = MemberKind.Vector3,
-                storage = NeoMemberStorage.Save,
+                Storage = NeoMemberStorage.Save,
             };
             members["part-children-member"] = new ListMember
             {
@@ -522,7 +522,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "ClipKey",
                 kind = MemberKind.String,
-                format = NeoStringFormatKind.Plain,
+                Format = NeoStringFormatKind.Plain,
             };
             members["track-start-member"] = IntMemberOf("track-start-member", "StartFrame");
 
@@ -749,7 +749,7 @@ namespace NeoCompose.Tests
                 name = name,
                 kind = MemberKind.Class,
                 classId = PartClassId,
-                payload = NeoMemberPayloadKind.Partial,
+                Payload = NeoMemberPayloadKind.Partial,
             };
         }
 
@@ -763,7 +763,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = ClipClassId,
                 valueId = valueId,
-                storage = NeoMemberStorage.Immutable,
+                Storage = NeoMemberStorage.Immutable,
             };
         }
 

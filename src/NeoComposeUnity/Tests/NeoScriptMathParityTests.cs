@@ -314,7 +314,7 @@ namespace NeoCompose.Tests
                 projectId = "project-math-parity",
                 name = id,
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };

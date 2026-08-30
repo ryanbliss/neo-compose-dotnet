@@ -178,7 +178,7 @@ namespace NeoCompose.Tests
             ) as ListMember;
             Assert.IsNotNull(indexed);
             Assert.AreEqual("Slug", indexed!.indexes![0].schemaKey);
-            Assert.AreEqual(NeoListIndexKind.Unique, indexed.indexes[0].EffectiveKind);
+            Assert.AreEqual(NeoListIndexKind.Unique, indexed.indexes[0].Kind);
 
             var withoutIndexes = JsonConvert.DeserializeObject<JsonMember>(
                 "{\"id\":\"items\",\"projectId\":\"p\",\"name\":\"Items\","
@@ -394,12 +394,12 @@ namespace NeoCompose.Tests
                     projectId = projectId,
                     name = "Items",
                     kind = MemberKind.List,
-                    requirement = NeoMemberRequirementKind.Required,
+                    Requirement = NeoMemberRequirementKind.Required,
                     valueId = "items-value",
                     entryMemberId = "item-entry",
                     indexes = new[]
                     {
-                        new ListIndexDefinition { schemaKey = "Slug", kind = NeoListIndexKind.Unique },
+                        new ListIndexDefinition { schemaKey = "Slug", Kind = NeoListIndexKind.Unique },
                         new ListIndexDefinition { schemaKey = "Category" },
                     },
                 },
@@ -409,7 +409,7 @@ namespace NeoCompose.Tests
                     projectId = projectId,
                     name = "Item",
                     kind = MemberKind.Class,
-                    requirement = NeoMemberRequirementKind.Required,
+                    Requirement = NeoMemberRequirementKind.Required,
                     classId = itemClass.id,
                 },
                 ["slug"] = new StringMember
@@ -418,8 +418,8 @@ namespace NeoCompose.Tests
                     projectId = projectId,
                     name = "Slug",
                     kind = MemberKind.String,
-                    requirement = NeoMemberRequirementKind.Required,
-                    format = NeoStringFormatKind.Plain,
+                    Requirement = NeoMemberRequirementKind.Required,
+                    Format = NeoStringFormatKind.Plain,
                 },
                 ["category"] = new EnumMember
                 {
@@ -427,9 +427,9 @@ namespace NeoCompose.Tests
                     projectId = projectId,
                     name = "Category",
                     kind = MemberKind.Enum,
-                    requirement = NeoMemberRequirementKind.Required,
+                    Requirement = NeoMemberRequirementKind.Required,
                     enumId = "category-enum",
-                    selection = NeoMemberSelectionKind.Single,
+                    Selection = NeoMemberSelectionKind.Single,
                 },
             };
             var values = new Dictionary<string, MemberValue>
@@ -515,7 +515,7 @@ namespace NeoCompose.Tests
                 projectId = "list-index-tests",
                 name = id,
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };

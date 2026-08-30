@@ -128,7 +128,7 @@ namespace NeoCompose.Tests
   'classId':'target','payload':1,'createdAt':'x','updatedAt':'x'
 }";
             var partial = (ClassMember)JsonConvert.DeserializeObject<Member>(classJson)!;
-            Assert.AreEqual(true, partial.EffectivePayload == NeoMemberPayloadKind.Partial);
+            Assert.AreEqual(true, partial.Payload == NeoMemberPayloadKind.Partial);
 
             const string genericJson = @"{
   'id':'generic-partial','projectId':'project','name':'Overrides','kind':21,
@@ -136,7 +136,7 @@ namespace NeoCompose.Tests
   'genericParamId':'target-param','payload':1,'createdAt':'x','updatedAt':'x'
 }";
             var generic = (GenericMember)JsonConvert.DeserializeObject<Member>(genericJson)!;
-            Assert.AreEqual(true, generic.EffectivePayload == NeoMemberPayloadKind.Partial);
+            Assert.AreEqual(true, generic.Payload == NeoMemberPayloadKind.Partial);
 
             const string functionRefJson = @"{
   'id':'action-ref','projectId':'project','name':'Action','kind':24,
@@ -157,7 +157,7 @@ namespace NeoCompose.Tests
   'action':{'parameters':[],'instructions':[],'typeInfo':{'type':0,'required':true}}
 }";
             var nsFunction = (NSFunctionMember)JsonConvert.DeserializeObject<Member>(nsFunctionJson)!;
-            Assert.AreEqual(NeoFunctionBodyKind.UI, nsFunction.EffectiveBodyMode);
+            Assert.AreEqual(NeoFunctionBodyKind.UI, nsFunction.BodyMode);
             Assert.IsNotNull(nsFunction.uiAction);
 
             JObject serialized = JObject.Parse(JsonConvert.SerializeObject(nsFunction));
@@ -192,7 +192,7 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = "Score",
                 kind = MemberKind.NSProperty,
-                access = NeoMemberAccessKind.Public,
+                Access = NeoMemberAccessKind.Public,
                 code = "return root.Save.Score;",
                 returnTypeInfo = typeInfo,
                 getter = new FunctionWithReturnType
@@ -236,7 +236,7 @@ namespace NeoCompose.Tests
                 },
                 createdAt = "x",
                 updatedAt = "x",
-                modifier = NeoMemberModifierKind.Static,
+                Modifier = NeoMemberModifierKind.Static,
             };
 
             string json = JsonConvert.SerializeObject(source);
@@ -244,7 +244,7 @@ namespace NeoCompose.Tests
                 .DeserializeObject<Member>(json)!;
 
             Assert.AreEqual(source.setterCode, roundTripped.setterCode);
-            Assert.IsTrue(roundTripped.EffectiveModifier == NeoMemberModifierKind.Static);
+            Assert.IsTrue(roundTripped.Modifier == NeoMemberModifierKind.Static);
             Assert.IsNotNull(roundTripped.setter);
             var assign = (AssignInstruction)roundTripped.setter!.instructions[0];
             Assert.AreEqual(WritabilityKind.Setter, assign.target.writability);
@@ -797,13 +797,13 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = "Count",
                 kind = MemberKind.Int,
-                access = NeoMemberAccessKind.Public,
+                Access = NeoMemberAccessKind.Public,
                 createdAt = "x",
                 updatedAt = "x",
             };
             var result = JsonConvert.DeserializeObject<Member>(
                 JsonConvert.SerializeObject(source))!;
-            Assert.AreEqual(NeoMemberModifierKind.Virtual, result.EffectiveModifier);
+            Assert.AreEqual(NeoMemberModifierKind.Virtual, result.Modifier);
         }
 
         [Test]
@@ -968,7 +968,7 @@ namespace NeoCompose.Tests
         [TestCase("partial", "payload")]
         [TestCase("multiselect", "selection")]
         [TestCase("deferred", "dispatch")]
-        public void Member_P80RetiredFieldsAreRejected(
+        public void Member_RetiredFieldsAreRejected(
             string removedField,
             string replacementField)
         {
@@ -986,7 +986,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Member_P80LockedFieldIsRejectedWithoutReplacement()
+        public void Member_LockedFieldIsRejectedWithoutReplacement()
         {
             var json = JObject.Parse(@"{
   'id':'member-a','projectId':'project','name':'A','kind':2,
@@ -1013,7 +1013,7 @@ namespace NeoCompose.Tests
         [TestCase("selection")]
         [TestCase("dispatch")]
         [TestCase("bodyMode")]
-        public void Member_P80EnumsRejectStringValues(string field)
+        public void Member_EnumsRejectStringValues(string field)
         {
             var json = JObject.Parse(@"{
   'id':'member-a','projectId':'project','name':'A','kind':2,
@@ -1040,7 +1040,7 @@ namespace NeoCompose.Tests
         [TestCase("selection")]
         [TestCase("dispatch")]
         [TestCase("bodyMode")]
-        public void Member_P80EnumsRejectUnknownOrdinals(string field)
+        public void Member_EnumsRejectUnknownOrdinals(string field)
         {
             var json = JObject.Parse(@"{
   'id':'member-a','projectId':'project','name':'A','kind':2,
@@ -1057,7 +1057,7 @@ namespace NeoCompose.Tests
         [TestCase("hiddenInMemberSelector", "uiVisibility")]
         [TestCase("isAbstract", "modifier")]
         [TestCase("isSealed", "modifier")]
-        public void Class_P80RetiredFieldsAreRejected(
+        public void Class_RetiredFieldsAreRejected(
             string removedField,
             string replacementField)
         {
@@ -1077,7 +1077,7 @@ namespace NeoCompose.Tests
         [TestCase("uiVisibility")]
         [TestCase("modifier")]
         [TestCase("allowedStorage")]
-        public void Class_P80EnumsRejectStringsAndUnknownOrdinals(string field)
+        public void Class_EnumsRejectStringsAndUnknownOrdinals(string field)
         {
             var json = JObject.Parse(@"{
   'project':{},'members':{},'values':{},'enums':{},
@@ -1099,17 +1099,17 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void P80OptionalEnumNullsAreReadAsAbsentAndWrittenCanonically()
+        public void OptionalEnumNullsAreReadAsAbsentAndWrittenCanonically()
         {
             var member = JsonConvert.DeserializeObject<Member>(@"{
   'id':'string-a','projectId':'project','name':'Name','kind':3,
   'requirement':null,'mutability':null,'modifier':null,'access':null,
   'storage':null,'format':null,'searchBy':null,'createdAt':0,'updatedAt':0
 }")!;
-            Assert.AreEqual(NeoMemberRequirementKind.Optional, member.EffectiveRequirement);
-            Assert.AreEqual(NeoMemberMutabilityKind.Mutable, member.EffectiveMutability);
-            Assert.AreEqual(NeoMemberModifierKind.Virtual, member.EffectiveModifier);
-            Assert.AreEqual(NeoMemberAccessKind.Public, member.EffectiveAccess);
+            Assert.AreEqual(NeoMemberRequirementKind.Optional, member.Requirement);
+            Assert.AreEqual(NeoMemberMutabilityKind.Mutable, member.Mutability);
+            Assert.AreEqual(NeoMemberModifierKind.Virtual, member.Modifier);
+            Assert.AreEqual(NeoMemberAccessKind.Public, member.Access);
             JObject memberJson = JObject.Parse(JsonConvert.SerializeObject(member));
             foreach (string field in new[]
             {
@@ -1128,8 +1128,8 @@ namespace NeoCompose.Tests
   }}
 }");
             NeoSchemaClass schemaClass = project.classes["class-a"];
-            Assert.AreEqual(NeoClassVisibilityKind.Visible, schemaClass.EffectiveUiVisibility);
-            Assert.AreEqual(NeoClassModifierKind.Open, schemaClass.EffectiveModifier);
+            Assert.AreEqual(NeoClassVisibilityKind.Visible, schemaClass.UiVisibility);
+            Assert.AreEqual(NeoClassModifierKind.Open, schemaClass.Modifier);
             JObject projectJson = JObject.Parse(JsonConvert.SerializeObject(project));
             JObject classJson = (JObject)projectJson["classes"]!["class-a"]!;
             foreach (string field in new[] { "uiVisibility", "modifier", "allowedStorage" })
@@ -1139,7 +1139,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ListLayout_P80EnumsAreStrictAndRetiredBooleansAreRejected()
+        public void ListLayout_EnumsAreStrictAndRetiredBooleansAreRejected()
         {
             var member = JObject.Parse(@"{
   'id':'list-a','projectId':'project','name':'Items','kind':6,
@@ -1182,41 +1182,41 @@ namespace NeoCompose.Tests
             var roundTripped = (ListMember)JsonConvert.DeserializeObject<Member>(
                 member.ToString())!;
 
-            Assert.AreEqual(NeoListIndexKind.Unique, roundTripped.indexes![0].EffectiveKind);
+            Assert.AreEqual(NeoListIndexKind.Unique, roundTripped.indexes![0].Kind);
             Assert.AreEqual(240, roundTripped.columnSettings![0].width);
             Assert.AreEqual(
                 NeoColumnVisibilityKind.Hidden,
-                roundTripped.columnSettings[0].EffectiveVisibility);
+                roundTripped.columnSettings[0].Visibility);
             Assert.AreEqual(
                 NeoColumnPinKind.Leading,
-                roundTripped.columnSettings[0].EffectivePin);
+                roundTripped.columnSettings[0].Pin);
             Assert.AreEqual(
                 NeoColumnOverflowKind.Wrap,
-                roundTripped.columnSettings[0].EffectiveOverflow);
+                roundTripped.columnSettings[0].Overflow);
         }
 
         [Test]
-        public void EffectiveShape_PreservesInheritedAbsenceAndExplicitZero()
+        public void ResolvedShape_PreservesInheritedAbsenceAndExplicitZero()
         {
             var root = new StringMember
             {
                 id = "root",
-                requirement = NeoMemberRequirementKind.Required,
-                mutability = NeoMemberMutabilityKind.ReadOnly,
-                modifier = NeoMemberModifierKind.Sealed,
-                access = NeoMemberAccessKind.Protected,
-                storage = NeoMemberStorage.Save,
-                format = NeoStringFormatKind.Plain,
+                Requirement = NeoMemberRequirementKind.Required,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
+                Modifier = NeoMemberModifierKind.Sealed,
+                Access = NeoMemberAccessKind.Protected,
+                Storage = NeoMemberStorage.Save,
+                Format = NeoStringFormatKind.Plain,
             };
             var inherited = new StringMember { id = "inherited", extendsMemberId = "root" };
             var explicitZero = new StringMember
             {
                 id = "explicit-zero",
                 extendsMemberId = "root",
-                requirement = NeoMemberRequirementKind.Optional,
-                modifier = NeoMemberModifierKind.Virtual,
-                storage = NeoMemberStorage.Inherit,
-                format = NeoStringFormatKind.Localized,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Modifier = NeoMemberModifierKind.Virtual,
+                Storage = NeoMemberStorage.Inherit,
+                Format = NeoStringFormatKind.Localized,
             };
             var afterExplicitZero = new StringMember
             {
@@ -1233,18 +1233,18 @@ namespace NeoCompose.Tests
 
             NeoMemberShapeResolution.ResolveAll(members);
 
-            Assert.IsNull(inherited.requirement);
-            Assert.AreEqual(NeoMemberRequirementKind.Required, inherited.EffectiveRequirement);
-            Assert.AreEqual(NeoMemberMutabilityKind.Mutable, inherited.EffectiveMutability);
-            Assert.AreEqual(NeoMemberModifierKind.Sealed, inherited.EffectiveModifier);
-            Assert.AreEqual(NeoMemberAccessKind.Public, inherited.EffectiveAccess);
-            Assert.AreEqual(NeoMemberStorage.Save, inherited.EffectiveStorage);
-            Assert.AreEqual(NeoStringFormatKind.Plain, inherited.EffectiveFormat);
-            Assert.AreEqual(NeoMemberRequirementKind.Optional, explicitZero.EffectiveRequirement);
-            Assert.AreEqual(NeoMemberModifierKind.Virtual, explicitZero.EffectiveModifier);
-            Assert.AreEqual(NeoMemberStorage.Inherit, explicitZero.EffectiveStorage);
-            Assert.AreEqual(NeoStringFormatKind.Localized, explicitZero.EffectiveFormat);
-            Assert.AreEqual(NeoMemberStorage.Inherit, afterExplicitZero.EffectiveStorage);
+            Assert.IsNull(inherited.DeclaredRequirement);
+            Assert.AreEqual(NeoMemberRequirementKind.Required, inherited.Requirement);
+            Assert.AreEqual(NeoMemberMutabilityKind.Mutable, inherited.Mutability);
+            Assert.AreEqual(NeoMemberModifierKind.Sealed, inherited.Modifier);
+            Assert.AreEqual(NeoMemberAccessKind.Public, inherited.Access);
+            Assert.AreEqual(NeoMemberStorage.Save, inherited.Storage);
+            Assert.AreEqual(NeoStringFormatKind.Plain, inherited.Format);
+            Assert.AreEqual(NeoMemberRequirementKind.Optional, explicitZero.Requirement);
+            Assert.AreEqual(NeoMemberModifierKind.Virtual, explicitZero.Modifier);
+            Assert.AreEqual(NeoMemberStorage.Inherit, explicitZero.Storage);
+            Assert.AreEqual(NeoStringFormatKind.Localized, explicitZero.Format);
+            Assert.AreEqual(NeoMemberStorage.Inherit, afterExplicitZero.Storage);
 
             var inheritedJson = JObject.Parse(JsonConvert.SerializeObject(inherited));
             var explicitZeroJson = JObject.Parse(JsonConvert.SerializeObject(explicitZero));
@@ -1285,9 +1285,9 @@ namespace NeoCompose.Tests
 
             NeoMemberShapeResolution.ResolveAll(members);
 
-            Assert.AreEqual("root-value", inherited.EffectiveCollectionValueId);
-            Assert.IsNull(cleared.EffectiveCollectionValueId);
-            Assert.IsNull(afterClear.EffectiveCollectionValueId);
+            Assert.AreEqual("root-value", inherited.CollectionValueId);
+            Assert.IsNull(cleared.CollectionValueId);
+            Assert.IsNull(afterClear.CollectionValueId);
 
             var serializedClear = JObject.Parse(JsonConvert.SerializeObject(cleared));
             Assert.AreEqual(JTokenType.Null, serializedClear["collectionValueId"]!.Type);
@@ -1345,7 +1345,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ChainResolvedFieldContract_MatchesP80()
+        public void ChainResolvedFieldContract_MatchesCanonicalShape()
         {
             CollectionAssert.AreEqual(
                 new[]
@@ -1516,7 +1516,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void EffectiveShape_LongOverrideChainDoesNotUseTheCallStack()
+        public void ResolvedShape_LongOverrideChainDoesNotUseTheCallStack()
         {
             const int chainLength = 4096;
             var members = new Dictionary<string, Member>();
@@ -1532,14 +1532,14 @@ namespace NeoCompose.Tests
             members["member-0"] = new IntMember
             {
                 id = "member-0",
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
             };
 
             NeoMemberShapeResolution.ResolveAll(members);
 
             Assert.AreEqual(
                 NeoMemberRequirementKind.Required,
-                members[$"member-{chainLength}"].EffectiveRequirement);
+                members[$"member-{chainLength}"].Requirement);
         }
 
         [Test]
@@ -1551,7 +1551,7 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = "Count",
                 kind = MemberKind.Int,
-                access = NeoMemberAccessKind.Public,
+                Access = NeoMemberAccessKind.Public,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1575,13 +1575,13 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = "Count",
                 kind = MemberKind.Int,
-                access = NeoMemberAccessKind.Public,
+                Access = NeoMemberAccessKind.Public,
                 createdAt = "x",
                 updatedAt = "x",
             };
             var result = JsonConvert.DeserializeObject<Member>(
                 JsonConvert.SerializeObject(source))!;
-            Assert.AreEqual(NeoMemberAccessKind.Public, result.EffectiveAccess);
+            Assert.AreEqual(NeoMemberAccessKind.Public, result.Access);
         }
 
         [Test]
@@ -1593,7 +1593,7 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = "Count",
                 kind = MemberKind.Int,
-                access = NeoMemberAccessKind.Public,
+                Access = NeoMemberAccessKind.Public,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1618,7 +1618,7 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = "Count",
                 kind = MemberKind.Int,
-                access = NeoMemberAccessKind.Public,
+                Access = NeoMemberAccessKind.Public,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1650,7 +1650,7 @@ namespace NeoCompose.Tests
                     projectId = "project",
                     name = "Count",
                     kind = MemberKind.Int,
-                    access = value,
+                    Access = value,
                     createdAt = "x",
                     updatedAt = "x",
                 };
@@ -1658,7 +1658,7 @@ namespace NeoCompose.Tests
                 var roundTripped = JsonConvert.DeserializeObject<Member>(
                     JsonConvert.SerializeObject(source))!;
 
-                Assert.AreEqual(value, roundTripped.EffectiveAccess);
+                Assert.AreEqual(value, roundTripped.Access);
             }
         }
 
@@ -1670,7 +1670,7 @@ namespace NeoCompose.Tests
   ""typeInfo"": { ""type"": 2, ""required"": true },
   ""accessors"": 0
 }")!;
-            Assert.AreEqual(NeoMemberAccessKind.Public, member.EffectiveAccess);
+            Assert.AreEqual(NeoMemberAccessKind.Public, member.Access);
         }
 
         [Test]
@@ -1686,7 +1686,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void InterfaceMember_P80EnumsRejectStringsAndUnknownOrdinals()
+        public void InterfaceMember_EnumsRejectStringsAndUnknownOrdinals()
         {
             const string property = @"{
   'kind':0,'typeInfo':{'type':2,'required':true},'accessors':0
@@ -1726,7 +1726,7 @@ namespace NeoCompose.Tests
         [TestCase("accessModifierKind", "access")]
         [TestCase("settable", "accessors")]
         [TestCase("deferred", "dispatch")]
-        public void InterfaceMember_P80RetiredFieldsAreRejected(
+        public void InterfaceMember_RetiredFieldsAreRejected(
             string removedField,
             string replacementField)
         {
@@ -1879,18 +1879,18 @@ namespace NeoCompose.Tests
                             ["Health"] = new InterfaceMember
                             {
                                 kind = NeoInterfaceMemberKind.Property,
-                                access = NeoMemberAccessKind.Public,
+                                Access = NeoMemberAccessKind.Public,
                                 typeInfo = new PrimitiveTypeInfo
                                 {
                                     type = MemberKind.Int,
                                     required = true,
                                 },
-                                accessors = NeoPropertyAccessorsKind.GetSet,
+                                Accessors = NeoPropertyAccessorsKind.GetSet,
                             },
                             ["FindTarget"] = new InterfaceMember
                             {
                                 kind = NeoInterfaceMemberKind.Function,
-                                access = NeoMemberAccessKind.Public,
+                                Access = NeoMemberAccessKind.Public,
                                 returnTypeInfo = new InterfaceTypeInfo
                                 {
                                     type = MemberKind.Interface,
@@ -1907,7 +1907,7 @@ namespace NeoCompose.Tests
                                         interfaceId = "interface-damageable",
                                     },
                                 },
-                                dispatch = NeoFunctionDispatchKind.Asynchronous,
+                                Dispatch = NeoFunctionDispatchKind.Asynchronous,
                             },
                         },
                         memberKeyOrder = new List<string> { "Health", "FindTarget" },
@@ -1939,10 +1939,10 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(
                 new[] { "interface-entity" },
                 declaration.extendsInterfaceIds);
-            Assert.AreEqual(true, declaration.members["Health"].EffectiveAccessors == NeoPropertyAccessorsKind.GetSet);
+            Assert.AreEqual(true, declaration.members["Health"].Accessors == NeoPropertyAccessorsKind.GetSet);
 
             var function = declaration.members["FindTarget"];
-            Assert.AreEqual(true, function.EffectiveDispatch == NeoFunctionDispatchKind.Asynchronous);
+            Assert.AreEqual(true, function.Dispatch == NeoFunctionDispatchKind.Asynchronous);
             var returnType = (InterfaceTypeInfo)function.returnTypeInfo!;
             Assert.AreEqual("interface-damageable", returnType.interfaceId);
             Assert.AreEqual(
@@ -2848,7 +2848,7 @@ namespace NeoCompose.Tests
             }";
 
             var schemaClass = JsonConvert.DeserializeObject<NeoSchemaClass>(json)!;
-            Assert.IsTrue(schemaClass.EffectiveModifier == NeoClassModifierKind.Sealed);
+            Assert.IsTrue(schemaClass.Modifier == NeoClassModifierKind.Sealed);
         }
 
         [Test]

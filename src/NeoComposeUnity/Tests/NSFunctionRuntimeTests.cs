@@ -369,7 +369,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Transform",
                 kind = MemberKind.NSDelegate,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 returnTypeInfo = IntType(),
                 argumentTypes = new[] { argument },
                 defaultValue = new DelegateMemberValueBase
@@ -545,7 +545,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Count",
                 kind = MemberKind.Int,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1192,7 +1192,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Generic Decimal Binding",
                 kind = MemberKind.Decimal,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1360,7 +1360,7 @@ namespace NeoCompose.Tests
                 name = "Generic Enum Binding",
                 kind = MemberKind.Enum,
                 enumId = enumId,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1461,7 +1461,7 @@ namespace NeoCompose.Tests
                 name = "Constructed Enum Binding",
                 kind = MemberKind.Enum,
                 enumId = enumId,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1480,7 +1480,7 @@ namespace NeoCompose.Tests
                         genericParamId = forwardedParamId,
                     },
                 },
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1563,7 +1563,7 @@ namespace NeoCompose.Tests
                 name = "Cyclic Box Binding",
                 kind = MemberKind.Class,
                 classId = "cyclic-box-class",
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1842,7 +1842,7 @@ namespace NeoCompose.Tests
                 extendsMemberId = baseFunction.id,
                 returnTypeInfo = null!,
                 argumentTypes = null!,
-                dispatch = null,
+                DeclaredDispatch = null,
                 action = Action(
                     IntType(),
                     Array.Empty<FunctionArgumentTypeInfo>(),
@@ -2318,7 +2318,7 @@ namespace NeoCompose.Tests
                     IntType(),
                     Array.Empty<FunctionArgumentTypeInfo>(),
                     Return(Number(1))));
-            function.bodyMode = (NeoFunctionBodyKind)99;
+            function.DeclaredBodyMode = (NeoFunctionBodyKind)99;
 
             InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
                 BuildClient(
@@ -4828,7 +4828,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "LookupEntry",
                 kind = MemberKind.Int,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -4840,7 +4840,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.List,
                 entryMemberId = entryMember.id,
                 valueId = LookupSourceListValueId,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -4852,10 +4852,10 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Lookup,
                 collectionMemberId = sourceMember.id,
                 collectionValueId = sourceMember.valueId,
-                selection = NeoMemberSelectionKind.Multi,
+                Selection = NeoMemberSelectionKind.Multi,
                 valueId = LookupSelectorValueId,
-                storage = NeoMemberStorage.Save,
-                requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Save,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -4935,7 +4935,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = "save-root-class",
                 valueId = "root-save-value",
-                storage = NeoMemberStorage.Save,
+                Storage = NeoMemberStorage.Save,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -4947,7 +4947,7 @@ namespace NeoCompose.Tests
                 name = "Level",
                 kind = MemberKind.Int,
                 valueId = "save-level-value",
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -5033,7 +5033,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = "save-root-class",
                 valueId = "root-save-value",
-                storage = NeoMemberStorage.Save,
+                Storage = NeoMemberStorage.Save,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -5049,7 +5049,7 @@ namespace NeoCompose.Tests
                 name = "Flag",
                 kind = MemberKind.Bool,
                 valueId = "save-flag-value",
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -5101,7 +5101,7 @@ namespace NeoCompose.Tests
                     kind = MemberKind.Class,
                     classId = "save-child-class",
                     valueId = "save-child-value",
-                    requirement = NeoMemberRequirementKind.Required,
+                    Requirement = NeoMemberRequirementKind.Required,
                     createdAt = "x",
                     updatedAt = "x",
                 };
@@ -5172,7 +5172,7 @@ namespace NeoCompose.Tests
             kind = MemberKind.Class,
             classId = "root-class",
             valueId = valueId,
-            storage = storage,
+            Storage = storage,
             createdAt = "x",
             updatedAt = "x",
         };
@@ -5208,7 +5208,7 @@ namespace NeoCompose.Tests
             code = "compiled test function",
             returnTypeInfo = returnType,
             argumentTypes = arguments,
-            dispatch = deferred ? NeoFunctionDispatchKind.Asynchronous : NeoFunctionDispatchKind.Synchronous,
+            Dispatch = deferred ? NeoFunctionDispatchKind.Asynchronous : NeoFunctionDispatchKind.Synchronous,
             action = action,
             createdAt = "x",
             updatedAt = "x",
@@ -5223,7 +5223,7 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = name,
             kind = MemberKind.NSDelegate,
-            requirement = NeoMemberRequirementKind.Required,
+            Requirement = NeoMemberRequirementKind.Required,
             returnTypeInfo = IntType(),
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
             defaultValue = new DelegateMemberValueBase
@@ -5250,7 +5250,7 @@ namespace NeoCompose.Tests
             kind = MemberKind.Function,
             returnTypeInfo = returnType ?? IntType(),
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-            dispatch = deferred ? NeoFunctionDispatchKind.Asynchronous : NeoFunctionDispatchKind.Synchronous,
+            Dispatch = deferred ? NeoFunctionDispatchKind.Asynchronous : NeoFunctionDispatchKind.Synchronous,
             createdAt = "x",
             updatedAt = "x",
         };

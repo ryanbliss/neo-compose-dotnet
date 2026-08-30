@@ -110,9 +110,9 @@ namespace NeoCompose.Tests
                         name = "Inventory",
                         kind = MemberKind.Dictionary,
                         entryMemberId = "entry-member",
-                        keyKind = NeoDictionaryKeyKind.Enum,
+                        KeyKind = NeoDictionaryKeyKind.Enum,
                         keyEnumId = EnumId,
-                        requirement = NeoMemberRequirementKind.Required,
+                        Requirement = NeoMemberRequirementKind.Required,
                     },
                     ["entry-member"] = new StringMember
                     {
@@ -120,7 +120,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Item Name",
                         kind = MemberKind.String,
-                        format = NeoStringFormatKind.Plain,
+                        Format = NeoStringFormatKind.Plain,
                     },
                 },
                 values = new Dictionary<string, MemberValue>
@@ -167,7 +167,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = id,
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };
@@ -353,14 +353,14 @@ namespace NeoCompose.Tests
                     ""keyEnumId"": ""enum-item-slot""
                 }")!;
 
-            Assert.AreEqual(NeoDictionaryKeyKind.Enum, member.keyKind);
+            Assert.AreEqual(NeoDictionaryKeyKind.Enum, member.DeclaredKeyKind);
             Assert.AreEqual("enum-item-slot", member.keyEnumId);
         }
 
         [Test]
         public void DictionaryMember_AbsentKeyKind_DefaultsToNullForReadCompat()
         {
-            // P80 omits the zero ordinal; null keyKind reads as string-keyed.
+            // the canonical format omits the zero ordinal; null keyKind reads as string-keyed.
             var member = (DictionaryMember)JsonConvert.DeserializeObject<Member>(
                 @"{
                     ""id"": ""member-stats"",
@@ -372,7 +372,7 @@ namespace NeoCompose.Tests
                     ""entryMemberId"": ""member-entry""
                 }")!;
 
-            Assert.IsNull(member.keyKind);
+            Assert.IsNull(member.DeclaredKeyKind);
             Assert.IsNull(member.keyEnumId);
         }
 
@@ -391,7 +391,7 @@ namespace NeoCompose.Tests
                     ""keyKind"": 0
                 }")!;
 
-            Assert.AreEqual(NeoDictionaryKeyKind.String, member.keyKind);
+            Assert.AreEqual(NeoDictionaryKeyKind.String, member.DeclaredKeyKind);
             Assert.IsNull(member.keyEnumId);
         }
 
@@ -429,7 +429,7 @@ namespace NeoCompose.Tests
 
             ProjectData data = BuildProjectData();
             var dictionary = (DictionaryMember)data.members["inventory-member"];
-            dictionary.keyKind = keyKind is null
+            dictionary.DeclaredKeyKind = keyKind is null
                 ? null
                 : (NeoDictionaryKeyKind)keyKind.Value;
             dictionary.keyEnumId = keyEnumId;

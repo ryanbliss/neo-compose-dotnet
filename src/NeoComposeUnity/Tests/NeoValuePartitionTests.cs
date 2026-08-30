@@ -492,7 +492,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Neo Tile Layer",
                 schema = new Dictionary<string, string>(),
-                modifier = NeoClassModifierKind.Abstract,
+                Modifier = NeoClassModifierKind.Abstract,
                 system = JObject.FromObject(new { worldKind = "tileLayer" }),
             };
             var tileInstanceClass = new NeoSchemaClass
@@ -511,7 +511,7 @@ namespace NeoCompose.Tests
                 id = TileLayerLinkBaseClassId,
                 projectId = "project-a",
                 name = "Neo Tile Layer Link",
-                modifier = NeoClassModifierKind.Abstract,
+                Modifier = NeoClassModifierKind.Abstract,
                 schema = new Dictionary<string, string>
                 {
                     ["Tiles"] = "tile-layer-link-tiles-member",
@@ -594,7 +594,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Cell",
                         kind = MemberKind.Vector2Int,
-                        requirement = NeoMemberRequirementKind.Required,
+                        Requirement = NeoMemberRequirementKind.Required,
                         defaultValue = new Vector2MemberValueBase
                         {
                             value = new NeoVector2Value { x = 0, y = 0 },
@@ -606,7 +606,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Enabled",
                         kind = MemberKind.Bool,
-                        requirement = NeoMemberRequirementKind.Required,
+                        Requirement = NeoMemberRequirementKind.Required,
                         defaultValue = new BoolMemberValueBase { value = true },
                     },
                     ["tile-layer-link-tiles-member"] = new ListMember
@@ -616,7 +616,7 @@ namespace NeoCompose.Tests
                         name = "Tiles",
                         kind = MemberKind.List,
                         entryMemberId = "tile-layer-link-tile-entry-member",
-                        listKind = NeoListKind.Unordered,
+                        ListKind = NeoListKind.Unordered,
                         storageKey = WorldPartitionKey,
                     },
                     ["tile-layer-link-tile-entry-member"] = new ClassMember
@@ -733,7 +733,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = id,
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };

@@ -1126,7 +1126,7 @@ namespace NeoCompose.Runtime.NeoScript
                     if (!ctx.client.TryGetMember(
                             staticPointer.memberId,
                             out JsonMember? staticMember)
-                        || staticMember.EffectiveModifier != NeoMemberModifierKind.Static)
+                        || staticMember.Modifier != NeoMemberModifierKind.Static)
                     {
                         throw new NSGetterRuntimeError(
                             $"Static member '{staticPointer.memberId}' was not found.");
@@ -1971,7 +1971,7 @@ namespace NeoCompose.Runtime.NeoScript
                     $"NSAction target '{member.name}' has an invalid stored value.");
             }
 
-            if (member.EffectiveModifier == NeoMemberModifierKind.Static)
+            if (member.Modifier == NeoMemberModifierKind.Static)
             {
                 // A static action has no receiver to read through, but it
                 // does have a live row: subscriptions write to it, so the
@@ -2218,7 +2218,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (!ctx.client.TryGetMember(
                     targetMemberId,
                     out JsonMember? member)
-                || member.EffectiveModifier != NeoMemberModifierKind.Static)
+                || member.Modifier != NeoMemberModifierKind.Static)
             {
                 throw new NSGetterRuntimeError(
                     $"Static {callableKind} target '{targetMemberId}' is missing or is not static.");
@@ -2555,7 +2555,7 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember member,
             Context ctx)
         {
-            if (member.EffectiveMutability != NeoMemberMutabilityKind.ReadOnly)
+            if (member.Mutability != NeoMemberMutabilityKind.ReadOnly)
             {
                 return DispatchResult.NoInfo(matchedMember: true);
             }
@@ -2573,7 +2573,7 @@ namespace NeoCompose.Runtime.NeoScript
                 NeoValueOwnership.Asset,
                 member);
             if (member is LookupMember lookup
-                && lookup.EffectiveSelection != NeoMemberSelectionKind.Multi
+                && lookup.Selection != NeoMemberSelectionKind.Multi
                 && unwrapped is object?[] selections
                 && selections.Length == 1
                 && selections[0] is string selectedId)
@@ -5415,7 +5415,7 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx)
         {
             if (value.value == null) return null;
-            if (member.EffectiveFormat == NeoStringFormatKind.Plain) return value.value;
+            if (member.Format == NeoStringFormatKind.Plain) return value.value;
             if (value.neoLocalizationMode == NeoStringLocalizationMode.Literal) return value.value;
             return ctx.client.Localization.ResolveText(value.value);
         }

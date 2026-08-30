@@ -331,7 +331,7 @@ namespace NeoCompose.Tests
                 name = "Nested",
                 kind = MemberKind.List,
                 entryMemberId = "nested-entry-member",
-                listKind = NeoListKind.Unordered,
+                ListKind = NeoListKind.Unordered,
                 defaultValue = new ArrayMemberValueBase
                 {
                     init = new InitializerBody { code = "Nested" },
@@ -484,7 +484,7 @@ namespace NeoCompose.Tests
                 name = "Nested",
                 kind = MemberKind.List,
                 entryMemberId = "item-entry-member",
-                listKind = NeoListKind.Unordered,
+                ListKind = NeoListKind.Unordered,
             };
             ((Dictionary<string, NeoSchemaClass>)client.classes)[ItemClassId]
                 .schema!["Nested"] = "deep-list-member";
@@ -595,7 +595,7 @@ namespace NeoCompose.Tests
                         name = "Bag",
                         kind = MemberKind.Class,
                         classId = BagClassId,
-                        requirement = NeoMemberRequirementKind.Required,
+                        Requirement = NeoMemberRequirementKind.Required,
                     },
                     ["items-member"] = new ListMember
                     {
@@ -604,8 +604,8 @@ namespace NeoCompose.Tests
                         name = "Items",
                         kind = MemberKind.List,
                         entryMemberId = "item-entry-member",
-                        listKind = NeoListKind.Unordered,
-                        requirement = NeoMemberRequirementKind.Required,
+                        ListKind = NeoListKind.Unordered,
+                        Requirement = NeoMemberRequirementKind.Required,
                     },
                     ["null-items-member"] = new ListMember
                     {
@@ -614,7 +614,7 @@ namespace NeoCompose.Tests
                         name = "NullItems",
                         kind = MemberKind.List,
                         entryMemberId = "item-entry-member",
-                        listKind = NeoListKind.Unordered,
+                        ListKind = NeoListKind.Unordered,
                     },
                     ["item-entry-member"] = new ClassMember
                     {
@@ -623,7 +623,7 @@ namespace NeoCompose.Tests
                         name = "Item",
                         kind = MemberKind.Class,
                         classId = ItemClassId,
-                        requirement = NeoMemberRequirementKind.Required,
+                        Requirement = NeoMemberRequirementKind.Required,
                     },
                 },
                 values = new Dictionary<string, MemberValue>
@@ -680,7 +680,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = id,
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };

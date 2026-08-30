@@ -705,7 +705,7 @@ namespace NeoCompose.Runtime
                 instanceRoot.id,
                 out NeoValueOwnership resolvedOwnership)
                     ? resolvedOwnership
-                    : EffectiveAuthoredOwnership(instanceRoot.id, instanceRoot);
+                    : ResolveAuthoredOwnership(instanceRoot.id, instanceRoot);
             var before = new HashSet<string>(
                 sessionData.values.Keys,
                 StringComparer.Ordinal);
@@ -930,7 +930,7 @@ namespace NeoCompose.Runtime
             ObjectMemberValue root,
             ClassMember? placementMember)
         {
-            if (placementMember?.EffectivePayload == NeoMemberPayloadKind.Partial) return false;
+            if (placementMember?.Payload == NeoMemberPayloadKind.Partial) return false;
             if (placementMember?.defaultValue?.value is not { Count: > 0 })
                 return false;
             string effectiveClassId = placementMember.defaultValue.classId

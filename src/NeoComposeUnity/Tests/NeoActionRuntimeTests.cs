@@ -480,7 +480,7 @@ namespace NeoCompose.Tests
         public void Load_RejectsAnActionMemberDeclaredRequired()
         {
             ActionMember member = ActionMember();
-            member.requirement = NeoMemberRequirementKind.Required;
+            member.DeclaredRequirement = NeoMemberRequirementKind.Required;
 
             var error = Assert.Throws<InvalidOperationException>(
                 () => BuildClient(new JsonMember[] { member }).Dispose());
@@ -528,9 +528,9 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = "OnDamaged",
             kind = MemberKind.NSAction,
-            requirement = NeoMemberRequirementKind.Optional,
+            Requirement = NeoMemberRequirementKind.Optional,
             valueId = valueId,
-            storage = valueId is null ? NeoMemberStorage.Inherit : NeoMemberStorage.Session,
+            Storage = valueId is null ? NeoMemberStorage.Inherit : NeoMemberStorage.Session,
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
             createdAt = "x",
             updatedAt = "x",
@@ -542,14 +542,14 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = id,
             kind = MemberKind.Function,
-            modifier = NeoMemberModifierKind.Static,
+            Modifier = NeoMemberModifierKind.Static,
             returnTypeInfo = new VoidTypeInfo
             {
                 type = MemberKind.Void,
                 required = true,
             },
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-            dispatch = NeoFunctionDispatchKind.Synchronous,
+            Dispatch = NeoFunctionDispatchKind.Synchronous,
             createdAt = "x",
             updatedAt = "x",
         };
@@ -653,7 +653,7 @@ namespace NeoCompose.Tests
             kind = MemberKind.Class,
             classId = "root-class",
             valueId = valueId,
-            storage = storage,
+            Storage = storage,
             createdAt = "x",
             updatedAt = "x",
         };

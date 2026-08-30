@@ -32,7 +32,7 @@ namespace NeoCompose.Runtime
 
         public void Set(float? newValue)
         {
-            if (member.EffectiveRequirement == NeoMemberRequirementKind.Required && newValue is null)
+            if (member.Requirement == NeoMemberRequirementKind.Required && newValue is null)
             {
                 throw new System.ArgumentNullException(
                     nameof(newValue),

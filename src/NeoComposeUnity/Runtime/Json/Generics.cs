@@ -88,7 +88,7 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null) return null;
             var obj = JObject.Load(reader);
-            P80RecordShapeGuard.ValidateGenericParamConstraint(obj);
+            RecordShapeContractGuard.ValidateGenericParamConstraint(obj);
             var kind = StrictRecordShapeEnums.ReadDefaulted(
                 obj,
                 "kind",
@@ -150,7 +150,7 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null) return null;
             var obj = JObject.Load(reader);
-            P80RecordShapeGuard.ValidateGenericBinding(obj);
+            RecordShapeContractGuard.ValidateGenericBinding(obj);
             var kind = StrictRecordShapeEnums.ReadDefaulted(
                 obj,
                 "kind",

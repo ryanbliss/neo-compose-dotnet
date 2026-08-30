@@ -562,63 +562,62 @@ namespace NeoCompose.Runtime
                 substituted.id = generic.id;
                 substituted.name = generic.name;
                 // Binding overrides may omit zero-valued fields inherited
-                // from another member. Bake their effective shape before
+                // from another member. Bake their resolved shape before
                 // detaching the substituted member from that inheritance
                 // graph, preserving absent versus explicit ordinal zero.
-                substituted.requirement = binding.EffectiveRequirement;
+                substituted.DeclaredRequirement = binding.Requirement;
                 switch (substituted)
                 {
-                    case StringMember stringValue:
-                        stringValue.format = stringValue.EffectiveFormat;
-                        stringValue.searchBy = stringValue.EffectiveSearchBy;
+                    case StringMember stringValue when binding is StringMember bindingString:
+                        stringValue.DeclaredFormat = bindingString.Format;
+                        stringValue.DeclaredSearchBy = bindingString.SearchBy;
                         break;
-                    case DictionaryMember dictionaryValue:
-                        dictionaryValue.keyKind = dictionaryValue.EffectiveKeyKind;
+                    case DictionaryMember dictionaryValue when binding is DictionaryMember bindingDictionary:
+                        dictionaryValue.DeclaredKeyKind = bindingDictionary.KeyKind;
                         break;
-                    case ListMember listValue:
-                        listValue.listKind = listValue.EffectiveListKind;
+                    case ListMember listValue when binding is ListMember bindingList:
+                        listValue.DeclaredListKind = bindingList.ListKind;
                         break;
-                    case EnumMember enumValue:
-                        enumValue.selection = enumValue.EffectiveSelection;
+                    case EnumMember enumValue when binding is EnumMember bindingEnum:
+                        enumValue.DeclaredSelection = bindingEnum.Selection;
                         break;
-                    case LookupMember lookupValue:
-                        lookupValue.selection = lookupValue.EffectiveSelection;
+                    case LookupMember lookupValue when binding is LookupMember bindingLookup:
+                        lookupValue.DeclaredSelection = bindingLookup.Selection;
                         break;
-                    case DialogueLookupMember dialogueValue:
-                        dialogueValue.selection = dialogueValue.EffectiveSelection;
+                    case DialogueLookupMember dialogueValue when binding is DialogueLookupMember bindingDialogue:
+                        dialogueValue.DeclaredSelection = bindingDialogue.Selection;
                         break;
-                    case FunctionMember functionValue:
-                        functionValue.dispatch = functionValue.EffectiveDispatch;
+                    case FunctionMember functionValue when binding is FunctionMember bindingFunction:
+                        functionValue.DeclaredDispatch = bindingFunction.Dispatch;
                         break;
-                    case NSFunctionMember neoScriptFunctionValue:
-                        neoScriptFunctionValue.dispatch = neoScriptFunctionValue.EffectiveDispatch;
-                        neoScriptFunctionValue.bodyMode = neoScriptFunctionValue.EffectiveBodyMode;
+                    case NSFunctionMember neoScriptFunctionValue when binding is NSFunctionMember bindingFunction:
+                        neoScriptFunctionValue.DeclaredDispatch = bindingFunction.Dispatch;
+                        neoScriptFunctionValue.DeclaredBodyMode = bindingFunction.BodyMode;
                         break;
                 }
                 // Accessibility is slot-owned (specs/member-access-modifiers.md
                 // §2) — a binding member's modifier must not change the
                 // declaring slot's visibility.
-                substituted.access = generic.EffectiveAccess;
-                substituted.modifier = generic.EffectiveModifier;
+                substituted.DeclaredAccess = generic.Access;
+                substituted.DeclaredModifier = generic.Modifier;
                 // Read-only changes the containing Class slot's stored shape,
                 // so it is declaration metadata rather than type-argument
                 // metadata. The binding must never add or remove an instance
                 // value edge.
-                substituted.mutability = generic.EffectiveMutability;
+                substituted.DeclaredMutability = generic.Mutability;
                 // Partial changes how a closed Class slot is materialized,
                 // so it belongs to the Generic declaration rather than the
                 // binding member (Partial<TTarget> must stay sparse).
                 if (substituted is ClassMember substitutedClassMember)
                 {
-                    substitutedClassMember.payload = generic.EffectivePayload;
+                    substitutedClassMember.DeclaredPayload = generic.Payload;
                 }
                 // Placement fields are slot-owned. A null declaration means
                 // "inherit from placement parent" and must not fall back to
                 // the binding's own declaration (bindings are type
                 // arguments, not placements).
-                substituted.storage = generic.EffectiveStorage;
+                substituted.DeclaredStorage = generic.Storage;
                 substituted.storageKey = generic.storageKey;
-                substituted.effectiveShape = null;
                 substituted.extendsMemberId = null;
                 substituted.substitutedDeclarationIdentity =
                     $"{generic.id}@{binding.id}";
@@ -727,7 +726,7 @@ namespace NeoCompose.Runtime
                     env);
                 return SignatureOfMember(client, binding, env, seen);
             }
-            bool required = member.EffectiveRequirement == NeoMemberRequirementKind.Required;
+            bool required = member.Requirement == NeoMemberRequirementKind.Required;
             if (member is EnumMember enumMember)
             {
                 return new NeoClassArgumentSignature
@@ -735,7 +734,7 @@ namespace NeoCompose.Runtime
                     type = MemberKind.Enum,
                     required = required,
                     enumId = enumMember.enumId,
-                    selection = enumMember.EffectiveSelection,
+                    selection = enumMember.Selection,
                 };
             }
             if (member is ClassMember classMember)
@@ -762,7 +761,7 @@ namespace NeoCompose.Runtime
                 {
                     type = MemberKind.List,
                     required = required,
-                    listKind = listMember.EffectiveListKind,
+                    listKind = listMember.ListKind,
                     entry = EntrySignature(client, listMember.entryMemberId, env, seen),
                 };
             }
@@ -772,7 +771,7 @@ namespace NeoCompose.Runtime
                 {
                     type = MemberKind.Dictionary,
                     required = required,
-                    keyKind = dictionaryMember.EffectiveKeyKind,
+                    keyKind = dictionaryMember.KeyKind,
                     keyEnumId = dictionaryMember.keyEnumId,
                     entry = EntrySignature(client, dictionaryMember.entryMemberId, env, seen),
                 };
@@ -783,7 +782,7 @@ namespace NeoCompose.Runtime
                 {
                     type = MemberKind.String,
                     required = required,
-                    format = stringMember.EffectiveFormat,
+                    format = stringMember.Format,
                 };
             }
             return new NeoClassArgumentSignature

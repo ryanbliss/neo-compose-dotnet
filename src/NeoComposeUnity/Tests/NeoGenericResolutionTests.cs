@@ -67,7 +67,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "EnchantCard",
                 extendsClassId = cardBase.id,
-                modifier = NeoClassModifierKind.Abstract,
+                Modifier = NeoClassModifierKind.Abstract,
                 schema = new Dictionary<string, string>
                 {
                     ["Speed"] = "member-speed",
@@ -170,7 +170,7 @@ namespace NeoCompose.Tests
                         name = "Card",
                         kind = MemberKind.Class,
                         classId = damage.id,
-                        requirement = NeoMemberRequirementKind.Required,
+                        Requirement = NeoMemberRequirementKind.Required,
                     },
                     ["member-string-card"] = new ClassMember
                     {
@@ -179,7 +179,7 @@ namespace NeoCompose.Tests
                         name = "StringCard",
                         kind = MemberKind.Class,
                         classId = stringCard.id,
-                        requirement = NeoMemberRequirementKind.Required,
+                        Requirement = NeoMemberRequirementKind.Required,
                     },
                     ["member-speed"] = new GenericMember
                     {
@@ -190,8 +190,8 @@ namespace NeoCompose.Tests
                         genericParamId = ParamT,
                         // Deliberately differs from the binding's modifier so
                         // the partition test can prove slot ownership.
-                        access = NeoMemberAccessKind.Protected,
-                        modifier = NeoMemberModifierKind.Abstract,
+                        Access = NeoMemberAccessKind.Protected,
+                        Modifier = NeoMemberModifierKind.Abstract,
                     },
                     ["member-values"] = new ListMember
                     {
@@ -223,14 +223,14 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "FloatBinding",
                         kind = MemberKind.Float,
-                        requirement = NeoMemberRequirementKind.Required,
+                        Requirement = NeoMemberRequirementKind.Required,
                         minValue = 0f,
-                        access = NeoMemberAccessKind.Public,
+                        Access = NeoMemberAccessKind.Public,
                         // The binding's storage must NOT leak into the slot
                         // (substitution partition — Decision 10).
-                        storage = NeoMemberStorage.Save,
+                        Storage = NeoMemberStorage.Save,
                         defaultValue = new NumberMemberValueBase { value = 3.5 },
-                        modifier = NeoMemberModifierKind.Virtual,
+                        Modifier = NeoMemberModifierKind.Virtual,
                     },
                     ["member-binding-float-optional"] = new FloatMember
                     {
@@ -238,7 +238,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "OptionalFloatBinding",
                         kind = MemberKind.Float,
-                        requirement = NeoMemberRequirementKind.Optional,
+                        Requirement = NeoMemberRequirementKind.Optional,
                     },
                     ["member-binding-string"] = new StringMember
                     {
@@ -246,8 +246,8 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "StringBinding",
                         kind = MemberKind.String,
-                        requirement = NeoMemberRequirementKind.Optional,
-                        format = NeoStringFormatKind.Plain,
+                        Requirement = NeoMemberRequirementKind.Optional,
+                        Format = NeoStringFormatKind.Plain,
                     },
                     ["member-constructed-slot"] = new ClassMember
                     {
@@ -320,7 +320,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = id,
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };
@@ -420,10 +420,10 @@ namespace NeoCompose.Tests
             var virtualMember = JsonConvert.DeserializeObject<Member>(virtualJson)!;
             var abstractMember = JsonConvert.DeserializeObject<Member>(abstractJson)!;
 
-            Assert.IsNull(absent.modifier);
-            Assert.AreEqual(NeoMemberModifierKind.Virtual, absent.EffectiveModifier);
-            Assert.AreEqual(NeoMemberModifierKind.Virtual, virtualMember.modifier);
-            Assert.AreEqual(NeoMemberModifierKind.Abstract, abstractMember.modifier);
+            Assert.IsNull(absent.DeclaredModifier);
+            Assert.AreEqual(NeoMemberModifierKind.Virtual, absent.Modifier);
+            Assert.AreEqual(NeoMemberModifierKind.Virtual, virtualMember.DeclaredModifier);
+            Assert.AreEqual(NeoMemberModifierKind.Abstract, abstractMember.DeclaredModifier);
         }
 
         [Test]
@@ -595,18 +595,18 @@ namespace NeoCompose.Tests
             // Slot identity/placement fields win.
             Assert.AreEqual("member-speed", substituted.id);
             Assert.AreEqual("Speed", substituted.name);
-            Assert.AreEqual(NeoMemberAccessKind.Protected, substituted.EffectiveAccess,
+            Assert.AreEqual(NeoMemberAccessKind.Protected, substituted.Access,
                 "the slot's accessibility must not come from its binding");
-            Assert.AreEqual(false, substituted.EffectiveModifier == NeoMemberModifierKind.Virtual,
+            Assert.AreEqual(false, substituted.Modifier == NeoMemberModifierKind.Virtual,
                 "the slot's virtual declaration must not come from its binding");
-            Assert.AreEqual(true, substituted.EffectiveModifier == NeoMemberModifierKind.Abstract,
+            Assert.AreEqual(true, substituted.Modifier == NeoMemberModifierKind.Abstract,
                 "the slot's abstract declaration must not come from its binding");
-            Assert.AreEqual(NeoMemberStorage.Inherit, substituted.storage,
+            Assert.AreEqual(NeoMemberStorage.Inherit, substituted.DeclaredStorage,
                 "the binding's storage declaration must not leak into the slot");
             Assert.IsNull(substituted.extendsMemberId);
             // Binding type/config/required/defaultValue win.
             var substitutedFloat = (FloatMember)substituted;
-            Assert.IsTrue(substitutedFloat.EffectiveRequirement == NeoMemberRequirementKind.Required);
+            Assert.IsTrue(substitutedFloat.Requirement == NeoMemberRequirementKind.Required);
             Assert.AreEqual(0f, substitutedFloat.minValue);
             Assert.AreEqual(3.5, substitutedFloat.defaultValue!.value);
         }
@@ -617,16 +617,16 @@ namespace NeoCompose.Tests
             var client = LoadClient();
             var env = NeoGenericResolution.ResolveEnv(client, "class-damage");
             var slot = client.members["member-speed"];
-            slot.modifier = null;
+            slot.DeclaredModifier = null;
             var binding = client.members["member-binding-float"];
-            binding.modifier = NeoMemberModifierKind.Abstract;
+            binding.DeclaredModifier = NeoMemberModifierKind.Abstract;
             NeoMemberShapeResolution.ResolveAll(client.members);
 
             var substituted = NeoGenericResolution.SubstituteMember(client, slot, env);
 
-            Assert.AreEqual(NeoMemberModifierKind.Virtual, substituted.EffectiveModifier,
+            Assert.AreEqual(NeoMemberModifierKind.Virtual, substituted.Modifier,
                 "an absent slot declaration must use the default Virtual modifier");
-            Assert.AreNotEqual(NeoMemberModifierKind.Abstract, substituted.EffectiveModifier,
+            Assert.AreNotEqual(NeoMemberModifierKind.Abstract, substituted.Modifier,
                 "an absent slot declaration must clear the binding's Abstract modifier");
         }
 
@@ -638,7 +638,7 @@ namespace NeoCompose.Tests
                 id = "member-inherited-float",
                 projectId = "project-a",
                 name = "Inherited",
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new NumberMemberValueBase { value = 4.5 },
             };
             var generic = new GenericMember
@@ -659,7 +659,7 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(
                 NeoMemberRequirementKind.Optional,
-                generic.EffectiveRequirement);
+                generic.Requirement);
             Assert.IsNull(generic.defaultValue);
         }
 
@@ -674,7 +674,7 @@ namespace NeoCompose.Tests
                 name = "TargetBinding",
                 kind = MemberKind.Class,
                 classId = "class-card-base",
-                payload = NeoMemberPayloadKind.Full,
+                Payload = NeoMemberPayloadKind.Full,
             };
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
             var slot = new GenericMember
@@ -684,7 +684,7 @@ namespace NeoCompose.Tests
                 name = "Overrides",
                 kind = MemberKind.Generic,
                 genericParamId = NeoGenericTestFixture.ParamT,
-                payload = NeoMemberPayloadKind.Partial,
+                Payload = NeoMemberPayloadKind.Partial,
             };
             var env = new Dictionary<string, NeoGenericEnvEntry>
             {
@@ -697,7 +697,7 @@ namespace NeoCompose.Tests
                 slot,
                 env);
 
-            Assert.AreEqual(NeoMemberPayloadKind.Partial, substituted.EffectivePayload);
+            Assert.AreEqual(NeoMemberPayloadKind.Partial, substituted.Payload);
             Assert.AreEqual("class-card-base", substituted.classId);
             Assert.AreEqual(slot.id, substituted.id);
         }

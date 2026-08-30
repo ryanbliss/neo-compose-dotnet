@@ -32,19 +32,19 @@ namespace NeoCompose.Runtime.Json
         public string name = null!;
         public MemberKind kind;
         /// <summary>Absent resolves through the override chain, then to Optional.</summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoMemberRequirementKind? requirement;
+        [JsonProperty("requirement", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberRequirementKind? requirement;
         /// <summary>Declaration-local. Absent means Mutable.</summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoMemberMutabilityKind? mutability;
+        [JsonProperty("mutability", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberMutabilityKind? mutability;
         /// <summary>Absent resolves through the override chain, then to Virtual.</summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoMemberModifierKind? modifier;
+        [JsonProperty("modifier", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberModifierKind? modifier;
         /// <summary>
         /// Declaration-local access projection. Absent means Public.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoMemberAccessKind? access;
+        [JsonProperty("access", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberAccessKind? access;
         /// <summary>
         /// When set, this member is an *override* of the referenced
         /// member. Most other fields may be absent on overrides;
@@ -64,8 +64,8 @@ namespace NeoCompose.Runtime.Json
         /// member chain. A present zero stops that chain and selects placement-
         /// parent inheritance.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoMemberStorage? storage;
+        [JsonProperty("storage", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberStorage? storage;
         /// <summary>
         /// Storage-partition declaration
         /// (specs/list-member-and-tilegrid-scaling.md §6): values created
@@ -92,7 +92,7 @@ namespace NeoCompose.Runtime.Json
             substitutedDeclarationIdentity ?? id;
 
         [JsonIgnore]
-        internal NeoEffectiveMemberShape? effectiveShape;
+        internal NeoResolvedMemberShape? resolvedShape;
 
         [JsonIgnore]
         private HashSet<string>? declaredWireFields;
@@ -230,36 +230,134 @@ namespace NeoCompose.Runtime.Json
         public bool ShouldSerializesetter() => ShouldSerializeChainResolvedField("setter");
         public bool ShouldSerializeaction() => ShouldSerializeChainResolvedField("action");
 
+        /// <summary>The resolved requirement used by runtime consumers.</summary>
         [JsonIgnore]
-        public NeoMemberRequirementKind EffectiveRequirement =>
-            requirement ?? effectiveShape?.requirement ?? NeoMemberRequirementKind.Optional;
+        public NeoMemberRequirementKind Requirement
+        {
+            get => requirement ?? resolvedShape?.Requirement ?? NeoMemberRequirementKind.Optional;
+            set => DeclaredRequirement = value;
+        }
+
+        /// <summary>The declaration-local mutability used by runtime consumers.</summary>
+        [JsonIgnore]
+        public NeoMemberMutabilityKind Mutability
+        {
+            get => mutability ?? resolvedShape?.Mutability ?? NeoMemberMutabilityKind.Mutable;
+            set => DeclaredMutability = value;
+        }
+
+        /// <summary>The resolved modifier used by runtime consumers.</summary>
+        [JsonIgnore]
+        public NeoMemberModifierKind Modifier
+        {
+            get => modifier ?? resolvedShape?.Modifier ?? NeoMemberModifierKind.Virtual;
+            set => DeclaredModifier = value;
+        }
+
+        /// <summary>The declaration-local access used by runtime consumers.</summary>
+        [JsonIgnore]
+        public NeoMemberAccessKind Access
+        {
+            get => access ?? resolvedShape?.Access ?? NeoMemberAccessKind.Public;
+            set => DeclaredAccess = value;
+        }
+
+        /// <summary>The resolved storage placement used by runtime consumers.</summary>
+        [JsonIgnore]
+        public NeoMemberStorage Storage
+        {
+            get => storage ?? resolvedShape?.Storage ?? NeoMemberStorage.Inherit;
+            set => DeclaredStorage = value;
+        }
 
         [JsonIgnore]
-        public NeoMemberMutabilityKind EffectiveMutability =>
-            mutability ?? effectiveShape?.mutability ?? NeoMemberMutabilityKind.Mutable;
+        internal NeoMemberRequirementKind? DeclaredRequirement
+        {
+            get => requirement;
+            set
+            {
+                requirement = value;
+                resolvedShape = null;
+            }
+        }
 
         [JsonIgnore]
-        public NeoMemberModifierKind EffectiveModifier =>
-            modifier ?? effectiveShape?.modifier ?? NeoMemberModifierKind.Virtual;
+        internal NeoMemberMutabilityKind? DeclaredMutability
+        {
+            get => mutability;
+            set
+            {
+                mutability = value;
+                resolvedShape = null;
+            }
+        }
 
         [JsonIgnore]
-        public NeoMemberAccessKind EffectiveAccess =>
-            access ?? effectiveShape?.access ?? NeoMemberAccessKind.Public;
+        internal NeoMemberModifierKind? DeclaredModifier
+        {
+            get => modifier;
+            set
+            {
+                modifier = value;
+                resolvedShape = null;
+            }
+        }
 
         [JsonIgnore]
-        public NeoMemberStorage EffectiveStorage =>
-            storage ?? effectiveShape?.storage ?? NeoMemberStorage.Inherit;
+        internal NeoMemberAccessKind? DeclaredAccess
+        {
+            get => access;
+            set
+            {
+                access = value;
+                resolvedShape = null;
+            }
+        }
+
+        [JsonIgnore]
+        internal NeoMemberStorage? DeclaredStorage
+        {
+            get => storage;
+            set
+            {
+                storage = value;
+                resolvedShape = null;
+            }
+        }
+
+        protected void InvalidateResolvedShape()
+        {
+            resolvedShape = null;
+        }
 
         /// <summary>
         /// Shallow member-wise copy preserving the concrete subclass.
         /// Used by <c>NeoGenericResolution.SubstituteMember</c> to build
         /// the substituted record (binding's type + config with the generic
         /// slot's identity fields) without a serialize/deserialize round
-        /// trip. Reference-typed config (e.g. <c>defaultValue</c>) is shared
-        /// with the source — the wire DTOs are read-mostly, matching the
-        /// TS-side object-spread semantics.
+        /// trip. Reference-typed config (e.g. <c>defaultValue</c>) remains
+        /// shared, matching TS object-spread semantics. Resolution metadata is
+        /// copied so changes to the substituted member cannot alter its source.
         /// </summary>
-        internal Member ShallowClone() => (Member)MemberwiseClone();
+        internal Member ShallowClone()
+        {
+            var clone = (Member)MemberwiseClone();
+            clone.resolvedShape = resolvedShape?.Clone();
+            clone.declaredWireFields = declaredWireFields is null
+                ? null
+                : new HashSet<string>(declaredWireFields, StringComparer.Ordinal);
+            clone.originalChainResolvedFields = originalChainResolvedFields is null
+                ? null
+                : new Dictionary<string, object?>(
+                    originalChainResolvedFields,
+                    StringComparer.Ordinal);
+            clone.materializedChainResolvedFields = materializedChainResolvedFields is null
+                ? null
+                : new Dictionary<string, object?>(
+                    materializedChainResolvedFields,
+                    StringComparer.Ordinal);
+            return clone;
+        }
     }
 
     /// <summary>
@@ -326,23 +424,51 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Mirror of TS-side <c>TMemberString</c>.</summary>
     public class StringMember : Member<string?>
     {
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoStringFormatKind? format;
+        [JsonProperty("format", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoStringFormatKind? format;
         /// <summary>
         /// Opts this String into the per-instance search projection. A
         /// declaration-backed read-only field cannot enable it because no
         /// per-instance row exists to index.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoMemberSearchByKind? searchBy;
+        [JsonProperty("searchBy", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberSearchByKind? searchBy;
 
         [JsonIgnore]
-        public NeoStringFormatKind EffectiveFormat =>
-            format ?? effectiveShape?.format ?? NeoStringFormatKind.Localized;
+        public NeoStringFormatKind Format
+        {
+            get => format ?? resolvedShape?.Format ?? NeoStringFormatKind.Localized;
+            set => DeclaredFormat = value;
+        }
 
         [JsonIgnore]
-        public NeoMemberSearchByKind EffectiveSearchBy =>
-            searchBy ?? effectiveShape?.searchBy ?? NeoMemberSearchByKind.None;
+        public NeoMemberSearchByKind SearchBy
+        {
+            get => searchBy ?? resolvedShape?.SearchBy ?? NeoMemberSearchByKind.None;
+            set => DeclaredSearchBy = value;
+        }
+
+        [JsonIgnore]
+        internal NeoStringFormatKind? DeclaredFormat
+        {
+            get => format;
+            set
+            {
+                format = value;
+                InvalidateResolvedShape();
+            }
+        }
+
+        [JsonIgnore]
+        internal NeoMemberSearchByKind? DeclaredSearchBy
+        {
+            get => searchBy;
+            set
+            {
+                searchBy = value;
+                InvalidateResolvedShape();
+            }
+        }
     }
 
     /// <summary>Mirror of TS-side <c>TMemberDictionary</c>.</summary>
@@ -354,12 +480,26 @@ namespace NeoCompose.Runtime.Json
         /// Dictionary key kind. Absent means free-text string keys; Enum uses
         /// option ids from the enum referenced by <see cref="keyEnumId"/>.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoDictionaryKeyKind? keyKind;
+        [JsonProperty("keyKind", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoDictionaryKeyKind? keyKind;
 
         [JsonIgnore]
-        public NeoDictionaryKeyKind EffectiveKeyKind =>
-            keyKind ?? effectiveShape?.dictionaryKeyKind ?? NeoDictionaryKeyKind.String;
+        public NeoDictionaryKeyKind KeyKind
+        {
+            get => keyKind ?? resolvedShape?.DictionaryKeyKind ?? NeoDictionaryKeyKind.String;
+            set => DeclaredKeyKind = value;
+        }
+
+        [JsonIgnore]
+        internal NeoDictionaryKeyKind? DeclaredKeyKind
+        {
+            get => keyKind;
+            set
+            {
+                keyKind = value;
+                InvalidateResolvedShape();
+            }
+        }
 
         /// <summary>
         /// Present iff <see cref="keyKind"/> is Enum: the enum whose
@@ -410,11 +550,18 @@ namespace NeoCompose.Runtime.Json
     public sealed class ListIndexDefinition
     {
         public string schemaKey = null!;
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoListIndexKind? kind;
+        [JsonProperty("kind", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoListIndexKind? kind;
 
         [JsonIgnore]
-        public NeoListIndexKind EffectiveKind => kind ?? NeoListIndexKind.Bucket;
+        public NeoListIndexKind Kind
+        {
+            get => kind ?? NeoListIndexKind.Bucket;
+            set => kind = value;
+        }
+
+        [JsonIgnore]
+        internal NeoListIndexKind? DeclaredKind => kind;
     }
 
     /// <summary>Authoring layout for one Class field shown in a List.</summary>
@@ -422,23 +569,33 @@ namespace NeoCompose.Runtime.Json
     {
         public string memberKey = null!;
         public double? width;
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoColumnVisibilityKind? visibility;
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoColumnPinKind? pin;
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoColumnOverflowKind? overflow;
+        [JsonProperty("visibility", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoColumnVisibilityKind? visibility;
+        [JsonProperty("pin", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoColumnPinKind? pin;
+        [JsonProperty("overflow", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoColumnOverflowKind? overflow;
 
         [JsonIgnore]
-        public NeoColumnVisibilityKind EffectiveVisibility =>
-            visibility ?? NeoColumnVisibilityKind.Visible;
+        public NeoColumnVisibilityKind Visibility
+        {
+            get => visibility ?? NeoColumnVisibilityKind.Visible;
+            set => visibility = value;
+        }
 
         [JsonIgnore]
-        public NeoColumnPinKind EffectivePin => pin ?? NeoColumnPinKind.None;
+        public NeoColumnPinKind Pin
+        {
+            get => pin ?? NeoColumnPinKind.None;
+            set => pin = value;
+        }
 
         [JsonIgnore]
-        public NeoColumnOverflowKind EffectiveOverflow =>
-            overflow ?? NeoColumnOverflowKind.Clip;
+        public NeoColumnOverflowKind Overflow
+        {
+            get => overflow ?? NeoColumnOverflowKind.Clip;
+            set => overflow = value;
+        }
     }
 
     /// <summary>Mirror of TS-side <c>TMemberList</c>.</summary>
@@ -455,12 +612,26 @@ namespace NeoCompose.Runtime.Json
         /// <see cref="MemberValue.containerId"/>). Immutable after
         /// creation.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoListKind? listKind;
+        [JsonProperty("listKind", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoListKind? listKind;
 
         [JsonIgnore]
-        public NeoListKind EffectiveListKind =>
-            listKind ?? effectiveShape?.listKind ?? NeoListKind.Ordered;
+        public NeoListKind ListKind
+        {
+            get => listKind ?? resolvedShape?.ListKind ?? NeoListKind.Ordered;
+            set => DeclaredListKind = value;
+        }
+
+        [JsonIgnore]
+        internal NeoListKind? DeclaredListKind
+        {
+            get => listKind;
+            set
+            {
+                listKind = value;
+                InvalidateResolvedShape();
+            }
+        }
 
         /// <summary>
         /// Optional derived indexes over String or single-select Enum fields
@@ -481,12 +652,26 @@ namespace NeoCompose.Runtime.Json
         /// <summary>
         /// Selects a full Class value or recursive sparse override graph.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoMemberPayloadKind? payload;
+        [JsonProperty("payload", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberPayloadKind? payload;
 
         [JsonIgnore]
-        public NeoMemberPayloadKind EffectivePayload =>
-            payload ?? effectiveShape?.payload ?? NeoMemberPayloadKind.Full;
+        public NeoMemberPayloadKind Payload
+        {
+            get => payload ?? resolvedShape?.Payload ?? NeoMemberPayloadKind.Full;
+            set => DeclaredPayload = value;
+        }
+
+        [JsonIgnore]
+        internal NeoMemberPayloadKind? DeclaredPayload
+        {
+            get => payload;
+            set
+            {
+                payload = value;
+                InvalidateResolvedShape();
+            }
+        }
 
         /// <summary>
         /// Present iff <see cref="classId"/> references a class with
@@ -521,24 +706,52 @@ namespace NeoCompose.Runtime.Json
         /// Selects a full value or recursive sparse Partial value.
         /// Animation system definitions use this for Partial&lt;TTarget&gt;.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoMemberPayloadKind? payload;
+        [JsonProperty("payload", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberPayloadKind? payload;
 
         [JsonIgnore]
-        public NeoMemberPayloadKind EffectivePayload =>
-            payload ?? effectiveShape?.payload ?? NeoMemberPayloadKind.Full;
+        public NeoMemberPayloadKind Payload
+        {
+            get => payload ?? resolvedShape?.Payload ?? NeoMemberPayloadKind.Full;
+            set => DeclaredPayload = value;
+        }
+
+        [JsonIgnore]
+        internal NeoMemberPayloadKind? DeclaredPayload
+        {
+            get => payload;
+            set
+            {
+                payload = value;
+                InvalidateResolvedShape();
+            }
+        }
     }
 
     /// <summary>Mirror of TS-side <c>TMemberEnum</c>.</summary>
     public class EnumMember : Member<string[]?>
     {
         public string enumId = null!;
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoMemberSelectionKind? selection;
+        [JsonProperty("selection", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberSelectionKind? selection;
 
         [JsonIgnore]
-        public NeoMemberSelectionKind EffectiveSelection =>
-            selection ?? effectiveShape?.selection ?? NeoMemberSelectionKind.Single;
+        public NeoMemberSelectionKind Selection
+        {
+            get => selection ?? resolvedShape?.Selection ?? NeoMemberSelectionKind.Single;
+            set => DeclaredSelection = value;
+        }
+
+        [JsonIgnore]
+        internal NeoMemberSelectionKind? DeclaredSelection
+        {
+            get => selection;
+            set
+            {
+                selection = value;
+                InvalidateResolvedShape();
+            }
+        }
     }
 
     /// <summary>
@@ -565,25 +778,39 @@ namespace NeoCompose.Runtime.Json
             {
                 _collectionValueId = value;
                 collectionValueIdWasAssigned = true;
-                effectiveShape?.SetChainResolvedValue("collectionValueId", value);
+                resolvedShape?.SetChainResolvedValue("collectionValueId", value);
             }
         }
 
         [JsonIgnore]
-        public string? EffectiveCollectionValueId =>
-            effectiveShape is null
+        public string? CollectionValueId =>
+            resolvedShape is null
                 ? _collectionValueId
-                : effectiveShape.GetChainResolvedValue<string>("collectionValueId");
+                : resolvedShape.GetChainResolvedValue<string>("collectionValueId");
 
         /// <summary>Optional declared Lookup type metadata.</summary>
         public TypeInfo? declaredTypeInfo;
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoMemberSelectionKind? selection;
+        [JsonProperty("selection", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberSelectionKind? selection;
 
         [JsonIgnore]
-        public NeoMemberSelectionKind EffectiveSelection =>
-            selection ?? effectiveShape?.selection ?? NeoMemberSelectionKind.Single;
+        public NeoMemberSelectionKind Selection
+        {
+            get => selection ?? resolvedShape?.Selection ?? NeoMemberSelectionKind.Single;
+            set => DeclaredSelection = value;
+        }
+
+        [JsonIgnore]
+        internal NeoMemberSelectionKind? DeclaredSelection
+        {
+            get => selection;
+            set
+            {
+                selection = value;
+                InvalidateResolvedShape();
+            }
+        }
     }
 
     /// <summary>
@@ -596,12 +823,26 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class DialogueLookupMember : Member<string[]?>
     {
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoMemberSelectionKind? selection;
+        [JsonProperty("selection", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberSelectionKind? selection;
 
         [JsonIgnore]
-        public NeoMemberSelectionKind EffectiveSelection =>
-            selection ?? effectiveShape?.selection ?? NeoMemberSelectionKind.Single;
+        public NeoMemberSelectionKind Selection
+        {
+            get => selection ?? resolvedShape?.Selection ?? NeoMemberSelectionKind.Single;
+            set => DeclaredSelection = value;
+        }
+
+        [JsonIgnore]
+        internal NeoMemberSelectionKind? DeclaredSelection
+        {
+            get => selection;
+            set
+            {
+                selection = value;
+                InvalidateResolvedShape();
+            }
+        }
         public string? dialogueGroupId;
     }
 
@@ -802,12 +1043,26 @@ namespace NeoCompose.Runtime.Json
         [JsonConverter(typeof(FunctionReturnTypeInfoConverter))]
         public TypeInfo returnTypeInfo = null!;
         public FunctionArgumentTypeInfo[] argumentTypes = null!;
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoFunctionDispatchKind? dispatch;
+        [JsonProperty("dispatch", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoFunctionDispatchKind? dispatch;
 
         [JsonIgnore]
-        public NeoFunctionDispatchKind EffectiveDispatch =>
-            dispatch ?? effectiveShape?.dispatch ?? NeoFunctionDispatchKind.Synchronous;
+        public NeoFunctionDispatchKind Dispatch
+        {
+            get => dispatch ?? resolvedShape?.Dispatch ?? NeoFunctionDispatchKind.Synchronous;
+            set => DeclaredDispatch = value;
+        }
+
+        [JsonIgnore]
+        internal NeoFunctionDispatchKind? DeclaredDispatch
+        {
+            get => dispatch;
+            set
+            {
+                dispatch = value;
+                InvalidateResolvedShape();
+            }
+        }
     }
 
     /// <summary>
@@ -824,8 +1079,8 @@ namespace NeoCompose.Runtime.Json
         /// Optional authored body mode. Absent means custom NeoScript;
         /// UI means <see cref="uiAction"/> is the logic-builder IR.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoFunctionBodyKind? bodyMode;
+        [JsonProperty("bodyMode", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoFunctionBodyKind? bodyMode;
 
         /// <summary>
         /// Single-instruction UI action retained for round trip. The compiled
@@ -837,16 +1092,44 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo returnTypeInfo = null!;
 
         public FunctionArgumentTypeInfo[] argumentTypes = null!;
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoFunctionDispatchKind? dispatch;
+        [JsonProperty("dispatch", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoFunctionDispatchKind? dispatch;
 
         [JsonIgnore]
-        public NeoFunctionDispatchKind EffectiveDispatch =>
-            dispatch ?? effectiveShape?.dispatch ?? NeoFunctionDispatchKind.Synchronous;
+        public NeoFunctionDispatchKind Dispatch
+        {
+            get => dispatch ?? resolvedShape?.Dispatch ?? NeoFunctionDispatchKind.Synchronous;
+            set => DeclaredDispatch = value;
+        }
 
         [JsonIgnore]
-        public NeoFunctionBodyKind EffectiveBodyMode =>
-            bodyMode ?? effectiveShape?.bodyMode ?? NeoFunctionBodyKind.Code;
+        public NeoFunctionBodyKind BodyMode
+        {
+            get => bodyMode ?? resolvedShape?.BodyMode ?? NeoFunctionBodyKind.Code;
+            set => DeclaredBodyMode = value;
+        }
+
+        [JsonIgnore]
+        internal NeoFunctionDispatchKind? DeclaredDispatch
+        {
+            get => dispatch;
+            set
+            {
+                dispatch = value;
+                InvalidateResolvedShape();
+            }
+        }
+
+        [JsonIgnore]
+        internal NeoFunctionBodyKind? DeclaredBodyMode
+        {
+            get => bodyMode;
+            set
+            {
+                bodyMode = value;
+                InvalidateResolvedShape();
+            }
+        }
         public FunctionWithReturnType action = null!;
     }
 
@@ -972,7 +1255,7 @@ namespace NeoCompose.Runtime.Json
 
         protected override void ValidateObjectBeforeDiscriminator(JObject obj)
         {
-            P80RecordShapeGuard.ValidateMemberRecord(obj);
+            RecordShapeContractGuard.ValidateMemberRecord(obj);
         }
 
         protected override void ValidateObject(JObject obj, Type concrete)

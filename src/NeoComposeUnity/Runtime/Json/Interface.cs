@@ -26,14 +26,14 @@ namespace NeoCompose.Runtime.Json
         /// 3): the accessibility the implementing class member must declare.
         /// Absent means Public.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoMemberAccessKind? access;
+        [JsonProperty("access", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberAccessKind? access;
 
         // Property signature.
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public TypeInfo? typeInfo;
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoPropertyAccessorsKind? accessors;
+        [JsonProperty("accessors", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoPropertyAccessorsKind? accessors;
 
         // Function signature.
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -41,19 +41,38 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo? returnTypeInfo;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public List<FunctionArgumentTypeInfo>? argumentTypes;
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public NeoFunctionDispatchKind? dispatch;
+        [JsonProperty("dispatch", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoFunctionDispatchKind? dispatch;
 
         [JsonIgnore]
-        public NeoMemberAccessKind EffectiveAccess => access ?? NeoMemberAccessKind.Public;
+        public NeoMemberAccessKind Access
+        {
+            get => access ?? NeoMemberAccessKind.Public;
+            set => access = value;
+        }
 
         [JsonIgnore]
-        public NeoPropertyAccessorsKind EffectiveAccessors =>
-            accessors ?? NeoPropertyAccessorsKind.Get;
+        public NeoPropertyAccessorsKind Accessors
+        {
+            get => accessors ?? NeoPropertyAccessorsKind.Get;
+            set => accessors = value;
+        }
 
         [JsonIgnore]
-        public NeoFunctionDispatchKind EffectiveDispatch =>
-            dispatch ?? NeoFunctionDispatchKind.Synchronous;
+        public NeoFunctionDispatchKind Dispatch
+        {
+            get => dispatch ?? NeoFunctionDispatchKind.Synchronous;
+            set => dispatch = value;
+        }
+
+        [JsonIgnore]
+        internal NeoMemberAccessKind? DeclaredAccess => access;
+
+        [JsonIgnore]
+        internal NeoPropertyAccessorsKind? DeclaredAccessors => accessors;
+
+        [JsonIgnore]
+        internal NeoFunctionDispatchKind? DeclaredDispatch => dispatch;
     }
 
     /// <summary>
@@ -90,7 +109,7 @@ namespace NeoCompose.Runtime.Json
             if (reader.TokenType == JsonToken.Null) return null;
 
             var json = JObject.Load(reader);
-            P80RecordShapeGuard.ValidateInterfaceMember(json);
+            RecordShapeContractGuard.ValidateInterfaceMember(json);
             var kind = StrictRecordShapeEnums.ReadDefaulted(
                 json,
                 "kind",

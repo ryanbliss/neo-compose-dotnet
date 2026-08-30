@@ -566,7 +566,7 @@ namespace NeoCompose.Tests
             Assert.IsNull(node.TextId);
             Assert.AreEqual(NeoStringLocalizationMode.Literal, node.value!.neoLocalizationMode);
 
-            member.requirement = NeoMemberRequirementKind.Required;
+            member.DeclaredRequirement = NeoMemberRequirementKind.Required;
 
             Assert.Throws<System.ArgumentNullException>(() => node.SetLiteralOverride(null));
         }

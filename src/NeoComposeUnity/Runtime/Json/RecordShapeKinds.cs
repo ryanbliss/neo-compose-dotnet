@@ -72,7 +72,7 @@ namespace NeoCompose.Runtime.Json
         {
             JToken? token = obj[field];
             if (token is null) return;
-            // P80 writers canonicalize an empty optional axis to omission, but
+            // canonical writers canonicalize an empty optional axis to omission, but
             // readers still fold historical/storage-boundary nulls into that
             // same default state (§7). Optional enum tokens preserve the
             // distinction long enough for validation; removing the token then
@@ -105,27 +105,27 @@ namespace NeoCompose.Runtime.Json
         }
     }
 
-    internal sealed class NeoEffectiveMemberShape
+    internal sealed class NeoResolvedMemberShape
     {
         private readonly object?[] chainResolvedValues =
             new object?[MemberChainResolvedFields.ResolutionFields.Count];
         private uint chainResolvedPresence;
 
-        internal NeoMemberRequirementKind requirement;
-        internal NeoMemberMutabilityKind mutability;
-        internal NeoMemberModifierKind modifier;
-        internal NeoMemberAccessKind access;
-        internal NeoMemberStorage storage;
-        internal NeoStringFormatKind format;
-        internal NeoMemberSearchByKind searchBy;
-        internal NeoDictionaryKeyKind dictionaryKeyKind;
-        internal NeoListKind listKind;
-        internal NeoMemberPayloadKind payload;
-        internal NeoMemberSelectionKind selection;
-        internal NeoFunctionDispatchKind dispatch;
-        internal NeoFunctionBodyKind bodyMode;
+        internal NeoMemberRequirementKind Requirement;
+        internal NeoMemberMutabilityKind Mutability;
+        internal NeoMemberModifierKind Modifier;
+        internal NeoMemberAccessKind Access;
+        internal NeoMemberStorage Storage;
+        internal NeoStringFormatKind Format;
+        internal NeoMemberSearchByKind SearchBy;
+        internal NeoDictionaryKeyKind DictionaryKeyKind;
+        internal NeoListKind ListKind;
+        internal NeoMemberPayloadKind Payload;
+        internal NeoMemberSelectionKind Selection;
+        internal NeoFunctionDispatchKind Dispatch;
+        internal NeoFunctionBodyKind BodyMode;
 
-        internal void CopyChainResolvedValuesFrom(NeoEffectiveMemberShape inherited)
+        internal void CopyChainResolvedValuesFrom(NeoResolvedMemberShape inherited)
         {
             Array.Copy(
                 inherited.chainResolvedValues,
@@ -179,6 +179,28 @@ namespace NeoCompose.Runtime.Json
             {
                 SetChainResolvedValue(index, value);
             }
+        }
+
+        internal NeoResolvedMemberShape Clone()
+        {
+            var clone = new NeoResolvedMemberShape
+            {
+                Requirement = Requirement,
+                Mutability = Mutability,
+                Modifier = Modifier,
+                Access = Access,
+                Storage = Storage,
+                Format = Format,
+                SearchBy = SearchBy,
+                DictionaryKeyKind = DictionaryKeyKind,
+                ListKind = ListKind,
+                Payload = Payload,
+                Selection = Selection,
+                Dispatch = Dispatch,
+                BodyMode = BodyMode,
+            };
+            clone.CopyChainResolvedValuesFrom(this);
+            return clone;
         }
     }
 
@@ -247,10 +269,10 @@ namespace NeoCompose.Runtime.Json
 
         internal static void Apply(
             Member member,
-            NeoEffectiveMemberShape inherited,
-            NeoEffectiveMemberShape effective)
+            NeoResolvedMemberShape inherited,
+            NeoResolvedMemberShape resolved)
         {
-            effective.CopyChainResolvedValuesFrom(inherited);
+            resolved.CopyChainResolvedValuesFrom(inherited);
             for (int index = 0; index < ResolutionFields.Count; index++)
             {
                 string field = ResolutionFields[index];
@@ -261,39 +283,39 @@ namespace NeoCompose.Runtime.Json
                 }
                 if (value is null)
                 {
-                    effective.ClearChainResolvedValue(index);
+                    resolved.ClearChainResolvedValue(index);
                 }
                 else
                 {
-                    effective.SetChainResolvedValue(index, value);
+                    resolved.SetChainResolvedValue(index, value);
                 }
             }
 
             // TS resolveMember couples authored clears to their compiled IR.
             if (IsDeclaredNull(member, "code"))
             {
-                effective.ClearChainResolvedValue(IndexOf("getter"));
+                resolved.ClearChainResolvedValue(IndexOf("getter"));
                 if (!member.DeclaresWireField("action"))
                 {
-                    effective.ClearChainResolvedValue(IndexOf("action"));
+                    resolved.ClearChainResolvedValue(IndexOf("action"));
                 }
             }
             if (IsDeclaredNull(member, "setterCode"))
             {
-                effective.ClearChainResolvedValue(IndexOf("setter"));
+                resolved.ClearChainResolvedValue(IndexOf("setter"));
             }
             if (IsDeclaredNull(member, "uiAction")
                 && !member.DeclaresWireField("action"))
             {
-                effective.ClearChainResolvedValue(IndexOf("action"));
+                resolved.ClearChainResolvedValue(IndexOf("action"));
             }
         }
 
-        internal static void Materialize(Member member, NeoEffectiveMemberShape effective)
+        internal static void Materialize(Member member, NeoResolvedMemberShape resolved)
         {
             for (int index = 0; index < ResolutionFields.Count; index++)
             {
-                effective.TryGetChainResolvedValue(index, out object? value);
+                resolved.TryGetChainResolvedValue(index, out object? value);
                 string field = ResolutionFields[index];
                 if (TryWrite(member, field, value))
                 {
@@ -372,7 +394,7 @@ namespace NeoCompose.Runtime.Json
     {
         internal static void ResolveAll(IReadOnlyDictionary<string, Member> members)
         {
-            // Restore each sparse wire row before rebuilding the effective
+            // Restore each sparse wire row before rebuilding the resolved
             // projection. Runtime consumers historically read these DTO
             // fields directly, so the final pass materializes only the
             // centralized chain-resolved fields while retaining their
@@ -380,7 +402,7 @@ namespace NeoCompose.Runtime.Json
             foreach (Member member in members.Values)
             {
                 member.PrepareChainResolvedFields();
-                member.effectiveShape = null;
+                member.resolvedShape = null;
             }
 
             foreach (Member member in members.Values)
@@ -389,20 +411,20 @@ namespace NeoCompose.Runtime.Json
             }
         }
 
-        private static NeoEffectiveMemberShape Resolve(
+        private static NeoResolvedMemberShape Resolve(
             Member member,
             IReadOnlyDictionary<string, Member> members)
         {
-            if (member.effectiveShape is not null) return member.effectiveShape;
+            if (member.resolvedShape is not null) return member.resolvedShape;
 
             // Walk iteratively so a corrupt export cannot turn a long override
             // chain into a CLR stack overflow. Cached ancestors keep total work
             // linear in the member count for a valid graph.
             var chain = new List<Member>();
             var chainIds = new HashSet<string>();
-            NeoEffectiveMemberShape inherited = Defaults();
+            NeoResolvedMemberShape inherited = Defaults();
             Member? current = member;
-            while (current is not null && current.effectiveShape is null)
+            while (current is not null && current.resolvedShape is null)
             {
                 // Inheritance validation reports the cycle separately. Defaults
                 // keep this pre-validation projection bounded.
@@ -416,91 +438,91 @@ namespace NeoCompose.Runtime.Json
                 }
                 current = parent;
             }
-            if (current?.effectiveShape is not null)
+            if (current?.resolvedShape is not null)
             {
-                inherited = current.effectiveShape;
+                inherited = current.resolvedShape;
             }
 
             for (int index = chain.Count - 1; index >= 0; index--)
             {
                 Member resolved = chain[index];
-                resolved.effectiveShape = Apply(resolved, inherited);
-                MemberChainResolvedFields.Materialize(resolved, resolved.effectiveShape);
-                inherited = resolved.effectiveShape;
+                resolved.resolvedShape = Apply(resolved, inherited);
+                MemberChainResolvedFields.Materialize(resolved, resolved.resolvedShape);
+                inherited = resolved.resolvedShape;
             }
-            return member.effectiveShape ?? Defaults();
+            return member.resolvedShape ?? Defaults();
         }
 
-        private static NeoEffectiveMemberShape Apply(
+        private static NeoResolvedMemberShape Apply(
             Member member,
-            NeoEffectiveMemberShape inherited)
+            NeoResolvedMemberShape inherited)
         {
             bool genericReset = member is GenericMember;
-            var effective = new NeoEffectiveMemberShape
+            var resolved = new NeoResolvedMemberShape
             {
-                requirement = member.requirement
+                Requirement = member.DeclaredRequirement
                     ?? (genericReset
                         ? NeoMemberRequirementKind.Optional
-                        : inherited.requirement),
+                        : inherited.Requirement),
                 // Access and mutability are declaration-local projections in
                 // the TS resolver. Unlike the other sparse override axes,
                 // absence resets them to their canonical default.
-                mutability = member.mutability ?? NeoMemberMutabilityKind.Mutable,
-                modifier = member.modifier ?? inherited.modifier,
-                access = member.access ?? NeoMemberAccessKind.Public,
+                Mutability = member.DeclaredMutability ?? NeoMemberMutabilityKind.Mutable,
+                Modifier = member.DeclaredModifier ?? inherited.Modifier,
+                Access = member.DeclaredAccess ?? NeoMemberAccessKind.Public,
                 // Storage is nullable on the DTO so absent can inherit while
                 // an explicit ordinal zero stops the override-member chain.
-                storage = member.storage ?? inherited.storage,
-                format = (member as StringMember)?.format ?? inherited.format,
-                searchBy = (member as StringMember)?.searchBy ?? inherited.searchBy,
-                dictionaryKeyKind = (member as DictionaryMember)?.keyKind
-                    ?? inherited.dictionaryKeyKind,
-                listKind = (member as ListMember)?.listKind ?? inherited.listKind,
-                payload = member switch
+                Storage = member.DeclaredStorage ?? inherited.Storage,
+                Format = (member as StringMember)?.DeclaredFormat ?? inherited.Format,
+                SearchBy = (member as StringMember)?.DeclaredSearchBy ?? inherited.SearchBy,
+                DictionaryKeyKind = (member as DictionaryMember)?.DeclaredKeyKind
+                    ?? inherited.DictionaryKeyKind,
+                ListKind = (member as ListMember)?.DeclaredListKind ?? inherited.ListKind,
+                Payload = member switch
                 {
-                    ClassMember classMember => classMember.payload ?? inherited.payload,
-                    GenericMember genericMember => genericMember.payload ?? inherited.payload,
-                    _ => inherited.payload,
+                    ClassMember classMember => classMember.DeclaredPayload ?? inherited.Payload,
+                    GenericMember genericMember => genericMember.DeclaredPayload ?? inherited.Payload,
+                    _ => inherited.Payload,
                 },
-                selection = member switch
+                Selection = member switch
                 {
-                    EnumMember enumMember => enumMember.selection ?? inherited.selection,
-                    LookupMember lookupMember => lookupMember.selection ?? inherited.selection,
-                    DialogueLookupMember dialogueMember => dialogueMember.selection ?? inherited.selection,
-                    _ => inherited.selection,
+                    EnumMember enumMember => enumMember.DeclaredSelection ?? inherited.Selection,
+                    LookupMember lookupMember => lookupMember.DeclaredSelection ?? inherited.Selection,
+                    DialogueLookupMember dialogueMember => dialogueMember.DeclaredSelection ?? inherited.Selection,
+                    _ => inherited.Selection,
                 },
-                dispatch = member switch
+                Dispatch = member switch
                 {
-                    FunctionMember function => function.dispatch ?? inherited.dispatch,
-                    NSFunctionMember function => function.dispatch ?? inherited.dispatch,
-                    _ => inherited.dispatch,
+                    FunctionMember function => function.DeclaredDispatch ?? inherited.Dispatch,
+                    NSFunctionMember function => function.DeclaredDispatch ?? inherited.Dispatch,
+                    _ => inherited.Dispatch,
                 },
-                bodyMode = (member as NSFunctionMember)?.bodyMode ?? inherited.bodyMode,
+                BodyMode = (member as NSFunctionMember)?.DeclaredBodyMode ?? inherited.BodyMode,
             };
-            MemberChainResolvedFields.Apply(member, inherited, effective);
+            MemberChainResolvedFields.Apply(member, inherited, resolved);
             if (genericReset && !member.DeclaresWireField("defaultValue"))
             {
-                effective.ClearChainResolvedValue(
+                resolved.ClearChainResolvedValue(
                     MemberChainResolvedFields.IndexOf("defaultValue"));
             }
-            return effective;
+            return resolved;
         }
 
-        private static NeoEffectiveMemberShape Defaults() => new NeoEffectiveMemberShape
+        private static NeoResolvedMemberShape Defaults() => new NeoResolvedMemberShape
         {
-            requirement = NeoMemberRequirementKind.Optional,
-            mutability = NeoMemberMutabilityKind.Mutable,
-            modifier = NeoMemberModifierKind.Virtual,
-            access = NeoMemberAccessKind.Public,
-            storage = NeoMemberStorage.Inherit,
-            format = NeoStringFormatKind.Localized,
-            searchBy = NeoMemberSearchByKind.None,
-            dictionaryKeyKind = NeoDictionaryKeyKind.String,
-            listKind = NeoListKind.Ordered,
-            payload = NeoMemberPayloadKind.Full,
-            selection = NeoMemberSelectionKind.Single,
-            dispatch = NeoFunctionDispatchKind.Synchronous,
-            bodyMode = NeoFunctionBodyKind.Code,
+            Requirement = NeoMemberRequirementKind.Optional,
+            Mutability = NeoMemberMutabilityKind.Mutable,
+            Modifier = NeoMemberModifierKind.Virtual,
+            Access = NeoMemberAccessKind.Public,
+            Storage = NeoMemberStorage.Inherit,
+            Format = NeoStringFormatKind.Localized,
+            SearchBy = NeoMemberSearchByKind.None,
+            DictionaryKeyKind = NeoDictionaryKeyKind.String,
+            ListKind = NeoListKind.Ordered,
+            Payload = NeoMemberPayloadKind.Full,
+            Selection = NeoMemberSelectionKind.Single,
+            Dispatch = NeoFunctionDispatchKind.Synchronous,
+            BodyMode = NeoFunctionBodyKind.Code,
         };
     }
 }

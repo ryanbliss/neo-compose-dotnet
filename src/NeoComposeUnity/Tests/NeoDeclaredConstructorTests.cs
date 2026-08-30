@@ -1236,9 +1236,9 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Computed",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Required,
-                format = NeoStringFormatKind.Plain,
-                mutability = NeoMemberMutabilityKind.ReadOnly,
+                Requirement = NeoMemberRequirementKind.Required,
+                Format = NeoStringFormatKind.Plain,
+                Mutability = NeoMemberMutabilityKind.ReadOnly,
                 defaultValue = new StringMemberValueBase
                 {
                     init = new InitializerBody { code = "Compute()" },
@@ -1997,8 +1997,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Label",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Required,
-                format = NeoStringFormatKind.Plain,
+                Requirement = NeoMemberRequirementKind.Required,
+                Format = NeoStringFormatKind.Plain,
                 defaultValue = new StringMemberValueBase { value = "base" },
             };
             // P43 §8's open decision, resolved: an OPTIONAL member with an
@@ -2009,8 +2009,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Tag",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Optional,
-                format = NeoStringFormatKind.Plain,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Format = NeoStringFormatKind.Plain,
                 defaultValue = new StringMemberValueBase
                 {
                     init = new InitializerBody
@@ -2036,7 +2036,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Level",
                 kind = MemberKind.Int,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new NumberMemberValueBase { value = 1 },
             };
             var subExtra = new StringMember
@@ -2045,8 +2045,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Extra",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Required,
-                format = NeoStringFormatKind.Plain,
+                Requirement = NeoMemberRequirementKind.Required,
+                Format = NeoStringFormatKind.Plain,
                 defaultValue = new StringMemberValueBase { value = "extra" },
             };
             var boomBad = new StringMember
@@ -2055,8 +2055,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Bad",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Required,
-                format = NeoStringFormatKind.Plain,
+                Requirement = NeoMemberRequirementKind.Required,
+                Format = NeoStringFormatKind.Plain,
                 defaultValue = new StringMemberValueBase
                 {
                     init = new InitializerBody
@@ -2082,8 +2082,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Label",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Required,
-                format = NeoStringFormatKind.Plain,
+                Requirement = NeoMemberRequirementKind.Required,
+                Format = NeoStringFormatKind.Plain,
                 defaultValue = new StringMemberValueBase { value = "base" },
             };
             var gearTag = new StringMember
@@ -2092,8 +2092,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Tag",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Optional,
-                format = NeoStringFormatKind.Plain,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Format = NeoStringFormatKind.Plain,
                 defaultValue = new StringMemberValueBase
                 {
                     init = new InitializerBody
@@ -2122,8 +2122,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Part",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Required,
-                format = NeoStringFormatKind.Plain,
+                Requirement = NeoMemberRequirementKind.Required,
+                Format = NeoStringFormatKind.Plain,
             };
             var gearParts = new ListMember
             {
@@ -2131,7 +2131,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Parts",
                 kind = MemberKind.List,
-                requirement = NeoMemberRequirementKind.Optional,
+                Requirement = NeoMemberRequirementKind.Optional,
                 entryMemberId = gearPartEntry.id,
             };
             var gearMode = new EnumMember
@@ -2140,9 +2140,9 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Mode",
                 kind = MemberKind.Enum,
-                requirement = NeoMemberRequirementKind.Optional,
+                Requirement = NeoMemberRequirementKind.Optional,
                 enumId = "gear-mode-enum",
-                selection = NeoMemberSelectionKind.Single,
+                Selection = NeoMemberSelectionKind.Single,
             };
             var gearSlotEntry = new StringMember
             {
@@ -2150,8 +2150,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Slot",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Required,
-                format = NeoStringFormatKind.Plain,
+                Requirement = NeoMemberRequirementKind.Required,
+                Format = NeoStringFormatKind.Plain,
             };
             var gearSlots = new DictionaryMember
             {
@@ -2159,9 +2159,9 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Slots",
                 kind = MemberKind.Dictionary,
-                requirement = NeoMemberRequirementKind.Optional,
+                Requirement = NeoMemberRequirementKind.Optional,
                 entryMemberId = gearSlotEntry.id,
-                keyKind = NeoDictionaryKeyKind.String,
+                KeyKind = NeoDictionaryKeyKind.String,
             };
             var gearLinkEntry = new ClassMember
             {
@@ -2169,7 +2169,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Link",
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 classId = partClass.id,
             };
             var gearLinks = new ListMember
@@ -2178,7 +2178,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Links",
                 kind = MemberKind.List,
-                requirement = NeoMemberRequirementKind.Optional,
+                Requirement = NeoMemberRequirementKind.Optional,
                 entryMemberId = gearLinkEntry.id,
             };
             var cycleSelf = new ClassMember
@@ -2187,7 +2187,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Self",
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 classId = cycleClass.id,
                 defaultValue = new ObjectMemberValueBase
                 {
@@ -2436,9 +2436,9 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 classId = "root-class",
-                storage = storage,
+                Storage = storage,
                 valueId = valueId,
             };
         }

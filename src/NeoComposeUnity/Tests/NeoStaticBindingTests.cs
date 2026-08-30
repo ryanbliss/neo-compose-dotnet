@@ -143,7 +143,7 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Partitioned",
                 kind = MemberKind.List,
-                access = NeoMemberAccessKind.Public,
+                Access = NeoMemberAccessKind.Public,
                 entryMemberId = "name-entry",
                 storageKey = "values:$parentClass",
             };
@@ -692,9 +692,9 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Nested Stats Entry",
                 kind = MemberKind.Dictionary,
-                requirement = NeoMemberRequirementKind.Optional,
+                Requirement = NeoMemberRequirementKind.Optional,
                 entryMemberId = "profile-stat-entry",
-                keyKind = NeoDictionaryKeyKind.String,
+                KeyKind = NeoDictionaryKeyKind.String,
             };
             var nestedStats = new ListMember
             {
@@ -702,7 +702,7 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Nested Stats",
                 kind = MemberKind.List,
-                requirement = NeoMemberRequirementKind.Optional,
+                Requirement = NeoMemberRequirementKind.Optional,
                 entryMemberId = nestedStatsEntry.id,
             };
             var enumEntry = new EnumMember
@@ -711,9 +711,9 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Choice",
                 kind = MemberKind.Enum,
-                requirement = NeoMemberRequirementKind.Optional,
+                Requirement = NeoMemberRequirementKind.Optional,
                 enumId = "profile-enum",
-                selection = NeoMemberSelectionKind.Single,
+                Selection = NeoMemberSelectionKind.Single,
             };
             var enumEntries = new ListMember
             {
@@ -721,7 +721,7 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Choices",
                 kind = MemberKind.List,
-                requirement = NeoMemberRequirementKind.Optional,
+                Requirement = NeoMemberRequirementKind.Optional,
                 entryMemberId = enumEntry.id,
             };
             members[nestedStatsEntry.id] = nestedStatsEntry;
@@ -879,9 +879,9 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Unordered Tags",
                 kind = MemberKind.List,
-                requirement = NeoMemberRequirementKind.Optional,
+                Requirement = NeoMemberRequirementKind.Optional,
                 entryMemberId = "profile-tag-entry",
-                listKind = NeoListKind.Unordered,
+                ListKind = NeoListKind.Unordered,
             };
             members[unorderedTags.id] = unorderedTags;
             profileSchema["UnorderedTags"] = unorderedTags.id;
@@ -955,7 +955,7 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Child",
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 classId = "owned-child-class",
             };
             var children = new ListMember
@@ -964,9 +964,9 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Children",
                 kind = MemberKind.List,
-                requirement = NeoMemberRequirementKind.Optional,
+                Requirement = NeoMemberRequirementKind.Optional,
                 entryMemberId = childEntry.id,
-                listKind = NeoListKind.Unordered,
+                ListKind = NeoListKind.Unordered,
             };
             members[childEntry.id] = childEntry;
             members[children.id] = children;
@@ -1014,15 +1014,15 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Constructor Effect",
                 kind = MemberKind.Function,
-                requirement = NeoMemberRequirementKind.Optional,
+                Requirement = NeoMemberRequirementKind.Optional,
                 returnTypeInfo = new PrimitiveTypeInfo
                 {
                     type = MemberKind.String,
                     required = true,
                 },
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-                dispatch = NeoFunctionDispatchKind.Synchronous,
-                modifier = NeoMemberModifierKind.Static,
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
+                Modifier = NeoMemberModifierKind.Static,
             };
             ((Dictionary<string, JsonMember>)client.members)[effect.id] =
                 effect;
@@ -1848,7 +1848,7 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Good",
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 classId = "owned-child-class",
             };
             var loopMember = new ClassMember
@@ -1857,7 +1857,7 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Loop",
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 classId = rootClass.id,
             };
             var rootMember = new ClassMember
@@ -1866,7 +1866,7 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Atomic Root",
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 classId = rootClass.id,
             };
             members[goodMember.id] = goodMember;
@@ -2829,10 +2829,10 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Count",
                 kind = MemberKind.Int,
-                requirement = NeoMemberRequirementKind.Required,
-                storage = NeoMemberStorage.Session,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Session,
                 valueId = "static-count-authored",
-                modifier = NeoMemberModifierKind.Static,
+                Modifier = NeoMemberModifierKind.Static,
             };
             var score = new IntMember
             {
@@ -2840,10 +2840,10 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Score",
                 kind = MemberKind.Int,
-                requirement = NeoMemberRequirementKind.Optional,
-                storage = NeoMemberStorage.Save,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Save,
                 storageKey = "scores:$parentClass",
-                modifier = NeoMemberModifierKind.Static,
+                Modifier = NeoMemberModifierKind.Static,
             };
             var entry = new StringMember
             {
@@ -2851,9 +2851,9 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Name",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Required,
-                format = NeoStringFormatKind.Plain,
-                modifier = NeoMemberModifierKind.Virtual,
+                Requirement = NeoMemberRequirementKind.Required,
+                Format = NeoStringFormatKind.Plain,
+                Modifier = NeoMemberModifierKind.Virtual,
             };
             var names = new ListMember
             {
@@ -2861,10 +2861,10 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Names",
                 kind = MemberKind.List,
-                requirement = NeoMemberRequirementKind.Optional,
-                storage = NeoMemberStorage.Session,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Session,
                 entryMemberId = entry.id,
-                modifier = NeoMemberModifierKind.Static,
+                Modifier = NeoMemberModifierKind.Static,
             };
             var profileName = new StringMember
             {
@@ -2872,9 +2872,9 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Name",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Required,
-                format = NeoStringFormatKind.Plain,
-                modifier = NeoMemberModifierKind.Virtual,
+                Requirement = NeoMemberRequirementKind.Required,
+                Format = NeoStringFormatKind.Plain,
+                Modifier = NeoMemberModifierKind.Virtual,
             };
             var profileTitle = new StringMember
             {
@@ -2882,9 +2882,9 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Title",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Optional,
-                format = NeoStringFormatKind.Plain,
-                modifier = NeoMemberModifierKind.Virtual,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Format = NeoStringFormatKind.Plain,
+                Modifier = NeoMemberModifierKind.Virtual,
             };
             var profileLevel = new IntMember
             {
@@ -2892,9 +2892,9 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Level",
                 kind = MemberKind.Int,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new NumberMemberValueBase { value = 3 },
-                modifier = NeoMemberModifierKind.Virtual,
+                Modifier = NeoMemberModifierKind.Virtual,
             };
             var profileTagEntry = new StringMember
             {
@@ -2902,9 +2902,9 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Tag",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Optional,
-                format = NeoStringFormatKind.Plain,
-                modifier = NeoMemberModifierKind.Virtual,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Format = NeoStringFormatKind.Plain,
+                Modifier = NeoMemberModifierKind.Virtual,
             };
             var profileTags = new ListMember
             {
@@ -2912,14 +2912,14 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Tags",
                 kind = MemberKind.List,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 entryMemberId = profileTagEntry.id,
                 storageKey = "profile:$parentClass",
                 defaultValue = new ArrayMemberValueBase
                 {
                     value = new[] { "profile-tag-default" },
                 },
-                modifier = NeoMemberModifierKind.Virtual,
+                Modifier = NeoMemberModifierKind.Virtual,
             };
             var profileStatEntry = new IntMember
             {
@@ -2927,8 +2927,8 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Stat",
                 kind = MemberKind.Int,
-                requirement = NeoMemberRequirementKind.Optional,
-                modifier = NeoMemberModifierKind.Virtual,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Modifier = NeoMemberModifierKind.Virtual,
             };
             var profileStats = new DictionaryMember
             {
@@ -2936,9 +2936,9 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Stats",
                 kind = MemberKind.Dictionary,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 entryMemberId = profileStatEntry.id,
-                keyKind = NeoDictionaryKeyKind.String,
+                KeyKind = NeoDictionaryKeyKind.String,
                 defaultValue = new ObjectMemberValueBase
                 {
                     value = new Dictionary<string, string>
@@ -2946,7 +2946,7 @@ namespace NeoCompose.Tests
                         ["wins"] = "profile-stat-default",
                     },
                 },
-                modifier = NeoMemberModifierKind.Virtual,
+                Modifier = NeoMemberModifierKind.Virtual,
             };
             var staticProfile = new ClassMember
             {
@@ -2954,10 +2954,10 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Current",
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Optional,
-                storage = NeoMemberStorage.Session,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Session,
                 classId = profileClass.id,
-                modifier = NeoMemberModifierKind.Static,
+                Modifier = NeoMemberModifierKind.Static,
             };
             var staticSaveProfile = new ClassMember
             {
@@ -2965,10 +2965,10 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Saved",
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Optional,
-                storage = NeoMemberStorage.Save,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Save,
                 classId = profileClass.id,
-                modifier = NeoMemberModifierKind.Static,
+                Modifier = NeoMemberModifierKind.Static,
             };
             var staticWait = new FunctionMember
             {
@@ -2976,15 +2976,15 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Wait",
                 kind = MemberKind.Function,
-                requirement = NeoMemberRequirementKind.Optional,
+                Requirement = NeoMemberRequirementKind.Optional,
                 returnTypeInfo = new PrimitiveTypeInfo
                 {
                     type = MemberKind.String,
                     required = true,
                 },
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-                dispatch = NeoFunctionDispatchKind.Asynchronous,
-                modifier = NeoMemberModifierKind.Static,
+                Dispatch = NeoFunctionDispatchKind.Asynchronous,
+                Modifier = NeoMemberModifierKind.Static,
             };
             var staticConsume = new FunctionMember
             {
@@ -2992,7 +2992,7 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Consume",
                 kind = MemberKind.Function,
-                requirement = NeoMemberRequirementKind.Optional,
+                Requirement = NeoMemberRequirementKind.Optional,
                 returnTypeInfo = new PrimitiveTypeInfo
                 {
                     type = MemberKind.String,
@@ -3008,8 +3008,8 @@ namespace NeoCompose.Tests
                         classId = profileClass.id,
                     },
                 },
-                dispatch = NeoFunctionDispatchKind.Synchronous,
-                modifier = NeoMemberModifierKind.Static,
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
+                Modifier = NeoMemberModifierKind.Static,
             };
             var genericEntry = new GenericMember
             {
@@ -3017,7 +3017,7 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Entry",
                 kind = MemberKind.Generic,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 genericParamId = "generic-param",
             };
             var genericValues = new ListMember
@@ -3026,7 +3026,7 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Values",
                 kind = MemberKind.List,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 entryMemberId = genericEntry.id,
             };
             var genericStringBinding = new StringMember
@@ -3035,8 +3035,8 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "String Binding",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Required,
-                format = NeoStringFormatKind.Plain,
+                Requirement = NeoMemberRequirementKind.Required,
+                Format = NeoStringFormatKind.Plain,
             };
             var ownedChildValue = new StringMember
             {
@@ -3044,8 +3044,8 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Value",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Required,
-                format = NeoStringFormatKind.Plain,
+                Requirement = NeoMemberRequirementKind.Required,
+                Format = NeoStringFormatKind.Plain,
             };
             var ownedParentChild = new ClassMember
             {
@@ -3053,7 +3053,7 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = "Child",
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 classId = ownedChildClass.id,
             };
             var data = new ProjectData
@@ -3176,11 +3176,11 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = id,
                 kind = MemberKind.NSFunction,
-                requirement = NeoMemberRequirementKind.Optional,
+                Requirement = NeoMemberRequirementKind.Optional,
                 code = "compiled test function",
                 returnTypeInfo = returnType,
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-                dispatch = deferred ? NeoFunctionDispatchKind.Asynchronous : NeoFunctionDispatchKind.Synchronous,
+                Dispatch = deferred ? NeoFunctionDispatchKind.Asynchronous : NeoFunctionDispatchKind.Synchronous,
                 action = new FunctionWithReturnType
                 {
                     parameters = new[]
@@ -3204,7 +3204,7 @@ namespace NeoCompose.Tests
                     typeInfo = returnType,
                     instructions = instructions,
                 },
-                modifier = NeoMemberModifierKind.Static,
+                Modifier = NeoMemberModifierKind.Static,
             };
         }
 
@@ -3432,12 +3432,12 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = memberId,
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Optional,
-                storage = ownership == NeoValueOwnership.Session
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = ownership == NeoValueOwnership.Session
                     ? NeoMemberStorage.Session
                     : NeoMemberStorage.Save,
                 classId = "owned-child-class",
-                modifier = NeoMemberModifierKind.Static,
+                Modifier = NeoMemberModifierKind.Static,
             };
             ((Dictionary<string, JsonMember>)client.members)[memberId] = member;
             ((Dictionary<string, NeoSchemaClass>)client.classes)["rules-class"]
@@ -3571,9 +3571,9 @@ namespace NeoCompose.Tests
                 projectId = "static-project",
                 name = name,
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 classId = "root-class",
-                storage = storage,
+                Storage = storage,
                 valueId = valueId,
             };
         }

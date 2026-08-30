@@ -13,7 +13,7 @@ namespace NeoCompose.Runtime
     /// (in the target collection) as a string-array value. The target
     /// collection is the member named by
     /// <see cref="LookupMember.collectionMemberId"/>; the target
-    /// value is either <see cref="LookupMember.EffectiveCollectionValueId"/>
+    /// value is either <see cref="LookupMember.CollectionValueId"/>
     /// (when set) or the target member's own <c>valueId</c>.
     /// </summary>
     public class NeoMemberLookup
@@ -131,7 +131,7 @@ namespace NeoCompose.Runtime
         {
             return client.TryResolveLookupCollectionValueId(
                 targetMember.id,
-                member.EffectiveCollectionValueId,
+                member.CollectionValueId,
                 out string? targetValueId)
                     ? targetValueId
                     : null;
@@ -165,12 +165,12 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Overwrites the selected ids. When
-        /// <see cref="LookupMember.EffectiveSelection == NeoMemberSelectionKind.Multi"/> is false, only
+        /// <see cref="LookupMember.Selection == NeoMemberSelectionKind.Multi"/> is false, only
         /// the first id is honored.
         /// </summary>
         public void Set(string[]? selectedIds)
         {
-            if (member.EffectiveRequirement == NeoMemberRequirementKind.Required && (selectedIds is null || selectedIds.Length == 0))
+            if (member.Requirement == NeoMemberRequirementKind.Required && (selectedIds is null || selectedIds.Length == 0))
             {
                 throw new System.ArgumentNullException(
                     nameof(selectedIds),
@@ -178,7 +178,7 @@ namespace NeoCompose.Runtime
             }
 
             string[]? normalized = selectedIds;
-            if (normalized is not null && member.EffectiveSelection != NeoMemberSelectionKind.Multi && normalized.Length > 1)
+            if (normalized is not null && member.Selection != NeoMemberSelectionKind.Multi && normalized.Length > 1)
             {
                 normalized = new[] { normalized[0] };
             }

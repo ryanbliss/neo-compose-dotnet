@@ -138,7 +138,7 @@ namespace NeoCompose.Runtime
                 buckets.Remove(oldKey);
                 duplicateKeys?.Remove(oldKey);
             }
-            else if (definition.EffectiveKind == NeoListIndexKind.Unique && previousCount > 1 && bucket.Count == 1)
+            else if (definition.Kind == NeoListIndexKind.Unique && previousCount > 1 && bucket.Count == 1)
             {
                 duplicateKeys?.Remove(oldKey);
             }
@@ -164,7 +164,7 @@ namespace NeoCompose.Runtime
         private void EnsureBuiltAndValid()
         {
             EnsureBuilt();
-            if (definition.EffectiveKind == NeoListIndexKind.Unique && duplicateKeys is { Count: > 0 })
+            if (definition.Kind == NeoListIndexKind.Unique && duplicateKeys is { Count: > 0 })
             {
                 throw new InvalidOperationException(
                     $"Unique List index '{definition.schemaKey}' on member "
@@ -182,7 +182,7 @@ namespace NeoCompose.Runtime
             list.EnsureIdentityIndex();
             var nextBuckets = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             var nextKeys = new Dictionary<string, string?>(StringComparer.Ordinal);
-            var nextDuplicates = definition.EffectiveKind == NeoListIndexKind.Unique
+            var nextDuplicates = definition.Kind == NeoListIndexKind.Unique
                 ? new HashSet<string>(StringComparer.Ordinal)
                 : null;
 
@@ -219,7 +219,7 @@ namespace NeoCompose.Runtime
                 buckets.Add(rawKey, bucket);
             }
             bucket.Add(valueId);
-            if (definition.EffectiveKind == NeoListIndexKind.Unique && bucket.Count > 1)
+            if (definition.Kind == NeoListIndexKind.Unique && bucket.Count > 1)
             {
                 duplicateKeys!.Add(rawKey);
             }
@@ -241,7 +241,7 @@ namespace NeoCompose.Runtime
             switch (keyNode)
             {
                 case NeoMemberString text:
-                    if (text.member.EffectiveFormat == NeoStringFormatKind.Localized)
+                    if (text.member.Format == NeoStringFormatKind.Localized)
                     {
                         throw InvalidKeyKind(entry,
                             "localized String fields are not indexable");
@@ -249,7 +249,7 @@ namespace NeoCompose.Runtime
                     ObserveKeyContract(ListIndexKeyKind.String, null, entry);
                     return text.value?.value;
                 case NeoMemberEnum selected:
-                    if (selected.member.EffectiveSelection == NeoMemberSelectionKind.Multi)
+                    if (selected.member.Selection == NeoMemberSelectionKind.Multi)
                     {
                         throw InvalidKeyKind(entry,
                             "multi-select Enum fields are not indexable");

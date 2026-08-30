@@ -31,18 +31,38 @@ namespace NeoCompose.Runtime.Json
         /// through <see cref="extendsClassId"/> are not repeated here.
         /// </summary>
         public List<string>? implementsInterfaceIds;
-        [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public NeoClassVisibilityKind? uiVisibility;
-        [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public NeoClassModifierKind? modifier;
+        [Newtonsoft.Json.JsonProperty("uiVisibility", NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        private NeoClassVisibilityKind? uiVisibility;
+        [Newtonsoft.Json.JsonProperty("modifier", NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        private NeoClassModifierKind? modifier;
 
         [Newtonsoft.Json.JsonIgnore]
-        public NeoClassVisibilityKind EffectiveUiVisibility =>
-            uiVisibility ?? NeoClassVisibilityKind.Visible;
+        public NeoClassVisibilityKind UiVisibility
+        {
+            get => uiVisibility ?? NeoClassVisibilityKind.Visible;
+            set => uiVisibility = value;
+        }
 
         [Newtonsoft.Json.JsonIgnore]
-        public NeoClassModifierKind EffectiveModifier =>
-            modifier ?? NeoClassModifierKind.Open;
+        public NeoClassModifierKind Modifier
+        {
+            get => modifier ?? NeoClassModifierKind.Open;
+            set => modifier = value;
+        }
+
+        [Newtonsoft.Json.JsonIgnore]
+        internal NeoClassVisibilityKind? DeclaredUiVisibility
+        {
+            get => uiVisibility;
+            set => uiVisibility = value;
+        }
+
+        [Newtonsoft.Json.JsonIgnore]
+        internal NeoClassModifierKind? DeclaredModifier
+        {
+            get => modifier;
+            set => modifier = value;
+        }
 
         /// <summary>
         /// Optional system metadata emitted for protected authoring classes.

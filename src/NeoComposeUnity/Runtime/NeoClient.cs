@@ -878,7 +878,7 @@ namespace NeoCompose.Runtime
             foreach (Member member in data.members.Values)
             {
                 if (member.valueId is null) continue;
-                if (member.EffectiveModifier == NeoMemberModifierKind.Static)
+                if (member.Modifier == NeoMemberModifierKind.Static)
                 {
                     WalkAuthoredOwnership(
                         member.valueId,
@@ -968,7 +968,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal NeoMemberStorage DeclaredStorage(Member member)
         {
-            return NeoMemberStorageResolution.Validate(member.EffectiveStorage);
+            return NeoMemberStorageResolution.Validate(member.Storage);
         }
 
         /// <summary>
@@ -1028,7 +1028,7 @@ namespace NeoCompose.Runtime
 
         internal string? ResolveStaticMapKey(Member member)
         {
-            if (member.EffectiveModifier != NeoMemberModifierKind.Static)
+            if (member.Modifier != NeoMemberModifierKind.Static)
             {
                 throw new System.InvalidOperationException(
                     $"Member '{member.id}' is not a static Class member.");
@@ -1074,7 +1074,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal NeoValueOwnership ResolveStaticOwnership(Member member)
         {
-            if (member.EffectiveModifier != NeoMemberModifierKind.Static)
+            if (member.Modifier != NeoMemberModifierKind.Static)
             {
                 throw new System.InvalidOperationException(
                     $"Member '{member.id}' is not a static Class member.");
@@ -1167,7 +1167,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Static member '{member.name}' belongs to {resolvedOwnership} storage, not {ownership}.");
             }
-            if (valueId is null && member.EffectiveRequirement == NeoMemberRequirementKind.Required)
+            if (valueId is null && member.Requirement == NeoMemberRequirementKind.Required)
             {
                 throw new System.ArgumentNullException(
                     nameof(valueId),
@@ -1354,7 +1354,7 @@ namespace NeoCompose.Runtime
             {
                 if (pair.Value is not DictionaryMember dictionary) continue;
                 string? error = NeoDictionaryMemberContract.GetValidationError(
-                    dictionary.keyKind,
+                    dictionary.DeclaredKeyKind,
                     dictionary.keyEnumId);
                 if (error is not null)
                 {
@@ -1444,7 +1444,7 @@ namespace NeoCompose.Runtime
 
         private void ValidateReadOnlyMembers()
         {
-            if (!data.members.Values.Any(member => member.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly))
+            if (!data.members.Values.Any(member => member.Mutability == NeoMemberMutabilityKind.ReadOnly))
             {
                 return;
             }
@@ -1517,7 +1517,7 @@ namespace NeoCompose.Runtime
 
             foreach (Member declaration in data.members.Values)
             {
-                if (declaration.EffectiveMutability != NeoMemberMutabilityKind.ReadOnly) continue;
+                if (declaration.Mutability != NeoMemberMutabilityKind.ReadOnly) continue;
                 string subject = $"Read-only member '{declaration.name}' ({declaration.id})";
                 if (!placements.TryGetValue(declaration.id, out var memberPlacements)
                     || memberPlacements.Count == 0)
@@ -1534,7 +1534,7 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"{subject} has a non-Class placement; read-only is valid only on concrete Class fields.");
                 }
-                if (declaration.EffectiveModifier == NeoMemberModifierKind.Static)
+                if (declaration.Modifier == NeoMemberModifierKind.Static)
                 {
                     throw new InvalidOperationException(
                         $"{subject} cannot be static.");
@@ -1556,7 +1556,7 @@ namespace NeoCompose.Runtime
                         $"{subject} cannot declare per-instance List indexes.");
                 }
                 if (declaration is StringMember searchable
-                    && searchable.EffectiveSearchBy == NeoMemberSearchByKind.MemberKey)
+                    && searchable.SearchBy == NeoMemberSearchByKind.MemberKey)
                 {
                     throw new InvalidOperationException(
                         $"{subject} cannot opt into the per-instance String search index.");
@@ -1569,8 +1569,8 @@ namespace NeoCompose.Runtime
                     declarationPlacements = memberPlacements;
                 }
 
-                bool isAbstract = declaration.EffectiveModifier == NeoMemberModifierKind.Abstract;
-                if (isAbstract && HasEffectiveDefaultValue(declaration))
+                bool isAbstract = declaration.Modifier == NeoMemberModifierKind.Abstract;
+                if (isAbstract && HasResolvedDefaultValue(declaration))
                 {
                     throw new InvalidOperationException(
                         $"{subject} is an abstract getter contract and cannot declare a defaultValue.");
@@ -1611,7 +1611,7 @@ namespace NeoCompose.Runtime
                         // declaration's concrete default graph.
                         continue;
                     }
-                    if (!HasEffectiveDefaultValue(resolved))
+                    if (!HasResolvedDefaultValue(resolved))
                     {
                         throw new InvalidOperationException(
                             $"{subject} at Class '{placement.owner.name}' key '{placement.key}' requires an effective defaultValue.");
@@ -1655,7 +1655,7 @@ namespace NeoCompose.Runtime
                     id => data.members.TryGetValue(id, out Member? value) ? value : null,
                     current =>
                     {
-                        if (current.id == member.id || current.EffectiveModifier != NeoMemberModifierKind.Abstract)
+                        if (current.id == member.id || current.Modifier != NeoMemberModifierKind.Abstract)
                         {
                             return null;
                         }
@@ -1664,15 +1664,15 @@ namespace NeoCompose.Runtime
                     });
                 if (abstractContract is null) continue;
 
-                if (abstractContract.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly
-                    && member.EffectiveMutability != NeoMemberMutabilityKind.ReadOnly)
+                if (abstractContract.Mutability == NeoMemberMutabilityKind.ReadOnly
+                    && member.Mutability != NeoMemberMutabilityKind.ReadOnly)
                 {
                     throw new InvalidOperationException(
                         $"Member '{member.name}' ({member.id}) cannot implement abstract read-only member '{abstractContract.name}' ({abstractContract.id}) with a non-read-only, instance-backed override.");
                 }
 
-                if (member.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly
-                    && abstractContract.EffectiveMutability != NeoMemberMutabilityKind.ReadOnly
+                if (member.Mutability == NeoMemberMutabilityKind.ReadOnly
+                    && abstractContract.Mutability != NeoMemberMutabilityKind.ReadOnly
                     && !IsGetterOnlyAbstractContract(abstractContract))
                 {
                     throw new InvalidOperationException(
@@ -1684,13 +1684,13 @@ namespace NeoCompose.Runtime
             {
                 IList<MergedSchemaEntry> surface =
                     ResolveInstanceSurfaceSchema(schemaClass.id);
-                if (schemaClass.EffectiveModifier != NeoClassModifierKind.Abstract)
+                if (schemaClass.Modifier != NeoClassModifierKind.Abstract)
                 {
                     foreach (MergedSchemaEntry entry in surface)
                     {
                         if (!data.members.TryGetValue(entry.memberId, out Member? member)
-                            || member.EffectiveModifier != NeoMemberModifierKind.Abstract
-                            || member.EffectiveMutability != NeoMemberMutabilityKind.ReadOnly)
+                            || member.Modifier != NeoMemberModifierKind.Abstract
+                            || member.Mutability != NeoMemberMutabilityKind.ReadOnly)
                         {
                             continue;
                         }
@@ -1722,7 +1722,7 @@ namespace NeoCompose.Runtime
             foreach (MergedSchemaEntry entry in surface)
             {
                 if (data.members.TryGetValue(entry.memberId, out Member? member)
-                    && member.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly)
+                    && member.Mutability == NeoMemberMutabilityKind.ReadOnly)
                 {
                     readOnlyKeys[entry.schemaKey] = member;
                 }
@@ -1760,7 +1760,7 @@ namespace NeoCompose.Runtime
                 foreach (var pair in contract.members)
                 {
                     if (pair.Value.kind != NeoInterfaceMemberKind.Property
-                        || pair.Value.EffectiveAccessors != NeoPropertyAccessorsKind.GetSet
+                        || pair.Value.Accessors != NeoPropertyAccessorsKind.GetSet
                         || !readOnlyKeys.TryGetValue(pair.Key, out Member? member))
                     {
                         continue;
@@ -1789,7 +1789,7 @@ namespace NeoCompose.Runtime
             && member is not NSFunctionMember
             && member is not GenericMember;
 
-        private static bool HasEffectiveDefaultValue(Member member) => member switch
+        private static bool HasResolvedDefaultValue(Member member) => member switch
         {
             Member<object?> typed => typed.defaultValue is not null,
             BoolMember typed => typed.defaultValue is not null,
@@ -1835,17 +1835,17 @@ namespace NeoCompose.Runtime
                 $"__neo_readonly_default_validation:{lookup.RuntimeDeclarationIdentity}")
                 as ArrayMemberValue;
             string[] selections = defaultValue?.value ?? System.Array.Empty<string>();
-            if (lookup.EffectiveSelection != NeoMemberSelectionKind.Multi && selections.Length > 1)
+            if (lookup.Selection != NeoMemberSelectionKind.Multi && selections.Length > 1)
             {
                 throw new InvalidOperationException(
                     $"{subject} defaultValue selects {selections.Length} Lookup entries, but the Lookup is single-select.");
             }
-            if (lookup.EffectiveCollectionValueId?.StartsWith(
+            if (lookup.CollectionValueId?.StartsWith(
                     "__neo_readonly_default:",
                     System.StringComparison.Ordinal) == true)
             {
                 throw new InvalidOperationException(
-                    $"{subject} defaultValue references runtime-only synthetic Lookup collection value '{lookup.EffectiveCollectionValueId}'. Persisted project data must target an authored collection value.");
+                    $"{subject} defaultValue references runtime-only synthetic Lookup collection value '{lookup.CollectionValueId}'. Persisted project data must target an authored collection value.");
             }
             if (selections.Length == 0) return;
 
@@ -1860,7 +1860,7 @@ namespace NeoCompose.Runtime
                     $"{subject} defaultValue Lookup target '{lookup.collectionMemberId}' is not a List or Dictionary.");
             }
 
-            string? collectionValueId = lookup.EffectiveCollectionValueId
+            string? collectionValueId = lookup.CollectionValueId
                 ?? ResolveAuthoredLookupCollectionValueId(collectionMember);
             if (collectionValueId?.StartsWith(
                     "__neo_readonly_default:",
@@ -2224,7 +2224,7 @@ namespace NeoCompose.Runtime
 
         private void RecoverReadOnlySaveInstanceKeys()
         {
-            if (!data.members.Values.Any(member => member.EffectiveMutability == NeoMemberMutabilityKind.ReadOnly)) return;
+            if (!data.members.Values.Any(member => member.Mutability == NeoMemberMutabilityKind.ReadOnly)) return;
             var overlaidRows = new Dictionary<string, MemberValue>(readOnlyAuthoredRows);
             foreach (var pair in saveData.values) overlaidRows[pair.Key] = pair.Value;
             IReadOnlyDictionary<string, string> effectiveClassIds =
@@ -3097,7 +3097,7 @@ namespace NeoCompose.Runtime
                 yield break;
             }
             if (!data.values.TryGetValue(containerId, out MemberValue authoredContainer)
-                || EffectiveAuthoredOwnership(containerId, authoredContainer) != sourceOwnership)
+                || ResolveAuthoredOwnership(containerId, authoredContainer) != sourceOwnership)
             {
                 yield break;
             }
@@ -3128,7 +3128,7 @@ namespace NeoCompose.Runtime
             var childStore = GetWritableStore(childOwnership);
             if (!childStore.values.TryGetValue(childValueId, out child)
                 && data.values.TryGetValue(childValueId, out MemberValue authoredChild)
-                && EffectiveAuthoredOwnership(childValueId, authoredChild) == childOwnership)
+                && ResolveAuthoredOwnership(childValueId, authoredChild) == childOwnership)
             {
                 child = authoredChild;
             }
@@ -3180,7 +3180,7 @@ namespace NeoCompose.Runtime
                 }
                 else if (data.values.TryGetValue(childValueId, out MemberValue authoredRoot))
                 {
-                    effective = EffectiveAuthoredOwnership(childValueId, authoredRoot);
+                    effective = ResolveAuthoredOwnership(childValueId, authoredRoot);
                 }
                 else
                 {
@@ -3200,7 +3200,7 @@ namespace NeoCompose.Runtime
             // Session-static aggregate beneath a second parent.
             foreach (Member candidate in data.members.Values)
             {
-                if (candidate.EffectiveModifier != NeoMemberModifierKind.Static
+                if (candidate.Modifier != NeoMemberModifierKind.Static
                     || !TryResolveStaticBinding(
                         candidate.id,
                         out _,
@@ -3285,7 +3285,7 @@ namespace NeoCompose.Runtime
             foreach (var pair in data.values)
             {
                 NeoValueOwnership authoredOwnershipForRow =
-                    EffectiveAuthoredOwnership(pair.Key, pair.Value);
+                    ResolveAuthoredOwnership(pair.Key, pair.Value);
                 // A writable shadow replaces this authored row only in its
                 // own graph. A distinct shadow in the other store does not.
                 if (authoredOwnershipForRow != NeoValueOwnership.Asset
@@ -3297,7 +3297,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private NeoValueOwnership EffectiveAuthoredOwnership(
+        private NeoValueOwnership ResolveAuthoredOwnership(
             string valueId,
             MemberValue row)
         {
@@ -3358,7 +3358,7 @@ namespace NeoCompose.Runtime
             ProjectSaveData targetStore = GetWritableStore(targetOwnership);
             if (targetStore.values.ContainsKey(valueId)
                 || data.values.TryGetValue(valueId, out MemberValue authored)
-                    && EffectiveAuthoredOwnership(valueId, authored) == targetOwnership
+                    && ResolveAuthoredOwnership(valueId, authored) == targetOwnership
                 || TryFindOwnedParent(targetOwnership, valueId, out _))
             {
                 return true;
@@ -3990,7 +3990,7 @@ namespace NeoCompose.Runtime
                 rows.Add((
                     pair.Key,
                     pair.Value,
-                    EffectiveAuthoredOwnership(pair.Key, pair.Value)));
+                    ResolveAuthoredOwnership(pair.Key, pair.Value)));
             }
             if (!rows.Any(entry => entry.valueId == receiverValueId))
             {
@@ -5076,7 +5076,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal bool IsUnorderedList(ListMember member)
         {
-            return member.EffectiveListKind == NeoListKind.Unordered;
+            return member.ListKind == NeoListKind.Unordered;
         }
 
         internal bool TryResolveLookupCollectionValueId(
@@ -5099,7 +5099,7 @@ namespace NeoCompose.Runtime
             string? collectionValueId)
         {
             if (collectionValueId is not null) return collectionValueId;
-            if (collectionMember.EffectiveModifier == NeoMemberModifierKind.Static)
+            if (collectionMember.Modifier == NeoMemberModifierKind.Static)
             {
                 return TryResolveStaticBinding(
                     collectionMember.id,
@@ -5603,7 +5603,7 @@ namespace NeoCompose.Runtime
             FunctionMember member,
             object? receiver)
         {
-            if (member.EffectiveModifier == NeoMemberModifierKind.Static)
+            if (member.Modifier == NeoMemberModifierKind.Static)
             {
                 if (receiver is not null)
                 {
@@ -5636,7 +5636,7 @@ namespace NeoCompose.Runtime
                 ? effectiveMember.name
                 : signature.name;
             bool actualDeferred =
-                signature.EffectiveDispatch == NeoFunctionDispatchKind.Asynchronous;
+                signature.Dispatch == NeoFunctionDispatchKind.Asynchronous;
             if (actualDeferred != expectedDeferred)
             {
                 string expected = expectedDeferred ? "deferred" : "immediate";
@@ -5909,7 +5909,7 @@ namespace NeoCompose.Runtime
         internal bool IsNativeFunctionDeferred(string memberId)
         {
             return TryResolveFunctionMember(memberId, out var member)
-                && member.EffectiveDispatch == NeoFunctionDispatchKind.Asynchronous;
+                && member.Dispatch == NeoFunctionDispatchKind.Asynchronous;
         }
 
         private NeoDeferredFunctionBase CreateTypedDeferredFunction(
@@ -6426,7 +6426,7 @@ namespace NeoCompose.Runtime
                         function,
                         function.returnTypeInfo,
                         function.argumentTypes,
-                        function.dispatch,
+                        function.DeclaredDispatch,
                         "Function",
                         rejectOverrideFields: false);
                     continue;
@@ -6436,7 +6436,7 @@ namespace NeoCompose.Runtime
                     nsFunction,
                     nsFunction.returnTypeInfo,
                     nsFunction.argumentTypes,
-                    nsFunction.dispatch,
+                    nsFunction.DeclaredDispatch,
                     "NSFunction",
                     rejectOverrideFields: true);
                 ValidateNSFunctionMember(nsFunction);
@@ -6533,7 +6533,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"NSAction member '{member.id}' exceeds the 16-argument arity cap.");
             }
-            if (member.EffectiveRequirement == NeoMemberRequirementKind.Required)
+            if (member.Requirement == NeoMemberRequirementKind.Required)
             {
                 throw new System.InvalidOperationException(
                     $"NSAction member '{member.id}' declares required; an action is never nullable, and its rest state is an empty listener set.");
@@ -6597,54 +6597,54 @@ namespace NeoCompose.Runtime
 
         private void ValidateNSFunctionMember(NSFunctionMember member)
         {
-            if (member.bodyMode.HasValue
+            if (member.DeclaredBodyMode.HasValue
                 && !System.Enum.IsDefined(
                     typeof(NeoFunctionBodyKind),
-                    member.bodyMode.Value))
+                    member.DeclaredBodyMode.Value))
             {
                 throw new System.InvalidOperationException(
-                    $"NSFunction member '{member.id}' has unsupported bodyMode ordinal '{(int)member.bodyMode.Value}'.");
+                    $"NSFunction member '{member.id}' has unsupported bodyMode ordinal '{(int)member.DeclaredBodyMode.Value}'.");
             }
             bool hasLocalCodeField = member.DeclaresWireField("code")
                 && member.code is not null;
             bool hasLocalAction = member.DeclaresWireField("action")
                 && member.action is not null;
             bool hasLocalBody = string.IsNullOrEmpty(member.extendsMemberId)
-                || member.bodyMode.HasValue
+                || member.DeclaredBodyMode.HasValue
                 || member.DeclaresWireField("uiAction")
                 || member.DeclaresWireField("code")
                 || member.DeclaresWireField("action");
             if (hasLocalBody
-                && member.EffectiveBodyMode == NeoFunctionBodyKind.UI
+                && member.BodyMode == NeoFunctionBodyKind.UI
                 && member.uiAction is null)
             {
                 throw new System.InvalidOperationException(
                     $"UI-mode NSFunction member '{member.id}' is missing uiAction.");
             }
             if (hasLocalBody
-                && member.EffectiveBodyMode == NeoFunctionBodyKind.Code
+                && member.BodyMode == NeoFunctionBodyKind.Code
                 && member.uiAction is not null)
             {
                 throw new System.InvalidOperationException(
                     $"Custom-code NSFunction member '{member.id}' cannot declare uiAction.");
             }
-            if (member.EffectiveRequirement == NeoMemberRequirementKind.Required
+            if (member.Requirement == NeoMemberRequirementKind.Required
                 || member.defaultValue is not null
                 || !string.IsNullOrEmpty(member.valueId)
-                || member.storage.HasValue)
+                || member.DeclaredStorage.HasValue)
             {
                 throw new System.InvalidOperationException(
                     $"NSFunction member '{member.id}' is value-less and cannot declare required/default/value/storage fields.");
             }
             if (hasLocalBody
-                && member.EffectiveBodyMode == NeoFunctionBodyKind.UI
+                && member.BodyMode == NeoFunctionBodyKind.UI
                 && !hasLocalAction)
             {
                 throw new System.InvalidOperationException(
                     $"UI-mode NSFunction member '{member.id}' is missing its compiled action.");
             }
             if (hasLocalBody
-                && member.EffectiveBodyMode == NeoFunctionBodyKind.Code
+                && member.BodyMode == NeoFunctionBodyKind.Code
                 && hasLocalCodeField != hasLocalAction)
             {
                 throw new System.InvalidOperationException(
@@ -6655,7 +6655,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"NSFunction member '{member.id}' local code must not be empty.");
             }
-            if (member.EffectiveModifier == NeoMemberModifierKind.Abstract) return;
+            if (member.Modifier == NeoMemberModifierKind.Abstract) return;
 
             if (string.IsNullOrEmpty(member.extendsMemberId)
                 && !hasLocalAction)
@@ -7265,7 +7265,7 @@ namespace NeoCompose.Runtime
             // for ordinary orphan collection.
             foreach (Member staticMember in data.members.Values)
             {
-                if (staticMember.EffectiveModifier != NeoMemberModifierKind.Static
+                if (staticMember.Modifier != NeoMemberModifierKind.Static
                     || ResolveStaticOwnership(staticMember) != ownership)
                 {
                     continue;

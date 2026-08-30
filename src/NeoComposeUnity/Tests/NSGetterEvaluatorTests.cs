@@ -148,7 +148,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(MemberKind.Void, function.returnTypeInfo.type);
             Assert.AreEqual("animationName", function.argumentTypes[0].name);
             Assert.AreEqual(MemberKind.String, function.argumentTypes[0].type);
-            Assert.AreEqual(false, function.EffectiveDispatch == NeoFunctionDispatchKind.Asynchronous);
+            Assert.AreEqual(false, function.Dispatch == NeoFunctionDispatchKind.Asynchronous);
 
             Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<TypeInfo>(
@@ -945,7 +945,7 @@ namespace NeoCompose.Tests
                 out ClassMember testMember,
                 out ObjectMemberValue readOnlyRow,
                 out _);
-            RequireMember<StringMember>(client, "member-string").format = NeoStringFormatKind.Localized;
+            RequireMember<StringMember>(client, "member-string").DeclaredFormat = NeoStringFormatKind.Localized;
             ((StringMemberValue)client.values["v-string"]).value = "text-string";
             var readOnlyNode = (NeoMemberClass)NeoMember.Create(
                 client,
@@ -1415,7 +1415,7 @@ namespace NeoCompose.Tests
                         required = true,
                     },
                 },
-                dispatch = NeoFunctionDispatchKind.Synchronous,
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1677,16 +1677,16 @@ namespace NeoCompose.Tests
             out IntMember abstractDamage)
         {
             abstractDamage = IntMember("member-abstract-damage", "Damage");
-            abstractDamage.requirement = NeoMemberRequirementKind.Required;
-            abstractDamage.storage = NeoMemberStorage.Immutable;
-            abstractDamage.modifier = NeoMemberModifierKind.Abstract;
-            abstractDamage.mutability = NeoMemberMutabilityKind.ReadOnly;
+            abstractDamage.DeclaredRequirement = NeoMemberRequirementKind.Required;
+            abstractDamage.DeclaredStorage = NeoMemberStorage.Immutable;
+            abstractDamage.DeclaredModifier = NeoMemberModifierKind.Abstract;
+            abstractDamage.DeclaredMutability = NeoMemberMutabilityKind.ReadOnly;
 
             var concreteDamage = IntMember("member-concrete-damage", "Damage");
-            concreteDamage.requirement = NeoMemberRequirementKind.Required;
-            concreteDamage.storage = NeoMemberStorage.Immutable;
-            concreteDamage.modifier = NeoMemberModifierKind.Virtual;
-            concreteDamage.mutability = NeoMemberMutabilityKind.ReadOnly;
+            concreteDamage.DeclaredRequirement = NeoMemberRequirementKind.Required;
+            concreteDamage.DeclaredStorage = NeoMemberStorage.Immutable;
+            concreteDamage.DeclaredModifier = NeoMemberModifierKind.Virtual;
+            concreteDamage.DeclaredMutability = NeoMemberMutabilityKind.ReadOnly;
             concreteDamage.extendsMemberId = abstractDamage.id;
             concreteDamage.defaultValue = new NumberMemberValueBase { value = 42 };
 
@@ -1694,9 +1694,9 @@ namespace NeoCompose.Tests
                 "member-readonly-stats",
                 "Stats",
                 "class-abstract-stats");
-            statsMember.requirement = NeoMemberRequirementKind.Required;
-            statsMember.storage = NeoMemberStorage.Immutable;
-            statsMember.mutability = NeoMemberMutabilityKind.ReadOnly;
+            statsMember.DeclaredRequirement = NeoMemberRequirementKind.Required;
+            statsMember.DeclaredStorage = NeoMemberStorage.Immutable;
+            statsMember.DeclaredMutability = NeoMemberMutabilityKind.ReadOnly;
             statsMember.defaultValue = new ObjectMemberValueBase
             {
                 classId = "class-concrete-stats",
@@ -1712,12 +1712,12 @@ namespace NeoCompose.Tests
                 "member-abstract-readonly-root-save",
                 "Save",
                 "class-abstract-readonly-root");
-            rootSaveMember.storage = NeoMemberStorage.Save;
+            rootSaveMember.DeclaredStorage = NeoMemberStorage.Save;
             var rootSessionMember = ClassMember(
                 "member-abstract-readonly-root-session",
                 "Session",
                 "class-abstract-readonly-root");
-            rootSessionMember.storage = NeoMemberStorage.Session;
+            rootSessionMember.DeclaredStorage = NeoMemberStorage.Session;
 
             var rootClass = NeoSchemaClass(
                 "class-abstract-readonly-root",
@@ -1727,7 +1727,7 @@ namespace NeoCompose.Tests
                 "class-abstract-stats",
                 "AbstractStats",
                 new Dictionary<string, string> { ["Damage"] = abstractDamage.id });
-            abstractStatsClass.modifier = NeoClassModifierKind.Abstract;
+            abstractStatsClass.DeclaredModifier = NeoClassModifierKind.Abstract;
             var concreteStatsClass = NeoSchemaClass(
                 "class-concrete-stats",
                 "ConcreteStats",
@@ -1944,7 +1944,7 @@ namespace NeoCompose.Tests
                 name = name,
                 kind = MemberKind.Dictionary,
                 entryMemberId = entryMemberId,
-                keyKind = NeoDictionaryKeyKind.String,
+                KeyKind = NeoDictionaryKeyKind.String,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1998,7 +1998,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Lookup,
                 collectionMemberId = collectionMemberId,
                 collectionValueId = collectionValueId,
-                selection = NeoMemberSelectionKind.Multi,
+                Selection = NeoMemberSelectionKind.Multi,
                 createdAt = "x",
                 updatedAt = "x",
             };

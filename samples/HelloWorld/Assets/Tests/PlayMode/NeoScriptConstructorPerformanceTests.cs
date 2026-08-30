@@ -118,7 +118,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
                     id = "__neo_constructor_profile_rig",
                     name = "Rig",
                     kind = MemberKind.Class,
-                    requirement = NeoMemberRequirementKind.Required,
+                    Requirement = NeoMemberRequirementKind.Required,
                     classId = RigClassId,
                 },
                 rootId,
@@ -338,7 +338,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
                 projectId = ProjectId,
                 name = "Reverse",
                 kind = MemberKind.Bool,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new BoolMemberValueBase { value = false },
             };
 
@@ -422,7 +422,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.List,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 entryMemberId = entryMemberId,
                 defaultValue = new ArrayMemberValueBase { init = initializer },
             };
@@ -436,7 +436,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
                 projectId = ProjectId,
                 name = "Entry",
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 classId = classId,
             };
         }
@@ -449,7 +449,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.Int,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new NumberMemberValueBase { value = value },
             };
         }
@@ -466,9 +466,9 @@ namespace HelloWorld.Assets.Tests.PlayMode
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 classId = RootClassId,
-                storage = storage,
+                Storage = storage,
                 valueId = valueId,
             };
         }

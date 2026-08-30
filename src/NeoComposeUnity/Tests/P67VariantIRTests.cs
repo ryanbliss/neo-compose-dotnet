@@ -540,7 +540,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "StringBinding",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new StringMemberValueBase { value = "from stamp" },
             };
             data.members["widget-int-binding"] = new IntMember
@@ -549,7 +549,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "IntBinding",
                 kind = MemberKind.Int,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new NumberMemberValueBase { value = 7 },
             };
             ((ClassMember)data.members["lookup-entry"]).classArguments =
@@ -570,8 +570,8 @@ namespace NeoCompose.Tests
                 name = "Stored",
                 kind = MemberKind.Class,
                 classId = WidgetClassId,
-                requirement = NeoMemberRequirementKind.Optional,
-                storage = NeoMemberStorage.Save,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Save,
                 classArguments = new Dictionary<string, GenericBinding>
                 {
                     [paramT] = new()
@@ -1052,8 +1052,8 @@ namespace NeoCompose.Tests
                         projectId = ProjectId,
                         name = "Chosen",
                         kind = MemberKind.Variant,
-                        requirement = NeoMemberRequirementKind.Optional,
-                        storage = NeoMemberStorage.Session,
+                        Requirement = NeoMemberRequirementKind.Optional,
+                        Storage = NeoMemberStorage.Session,
                         createdAt = "x",
                         updatedAt = "x",
                     },
@@ -1064,8 +1064,8 @@ namespace NeoCompose.Tests
                         name = "Entry",
                         kind = MemberKind.Class,
                         classId = WidgetClassId,
-                        requirement = NeoMemberRequirementKind.Required,
-                        storage = NeoMemberStorage.Immutable,
+                        Requirement = NeoMemberRequirementKind.Required,
+                        Storage = NeoMemberStorage.Immutable,
                         createdAt = "x",
                         updatedAt = "x",
                     },
@@ -1076,8 +1076,8 @@ namespace NeoCompose.Tests
                         name = "Catalog",
                         kind = MemberKind.List,
                         entryMemberId = "lookup-entry",
-                        requirement = NeoMemberRequirementKind.Required,
-                        storage = NeoMemberStorage.Immutable,
+                        Requirement = NeoMemberRequirementKind.Required,
+                        Storage = NeoMemberStorage.Immutable,
                         createdAt = "x",
                         updatedAt = "x",
                     },
@@ -1412,7 +1412,7 @@ namespace NeoCompose.Tests
             kind = MemberKind.Class,
             classId = "root-class",
             valueId = valueId,
-            storage = storage,
+            Storage = storage,
             createdAt = "x",
             updatedAt = "x",
         };
@@ -1450,10 +1450,10 @@ namespace NeoCompose.Tests
             kind = MemberKind.String,
             // Settleable without a call-site argument, so the base selection's
             // bare construction (§3.4) succeeds.
-            requirement = NeoMemberRequirementKind.Optional,
+            Requirement = NeoMemberRequirementKind.Optional,
             defaultValue = new StringMemberValueBase { value = "unset" },
-            format = NeoStringFormatKind.Plain,
-            storage = NeoMemberStorage.Session,
+            Format = NeoStringFormatKind.Plain,
+            Storage = NeoMemberStorage.Session,
             createdAt = "x",
             updatedAt = "x",
         };
@@ -1467,8 +1467,8 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = name,
             kind = MemberKind.NSDelegate,
-            requirement = NeoMemberRequirementKind.Optional,
-            storage = NeoMemberStorage.Immutable,
+            Requirement = NeoMemberRequirementKind.Optional,
+            Storage = NeoMemberStorage.Immutable,
             returnTypeInfo = returnTypeInfo,
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
             createdAt = "x",
@@ -1482,9 +1482,9 @@ namespace NeoCompose.Tests
             name = name,
             kind = MemberKind.Class,
             classId = WidgetClassId,
-            payload = NeoMemberPayloadKind.Partial,
-            requirement = NeoMemberRequirementKind.Optional,
-            storage = NeoMemberStorage.Immutable,
+            Payload = NeoMemberPayloadKind.Partial,
+            Requirement = NeoMemberRequirementKind.Optional,
+            Storage = NeoMemberStorage.Immutable,
             createdAt = "x",
             updatedAt = "x",
         };

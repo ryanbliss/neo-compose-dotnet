@@ -174,11 +174,11 @@ namespace NeoCompose.Runtime
         {
             if (schemaKey is null) throw new ArgumentNullException(nameof(schemaKey));
             ListIndexDefinition definition = ResolveIndexDefinition(schemaKey);
-            if (definition.EffectiveKind == NeoListIndexKind.Unique != unique)
+            if (definition.Kind == NeoListIndexKind.Unique != unique)
             {
                 throw new InvalidOperationException(
                     $"List index '{schemaKey}' on member '{member.id}' is declared "
-                    + $"{(definition.EffectiveKind == NeoListIndexKind.Unique ? "unique" : "many")}, but the generated runtime view expects "
+                    + $"{(definition.Kind == NeoListIndexKind.Unique ? "unique" : "many")}, but the generated runtime view expects "
                     + $"{(unique ? "unique" : "many")}.");
             }
             if (!derivedIndexes.TryGetValue(schemaKey, out NeoRawListIndex? index))
@@ -496,7 +496,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void AddSerialized(NeoValueWritePayload? entryValue)
         {
-            if (entryMember.EffectiveRequirement == NeoMemberRequirementKind.Required && (entryValue is null || entryValue.isNull))
+            if (entryMember.Requirement == NeoMemberRequirementKind.Required && (entryValue is null || entryValue.isNull))
             {
                 throw new System.ArgumentNullException(
                     nameof(entryValue),
@@ -574,7 +574,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"List member '{member.id}' is unordered; entries have no position to replace at. Remove the entry and add the replacement instead.");
             }
-            if (entryMember.EffectiveRequirement == NeoMemberRequirementKind.Required && (entryValue is null || entryValue.isNull))
+            if (entryMember.Requirement == NeoMemberRequirementKind.Required && (entryValue is null || entryValue.isNull))
             {
                 throw new System.ArgumentNullException(
                     nameof(entryValue),

@@ -282,10 +282,10 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = "OnDamaged",
             kind = MemberKind.NSAction,
-            requirement = NeoMemberRequirementKind.Optional,
+            Requirement = NeoMemberRequirementKind.Optional,
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
             valueId = ActionValueId,
-            storage = NeoMemberStorage.Save,
+            Storage = NeoMemberStorage.Save,
             createdAt = "x",
             updatedAt = "x",
         };
@@ -308,9 +308,9 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Counter",
                 kind = MemberKind.Int,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 valueId = CounterValueId,
-                storage = NeoMemberStorage.Save,
+                Storage = NeoMemberStorage.Save,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -396,7 +396,7 @@ namespace NeoCompose.Tests
                 required = true,
             },
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-            dispatch = NeoFunctionDispatchKind.Synchronous,
+            Dispatch = NeoFunctionDispatchKind.Synchronous,
             action = new FunctionWithReturnType
             {
                 compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
@@ -456,7 +456,7 @@ namespace NeoCompose.Tests
             kind = MemberKind.Class,
             classId = classId,
             valueId = valueId,
-            storage = storage,
+            Storage = storage,
             createdAt = "x",
             updatedAt = "x",
         };

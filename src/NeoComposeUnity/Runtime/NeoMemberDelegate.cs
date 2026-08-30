@@ -201,7 +201,7 @@ namespace NeoCompose.Runtime
 
         internal void Set(NeoDelegateValue? newValue)
         {
-            if (member.EffectiveRequirement == NeoMemberRequirementKind.Required && newValue is null)
+            if (member.Requirement == NeoMemberRequirementKind.Required && newValue is null)
             {
                 throw new ArgumentNullException(
                     nameof(newValue),

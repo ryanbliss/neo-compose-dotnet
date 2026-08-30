@@ -463,8 +463,8 @@ namespace NeoCompose.Tests
         public void GeneratedConstructor_UsesMemberDefaultsForOmittedArguments()
         {
             var app = LoadGeneratedClient(out _);
-            RequireMember<StringMember>(app.Client, "member-name").requirement = NeoMemberRequirementKind.Required;
-            RequireMember<IntMember>(app.Client, "member-health").requirement = NeoMemberRequirementKind.Required;
+            RequireMember<StringMember>(app.Client, "member-name").DeclaredRequirement = NeoMemberRequirementKind.Required;
+            RequireMember<IntMember>(app.Client, "member-health").DeclaredRequirement = NeoMemberRequirementKind.Required;
 
             var hero = new Hero();
 
@@ -608,10 +608,10 @@ namespace NeoCompose.Tests
         public void GeneratedConstructor_RecursivelyCreatesNestedClassDefaults()
         {
             var app = LoadGeneratedClient(out _);
-            RequireMember<StringMember>(app.Client, "member-name").requirement = NeoMemberRequirementKind.Required;
-            RequireMember<IntMember>(app.Client, "member-health").requirement = NeoMemberRequirementKind.Required;
+            RequireMember<StringMember>(app.Client, "member-name").DeclaredRequirement = NeoMemberRequirementKind.Required;
+            RequireMember<IntMember>(app.Client, "member-health").DeclaredRequirement = NeoMemberRequirementKind.Required;
             var heroMember = RequireMember<ClassMember>(app.Client, "member-hero");
-            heroMember.requirement = NeoMemberRequirementKind.Required;
+            heroMember.DeclaredRequirement = NeoMemberRequirementKind.Required;
             heroMember.defaultValue!.value = new Dictionary<string, string>();
             var classes = (Dictionary<string, NeoSchemaClass>)app.Client.classes;
             classes["class-default-holder"] = new NeoSchemaClass
@@ -658,7 +658,7 @@ namespace NeoCompose.Tests
                 id = "member-sparse-default-count",
                 name = "Count",
                 kind = MemberKind.Int,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new NumberMemberValueBase { value = 5 },
                 createdAt = now,
                 updatedAt = now,
@@ -668,7 +668,7 @@ namespace NeoCompose.Tests
                 id = "member-sparse-default-nested-entry",
                 name = "Nested entry",
                 kind = MemberKind.String,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = now,
                 updatedAt = now,
             };
@@ -678,8 +678,8 @@ namespace NeoCompose.Tests
                 name = "Nested",
                 kind = MemberKind.List,
                 entryMemberId = nestedEntryMember.id,
-                listKind = NeoListKind.Unordered,
-                requirement = NeoMemberRequirementKind.Required,
+                ListKind = NeoListKind.Unordered,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new ArrayMemberValueBase
                 {
                     init = new InitializerBody { code = "Nested" },
@@ -694,7 +694,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = countedClassId,
                 valueId = sourceValueId,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 createdAt = now,
                 updatedAt = now,
             };
@@ -704,7 +704,7 @@ namespace NeoCompose.Tests
                 name = "Container",
                 kind = MemberKind.Class,
                 classId = containerClassId,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new ObjectMemberValueBase
                 {
                     classId = containerClassId,
@@ -1544,7 +1544,7 @@ namespace NeoCompose.Tests
                 name = "Child",
                 kind = MemberKind.Class,
                 classId = "class-hero",
-                storage = NeoMemberStorage.Save,
+                Storage = NeoMemberStorage.Save,
                 createdAt = now,
                 updatedAt = now,
             };

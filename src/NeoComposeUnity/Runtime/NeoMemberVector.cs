@@ -24,7 +24,7 @@ namespace NeoCompose.Runtime
 
         protected void SetRaw(NeoVector2Value? newValue)
         {
-            if (member.EffectiveRequirement == NeoMemberRequirementKind.Required && newValue is null)
+            if (member.Requirement == NeoMemberRequirementKind.Required && newValue is null)
             {
                 throw new System.ArgumentNullException(
                     nameof(newValue),
@@ -82,7 +82,7 @@ namespace NeoCompose.Runtime
 
         protected void SetRaw(NeoVector2Value? newValue)
         {
-            if (member.EffectiveRequirement == NeoMemberRequirementKind.Required && newValue is null)
+            if (member.Requirement == NeoMemberRequirementKind.Required && newValue is null)
             {
                 throw new System.ArgumentNullException(
                     nameof(newValue),
@@ -140,7 +140,7 @@ namespace NeoCompose.Runtime
 
         protected void SetRaw(NeoVector3Value? newValue)
         {
-            if (member.EffectiveRequirement == NeoMemberRequirementKind.Required && newValue is null)
+            if (member.Requirement == NeoMemberRequirementKind.Required && newValue is null)
             {
                 throw new System.ArgumentNullException(
                     nameof(newValue),
@@ -198,7 +198,7 @@ namespace NeoCompose.Runtime
 
         protected void SetRaw(NeoVector3Value? newValue)
         {
-            if (member.EffectiveRequirement == NeoMemberRequirementKind.Required && newValue is null)
+            if (member.Requirement == NeoMemberRequirementKind.Required && newValue is null)
             {
                 throw new System.ArgumentNullException(
                     nameof(newValue),

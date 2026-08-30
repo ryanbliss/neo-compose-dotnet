@@ -747,7 +747,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = id,
                 kind = MemberKind.Class,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
                 classId = classId,
             };
@@ -765,7 +765,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = name,
                 kind = MemberKind.Color,
-                requirement = required ? NeoMemberRequirementKind.Required : NeoMemberRequirementKind.Optional,
+                Requirement = required ? NeoMemberRequirementKind.Required : NeoMemberRequirementKind.Optional,
                 defaultValue = defaultValue is null
                     ? null
                     : new ColorMemberValueBase { value = defaultValue },

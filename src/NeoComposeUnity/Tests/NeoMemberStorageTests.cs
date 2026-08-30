@@ -91,7 +91,7 @@ namespace NeoCompose.Tests
                 name = "PartialOutpost",
                 kind = MemberKind.Class,
                 classId = "class-outpost",
-                payload = NeoMemberPayloadKind.Partial,
+                Payload = NeoMemberPayloadKind.Partial,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -388,8 +388,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Health",
                 kind = MemberKind.Int,
-                requirement = NeoMemberRequirementKind.Required,
-                storage = NeoMemberStorage.Save,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Save,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -409,7 +409,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Label",
                 kind = MemberKind.String,
-                format = NeoStringFormatKind.Plain,
+                Format = NeoStringFormatKind.Plain,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -419,8 +419,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Mood",
                 kind = MemberKind.String,
-                format = NeoStringFormatKind.Plain,
-                storage = NeoMemberStorage.Session,
+                Format = NeoStringFormatKind.Plain,
+                Storage = NeoMemberStorage.Session,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -430,8 +430,8 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "BuildLabel",
                 kind = MemberKind.String,
-                format = NeoStringFormatKind.Plain,
-                storage = NeoMemberStorage.Immutable,
+                Format = NeoStringFormatKind.Plain,
+                Storage = NeoMemberStorage.Immutable,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -555,7 +555,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = classId,
                 valueId = valueId,
-                storage = storage,
+                Storage = storage,
                 createdAt = "x",
                 updatedAt = "x",
             };

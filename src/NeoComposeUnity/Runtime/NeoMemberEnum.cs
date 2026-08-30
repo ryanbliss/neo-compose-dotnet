@@ -85,7 +85,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Set(string[]? optionIds)
         {
-            if (member.EffectiveRequirement == NeoMemberRequirementKind.Required && (optionIds is null || optionIds.Length == 0))
+            if (member.Requirement == NeoMemberRequirementKind.Required && (optionIds is null || optionIds.Length == 0))
             {
                 throw new System.ArgumentNullException(
                     nameof(optionIds),
@@ -95,7 +95,7 @@ namespace NeoCompose.Runtime
             string[]? normalized = optionIds;
             if (normalized is not null)
             {
-                if (member.EffectiveSelection != NeoMemberSelectionKind.Multi && normalized.Length > 1)
+                if (member.Selection != NeoMemberSelectionKind.Multi && normalized.Length > 1)
                 {
                     normalized = new[] { normalized[0] };
                 }

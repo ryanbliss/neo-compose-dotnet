@@ -889,7 +889,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Counter",
                 kind = MemberKind.Int,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 valueId = CounterValueId,
                 createdAt = "x",
                 updatedAt = "x",
@@ -901,7 +901,7 @@ namespace NeoCompose.Tests
                 name = "OnDamaged",
                 kind = MemberKind.NSAction,
                 // Never nullable: the empty set is the rest state (§2.1).
-                requirement = NeoMemberRequirementKind.Optional,
+                Requirement = NeoMemberRequirementKind.Optional,
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
                 valueId = ActionValueId,
                 defaultValue = new ActionMemberValueBase
@@ -920,7 +920,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "OnGlobalReset",
                 kind = MemberKind.NSAction,
-                requirement = NeoMemberRequirementKind.Optional,
+                Requirement = NeoMemberRequirementKind.Optional,
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
                 valueId = StaticActionValueId,
                 defaultValue = new ActionMemberValueBase
@@ -929,7 +929,7 @@ namespace NeoCompose.Tests
                 },
                 createdAt = "x",
                 updatedAt = "x",
-                modifier = NeoMemberModifierKind.Static,
+                Modifier = NeoMemberModifierKind.Static,
             };
             NSFunctionMember bumpOne = Bump(BumpOneMemberId, "BumpOne", 1);
             // Deliberately absent from every class schema: a listener whose
@@ -950,7 +950,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Relay",
                 kind = MemberKind.NSDelegate,
-                requirement = NeoMemberRequirementKind.Required,
+                Requirement = NeoMemberRequirementKind.Required,
                 returnTypeInfo = new VoidTypeInfo
                 {
                     type = MemberKind.Void,
@@ -1094,7 +1094,7 @@ namespace NeoCompose.Tests
                 required = true,
             },
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-            dispatch = NeoFunctionDispatchKind.Synchronous,
+            Dispatch = NeoFunctionDispatchKind.Synchronous,
             action = new FunctionWithReturnType
             {
                 parameters = new[]
@@ -1159,7 +1159,7 @@ namespace NeoCompose.Tests
             kind = MemberKind.Class,
             classId = classId,
             valueId = valueId,
-            storage = storage,
+            Storage = storage,
             createdAt = "x",
             updatedAt = "x",
         };

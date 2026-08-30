@@ -6,7 +6,7 @@
 
 ### Changed
 
-- **Breaking:** the project export schema version is now 29. P80 consolidates
+- **Breaking:** the project export schema version is now 29 and consolidates
   record-shape booleans and persisted string unions into append-only numeric
   enums across classes, members, interfaces, generics, list indexes, and
   column settings. The reader strictly rejects removed field names, string
@@ -15,8 +15,10 @@
   silently treat abstract, sealed, static, read-only, required, and other
   declarations as their default states. Re-export from a matching web release.
 - Resolve omitted override fields through each member's inheritance chain
-  while preserving an explicitly authored zero ordinal. The effective shape is
-  cached once per project load and shared by runtime consumers.
+  while preserving an explicitly authored zero ordinal. C# consumers read the
+  ordinary PascalCase properties (`Storage`, `Access`, `Modifier`, `Selection`,
+  and peers); nullable wire state remains private. The resolved shape is cached
+  once per project load and shared by runtime consumers.
 
 ## [0.29.2] - 2026-08-27
 

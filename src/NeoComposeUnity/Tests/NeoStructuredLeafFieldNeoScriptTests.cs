@@ -689,7 +689,7 @@ namespace NeoCompose.Tests
                         name = "Highlight",
                         kind = MemberKind.Color,
                         valueId = "value-highlight",
-                        requirement = NeoMemberRequirementKind.Optional,
+                        Requirement = NeoMemberRequirementKind.Optional,
                         createdAt = "x",
                         updatedAt = "x",
                     },
@@ -782,7 +782,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = classId,
                 valueId = valueId,
-                storage = storage,
+                Storage = storage,
                 createdAt = "x",
                 updatedAt = "x",
             };
