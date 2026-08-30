@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-08-30
+
+### Changed
+
+- **Breaking:** require project export schema 30. Runtime `project.json` no
+  longer embeds localization authoring records; compact locale metadata and
+  separately shipped locale contents remain available.
+- **Breaking:** compile animation segment tracks only through their canonical
+  `Selector` delegate. The retired `Child` lookup and its placement-provenance
+  compatibility path are no longer accepted.
+- Read tile-grid link positions and collider definitions through the canonical
+  `Offset`, `Size`, and `IsTrigger` member names.
+
 ## [0.30.0] - 2026-08-29
 
 ### Changed

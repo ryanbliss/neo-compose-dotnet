@@ -17,6 +17,9 @@ namespace NeoCompose.Runtime
         private readonly IReadOnlyDictionary<int, Action[]> actions;
         private readonly Action[] prepareActions;
         private readonly IDisposable[] disposables;
+        private readonly HashSet<string> activePlaybackStack;
+        private readonly string playbackKey;
+        private readonly string playbackCycleLabel;
         private bool disposed;
 
         internal NeoAnimationDefinition(
@@ -26,7 +29,10 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> resolvedWrites,
             IReadOnlyDictionary<int, Action[]> actions,
             Action[] prepareActions,
-            IDisposable[] disposables)
+            IDisposable[] disposables,
+            HashSet<string> activePlaybackStack,
+            string playbackKey,
+            string playbackCycleLabel)
         {
             FPS = fps;
             Duration = duration;
@@ -35,6 +41,9 @@ namespace NeoCompose.Runtime
             this.actions = actions;
             this.prepareActions = prepareActions;
             this.disposables = disposables;
+            this.activePlaybackStack = activePlaybackStack;
+            this.playbackKey = playbackKey;
+            this.playbackCycleLabel = playbackCycleLabel;
         }
 
         internal int FPS { get; }
@@ -68,15 +77,27 @@ namespace NeoCompose.Runtime
 
         internal void ApplyFrame(int frameIndex, bool useResolvedState)
         {
-            IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> source =
-                useResolvedState ? resolvedWrites : sparseWrites;
-            if (source.TryGetValue(frameIndex, out NeoAnimationCompiledWrite[] writes))
+            if (!activePlaybackStack.Add(playbackKey))
             {
-                foreach (NeoAnimationCompiledWrite write in writes) write.Apply();
+                throw new InvalidOperationException(
+                    $"Animation child-track cycle reaches {playbackCycleLabel}.");
             }
-            if (actions.TryGetValue(frameIndex, out Action[] frameActions))
+            try
             {
-                foreach (Action action in frameActions) action();
+                IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> source =
+                    useResolvedState ? resolvedWrites : sparseWrites;
+                if (source.TryGetValue(frameIndex, out NeoAnimationCompiledWrite[] writes))
+                {
+                    foreach (NeoAnimationCompiledWrite write in writes) write.Apply();
+                }
+                if (actions.TryGetValue(frameIndex, out Action[] frameActions))
+                {
+                    foreach (Action action in frameActions) action();
+                }
+            }
+            finally
+            {
+                activePlaybackStack.Remove(playbackKey);
             }
         }
 
@@ -2051,13 +2072,18 @@ namespace NeoCompose.Runtime
             string schemaKey)
             where T : NeoGeneratedClassValue
         {
-            return Compile(target, schemaKey, new HashSet<string>(StringComparer.Ordinal));
+            return Compile(
+                target,
+                schemaKey,
+                new HashSet<string>(StringComparer.Ordinal),
+                new HashSet<string>(StringComparer.Ordinal));
         }
 
         private static NeoAnimationDefinition Compile(
             NeoGeneratedClassValue target,
             string schemaKey,
-            HashSet<string> compileStack)
+            HashSet<string> compileStack,
+            HashSet<string> activePlaybackStack)
         {
             if (target is null) throw new ArgumentNullException(nameof(target));
             if (string.IsNullOrWhiteSpace(schemaKey))
@@ -2171,7 +2197,8 @@ namespace NeoCompose.Runtime
                             prepareActions,
                             disposables,
                             schemaKey,
-                            compileStack);
+                            compileStack,
+                            activePlaybackStack);
                     }
                 }
                 catch
@@ -2195,7 +2222,10 @@ namespace NeoCompose.Runtime
                     resolved,
                     actionsByIndex,
                     prepareActions.ToArray(),
-                    disposables.ToArray());
+                    disposables.ToArray(),
+                    activePlaybackStack,
+                    compileKey,
+                    $"clip '{schemaKey}' on value '{target.valueId ?? target.classId}'");
             }
             finally
             {
@@ -2622,7 +2652,8 @@ namespace NeoCompose.Runtime
             List<Action> prepareActions,
             List<IDisposable> disposables,
             string clipKey,
-            HashSet<string> compileStack)
+            HashSet<string> compileStack,
+            HashSet<string> activePlaybackStack)
         {
             foreach (NeoMember item in tracks)
             {
@@ -2692,7 +2723,8 @@ namespace NeoCompose.Runtime
                     prepareActions,
                     disposables,
                     label,
-                    compileStack);
+                    compileStack,
+                    activePlaybackStack);
             }
         }
 
@@ -2725,13 +2757,15 @@ namespace NeoCompose.Runtime
             List<Action> prepareActions,
             List<IDisposable> disposables,
             string label,
-            HashSet<string> compileStack)
+            HashSet<string> compileStack,
+            HashSet<string> activePlaybackStack)
         {
             var selectedDefinitions = new NeoSelectedChildClipDefinitions(
                 target,
                 childClipKey,
                 label,
-                compileStack);
+                compileStack,
+                activePlaybackStack);
             disposables.Add(selectedDefinitions);
             prepareActions.Add(selectedDefinitions.PreparePlayback);
             if (selector.Refresh == NeoSelectorRefreshKind.OnLoad)
@@ -2771,11 +2805,9 @@ namespace NeoCompose.Runtime
                             direction,
                             window);
                         if (childFrame == NeoAnimationPlayback.WritesNothing) return;
-                        // Dedupe when the parent's clock outruns the child's:
-                        // re-applying an unchanged child frame writes the same
-                        // rows again for nothing.
-                        if (childFrame == selected.LastAppliedFrame) return;
-                        selected.LastAppliedFrame = childFrame;
+                        // Re-apply even when the child frame is unchanged.
+                        // Earlier tracks may need to restore their selected
+                        // child after a later PerFrame selector moved away.
                         childDefinition.ApplyFrame(
                             childFrame,
                             useResolvedState: true);
@@ -2791,7 +2823,6 @@ namespace NeoCompose.Runtime
             }
 
             internal NeoAnimationDefinition Definition { get; }
-            internal int LastAppliedFrame { get; set; } = -1;
         }
 
         private sealed class NeoSelectedChildClipDefinitions : IDisposable
@@ -2800,6 +2831,7 @@ namespace NeoCompose.Runtime
             private readonly string childClipKey;
             private readonly string label;
             private readonly HashSet<string> compileStack;
+            private readonly HashSet<string> activePlaybackStack;
             private readonly Dictionary<string, NeoSelectedChildClip> byChildId =
                 new Dictionary<string, NeoSelectedChildClip>(StringComparer.Ordinal);
             private bool playbackPrepared;
@@ -2808,12 +2840,14 @@ namespace NeoCompose.Runtime
                 NeoGeneratedClassValue target,
                 string childClipKey,
                 string label,
-                HashSet<string> compileStack)
+                HashSet<string> compileStack,
+                HashSet<string> activePlaybackStack)
             {
                 this.target = target;
                 this.childClipKey = childClipKey;
                 this.label = label;
                 this.compileStack = compileStack;
+                this.activePlaybackStack = activePlaybackStack;
             }
 
             internal NeoSelectedChildClip GetOrCreate(NeoMemberClass placedChild)
@@ -2835,7 +2869,8 @@ namespace NeoCompose.Runtime
                 NeoAnimationDefinition definition = Compile(
                     childTarget,
                     childClipKey,
-                    compileStack);
+                    compileStack,
+                    activePlaybackStack);
                 var created = new NeoSelectedChildClip(definition);
                 byChildId[childValueId] = created;
                 if (playbackPrepared) definition.PreparePlayback();
@@ -2847,7 +2882,6 @@ namespace NeoCompose.Runtime
                 playbackPrepared = true;
                 foreach (NeoSelectedChildClip selected in byChildId.Values)
                 {
-                    selected.LastAppliedFrame = -1;
                     selected.Definition.PreparePlayback();
                 }
             }
