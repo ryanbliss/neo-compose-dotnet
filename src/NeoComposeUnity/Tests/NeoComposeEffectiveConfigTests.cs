@@ -82,8 +82,8 @@ namespace NeoCompose.Tests
 
             overlay = NeoComposeEffectiveConfig.Apply(committed!, manifest);
 
-            Assert.AreEqual("http://127.0.0.1:31100", overlay.apiBaseUrl);
-            Assert.AreEqual("https://formal-toucan-689.convex.cloud", overlay.convexUrl);
+            Assert.AreEqual(manifest.web.origin, overlay.apiBaseUrl);
+            Assert.AreEqual(manifest.deployment.url, overlay.convexUrl);
             // No seeded sample: the committed selection stays in force.
             Assert.AreEqual("committed-project", overlay.projectId);
             Assert.AreEqual("Committed Project", overlay.projectName);
@@ -99,8 +99,8 @@ namespace NeoCompose.Tests
 
             overlay = NeoComposeEffectiveConfig.Apply(committed!, manifest);
 
-            Assert.AreEqual("http://127.0.0.1:31200", overlay.apiBaseUrl);
-            Assert.AreEqual("https://brisk-ocelot-412.convex.cloud", overlay.convexUrl);
+            Assert.AreEqual(manifest.web.origin, overlay.apiBaseUrl);
+            Assert.AreEqual(manifest.deployment.url, overlay.convexUrl);
             Assert.AreEqual("k57c3n1q8w2m0v9xr4jb6d5haz", overlay.projectId);
             Assert.AreEqual("Hello World", overlay.projectName);
             Assert.AreEqual("j92f7t0p3s6y1k4nw8rc5b2mqe", overlay.versionId);
