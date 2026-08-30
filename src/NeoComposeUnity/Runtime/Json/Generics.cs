@@ -110,10 +110,6 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null) return null;
             var obj = JObject.Load(reader);
-            Schema8LegacyFieldGuard.RejectRemovedReferenceFieldsShallow(
-                obj,
-                "Generic param constraint");
-            Schema8LegacyFieldGuard.RejectRemovedTypeInfoTypeId(obj);
             var kind = obj.Value<string>("kind");
             if (kind is null)
             {
@@ -176,9 +172,6 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null) return null;
             var obj = JObject.Load(reader);
-            Schema8LegacyFieldGuard.RejectRemovedReferenceFieldsShallow(
-                obj,
-                "Generic binding");
             var kind = obj.Value<string>("kind");
             if (kind is null)
             {

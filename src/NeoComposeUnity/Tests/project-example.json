@@ -10,6 +10,7 @@
       "patch": 0
     }
   },
+  "variantFolders": {},
   "project": {
     "_id": "69e8508119f7c06f14880286",
     "id": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -277,6 +278,7 @@
       },
       "kind": 5,
       "entryMemberId": "0f4de3bc-65eb-462d-ba32-225ebbb088f1",
+      "keyKind": "string",
       "id": "bafdf6df-22df-43fd-92e0-31c9d0201316",
       "valueId": "99466d75-e516-4b9b-86bf-fdbae178cb5d",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -425,6 +427,7 @@
       },
       "kind": 5,
       "entryMemberId": "80cf65c0-cc63-4e63-8615-1408fc6bc7dc",
+      "keyKind": "string",
       "id": "bee397c8-7196-4d38-864e-7258169ef49f",
       "valueId": "cd7bcc12-ada2-4282-8282-c70f6097f9a5",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",

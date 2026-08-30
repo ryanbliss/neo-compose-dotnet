@@ -64,6 +64,26 @@ namespace NeoCompose.Runtime.Json
         /// export.
         /// </summary>
         public const int CurrentSchemaVersion = 28;
+
+        internal static string? GetSchemaVersionError(ProjectExportMetadata? metadata)
+        {
+            if (metadata is null)
+            {
+                return $"Project export metadata is missing (this SDK requires schema version {CurrentSchemaVersion}). Re-export the project from the current web app.";
+            }
+
+            return GetSchemaVersionError(metadata.schemaVersion);
+        }
+
+        internal static string? GetSchemaVersionError(int schemaVersion)
+        {
+            if (schemaVersion == CurrentSchemaVersion) return null;
+
+            string action = schemaVersion < CurrentSchemaVersion
+                ? "Re-export the project from the current web app."
+                : "Update the NeoCompose SDK.";
+            return $"Project export schema version {schemaVersion} is unsupported; this SDK accepts only schema version {CurrentSchemaVersion}. Older releases must be upgraded through the supported release-data migration boundary before loading. {action}";
+        }
     }
 
     public class ProjectExportMetadataSemver
@@ -354,29 +374,20 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>
         /// P43 §6.2 — declared constructors keyed by constructor record id.
-        /// Empty for every project that declares none, which is why the field
-        /// defaults to an empty map rather than being required: an export
-        /// written before P43 simply omits it and loads unchanged.
         /// </summary>
         public Dictionary<string, ConstructorRecord> constructors = new();
 
         /// <summary>
-        /// P67 §9 — variant records keyed by variant record id. Empty for every
-        /// project that declares none, so the field defaults to an empty map
-        /// rather than being required; a hand-built <see cref="ProjectData"/>
-        /// may also leave it null, which means the same thing.
+        /// P67 §9 — variant records keyed by variant record id.
         /// </summary>
         public Dictionary<string, VariantRecord> variants = new();
 
         /// <summary>P68 §7 — lookup bindings keyed by folder record id.</summary>
-        public Dictionary<string, VariantFolderRecord> variantFolders = new();
+        [JsonProperty(Required = Required.Always)]
+        public Dictionary<string, VariantFolderRecord> variantFolders = null!;
 
-        /// <summary>
-        /// Declared relation rows keyed by stable relation id. Required by
-        /// export schema 9; absent on the explicitly supported schema-8
-        /// compatibility boundary.
-        /// </summary>
-        public Dictionary<string, InternalRecordRelation>? internalRecordRelations;
+        /// <summary>Declared relation rows keyed by stable relation id.</summary>
+        public Dictionary<string, InternalRecordRelation> internalRecordRelations = null!;
         public Dictionary<string, Interface> interfaces = new();
         public Dictionary<string, Enum> enums = null!;
         public Dictionary<string, ProjectFile> files = new();
@@ -387,22 +398,11 @@ namespace NeoCompose.Runtime.Json
         public Dictionary<string, PriorityGroup> priorityGroups = new();
         public ProjectLocalizationExport? localization;
 
-        /// <summary>
-        /// Legacy-export detector ONLY. Exports at schema version 3+ never
-        /// carry a <c>tileGridContents</c> payload (tile data lives in
-        /// <see cref="values"/>); this field exists so a parsed legacy export
-        /// can be rejected loudly at load time instead of silently dropping
-        /// its derived region payloads. Never read for content.
-        /// </summary>
-        public JObject? tileGridContents;
     }
 
     /// <summary>
-    /// Strict schema-8 project export reader. Newtonsoft normally ignores
-    /// unknown properties, which would make removed class/member fields look
-    /// successfully loaded while silently dropping their references. This
-    /// converter rejects only the retired schema vocabulary and otherwise
-    /// preserves Newtonsoft's forward-compatible unknown-field behavior.
+    /// Project export reader that rejects an incompatible schema version before
+    /// deserializing the payload's polymorphic records.
     /// </summary>
     public sealed class ProjectDataConverter : JsonConverter
     {
@@ -419,7 +419,7 @@ namespace NeoCompose.Runtime.Json
             if (reader.TokenType == JsonToken.Null) return null;
 
             var obj = JObject.Load(reader);
-            Schema8LegacyFieldGuard.ValidateProjectData(obj);
+            ValidateSchemaVersion(obj);
 
             var projectData = new ProjectData();
             using (var subReader = obj.CreateReader())
@@ -437,279 +437,37 @@ namespace NeoCompose.Runtime.Json
             throw new NotImplementedException(
                 "ProjectDataConverter is read-only; default serialization handles writes.");
         }
-    }
 
-    /// <summary>
-    /// Targeted hard-cutover guard shared by project-export and polymorphic
-    /// DTO readers. Deliberately does not enable Json.NET's global
-    /// MissingMemberHandling.Error: unrelated future fields remain readable.
-    /// </summary>
-    internal static class Schema8LegacyFieldGuard
-    {
-        private static readonly IReadOnlyDictionary<string, string> RemovedReferenceFields =
-            new Dictionary<string, string>
+        private static void ValidateSchemaVersion(JObject root)
+        {
+            if (root["metadata"] is not JObject metadata)
             {
-                ["analyzerDialogueContextTypeId"] = "analyzerDialogueContextClassId",
-                ["analyzerRootTypeId"] = "analyzerRootClassId",
-                ["attribute"] = "member",
-                ["attributeDefault"] = "memberDefault",
-                ["attributeId"] = "memberId",
-                ["attributeIds"] = "memberIds",
-                ["attributeKey"] = "memberKey",
-                ["attributeKind"] = "memberKind",
-                ["attributeType"] = "memberKind",
-                ["attributeValue"] = "memberValue",
-                ["attributes"] = "members",
-                ["attributesById"] = "membersById",
-                ["classTypeInfo"] = "schemaClassInfo",
-                ["collectionAttributeId"] = "collectionMemberId",
-                ["customTypeArguments"] = "classArguments",
-                ["customTypeId"] = "classId",
-                ["customTypeIds"] = "classIds",
-                ["customTypeInfo"] = "schemaClassInfo",
-                ["customTypesById"] = "classesById",
-                ["customField"] = "classField",
-                ["declaringAttributeId"] = "declaringMemberId",
-                ["declaringTypeId"] = "declaringClassId",
-                ["entryAttributeId"] = "entryMemberId",
-                ["extendsAttributeId"] = "extendsMemberId",
-                ["extendsTypeId"] = "extendsClassId",
-                ["hiddenInAttributeSelector"] = "hiddenInMemberSelector",
-                ["InheritsFromType"] = "InheritsFromClass",
-                ["listAttributeId"] = "listMemberId",
-                ["memberAttributeId"] = "memberId",
-                ["NotInheritsFromType"] = "NotInheritsFromClass",
-                ["ownerAttributeId"] = "ownerMemberId",
-                ["ownerTypeId"] = "ownerClassId",
-                ["parentAttributeId"] = "parentMemberId",
-                ["parentTypeId"] = "parentClassId",
-                ["priorityTypeId"] = "priorityOptionId",
-                ["receiverTypeId"] = "receiverClassId",
-                ["rootAssetsAttributeId"] = "rootAssetsMemberId",
-                ["rootAttributeId"] = "rootMemberId",
-                ["rootSaveFileAttributeId"] = "rootSaveFileMemberId",
-                ["rootSessionAttributeId"] = "rootSessionMemberId",
-                ["rootTypeId"] = "rootClassId",
-                ["rootValueAttributeId"] = "rootValueMemberId",
-                ["schemaClassArguments"] = "classArguments",
-                ["schemaClassId"] = "classId",
-                ["schemaClassIds"] = "classIds",
-                ["schemaClasses"] = "classes",
-                ["sourceOwnerAttributeId"] = "sourceOwnerMemberId",
-                ["sourceOwnerTypeId"] = "sourceOwnerClassId",
-                ["staticOwnerAttributeId"] = "staticOwnerMemberId",
-                ["staticOwnerTypeId"] = "staticOwnerClassId",
-                ["targetAttributeId"] = "targetMemberId",
-                ["targetTypeId"] = "targetClassId",
-                ["thisTypeId"] = "thisClassId",
-                ["typesById"] = "classesById",
-                ["valueAttributeId"] = "valueMemberId",
-                ["valueRootAttributeId"] = "valueRootMemberId",
-                ["valueSearchTypeName"] = "valueSearchClassName",
-                ["valueTypeId"] = "valueClassId",
-            };
-
-        internal static void ValidateProjectData(JObject root)
-        {
-            Reject(root, "attributes", "members", "Project export");
-            Reject(root, "types", "classes", "Project export");
-            RejectRemovedReferenceFieldsShallow(root, "Project export");
-
-            foreach (var property in root.Properties())
-            {
-                switch (property.Name)
-                {
-                    case "project":
-                        RejectRemovedReferenceFieldsRecursive(property.Value);
-                        break;
-                    case "members":
-                        ValidateMembers(property.Value);
-                        break;
-                    case "values":
-                        ValidateMemberValueMap(property.Value, "Project member value");
-                        break;
-                    case "valuePartitions":
-                        ValidateValuePartitions(property.Value);
-                        break;
-                    case "classes":
-                    case "interfaces":
-                    case "dialogues":
-                    case "dialogueGroups":
-                    case "priorityGroups":
-                        RejectRemovedReferenceFieldsInMapValues(property.Value);
-                        break;
-                }
-            }
-        }
-
-        internal static void ValidateSaveEnvelope(JObject root)
-        {
-            RejectRemovedReferenceFieldsShallow(root, "Save envelope");
-
-            foreach (var property in root.Properties())
-            {
-                switch (property.Name)
-                {
-                    case "values":
-                        ValidateMemberValueMap(property.Value, "Save member value");
-                        break;
-                    case "valuePartitions":
-                        ValidateValuePartitions(property.Value);
-                        break;
-                    case "staticBindings":
-                        // Keys are stable user/project member ids, not DTO
-                        // property names. Their values are value ids or null.
-                        break;
-                }
-            }
-        }
-
-        internal static void RejectRemovedReferenceFieldsShallow(
-            JObject obj,
-            string context)
-        {
-            foreach (var replacement in RemovedReferenceFields)
-            {
-                Reject(obj, replacement.Key, replacement.Value, context);
-            }
-        }
-
-        internal static void RejectRemovedMemberTypeField(JObject obj)
-        {
-            Reject(obj, "type", "kind", "Member");
-        }
-
-        internal static void RejectRemovedMemberValueTypeId(JObject obj)
-        {
-            Reject(obj, "typeId", "classId", "Member value");
-        }
-
-        internal static void RejectRemovedTypeInfoTypeId(JObject obj)
-        {
-            Reject(obj, "typeId", "classId", "Type info");
-        }
-
-        internal static void Reject(
-            JObject obj,
-            string removedField,
-            string replacementField,
-            string context)
-        {
-            if (obj.Property(removedField) is null) return;
-            throw new JsonSerializationException(
-                $"{context} uses removed field '{removedField}'; schema 8 requires '{replacementField}'.");
-        }
-
-        private static void ValidateMembers(JToken token)
-        {
-            if (token is not JObject members) return;
-            foreach (var memberProperty in members.Properties())
-            {
-                if (memberProperty.Value is not JObject member) continue;
-
-                RejectRemovedMemberTypeField(member);
-                RejectRemovedReferenceFieldsShallow(member, "Member");
-                foreach (var property in member.Properties())
-                {
-                    if (property.Name == "defaultValue")
-                    {
-                        ValidateMemberValue(property.Value, "Member default value");
-                    }
-                    else
-                    {
-                        RejectRemovedReferenceFieldsRecursive(property.Value);
-                    }
-                }
-            }
-        }
-
-        private static void ValidateMemberValueMap(JToken token, string context)
-        {
-            if (token is not JObject values) return;
-            foreach (var valueProperty in values.Properties())
-            {
-                ValidateMemberValue(valueProperty.Value, context);
-            }
-        }
-
-        private static void ValidateValuePartitions(JToken token)
-        {
-            if (token is not JObject partitions) return;
-            foreach (var partitionProperty in partitions.Properties())
-            {
-                ValidateMemberValueMap(partitionProperty.Value, "Partition member value");
-            }
-        }
-
-        private static void ValidateMemberValue(JToken token, string context)
-        {
-            if (token is not JObject value) return;
-
-            RejectRemovedMemberValueTypeId(value);
-            RejectRemovedReferenceFieldsShallow(value, context);
-
-            // The payload can be an authored Dictionary/Class value whose
-            // schema keys are arbitrary user data. Do not interpret those keys
-            // as DTO property names. Row metadata remains checked above.
-            foreach (var property in value.Properties())
-            {
-                if (property.Name != "value")
-                {
-                    RejectRemovedReferenceFieldsRecursive(property.Value);
-                }
-            }
-        }
-
-        private static void RejectRemovedReferenceFieldsRecursive(JToken token)
-        {
-            if (token is JObject obj)
-            {
-                RejectRemovedReferenceFieldsShallow(obj, "Schema object");
-                if (obj.Property("typeId") is not null
-                    && obj.Property("type") is not null
-                    && obj.Property("required") is not null)
-                {
-                    RejectRemovedTypeInfoTypeId(obj);
-                }
-
-                foreach (var property in obj.Properties())
-                {
-                    switch (property.Name)
-                    {
-                        // Dictionary keys are stable ids or authored schema
-                        // names, not DTO property names. Validate their values
-                        // without interpreting the keys as retired fields.
-                        case "schema":
-                        case "members":
-                        case "typeArguments":
-                        case "classArguments":
-                        case "extendsGenericBindings":
-                        case "genericBindings":
-                        case "variables":
-                        case "nodes":
-                            RejectRemovedReferenceFieldsInMapValues(property.Value);
-                            break;
-                        default:
-                            RejectRemovedReferenceFieldsRecursive(property.Value);
-                            break;
-                    }
-                }
-                return;
+                throw new JsonSerializationException(
+                    NeoProjectExportContract.GetSchemaVersionError((ProjectExportMetadata?)null)!);
             }
 
-            if (token is not JArray array) return;
-            foreach (var child in array)
+            JToken? schemaVersionToken = metadata["schemaVersion"];
+            if (schemaVersionToken?.Type != JTokenType.Integer)
             {
-                RejectRemovedReferenceFieldsRecursive(child);
+                throw new JsonSerializationException(
+                    $"Project export metadata has no valid integer 'schemaVersion' (this SDK requires schema version {NeoProjectExportContract.CurrentSchemaVersion}). Re-export the project from the current web app.");
             }
-        }
 
-        private static void RejectRemovedReferenceFieldsInMapValues(JToken token)
-        {
-            if (token is not JObject map) return;
-            foreach (var property in map.Properties())
+            int schemaVersion;
+            try
             {
-                RejectRemovedReferenceFieldsRecursive(property.Value);
+                schemaVersion = schemaVersionToken.Value<int>();
+            }
+            catch (OverflowException)
+            {
+                throw new JsonSerializationException(
+                    $"Project export metadata has no valid integer 'schemaVersion' (this SDK requires schema version {NeoProjectExportContract.CurrentSchemaVersion}). Re-export the project from the current web app.");
+            }
+
+            string? error = NeoProjectExportContract.GetSchemaVersionError(schemaVersion);
+            if (error is not null)
+            {
+                throw new JsonSerializationException(error);
             }
         }
     }

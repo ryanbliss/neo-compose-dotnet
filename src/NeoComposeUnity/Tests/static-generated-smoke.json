@@ -23,6 +23,7 @@
     "codegenContractHash": "synth-codegen-contract",
     "runtimeDataContractHash": "synth-runtime-data-contract"
   },
+  "variantFolders": {},
   "project": {
     "id": "test-project",
     "name": "Static Compile Smoke",

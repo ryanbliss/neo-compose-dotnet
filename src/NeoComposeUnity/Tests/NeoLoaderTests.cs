@@ -207,7 +207,13 @@ namespace NeoCompose.Tests
         {
             var data = JsonConvert.DeserializeObject<ProjectData>(
                 @"{
+  ""metadata"": {
+    ""schemaVersion"": 28,
+    ""projectId"": ""project-1"",
+    ""versionId"": ""version-1""
+  },
   ""project"": { ""id"": ""project-1"" },
+  ""variantFolders"": {},
   ""members"": {},
   ""values"": {},
   ""classes"": {},
@@ -599,6 +605,7 @@ namespace NeoCompose.Tests
     ""rootSessionMemberId"": ""root-session""
   }},
   ""internalRecordRelations"": {{}},
+  ""variantFolders"": {{}},
   ""members"": {{
     ""root-assets"": {{
       ""id"": ""root-assets"",

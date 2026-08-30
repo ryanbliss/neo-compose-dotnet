@@ -51,64 +51,6 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void RemoteLoader_OldValueRowTypeIdIsRejectedWithoutAlias()
-        {
-            var json = JObject.Parse(RemoteJson);
-            json["values"]!["v1"]!["typeId"] = "class-legacy";
-
-            var error = Assert.Throws<JsonSerializationException>(() =>
-                RemoteGameSaveLoader.Load(json.ToString()));
-
-            Assert.That(
-                error!.Message,
-                Does.Contain("removed field 'typeId'; schema 8 requires 'classId'"));
-        }
-
-        [Test]
-        public void LocalLoader_OldEnvelopeMemberReferenceIsRejectedWithoutAlias()
-        {
-            var json = JObject.Parse(RemoteJson);
-            json.Remove("id");
-            json["customId"] = "save-1";
-            json["attributeId"] = "member-legacy";
-
-            var error = Assert.Throws<JsonSerializationException>(() =>
-                LocalGameSaveLoader.Load(json.ToString()));
-
-            Assert.That(
-                error!.Message,
-                Does.Contain("removed field 'attributeId'; schema 8 requires 'memberId'"));
-            Assert.That(
-                LocalGameSaveLoader.TryLoad(json.ToString(), out _),
-                Is.False);
-        }
-
-        [Test]
-        public void ProjectSaveData_OldValueRowTypeIdIsRejectedWithoutAlias()
-        {
-            const string json = @"{
-  ""values"": {
-    ""value-profile"": {
-      ""id"": ""value-profile"",
-      ""projectId"": ""project"",
-      ""value"": {},
-      ""typeId"": ""class-profile"",
-      ""createdAt"": 1,
-      ""updatedAt"": 2
-    }
-  },
-  ""staticBindings"": {}
-}";
-
-            var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<ProjectSaveData>(json));
-
-            Assert.That(
-                error!.Message,
-                Does.Contain("removed field 'typeId'; schema 8 requires 'classId'"));
-        }
-
-        [Test]
         public void RemoteLoader_UserValueKeysThatMatchOldFieldsRemainOpaque()
         {
             var json = JObject.Parse(RemoteJson);
@@ -177,7 +119,6 @@ namespace NeoCompose.Tests
         {
             var remote = RemoteGameSaveLoader.Load(RemoteJson);
             var local = LocalGameSave.FromRemote(remote);
-            local.snapshotHash = "legacy-local-hash";
 
             var json = LocalGameSaveLoader.Serialize(local);
             var reloaded = LocalGameSaveLoader.Load(json);
@@ -185,7 +126,6 @@ namespace NeoCompose.Tests
             Assert.That(reloaded.customId, Is.EqualTo("save-1"));
             Assert.That(reloaded.serverId, Is.EqualTo("server-1"));
             Assert.That(reloaded.snapshotId, Is.EqualTo("snap-1"));
-            Assert.That(reloaded.snapshotHash, Is.EqualTo("legacy-local-hash"));
             Assert.That((bool)reloaded.values.Raw["v1"]!["value"]!, Is.True);
             Assert.That(reloaded.staticBindings["member-current"], Is.EqualTo("v1"));
             Assert.That(reloaded.staticBindings.ContainsKey("member-cleared"), Is.True);

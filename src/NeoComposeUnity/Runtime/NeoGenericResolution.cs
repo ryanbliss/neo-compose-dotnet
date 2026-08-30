@@ -97,7 +97,7 @@ namespace NeoCompose.Runtime
         /// <summary>List only — "ordered" or "unordered" (absent normalizes to ordered).</summary>
         public string? listKind;
 
-        /// <summary>Dictionary only — "string" or "enum" (absent normalizes to string).</summary>
+        /// <summary>Dictionary only — "string" or "enum".</summary>
         public string? keyKind;
 
         /// <summary>Dictionary only — set iff <see cref="keyKind"/> is "enum".</summary>
@@ -741,7 +741,7 @@ namespace NeoCompose.Runtime
                 {
                     type = MemberKind.Dictionary,
                     required = required,
-                    keyKind = dictionaryMember.keyKind ?? NeoDictionaryKeyKinds.String,
+                    keyKind = dictionaryMember.keyKind,
                     keyEnumId = dictionaryMember.keyEnumId,
                     entry = EntrySignature(client, dictionaryMember.entryMemberId, env, seen),
                 };

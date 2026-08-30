@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using JsonEnum = NeoCompose.Runtime.Json.Enum;
@@ -354,6 +355,70 @@ namespace NeoCompose.Tests
                 persisted,
                 "typed assignment must copy only the persisted binding shape");
         }
+
+        [Test]
+        public void NullableDelegateSetter_NullDoesNotResurfaceDeclarationDefault()
+        {
+            ProjectData data = BuildEquipProjectData();
+            DelegateMember member = DelegateMemberWithDefault(required: false);
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            using var destination = new NeoMemberDelegateWritable(
+                client,
+                member,
+                null,
+                NeoValueOwnership.Session);
+
+            destination.Set((Delegate?)null);
+
+            Assert.IsNull(destination.value?.value);
+            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(
+                () => destination.Bind<object?>(result => result))!;
+            StringAssert.Contains("has no bound value", error.Message);
+        }
+
+        [Test]
+        public void RequiredDelegateSetter_RejectsNull()
+        {
+            ProjectData data = BuildEquipProjectData();
+            DelegateMember member = DelegateMemberWithDefault(required: true);
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            using var destination = new NeoMemberDelegateWritable(
+                client,
+                member,
+                null,
+                NeoValueOwnership.Session);
+
+            Assert.Throws<ArgumentNullException>(
+                () => destination.Set((Delegate?)null));
+        }
+
+        private static DelegateMember DelegateMemberWithDefault(bool required) => new()
+        {
+            id = "nullable-track-selector-member",
+            projectId = ProjectId,
+            name = "Selector",
+            kind = MemberKind.NSDelegate,
+            required = required,
+            returnTypeInfo = new ClassTypeInfo
+            {
+                type = MemberKind.Class,
+                required = true,
+                classId = RigClassId,
+            },
+            argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+            createdAt = "x",
+            updatedAt = "x",
+            defaultValue = new DelegateMemberValueBase
+            {
+                value = new NeoDelegateValue
+                {
+                    memberId = "callable-member",
+                    valueId = "c-value",
+                },
+            },
+        };
 
         /// <summary>
         /// The first Session write over an <b>authored</b> NSDelegate row is

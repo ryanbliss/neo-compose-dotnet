@@ -61,6 +61,33 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NullableDelegateDto_RoundTripsExplicitNull()
+        {
+            const string json = @"{
+                'id':'selector','projectId':'project-function','name':'Selector','kind':25,
+                'isStatic':false,'accessModifierKind':'private','isVirtual':false,
+                'required':false,
+                'returnTypeInfo':{'type':'Void','required':true},
+                'argumentTypes':[],
+                'defaultValue':{'value':null},
+                'createdAt':'x','updatedAt':'x'
+            }";
+
+            var member = (DelegateMember)JsonConvert.DeserializeObject<JsonMember>(json)!;
+
+            Assert.IsInstanceOf<DelegateMemberValueBase>(member.defaultValue);
+            Assert.IsNull(member.defaultValue!.value);
+            string stored = JsonConvert.SerializeObject(new DelegateMemberValue
+            {
+                id = "nullable-delegate-value",
+                createdAt = "x",
+                updatedAt = "x",
+                value = null,
+            });
+            StringAssert.Contains("\"value\":null", stored);
+        }
+
+        [Test]
         public void DelegateApi_EnumeratesVariantsThroughSixteenParameters()
         {
             Assert.AreEqual(1, typeof(NeoDelegate<>).GetGenericArguments().Length);

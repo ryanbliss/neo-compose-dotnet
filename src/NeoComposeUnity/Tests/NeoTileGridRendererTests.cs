@@ -136,28 +136,6 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void SchemaTenMatchingLayerClassIdSidecarAgreesWithTargetRelation()
-        {
-            var data = BuildClassBackedTileGridProjectData();
-            var backgroundLink = (ObjectMemberValue)data.values["background-link"];
-            Assert.AreEqual(
-                BackgroundLayerClassId,
-                backgroundLink.value!["layerClassId"]);
-            var client = NeoTestSaveStack.ClientFromSchema(data);
-            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
-                client,
-                "town-grid",
-                BuildClassBackedReadOnlyFactories(),
-                BuildClassBackedWritableFactories());
-
-            var layer = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
-                BackgroundLayerClassId,
-                new[] { TileClassId });
-
-            Assert.AreEqual(BackgroundLayerClassId, layer.LayerClassId);
-        }
-
-        [Test]
         public void SchemaTenTargetLayerInheritsExpectedWorldKind()
         {
             const string tileLayerBaseClassId = "tile-layer-base-class";
@@ -188,7 +166,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void SchemaTenMismatchedLayerClassIdSidecarFailsClearly()
+        public void SchemaTenLayerClassIdPayloadKeyDoesNotOverrideTargetRelation()
         {
             var data = BuildClassBackedTileGridProjectData();
             var backgroundLink = (ObjectMemberValue)data.values["background-link"];
@@ -200,18 +178,11 @@ namespace NeoCompose.Tests
                 BuildClassBackedReadOnlyFactories(),
                 BuildClassBackedWritableFactories());
 
-            var error = Assert.Throws<InvalidOperationException>(() =>
-                primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
-                    BackgroundLayerClassId,
-                    new[] { TileClassId }));
+            var layer = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
 
-            StringAssert.Contains("Tile layer link 'background-link'", error!.Message);
-            StringAssert.Contains(
-                $"stores layerClassId '{ObjectsLayerClassId}'",
-                error.Message);
-            StringAssert.Contains(
-                $"effective class relation targets '{BackgroundLayerClassId}'",
-                error.Message);
+            Assert.AreEqual(BackgroundLayerClassId, layer.LayerClassId);
         }
 
         [Test]
@@ -259,12 +230,10 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void SchemaTenGridLinkWithoutRelationOrSidecarFailsClearly()
+        public void SchemaTenGridLinkWithoutTargetRelationFailsClearly()
         {
             var data = BuildClassBackedTileGridProjectData();
             data.internalRecordRelations!.Remove("relation-link-target");
-            ((ObjectMemberValue)data.values["background-link"]).value!
-                .Remove("layerClassId");
             var client = NeoTestSaveStack.ClientFromSchema(data);
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
                 client,
@@ -277,8 +246,10 @@ namespace NeoCompose.Tests
                     BackgroundLayerClassId,
                     new[] { TileClassId }));
 
-            StringAssert.Contains("neither an effective", error!.Message);
-            StringAssert.Contains("nor a legacy layerClassId sidecar", error.Message);
+            StringAssert.Contains("has no effective", error!.Message);
+            StringAssert.Contains(
+                InternalRecordRelationKinds.WorldTileLayerLinkTarget,
+                error.Message);
         }
 
         [Test]
@@ -299,28 +270,6 @@ namespace NeoCompose.Tests
                     new[] { TileClassId }));
 
             StringAssert.Contains("targets abstract layer class", error!.Message);
-        }
-
-        [Test]
-        public void SchemaTenGridLinkRejectsMissingLegacyTargetLayer()
-        {
-            var data = BuildClassBackedTileGridProjectData();
-            data.internalRecordRelations!.Remove("relation-link-target");
-            ((ObjectMemberValue)data.values["background-link"]).value!["layerClassId"] =
-                "missing-layer-class";
-            var client = NeoTestSaveStack.ClientFromSchema(data);
-            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
-                client,
-                "town-grid",
-                BuildClassBackedReadOnlyFactories(),
-                BuildClassBackedWritableFactories());
-
-            var error = Assert.Throws<InvalidOperationException>(() =>
-                primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
-                    BackgroundLayerClassId,
-                    new[] { TileClassId }));
-
-            StringAssert.Contains("targets missing layer class 'missing-layer-class'", error!.Message);
         }
 
         [Test]
@@ -370,7 +319,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void SchemaTenGridLinkRejectsDirectAbstractSystemBaseLegacySidecar()
+        public void SchemaTenGridLinkRejectsDirectAbstractSystemBase()
         {
             var data = BuildClassBackedTileGridProjectData();
             var backgroundLink = (ObjectMemberValue)data.values["background-link"];
@@ -3201,7 +3150,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void TileLayerLinkQueries_AcceptLegacySidecarWhenRelationIsAbsent()
+        public void TileLayerLinkQueries_RequireTargetRelation()
         {
             var data = BuildClassBackedTileGridProjectData();
             data.internalRecordRelations!.Remove("relation-link-target");
@@ -3215,7 +3164,12 @@ namespace NeoCompose.Tests
                 factories,
                 writableFactories)!;
 
-            Assert.AreEqual(BackgroundLayerClassId, link.GetTiles()[0].LayerId);
+            var error = Assert.Throws<InvalidOperationException>(() => link.GetTiles());
+
+            StringAssert.Contains("has no effective", error!.Message);
+            StringAssert.Contains(
+                InternalRecordRelationKinds.WorldTileLayerLinkTarget,
+                error.Message);
         }
 
         [Test]
@@ -3238,7 +3192,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ObjectLayerLinkQueries_RejectMismatchedLegacySidecar()
+        public void ObjectLayerLinkQueries_IgnoreLayerClassIdPayloadKey()
         {
             var data = BuildClassBackedTileGridProjectData();
             ((ObjectMemberValue)data.values["objects-link"]).value!["layerClassId"] =
@@ -3253,11 +3207,7 @@ namespace NeoCompose.Tests
                 factories,
                 writableFactories)!;
 
-            var error = Assert.Throws<InvalidOperationException>(() => link.GetObjects());
-
-            StringAssert.Contains("Object layer link 'objects-link'", error!.Message);
-            StringAssert.Contains($"stores layerClassId '{BackgroundLayerClassId}'", error.Message);
-            StringAssert.Contains($"targets '{ObjectsLayerClassId}'", error.Message);
+            Assert.AreEqual(ObjectsLayerClassId, link.GetObjects()[0].LayerId);
         }
 
         [Test]

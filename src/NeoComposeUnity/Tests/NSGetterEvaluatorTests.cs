@@ -1949,6 +1949,7 @@ namespace NeoCompose.Tests
                 name = name,
                 kind = MemberKind.Dictionary,
                 entryMemberId = entryMemberId,
+                keyKind = NeoDictionaryKeyKinds.String,
                 createdAt = "x",
                 updatedAt = "x",
             };

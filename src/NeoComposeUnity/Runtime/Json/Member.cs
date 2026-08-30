@@ -209,13 +209,11 @@ namespace NeoCompose.Runtime.Json
         /// <summary>
         /// Dictionary key kind (mirrors TS-side <c>TDictionaryKeyKind</c>):
         /// "string" (free-text keys) or "enum" (keys are option ids of the
-        /// enum referenced by <see cref="keyEnumId"/>). Nullable strictly
-        /// for read-compat with stale local exports: <c>null</c> means
-        /// string-keyed — already-synced <c>project.json</c> files predate
-        /// the web-side backfill migration; every post-migration export
-        /// carries the field. Immutable after creation.
+        /// enum referenced by <see cref="keyEnumId"/>). Immutable after
+        /// creation.
         /// </summary>
-        public string? keyKind;
+        [JsonProperty(Required = Required.Always)]
+        public string keyKind = null!;
 
         /// <summary>
         /// Present iff <see cref="keyKind"/> is "enum": the enum whose
@@ -231,6 +229,41 @@ namespace NeoCompose.Runtime.Json
     {
         public const string String = "string";
         public const string Enum = "enum";
+    }
+
+    internal static class NeoDictionaryMemberContract
+    {
+        internal static string? GetValidationError(
+            string? keyKind,
+            string? keyEnumId)
+        {
+            if (keyKind is null)
+            {
+                return "is missing required field 'keyKind'.";
+            }
+            if (keyKind != NeoDictionaryKeyKinds.String
+                && keyKind != NeoDictionaryKeyKinds.Enum)
+            {
+                return $"has unknown keyKind '{keyKind}'; expected \"string\" or \"enum\".";
+            }
+            if (keyKind == NeoDictionaryKeyKinds.Enum)
+            {
+                if (keyEnumId is null)
+                {
+                    return "uses keyKind 'enum' but is missing required field 'keyEnumId'.";
+                }
+                if (keyEnumId.Length == 0)
+                {
+                    return "uses keyKind 'enum' but field 'keyEnumId' is empty.";
+                }
+                return null;
+            }
+            if (keyEnumId is not null)
+            {
+                return "uses keyKind 'string' but also defines field 'keyEnumId'.";
+            }
+            return null;
+        }
     }
 
     /// <summary>
@@ -430,10 +463,6 @@ namespace NeoCompose.Runtime.Json
             JsonSerializer serializer)
         {
             var json = JObject.Load(reader);
-            Schema8LegacyFieldGuard.RejectRemovedReferenceFieldsShallow(
-                json,
-                "Function argument type info");
-            Schema8LegacyFieldGuard.RejectRemovedTypeInfoTypeId(json);
             var typeToken = json["type"] ?? throw new JsonSerializationException(
                 "Function argument type info is missing 'type'.");
             var type = ReadArgumentType(typeToken);
@@ -707,11 +736,6 @@ namespace NeoCompose.Runtime.Json
     {
         protected override string DiscriminatorField => "kind";
 
-        protected override void ValidateObjectBeforeDiscriminator(JObject obj)
-        {
-            Schema8LegacyFieldGuard.RejectRemovedMemberTypeField(obj);
-        }
-
         protected override void ValidateObject(JObject obj, Type concrete)
         {
             if (!obj.TryGetValue("isStatic", out var isStatic))
@@ -747,6 +771,38 @@ namespace NeoCompose.Runtime.Json
             // MemberValueBaseConverter raises the same error, but only this
             // site can name the member and its kind.
             PartialLeafPositionGuard.RejectMemberDeclarationDefault(obj, concrete);
+            if (concrete == typeof(DictionaryMember))
+            {
+                ValidateDictionaryKeyContract(obj);
+            }
+        }
+
+        private static void ValidateDictionaryKeyContract(JObject obj)
+        {
+            JToken? keyKindToken = obj["keyKind"];
+            if (keyKindToken is not null
+                && keyKindToken.Type != JTokenType.Null
+                && keyKindToken.Type != JTokenType.String)
+            {
+                throw new JsonSerializationException(
+                    "Dictionary member field 'keyKind' must be a string.");
+            }
+            JToken? keyEnumIdToken = obj["keyEnumId"];
+            if (keyEnumIdToken is not null
+                && keyEnumIdToken.Type != JTokenType.Null
+                && keyEnumIdToken.Type != JTokenType.String)
+            {
+                throw new JsonSerializationException(
+                    "Dictionary member field 'keyEnumId' must be a string or null.");
+            }
+
+            string? error = NeoDictionaryMemberContract.GetValidationError(
+                keyKindToken?.Value<string>(),
+                keyEnumIdToken?.Value<string>());
+            if (error is not null)
+            {
+                throw new JsonSerializationException($"Dictionary member {error}");
+            }
         }
 
         protected override Type? ResolveSubclass(JToken discriminator)

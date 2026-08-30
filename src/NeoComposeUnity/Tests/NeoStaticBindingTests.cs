@@ -694,6 +694,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Dictionary,
                 required = false,
                 entryMemberId = "profile-stat-entry",
+                keyKind = NeoDictionaryKeyKinds.String,
             };
             var nestedStats = new ListMember
             {
@@ -2941,6 +2942,7 @@ namespace NeoCompose.Tests
                 required = true,
                 isStatic = false,
                 entryMemberId = profileStatEntry.id,
+                keyKind = NeoDictionaryKeyKinds.String,
                 defaultValue = new ObjectMemberValueBase
                 {
                     value = new Dictionary<string, string>

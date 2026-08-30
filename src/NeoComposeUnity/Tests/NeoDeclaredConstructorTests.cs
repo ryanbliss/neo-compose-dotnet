@@ -2161,6 +2161,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Dictionary,
                 required = false,
                 entryMemberId = gearSlotEntry.id,
+                keyKind = NeoDictionaryKeyKinds.String,
             };
             var gearLinkEntry = new ClassMember
             {

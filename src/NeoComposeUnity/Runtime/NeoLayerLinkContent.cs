@@ -536,16 +536,13 @@ namespace NeoCompose.Runtime
                 link.Client,
                 link.valueId ?? linkRow.id,
                 link.classId,
-                linkRow.value,
                 isTileLink);
         }
 
     }
 
     /// <summary>
-    /// Release-1 compatibility resolver for layer-link targets. Relations are
-    /// authoritative; the duplicated payload sidecar is accepted only as a
-    /// legacy fallback and, while present beside a relation, must agree.
+    /// Resolves each layer-link target from its declared class relation.
     /// </summary>
     internal static class NeoWorldLayerLinkResolver
     {
@@ -553,7 +550,6 @@ namespace NeoCompose.Runtime
             NeoClient client,
             string linkValueId,
             string? linkClassId,
-            IReadOnlyDictionary<string, string>? payload,
             bool isTileLink)
         {
             string label = isTileLink ? "Tile" : "Object";
@@ -593,29 +589,13 @@ namespace NeoCompose.Runtime
             string? relationTargetId = targets.Count == 0
                 ? null
                 : targets[0].TargetRecordId;
-            string? sidecarTargetId = payload is null
-                ? null
-                : ReadDirectReference(payload, "layerClassId");
-
-            if (relationTargetId is not null
-                && sidecarTargetId is not null
-                && !string.Equals(
-                    relationTargetId,
-                    sidecarTargetId,
-                    StringComparison.Ordinal))
+            if (relationTargetId is null)
             {
                 throw new InvalidOperationException(
-                    $"{label} layer link '{linkValueId}' stores layerClassId '{sidecarTargetId}', but its effective class relation targets '{relationTargetId}'.");
+                    $"{label} layer link '{linkValueId}' has no effective '{relationKind}' relation.");
             }
-
-            string? targetId = relationTargetId ?? sidecarTargetId;
-            if (targetId is null)
-            {
-                throw new InvalidOperationException(
-                    $"{label} layer link '{linkValueId}' has neither an effective '{relationKind}' relation nor a legacy layerClassId sidecar.");
-            }
-            ValidateTargetClass(client, linkValueId, targetId, isTileLink);
-            return targetId;
+            ValidateTargetClass(client, linkValueId, relationTargetId, isTileLink);
+            return relationTargetId;
         }
 
         private static NeoSchemaClass ValidateLinkClass(
@@ -718,19 +698,5 @@ namespace NeoCompose.Runtime
             return worldKindOwner ?? schemaClass;
         }
 
-        private static string? ReadDirectReference(
-            IReadOnlyDictionary<string, string> value,
-            string key)
-        {
-            foreach (var pair in value)
-            {
-                if (!string.Equals(pair.Key, key, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-                return string.IsNullOrWhiteSpace(pair.Value) ? null : pair.Value;
-            }
-            return null;
-        }
     }
 }

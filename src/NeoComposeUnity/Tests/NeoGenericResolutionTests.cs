@@ -415,9 +415,9 @@ namespace NeoCompose.Tests
         [Test]
         public void Json_MemberVirtualAndAbstractFlagsPreserveAbsenceAndValues()
         {
-            const string absentJson = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false, ""accessModifierKind"": ""public""}";
-            const string trueJson = @"{""id"": ""a2"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false, ""accessModifierKind"": ""public"", ""isVirtual"": true, ""isAbstract"": true}";
-            const string falseJson = @"{""id"": ""a3"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false, ""accessModifierKind"": ""public"", ""isVirtual"": false, ""isAbstract"": false}";
+            const string absentJson = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false, ""accessModifierKind"": ""public"", ""entryMemberId"": ""entry"", ""keyKind"": ""string""}";
+            const string trueJson = @"{""id"": ""a2"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false, ""accessModifierKind"": ""public"", ""entryMemberId"": ""entry"", ""keyKind"": ""string"", ""isVirtual"": true, ""isAbstract"": true}";
+            const string falseJson = @"{""id"": ""a3"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false, ""accessModifierKind"": ""public"", ""entryMemberId"": ""entry"", ""keyKind"": ""string"", ""isVirtual"": false, ""isAbstract"": false}";
 
             var absent = JsonConvert.DeserializeObject<Member>(absentJson)!;
             var trueValues = JsonConvert.DeserializeObject<Member>(trueJson)!;

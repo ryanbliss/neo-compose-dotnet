@@ -58,7 +58,15 @@ namespace NeoCompose.Tests
 
         private static ProjectData Deserialize(string json)
         {
-            return JsonConvert.DeserializeObject<ProjectData>(json);
+            var root = JObject.Parse(json);
+            root["metadata"] ??= new JObject
+            {
+                ["schemaVersion"] = NeoProjectExportContract.CurrentSchemaVersion,
+                ["projectId"] = "unit-test-project",
+                ["versionId"] = "unit-test-version",
+            };
+            root["variantFolders"] ??= new JObject();
+            return JsonConvert.DeserializeObject<ProjectData>(root.ToString());
         }
 
         /// <summary>
@@ -518,7 +526,7 @@ namespace NeoCompose.Tests
         public void ConstructorRecord_AndClassConstructorIdsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 18, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 28, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -587,7 +595,7 @@ namespace NeoCompose.Tests
         public void RequiredConstructorId_AndBaseInitializerFieldsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 18, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 28, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -656,7 +664,7 @@ namespace NeoCompose.Tests
         public void ConstructorCode_IsAbsentWhenNoInitBlockIsDeclared()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 18, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 28, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -814,253 +822,135 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Member_OldTypeDiscriminatorIsRejectedWithoutAlias()
+        public void ProjectData_OldVersionIsRejectedBeforeMalformedPayloadDeserialization()
         {
-            const string json = @"{
-  ""id"": ""member-count"",
-  ""projectId"": ""project"",
-  ""name"": ""Count"",
-  ""type"": 2,
-  ""isStatic"": false, ""accessModifierKind"": ""public"",
-  ""createdAt"": ""1970-01-01T00:00:00.000Z"",
-  ""updatedAt"": ""1970-01-01T00:00:00.000Z""
-}";
+            var root = new JObject
+            {
+                ["metadata"] = new JObject
+                {
+                    ["schemaVersion"] = NeoProjectExportContract.CurrentSchemaVersion - 1,
+                    ["projectId"] = "project",
+                    ["versionId"] = "version",
+                },
+                ["members"] = new JObject
+                {
+                    ["broken"] = new JObject(),
+                },
+            };
 
             var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<Member>(json));
-
-            Assert.That(
-                error!.Message,
-                Does.Contain("removed field 'type'; schema 8 requires 'kind'"));
-        }
-
-        [Test]
-        public void MemberValue_OldTypeIdIsRejectedWithoutAlias()
-        {
-            const string json = @"{
-  ""id"": ""value-profile"",
-  ""projectId"": ""project"",
-  ""value"": {},
-  ""typeId"": ""class-profile"",
-  ""createdAt"": ""1970-01-01T00:00:00.000Z"",
-  ""updatedAt"": ""1970-01-01T00:00:00.000Z""
-}";
-
-            var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<MemberValue>(json));
-
-            Assert.That(
-                error!.Message,
-                Does.Contain("removed field 'typeId'; schema 8 requires 'classId'"));
-        }
-
-        [Test]
-        public void Member_OldCustomTypeIdIsRejectedWithoutAlias()
-        {
-            const string json = @"{
-  ""id"": ""member-profile"",
-  ""projectId"": ""project"",
-  ""name"": ""Profile"",
-  ""kind"": 7,
-  ""customTypeId"": ""class-profile"",
-  ""isStatic"": false, ""accessModifierKind"": ""public"",
-  ""createdAt"": ""1970-01-01T00:00:00.000Z"",
-  ""updatedAt"": ""1970-01-01T00:00:00.000Z""
-}";
-
-            var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<Member>(json));
-
-            Assert.That(
-                error!.Message,
-                Does.Contain("removed field 'customTypeId'; schema 8 requires 'classId'"));
-        }
-
-        [Test]
-        public void TypeInfo_OldTypeIdIsRejectedWithoutAlias()
-        {
-            const string json = @"{
-  ""type"": 7,
-  ""required"": true,
-  ""typeId"": ""class-profile""
-}";
-
-            var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<TypeInfo>(json));
-
-            Assert.That(
-                error!.Message,
-                Does.Contain("removed field 'typeId'; schema 8 requires 'classId'"));
-        }
-
-        [Test]
-        public void GenericBinding_OldAttributeIdIsRejectedWithoutAlias()
-        {
-            const string json = @"{
-  ""kind"": ""member"",
-  ""attributeId"": ""member-entry""
-}";
-
-            var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<GenericBinding>(json));
-
-            Assert.That(
-                error!.Message,
-                Does.Contain("removed field 'attributeId'; schema 8 requires 'memberId'"));
-        }
-
-        [Test]
-        public void ProjectData_OldMemberTypeIsRejectedEvenWhenKindIsPresent()
-        {
-            const string json = @"{
-  ""project"": {},
-  ""members"": {
-    ""member-count"": {
-      ""id"": ""member-count"",
-      ""projectId"": ""project"",
-      ""name"": ""Count"",
-      ""kind"": 2,
-      ""type"": 2,
-      ""isStatic"": false, ""accessModifierKind"": ""public""
-    }
-  },
-  ""values"": {},
-  ""classes"": {},
-  ""enums"": {}
-}";
-
-            var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<ProjectData>(json));
-
-            Assert.That(
-                error!.Message,
-                Does.Contain("removed field 'type'; schema 8 requires 'kind'"));
-        }
-
-        [TestCase("extendsTypeId", "extendsClassId")]
-        [TestCase("ownerTypeId", "ownerClassId")]
-        [TestCase("receiverTypeId", "receiverClassId")]
-        [TestCase("analyzerRootTypeId", "analyzerRootClassId")]
-        [TestCase("schemaClassId", "classId")]
-        [TestCase("entryAttributeId", "entryMemberId")]
-        [TestCase("collectionAttributeId", "collectionMemberId")]
-        [TestCase("ownerAttributeId", "ownerMemberId")]
-        [TestCase("valueAttributeId", "valueMemberId")]
-        [TestCase("attributeType", "memberKind")]
-        public void ProjectData_NestedOldReferenceFieldIsRejected(
-            string removedField,
-            string replacementField)
-        {
-            var json = JObject.Parse(@"{
-  ""project"": {},
-  ""members"": {},
-  ""values"": {},
-  ""classes"": {
-    ""class-profile"": {
-      ""id"": ""class-profile"",
-      ""projectId"": ""project"",
-      ""name"": ""Profile"",
-      ""schema"": {}
-    }
-  },
-  ""enums"": {}
-}");
-            json["classes"]!["class-profile"]![removedField] = "legacy-id";
-
-            var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<ProjectData>(json.ToString()));
+                JsonConvert.DeserializeObject<ProjectData>(root.ToString()));
 
             Assert.That(
                 error!.Message,
                 Does.Contain(
-                    $"removed field '{removedField}'; schema 8 requires '{replacementField}'"));
+                    $"schema version {NeoProjectExportContract.CurrentSchemaVersion - 1}"));
+            Assert.That(
+                error.Message,
+                Does.Contain(
+                    $"schema version {NeoProjectExportContract.CurrentSchemaVersion}"));
+            Assert.That(error.Message, Does.Contain("Re-export"));
+            Assert.That(error.Message, Does.Not.Contain("discriminator field 'kind'"));
         }
 
         [Test]
-        public void ProjectData_OldTopLevelCollectionsAreRejectedWithoutAlias()
+        public void ProjectData_NewerVersionIsRejectedAtTheBoundary()
+        {
+            var root = new JObject
+            {
+                ["metadata"] = new JObject
+                {
+                    ["schemaVersion"] = NeoProjectExportContract.CurrentSchemaVersion + 1,
+                    ["projectId"] = "project",
+                    ["versionId"] = "version",
+                },
+            };
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<ProjectData>(root.ToString()));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain(
+                    $"schema version {NeoProjectExportContract.CurrentSchemaVersion + 1}"));
+            Assert.That(error.Message, Does.Contain("Update the NeoCompose SDK"));
+        }
+
+        [Test]
+        public void ProjectData_MissingMetadataIsRejectedAtTheBoundary()
+        {
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<ProjectData>("{}"));
+
+            Assert.That(error!.Message, Does.Contain("metadata is missing"));
+            Assert.That(
+                error.Message,
+                Does.Contain(
+                    $"requires schema version {NeoProjectExportContract.CurrentSchemaVersion}"));
+        }
+
+        [Test]
+        public void ProjectData_MalformedSchemaVersionIsRejectedAtTheBoundary()
         {
             const string json = @"{
-  ""project"": {},
-  ""attributes"": {},
-  ""values"": {},
-  ""classes"": {},
-  ""enums"": {}
+  ""metadata"": {
+    ""schemaVersion"": ""28"",
+    ""projectId"": ""project"",
+    ""versionId"": ""version""
+  }
 }";
 
             var error = Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<ProjectData>(json));
 
+            Assert.That(error!.Message, Does.Contain("valid integer 'schemaVersion'"));
             Assert.That(
-                error!.Message,
-                Does.Contain("removed field 'attributes'; schema 8 requires 'members'"));
+                error.Message,
+                Does.Contain(
+                    $"requires schema version {NeoProjectExportContract.CurrentSchemaVersion}"));
         }
 
         [Test]
-        public void ProjectData_UserValueKeysThatMatchOldFieldsRemainOpaque()
+        public void ProjectData_CurrentVersionDeserializesThePayloadAfterTheFence()
         {
-            const string json = @"{
-  ""project"": {},
-  ""members"": {},
-  ""values"": {
-    ""value-profile"": {
-      ""id"": ""value-profile"",
-      ""projectId"": ""project"",
-      ""value"": {
-        ""attributeId"": ""authored dictionary key"",
-        ""typeId"": ""another authored dictionary key""
-      },
-      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
-      ""updatedAt"": ""1970-01-01T00:00:00.000Z""
-    }
-  },
-  ""classes"": {},
-  ""enums"": {},
-  ""futureExportField"": true
-}";
+            var root = new JObject
+            {
+                ["metadata"] = new JObject
+                {
+                    ["schemaVersion"] = NeoProjectExportContract.CurrentSchemaVersion,
+                    ["projectId"] = "project",
+                    ["versionId"] = "version",
+                },
+                ["variantFolders"] = new JObject(),
+                ["members"] = new JObject
+                {
+                    ["broken"] = new JObject(),
+                },
+            };
 
-            var projectData = JsonConvert.DeserializeObject<ProjectData>(json)!;
-            var value = (ObjectMemberValue)projectData.values["value-profile"];
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<ProjectData>(root.ToString()));
 
-            Assert.AreEqual(
-                "authored dictionary key",
-                value.value!["attributeId"]);
-            Assert.AreEqual(
-                "another authored dictionary key",
-                value.value["typeId"]);
+            Assert.That(error!.Message, Does.Contain("discriminator field 'kind'"));
         }
 
         [Test]
-        public void ProjectData_AuthoredSchemaKeysThatMatchOldFieldsRemainKeys()
+        public void ProjectData_MissingRequiredVariantFoldersIsRejected()
         {
-            const string json = @"{
-  ""project"": {},
-  ""members"": {},
-  ""values"": {},
-  ""classes"": {
-    ""class-profile"": {
-      ""id"": ""class-profile"",
-      ""projectId"": ""project"",
-      ""name"": ""Profile"",
-      ""schema"": {
-        ""attributeId"": ""member-attribute-id"",
-        ""customTypeId"": ""member-custom-type-id""
-      }
-    }
-  },
-  ""enums"": {},
-  ""futureExportObject"": {
-    ""attributeId"": ""unrelated future field""
-  }
-}";
+            var root = new JObject
+            {
+                ["metadata"] = new JObject
+                {
+                    ["schemaVersion"] = NeoProjectExportContract.CurrentSchemaVersion,
+                    ["projectId"] = "project",
+                    ["versionId"] = "version",
+                },
+            };
 
-            var projectData = JsonConvert.DeserializeObject<ProjectData>(json)!;
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<ProjectData>(root.ToString()));
 
-            Assert.AreEqual(
-                "member-attribute-id",
-                projectData.classes["class-profile"].schema["attributeId"]);
-            Assert.AreEqual(
-                "member-custom-type-id",
-                projectData.classes["class-profile"].schema["customTypeId"]);
+            Assert.That(error!.Message, Does.Contain("variantFolders"));
         }
 
         [Test]
@@ -1273,6 +1163,13 @@ namespace NeoCompose.Tests
 
             var source = new ProjectData
             {
+                metadata = new ProjectExportMetadata
+                {
+                    schemaVersion = NeoProjectExportContract.CurrentSchemaVersion,
+                    projectId = "project",
+                    versionId = "version",
+                },
+                variantFolders = new Dictionary<string, VariantFolderRecord>(),
                 interfaces = new Dictionary<string, Interface>
                 {
                     ["interface-damageable"] = new Interface
@@ -1512,46 +1409,12 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(export.files);
             Assert.IsNotNull(export.textureTemplates);
             Assert.IsNotNull(export.audioClipTemplates);
-            Assert.IsNull(export.tileGridContents);
             Assert.AreEqual(0, export.dialogues.Count);
             Assert.AreEqual(0, export.dialogueGroups.Count);
             Assert.AreEqual(0, export.priorityGroups.Count);
             Assert.AreEqual(0, export.files.Count);
             Assert.AreEqual(0, export.textureTemplates.Count);
             Assert.AreEqual(0, export.audioClipTemplates.Count);
-        }
-
-        [Test]
-        public void LegacyTileGridContents_ParseIntoTheGuardTokenForLoudRejection()
-        {
-            // Exports at schema version 3+ never carry tileGridContents; the
-            // field survives only as a legacy detector so NeoClient can throw
-            // a pinpointed error instead of silently dropping tile data.
-            var json = @"
-{
-  ""project"": {
-    ""_id"": ""project-a"",
-    ""id"": ""project-a"",
-    ""name"": ""Legacy Export"",
-    ""rootAssetsMemberId"": ""assets-root"",
-    ""rootSaveFileMemberId"": ""save-root"",
-    ""createdAt"": ""1970-01-01T00:00:00.000Z"",
-    ""updatedAt"": ""1970-01-01T00:00:00.000Z""
-  },
-  ""members"": {},
-  ""values"": {},
-  ""classes"": {},
-  ""enums"": {},
-  ""tileGridContents"": {
-    ""town-grid"": { ""schemaVersion"": 1, ""regions"": [] }
-  }
-}";
-
-            var export = Deserialize(json);
-
-            Assert.IsNotNull(export.tileGridContents);
-            Assert.AreEqual(1, export.tileGridContents!.Count);
-            Assert.IsNotNull(export.tileGridContents["town-grid"]);
         }
 
         [Test]

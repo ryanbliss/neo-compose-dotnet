@@ -18,8 +18,9 @@ namespace NeoCompose.Tests
         public const string TargetChannel = "channel-dev";
 
         public const string ProjectJson =
-            "{\"metadata\":{\"projectId\":\"project-1\",\"versionId\":\"v1\"," +
-            "\"semver\":{\"label\":\"1.0\"}}}";
+            "{\"metadata\":{\"schemaVersion\":28,\"projectId\":\"project-1\"," +
+            "\"versionId\":\"v1\",\"semver\":{\"label\":\"1.0\"}}," +
+            "\"variantFolders\":{}}";
 
         public static string SaveContent(string name, string values = "{}") =>
             "{\"name\":\"" + name + "\",\"projectId\":\"project-1\"," +

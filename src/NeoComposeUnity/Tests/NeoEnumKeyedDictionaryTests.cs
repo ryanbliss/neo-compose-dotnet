@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Member = NeoCompose.Runtime.Json.Member;
 
@@ -333,7 +334,7 @@ namespace NeoCompose.Tests
         }
 
         // ------------------------------------------------------------------
-        // JSON layer: keyKind / keyEnumId read-compat.
+        // JSON layer: keyKind / keyEnumId contract.
         // ------------------------------------------------------------------
 
         [Test]
@@ -360,29 +361,6 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void DictionaryMember_AbsentKeyKind_DefaultsToNullForReadCompat()
-        {
-            // Stale local exports predate the web-side backfill migration and
-            // omit both fields; null keyKind reads as string-keyed.
-            var member = (DictionaryMember)JsonConvert.DeserializeObject<Member>(
-                @"{
-                    ""id"": ""member-stats"",
-                    ""projectId"": ""p"",
-                    ""name"": ""Stats"",
-                    ""kind"": 5,
-                    ""locked"": false,
-                    ""required"": false,
-                    ""isStatic"": false, ""accessModifierKind"": ""public"",
-                    ""createdAt"": 0,
-                    ""updatedAt"": 0,
-                    ""entryMemberId"": ""member-entry""
-                }")!;
-
-            Assert.IsNull(member.keyKind);
-            Assert.IsNull(member.keyEnumId);
-        }
-
-        [Test]
         public void DictionaryMember_StringKeyKind_DeserializesWithoutKeyEnumId()
         {
             var member = (DictionaryMember)JsonConvert.DeserializeObject<Member>(
@@ -402,6 +380,52 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(NeoDictionaryKeyKinds.String, member.keyKind);
             Assert.IsNull(member.keyEnumId);
+        }
+
+        [TestCase(null, null, "keyKind")]
+        [TestCase("unsupported", null, "keyKind")]
+        [TestCase("enum", null, "keyEnumId")]
+        [TestCase("enum", "", "keyEnumId")]
+        [TestCase("string", "enum-item-slot", "keyEnumId")]
+        public void DictionaryMember_InvalidKeyContractIsRejectedByJsonAndClient(
+            string? keyKind,
+            string? keyEnumId,
+            string expectedField)
+        {
+            var json = JObject.Parse(@"{
+                ""id"": ""member-stats"",
+                ""projectId"": ""p"",
+                ""name"": ""Stats"",
+                ""kind"": 5,
+                ""locked"": false,
+                ""required"": false,
+                ""isStatic"": false,
+                ""accessModifierKind"": ""public"",
+                ""createdAt"": 0,
+                ""updatedAt"": 0,
+                ""entryMemberId"": ""member-entry""
+            }");
+            json["keyKind"] = keyKind is null
+                ? JValue.CreateNull()
+                : JValue.CreateString(keyKind);
+            if (keyEnumId is not null)
+            {
+                json["keyEnumId"] = keyEnumId;
+            }
+
+            var jsonError = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Member>(json.ToString()));
+            StringAssert.Contains(expectedField, jsonError!.Message);
+
+            ProjectData data = BuildProjectData();
+            var dictionary = (DictionaryMember)data.members["inventory-member"];
+            dictionary.keyKind = keyKind!;
+            dictionary.keyEnumId = keyEnumId;
+
+            var clientError = Assert.Throws<InvalidOperationException>(() =>
+                NeoTestSaveStack.ClientFromSchema(data));
+            StringAssert.Contains("inventory-member", clientError!.Message);
+            StringAssert.Contains(expectedField, clientError.Message);
         }
     }
 }

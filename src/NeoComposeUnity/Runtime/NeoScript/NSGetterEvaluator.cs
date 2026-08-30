@@ -462,11 +462,6 @@ namespace NeoCompose.Runtime.NeoScript
                 IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
             }
 
-            public delegate object? FunctionCallHandler(
-                CallFunctionPointer pointer,
-                Dictionary<string, object?> scope,
-                Context ctx);
-
             internal delegate object? LinkedFunctionCallHandler(
                 CallFunctionPointer pointer,
                 NeoScriptScope scope,
@@ -554,7 +549,6 @@ namespace NeoCompose.Runtime.NeoScript
             /// </summary>
             internal Dictionary<object, RowReference> rowReverseIndex { get; }
             internal Dictionary<string, HashSet<string>> rowCacheKeysByRow { get; }
-            internal FunctionCallHandler? functionCallHandler { get; }
             internal LinkedFunctionCallHandler? linkedFunctionCallHandler { get; private set; }
             internal Dictionary<string, SchemaPlacement?> schemaPlacementCache { get; }
             internal Dictionary<string, string?> callableDispatchCache { get; }
@@ -576,7 +570,6 @@ namespace NeoCompose.Runtime.NeoScript
                 Dictionary<string, object?>? rowUnwrapCache = null,
                 Dictionary<object, RowReference>? rowReverseIndex = null,
                 NeoValueOwnership valueOwnership = NeoValueOwnership.Save,
-                FunctionCallHandler? functionCallHandler = null,
                 IReadOnlyCollection<string>? setterCallStack = null,
                 IReadOnlyList<string>? functionCallStack = null,
                 Dictionary<string, SchemaPlacement?>? schemaPlacementCache = null,
@@ -599,7 +592,6 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    functionCallHandler,
                     setterCallStack,
                     functionCallStack,
                     schemaPlacementCache,
@@ -623,7 +615,6 @@ namespace NeoCompose.Runtime.NeoScript
                 Dictionary<string, object?>? rowUnwrapCache,
                 Dictionary<object, RowReference>? rowReverseIndex,
                 NeoValueOwnership valueOwnership,
-                FunctionCallHandler? functionCallHandler,
                 IReadOnlyCollection<string>? setterCallStack,
                 IReadOnlyList<string>? functionCallStack,
                 Dictionary<string, SchemaPlacement?>? schemaPlacementCache,
@@ -651,7 +642,6 @@ namespace NeoCompose.Runtime.NeoScript
                 this.rowCacheKeysByRow = rowCacheKeysByRow
                     ?? new Dictionary<string, HashSet<string>>();
                 this.valueOwnership = valueOwnership;
-                this.functionCallHandler = functionCallHandler;
                 this.functionCallStack = functionCallStack ?? System.Array.Empty<string>();
                 this.schemaPlacementCache = schemaPlacementCache
                     ?? new Dictionary<string, SchemaPlacement?>();
@@ -690,7 +680,6 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    functionCallHandler,
                     setterCallStack,
                     functionCallStack,
                     schemaPlacementCache,
@@ -715,7 +704,6 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    functionCallHandler,
                     setterCallStack,
                     functionCallStack,
                     schemaPlacementCache,
@@ -740,7 +728,6 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    functionCallHandler,
                     setterCallStack,
                     functionCallStack,
                     schemaPlacementCache,
@@ -765,7 +752,6 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    functionCallHandler,
                     setterCallStack,
                     functionCallStack,
                     schemaPlacementCache,
@@ -790,7 +776,6 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    functionCallHandler,
                     setterCallStack,
                     functionCallStack,
                     schemaPlacementCache,
@@ -816,7 +801,6 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    functionCallHandler,
                     setterCallStack,
                     functionCallStack,
                     schemaPlacementCache,
@@ -844,7 +828,6 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    functionCallHandler,
                     next,
                     functionCallStack,
                     schemaPlacementCache,
@@ -872,7 +855,6 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    functionCallHandler,
                     setterCallStack,
                     next,
                     schemaPlacementCache,
@@ -907,7 +889,6 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    functionCallHandler,
                     setterCallStack,
                     functionCallStack,
                     schemaPlacementCache,
@@ -1398,14 +1379,6 @@ namespace NeoCompose.Runtime.NeoScript
             if (ctx.linkedFunctionCallHandler is not null)
             {
                 return ctx.linkedFunctionCallHandler(pointer, scope, ctx);
-            }
-            if (ctx.functionCallHandler is not null)
-            {
-                // The public compatibility handler predates linked frames.
-                // Internal collection callbacks never materialize at their
-                // execution boundary; only this legacy handler seam does.
-                return ctx.functionCallHandler(
-                    pointer, scope.Materialize(), ctx);
             }
             var receiver = EvalCallReceiver(pointer.receiver, scope, ctx);
             if (pointer.optional == true && receiver is null)
