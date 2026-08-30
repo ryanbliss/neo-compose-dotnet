@@ -400,7 +400,9 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = "Selector",
             kind = MemberKind.NSDelegate,
-            required = required,
+            requirement = required
+                ? NeoMemberRequirementKind.Required
+                : NeoMemberRequirementKind.Optional,
             returnTypeInfo = new ClassTypeInfo
             {
                 type = MemberKind.Class,

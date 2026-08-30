@@ -65,8 +65,7 @@ namespace NeoCompose.Tests
         {
             const string json = @"{
                 'id':'selector','projectId':'project-function','name':'Selector','kind':25,
-                'isStatic':false,'accessModifierKind':'private','isVirtual':false,
-                'required':false,
+                'requirement':0,
                 'returnTypeInfo':{'type':'Void','required':true},
                 'argumentTypes':[],
                 'defaultValue':{'value':null},

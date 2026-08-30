@@ -208,7 +208,7 @@ namespace NeoCompose.Tests
             var data = JsonConvert.DeserializeObject<ProjectData>(
                 @"{
   ""metadata"": {
-    ""schemaVersion"": 28,
+    ""schemaVersion"": 29,
     ""projectId"": ""project-1"",
     ""versionId"": ""version-1""
   },

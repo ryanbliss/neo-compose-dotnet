@@ -523,7 +523,7 @@ namespace NeoCompose.Tests
         public void ConstructorRecord_AndClassConstructorIdsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 28, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 29, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -590,7 +590,7 @@ namespace NeoCompose.Tests
         public void RequiredConstructorId_AndBaseInitializerFieldsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 28, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 29, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -657,7 +657,7 @@ namespace NeoCompose.Tests
         public void ConstructorCode_IsAbsentWhenNoInitBlockIsDeclared()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 28, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 29, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
