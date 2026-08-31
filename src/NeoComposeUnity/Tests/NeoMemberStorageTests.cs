@@ -352,7 +352,9 @@ namespace NeoCompose.Tests
                 NeoTestSaveStack.ClientFromSchema(invalid));
 
             StringAssert.Contains("required 'classes' collection", error!.Message);
-            StringAssert.Contains("schema-29 Class/Member contract", error.Message);
+            StringAssert.Contains(
+                $"schema-{NeoProjectExportContract.CurrentSchemaVersion} Class/Member contract",
+                error.Message);
         }
 
         [Test]
@@ -365,7 +367,9 @@ namespace NeoCompose.Tests
                 NeoTestSaveStack.ClientFromSchema(invalid));
 
             StringAssert.Contains("required 'members' collection", error!.Message);
-            StringAssert.Contains("schema-29 Class/Member contract", error.Message);
+            StringAssert.Contains(
+                $"schema-{NeoProjectExportContract.CurrentSchemaVersion} Class/Member contract",
+                error.Message);
         }
 
         private static NeoClient LoadStorageClient()

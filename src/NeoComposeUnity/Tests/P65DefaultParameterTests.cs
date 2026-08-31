@@ -467,18 +467,18 @@ namespace NeoCompose.Tests
         // -------------------------------------------------------------------
 
         [Test]
-        public void ExportSchemaVersion_PreviousTwentyEightIsRejectedClosed()
+        public void ExportSchemaVersion_PreviousTwentyNineIsRejectedClosed()
         {
             ProjectData data = BuildConstructorProjectData();
             data.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 28,
+                schemaVersion = 29,
                 projectId = ProjectId,
                 versionId = "version-1",
             };
             var error = Assert.Throws<InvalidOperationException>(() =>
                 NeoTestSaveStack.ClientFromSchema(data))!;
-            StringAssert.Contains("schema version 28", error.Message);
+            StringAssert.Contains("schema version 29", error.Message);
             StringAssert.Contains(
                 $"accepts only schema version {NeoProjectExportContract.CurrentSchemaVersion}",
                 error.Message);
@@ -486,9 +486,9 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ExportSchemaVersion_CurrentContractIsTwentyNine()
+        public void ExportSchemaVersion_CurrentContractIsThirty()
         {
-            Assert.AreEqual(29, NeoProjectExportContract.CurrentSchemaVersion);
+            Assert.AreEqual(30, NeoProjectExportContract.CurrentSchemaVersion);
         }
 
         // -------------------------------------------------------------------

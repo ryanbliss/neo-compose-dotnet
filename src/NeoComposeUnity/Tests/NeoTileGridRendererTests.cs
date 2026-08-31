@@ -13,6 +13,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -227,6 +228,34 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(tile);
             Assert.AreEqual("shop-floor-link", tile!.SourceTileLayerLinkId);
             Assert.AreEqual(BackgroundLayerClassId, tile.LayerId);
+        }
+
+        [Test]
+        public void ObjectCarriedTileLinkUsesCanonicalOffsetPositionKey()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            NeoSchemaClass placementClass = data.classes[TileInstanceClassId];
+            string positionMemberId = placementClass.schema["Cell"];
+            placementClass.schema.Remove("Cell");
+            placementClass.schema["Offset"] = positionMemberId;
+            var placement = (ObjectMemberValue)data.values["floor-local"];
+            string positionValueId = placement.value!["Cell"];
+            placement.value.Remove("Cell");
+            placement.value["Offset"] = positionValueId;
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories());
+
+            var layer = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+
+            var tile = layer.GetTile(new Vector2Int(9, 22));
+            Assert.IsNotNull(tile);
+            Assert.AreEqual("shop-floor-link", tile!.SourceTileLayerLinkId);
         }
 
         [Test]
@@ -1282,254 +1311,6 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void AnimationLegacyPlacementWithoutCloneProvenanceFailsWithMigrationPath()
-        {
-            ProjectData data = BuildPlacementAnimationProjectData();
-            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
-            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
-            var placement = (ObjectMemberValue)client.saveValues[placed.InstanceId.Value];
-            string childListId = placement.value!["Children"];
-            string childId = ((ArrayMemberValue)client.saveValues[childListId]).value![0];
-            client.saveValues[childId].sourceValueId = null;
-
-            var error = Assert.Throws<InvalidOperationException>(() =>
-                NeoGeneratedTypesSupport.GetAnimationClip(
-                    (TestComposedObject)placed.Info,
-                    "Animate"));
-
-            StringAssert.Contains("legacy pre-0.7 placement", error!.Message);
-            StringAssert.Contains("Migrate or recreate", error.Message);
-        }
-
-        [Test]
-        public void AnimationUnresolvableChildOverrideSkipsAndWarnsExactlyOnce()
-        {
-            ProjectData data = BuildPlacementAnimationProjectData();
-            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
-            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
-            string positionId = PlacedChildPositionId(client, placed.InstanceId.Value);
-            RepointPlacedChildProvenance(client, placed.InstanceId.Value);
-            LogAssert.Expect(
-                LogType.Warning,
-                new Regex("child override skipped: no placed Children row"));
-
-            NeoAnimationClip<TestComposedObject> clip =
-                NeoGeneratedTypesSupport.GetAnimationClip(
-                    (TestComposedObject)placed.Info,
-                    "Animate");
-            clip.PlayOnce();
-
-            Assert.AreEqual(
-                1,
-                ((Vector3MemberValue)client.sessionValues[positionId]).value!.x,
-                "a skipped child override must leave the placed row untouched");
-            // Compile-time, once per reference: the warning does not repeat per
-            // tick, and nothing else logged.
-            clip.Tick(0.1f);
-            LogAssert.NoUnexpectedReceived();
-        }
-
-        /// <summary>
-        /// The spec's granularity is one log per (clip, reference). The clip
-        /// cache alone only gets to once per <em>instance</em>, so fifty
-        /// placements missing the same authored slot would log fifty times.
-        /// </summary>
-        [Test]
-        public void AnimationUnresolvableChildOverrideWarnsOncePerReferenceAcrossPlacements()
-        {
-            ProjectData data = BuildPlacementAnimationProjectData();
-            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
-            NeoTileGridPrimitive primitive = NeoTileGridPrimitive.ResolveForSave(
-                client,
-                "town-grid",
-                BuildClassBackedReadOnlyFactories(),
-                BuildClassBackedWritableFactories(),
-                new Dictionary<Type, string>
-                {
-                    [typeof(TestComposedObject)] = ObjectClassId,
-                });
-            var layer = primitive.BindWritableObjectLayer<TestAuthoredObjectLayer>(
-                ObjectsLayerClassId,
-                new[] { ObjectClassId });
-            var asset = (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(
-                client,
-                "shop-object",
-                BuildClassBackedReadOnlyFactories(),
-                BuildClassBackedWritableFactories())!;
-            Assert.IsTrue(layer.Spawn(new Vector2Int(4, 5), asset).Ok);
-            Assert.IsTrue(layer.Spawn(new Vector2Int(6, 7), asset).Ok);
-            NeoResolvedObjectInstance first = layer.GetObject(new Vector2Int(4, 5))!;
-            NeoResolvedObjectInstance second = layer.GetObject(new Vector2Int(6, 7))!;
-            // Both placements lose the same authored slot, so both compiles
-            // reach the same (clip, reference) skip.
-            RepointPlacedChildProvenance(client, first.InstanceId.Value);
-            RepointPlacedChildProvenance(client, second.InstanceId.Value);
-            // One Expect: a second warning fails NoUnexpectedReceived below.
-            LogAssert.Expect(
-                LogType.Warning,
-                new Regex("child override skipped: no placed Children row"));
-
-            // Two separate compiles: the clip cache is keyed per instance, so
-            // nothing but the client-level dedup stops the second warning.
-            NeoAnimationClip<TestComposedObject> firstClip =
-                NeoGeneratedTypesSupport.GetAnimationClip(
-                    (TestComposedObject)first.Info,
-                    "Animate");
-            NeoAnimationClip<TestComposedObject> secondClip =
-                NeoGeneratedTypesSupport.GetAnimationClip(
-                    (TestComposedObject)second.Info,
-                    "Animate");
-
-            Assert.IsNotNull(firstClip);
-            Assert.IsNotNull(secondClip);
-            Assert.AreNotSame(
-                firstClip,
-                secondClip,
-                "each placement must compile its own clip, or the dedup is "
-                    + "not the thing under test");
-            LogAssert.NoUnexpectedReceived();
-        }
-
-        /// <summary>
-        /// Repoints a placement's only <c>Children</c> row at an authored id no
-        /// clip names, so the clip's reference resolves to nothing while every
-        /// row still carries provenance — the absent-slot row of the spec's
-        /// section 2.2 table, not the legacy pre-0.7 row.
-        /// </summary>
-        private static void RepointPlacedChildProvenance(
-            NeoClient client,
-            string placementId)
-        {
-            var placement = (ObjectMemberValue)client.saveValues[placementId];
-            string childListId = placement.value!["Children"];
-            string childId = ((ArrayMemberValue)client.saveValues[childListId]).value![0];
-            client.saveValues[childId].sourceValueId = "absent-authored-child";
-        }
-
-        [Test]
-        public void AnimationChildOverrideMatchingTwoPlacedRowsStillThrowsAsAmbiguous()
-        {
-            ProjectData data = BuildPlacementAnimationProjectData();
-            AppendSecondAuthoredChild(data);
-            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
-            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
-            Dictionary<string, string> placedChildIds =
-                PlacedChildIdsByAuthoredId(client, placed.InstanceId.Value);
-            // Both placed rows now claim the one authored child the clip names.
-            client.saveValues[placedChildIds["shop-authored-second-child"]].sourceValueId =
-                "shop-authored-child";
-
-            var error = Assert.Throws<InvalidOperationException>(() =>
-                NeoGeneratedTypesSupport.GetAnimationClip(
-                    (TestComposedObject)placed.Info,
-                    "Animate"));
-
-            StringAssert.Contains("maps to multiple placed Children rows", error!.Message);
-        }
-
-        [Test]
-        public void AnimationSkippedChildTrackIsExcludedFromTheParentScheduleChecks()
-        {
-            ProjectData data = BuildPlacementAnimationProjectData();
-            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
-            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
-            RepointPlacedChildProvenance(client, placed.InstanceId.Value);
-            // Pushed past the end of the parent AFTER load, so the authored-graph
-            // export check (which already ran and stays strict, section 2.4) is
-            // not the one under test: StartFrame 5 on a 2-frame parent is P48
-            // §2.3's "the row can never play" error, and the skipped track must
-            // never reach it — an optional slot this instance does not have
-            // cannot be a reason to fail the whole clip.
-            ((NumberMemberValue)client.values["track-parent-child-start"]).value = 5;
-            LogAssert.Expect(
-                LogType.Warning,
-                new Regex("child track 'ChildAnimate' skipped"));
-
-            NeoAnimationClip<TestComposedObject> clip =
-                NeoGeneratedTypesSupport.GetAnimationClip(
-                    (TestComposedObject)placed.Info,
-                    "TrackAnimate");
-
-            Assert.IsNotNull(clip);
-            Assert.DoesNotThrow(() => clip.PlayOnce());
-            LogAssert.NoUnexpectedReceived();
-        }
-
-        [Test]
-        public void AnimationClipWithOneSkippedTrackStillPlaysTheResolvableTrack()
-        {
-            ProjectData data = BuildPlacementAnimationProjectData();
-            AppendSecondAuthoredChild(data);
-            AppendSecondChildTrack(data);
-            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
-            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
-            Dictionary<string, string> placedChildIds =
-                PlacedChildIdsByAuthoredId(client, placed.InstanceId.Value);
-            string skippedPositionId = ((ObjectMemberValue)client.saveValues[
-                placedChildIds["shop-authored-child"]]).value!["Position"];
-            string playedPositionId = ((ObjectMemberValue)client.saveValues[
-                placedChildIds["shop-authored-second-child"]]).value!["Position"];
-            client.saveValues[placedChildIds["shop-authored-child"]].sourceValueId =
-                "absent-authored-child";
-            LogAssert.Expect(
-                LogType.Warning,
-                new Regex("child track 'ChildAnimate' skipped"));
-
-            NeoAnimationClip<TestComposedObject> clip =
-                NeoGeneratedTypesSupport.GetAnimationClip(
-                    (TestComposedObject)placed.Info,
-                    "TrackAnimate");
-            clip.PlayOnce();
-
-            Assert.AreEqual(
-                7,
-                ((Vector3MemberValue)client.sessionValues[playedPositionId]).value!.x,
-                "the resolvable track must still resample against its placed child");
-            Assert.AreEqual(
-                1,
-                ((Vector3MemberValue)client.sessionValues[skippedPositionId]).value!.x,
-                "the skipped track must contribute no frames");
-            LogAssert.NoUnexpectedReceived();
-        }
-
-        [Test]
-        public void AnimationFrameWithOneUnresolvableChildStillAppliesItsOtherWrites()
-        {
-            ProjectData data = BuildPlacementAnimationProjectData();
-            AppendSecondAuthoredChild(data);
-            AppendSecondChildOverride(data);
-            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
-            NeoResolvedObjectInstance placed = SpawnAnimationTestObject(client);
-            Dictionary<string, string> placedChildIds =
-                PlacedChildIdsByAuthoredId(client, placed.InstanceId.Value);
-            string skippedPositionId = ((ObjectMemberValue)client.saveValues[
-                placedChildIds["shop-authored-child"]]).value!["Position"];
-            string siblingPositionId = ((ObjectMemberValue)client.saveValues[
-                placedChildIds["shop-authored-second-child"]]).value!["Position"];
-            client.saveValues[placedChildIds["shop-authored-child"]].sourceValueId =
-                "absent-authored-child";
-            LogAssert.Expect(
-                LogType.Warning,
-                new Regex("frame 0 child override skipped"));
-
-            NeoAnimationClip<TestComposedObject> clip =
-                NeoGeneratedTypesSupport.GetAnimationClip(
-                    (TestComposedObject)placed.Info,
-                    "Animate");
-            clip.PlayOnce();
-
-            Assert.AreEqual(
-                4,
-                ((Vector3MemberValue)client.sessionValues[siblingPositionId]).value!.x,
-                "the frame's other child override must still apply");
-            Assert.AreEqual(
-                1,
-                ((Vector3MemberValue)client.sessionValues[skippedPositionId]).value!.x,
-                "skipping is scoped to the single unresolvable reference");
-            LogAssert.NoUnexpectedReceived();
-        }
-
-        [Test]
         public void AnimationClipWritesToADisabledObjectJustAsItDoesToAnEnabledOne()
         {
             ProjectData data = BuildPlacementAnimationProjectData();
@@ -1551,127 +1332,69 @@ namespace NeoCompose.Tests
             Assert.IsFalse(target.Enabled, "playback must not touch Enabled");
         }
 
-        /// <summary>
-        /// Maps each placed <c>Children</c> row back to the authored row it was
-        /// cloned from, so a test can target one slot by authored id instead of
-        /// by list position.
-        /// </summary>
-        private static Dictionary<string, string> PlacedChildIdsByAuthoredId(
-            NeoClient client,
-            string placementId)
-        {
-            var placement = (ObjectMemberValue)client.saveValues[placementId];
-            var children =
-                (ArrayMemberValue)client.saveValues[placement.value!["Children"]];
-            var byAuthoredId = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (string childId in children.value!)
+        private static DelegateMemberValue AnimationSelectorValue(
+            string id,
+            string selectedValueId) => new()
             {
-                byAuthoredId[client.saveValues[childId].sourceValueId!] = childId;
-            }
-            return byAuthoredId;
-        }
+                id = id,
+                createdAt = "x",
+                updatedAt = "x",
+                value = new NeoDelegateValue
+                {
+                    code = $"() => Reference(id: \"{selectedValueId}\", withProvenance: true)",
+                    action = new FunctionWithReturnType
+                    {
+                        compilerRevision = 7,
+                        parameters = new[]
+                        {
+                            AnimationEnvelopeVariable("__this__"),
+                            AnimationEnvelopeVariable("__root__"),
+                        },
+                        instructions = new Instruction[]
+                        {
+                            new ReturnInstruction
+                            {
+                                type = InstructionKind.Return,
+                                pointer = new ReferencePointer
+                                {
+                                    type = PointerKind.Reference,
+                                    valueId = selectedValueId,
+                                    withProvenance = true,
+                                },
+                            },
+                        },
+                        typeInfo = new ClassTypeInfo
+                        {
+                            type = MemberKind.Class,
+                            required = true,
+                            classId = ObjectClassId,
+                        },
+                    },
+                },
+            };
 
-        /// <summary>
-        /// Gives the placement-animation fixture's object a second authored
-        /// child, so a test can leave one slot resolvable while breaking the
-        /// other.
-        /// </summary>
-        private static void AppendSecondAuthoredChild(ProjectData data)
-        {
-            data.values["shop-authored-second-child"] = new ObjectMemberValue
+        private static Variable AnimationEnvelopeVariable(string id) => new()
             {
-                id = "shop-authored-second-child",
-                classId = ((ObjectMemberValue)data.values["shop-authored-child"]).classId,
-                value = new Dictionary<string, string>
+                id = id,
+                typeInfo = new PrimitiveTypeInfo
                 {
-                    ["Position"] = "shop-authored-second-child-position",
+                    type = MemberKind.Null,
+                    required = false,
+                },
+                pointer = new ValuePointer
+                {
+                    type = PointerKind.Value,
+                    value = new Value
+                    {
+                        typeInfo = new PrimitiveTypeInfo
+                        {
+                            type = MemberKind.Null,
+                            required = false,
+                        },
+                        value = JValue.CreateNull(),
+                    },
                 },
             };
-            data.values["shop-authored-second-child-position"] = new Vector3MemberValue
-            {
-                id = "shop-authored-second-child-position",
-                value = new NeoVector3Value { x = 2, y = 0, z = 0 },
-            };
-            ((ArrayMemberValue)data.values["shop-authored-children"]).value =
-                new[] { "shop-authored-child", "shop-authored-second-child" };
-        }
-
-        /// <summary>
-        /// Adds a second child track to the fixture's TrackAnimate clip, aimed
-        /// at the second authored child and starting at frame 0. Requires
-        /// <see cref="AppendSecondAuthoredChild"/>.
-        /// </summary>
-        private static void AppendSecondChildTrack(ProjectData data)
-        {
-            data.values["track-parent-second-child-lookup"] = new ArrayMemberValue
-            {
-                id = "track-parent-second-child-lookup",
-                value = new[] { "shop-authored-second-child" },
-            };
-            data.values["track-parent-second-child-key"] = new StringMemberValue
-            {
-                id = "track-parent-second-child-key",
-                value = "ChildAnimate",
-            };
-            data.values["track-parent-second-child-start"] = new NumberMemberValue
-            {
-                id = "track-parent-second-child-start",
-                value = 0,
-            };
-            data.values["track-parent-second-child"] = new ObjectMemberValue
-            {
-                id = "track-parent-second-child",
-                classId = ((ObjectMemberValue)data.values["track-parent-child"]).classId,
-                value = new Dictionary<string, string>
-                {
-                    ["Child"] = "track-parent-second-child-lookup",
-                    ["ClipKey"] = "track-parent-second-child-key",
-                    ["StartFrame"] = "track-parent-second-child-start",
-                },
-            };
-            ((ArrayMemberValue)data.values["track-parent-tracks"]).value =
-                new[] { "track-parent-child", "track-parent-second-child" };
-        }
-
-        /// <summary>
-        /// Gives the fixture's Animate frame a second child override (aimed at
-        /// the second authored child) plus its own Overrides on the placement
-        /// root. Requires <see cref="AppendSecondAuthoredChild"/>.
-        /// </summary>
-        private static void AppendSecondChildOverride(ProjectData data)
-        {
-            data.values["parent-second-child-lookup"] = new ArrayMemberValue
-            {
-                id = "parent-second-child-lookup",
-                value = new[] { "shop-authored-second-child" },
-            };
-            data.values["parent-second-child-position-override"] = new Vector3MemberValue
-            {
-                id = "parent-second-child-position-override",
-                value = new NeoVector3Value { x = 4, y = 0, z = 0 },
-            };
-            data.values["parent-second-child-values"] = new ObjectMemberValue
-            {
-                id = "parent-second-child-values",
-                classId = ((ObjectMemberValue)data.values["parent-child-values"]).classId,
-                value = new Dictionary<string, string>
-                {
-                    ["Position"] = "parent-second-child-position-override",
-                },
-            };
-            data.values["parent-second-child-override"] = new ObjectMemberValue
-            {
-                id = "parent-second-child-override",
-                classId = ((ObjectMemberValue)data.values["parent-child-override"]).classId,
-                value = new Dictionary<string, string>
-                {
-                    ["Child"] = "parent-second-child-lookup",
-                    ["Overrides"] = "parent-second-child-values",
-                },
-            };
-            ((ArrayMemberValue)data.values["parent-frame-0-child-overrides"]).value =
-                new[] { "parent-child-override", "parent-second-child-override" };
-        }
 
         private static NeoResolvedObjectInstance SpawnAnimationTestObject(NeoClient client)
         {
@@ -5767,7 +5490,7 @@ namespace NeoCompose.Tests
                 name = "Animation Child Override",
                 schema = new Dictionary<string, string>
                 {
-                    ["Child"] = "animation-child-member",
+                    ["Selector"] = "animation-selector-member",
                     ["Overrides"] = "animation-child-values-member",
                 },
             };
@@ -5781,7 +5504,7 @@ namespace NeoCompose.Tests
                 system = JObject.FromObject(new { worldKind = "animationChildTrack" }),
                 schema = new Dictionary<string, string>
                 {
-                    ["Child"] = "animation-track-child-member",
+                    ["Selector"] = "animation-track-selector-member",
                     ["ClipKey"] = "animation-track-key-member",
                     ["StartFrame"] = "animation-track-start-member",
                     // P48 §2.1's authored playback, on the shared base and so
@@ -5867,18 +5590,16 @@ namespace NeoCompose.Tests
                 "animation-child-override-entry-member",
                 "ChildOverride",
                 childOverrideClassId);
-            data.members["animation-child-member"] = LookupMember(
-                "animation-child-member",
-                "Child",
-                "object-children-member");
+            data.members["animation-selector-member"] = SelectorMember(
+                "animation-selector-member",
+                "Selector");
             data.members["animation-child-values-member"] = ClassMember(
                 "animation-child-values-member",
                 "Overrides",
                 ObjectClassId);
-            data.members["animation-track-child-member"] = LookupMember(
-                "animation-track-child-member",
-                "Child",
-                "object-children-member");
+            data.members["animation-track-selector-member"] = SelectorMember(
+                "animation-track-selector-member",
+                "Selector");
             data.members["animation-track-key-member"] = new StringMember
             {
                 id = "animation-track-key-member",
@@ -5941,11 +5662,11 @@ namespace NeoCompose.Tests
                 classId = childOverrideClassId,
                 value = new Dictionary<string, string>
                 {
-                    ["Child"] = "parent-child-lookup",
+                    ["Selector"] = "parent-child-lookup",
                     ["Overrides"] = "parent-child-values",
                 },
             };
-            data.values["parent-child-lookup"] = ArrayValue(
+            data.values["parent-child-lookup"] = AnimationSelectorValue(
                 "parent-child-lookup",
                 "shop-authored-child");
             data.values["parent-child-values"] = new ObjectMemberValue
@@ -6017,12 +5738,12 @@ namespace NeoCompose.Tests
                 classId = trackClassId,
                 value = new Dictionary<string, string>
                 {
-                    ["Child"] = "track-parent-child-lookup",
+                    ["Selector"] = "track-parent-child-lookup",
                     ["ClipKey"] = "track-parent-child-key",
                     ["StartFrame"] = "track-parent-child-start",
                 },
             };
-            data.values["track-parent-child-lookup"] = ArrayValue(
+            data.values["track-parent-child-lookup"] = AnimationSelectorValue(
                 "track-parent-child-lookup",
                 "shop-authored-child");
             data.values["track-parent-child-key"] = new StringMemberValue
@@ -6080,16 +5801,22 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
             };
-            static LookupMember LookupMember(
+            static DelegateMember SelectorMember(
                 string id,
-                string name,
-                string collectionId) => new()
+                string name) => new()
                 {
                     id = id,
                     projectId = "project-a",
                     name = name,
-                    kind = MemberKind.Lookup,
-                    collectionMemberId = collectionId,
+                    kind = MemberKind.NSDelegate,
+                    Requirement = NeoMemberRequirementKind.Required,
+                    returnTypeInfo = new ClassTypeInfo
+                    {
+                        type = MemberKind.Class,
+                        required = true,
+                        classId = ObjectClassId,
+                    },
+                    argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
                     createdAt = "x",
                     updatedAt = "x",
                 };

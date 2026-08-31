@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 29,
+    "schemaVersion": 30,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -125,11 +125,11 @@
       "createdAt": 0,
       "updatedAt": 0,
       "storage": 1,
+      "mutability": 1,
+      "requirement": 1,
       "defaultValue": {
         "value": 12
-      },
-      "requirement": 1,
-      "mutability": 1
+      }
     },
     "member-abstract-readonly-damage": {
       "id": "member-abstract-readonly-damage",
@@ -139,9 +139,9 @@
       "createdAt": 0,
       "updatedAt": 0,
       "storage": 1,
-      "requirement": 1,
+      "modifier": 2,
       "mutability": 1,
-      "modifier": 2
+      "requirement": 1
     },
     "member-concrete-readonly-damage": {
       "id": "member-concrete-readonly-damage",
@@ -152,12 +152,12 @@
       "updatedAt": 0,
       "extendsMemberId": "member-abstract-readonly-damage",
       "storage": 1,
+      "modifier": 0,
+      "mutability": 1,
+      "requirement": 1,
       "defaultValue": {
         "value": 42
-      },
-      "requirement": 1,
-      "mutability": 1,
-      "modifier": 0
+      }
     },
     "member-root-score": {
       "id": "member-root-score",
@@ -167,10 +167,10 @@
       "createdAt": 0,
       "updatedAt": 0,
       "valueId": "v-score",
+      "requirement": 1,
       "defaultValue": {
         "value": 10
-      },
-      "requirement": 1
+      }
     },
     "member-speed": {
       "id": "member-speed",
@@ -201,14 +201,14 @@
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
+      "requirement": 1,
       "defaultValue": {
         "value": {
           "x": 1,
           "y": 2,
           "z": 3
         }
-      },
-      "requirement": 1
+      }
     },
     "member-grid-cell": {
       "id": "member-grid-cell",
@@ -369,13 +369,13 @@
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "keyKind": 1,
       "entryMemberId": "member-health",
+      "keyKind": 1,
       "keyEnumId": "enum-element",
+      "requirement": 1,
       "defaultValue": {
         "value": {}
-      },
-      "requirement": 1
+      }
     },
     "member-elem-multipliers": {
       "id": "member-elem-multipliers",
@@ -384,15 +384,15 @@
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "keyKind": 1,
       "entryMemberId": "member-health",
+      "keyKind": 1,
       "keyEnumId": "enum-element",
       "storage": 1,
+      "requirement": 1,
       "valueId": "v-elem-multipliers",
       "defaultValue": {
         "value": {}
-      },
-      "requirement": 1
+      }
     },
     "member-elem-affinity": {
       "id": "member-elem-affinity",
@@ -401,13 +401,13 @@
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "keyKind": 1,
       "entryMemberId": "member-name",
+      "keyKind": 1,
       "keyEnumId": "enum-element",
+      "requirement": 1,
       "defaultValue": {
         "value": {}
-      },
-      "requirement": 1
+      }
     },
     "member-elem-champion-entry": {
       "id": "member-elem-champion-entry",
@@ -417,10 +417,10 @@
       "createdAt": 0,
       "updatedAt": 0,
       "classId": "class-hero",
+      "requirement": 1,
       "defaultValue": {
         "value": {}
-      },
-      "requirement": 1
+      }
     },
     "member-elem-champions": {
       "id": "member-elem-champions",
@@ -429,13 +429,13 @@
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "keyKind": 1,
       "entryMemberId": "member-elem-champion-entry",
+      "keyKind": 1,
       "keyEnumId": "enum-element",
+      "requirement": 1,
       "defaultValue": {
         "value": {}
-      },
-      "requirement": 1
+      }
     },
     "member-score": {
       "id": "member-score",
@@ -1273,6 +1273,7 @@
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
+      "modifier": 2,
       "returnTypeInfo": {
         "type": 1,
         "required": true
@@ -1283,8 +1284,7 @@
           "type": 2,
           "required": true
         }
-      ],
-      "modifier": 2
+      ]
     },
     "member-contract-run-sealed": {
       "id": "member-contract-run-sealed",
@@ -1294,6 +1294,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "extendsMemberId": "member-contract-run",
+      "modifier": 1,
       "returnTypeInfo": {
         "type": 1,
         "required": true
@@ -1304,8 +1305,7 @@
           "type": 2,
           "required": true
         }
-      ],
-      "modifier": 1
+      ]
     },
     "member-contract-title-null": {
       "id": "member-contract-title-null",
@@ -1434,6 +1434,7 @@
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
+      "dispatch": 1,
       "returnTypeInfo": {
         "type": 21,
         "required": true,
@@ -1449,8 +1450,7 @@
           "genericParamId": "param-generic-contract-t"
         }
       ],
-      "modifier": 2,
-      "dispatch": 1
+      "modifier": 2
     },
     "member-generic-function-hero-binding": {
       "id": "member-generic-function-hero-binding",
@@ -1503,6 +1503,7 @@
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
+      "dispatch": 1,
       "returnTypeInfo": {
         "type": 21,
         "required": true,
@@ -1518,8 +1519,7 @@
           "genericParamId": "param-generic-function-t"
         }
       ],
-      "modifier": 2,
-      "dispatch": 1
+      "modifier": 2
     },
     "member-generic-function-transform-box": {
       "id": "member-generic-function-transform-box",
@@ -1576,10 +1576,10 @@
       "createdAt": 0,
       "updatedAt": 0,
       "classId": "class-choice-log",
+      "requirement": 1,
       "defaultValue": {
         "value": {}
-      },
-      "requirement": 1
+      }
     },
     "member-choice-history": {
       "id": "member-choice-history",
@@ -1589,10 +1589,10 @@
       "createdAt": 0,
       "updatedAt": 0,
       "entryMemberId": "member-choice-log-entry",
+      "requirement": 1,
       "defaultValue": {
         "value": []
-      },
-      "requirement": 1
+      }
     },
     "member-visit-count": {
       "id": "member-visit-count",
@@ -1601,10 +1601,10 @@
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
+      "requirement": 1,
       "defaultValue": {
         "value": 0
-      },
-      "requirement": 1
+      }
     },
     "member-last-visited-at": {
       "id": "member-last-visited-at",
@@ -1630,10 +1630,10 @@
       "createdAt": 0,
       "updatedAt": 0,
       "classId": "class-text-node-memory",
+      "requirement": 1,
       "defaultValue": {
         "value": {}
-      },
-      "requirement": 1
+      }
     },
     "member-text-node-memories": {
       "id": "member-text-node-memories",
@@ -1643,10 +1643,10 @@
       "createdAt": 0,
       "updatedAt": 0,
       "entryMemberId": "member-text-node-memory-entry",
+      "requirement": 1,
       "defaultValue": {
         "value": {}
-      },
-      "requirement": 1
+      }
     },
     "member-dialogue-memory-entry": {
       "id": "member-dialogue-memory-entry",
@@ -1656,10 +1656,10 @@
       "createdAt": 0,
       "updatedAt": 0,
       "classId": "class-dialogue-memory",
+      "requirement": 1,
       "defaultValue": {
         "value": {}
-      },
-      "requirement": 1
+      }
     },
     "member-dialogue-memories": {
       "id": "member-dialogue-memories",
@@ -1669,10 +1669,10 @@
       "createdAt": 0,
       "updatedAt": 0,
       "entryMemberId": "member-dialogue-memory-entry",
+      "requirement": 1,
       "defaultValue": {
         "value": {}
-      },
-      "requirement": 1
+      }
     },
     "member-neo-memory": {
       "id": "member-neo-memory",
@@ -1682,16 +1682,17 @@
       "createdAt": 0,
       "updatedAt": 0,
       "classId": "class-neo-memory",
+      "requirement": 1,
       "defaultValue": {
         "value": {}
-      },
-      "requirement": 1
+      }
     },
     "system_b21bfd01-1234-4f49-ab6b-889f829cb148": {
       "id": "system_b21bfd01-1234-4f49-ab6b-889f829cb148",
       "projectId": "test-project",
       "name": "Name",
       "kind": 3,
+      "requirement": 1,
       "defaultValue": {
         "value": ""
       },
@@ -1700,7 +1701,6 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "requirement": 1,
       "format": 1
     },
     "system_7fc41bde-418a-4507-8c4b-9b75d7012125": {
@@ -1708,6 +1708,7 @@
       "projectId": "test-project",
       "name": "Position",
       "kind": 16,
+      "requirement": 1,
       "defaultValue": {
         "value": {
           "x": 0,
@@ -1719,14 +1720,14 @@
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
-      "updatedAt": 0,
-      "requirement": 1
+      "updatedAt": 0
     },
     "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f": {
       "id": "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f",
       "projectId": "test-project",
       "name": "Size",
       "kind": 16,
+      "requirement": 1,
       "defaultValue": {
         "value": {
           "x": 1,
@@ -1738,14 +1739,14 @@
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
-      "updatedAt": 0,
-      "requirement": 1
+      "updatedAt": 0
     },
     "system_4858148e-1c42-449d-8a03-c1601da529bd": {
       "id": "system_4858148e-1c42-449d-8a03-c1601da529bd",
       "projectId": "test-project",
       "name": "Enabled",
       "kind": 1,
+      "requirement": 1,
       "defaultValue": {
         "value": true
       },
@@ -1753,14 +1754,14 @@
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
-      "updatedAt": 0,
-      "requirement": 1
+      "updatedAt": 0
     },
     "system_c66c17e3-ecfc-4f41-96de-6a53bb2acd4f": {
       "id": "system_c66c17e3-ecfc-4f41-96de-6a53bb2acd4f",
       "projectId": "test-project",
-      "name": "size",
+      "name": "Size",
       "kind": 14,
+      "requirement": 1,
       "defaultValue": {
         "value": {
           "x": 1,
@@ -1771,13 +1772,12 @@
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
-      "updatedAt": 0,
-      "requirement": 1
+      "updatedAt": 0
     },
     "system_ec5b5d5e-7053-4378-87d1-9cceec30ff1a": {
       "id": "system_ec5b5d5e-7053-4378-87d1-9cceec30ff1a",
       "projectId": "test-project",
-      "name": "offset",
+      "name": "Offset",
       "kind": 14,
       "defaultValue": {
         "value": {
@@ -1794,7 +1794,7 @@
     "system_6ed1890b-0ae6-4979-bf5b-6f216d69f432": {
       "id": "system_6ed1890b-0ae6-4979-bf5b-6f216d69f432",
       "projectId": "test-project",
-      "name": "isTrigger",
+      "name": "IsTrigger",
       "kind": 1,
       "defaultValue": {
         "value": false
@@ -1810,6 +1810,7 @@
       "projectId": "test-project",
       "name": "Name",
       "kind": 3,
+      "requirement": 1,
       "defaultValue": {
         "value": ""
       },
@@ -1818,7 +1819,6 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "requirement": 1,
       "format": 1
     },
     "system_e9288ba9-f5a2-4485-8443-6afb155b31e0": {
@@ -1826,6 +1826,7 @@
       "projectId": "test-project",
       "name": "Sprite",
       "kind": 11,
+      "requirement": 1,
       "defaultValue": {
         "value": {
           "fileId": "",
@@ -1836,15 +1837,14 @@
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
-      "updatedAt": 0,
-      "templateId": null,
-      "requirement": 1
+      "updatedAt": 0
     },
     "system_9fcab37a-9743-4e35-8eee-80cb560f1433": {
       "id": "system_9fcab37a-9743-4e35-8eee-80cb560f1433",
       "projectId": "test-project",
       "name": "FlipX",
       "kind": 1,
+      "requirement": 1,
       "defaultValue": {
         "value": false
       },
@@ -1852,14 +1852,14 @@
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
-      "updatedAt": 0,
-      "requirement": 1
+      "updatedAt": 0
     },
     "system_ddd09f08-1656-4404-b36b-5570a4c01fcf": {
       "id": "system_ddd09f08-1656-4404-b36b-5570a4c01fcf",
       "projectId": "test-project",
       "name": "FlipY",
       "kind": 1,
+      "requirement": 1,
       "defaultValue": {
         "value": false
       },
@@ -1867,14 +1867,14 @@
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
-      "updatedAt": 0,
-      "requirement": 1
+      "updatedAt": 0
     },
     "system_f2a8c86d-ace5-421b-9475-0f3f6f97b2a6": {
       "id": "system_f2a8c86d-ace5-421b-9475-0f3f6f97b2a6",
       "projectId": "test-project",
       "name": "MaskInteraction",
       "kind": 8,
+      "requirement": 1,
       "defaultValue": {
         "value": [
           "system_9d607a4f-60c3-4347-94fc-f24b538bf468"
@@ -1885,8 +1885,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "enumId": "system_4e6c4d6f-1d0b-402a-ad3a-be92242dceec",
-      "requirement": 1
+      "enumId": "system_4e6c4d6f-1d0b-402a-ad3a-be92242dceec"
     },
     "system_6f32f1f2-83ea-42fc-8647-34ed0946b7f1": {
       "id": "system_6f32f1f2-83ea-42fc-8647-34ed0946b7f1",
@@ -1909,6 +1908,7 @@
       "projectId": "test-project",
       "name": "Cell",
       "kind": 15,
+      "requirement": 1,
       "defaultValue": {
         "value": {
           "x": 0,
@@ -1919,14 +1919,14 @@
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
-      "updatedAt": 0,
-      "requirement": 1
+      "updatedAt": 0
     },
     "system_5a9ca1f5-a21b-4d4e-8c55-00341af594b4": {
       "id": "system_5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
       "projectId": "test-project",
       "name": "PlacementTiles",
       "kind": 6,
+      "requirement": 1,
       "defaultValue": {
         "value": []
       },
@@ -1935,14 +1935,14 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "entryMemberId": "system_96c7650a-1805-5b27-ae99-d1e49d3cb207",
-      "requirement": 1
+      "entryMemberId": "system_96c7650a-1805-5b27-ae99-d1e49d3cb207"
     },
     "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071": {
       "id": "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
       "projectId": "test-project",
       "name": "Children",
       "kind": 6,
+      "requirement": 1,
       "defaultValue": {
         "value": []
       },
@@ -1951,8 +1951,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "entryMemberId": "system_0c4eba66-f5b6-5bfc-aa57-27c565beac53",
-      "requirement": 1
+      "entryMemberId": "system_0c4eba66-f5b6-5bfc-aa57-27c565beac53"
     },
     "system_a0083c92-72f7-405f-8863-ff86f995d36d": {
       "id": "system_a0083c92-72f7-405f-8863-ff86f995d36d",
@@ -1967,13 +1966,14 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "classId": "class-animation-object-collider"
+      "classId": "system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d"
     },
     "system_96c7650a-1805-5b27-ae99-d1e49d3cb207": {
       "id": "system_96c7650a-1805-5b27-ae99-d1e49d3cb207",
       "projectId": "test-project",
       "name": "__PlacementTileEntry",
       "kind": 7,
+      "requirement": 1,
       "defaultValue": {
         "value": {}
       },
@@ -1982,30 +1982,27 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "classId": "class-animation-object-placement-tile",
-      "requirement": 1
+      "classId": "system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9"
     },
     "system_0c4eba66-f5b6-5bfc-aa57-27c565beac53": {
       "id": "system_0c4eba66-f5b6-5bfc-aa57-27c565beac53",
       "projectId": "test-project",
       "name": "__ChildEntry",
       "kind": 7,
-      "defaultValue": {
-        "value": {}
-      },
+      "requirement": 1,
       "system": {
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "classId": "class-animation-object-base",
-      "requirement": 1
+      "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
     },
     "system_0dbdd0f9-9dd2-4b4b-9403-50180c1500dd": {
       "id": "system_0dbdd0f9-9dd2-4b4b-9403-50180c1500dd",
       "projectId": "test-project",
       "name": "Index",
       "kind": 2,
+      "requirement": 1,
       "defaultValue": {
         "value": 0
       },
@@ -2014,14 +2011,14 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "minValue": 0,
-      "requirement": 1
+      "minValue": 0
     },
     "system_af2d8db8-817b-46f0-adbe-cf9113b77155": {
       "id": "system_af2d8db8-817b-46f0-adbe-cf9113b77155",
       "projectId": "test-project",
       "name": "FPS",
       "kind": 2,
+      "requirement": 1,
       "defaultValue": {
         "value": 8
       },
@@ -2030,14 +2027,14 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "minValue": 1,
-      "requirement": 1
+      "minValue": 1
     },
     "system_e1a1ba86-2599-43dc-a19a-46d08a2e4256": {
       "id": "system_e1a1ba86-2599-43dc-a19a-46d08a2e4256",
       "projectId": "test-project",
       "name": "Duration",
       "kind": 2,
+      "requirement": 1,
       "defaultValue": {
         "value": 1
       },
@@ -2046,14 +2043,14 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "minValue": 1,
-      "requirement": 1
+      "minValue": 1
     },
     "system_485b0f05-ec7b-4e61-ba80-9a5d7d262b39": {
       "id": "system_485b0f05-ec7b-4e61-ba80-9a5d7d262b39",
       "projectId": "test-project",
       "name": "Frames",
       "kind": 6,
+      "requirement": 1,
       "defaultValue": {
         "value": []
       },
@@ -2062,14 +2059,14 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "entryMemberId": "system_557a29b1-a12b-5610-9990-aa422af28269",
-      "requirement": 1
+      "entryMemberId": "system_557a29b1-a12b-5610-9990-aa422af28269"
     },
     "system_eb602654-04a9-4766-860f-300b443be86e": {
       "id": "system_eb602654-04a9-4766-860f-300b443be86e",
       "projectId": "test-project",
       "name": "Tracks",
       "kind": 6,
+      "requirement": 1,
       "defaultValue": {
         "value": []
       },
@@ -2078,43 +2075,38 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "entryMemberId": "system_f89776c0-a7ac-5e80-9fcb-df9a5a1033fc",
-      "requirement": 1
+      "entryMemberId": "system_f89776c0-a7ac-5e80-9fcb-df9a5a1033fc"
     },
     "system_557a29b1-a12b-5610-9990-aa422af28269": {
       "id": "system_557a29b1-a12b-5610-9990-aa422af28269",
       "projectId": "test-project",
       "name": "__FrameEntry",
       "kind": 7,
+      "requirement": 1,
       "system": {
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "classId": "class-animation-frame",
+      "classId": "system_ba921c72-e4b2-47f9-861f-f30ac1156965",
       "classArguments": {
         "system_d2194ea1-08ec-4a0c-b9a0-97877031d39b": {
-          "kind": 0,
           "genericParamId": "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2"
         }
-      },
-      "requirement": 1
+      }
     },
     "system_f89776c0-a7ac-5e80-9fcb-df9a5a1033fc": {
       "id": "system_f89776c0-a7ac-5e80-9fcb-df9a5a1033fc",
       "projectId": "test-project",
       "name": "__TrackEntry",
       "kind": 7,
-      "defaultValue": {
-        "value": {}
-      },
+      "requirement": 1,
       "system": {
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "classId": "class-animation-track",
-      "requirement": 1
+      "classId": "system_45755778-ecfe-4a6c-b65f-a08017a7fb56"
     },
     "system_8ab7bb00-a475-43f0-8579-1b08f133d658": {
       "id": "system_8ab7bb00-a475-43f0-8579-1b08f133d658",
@@ -2134,6 +2126,7 @@
       "projectId": "test-project",
       "name": "ChildOverrides",
       "kind": 6,
+      "requirement": 1,
       "defaultValue": {
         "value": []
       },
@@ -2142,14 +2135,14 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "entryMemberId": "system_86688965-6b26-529e-95f3-a4070f022582",
-      "requirement": 1
+      "entryMemberId": "system_86688965-6b26-529e-95f3-a4070f022582"
     },
     "system_23e05410-6428-4bd1-b085-c0390ed7fcb7": {
       "id": "system_23e05410-6428-4bd1-b085-c0390ed7fcb7",
       "projectId": "test-project",
       "name": "Actions",
       "kind": 6,
+      "requirement": 1,
       "defaultValue": {
         "value": []
       },
@@ -2158,52 +2151,51 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "entryMemberId": "system_57c6c50f-def6-52a2-9e3e-e4af69998c96",
-      "requirement": 1
+      "entryMemberId": "system_57c6c50f-def6-52a2-9e3e-e4af69998c96"
     },
     "system_86688965-6b26-529e-95f3-a4070f022582": {
       "id": "system_86688965-6b26-529e-95f3-a4070f022582",
       "projectId": "test-project",
       "name": "__ChildOverrideEntry",
       "kind": 7,
+      "requirement": 1,
       "system": {
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "classId": "class-animation-child-override",
+      "classId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
       "classArguments": {
         "system_de23448a-45be-4e3f-8965-072a545e08f0": {
           "kind": 1,
           "memberId": "system_cbab87cf-1923-5891-a605-7dd7120e6760"
         }
-      },
-      "requirement": 1
+      }
     },
     "system_57c6c50f-def6-52a2-9e3e-e4af69998c96": {
       "id": "system_57c6c50f-def6-52a2-9e3e-e4af69998c96",
       "projectId": "test-project",
       "name": "__ActionEntry",
       "kind": 24,
+      "requirement": 1,
       "system": {
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
-      "updatedAt": 0,
-      "requirement": 1
+      "updatedAt": 0
     },
     "system_cbab87cf-1923-5891-a605-7dd7120e6760": {
       "id": "system_cbab87cf-1923-5891-a605-7dd7120e6760",
       "projectId": "test-project",
       "name": "__NeoObjectBaseTypeArgument",
       "kind": 7,
+      "requirement": 1,
       "system": {
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "classId": "class-animation-object-base",
-      "requirement": 1
+      "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
     },
     "system_b71d1f73-da72-49de-ab9a-911cc9bffa43": {
       "id": "system_b71d1f73-da72-49de-ab9a-911cc9bffa43",
@@ -2257,7 +2249,7 @@
                 "typeInfo": {
                   "type": 21,
                   "required": true,
-                  "ownerClassId": "class-animation-segment-frame",
+                  "ownerClassId": "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab",
                   "genericParamId": "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1"
                 },
                 "pointer": {
@@ -2266,7 +2258,7 @@
                     "typeInfo": {
                       "type": 21,
                       "required": true,
-                      "ownerClassId": "class-animation-segment-frame",
+                      "ownerClassId": "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab",
                       "genericParamId": "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1"
                     },
                     "value": null
@@ -2286,7 +2278,7 @@
             "typeInfo": {
               "type": 21,
               "required": false,
-              "ownerClassId": "class-animation-segment-frame",
+              "ownerClassId": "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab",
               "genericParamId": "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1"
             }
           }
@@ -2304,6 +2296,7 @@
       "projectId": "test-project",
       "name": "Duration",
       "kind": 2,
+      "requirement": 1,
       "defaultValue": {
         "value": 1
       },
@@ -2312,14 +2305,14 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "minValue": 1,
-      "requirement": 1
+      "minValue": 1
     },
     "system_40658ad2-b4a5-4404-bb6d-ed778088a772": {
       "id": "system_40658ad2-b4a5-4404-bb6d-ed778088a772",
       "projectId": "test-project",
       "name": "Frames",
       "kind": 6,
+      "requirement": 1,
       "defaultValue": {
         "value": []
       },
@@ -2328,46 +2321,44 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "entryMemberId": "system_da56f93b-d3a6-5feb-9f51-3a9fd029272a",
-      "requirement": 1
+      "entryMemberId": "system_da56f93b-d3a6-5feb-9f51-3a9fd029272a"
     },
     "system_da56f93b-d3a6-5feb-9f51-3a9fd029272a": {
       "id": "system_da56f93b-d3a6-5feb-9f51-3a9fd029272a",
       "projectId": "test-project",
       "name": "__FrameEntry",
       "kind": 7,
+      "requirement": 1,
       "system": {
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "classId": "class-animation-segment-frame",
+      "classId": "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab",
       "classArguments": {
         "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1": {
-          "kind": 0,
           "genericParamId": "system_a35d028e-bd71-49aa-9f9d-944b6e813b80"
         }
-      },
-      "requirement": 1
+      }
     },
     "system_f10bc0fd-9b8e-5901-9f4b-38e7cdc7a241": {
       "id": "system_f10bc0fd-9b8e-5901-9f4b-38e7cdc7a241",
       "projectId": "test-project",
       "name": "__SpriteInfoTypeArgument",
       "kind": 11,
+      "requirement": 1,
       "system": {
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
-      "updatedAt": 0,
-      "templateId": null,
-      "requirement": 1
+      "updatedAt": 0
     },
     "system_48e66117-43fe-4429-97a8-964165f063ea": {
       "id": "system_48e66117-43fe-4429-97a8-964165f063ea",
       "projectId": "test-project",
       "name": "Selector",
       "kind": 25,
+      "requirement": 1,
       "defaultValue": {
         "init": {
           "code": "selector",
@@ -2418,7 +2409,7 @@
                   "returnTypeInfo": {
                     "type": 21,
                     "required": true,
-                    "ownerClassId": "class-animation-child-override",
+                    "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
                     "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
                   },
                   "argumentTypes": []
@@ -2432,7 +2423,7 @@
                       "returnTypeInfo": {
                         "type": 21,
                         "required": true,
-                        "ownerClassId": "class-animation-child-override",
+                        "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
                         "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
                       },
                       "argumentTypes": []
@@ -2446,7 +2437,7 @@
                 "typeInfo": {
                   "type": 21,
                   "required": true,
-                  "ownerClassId": "class-animation-child-override",
+                  "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
                   "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
                 },
                 "pointer": {
@@ -2455,7 +2446,7 @@
                     "typeInfo": {
                       "type": 21,
                       "required": true,
-                      "ownerClassId": "class-animation-child-override",
+                      "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
                       "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
                     },
                     "value": null
@@ -2478,7 +2469,7 @@
               "returnTypeInfo": {
                 "type": 21,
                 "required": true,
-                "ownerClassId": "class-animation-child-override",
+                "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
                 "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
               },
               "argumentTypes": []
@@ -2494,17 +2485,17 @@
       "returnTypeInfo": {
         "type": 21,
         "required": true,
-        "ownerClassId": "class-animation-child-override",
+        "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
         "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
       },
-      "argumentTypes": [],
-      "requirement": 1
+      "argumentTypes": []
     },
     "system_ba319c4b-3419-4301-a0d6-8bc5a89e20d1": {
       "id": "system_ba319c4b-3419-4301-a0d6-8bc5a89e20d1",
       "projectId": "test-project",
       "name": "Refresh",
       "kind": 8,
+      "requirement": 1,
       "defaultValue": {
         "value": [
           "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200"
@@ -2515,8 +2506,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "enumId": "system_fb8a4243-fa52-4142-8097-765d9e86ff25",
-      "requirement": 1
+      "enumId": "system_fb8a4243-fa52-4142-8097-765d9e86ff25"
     },
     "system_819b3743-0c3d-4896-b679-9aeeb73255f4": {
       "id": "system_819b3743-0c3d-4896-b679-9aeeb73255f4",
@@ -2573,7 +2563,7 @@
                   "returnTypeInfo": {
                     "type": 21,
                     "required": true,
-                    "ownerClassId": "class-animation-child-override",
+                    "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
                     "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
                   },
                   "argumentTypes": []
@@ -2587,7 +2577,7 @@
                       "returnTypeInfo": {
                         "type": 21,
                         "required": true,
-                        "ownerClassId": "class-animation-child-override",
+                        "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
                         "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
                       },
                       "argumentTypes": []
@@ -2601,7 +2591,7 @@
                 "typeInfo": {
                   "type": 21,
                   "required": true,
-                  "ownerClassId": "class-animation-child-override",
+                  "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
                   "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
                 },
                 "pointer": {
@@ -2610,7 +2600,7 @@
                     "typeInfo": {
                       "type": 21,
                       "required": true,
-                      "ownerClassId": "class-animation-child-override",
+                      "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
                       "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
                     },
                     "value": null
@@ -2630,7 +2620,7 @@
             "typeInfo": {
               "type": 21,
               "required": false,
-              "ownerClassId": "class-animation-child-override",
+              "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
               "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
             }
           }
@@ -2649,6 +2639,7 @@
       "projectId": "test-project",
       "name": "Selector",
       "kind": 25,
+      "requirement": 1,
       "defaultValue": {
         "init": {
           "code": "selector",
@@ -2699,7 +2690,7 @@
                   "returnTypeInfo": {
                     "type": 7,
                     "required": true,
-                    "classId": "class-animation-object-base"
+                    "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
                   },
                   "argumentTypes": []
                 },
@@ -2712,7 +2703,7 @@
                       "returnTypeInfo": {
                         "type": 7,
                         "required": true,
-                        "classId": "class-animation-object-base"
+                        "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
                       },
                       "argumentTypes": []
                     },
@@ -2736,7 +2727,7 @@
               "returnTypeInfo": {
                 "type": 7,
                 "required": true,
-                "classId": "class-animation-object-base"
+                "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
               },
               "argumentTypes": []
             }
@@ -2751,16 +2742,16 @@
       "returnTypeInfo": {
         "type": 7,
         "required": true,
-        "classId": "class-animation-object-base"
+        "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
       },
-      "argumentTypes": [],
-      "requirement": 1
+      "argumentTypes": []
     },
     "system_330602f7-bbc0-4be4-9dc3-d33e9dbdbab9": {
       "id": "system_330602f7-bbc0-4be4-9dc3-d33e9dbdbab9",
       "projectId": "test-project",
       "name": "Refresh",
       "kind": 8,
+      "requirement": 1,
       "defaultValue": {
         "value": [
           "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200"
@@ -2771,14 +2762,14 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "enumId": "system_fb8a4243-fa52-4142-8097-765d9e86ff25",
-      "requirement": 1
+      "enumId": "system_fb8a4243-fa52-4142-8097-765d9e86ff25"
     },
     "system_5af60692-74a0-45ea-a9ba-747854989b2a": {
       "id": "system_5af60692-74a0-45ea-a9ba-747854989b2a",
       "projectId": "test-project",
       "name": "StartFrame",
       "kind": 2,
+      "requirement": 1,
       "defaultValue": {
         "value": 0
       },
@@ -2787,14 +2778,14 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "minValue": 0,
-      "requirement": 1
+      "minValue": 0
     },
     "system_75a314b5-c799-4af6-9e64-4cde6eae1b30": {
       "id": "system_75a314b5-c799-4af6-9e64-4cde6eae1b30",
       "projectId": "test-project",
       "name": "Direction",
       "kind": 8,
+      "requirement": 1,
       "defaultValue": {
         "value": [
           "system_2e4ca40e-f305-49c6-a91b-b99d56239ba0"
@@ -2805,8 +2796,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "enumId": "system_705ccc39-e46e-4c9f-af3e-3ec8fd818709",
-      "requirement": 1
+      "enumId": "system_705ccc39-e46e-4c9f-af3e-3ec8fd818709"
     },
     "system_c71caaab-df72-48c6-a291-2772288351eb": {
       "id": "system_c71caaab-df72-48c6-a291-2772288351eb",
@@ -2843,6 +2833,9 @@
       "projectId": "test-project",
       "name": "BaseDuration",
       "kind": 10,
+      "requirement": 1,
+      "access": 1,
+      "modifier": 2,
       "system": {
         "kind": "worldAuthoring"
       },
@@ -2851,16 +2844,14 @@
       "returnTypeInfo": {
         "type": 2,
         "required": true
-      },
-      "requirement": 1,
-      "modifier": 2,
-      "access": 1
+      }
     },
     "system_2c816624-0281-46d3-9ed5-d20bd43519f4": {
       "id": "system_2c816624-0281-46d3-9ed5-d20bd43519f4",
       "projectId": "test-project",
       "name": "ClipKey",
       "kind": 3,
+      "requirement": 1,
       "defaultValue": {
         "init": {
           "code": "clipKey",
@@ -2911,7 +2902,7 @@
                   "returnTypeInfo": {
                     "type": 7,
                     "required": true,
-                    "classId": "class-animation-object-base"
+                    "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
                   },
                   "argumentTypes": []
                 },
@@ -2924,7 +2915,7 @@
                       "returnTypeInfo": {
                         "type": 7,
                         "required": true,
-                        "classId": "class-animation-object-base"
+                        "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
                       },
                       "argumentTypes": []
                     },
@@ -2971,7 +2962,6 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "requirement": 1,
       "format": 1
     },
     "system_b29e7ab9-0b8e-4399-84c1-1203070b75dd": {
@@ -2979,6 +2969,8 @@
       "projectId": "test-project",
       "name": "Selector",
       "kind": 25,
+      "requirement": 1,
+      "modifier": 0,
       "extendsMemberId": "system_1e877396-1802-474a-9e4d-1df478d4c888",
       "defaultValue": {
         "init": {
@@ -3030,7 +3022,7 @@
                   "returnTypeInfo": {
                     "type": 21,
                     "required": true,
-                    "ownerClassId": "class-animation-segment-track",
+                    "ownerClassId": "system_fd551dd8-6e6b-4044-9f32-7445ab344200",
                     "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
                   },
                   "argumentTypes": []
@@ -3044,7 +3036,7 @@
                       "returnTypeInfo": {
                         "type": 21,
                         "required": true,
-                        "ownerClassId": "class-animation-segment-track",
+                        "ownerClassId": "system_fd551dd8-6e6b-4044-9f32-7445ab344200",
                         "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
                       },
                       "argumentTypes": []
@@ -3069,7 +3061,7 @@
               "returnTypeInfo": {
                 "type": 21,
                 "required": true,
-                "ownerClassId": "class-animation-segment-track",
+                "ownerClassId": "system_fd551dd8-6e6b-4044-9f32-7445ab344200",
                 "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
               },
               "argumentTypes": []
@@ -3085,17 +3077,18 @@
       "returnTypeInfo": {
         "type": 21,
         "required": true,
-        "ownerClassId": "class-animation-segment-track",
+        "ownerClassId": "system_fd551dd8-6e6b-4044-9f32-7445ab344200",
         "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
       },
-      "argumentTypes": [],
-      "requirement": 1
+      "argumentTypes": []
     },
     "system_d2d0bf9b-211f-4b2f-bff3-3d6da5766abd": {
       "id": "system_d2d0bf9b-211f-4b2f-bff3-3d6da5766abd",
       "projectId": "test-project",
       "name": "Segment",
       "kind": 10,
+      "requirement": 1,
+      "modifier": 2,
       "system": {
         "kind": "worldAuthoring"
       },
@@ -3104,31 +3097,28 @@
       "returnTypeInfo": {
         "type": 7,
         "required": true,
-        "classId": "class-animation-segment",
+        "classId": "system_2866011d-30fe-410a-8a04-d2ff291b77cd",
         "typeArguments": {
           "system_a35d028e-bd71-49aa-9f9d-944b6e813b80": {
             "type": 21,
             "required": true,
-            "ownerClassId": "class-animation-segment-track",
+            "ownerClassId": "system_fd551dd8-6e6b-4044-9f32-7445ab344200",
             "genericParamId": "system_03497842-3381-45a2-b2fa-b2dee36c2759"
           }
         }
-      },
-      "requirement": 1,
-      "modifier": 2
+      }
     },
     "system_65388373-2b28-53f4-b821-8c74dada7c8c": {
       "id": "system_65388373-2b28-53f4-b821-8c74dada7c8c",
       "projectId": "test-project",
       "name": "__SpriteInfoTypeArgument",
       "kind": 11,
+      "requirement": 1,
       "system": {
         "kind": "worldAuthoring"
       },
       "createdAt": 0,
-      "updatedAt": 0,
-      "templateId": null,
-      "requirement": 1
+      "updatedAt": 0
     },
     "member-animation-x": {
       "id": "member-animation-x",
@@ -3137,11 +3127,11 @@
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
+      "requirement": 1,
       "storage": 3,
       "defaultValue": {
         "value": 0
-      },
-      "requirement": 1
+      }
     },
     "member-animation-target-binding": {
       "id": "member-animation-target-binding",
@@ -3163,6 +3153,7 @@
       "updatedAt": 0,
       "classId": "class-animated-sprite-idle",
       "classArguments": {},
+      "requirement": 1,
       "storage": 1,
       "defaultValue": {
         "value": {
@@ -3171,8 +3162,7 @@
           "Frames": "value-animation-frames",
           "Tracks": "value-animation-tracks"
         }
-      },
-      "requirement": 1
+      }
     }
   },
   "enums": {
@@ -3444,7 +3434,6 @@
       "members": {
         "Title": {
           "id": "interface-contract-title",
-          "kind": 0,
           "typeInfo": {
             "type": 3,
             "required": false
@@ -3467,7 +3456,6 @@
         },
         "Missing": {
           "id": "interface-contract-missing",
-          "kind": 0,
           "typeInfo": {
             "type": 2,
             "required": true
@@ -3579,10 +3567,10 @@
       "id": "class-sample-layer-group-base",
       "name": "SampleLayerGroupBase",
       "schema": {},
+      "modifier": 1,
       "projectId": "test-project",
       "createdAt": 0,
-      "updatedAt": 0,
-      "modifier": 1
+      "updatedAt": 0
     },
     "class-sample-tile-layer-link": {
       "id": "class-sample-tile-layer-link",
@@ -3590,11 +3578,11 @@
       "schema": {
         "Tiles": "member-sample-tiles"
       },
+      "modifier": 1,
       "extendsClassId": "class-sample-layer-group-base",
       "projectId": "test-project",
       "createdAt": 0,
-      "updatedAt": 0,
-      "modifier": 1
+      "updatedAt": 0
     },
     "class-sample-blocked-path": {
       "id": "class-sample-blocked-path",
@@ -3717,10 +3705,10 @@
       "schema": {
         "Damage": "member-abstract-readonly-damage"
       },
+      "modifier": 1,
       "projectId": "test-project",
       "createdAt": 0,
-      "updatedAt": 0,
-      "modifier": 1
+      "updatedAt": 0
     },
     "class-concrete-readonly-stats": {
       "id": "class-concrete-readonly-stats",
@@ -3740,13 +3728,13 @@
         "Title": "member-contract-title",
         "Run": "member-contract-run"
       },
+      "modifier": 1,
       "implementsInterfaceIds": [
         "interface-contract"
       ],
       "projectId": "test-project",
       "createdAt": 0,
-      "updatedAt": 0,
-      "modifier": 1
+      "updatedAt": 0
     },
     "class-contract-middle": {
       "id": "class-contract-middle",
@@ -3754,11 +3742,11 @@
       "schema": {
         "Title": "member-contract-title-reabstracted"
       },
+      "modifier": 1,
       "extendsClassId": "class-contract-base",
       "projectId": "test-project",
       "createdAt": 0,
-      "updatedAt": 0,
-      "modifier": 1
+      "updatedAt": 0
     },
     "class-contract-child": {
       "id": "class-contract-child",
@@ -3867,6 +3855,7 @@
         "Echo": "member-generic-contract-echo",
         "EchoLater": "member-generic-contract-echo-later"
       },
+      "modifier": 1,
       "genericParams": [
         {
           "id": "param-generic-contract-t",
@@ -3875,8 +3864,7 @@
       ],
       "projectId": "test-project",
       "createdAt": 0,
-      "updatedAt": 0,
-      "modifier": 1
+      "updatedAt": 0
     },
     "class-generic-float-contract": {
       "id": "class-generic-float-contract",
@@ -3931,6 +3919,7 @@
         "TransformLater": "member-generic-function-transform-later",
         "TransformBox": "member-generic-function-transform-box"
       },
+      "modifier": 1,
       "genericParams": [
         {
           "id": "param-generic-function-t",
@@ -3939,8 +3928,7 @@
       ],
       "projectId": "test-project",
       "createdAt": 0,
-      "updatedAt": 0,
-      "modifier": 1
+      "updatedAt": 0
     },
     "class-generic-function-hero-contract": {
       "id": "class-generic-function-hero-contract",
@@ -4005,8 +3993,8 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "class-animation-object-base": {
-      "id": "class-animation-object-base",
+    "system_61b30a92-90dc-4bf8-8503-ee4f6414effc": {
+      "id": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
       "projectId": "test-project",
       "name": "NeoObjectBase",
       "schema": {
@@ -4015,16 +4003,16 @@
         "Size": "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f",
         "Enabled": "system_4858148e-1c42-449d-8a03-c1601da529bd"
       },
+      "modifier": 1,
       "system": {
         "kind": "worldAuthoring",
         "worldKind": "objectBase"
       },
       "createdAt": 0,
-      "updatedAt": 0,
-      "modifier": 1
+      "updatedAt": 0
     },
-    "class-animation-sprite-object": {
-      "id": "class-animation-sprite-object",
+    "system_d48b66ab-4d59-47e7-a25a-591fe97062de": {
+      "id": "system_d48b66ab-4d59-47e7-a25a-591fe97062de",
       "projectId": "test-project",
       "name": "NeoSpriteObject",
       "schema": {
@@ -4039,18 +4027,18 @@
         "kind": "worldAuthoring",
         "worldKind": "spriteObject"
       },
-      "extendsClassId": "class-animation-object-base",
+      "extendsClassId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "class-animation-object-collider": {
-      "id": "class-animation-object-collider",
+    "system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d": {
+      "id": "system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d",
       "projectId": "test-project",
       "name": "NeoCollider",
       "schema": {
-        "size": "system_c66c17e3-ecfc-4f41-96de-6a53bb2acd4f",
-        "offset": "system_ec5b5d5e-7053-4378-87d1-9cceec30ff1a",
-        "isTrigger": "system_6ed1890b-0ae6-4979-bf5b-6f216d69f432"
+        "Size": "system_c66c17e3-ecfc-4f41-96de-6a53bb2acd4f",
+        "Offset": "system_ec5b5d5e-7053-4378-87d1-9cceec30ff1a",
+        "IsTrigger": "system_6ed1890b-0ae6-4979-bf5b-6f216d69f432"
       },
       "system": {
         "kind": "worldAuthoring",
@@ -4059,8 +4047,8 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "class-animation-object-placement-tile": {
-      "id": "class-animation-object-placement-tile",
+    "system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9": {
+      "id": "system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9",
       "projectId": "test-project",
       "name": "NeoObjectPlacementTile",
       "schema": {
@@ -4073,8 +4061,8 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "class-animation-object": {
-      "id": "class-animation-object",
+    "system_f671535d-0eb6-4139-9caf-5c5276febd31": {
+      "id": "system_f671535d-0eb6-4139-9caf-5c5276febd31",
       "projectId": "test-project",
       "name": "NeoObject",
       "schema": {
@@ -4082,32 +4070,32 @@
         "Children": "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
         "Collider": "system_a0083c92-72f7-405f-8863-ff86f995d36d"
       },
+      "modifier": 1,
       "system": {
         "kind": "worldAuthoring",
         "worldKind": "object"
       },
-      "extendsClassId": "class-animation-object-base",
+      "extendsClassId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
       "createdAt": 0,
-      "updatedAt": 0,
-      "modifier": 1
+      "updatedAt": 0
     },
-    "class-animation-frame-base": {
-      "id": "class-animation-frame-base",
+    "system_6529416a-f68b-49a3-b3d2-2af8fda60cb4": {
+      "id": "system_6529416a-f68b-49a3-b3d2-2af8fda60cb4",
       "projectId": "test-project",
       "name": "NeoAnimationFrameBase",
       "schema": {
         "Index": "system_0dbdd0f9-9dd2-4b4b-9403-50180c1500dd"
       },
+      "modifier": 1,
       "system": {
         "kind": "worldAuthoring",
         "worldKind": "animationFrameBase"
       },
       "createdAt": 0,
-      "updatedAt": 0,
-      "modifier": 1
+      "updatedAt": 0
     },
-    "class-animation-clip": {
-      "id": "class-animation-clip",
+    "system_994b3886-7392-4bd2-8f9d-d5f7fd316a5a": {
+      "id": "system_994b3886-7392-4bd2-8f9d-d5f7fd316a5a",
       "projectId": "test-project",
       "name": "NeoAnimationClip",
       "schema": {
@@ -4126,15 +4114,15 @@
           "name": "TTarget",
           "constraint": {
             "kind": 0,
-            "classId": "class-animation-object-base"
+            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
           }
         }
       ],
       "createdAt": 0,
       "updatedAt": 0
     },
-    "class-animation-frame": {
-      "id": "class-animation-frame",
+    "system_ba921c72-e4b2-47f9-861f-f30ac1156965": {
+      "id": "system_ba921c72-e4b2-47f9-861f-f30ac1156965",
       "projectId": "test-project",
       "name": "NeoAnimationFrame",
       "schema": {
@@ -4152,16 +4140,16 @@
           "name": "TTarget",
           "constraint": {
             "kind": 0,
-            "classId": "class-animation-object-base"
+            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
           }
         }
       ],
-      "extendsClassId": "class-animation-frame-base",
+      "extendsClassId": "system_6529416a-f68b-49a3-b3d2-2af8fda60cb4",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "class-animation-segment-frame": {
-      "id": "class-animation-segment-frame",
+    "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab": {
+      "id": "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab",
       "projectId": "test-project",
       "name": "NeoAnimationSegmentFrame",
       "schema": {
@@ -4178,18 +4166,19 @@
         }
       ],
       "requiredConstructorId": "system_498d073e-0018-5828-af2b-22b113c31380",
-      "extendsClassId": "class-animation-frame-base",
+      "extendsClassId": "system_6529416a-f68b-49a3-b3d2-2af8fda60cb4",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "class-animation-segment": {
-      "id": "class-animation-segment",
+    "system_2866011d-30fe-410a-8a04-d2ff291b77cd": {
+      "id": "system_2866011d-30fe-410a-8a04-d2ff291b77cd",
       "projectId": "test-project",
       "name": "NeoAnimationSegment",
       "schema": {
         "Duration": "system_8a159870-36a4-40e4-98bf-15919410650a",
         "Frames": "system_40658ad2-b4a5-4404-bb6d-ed778088a772"
       },
+      "modifier": 1,
       "system": {
         "kind": "worldAuthoring",
         "worldKind": "animationSegment"
@@ -4201,11 +4190,10 @@
         }
       ],
       "createdAt": 0,
-      "updatedAt": 0,
-      "modifier": 1
+      "updatedAt": 0
     },
-    "class-sprite-animation-segment": {
-      "id": "class-sprite-animation-segment",
+    "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3": {
+      "id": "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3",
       "projectId": "test-project",
       "name": "NeoSpriteAnimationSegment",
       "schema": {},
@@ -4219,12 +4207,12 @@
           "memberId": "system_f10bc0fd-9b8e-5901-9f4b-38e7cdc7a241"
         }
       },
-      "extendsClassId": "class-animation-segment",
+      "extendsClassId": "system_2866011d-30fe-410a-8a04-d2ff291b77cd",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "class-animation-child-override": {
-      "id": "class-animation-child-override",
+    "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd": {
+      "id": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
       "projectId": "test-project",
       "name": "NeoAnimationChildOverride",
       "schema": {
@@ -4242,7 +4230,7 @@
           "name": "TEntry",
           "constraint": {
             "kind": 0,
-            "classId": "class-animation-object-base"
+            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
           }
         }
       ],
@@ -4250,8 +4238,8 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "class-animation-track": {
-      "id": "class-animation-track",
+    "system_45755778-ecfe-4a6c-b65f-a08017a7fb56": {
+      "id": "system_45755778-ecfe-4a6c-b65f-a08017a7fb56",
       "projectId": "test-project",
       "name": "NeoAnimationTrackBase",
       "schema": {
@@ -4263,17 +4251,17 @@
         "OffsetEndIndex": "system_6755f539-a459-46ec-b44a-cc74a18ad83e",
         "BaseDuration": "system_626f7a7a-66b7-4e54-aaaa-7174a74c9467"
       },
+      "modifier": 1,
       "system": {
         "kind": "worldAuthoring",
         "worldKind": "animationTrack"
       },
       "requiredConstructorId": "system_8980d09b-0a6d-5461-9615-2f524515b1af",
       "createdAt": 0,
-      "updatedAt": 0,
-      "modifier": 1
+      "updatedAt": 0
     },
-    "class-animation-child-track": {
-      "id": "class-animation-child-track",
+    "system_8dc78ecf-15b8-4b8a-86f3-7691a5b487d0": {
+      "id": "system_8dc78ecf-15b8-4b8a-86f3-7691a5b487d0",
       "projectId": "test-project",
       "name": "NeoAnimationChildTrack",
       "schema": {
@@ -4284,18 +4272,19 @@
         "worldKind": "animationChildTrack"
       },
       "requiredConstructorId": "system_6baa12a7-be86-5ae0-82da-2fed308320a0",
-      "extendsClassId": "class-animation-track",
+      "extendsClassId": "system_45755778-ecfe-4a6c-b65f-a08017a7fb56",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "class-animation-segment-track": {
-      "id": "class-animation-segment-track",
+    "system_fd551dd8-6e6b-4044-9f32-7445ab344200": {
+      "id": "system_fd551dd8-6e6b-4044-9f32-7445ab344200",
       "projectId": "test-project",
       "name": "NeoAnimationSegmentTrack",
       "schema": {
         "Selector": "system_b29e7ab9-0b8e-4399-84c1-1203070b75dd",
         "Segment": "system_d2d0bf9b-211f-4b2f-bff3-3d6da5766abd"
       },
+      "modifier": 1,
       "system": {
         "kind": "worldAuthoring",
         "worldKind": "animationSegmentTrack"
@@ -4306,7 +4295,7 @@
           "name": "TChild",
           "constraint": {
             "kind": 0,
-            "classId": "class-animation-object-base"
+            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
           }
         },
         {
@@ -4315,16 +4304,16 @@
         }
       ],
       "requiredConstructorId": "system_1e7f8826-5392-5b4c-8cc3-6052d20e5280",
-      "extendsClassId": "class-animation-track",
+      "extendsClassId": "system_45755778-ecfe-4a6c-b65f-a08017a7fb56",
       "createdAt": 0,
-      "updatedAt": 0,
-      "modifier": 1
+      "updatedAt": 0
     },
-    "class-sprite-animation-segment-track": {
-      "id": "class-sprite-animation-segment-track",
+    "system_24b70585-0798-49ad-b650-4c118bac1eb1": {
+      "id": "system_24b70585-0798-49ad-b650-4c118bac1eb1",
       "projectId": "test-project",
       "name": "NeoSpriteAnimationSegmentTrack",
       "schema": {},
+      "modifier": 1,
       "system": {
         "kind": "worldAuthoring",
         "worldKind": "spriteAnimationSegmentTrack"
@@ -4335,13 +4324,12 @@
           "name": "TChild",
           "constraint": {
             "kind": 0,
-            "classId": "class-animation-sprite-object"
+            "classId": "system_d48b66ab-4d59-47e7-a25a-591fe97062de"
           }
         }
       ],
       "extendsGenericBindings": {
         "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655": {
-          "kind": 0,
           "genericParamId": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
         },
         "system_03497842-3381-45a2-b2fa-b2dee36c2759": {
@@ -4351,16 +4339,15 @@
       },
       "targetMemberId": "system_e9288ba9-f5a2-4485-8443-6afb155b31e0",
       "requiredConstructorId": "system_9a3f52ca-872a-50a5-aad9-e9a040f40802",
-      "extendsClassId": "class-animation-segment-track",
+      "extendsClassId": "system_fd551dd8-6e6b-4044-9f32-7445ab344200",
       "createdAt": 0,
-      "updatedAt": 0,
-      "modifier": 1
+      "updatedAt": 0
     },
     "class-animated-sprite-idle": {
       "id": "class-animated-sprite-idle",
       "name": "AnimatedSpriteIdle",
       "schema": {},
-      "extendsClassId": "class-animation-clip",
+      "extendsClassId": "system_994b3886-7392-4bd2-8f9d-d5f7fd316a5a",
       "extendsGenericBindings": {
         "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2": {
           "kind": 1,
@@ -4378,7 +4365,7 @@
         "X": "member-animation-x",
         "Idle": "member-animation-idle"
       },
-      "extendsClassId": "class-animation-sprite-object",
+      "extendsClassId": "system_d48b66ab-4d59-47e7-a25a-591fe97062de",
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
@@ -4397,13 +4384,13 @@
     "system_498d073e-0018-5828-af2b-22b113c31380": {
       "id": "system_498d073e-0018-5828-af2b-22b113c31380",
       "projectId": "test-project",
-      "classId": "class-animation-segment-frame",
+      "classId": "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab",
       "argumentTypes": [
         {
           "name": "value",
           "type": 21,
           "required": true,
-          "ownerClassId": "class-animation-segment-frame",
+          "ownerClassId": "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab",
           "genericParamId": "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1"
         }
       ],
@@ -4418,7 +4405,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "classId": "class-animation-segment-frame"
+              "classId": "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab"
             },
             "pointer": {
               "type": "value",
@@ -4426,7 +4413,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "classId": "class-animation-segment-frame"
+                  "classId": "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab"
                 },
                 "value": null
               }
@@ -4456,7 +4443,7 @@
             "typeInfo": {
               "type": 21,
               "required": true,
-              "ownerClassId": "class-animation-segment-frame",
+              "ownerClassId": "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab",
               "genericParamId": "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1"
             },
             "pointer": {
@@ -4465,7 +4452,7 @@
                 "typeInfo": {
                   "type": 21,
                   "required": true,
-                  "ownerClassId": "class-animation-segment-frame",
+                  "ownerClassId": "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab",
                   "genericParamId": "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1"
                 },
                 "value": null
@@ -4483,7 +4470,7 @@
     "system_2fefcc00-08ab-5a16-a76a-758beac24ef1": {
       "id": "system_2fefcc00-08ab-5a16-a76a-758beac24ef1",
       "projectId": "test-project",
-      "classId": "class-animation-child-override",
+      "classId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
       "argumentTypes": [
         {
           "name": "selector",
@@ -4492,7 +4479,7 @@
           "returnTypeInfo": {
             "type": 21,
             "required": true,
-            "ownerClassId": "class-animation-child-override",
+            "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
             "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
           },
           "argumentTypes": []
@@ -4501,7 +4488,7 @@
           "name": "overrides",
           "type": 21,
           "required": true,
-          "ownerClassId": "class-animation-child-override",
+          "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
           "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
         }
       ],
@@ -4516,7 +4503,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "classId": "class-animation-child-override"
+              "classId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd"
             },
             "pointer": {
               "type": "value",
@@ -4524,7 +4511,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "classId": "class-animation-child-override"
+                  "classId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd"
                 },
                 "value": null
               }
@@ -4557,7 +4544,7 @@
               "returnTypeInfo": {
                 "type": 21,
                 "required": true,
-                "ownerClassId": "class-animation-child-override",
+                "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
                 "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
               },
               "argumentTypes": []
@@ -4571,7 +4558,7 @@
                   "returnTypeInfo": {
                     "type": 21,
                     "required": true,
-                    "ownerClassId": "class-animation-child-override",
+                    "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
                     "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
                   },
                   "argumentTypes": []
@@ -4585,7 +4572,7 @@
             "typeInfo": {
               "type": 21,
               "required": true,
-              "ownerClassId": "class-animation-child-override",
+              "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
               "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
             },
             "pointer": {
@@ -4594,7 +4581,7 @@
                 "typeInfo": {
                   "type": 21,
                   "required": true,
-                  "ownerClassId": "class-animation-child-override",
+                  "ownerClassId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
                   "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0"
                 },
                 "value": null
@@ -4612,7 +4599,7 @@
     "system_8980d09b-0a6d-5461-9615-2f524515b1af": {
       "id": "system_8980d09b-0a6d-5461-9615-2f524515b1af",
       "projectId": "test-project",
-      "classId": "class-animation-track",
+      "classId": "system_45755778-ecfe-4a6c-b65f-a08017a7fb56",
       "argumentTypes": [
         {
           "name": "selector",
@@ -4621,7 +4608,7 @@
           "returnTypeInfo": {
             "type": 7,
             "required": true,
-            "classId": "class-animation-object-base"
+            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
           },
           "argumentTypes": []
         }
@@ -4637,7 +4624,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "classId": "class-animation-track"
+              "classId": "system_45755778-ecfe-4a6c-b65f-a08017a7fb56"
             },
             "pointer": {
               "type": "value",
@@ -4645,7 +4632,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "classId": "class-animation-track"
+                  "classId": "system_45755778-ecfe-4a6c-b65f-a08017a7fb56"
                 },
                 "value": null
               }
@@ -4678,7 +4665,7 @@
               "returnTypeInfo": {
                 "type": 7,
                 "required": true,
-                "classId": "class-animation-object-base"
+                "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
               },
               "argumentTypes": []
             },
@@ -4691,7 +4678,7 @@
                   "returnTypeInfo": {
                     "type": 7,
                     "required": true,
-                    "classId": "class-animation-object-base"
+                    "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
                   },
                   "argumentTypes": []
                 },
@@ -4710,7 +4697,7 @@
     "system_6baa12a7-be86-5ae0-82da-2fed308320a0": {
       "id": "system_6baa12a7-be86-5ae0-82da-2fed308320a0",
       "projectId": "test-project",
-      "classId": "class-animation-child-track",
+      "classId": "system_8dc78ecf-15b8-4b8a-86f3-7691a5b487d0",
       "argumentTypes": [
         {
           "name": "selector",
@@ -4719,7 +4706,7 @@
           "returnTypeInfo": {
             "type": 7,
             "required": true,
-            "classId": "class-animation-object-base"
+            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
           },
           "argumentTypes": []
         },
@@ -4746,7 +4733,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "classId": "class-animation-child-track"
+              "classId": "system_8dc78ecf-15b8-4b8a-86f3-7691a5b487d0"
             },
             "pointer": {
               "type": "value",
@@ -4754,7 +4741,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "classId": "class-animation-child-track"
+                  "classId": "system_8dc78ecf-15b8-4b8a-86f3-7691a5b487d0"
                 },
                 "value": null
               }
@@ -4787,7 +4774,7 @@
               "returnTypeInfo": {
                 "type": 7,
                 "required": true,
-                "classId": "class-animation-object-base"
+                "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
               },
               "argumentTypes": []
             },
@@ -4800,7 +4787,7 @@
                   "returnTypeInfo": {
                     "type": 7,
                     "required": true,
-                    "classId": "class-animation-object-base"
+                    "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
                   },
                   "argumentTypes": []
                 },
@@ -4880,7 +4867,7 @@
                 "returnTypeInfo": {
                   "type": 7,
                   "required": true,
-                  "classId": "class-animation-object-base"
+                  "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
                 },
                 "argumentTypes": []
               },
@@ -4893,7 +4880,7 @@
                     "returnTypeInfo": {
                       "type": 7,
                       "required": true,
-                      "classId": "class-animation-object-base"
+                      "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
                     },
                     "argumentTypes": []
                   },
@@ -4934,7 +4921,7 @@
             "returnTypeInfo": {
               "type": 7,
               "required": true,
-              "classId": "class-animation-object-base"
+              "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
             },
             "argumentTypes": []
           }
@@ -4944,7 +4931,7 @@
     "system_1e7f8826-5392-5b4c-8cc3-6052d20e5280": {
       "id": "system_1e7f8826-5392-5b4c-8cc3-6052d20e5280",
       "projectId": "test-project",
-      "classId": "class-animation-segment-track",
+      "classId": "system_fd551dd8-6e6b-4044-9f32-7445ab344200",
       "argumentTypes": [
         {
           "name": "selector",
@@ -4953,7 +4940,7 @@
           "returnTypeInfo": {
             "type": 21,
             "required": true,
-            "ownerClassId": "class-animation-segment-track",
+            "ownerClassId": "system_fd551dd8-6e6b-4044-9f32-7445ab344200",
             "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
           },
           "argumentTypes": []
@@ -4976,7 +4963,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "classId": "class-animation-segment-track"
+              "classId": "system_fd551dd8-6e6b-4044-9f32-7445ab344200"
             },
             "pointer": {
               "type": "value",
@@ -4984,7 +4971,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "classId": "class-animation-segment-track"
+                  "classId": "system_fd551dd8-6e6b-4044-9f32-7445ab344200"
                 },
                 "value": null
               }
@@ -5017,7 +5004,7 @@
               "returnTypeInfo": {
                 "type": 21,
                 "required": true,
-                "ownerClassId": "class-animation-segment-track",
+                "ownerClassId": "system_fd551dd8-6e6b-4044-9f32-7445ab344200",
                 "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
               },
               "argumentTypes": []
@@ -5031,7 +5018,7 @@
                   "returnTypeInfo": {
                     "type": 21,
                     "required": true,
-                    "ownerClassId": "class-animation-segment-track",
+                    "ownerClassId": "system_fd551dd8-6e6b-4044-9f32-7445ab344200",
                     "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
                   },
                   "argumentTypes": []
@@ -5095,7 +5082,7 @@
                 "returnTypeInfo": {
                   "type": 21,
                   "required": true,
-                  "ownerClassId": "class-animation-segment-track",
+                  "ownerClassId": "system_fd551dd8-6e6b-4044-9f32-7445ab344200",
                   "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
                 },
                 "argumentTypes": []
@@ -5109,7 +5096,7 @@
                     "returnTypeInfo": {
                       "type": 21,
                       "required": true,
-                      "ownerClassId": "class-animation-segment-track",
+                      "ownerClassId": "system_fd551dd8-6e6b-4044-9f32-7445ab344200",
                       "genericParamId": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655"
                     },
                     "argumentTypes": []
@@ -5134,7 +5121,7 @@
             "returnTypeInfo": {
               "type": 7,
               "required": true,
-              "classId": "class-animation-object-base"
+              "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
             },
             "argumentTypes": []
           }
@@ -5144,7 +5131,7 @@
     "system_9a3f52ca-872a-50a5-aad9-e9a040f40802": {
       "id": "system_9a3f52ca-872a-50a5-aad9-e9a040f40802",
       "projectId": "test-project",
-      "classId": "class-sprite-animation-segment-track",
+      "classId": "system_24b70585-0798-49ad-b650-4c118bac1eb1",
       "argumentTypes": [
         {
           "name": "selector",
@@ -5153,7 +5140,7 @@
           "returnTypeInfo": {
             "type": 21,
             "required": true,
-            "ownerClassId": "class-sprite-animation-segment-track",
+            "ownerClassId": "system_24b70585-0798-49ad-b650-4c118bac1eb1",
             "genericParamId": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
           },
           "argumentTypes": []
@@ -5176,7 +5163,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "classId": "class-sprite-animation-segment-track"
+              "classId": "system_24b70585-0798-49ad-b650-4c118bac1eb1"
             },
             "pointer": {
               "type": "value",
@@ -5184,7 +5171,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "classId": "class-sprite-animation-segment-track"
+                  "classId": "system_24b70585-0798-49ad-b650-4c118bac1eb1"
                 },
                 "value": null
               }
@@ -5217,7 +5204,7 @@
               "returnTypeInfo": {
                 "type": 21,
                 "required": true,
-                "ownerClassId": "class-sprite-animation-segment-track",
+                "ownerClassId": "system_24b70585-0798-49ad-b650-4c118bac1eb1",
                 "genericParamId": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
               },
               "argumentTypes": []
@@ -5231,7 +5218,7 @@
                   "returnTypeInfo": {
                     "type": 21,
                     "required": true,
-                    "ownerClassId": "class-sprite-animation-segment-track",
+                    "ownerClassId": "system_24b70585-0798-49ad-b650-4c118bac1eb1",
                     "genericParamId": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
                   },
                   "argumentTypes": []
@@ -5295,7 +5282,7 @@
                 "returnTypeInfo": {
                   "type": 21,
                   "required": true,
-                  "ownerClassId": "class-sprite-animation-segment-track",
+                  "ownerClassId": "system_24b70585-0798-49ad-b650-4c118bac1eb1",
                   "genericParamId": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
                 },
                 "argumentTypes": []
@@ -5309,7 +5296,7 @@
                     "returnTypeInfo": {
                       "type": 21,
                       "required": true,
-                      "ownerClassId": "class-sprite-animation-segment-track",
+                      "ownerClassId": "system_24b70585-0798-49ad-b650-4c118bac1eb1",
                       "genericParamId": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
                     },
                     "argumentTypes": []
@@ -5334,7 +5321,7 @@
             "returnTypeInfo": {
               "type": 21,
               "required": true,
-              "ownerClassId": "class-sprite-animation-segment-track",
+              "ownerClassId": "system_24b70585-0798-49ad-b650-4c118bac1eb1",
               "genericParamId": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
             },
             "argumentTypes": []
@@ -5730,7 +5717,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "classId": "class-animation-frame"
+      "classId": "system_ba921c72-e4b2-47f9-861f-f30ac1156965"
     },
     "value-animation-frame-index": {
       "id": "value-animation-frame-index",
@@ -7423,8 +7410,5 @@
   },
   "files": {},
   "textureTemplates": {},
-  "audioClipTemplates": {},
-  "localizationConfig": null,
-  "localizationStatuses": {},
-  "localizedTexts": {}
+  "audioClipTemplates": {}
 }

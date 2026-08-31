@@ -866,7 +866,7 @@ namespace NeoCompose.Runtime
         private static readonly string[] TilesKeyCandidates = { "Tiles" };
         private static readonly string[] ObjectsKeyCandidates = { "Objects" };
         private static readonly string[] CellKeyCandidates = { "Cell", "Position" };
-        private static readonly string[] LinkTilePositionKeyCandidates = { "Position", "offset", "Cell" };
+        private static readonly string[] LinkTilePositionKeyCandidates = { "Position", "Offset", "Cell" };
         private static readonly string[] OrderKeyCandidates = { "Order" };
         private static readonly string[] PositionKeyCandidates = { "Position" };
         private static readonly string[] PlacementTilesKeyCandidates = { "PlacementTiles" };

@@ -13,6 +13,11 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 30 removes localization authoring records from <c>project.json</c>.
+        /// Runtime locale metadata remains in the compact <c>localization</c>
+        /// manifest and locale contents continue to ship as separate files.
+        /// The exact-version gate distinguishes that wire contract from 29.
+        ///
         /// 29 replaces project-record booleans and persisted string unions
         /// with append-only numeric enums. Older SDKs would ignore the new
         /// fields and silently treat abstract, static, read-only, required,
@@ -68,7 +73,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 29;
+        public const int CurrentSchemaVersion = 30;
 
         internal static string? GetSchemaVersionError(ProjectExportMetadata? metadata)
         {

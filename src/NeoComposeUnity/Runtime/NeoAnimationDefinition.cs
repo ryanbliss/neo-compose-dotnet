@@ -17,6 +17,9 @@ namespace NeoCompose.Runtime
         private readonly IReadOnlyDictionary<int, Action[]> actions;
         private readonly Action[] prepareActions;
         private readonly IDisposable[] disposables;
+        private readonly HashSet<string> activePlaybackStack;
+        private readonly string playbackKey;
+        private readonly string playbackCycleLabel;
         private bool disposed;
 
         internal NeoAnimationDefinition(
@@ -26,7 +29,10 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> resolvedWrites,
             IReadOnlyDictionary<int, Action[]> actions,
             Action[] prepareActions,
-            IDisposable[] disposables)
+            IDisposable[] disposables,
+            HashSet<string> activePlaybackStack,
+            string playbackKey,
+            string playbackCycleLabel)
         {
             FPS = fps;
             Duration = duration;
@@ -35,6 +41,9 @@ namespace NeoCompose.Runtime
             this.actions = actions;
             this.prepareActions = prepareActions;
             this.disposables = disposables;
+            this.activePlaybackStack = activePlaybackStack;
+            this.playbackKey = playbackKey;
+            this.playbackCycleLabel = playbackCycleLabel;
         }
 
         internal int FPS { get; }
@@ -68,15 +77,27 @@ namespace NeoCompose.Runtime
 
         internal void ApplyFrame(int frameIndex, bool useResolvedState)
         {
-            IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> source =
-                useResolvedState ? resolvedWrites : sparseWrites;
-            if (source.TryGetValue(frameIndex, out NeoAnimationCompiledWrite[] writes))
+            if (!activePlaybackStack.Add(playbackKey))
             {
-                foreach (NeoAnimationCompiledWrite write in writes) write.Apply();
+                throw new InvalidOperationException(
+                    $"Animation child-track cycle reaches {playbackCycleLabel}.");
             }
-            if (actions.TryGetValue(frameIndex, out Action[] frameActions))
+            try
             {
-                foreach (Action action in frameActions) action();
+                IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> source =
+                    useResolvedState ? resolvedWrites : sparseWrites;
+                if (source.TryGetValue(frameIndex, out NeoAnimationCompiledWrite[] writes))
+                {
+                    foreach (NeoAnimationCompiledWrite write in writes) write.Apply();
+                }
+                if (actions.TryGetValue(frameIndex, out Action[] frameActions))
+                {
+                    foreach (Action action in frameActions) action();
+                }
+            }
+            finally
+            {
+                activePlaybackStack.Remove(playbackKey);
             }
         }
 
@@ -1581,23 +1602,8 @@ namespace NeoCompose.Runtime
                     $"Animation clip '{clipKey}' track row '{track.value?.id ?? "<unmaterialized>"}' has class '{TrackClassName(client, track)}', which is neither a child clip track nor a segment track.");
             }
 
-            ValidateSelector(track, label);
-            NeoSchemaClass? legacyChildClass = null;
-            if (!track.TryGet("Selector", out NeoMemberDelegate? _))
-            {
-                string legacyChildId = ReadRequiredLookupId(
-                    track,
-                    "Child",
-                    clipKey,
-                    frameIndex: null);
-                if (client.ResolveValueRow(legacyChildId) is not ObjectMemberValue child
-                    || string.IsNullOrWhiteSpace(child.classId)
-                    || !client.TryGetClass(child.classId!, out legacyChildClass))
-                {
-                    throw new InvalidOperationException(
-                        $"{label} references missing child '{legacyChildId}'.");
-                }
-            }
+            _ = ValidateSelector(track, label);
+            ReadSelectorRefresh(track, label);
 
             int startFrame = ReadRequiredInt(track, "StartFrame", clipKey);
             if (startFrame < 0)
@@ -1615,7 +1621,7 @@ namespace NeoCompose.Runtime
 
             if (kind == NeoAnimationTrackKind.Segment)
             {
-                ValidateExportSegmentTrack(client, track, legacyChildClass, label);
+                ValidateExportSegmentTrack(client, track, childClass: null, label);
                 return;
             }
 
@@ -2066,13 +2072,18 @@ namespace NeoCompose.Runtime
             string schemaKey)
             where T : NeoGeneratedClassValue
         {
-            return Compile(target, schemaKey, new HashSet<string>(StringComparer.Ordinal));
+            return Compile(
+                target,
+                schemaKey,
+                new HashSet<string>(StringComparer.Ordinal),
+                new HashSet<string>(StringComparer.Ordinal));
         }
 
         private static NeoAnimationDefinition Compile(
             NeoGeneratedClassValue target,
             string schemaKey,
-            HashSet<string> compileStack)
+            HashSet<string> compileStack,
+            HashSet<string> activePlaybackStack)
         {
             if (target is null) throw new ArgumentNullException(nameof(target));
             if (string.IsNullOrWhiteSpace(schemaKey))
@@ -2186,7 +2197,8 @@ namespace NeoCompose.Runtime
                             prepareActions,
                             disposables,
                             schemaKey,
-                            compileStack);
+                            compileStack,
+                            activePlaybackStack);
                     }
                 }
                 catch
@@ -2210,7 +2222,10 @@ namespace NeoCompose.Runtime
                     resolved,
                     actionsByIndex,
                     prepareActions.ToArray(),
-                    disposables.ToArray());
+                    disposables.ToArray(),
+                    activePlaybackStack,
+                    compileKey,
+                    $"clip '{schemaKey}' on value '{target.valueId ?? target.classId}'");
             }
             finally
             {
@@ -2453,67 +2468,29 @@ namespace NeoCompose.Runtime
         private sealed class NeoAnimationSelector
         {
             private readonly NeoGeneratedClassValue target;
-            private readonly NeoMemberDelegate? selector;
+            private readonly NeoMemberDelegate selector;
             private readonly string label;
-            private readonly string clipKey;
-            private readonly string usage;
-            private readonly string? legacySourceChildId;
             private NeoMemberClass? cached;
             private bool hasResolved;
 
             internal NeoAnimationSelector(
                 NeoGeneratedClassValue target,
                 NeoMemberClass selectorOwner,
-                string label,
-                string clipKey,
-                string usage)
+                string label)
             {
                 this.target = target;
                 this.label = label;
-                this.clipKey = clipKey;
-                this.usage = usage;
-                ValidateSelector(selectorOwner, label);
-                if (selectorOwner.TryGet(
-                        "Selector",
-                        out NeoMemberDelegate? delegateSelector))
-                {
-                    selector = delegateSelector;
-                }
-                else
-                {
-                    legacySourceChildId = ReadRequiredLegacyChildId(
-                        selectorOwner,
-                        label);
-                }
+                selector = ValidateSelector(selectorOwner, label);
                 Refresh = ReadSelectorRefresh(selectorOwner, label);
             }
 
             internal NeoSelectorRefreshKind Refresh { get; }
-            internal bool IsLegacy => legacySourceChildId is not null;
 
             internal NeoMemberClass Resolve()
             {
-                NeoMemberClass? selected = ResolveOptional();
-                return selected ?? throw new InvalidOperationException(
-                    $"{label} selector did not resolve a child in the animation owner's Children graph.");
-            }
-
-            internal NeoMemberClass? ResolveOptional()
-            {
                 if (Refresh == NeoSelectorRefreshKind.OnLoad && hasResolved)
                 {
-                    return cached;
-                }
-                if (legacySourceChildId is not null)
-                {
-                    cached = ResolvePlacedChild(
-                        target.Client,
-                        target.BackingNode,
-                        legacySourceChildId,
-                        clipKey,
-                        usage);
-                    hasResolved = true;
-                    return cached;
+                    return cached!;
                 }
                 if (string.IsNullOrWhiteSpace(target.valueId))
                 {
@@ -2523,7 +2500,7 @@ namespace NeoCompose.Runtime
                 try
                 {
                     NeoConstructorValueReference? selected =
-                        selector!.InvokeValueReference(
+                        selector.InvokeValueReference(
                             target.valueId!,
                             target.ValueOwnership);
                     if (!selected.HasValue)
@@ -2611,17 +2588,11 @@ namespace NeoCompose.Runtime
                 var selector = new NeoAnimationSelector(
                     target,
                     childOverride,
-                    label,
-                    clipKey,
-                    $"frame {frameIndex} child override");
+                    label);
                 if (selector.Refresh == NeoSelectorRefreshKind.OnLoad
                     || resolveSelectorsImmediately)
                 {
-                    NeoMemberClass? placedChild =
-                        selector.Refresh == NeoSelectorRefreshKind.OnLoad
-                            ? selector.ResolveOptional()
-                            : selector.Resolve();
-                    if (placedChild is null) continue;
+                    NeoMemberClass placedChild = selector.Resolve();
                     FlattenOverrides(
                         target.Client,
                         placedChild,
@@ -2658,7 +2629,7 @@ namespace NeoCompose.Runtime
         /// P48 §2.2 / §4 — <c>NeoAnimationClip.Tracks</c> holds
         /// <c>NeoAnimationTrackBase</c> rows, so a row's kind is a property of
         /// the row rather than of the list. Everything the base declares
-        /// (<c>Child</c>, <c>StartFrame</c>, <c>Direction</c>, the crop window)
+        /// (<c>Selector</c>, <c>StartFrame</c>, <c>Direction</c>, the crop window)
         /// is read once here; the per-kind compiles below see an already-read
         /// schedule.
         ///
@@ -2681,7 +2652,8 @@ namespace NeoCompose.Runtime
             List<Action> prepareActions,
             List<IDisposable> disposables,
             string clipKey,
-            HashSet<string> compileStack)
+            HashSet<string> compileStack,
+            HashSet<string> activePlaybackStack)
         {
             foreach (NeoMember item in tracks)
             {
@@ -2699,27 +2671,13 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Animation clip '{clipKey}' track row '{track.value?.id ?? "<unmaterialized>"}' is neither a child clip track nor a segment track.");
                 }
-                // Read before the absent-slot skip below so the P44 warning
-                // still names the clip a child track was going to play; a
-                // child-track row that cannot state its ClipKey is malformed
-                // whether or not the slot exists.
                 string? childClipKey = kind == NeoAnimationTrackKind.ChildClip
                     ? ReadRequiredString(track, "ClipKey", clipKey)
                     : null;
-                string usage = kind == NeoAnimationTrackKind.Segment
-                    ? $"segment track '{track.value?.id ?? "<unmaterialized>"}'"
-                    : $"child track '{childClipKey}'";
                 var selector = new NeoAnimationSelector(
                     target,
                     track,
-                    label,
-                    clipKey,
-                    usage);
-                if (selector.IsLegacy && selector.ResolveOptional() is null)
-                {
-                    continue;
-                }
-
+                    label);
                 int startFrame = ReadRequiredInt(track, "StartFrame", clipKey);
                 if (startFrame < 0)
                 {
@@ -2765,7 +2723,8 @@ namespace NeoCompose.Runtime
                     prepareActions,
                     disposables,
                     label,
-                    compileStack);
+                    compileStack,
+                    activePlaybackStack);
             }
         }
 
@@ -2798,13 +2757,15 @@ namespace NeoCompose.Runtime
             List<Action> prepareActions,
             List<IDisposable> disposables,
             string label,
-            HashSet<string> compileStack)
+            HashSet<string> compileStack,
+            HashSet<string> activePlaybackStack)
         {
             var selectedDefinitions = new NeoSelectedChildClipDefinitions(
                 target,
                 childClipKey,
                 label,
-                compileStack);
+                compileStack,
+                activePlaybackStack);
             disposables.Add(selectedDefinitions);
             prepareActions.Add(selectedDefinitions.PreparePlayback);
             if (selector.Refresh == NeoSelectorRefreshKind.OnLoad)
@@ -2844,11 +2805,9 @@ namespace NeoCompose.Runtime
                             direction,
                             window);
                         if (childFrame == NeoAnimationPlayback.WritesNothing) return;
-                        // Dedupe when the parent's clock outruns the child's:
-                        // re-applying an unchanged child frame writes the same
-                        // rows again for nothing.
-                        if (childFrame == selected.LastAppliedFrame) return;
-                        selected.LastAppliedFrame = childFrame;
+                        // Re-apply even when the child frame is unchanged.
+                        // Earlier tracks may need to restore their selected
+                        // child after a later PerFrame selector moved away.
                         childDefinition.ApplyFrame(
                             childFrame,
                             useResolvedState: true);
@@ -2864,7 +2823,6 @@ namespace NeoCompose.Runtime
             }
 
             internal NeoAnimationDefinition Definition { get; }
-            internal int LastAppliedFrame { get; set; } = -1;
         }
 
         private sealed class NeoSelectedChildClipDefinitions : IDisposable
@@ -2873,6 +2831,7 @@ namespace NeoCompose.Runtime
             private readonly string childClipKey;
             private readonly string label;
             private readonly HashSet<string> compileStack;
+            private readonly HashSet<string> activePlaybackStack;
             private readonly Dictionary<string, NeoSelectedChildClip> byChildId =
                 new Dictionary<string, NeoSelectedChildClip>(StringComparer.Ordinal);
             private bool playbackPrepared;
@@ -2881,12 +2840,14 @@ namespace NeoCompose.Runtime
                 NeoGeneratedClassValue target,
                 string childClipKey,
                 string label,
-                HashSet<string> compileStack)
+                HashSet<string> compileStack,
+                HashSet<string> activePlaybackStack)
             {
                 this.target = target;
                 this.childClipKey = childClipKey;
                 this.label = label;
                 this.compileStack = compileStack;
+                this.activePlaybackStack = activePlaybackStack;
             }
 
             internal NeoSelectedChildClip GetOrCreate(NeoMemberClass placedChild)
@@ -2908,7 +2869,8 @@ namespace NeoCompose.Runtime
                 NeoAnimationDefinition definition = Compile(
                     childTarget,
                     childClipKey,
-                    compileStack);
+                    compileStack,
+                    activePlaybackStack);
                 var created = new NeoSelectedChildClip(definition);
                 byChildId[childValueId] = created;
                 if (playbackPrepared) definition.PreparePlayback();
@@ -2920,7 +2882,6 @@ namespace NeoCompose.Runtime
                 playbackPrepared = true;
                 foreach (NeoSelectedChildClip selected in byChildId.Values)
                 {
-                    selected.LastAppliedFrame = -1;
                     selected.Definition.PreparePlayback();
                 }
             }
@@ -3058,147 +3019,18 @@ namespace NeoCompose.Runtime
                 $"{label} targets member '{targetMemberId}', which the played child's class '{childClassId}' does not declare.");
         }
 
-        /// <summary>
-        /// Resolves the placed <c>Children</c> row an authored clip reference
-        /// names, matching on <c>sourceValueId</c> exactly — name and index
-        /// matching are deliberately unsupported.
-        /// </summary>
-        /// <returns>
-        /// The matching row, or <c>null</c> when no row matches and at least one
-        /// row carries provenance. A null return means the reference is for a
-        /// slot this instance does not have — an optional slot on a subclass
-        /// that trimmed its <c>Children</c> — and the caller skips that one
-        /// reference. Ambiguous matches still throw, and so does a node on which
-        /// NO row carries provenance, because those are data errors rather than
-        /// absent slots.
-        /// </returns>
-        private static NeoMemberClass? ResolvePlacedChild(
-            NeoClient client,
-            NeoMemberClass target,
-            string sourceChildId,
-            string clipKey,
-            string usage)
-        {
-            if (!target.TryGet("Children", out NeoMemberList? children))
-            {
-                throw MissingPlacementGraph(clipKey, usage);
-            }
-            NeoMemberClass? match = null;
-            bool hasChildWithoutProvenance = false;
-            bool hasChildWithProvenance = false;
-            foreach (NeoMember child in children)
-            {
-                if (child is not NeoMemberClass childClass) continue;
-                if (string.IsNullOrWhiteSpace(childClass.value?.sourceValueId))
-                {
-                    hasChildWithoutProvenance = true;
-                    continue;
-                }
-                hasChildWithProvenance = true;
-                if (!string.Equals(
-                        childClass.value?.sourceValueId,
-                        sourceChildId,
-                        StringComparison.Ordinal))
-                {
-                    continue;
-                }
-                if (match is not null)
-                {
-                    throw new InvalidOperationException(
-                        $"Animation clip '{clipKey}' {usage} source child '{sourceChildId}' maps to multiple placed Children rows.");
-                }
-                match = childClass;
-            }
-            if (match is null)
-            {
-                // Only a node where NOT ONE row carries provenance is legacy
-                // data. A mixed node is a normal P44 steady state — explicitly
-                // authored rows carry no stamp, and the backfill leaves rows it
-                // cannot structurally correspond unstamped — so it falls
-                // through to the absent-slot skip below rather than failing the
-                // whole clip with a migration message that would be untrue.
-                if (hasChildWithoutProvenance && !hasChildWithProvenance)
-                {
-                    throw new InvalidOperationException(
-                        $"Animation clip '{clipKey}' {usage} cannot run on legacy pre-0.7 placement '{target.value?.id ?? "<unmaterialized>"}': none of its Children rows carry sourceValueId placement-clone provenance. Migrate or recreate the persisted placement; re-exporting alone cannot upgrade saved placement rows.");
-                }
-                // Not a data error: the slot is simply absent on this instance.
-                // Logged here, at compile time, so a clip looping at 8 FPS
-                // reports once per reference rather than once per tick — and
-                // deduped on the client, because the clip cache would otherwise
-                // make it once per *instance* (fifty placements missing the same
-                // slot, fifty warnings) and a nested child clip's compile
-                // bypasses that cache entirely.
-                if (client.ShouldReportAnimationChildSkip(clipKey, sourceChildId))
-                {
-                    UnityEngine.Debug.LogWarning(
-                        $"Animation clip '{clipKey}' {usage} skipped: no placed Children row on placement '{target.value?.id ?? "<unmaterialized>"}' carries sourceValueId '{sourceChildId}'. The rest of the clip still plays.");
-                }
-                return null;
-            }
-            return match;
-        }
-
-        private static string ReadRequiredLookupId(
-            NeoMemberClass node,
-            string key,
-            string clipKey,
-            int? frameIndex)
-        {
-            string[]? selected = node.TryGet(key, out NeoMemberLookup? lookup)
-                ? lookup.value?.value
-                : null;
-            if (selected is null
-                || selected.Length != 1
-                || string.IsNullOrWhiteSpace(selected[0]))
-            {
-                string frame = frameIndex.HasValue ? $" frame {frameIndex.Value}" : "";
-                throw new InvalidOperationException(
-                    $"Animation clip '{clipKey}'{frame} requires '{key}' to select exactly one authored child entry.");
-            }
-            return selected[0];
-        }
-
-        private static void ValidateSelector(
+        private static NeoMemberDelegate ValidateSelector(
             NeoMemberClass node,
             string label)
         {
-            if (node.TryGet("Selector", out NeoMemberDelegate? selector))
-            {
-                if (selector.value?.value is null
-                    && selector.member.defaultValue?.value is null)
-                {
-                    throw new InvalidOperationException(
-                        $"{label} must carry a valid NeoDelegate Selector.");
-                }
-                ReadSelectorRefresh(node, label);
-                return;
-            }
-            // Transitional support for pre-P60 test/export fixtures. Dev and
-            // production data are migrated before revision 7 ships, but an SDK
-            // update must remain able to open an older local export long enough
-            // for the migration tooling to replace Child with Selector.
-            if (!node.TryGet("Child", out NeoMemberLookup? legacyChild)
-                || legacyChild.value?.value is not { Length: 1 }
-                || string.IsNullOrWhiteSpace(legacyChild.value.value[0]))
+            if (!node.TryGet("Selector", out NeoMemberDelegate? selector)
+                || (selector.value?.value is null
+                    && selector.member.defaultValue?.value is null))
             {
                 throw new InvalidOperationException(
                     $"{label} must carry a valid NeoDelegate Selector.");
             }
-        }
-
-        private static string ReadRequiredLegacyChildId(
-            NeoMemberClass node,
-            string label)
-        {
-            if (!node.TryGet("Child", out NeoMemberLookup? child)
-                || child.value?.value is not { Length: 1 }
-                || string.IsNullOrWhiteSpace(child.value.value[0]))
-            {
-                throw new InvalidOperationException(
-                    $"{label} legacy Child must select exactly one authored child entry.");
-            }
-            return child.value.value[0];
+            return selector;
         }
 
         private static NeoSelectorRefreshKind ReadSelectorRefresh(
@@ -3752,12 +3584,5 @@ namespace NeoCompose.Runtime
             return result;
         }
 
-        private static InvalidOperationException MissingPlacementGraph(
-            string clipKey,
-            string feature)
-        {
-            return new InvalidOperationException(
-                $"Animation clip '{clipKey}' uses {feature}, but this export does not materialize a per-placement object graph with durable authored-child provenance. Re-export after the placement graph contract is available.");
-        }
     }
 }
