@@ -67,6 +67,19 @@ namespace NeoCompose.Runtime.Json
         [JsonProperty("storage", NullValueHandling = NullValueHandling.Ignore)]
         private NeoMemberStorage? storage;
         /// <summary>
+        /// P76 §1 — how this member's materialized value is distributed across
+        /// storage rows. Absence is the canonical <i>automatic</i> state: it
+        /// inherits through the override chain and, when the whole chain is
+        /// absent, resolves from the effective concrete kind and settings
+        /// (<see cref="NeoSubtreeDistribution"/>). It is NOT a synonym for
+        /// <see cref="NeoSubtreeDistributionKind.Sparse"/>, so absence must
+        /// survive the wire: the field serializes only when present, and an
+        /// explicit ordinal zero stays distinguishable from having said
+        /// nothing.
+        /// </summary>
+        [JsonProperty("distribution", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoSubtreeDistributionKind? distribution;
+        /// <summary>
         /// Storage-partition declaration
         /// (specs/list-member-and-tilegrid-scaling.md §6): values created
         /// under this member are stamped with the resolved partition key
@@ -270,6 +283,77 @@ namespace NeoCompose.Runtime.Json
             set => DeclaredStorage = value;
         }
 
+        /// <summary>
+        /// P76 §1 — the <b>effective</b> subtree distribution: the nearest
+        /// explicit setting on the resolved member chain, else the automatic
+        /// result for this member's concrete kind and settings.
+        ///
+        /// <para>Nullable, and never defaulted: <c>null</c> means the kind owns
+        /// no stored value at all (NSProperty, Function, Interface,
+        /// NSFunction), or the member is an unsubstituted
+        /// <see cref="MemberKind.Generic"/> slot — an open slot genuinely has
+        /// no distribution until it is closed
+        /// (<see cref="NeoGenericResolution.SubstituteMember"/> supplies the
+        /// binding). Reading it as <c>?? Sparse</c> would claim every scalar
+        /// keeps an independent row, which is the opposite of what the table
+        /// says.</para>
+        ///
+        /// <para>Assigning writes the DECLARED field, exactly like
+        /// <see cref="Storage"/>: the automatic result is derived on every
+        /// read and is never persisted back onto the record.</para>
+        /// </summary>
+        [JsonIgnore]
+        public NeoSubtreeDistributionKind? Distribution
+        {
+            get
+            {
+                NeoSubtreeDistributionKind? declared = ChainDeclaredDistribution;
+                if (declared is not null) return declared;
+                if (kind == MemberKind.Generic) return null;
+                return NeoSubtreeDistribution
+                    .Automatic(kind, DistributionFormat, DistributionSelection)
+                    .Distribution;
+            }
+            set => DeclaredDistribution = value;
+        }
+
+        /// <summary>
+        /// The nearest EXPLICIT <c>distribution</c> on this member's resolved
+        /// chain, or null when the whole chain is absent. Distinct from
+        /// <see cref="Distribution"/>, which folds absence into the automatic
+        /// result — this one is what a writer or a generic substitution must
+        /// carry forward, because propagating an automatic result would freeze
+        /// a derived answer into a record.
+        /// </summary>
+        [JsonIgnore]
+        internal NeoSubtreeDistributionKind? ChainDeclaredDistribution =>
+            distribution ?? resolvedShape?.Distribution;
+
+        /// <summary>
+        /// The §1 table's <c>String</c> condition, read through the concrete
+        /// member so an inherited format decides exactly as an own declaration
+        /// would. Absent means Localized, which is why every non-String kind
+        /// answers Localized here — the table only consults it for String.
+        /// </summary>
+        [JsonIgnore]
+        private NeoStringFormatKind DistributionFormat =>
+            this is StringMember stringMember
+                ? stringMember.Format
+                : NeoStringFormatKind.Localized;
+
+        /// <summary>
+        /// The §1 table's selection-cardinality condition. Absent means Single;
+        /// the table consults it only for Lookup and DialogueLookup.
+        /// </summary>
+        [JsonIgnore]
+        private NeoMemberSelectionKind DistributionSelection => this switch
+        {
+            EnumMember enumMember => enumMember.Selection,
+            LookupMember lookupMember => lookupMember.Selection,
+            DialogueLookupMember dialogueMember => dialogueMember.Selection,
+            _ => NeoMemberSelectionKind.Single,
+        };
+
         [JsonIgnore]
         internal NeoMemberRequirementKind? DeclaredRequirement
         {
@@ -321,6 +405,17 @@ namespace NeoCompose.Runtime.Json
             set
             {
                 storage = value;
+                resolvedShape = null;
+            }
+        }
+
+        [JsonIgnore]
+        internal NeoSubtreeDistributionKind? DeclaredDistribution
+        {
+            get => distribution;
+            set
+            {
+                distribution = value;
                 resolvedShape = null;
             }
         }

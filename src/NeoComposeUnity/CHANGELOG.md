@@ -2,6 +2,38 @@
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-08-31
+
+### Added
+
+- Read P76 packed subtree storage. A member value whose owning member resolves
+  to `.Packed` no longer ships as its own entry in `values`: it rides inside
+  its parent row's stored content as a `{"~packed": {…}}` envelope at the
+  position that previously held its child-id string. The reader expands that
+  physical row set into the logical one once, where the row set is assembled,
+  so `TryGetValue`, generated class members, lists, dictionaries, ownership
+  walks, and the evaluator see exactly the rows a `.Sparse` export would have
+  produced. A packed child keeps its required logical `id`, its provenance,
+  and its own timestamps; the envelope omits the id only at positions whose
+  identity the child derives, and a stored copy of a derivable id is rejected
+  as corrupt rather than trusted.
+- `NeoSubtreeDistributionKind` and the `NeoSubtreeDistribution` automatic
+  table, mirroring the web's single decision point for where an unset member's
+  value lives. `Member.Distribution` resolves the nearest explicit setting on
+  the member chain and falls back to that table. **Absence is the automatic
+  state, not `Sparse`** — it survives serialization, inherits through
+  overrides, and follows the closed binding for a substituted generic slot.
+
+### Changed
+
+- **Breaking:** require project export schema 31. An SDK at 30 has no reader
+  for a packed envelope and would treat the child position as malformed or
+  simply absent, silently dropping the entire subtree beneath it — an
+  animation frame's `Index` and `Value`, an object's `Position` and `Sprite` —
+  and rendering it as missing content rather than as a load error. The
+  exact-match gate turns that silent data loss into a refusal, so a schema-30
+  export is now rejected before anything is constructed.
+
 ## [0.31.0] - 2026-08-30
 
 ### Changed

@@ -1110,6 +1110,11 @@ namespace NeoCompose.Runtime.Json
             PartialLeafPositionGuard.RejectDefaultCarrier(
                 obj,
                 "A member declaration default");
+            // P76 §5 — same position rule, same reason: a declaration default
+            // owns no value row, so nothing can be packed into it.
+            PackedValuePositionGuard.RejectDefaultCarrier(
+                obj,
+                "A member declaration default");
             InitializerVariantGuard.RejectConflictingVariant(
                 obj,
                 "A member declaration default");
@@ -1506,6 +1511,12 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null) return null;
             var obj = JObject.Load(reader);
+            // P76 §5 — every row set expands once, where it is assembled
+            // (ProjectDataConverter). By the time a row reaches here it is
+            // logical, so a surviving envelope means the expansion boundary was
+            // bypassed. See PackedValuePositionGuard for why this must fail
+            // rather than fall through to shape dispatch.
+            PackedValuePositionGuard.RejectUnexpanded(obj, "A member value row");
             InitializerVariantGuard.RejectConflictingVariant(
                 obj,
                 "A member value row");
@@ -1550,6 +1561,11 @@ namespace NeoCompose.Runtime.Json
                 case JTokenType.Object:
                     // P42: the `~partial` envelope probe MUST come first —
                     // see MemberValueBaseConverter.ResolveByShape.
+                    //
+                    // P76 has no matching arm on purpose. A `~packed` envelope
+                    // is a CHILD occupying a position inside this row's body,
+                    // never this row's own value, so there is no packed row
+                    // type to resolve to. ReadJson rejects one by name above.
                     if (NeoPartialLeafValue.IsEnvelope(token)) return typeof(PartialLeafMemberValue);
                     if (NeoDelegateValueConverter.LooksLikeValue(token)) return typeof(DelegateMemberValue);
                     if (NeoActionValueConverter.LooksLikeValue(token)) return typeof(ActionMemberValue);

@@ -13,6 +13,20 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 31 admits P76 packed subtree storage. The export ships the PHYSICAL
+        /// row set, so a packed parent carries <c>{"~packed": {…}}</c> at a
+        /// child position where every prior schema guaranteed a child-id
+        /// string, and that child has no entry of its own in <c>values</c>.
+        /// Members also gain the optional <c>distribution</c> setting, whose
+        /// ABSENCE means "resolve from the member's kind and settings" rather
+        /// than Sparse. An SDK at 30 would read the envelope as a malformed —
+        /// or simply absent — child and silently drop the whole subtree
+        /// beneath it: an animation frame's Index and Value, an object's
+        /// Position and Sprite. Nothing about that failure is loud; the packed
+        /// graph would render as missing content rather than as a load error.
+        /// The exact-version gate is what turns that silent data loss into a
+        /// refusal.
+        ///
         /// 30 removes localization authoring records from <c>project.json</c>.
         /// Runtime locale metadata remains in the compact <c>localization</c>
         /// manifest and locale contents continue to ship as separate files.
@@ -73,7 +87,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 30;
+        public const int CurrentSchemaVersion = 31;
 
         internal static string? GetSchemaVersionError(ProjectExportMetadata? metadata)
         {
@@ -431,6 +445,7 @@ namespace NeoCompose.Runtime.Json
             var obj = JObject.Load(reader);
             ValidateSchemaVersion(obj);
             RecordShapeContractGuard.ValidateProjectData(obj);
+            ExpandPackedValueRows(obj);
 
             var projectData = new ProjectData();
             using (var subReader = obj.CreateReader())
@@ -447,6 +462,47 @@ namespace NeoCompose.Runtime.Json
         {
             throw new NotImplementedException(
                 "ProjectDataConverter is read-only; default serialization handles writes.");
+        }
+
+        /// <summary>
+        /// P76 §5 — turn the export's PHYSICAL row set into the logical one,
+        /// once, before anything typed is built from it.
+        ///
+        /// <para>Schema 31 ships a packed child inside its owning parent's
+        /// stored content instead of as its own entry in <c>values</c>. This is
+        /// the SDK's single expansion boundary, so every downstream reader —
+        /// <c>NeoClient.TryGetValue</c>, member nodes, list and dictionary
+        /// entries, ownership walks, the evaluator — sees exactly the rows a
+        /// <c>.Sparse</c> corpus would have produced and none of them needs to
+        /// know packing exists.</para>
+        ///
+        /// <para>Storage partitions expand here too rather than at load time:
+        /// they stay raw <see cref="JToken"/>s so parsing does not materialize
+        /// them, and expanding the token in place means both
+        /// <c>LoadValuePartition</c> and the read-only authored-value context
+        /// read one already-logical partition without either of them
+        /// re-deriving it.</para>
+        /// </summary>
+        private static void ExpandPackedValueRows(JObject root)
+        {
+            if (root["values"] is JObject values)
+            {
+                JObject expanded = NeoPackedValue.Expand(
+                    values,
+                    "the export's values");
+                // Expansion returns its argument when nothing is packed, and
+                // reassigning a token to itself is not a no-op in Newtonsoft.
+                if (!ReferenceEquals(expanded, values)) root["values"] = expanded;
+            }
+            if (root["valuePartitions"] is not JObject partitions) return;
+            foreach (JProperty partition in partitions.Properties())
+            {
+                if (partition.Value is not JObject rows) continue;
+                JObject expanded = NeoPackedValue.Expand(
+                    rows,
+                    $"value partition '{partition.Name}'");
+                if (!ReferenceEquals(expanded, rows)) partition.Value = expanded;
+            }
         }
 
         private static void ValidateSchemaVersion(JObject root)
@@ -522,6 +578,8 @@ namespace NeoCompose.Runtime.Json
                 member, "access", "Member");
             StrictRecordShapeEnums.ValidateOptional<NeoMemberStorage>(
                 member, "storage", "Member");
+            StrictRecordShapeEnums.ValidateOptional<NeoSubtreeDistributionKind>(
+                member, "distribution", "Member");
             StrictRecordShapeEnums.ValidateOptional<NeoStringFormatKind>(
                 member, "format", "String member");
             StrictRecordShapeEnums.ValidateOptional<NeoMemberSearchByKind>(
