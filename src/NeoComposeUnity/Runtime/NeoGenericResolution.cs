@@ -651,6 +651,16 @@ namespace NeoCompose.Runtime
                 // arguments, not placements).
                 substituted.DeclaredStorage = generic.Storage;
                 substituted.storageKey = generic.storageKey;
+                // P76 §1.3 — distribution is slot-owned. An explicit setting
+                // on the slot's own chain wins; otherwise the slot stays
+                // absent and the automatic result reads the RESOLVED CONCRETE
+                // binding's kind and settings, which is what lets
+                // NeoAnimationSegmentFrame<T>.Value pack for a Sprite binding
+                // and stay sparse for a Plain String one. The binding
+                // declaration's own explicit distribution never carries over:
+                // it describes where that member's value lives at its own
+                // placement, not at this slot's.
+                substituted.DeclaredDistribution = generic.ChainDeclaredDistribution;
                 InitializerBody? declarationInitializer =
                     MemberValueFactory.InitializerOf(generic);
                 if (declarationInitializer is not null)

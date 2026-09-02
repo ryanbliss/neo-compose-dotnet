@@ -27,6 +27,22 @@ namespace NeoCompose.Runtime.Json
     public enum NeoMemberRequirementKind { Optional = 0, Required = 1 }
     public enum NeoMemberMutabilityKind { Mutable = 0, ReadOnly = 1 }
     public enum NeoMemberSelectionKind { Single = 0, Multi = 1 }
+    /// <summary>
+    /// How a member's materialized value is distributed across storage rows
+    /// (P76 §1). Mirrors the TS-side <c>NeoSubtreeDistributionKind</c> in
+    /// <c>src/models/members/member-subtree-distribution.ts</c>; the authored
+    /// <c>.neo</c> vocabulary is <c>NeoSubtreeDistribution</c>.
+    ///
+    /// <para><b>Absence is not zero.</b> A member with no <c>distribution</c>
+    /// field is in the canonical <i>automatic</i> state and resolves through
+    /// <see cref="NeoSubtreeDistribution.Automatic"/>, which answers
+    /// <see cref="Packed"/> for most fixed-shape kinds. Reading absence as
+    /// <see cref="Sparse"/> would silently claim every unset member keeps an
+    /// independent row, so no reader may write <c>distribution ?? Sparse</c>,
+    /// deserialize absence into the zero ordinal, or persist an automatic
+    /// result back onto a member record.</para>
+    /// </summary>
+    public enum NeoSubtreeDistributionKind { Sparse = 0, Packed = 1 }
     public enum NeoFunctionDispatchKind { Synchronous = 0, Asynchronous = 1 }
     public enum NeoFunctionBodyKind { Code = 0, UI = 1 }
     public enum NeoPropertyAccessorsKind { Get = 0, GetSet = 1 }
@@ -124,6 +140,16 @@ namespace NeoCompose.Runtime.Json
         internal NeoMemberSelectionKind Selection;
         internal NeoFunctionDispatchKind Dispatch;
         internal NeoFunctionBodyKind BodyMode;
+        /// <summary>
+        /// P76 §1 rule 1 — the nearest explicit <c>distribution</c> on the
+        /// effective member chain. Nullable on purpose, and the only enum axis
+        /// here that is: every other axis has a canonical default the chain
+        /// bottoms out in, while an absent distribution resolves from the
+        /// member's own kind and settings instead. Collapsing it to
+        /// <see cref="NeoSubtreeDistributionKind.Sparse"/> at this layer would
+        /// discard exactly the distinction the wire preserves.
+        /// </summary>
+        internal NeoSubtreeDistributionKind? Distribution;
 
         internal void CopyChainResolvedValuesFrom(NeoResolvedMemberShape inherited)
         {
@@ -198,6 +224,7 @@ namespace NeoCompose.Runtime.Json
                 Selection = Selection,
                 Dispatch = Dispatch,
                 BodyMode = BodyMode,
+                Distribution = Distribution,
             };
             clone.CopyChainResolvedValuesFrom(this);
             return clone;
@@ -498,6 +525,11 @@ namespace NeoCompose.Runtime.Json
                     _ => inherited.Dispatch,
                 },
                 BodyMode = (member as NSFunctionMember)?.DeclaredBodyMode ?? inherited.BodyMode,
+                // P76 §1 rule 1. Absence inherits; it never resolves to an
+                // ordinal here, so an explicit `.Sparse` override of an
+                // automatically-Packed member stays distinguishable from a
+                // member that simply declares nothing.
+                Distribution = member.DeclaredDistribution ?? inherited.Distribution,
             };
             MemberChainResolvedFields.Apply(member, inherited, resolved);
             if (genericReset && !member.DeclaresWireField("defaultValue"))
@@ -523,6 +555,8 @@ namespace NeoCompose.Runtime.Json
             Selection = NeoMemberSelectionKind.Single,
             Dispatch = NeoFunctionDispatchKind.Synchronous,
             BodyMode = NeoFunctionBodyKind.Code,
+            // No default: an empty chain is automatic, not Sparse.
+            Distribution = null,
         };
     }
 }
