@@ -8,12 +8,10 @@ class NeoAnimationFrame<
   TTarget extends NeoObjectBase
 > : NeoAnimationFrameBase {
   @id("system_23e05410-6428-4bd1-b085-c0390ed7fcb7")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<FunctionRef> Actions = [];
 
   @id("system_a5905750-c472-46a8-89e9-f04f0bf66696")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoAnimationChildOverride<NeoObjectBase>> ChildOverrides = [];
 

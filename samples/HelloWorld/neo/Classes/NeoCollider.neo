@@ -3,14 +3,14 @@
 class NeoCollider {
   @id("system_c66c17e3-ecfc-4f41-96de-6a53bb2acd4f")
   @system(kind: .WorldAuthoring)
-  public virtual Vector2 size = new(1, 1);
+  public virtual Vector2 Size = new(1, 1);
 
   /// Offset from the object's origin-cell corner, measured in cells, matching Unity's BoxCollider2D model. (0.5, 0.5) centers a 1x1 collider on the origin cell.
   @id("system_ec5b5d5e-7053-4378-87d1-9cceec30ff1a")
   @system(kind: .WorldAuthoring)
-  public virtual Vector2? offset = new(0.5, 0.5);
+  public virtual Vector2? Offset = new(0.5, 0.5);
 
   @id("system_6ed1890b-0ae6-4979-bf5b-6f216d69f432")
   @system(kind: .WorldAuthoring)
-  public virtual bool? isTrigger = false;
+  public virtual bool? IsTrigger = false;
 }

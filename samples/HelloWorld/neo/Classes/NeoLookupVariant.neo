@@ -14,7 +14,6 @@ sealed class NeoLookupVariant<
   public virtual NeoDelegate<void, TObject, TValue>? Apply = apply;
 
   @id("system_ae23d675-2531-44a2-b792-8a121d99aec2")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoAnimationChildOverride<NeoObjectBase>>? ChildOverrides = childOverrides;
 

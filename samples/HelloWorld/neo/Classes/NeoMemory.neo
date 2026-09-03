@@ -4,5 +4,5 @@
 class NeoMemory {
   @id("system_033184ac-e92c-4c30-9d32-c7fb7a7c2ea1")
   @system(kind: .DialogueMemoryContainer)
-  public virtual Dictionary<string, NeoDialogueMemory> DialogueMemories;
+  public virtual Dictionary<string, NeoDialogueMemory> DialogueMemories = {};
 }

@@ -7,7 +7,6 @@ abstract class NeoTileGrid {
 
   @id("system_98578ba3-a70e-4397-9283-996a898d44c8")
   @storage(key: "world:$parentClass")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoLayerGroupBase> Children = [];
 

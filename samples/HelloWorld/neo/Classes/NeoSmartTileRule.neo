@@ -16,7 +16,6 @@ class NeoSmartTileRule {
   public virtual float MinAnimationSpeed = 1;
 
   @id("system_8bfadaa8-14e9-4488-a103-ee688c1cc9c4")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoSmartTileNeighbor> Neighbors = [];
 
@@ -29,7 +28,6 @@ class NeoSmartTileRule {
   public virtual NeoSmartTileTransform RuleTransform = .Fixed;
 
   @id("system_fd3a7f0f-cff8-4069-9b19-004015a6aca1")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<SpriteInfo> Sprites = [];
 }

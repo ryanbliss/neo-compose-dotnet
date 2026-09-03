@@ -18,7 +18,6 @@ abstract class NeoAnimationSegment<
   public virtual int Duration = 1;
 
   @id("system_40658ad2-b4a5-4404-bb6d-ed778088a772")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoAnimationSegmentFrame<T>> Frames = [];
 }

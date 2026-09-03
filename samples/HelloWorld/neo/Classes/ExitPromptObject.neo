@@ -11,7 +11,6 @@ abstract class ExitPromptObject : ConsoleObject {
   public override string Name = "Exit Prompt";
 
   @id("de93c887-ea29-49bd-bfea-a6255b8b9a54")
-  @settings(kind: .Ordered)
   public override List<NeoObjectBase> Children = [
     @id("6dbdfc93-1071-4e62-85f4-eb6d0cc33f73")
     new NeoSpriteObject {
@@ -45,7 +44,6 @@ abstract class ExitPromptObject : ConsoleObject {
   public override Vector3 Size = new(2, 1, 0);
 
   @id("571a0e0b-b36c-45f3-ae9a-5fde39045c11")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public override List<NeoObjectPlacementTile> PlacementTiles = [
     @id("96cad433-4aed-4a9c-be34-fee3ebca8402")

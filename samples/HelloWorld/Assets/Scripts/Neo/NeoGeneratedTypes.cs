@@ -12389,11 +12389,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoMemberString>("LastVisitedAt").Text;
+                return node.Get<NeoMemberString>("LastVisitedAt").value?.value;
             }
             set
             {
-                writableNode.SetStringLiteral("LastVisitedAt", value);
+                NeoGeneratedTypesSupport.SetValue(writableNode, "LastVisitedAt", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -12442,7 +12442,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.ChoiceHistory] = () => null,
                 [Fields.HasVisited] = () => null,
-                [Fields.LastVisitedAt] = () => node.Get<NeoMemberString>("LastVisitedAt").TextId,
+                [Fields.LastVisitedAt] = () => null,
                 [Fields.MostRecentChoiceId] = () => null,
                 [Fields.VisitCount] = () => null,
             };
@@ -12872,11 +12872,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoMemberString>("LastVisitedAt").Text;
+                return node.Get<NeoMemberString>("LastVisitedAt").value?.value;
             }
             set
             {
-                writableNode.SetStringLiteral("LastVisitedAt", value);
+                NeoGeneratedTypesSupport.SetValue(writableNode, "LastVisitedAt", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -12918,7 +12918,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.HasVisited] = () => null,
-                [Fields.LastVisitedAt] = () => node.Get<NeoMemberString>("LastVisitedAt").TextId,
+                [Fields.LastVisitedAt] = () => null,
                 [Fields.TextNodeMemories] = () => null,
                 [Fields.VisitCount] = () => null,
             };

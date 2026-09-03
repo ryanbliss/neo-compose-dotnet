@@ -21,7 +21,7 @@ class Save {
   public virtual NeoMemory NeoMemory;
 
   @id("f977a94e-aa40-414c-9812-dacdd50110a8")
-  public virtual Dictionary<string, OutpostSaveData?> OutpostSaveMap;
+  public virtual Dictionary<string, OutpostSaveData?> OutpostSaveMap = {};
 
   @id("4868ab84-027a-405d-bfca-d04d4d4917fa")
   public virtual QuestState Quest = new QuestState {
@@ -35,7 +35,6 @@ class Save {
   };
 
   @id("c151eda4-ecce-4edf-988d-25a97c657146")
-  @settings(kind: .Ordered)
   public virtual List<PlanetVisit> Visited = [];
 
   @id("ebab06a2-98e9-4a30-bb13-cfea8f910462")

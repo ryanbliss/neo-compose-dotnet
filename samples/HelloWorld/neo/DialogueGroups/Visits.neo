@@ -3,7 +3,7 @@ DialogueGroup Visits = new(
   kind: .Lookup,
   parent: Outposts,
   collection: Reference<Member>(id: "2827aefd-7f57-48ea-994c-c5c39ec659e3"),
-  collectionValue: Reference(id: "75c7623a-dcdb-4ca1-b5e5-a809da678766"),
+  collectionValue: Reference(id: "c3fdff42-5eb8-5e8f-81b2-b87902771849"),
 ) {
   @id("99c22fbc-bb70-5f11-84ef-3599ecdfffd6")
   bool Condition1() {
