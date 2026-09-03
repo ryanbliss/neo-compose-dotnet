@@ -10,7 +10,6 @@
 )
 class RecoveryCacheObject : ConsoleObject {
   @id("32be897f-be96-4ab7-a586-a9a6fdfff8b7")
-  @settings(kind: .Ordered)
   public override List<NeoObjectBase> Children = [
     @id("4d4d8a22-92e0-457d-8e86-0a41c6193259")
     new NeoSpriteObject {
@@ -30,7 +29,6 @@ class RecoveryCacheObject : ConsoleObject {
   public override string Name = "Recovery Cache";
 
   @id("d8e9ad0e-157f-4709-96a7-8775efa3dd11")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public override List<NeoObjectPlacementTile> PlacementTiles = [
     @id("9404babf-786a-4e74-aec4-9c6667485278")
@@ -45,8 +43,8 @@ class RecoveryCacheObject : ConsoleObject {
   @id("94472662-a3a9-4c02-8abb-6229442e1e49")
   @system(kind: .WorldAuthoring)
   public override NeoCollider? Collider = new NeoCollider {
-    size = new(0.781, 0.744),
-    offset = new(0.512, 0.451),
-    isTrigger = false
+    Size = new(0.781, 0.744),
+    Offset = new(0.512, 0.451),
+    IsTrigger = false
   };
 }

@@ -3,6 +3,8 @@
 @system(kind: .DialogueMemorySchema)
 class NeoChoiceLog {
   @id("system_c7dcce0f-557f-430b-aaeb-c953e85934be")
+  @distribution(kind: .Packed)
+  @settings(format: .Plain)
   @system(kind: .DialogueMemorySchema)
-  public virtual string ChoiceId = "48020dd6-3fb9-4b73-98be-fba38e00285b";
+  public virtual string ChoiceId = "";
 }

@@ -10,7 +10,6 @@
 )
 class ExitPromptObject987403 : ExitPromptObject {
   @id("neo-tile-grid-record-relations-v1-member-f5cbad50312ebc69397239b2f2035a87")
-  @settings(kind: .Ordered)
   public override List<NeoObjectBase> Children = [
     @id("b9de5fe2-8ddc-4b79-bfb2-bd802d8a4fa4")
     new NeoSpriteObject {
@@ -42,9 +41,9 @@ class ExitPromptObject987403 : ExitPromptObject {
   @id("neo-tile-grid-record-relations-v1-member-ff953f886996cd9b7f725ce578fe90cc")
   @system(kind: .WorldAuthoring)
   public override NeoCollider? Collider = new NeoCollider {
-    size = new(0.857, 0.845),
-    offset = new(0.492, 0.477),
-    isTrigger = false
+    Size = new(0.857, 0.845),
+    Offset = new(0.492, 0.477),
+    IsTrigger = false
   };
 
   @id("neo-tile-grid-record-relations-v1-member-b4b64e2fc5bb9ca854c58419e63e8409")
@@ -52,7 +51,6 @@ class ExitPromptObject987403 : ExitPromptObject {
   public override string Name = "Exit Prompt";
 
   @id("neo-tile-grid-record-relations-v1-member-8b86fa92f77a420dc3e61fca997644f5")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public override List<NeoObjectPlacementTile> PlacementTiles = [
     @id("67dfd2a6-d845-4311-9f72-433501e54347")

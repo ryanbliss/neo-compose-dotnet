@@ -11,14 +11,12 @@ class Assets {
   public virtual ComputedText Computed;
 
   @id("214df1a1-abca-4141-987b-380a5417c70a")
-  @settings(kind: .Ordered)
   public virtual List<Item> Items = [];
 
   @id("2c57948b-7479-47e0-b97c-242f6d543ae0")
   public virtual LookupContainer LookupContainer;
 
   @id("2827aefd-7f57-48ea-994c-c5c39ec659e3")
-  @settings(kind: .Ordered)
   @column(member: Name, width: 158, pin: .Leading)
   @column(member: Image, width: 96, pin: .Leading)
   @column(member: Planet, width: 115)
@@ -35,7 +33,6 @@ class Assets {
   public virtual OldConsoleLandingGrid ScreenshotEmptyGrid;
 
   @id("system_7ec79ef8-a216-407f-8886-9f770bc9895b")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoSortingLayer> SortingLayers = [
     @id("88c0d53b-94ee-4f48-839b-9148d07828fb")

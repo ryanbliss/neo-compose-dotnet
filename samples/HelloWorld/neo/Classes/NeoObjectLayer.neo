@@ -2,6 +2,7 @@
 @system(kind: .WorldAuthoring, worldKind: .ObjectLayer)
 abstract class NeoObjectLayer {
   @id("system_788a3dbc-6167-4320-83aa-1e884924f776")
+  @distribution(kind: .Packed)
   @settings(format: .Plain)
   @system(kind: .WorldAuthoring)
   public virtual string Name = "";

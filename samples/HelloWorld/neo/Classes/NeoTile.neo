@@ -2,6 +2,7 @@
 @system(kind: .WorldAuthoring, worldKind: .Tile)
 abstract class NeoTile {
   @id("system_3b02422f-1ef2-4a50-8386-155d5001082b")
+  @distribution(kind: .Packed)
   @settings(format: .Plain)
   @system(kind: .WorldAuthoring)
   public virtual string Name = "";

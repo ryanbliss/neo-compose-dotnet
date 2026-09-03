@@ -30,7 +30,6 @@ sealed class NeoVariant<
   public virtual NeoDelegate<void, TObject>? Apply = apply;
 
   @id("system_45ef9e9e-5a3a-4194-b79d-aeaaf7d76a3a")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoAnimationChildOverride<NeoObjectBase>>? ChildOverrides = childOverrides;
 

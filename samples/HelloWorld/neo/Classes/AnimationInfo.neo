@@ -5,7 +5,6 @@ class AnimationInfo {
   public virtual int FPS = 30;
 
   @id("cc7fec3f-593b-4888-bf93-b9bb6bcb5e44")
-  @settings(kind: .Ordered)
   public virtual List<SpriteInfo> Frames;
 
   @id("8b8ac389-c9a7-4a0c-8335-2352865ee1b4")

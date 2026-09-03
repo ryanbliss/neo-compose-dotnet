@@ -7,12 +7,14 @@ class NeoDialogueMemory {
   public virtual bool HasVisited => this.VisitCount > 0;
 
   @id("system_4a7b6632-0926-4f9d-8b44-8ac702d3d595")
+  @distribution(kind: .Packed)
+  @settings(format: .Plain)
   @system(kind: .DialogueMemorySchema)
   public virtual string? LastVisitedAt = null;
 
   @id("system_d29ff4e5-f8e2-4c18-a7c6-c83053fa5e70")
   @system(kind: .DialogueMemoryContainer)
-  public virtual Dictionary<string, NeoTextNodeMemory> TextNodeMemories;
+  public virtual Dictionary<string, NeoTextNodeMemory> TextNodeMemories = {};
 
   @id("system_73ca1552-6c09-44fd-96c7-9801345b21cc")
   @system(kind: .DialogueMemorySchema)

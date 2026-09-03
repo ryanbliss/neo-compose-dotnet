@@ -6,7 +6,6 @@ class NeoSmartTile {
   public virtual NeoSmartTileCollider DefaultCollider = .Sprite;
 
   @id("system_97cb9d95-2d54-4809-ae88-0b0ba7859248")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoSmartTileRule> Rules = [];
 }

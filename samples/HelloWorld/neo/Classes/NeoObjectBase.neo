@@ -7,6 +7,7 @@ abstract class NeoObjectBase {
   public virtual bool Enabled = true;
 
   @id("system_b21bfd01-1234-4f49-ab6b-889f829cb148")
+  @distribution(kind: .Packed)
   @settings(format: .Plain)
   @system(kind: .WorldAuthoring)
   public virtual string Name = "";

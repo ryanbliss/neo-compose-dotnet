@@ -17,6 +17,7 @@ class NeoSpriteObject : NeoObjectBase {
   public virtual NeoSpriteMaskInteraction MaskInteraction = .None;
 
   @id("system_441cb790-a45f-4488-a5a9-6f375af6c369")
+  @distribution(kind: .Packed)
   @settings(format: .Plain)
   @system(kind: .WorldAuthoring)
   public virtual string Name = "";

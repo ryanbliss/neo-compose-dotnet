@@ -2,7 +2,6 @@
 @system(kind: .WorldAuthoring, worldKind: .Object)
 abstract class NeoObject : NeoObjectBase {
   @id("system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoObjectBase> Children = [];
 
@@ -11,7 +10,6 @@ abstract class NeoObject : NeoObjectBase {
   public virtual NeoCollider? Collider = null;
 
   @id("system_5a9ca1f5-a21b-4d4e-8c55-00341af594b4")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoObjectPlacementTile> PlacementTiles = [];
 }

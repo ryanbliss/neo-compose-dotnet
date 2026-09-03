@@ -3,7 +3,6 @@
 @system(kind: .DialogueMemorySchema)
 class NeoTextNodeMemory {
   @id("system_6da8a0c2-e738-4cfa-82cc-c17a0f1a93b5")
-  @settings(kind: .Ordered)
   @system(kind: .DialogueMemoryContainer)
   public virtual List<NeoChoiceLog> ChoiceHistory = [];
 
@@ -12,10 +11,14 @@ class NeoTextNodeMemory {
   public virtual bool HasVisited => this.VisitCount > 0;
 
   @id("system_b1715e93-5471-44ae-aeba-3b77088dafc2")
+  @distribution(kind: .Packed)
+  @settings(format: .Plain)
   @system(kind: .DialogueMemorySchema)
   public virtual string? LastVisitedAt = null;
 
   @id("system_957ad509-4ca7-4f06-aeef-32828007fab3")
+  @distribution(kind: .Packed)
+  @settings(format: .Plain)
   @system(kind: .DialogueMemorySchema)
   public virtual string? MostRecentChoiceId = null;
 

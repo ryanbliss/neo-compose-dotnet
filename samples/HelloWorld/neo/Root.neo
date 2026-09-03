@@ -3523,7 +3523,6 @@ Root root = new() {
                     @id("47b11808-1904-4168-a8a6-43f590f93101")
                     new NeoObjectPlacementTile()
                   ],
-                  Collider = new NeoCollider(),
                   Position = new(6, 2, 0)
                 },
     
@@ -3539,7 +3538,6 @@ Root root = new() {
                     @id("c999170b-36a0-4050-a383-8eb1bedece34")
                     new NeoObjectPlacementTile()
                   ],
-                  Collider = new NeoCollider(),
                   Position = new(-7, 2, 0)
                 }
               ]
@@ -3588,7 +3586,6 @@ Root root = new() {
         "c9cbef1c-4660-432c-83e1-0e9c10c897e0": new OutpostSaveData(),
         "ed141cc4-304c-40cd-8229-105f1ee9b99c": new OutpostSaveData()
       },
-      Quest = new QuestState(),
       Visited = [
         @id("9aa19862-e2df-4423-9fe0-1cfe24255436")
         new PlanetVisit {

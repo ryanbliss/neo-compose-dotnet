@@ -23,12 +23,10 @@ class NeoAnimationClip<
   public virtual int FPS = 8;
 
   @id("system_485b0f05-ec7b-4e61-ba80-9a5d7d262b39")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoAnimationFrame<TTarget>> Frames = [];
 
   @id("system_eb602654-04a9-4766-860f-300b443be86e")
-  @settings(kind: .Ordered)
   @system(kind: .WorldAuthoring)
   public virtual List<NeoAnimationTrackBase> Tracks = [];
 }

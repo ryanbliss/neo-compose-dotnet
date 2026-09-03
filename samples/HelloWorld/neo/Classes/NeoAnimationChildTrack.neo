@@ -5,6 +5,7 @@
 @system(kind: .WorldAuthoring, worldKind: .AnimationChildTrack)
 class NeoAnimationChildTrack(NeoDelegate<NeoObjectBase> selector, string clipKey) : NeoAnimationTrackBase(selector: selector) {
   @id("system_2c816624-0281-46d3-9ed5-d20bd43519f4")
+  @distribution(kind: .Packed)
   @settings(format: .Plain)
   @system(kind: .WorldAuthoring)
   public virtual string ClipKey = clipKey;
