@@ -131,7 +131,10 @@ namespace NeoCompose.Tests
                     expectations,
                     $"Case '{name}' must carry exactly one expectation.");
             }
-            Assert.Greater(caseCount, 0, "The vendored math fixture has no cases.");
+            Assert.AreEqual(
+                89,
+                caseCount,
+                "The vendored math fixture lost or gained cases.");
         }
 
         /// <summary>

@@ -136,18 +136,16 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void NeoLoader_IsReachableFromSample()
+        public void NeoLoader_LoadsTheSampleFixtureFromAConsumerAssembly()
         {
-            // Smoke check that the sample's asmdef references resolve.
-            // Placeholder smoke test — verifies the asmdef + test wiring
-            // builds and the class is reachable. Replace as the real
-            // surface lands.
-            var instance = new NeoLoader();
-            Assert.IsNotNull(instance);
-            // Builds a client through the save stack (project store → synchronizer)
-            // over the fixture schema, exercising the loader end to end.
+            // The sample consumes the loader as any other package consumer does —
+            // no friend access, no generated facade. Builds a client through the
+            // save stack (project store → synchronizer) over the sample's own
+            // fixture copy, then reads the loaded schema back off the public
+            // surface. NeoLoader's own behavior lives in the package's tests.
             var client = LoadRawClient(LoadFixture("synth-example.json"));
-            Assert.IsNotNull(client);
+
+            Assert.AreEqual(10d, client.AssetsRoot.Get<NeoMemberInt>("Score").value!.value);
         }
 
         [Test]
@@ -461,10 +459,9 @@ namespace HelloWorld.Assets.Tests
             Assert.IsFalse(group.IsReadOnly);
             Assert.IsTrue(group.TryWritable(out BlockedPath blocked));
             Assert.IsFalse(blocked.IsReadOnly);
-            Assert.DoesNotThrow(() => Assert.GreaterOrEqual(blocked.Tiles.Count, 0));
             Assert.Greater(blocked.Tiles.Count, 0);
 
-            Assert.DoesNotThrow(() => Assert.IsTrue(blocked.ClearPath()));
+            Assert.IsTrue(blocked.ClearPath());
             Assert.AreEqual(0, blocked.Tiles.Count);
             // Clearing an unordered containment list persists as removal
             // tombstones at the authored member ids (membership by join; the

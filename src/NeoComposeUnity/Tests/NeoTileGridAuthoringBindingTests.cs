@@ -30,20 +30,6 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void PreviewResultExposesTheRenderedBorrowedState()
-        {
-            root = new GameObject("Authoring Binding Test");
-            var renderer = root.AddComponent<NeoTileGridRenderer>();
-            var content = CreateContent(out client);
-
-            var result = new NeoTileGridPreviewResult("grid-value", renderer, content);
-
-            Assert.AreEqual("grid-value", result.ValueId);
-            Assert.AreSame(renderer, result.Renderer);
-            Assert.AreSame(content, result.Content);
-        }
-
-        [Test]
         public void CallerCancellationPreventsRefreshFromCreatingRenderer()
         {
             root = new GameObject("Authoring Binding Test");

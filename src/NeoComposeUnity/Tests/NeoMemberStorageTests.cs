@@ -179,59 +179,31 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
-        /// P61 §3 / §4 — the SDK fails closed on the previous export. A
+        /// P61 §3 / §4 — the SDK fails closed on every older export. A
         /// schema-15 export may still contain an unmaterialized instance
         /// initializer, which the P61 runtime must not evaluate in-game.
         /// </summary>
-        [Test]
-        public void ExportSchemaVersion_FifteenIsRejectedClosed()
-        {
-            var data = BuildStorageProjectData();
-            data.metadata = new ProjectExportMetadata
-            {
-                schemaVersion = 15,
-                projectId = ProjectId,
-                versionId = "version-1",
-            };
-            var error = Assert.Throws<System.InvalidOperationException>(() =>
-                NeoTestSaveStack.ClientFromSchema(data));
-            StringAssert.Contains("schema version 15", error!.Message);
-            StringAssert.Contains(
-                $"schema version {NeoProjectExportContract.CurrentSchemaVersion}",
-                error.Message);
-            StringAssert.Contains("Re-export", error.Message);
-        }
-
-        [Test]
-        public void ExportSchemaVersion_OlderThanCurrentContractThrows()
+        [TestCase(5)]
+        [TestCase(8)]
+        [TestCase(15)]
+        [TestCase(NeoProjectExportContract.CurrentSchemaVersion - 1)]
+        public void ExportSchemaVersion_OlderThanCurrentContractThrows(int schemaVersion)
         {
             var legacy = BuildStorageProjectData();
             legacy.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 5,
+                schemaVersion = schemaVersion,
                 projectId = ProjectId,
                 versionId = "version-1",
             };
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 NeoTestSaveStack.ClientFromSchema(legacy));
-            StringAssert.Contains("schema version 5", error!.Message);
-            StringAssert.Contains("Re-export", error.Message);
-        }
-
-        [Test]
-        public void ExportSchemaVersion_EightRequiresReleaseMigrationBoundary()
-        {
-            var current = BuildStorageProjectData();
-            current.metadata = new ProjectExportMetadata
-            {
-                schemaVersion = 8,
-                projectId = ProjectId,
-                versionId = "version-1",
-            };
-            var error = Assert.Throws<System.InvalidOperationException>(() =>
-                NeoTestSaveStack.ClientFromSchema(current));
-            StringAssert.Contains("schema version 8", error!.Message);
+            StringAssert.Contains($"schema version {schemaVersion}", error!.Message);
+            StringAssert.Contains(
+                $"accepts only schema version {NeoProjectExportContract.CurrentSchemaVersion}",
+                error.Message);
             StringAssert.Contains("release-data migration boundary", error.Message);
+            StringAssert.Contains("Re-export", error.Message);
         }
 
         [Test]
@@ -303,25 +275,6 @@ namespace NeoCompose.Tests
 
             StringAssert.Contains("unsupported relation kind", error!.Message);
             StringAssert.Contains("Update the NeoCompose SDK", error.Message);
-        }
-
-        [Test]
-        public void ExportSchemaVersion_PreviousRequiresReExport()
-        {
-            var previous = BuildStorageProjectData();
-            previous.metadata = new ProjectExportMetadata
-            {
-                schemaVersion = 7,
-                projectId = ProjectId,
-                versionId = "version-1",
-            };
-            var error = Assert.Throws<System.InvalidOperationException>(() =>
-                NeoTestSaveStack.ClientFromSchema(previous));
-            StringAssert.Contains("schema version 7", error!.Message);
-            StringAssert.Contains(
-                $"schema version {NeoProjectExportContract.CurrentSchemaVersion}",
-                error.Message);
-            StringAssert.Contains("Re-export", error.Message);
         }
 
         [Test]

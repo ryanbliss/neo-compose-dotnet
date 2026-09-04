@@ -7,7 +7,7 @@ using System;
 using System.Reactive.Linq;
 using System.Text.Json;
 using Convex.Client;
-using Convex.Client.Infrastructure.Common;
+using Convex.Client.Features.Security.Authentication;
 using NUnit.Framework;
 
 namespace NeoCompose.Convex.Tests
@@ -20,12 +20,18 @@ namespace NeoCompose.Convex.Tests
     /// </summary>
     public sealed class ConvexVendorSmokeTests
     {
+        /// <summary>
+        /// Pins the surface specs/convex-realtime-sync.md:194-197 marks as
+        /// must-remain. Nothing else in this repository references these
+        /// symbols, so a re-vendor trim would otherwise drop them unnoticed.
+        /// </summary>
         [Test]
-        public void VendoredClientTypesAreReachable()
+        public void VendoredMustRemainSurfaceIsPresent()
         {
-            Assert.That(typeof(ConvexClient), Is.Not.Null);
             Assert.That(typeof(IConvexClient).IsInterface, Is.True);
-            Assert.That(typeof(IAuthTokenProvider).IsInterface, Is.True);
+            Assert.That(typeof(IConvexClient).IsAssignableFrom(typeof(ConvexClient)), Is.True);
+            Assert.That(typeof(IConvexClientBuilder).IsInterface, Is.True);
+            Assert.That(typeof(IConvexAuthentication).IsInterface, Is.True);
         }
 
         [Test]

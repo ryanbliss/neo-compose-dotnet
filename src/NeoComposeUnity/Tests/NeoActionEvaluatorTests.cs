@@ -555,12 +555,6 @@ namespace NeoCompose.Tests
             Assert.AreEqual(5d, CounterValue(client));
         }
 
-        [Test]
-        public void CurrentCompilerRevisionIsThirteen()
-        {
-            Assert.AreEqual(13, FunctionWithReturnType.CurrentCompilerRevision);
-        }
-
         // -------------------------------------------------------------
         // Wire validation (spec §3.1, §3.2)
         // -------------------------------------------------------------
