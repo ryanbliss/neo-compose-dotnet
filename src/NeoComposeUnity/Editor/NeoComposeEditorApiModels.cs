@@ -3,7 +3,9 @@
 
 #nullable enable
 
+using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Unity.Editor
@@ -114,9 +116,35 @@ namespace NeoCompose.Unity.Editor
         public string? path;
     }
 
+    public sealed class NeoComposeProjectReadBase
+    {
+        [JsonProperty(Required = Required.Always)]
+        public string headGenerationId = "";
+        [JsonProperty(Required = Required.AllowNull)]
+        public string? logicalRevisionId;
+
+        internal void Validate()
+        {
+            if (string.IsNullOrWhiteSpace(headGenerationId)
+                || logicalRevisionId != null && string.IsNullOrWhiteSpace(logicalRevisionId))
+                throw new InvalidOperationException("The export did not identify a published project revision.");
+        }
+
+        internal bool Matches(NeoComposeProjectReadBase? other) =>
+            other != null && headGenerationId == other.headGenerationId
+                && logicalRevisionId == other.logicalRevisionId;
+    }
+
+    public sealed class NeoComposeProjectReadRestartException : InvalidOperationException
+    {
+        public NeoComposeProjectReadRestartException()
+            : base("The published project changed during export. Synchronize again.") { }
+    }
+
     public sealed class NeoComposeUnityExportResponse
     {
         public string mode = "full";
+        public NeoComposeProjectReadBase? readBase;
         public string projectId = "";
         public string projectName = "";
         public string projectJson = "";
@@ -175,6 +203,7 @@ namespace NeoCompose.Unity.Editor
     public sealed class NeoComposeUnityExportDeltaManifestResponse
     {
         public string mode = "incremental";
+        public NeoComposeProjectReadBase? readBase;
         public bool fullResync;
         public bool codegenAffected;
         public bool runtimeContractAffected;
@@ -184,6 +213,7 @@ namespace NeoCompose.Unity.Editor
 
     public sealed class NeoComposeUnityExportSnapshotResponse
     {
+        public NeoComposeProjectReadBase? readBase;
         public List<NeoComposeUnityExportCachedSnapshot> snapshots = new();
     }
 

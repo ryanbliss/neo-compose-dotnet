@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-09-05
+
+### Changed
+
+- Editor exports require the published head generation and logical revision from
+  the server. Snapshot requests now take `NeoComposeProjectReadBase` after the
+  snapshot IDs. The editor retries the complete export when publication changes,
+  including empty deltas and cached snapshots, before writing files or saving its cursor.
+
 ## [0.32.3] - 2026-09-05
 
 ### Fixed

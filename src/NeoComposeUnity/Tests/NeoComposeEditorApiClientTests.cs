@@ -11,6 +11,8 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using NeoCompose.Unity.Editor;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine.TestTools;
 
@@ -53,6 +55,46 @@ namespace NeoCompose.Tests
             serve.GetAwaiter().GetResult();
         }
 
+        [Test]
+        public async Task SnapshotRequest_CarriesTheVersionAndReadPairEvenWhenEmpty()
+        {
+            var http = new FakeHttpClient();
+            var client = NewClient(new FakeProvider("the-token"), http);
+            await client.ExportProjectSnapshotsAsync(ApiBaseUrl, ProjectId, VersionId,
+                Array.Empty<string>(), new NeoComposeProjectReadBase
+                {
+                    headGenerationId = "generation-1", logicalRevisionId = null,
+                });
+            var body = JObject.Parse(http.sends[0].body);
+            Assert.AreEqual(VersionId, body["versionId"]?.Value<string>());
+            Assert.AreEqual("generation-1", body["readBase"]?["headGenerationId"]?.Value<string>());
+            Assert.AreEqual(JTokenType.Null, body["readBase"]?["logicalRevisionId"]?.Type);
+            Assert.AreEqual(0, ((JArray)body["snapshotIds"]!).Count);
+        }
+
+        [TestCase("project-read-restart", true)]
+        [TestCase("another-conflict", false)]
+        public void Conflict_OnlyPublishedReadRestartHasTheRetryableType(string error, bool restart)
+        {
+            var http = new FakeHttpClient { status = 409, body = JsonConvert.SerializeObject(new { error }) };
+            var client = NewClient(new FakeProvider("the-token"), http);
+            var exception = Assert.CatchAsync<InvalidOperationException>(
+                async () => await client.ExportProjectAsync(ApiBaseUrl, ProjectId, VersionId));
+            Assert.AreEqual(restart, exception is NeoComposeProjectReadRestartException);
+            Assert.AreEqual(1, http.sends.Count);
+        }
+
+        [Test]
+        public void PublishedReadPair_RequiresAnExplicitLogicalRevisionIncludingNull()
+        {
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<NeoComposeUnityExportResponse>(
+                    "{\"readBase\":{\"headGenerationId\":\"generation-1\"}}"));
+            var response = JsonConvert.DeserializeObject<NeoComposeUnityExportResponse>(
+                "{\"readBase\":{\"headGenerationId\":\"generation-1\",\"logicalRevisionId\":null}}");
+            Assert.IsNull(response!.readBase!.logicalRevisionId);
+        }
+
         // UAUTH-030
         [Test]
         public async Task EveryAuthorizedRequest_AttachesBearerToken()
@@ -81,7 +123,8 @@ namespace NeoCompose.Tests
                 ApiBaseUrl,
                 ProjectId,
                 VersionId,
-                new[] { "snapshot-1" });
+                new[] { "snapshot-1" },
+                new NeoComposeProjectReadBase { headGenerationId = "generation-1", logicalRevisionId = null });
             await client.ExportProjectFileDownloadsAsync(ApiBaseUrl, ProjectId, VersionId, new[] { "file-1" });
 
             Assert.AreEqual(10, http.sends.Count);
