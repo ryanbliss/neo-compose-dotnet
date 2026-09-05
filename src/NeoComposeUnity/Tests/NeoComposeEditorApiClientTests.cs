@@ -4,10 +4,15 @@
 #nullable enable
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
 using System.Threading.Tasks;
 using NeoCompose.Unity.Editor;
 using NUnit.Framework;
+using UnityEngine.TestTools;
 
 using NeoCompose.Runtime;
 
@@ -18,6 +23,35 @@ namespace NeoCompose.Tests
         private const string ApiBaseUrl = "https://example.test";
         private const string ProjectId = "project-1";
         private const string VersionId = "version-1";
+
+        [UnityTest]
+        public IEnumerator FullExport_WaitsForResponseBeyondOrdinaryRequestTimeout()
+        {
+            var portReservation = new TcpListener(IPAddress.Loopback, 0);
+            portReservation.Start();
+            var port = ((IPEndPoint)portReservation.LocalEndpoint).Port;
+            portReservation.Stop();
+            var origin = $"http://127.0.0.1:{port}";
+            using var server = new HttpListener();
+            server.Prefixes.Add(origin + "/");
+            server.Start();
+            var serve = Task.Run(async () =>
+            {
+                var context = await server.GetContextAsync();
+                Assert.AreEqual($"/api/projects/{ProjectId}/export", context.Request.RawUrl);
+                await Task.Delay(TimeSpan.FromSeconds(32));
+                var bytes = Encoding.UTF8.GetBytes("{\"projectId\":\"project-1\"}");
+                context.Response.ContentType = "application/json";
+                context.Response.ContentLength64 = bytes.Length;
+                await context.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                context.Response.Close();
+            });
+            var client = NewClient(new FakeProvider("the-token"), new NeoComposeUnityHttpClient());
+            var export = client.ExportProjectAsync(origin, ProjectId, VersionId);
+            while (!export.IsCompleted || !serve.IsCompleted) yield return null;
+            Assert.AreEqual(ProjectId, export.GetAwaiter().GetResult().projectId);
+            serve.GetAwaiter().GetResult();
+        }
 
         // UAUTH-030
         [Test]
@@ -51,6 +85,10 @@ namespace NeoCompose.Tests
             await client.ExportProjectFileDownloadsAsync(ApiBaseUrl, ProjectId, VersionId, new[] { "file-1" });
 
             Assert.AreEqual(10, http.sends.Count);
+            CollectionAssert.AreEqual(
+                new[] { 30, 30, 30, 30, 30, 30, 300, 30, 30, 30 },
+                http.sends.ConvertAll(send => send.timeoutSeconds),
+                "Only the full export should use the longer request timeout.");
             foreach (var send in http.sends)
             {
                 Assert.AreEqual("the-token", send.bearer, $"Request to {send.url} must carry the bearer token.");
@@ -263,7 +301,7 @@ namespace NeoCompose.Tests
 
         private sealed class FakeHttpClient : INeoComposeHttpClient
         {
-            public readonly List<(string url, string method, string? body, string? bearer)> sends = new();
+            public readonly List<(string url, string method, string? body, string? bearer, int timeoutSeconds)> sends = new();
             public readonly List<string> downloads = new();
             public long status = 200;
             public string body = "{}";
@@ -272,9 +310,10 @@ namespace NeoCompose.Tests
                 string url,
                 string method,
                 string? jsonBody,
-                string? bearerToken)
+                string? bearerToken,
+                int timeoutSeconds = NeoComposeWebRequests.DefaultTimeoutSeconds)
             {
-                sends.Add((url, method, jsonBody, bearerToken));
+                sends.Add((url, method, jsonBody, bearerToken, timeoutSeconds));
                 return Task.FromResult(new NeoComposeWebResponse(status, false, body, ""));
             }
 

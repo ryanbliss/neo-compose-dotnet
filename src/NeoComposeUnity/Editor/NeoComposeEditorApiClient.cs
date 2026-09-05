@@ -51,6 +51,9 @@ namespace NeoCompose.Unity.Editor
 
     public sealed class NeoComposeEditorApiClient : INeoComposeEditorApiClient
     {
+        // Full exports assemble paginated snapshots and generate C# before responding.
+        private const int FullExportTimeoutSeconds = 300;
+
         private readonly INeoComposeAccessTokenProvider tokenProvider;
         private readonly INeoComposeHttpClient httpClient;
         private readonly INeoComposeSessionRefresher sessionRefresher;
@@ -178,7 +181,8 @@ namespace NeoCompose.Unity.Editor
             var url = BuildUrl(apiBaseUrl, $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/export");
             var operation = new NeoComposeApiOperation("export this project", projectId, "unity:export");
             var json = await PostAuthorizedAsync(
-                apiBaseUrl, url, operation, JsonConvert.SerializeObject(new { versionId }));
+                apiBaseUrl, url, operation, JsonConvert.SerializeObject(new { versionId }),
+                timeoutSeconds: FullExportTimeoutSeconds);
             return Deserialize<NeoComposeUnityExportResponse>(json, "project export");
         }
 
@@ -251,13 +255,14 @@ namespace NeoCompose.Unity.Editor
             string apiBaseUrl,
             string url,
             NeoComposeApiOperation operation,
-            string body = "")
+            string body = "",
+            int timeoutSeconds = NeoComposeWebRequests.DefaultTimeoutSeconds)
         {
             // Fail fast before issuing the request when the user is signed out or
             // the token has expired.
             await sessionRefresher.RefreshIfDueAsync(apiBaseUrl);
             var token = tokenProvider.GetAccessToken(apiBaseUrl);
-            var response = await httpClient.SendAsync(url, "POST", body, token);
+            var response = await httpClient.SendAsync(url, "POST", body, token, timeoutSeconds);
             return ReadResponse(url, operation, response);
         }
 

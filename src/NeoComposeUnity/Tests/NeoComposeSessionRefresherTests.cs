@@ -147,7 +147,8 @@ namespace NeoCompose.Tests
                 string url,
                 string method,
                 string? jsonBody,
-                string? bearerToken)
+                string? bearerToken,
+                int timeoutSeconds = NeoComposeWebRequests.DefaultTimeoutSeconds)
             {
                 sends.Add((url, method, jsonBody, bearerToken));
                 return Task.FromResult(new NeoComposeWebResponse(status, false, body, "", headers));
