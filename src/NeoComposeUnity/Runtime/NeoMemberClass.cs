@@ -325,6 +325,12 @@ namespace NeoCompose.Runtime
                 DisposeChildren(previousChildren.Values);
                 return;
             }
+            if (member.Requirement != NeoMemberRequirementKind.Required
+                && value is { value: null })
+            {
+                DisposeChildren(previousChildren.Values);
+                return;
+            }
             foreach (var entry in mergedSchema)
             {
                 if (member.Payload == NeoMemberPayloadKind.Partial
@@ -380,6 +386,14 @@ namespace NeoCompose.Runtime
                 {
                     childMembers[entry.schemaKey] = existing;
                     previousChildren.Remove(entry.schemaKey);
+                    continue;
+                }
+                // Root wrappers exist before sparse constructors replay. Their
+                // computed children are bound when replay refreshes these trees.
+                if (childValueId is null
+                    && client.IsAwaitingVirtualInstanceReplay(value)
+                    && MemberValueFactory.InitializerOf(childMember) is not null)
+                {
                     continue;
                 }
                 var child = CreateChild(client, childMember, childValueId);

@@ -66,6 +66,53 @@ namespace NeoCompose.Tests
             return member;
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void MediaReferencePayloadsUseTheSharedWriteConversion(bool json)
+        {
+            object sprite = new Dictionary<string, object?> { ["fileId"] = "image", ["sliceIndex"] = 2d };
+            object audio = new Dictionary<string, object?> { ["fileId"] = "audio" };
+            if (json)
+            {
+                sprite = JObject.FromObject(sprite);
+                audio = JObject.FromObject(audio);
+            }
+            var spriteRow = (SpriteMemberValue)MemberValueFactory.Create(
+                new SpriteMember { id = "sprite", kind = MemberKind.Sprite }, sprite, "s", "x", "x");
+            var audioRow = (FileMemberValue)MemberValueFactory.Create(
+                new AudioMember { id = "audio", kind = MemberKind.Audio }, audio, "a", "x", "x");
+            Assert.AreEqual("image", spriteRow.value!.fileId);
+            Assert.AreEqual(2, spriteRow.value.sliceIndex);
+            Assert.AreEqual("audio", audioRow.value!.fileId);
+        }
+
+        [TestCase("&&", false, true)]
+        [TestCase("||", true, true)]
+        [TestCase("&&", true, false)]
+        [TestCase("||", false, false)]
+        public void BooleanConnectiveEvaluatesTheRightSideOnlyWhenNeeded(
+            string connective, bool head, bool shortCircuits)
+        {
+            Pointer pointer = JsonConvert.DeserializeObject<Pointer>(@"{
+                'type':'operation', 'operation':{'type':'boolean','expression':{
+                    'condition':{'type':'equalTo',
+                        'operand1':{'type':'value','value':{'typeInfo':{'type':1,'required':true},'value':__HEAD__}},
+                        'operand2':{'type':'value','value':{'typeInfo':{'type':1,'required':true},'value':true}}},
+                    'connective':{'type':'__OP__','to':{'condition':{'type':'equalTo',
+                        'operand1':{'type':'forceUnwrap','pointer':{'type':'value','value':{'typeInfo':{'type':1,'required':false},'value':null}}},
+                        'operand2':{'type':'value','value':{'typeInfo':{'type':1,'required':true},'value':true}}}}}
+                }}}
+            ".Replace("__HEAD__", head ? "true" : "false").Replace("__OP__", connective))!;
+            using NeoClient client = LoadClient();
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            FunctionWithReturnType function = ReturnFunction(pointer, MemberKind.Bool);
+
+            if (shortCircuits)
+                Assert.AreEqual(head, NSGetterEvaluator.Evaluate(function, context));
+            else
+                Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(function, context));
+        }
+
         [Test]
         public void ConditionalPointer_RoundTripsAndDoesNotEvaluateTheUnselectedBranch()
         {

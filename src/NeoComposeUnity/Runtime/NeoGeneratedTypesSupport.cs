@@ -330,8 +330,10 @@ namespace NeoCompose.Runtime
         {
             internal ConstructorMetadataCacheKey(
                 ClassTypeInfo classTypeInfo,
-                bool requireSuppliedRequiredFields)
+                bool requireSuppliedRequiredFields,
+                bool replayStoredInstance)
             {
+                this.replayStoredInstance = replayStoredInstance;
                 classId = classTypeInfo.classId;
                 type = classTypeInfo.type;
                 required = classTypeInfo.required;
@@ -343,9 +345,11 @@ namespace NeoCompose.Runtime
             private readonly MemberKind type;
             private readonly bool required;
             private readonly bool requireSuppliedRequiredFields;
+            private readonly bool replayStoredInstance;
 
             public bool Equals(ConstructorMetadataCacheKey other) =>
                 classId == other.classId
+                && replayStoredInstance == other.replayStoredInstance
                 && type == other.type
                 && required == other.required
                 && requireSuppliedRequiredFields
@@ -361,6 +365,7 @@ namespace NeoCompose.Runtime
                     int hash = classId?.GetHashCode() ?? 0;
                     hash = (hash * 397) ^ (int)type;
                     hash = (hash * 397) ^ required.GetHashCode();
+                    hash = (hash * 397) ^ replayStoredInstance.GetHashCode();
                     return (hash * 397)
                         ^ requireSuppliedRequiredFields.GetHashCode();
                 }
@@ -546,6 +551,8 @@ namespace NeoCompose.Runtime
                     PushConstructionFrame(
                         EvaluationContext,
                         $"{member.name} initializer");
+                // A generic entry initializer constructs in its closed placement.
+                initializerContext.initializerPlacement = member as ClassMember;
                 IReadOnlyList<object?> arguments =
                     init.compiled.parameters is { Length: > 2 }
                         ? initializerArguments
@@ -2825,7 +2832,10 @@ namespace NeoCompose.Runtime
                         path,
                         traversal,
                         referenceOwnershipByPath,
-                        trustedMaterialization: trustedMaterialization);
+                        trustedMaterialization: trustedMaterialization,
+                        knownClassPlan: ResolveRuntimeClassPlan(client, actualClassId,
+                            classArguments: NeoGenericResolution.CloseClassArgumentsFromStamp(
+                                classRow.genericBindings, classMember.classArguments)));
                     break;
                 }
                 case ListMember listMember
@@ -3121,13 +3131,16 @@ namespace NeoCompose.Runtime
                 {
                     string actualClassId = classRow.classId
                         ?? classMember.classId;
+                    var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
+                        classRow.genericBindings, classMember.classArguments);
                     IList<MergedSchemaEntry> schema = ResolveMergedSchema(
                         client,
-                        actualClassId);
+                        actualClassId,
+                        classArguments);
                     var env = ResolveRuntimeInstanceEnv(
                         client,
                         actualClassId,
-                        classArguments: null);
+                        classArguments);
                     foreach (MergedSchemaEntry entry in schema)
                     {
                         if (!classRow.value.TryGetValue(
@@ -3464,7 +3477,8 @@ namespace NeoCompose.Runtime
             IReadOnlyList<string> argumentNames,
             IReadOnlyList<RuntimeConstructorField> fields,
             IReadOnlyDictionary<string, GenericBinding>? classArguments = null,
-            IReadOnlyDictionary<string, string>? storedGenericBindings = null)
+            IReadOnlyDictionary<string, string>? storedGenericBindings = null,
+            bool replayStoredInstance = false)
         {
             RuntimeConstructorMetadata metadata =
                 ValidateRuntimeClassConstructorMetadataCore(
@@ -3472,7 +3486,8 @@ namespace NeoCompose.Runtime
                     classTypeInfo,
                     fields,
                     requireSuppliedRequiredFields: false,
-                    classArguments: classArguments);
+                    classArguments: classArguments,
+                    replayStoredInstance: replayStoredInstance);
             if (!client.TryGetClass(classTypeInfo.classId, out NeoSchemaClass? schemaClass))
             {
                 throw new InvalidOperationException(
@@ -4567,7 +4582,8 @@ namespace NeoCompose.Runtime
                 arguments,
                 Array.Empty<NeoGeneratedConstructorValue>(),
                 classArguments,
-                storedGenericBindings);
+                storedGenericBindings,
+                replayStoredInstance: true);
         }
 
         /// <summary>
@@ -4610,7 +4626,8 @@ namespace NeoCompose.Runtime
             NeoDeclaredConstructorArgument[] arguments,
             NeoGeneratedConstructorValue[] suppliedValues,
             IReadOnlyDictionary<string, GenericBinding>? classArguments,
-            IReadOnlyDictionary<string, string>? storedGenericBindings)
+            IReadOnlyDictionary<string, string>? storedGenericBindings,
+            bool replayStoredInstance = false)
         {
             if (client is null) throw new ArgumentNullException(nameof(client));
             if (classId is null) throw new ArgumentNullException(nameof(classId));
@@ -4648,7 +4665,8 @@ namespace NeoCompose.Runtime
                 argumentNames,
                 fields,
                 classArguments,
-                storedGenericBindings);
+                storedGenericBindings,
+                replayStoredInstance);
 
             var ctx = new NeoScript.NSGetterEvaluator.Context(
                 client,
@@ -4939,7 +4957,8 @@ namespace NeoCompose.Runtime
                 ClassTypeInfo classTypeInfo,
                 IReadOnlyList<RuntimeConstructorField> fields,
                 bool requireSuppliedRequiredFields = true,
-                IReadOnlyDictionary<string, GenericBinding>? classArguments = null)
+                IReadOnlyDictionary<string, GenericBinding>? classArguments = null,
+                bool replayStoredInstance = false)
         {
             ConstructorSchemaCache? constructorCache = null;
             ConstructorMetadataCacheKey cacheKey = default;
@@ -4952,7 +4971,8 @@ namespace NeoCompose.Runtime
                     client);
                 cacheKey = new ConstructorMetadataCacheKey(
                     classTypeInfo,
-                    requireSuppliedRequiredFields);
+                    requireSuppliedRequiredFields,
+                    replayStoredInstance);
                 lock (constructorCache.gate)
                 {
                     if (constructorCache.emptyFieldMetadata.TryGetValue(
@@ -4978,7 +4998,8 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Class constructor for '{classTypeInfo.classId}' carries non-class runtime kind metadata '{classTypeInfo.type}'.");
             }
-            if (client.TryResolveSchemaClassAllowedOwnership(
+            if (!replayStoredInstance
+                && client.TryResolveSchemaClassAllowedOwnership(
                     classTypeInfo.classId,
                     out NeoValueOwnership allowedOwnership)
                 && allowedOwnership == NeoValueOwnership.Asset)
@@ -5249,7 +5270,8 @@ namespace NeoCompose.Runtime
                 scope.ValueReference,
                 env,
                 path,
-                scope.referenceOwnershipByPath);
+                scope.referenceOwnershipByPath,
+                preserveOptionalNull: true);
         }
 
         private static string? MaterializeRuntimeConstructorValue(
@@ -5865,7 +5887,7 @@ namespace NeoCompose.Runtime
                     // baked at the last push. It also materializes regardless
                     // of `required`: an initializer is an explicit statement
                     // that this member has a value, which is exactly the
-                    // signal the required-only filter below is standing in for.
+                    // signal also carried by an explicit literal default.
                     InitializerBody? init = InitializerOf(member);
                     if (init is not null)
                     {
@@ -5885,7 +5907,8 @@ namespace NeoCompose.Runtime
                         continue;
                     }
 
-                    if (member.Requirement != NeoMemberRequirementKind.Required) continue;
+                    if (member.Requirement != NeoMemberRequirementKind.Required
+                        && !HasExplicitDefaultValue(member)) continue;
 
                     var defaultRow = CreateDefaultValueRow(
                         client,
@@ -6181,6 +6204,7 @@ namespace NeoCompose.Runtime
                                 {
                                     classId = member.defaultValue.value.classId,
                                     variantId = member.defaultValue.value.variantId,
+                                    rowValueId = member.defaultValue.value.rowValueId,
                                 },
                             classId = member.defaultValue.classId,
                         };
@@ -6280,7 +6304,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static ObjectMemberValue CreateDefaultClassValueRow(
+        private static ObjectMemberValue? CreateDefaultClassValueRow(
             NeoClient client,
             ClassMember member,
             List<MemberValue> rows,
@@ -6288,8 +6312,21 @@ namespace NeoCompose.Runtime
             NeoConstructionScope scope,
             string path)
         {
+            if (member.Requirement != NeoMemberRequirementKind.Required
+                && member.defaultValue is { value: null })
+            {
+                return null;
+            }
             var effectiveClassId = member.defaultValue?.classId
                 ?? member.classId;
+            // An abstract slot without a default must be supplied by the
+            // constructor or the stored replay overlay, never instantiated.
+            if (member.defaultValue is null
+                && client.TryGetClass(effectiveClassId, out NeoSchemaClass? schemaClass)
+                && schemaClass.Modifier == NeoClassModifierKind.Abstract)
+            {
+                return null;
+            }
             // The slot's constructed arguments travel with every descent
             // below — the default's effective type may be the DECLARED open
             // type, closed only by the slot (specs/class-generics.md
@@ -6636,6 +6673,8 @@ namespace NeoCompose.Runtime
                     when source is ObjectMemberValue sourceValue:
                 {
                     string classId = sourceValue.classId ?? classMember.classId;
+                    var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
+                        sourceValue.genericBindings, classMember.classArguments);
                     ObjectMemberValue clone = CreateWritableClassValueRow(
                         client,
                         classId,
@@ -6647,13 +6686,13 @@ namespace NeoCompose.Runtime
                             nowIso,
                             scope,
                             path,
-                            classMember.classArguments,
+                            classArguments,
                             clonedIdsBySourceId),
                         rows,
                         nowIso,
                         scope,
                         path,
-                        classMember.classArguments);
+                        classArguments);
                     CopyDefaultConstructionProvenance(
                         client,
                         sourceValue,
@@ -7162,7 +7201,7 @@ namespace NeoCompose.Runtime
         {
             return NeoAssetResolver.ResolveSprite(
                 client.assetDatabase,
-                ToSpriteValue(value));
+                MemberValueFactory.ToSpriteValue(value));
         }
 
         /// <summary>
@@ -7175,7 +7214,7 @@ namespace NeoCompose.Runtime
             object? value,
             string unresolvedMessage)
         {
-            var spriteValue = ToSpriteValue(value);
+            var spriteValue = MemberValueFactory.ToSpriteValue(value);
             if (NeoReadOnlySprite.IsEmptyValue(spriteValue)) return null;
             return NeoAssetResolver.ResolveSprite(client.assetDatabase, spriteValue)
                 ?? throw new InvalidOperationException(unresolvedMessage);
@@ -7185,55 +7224,7 @@ namespace NeoCompose.Runtime
         {
             return NeoAssetResolver.ResolveAudioClip(
                 client.assetDatabase,
-                ToFileValue(value));
-        }
-
-        private static SpriteValue? ToSpriteValue(object? value)
-        {
-            if (value is null) return null;
-            if (value is SpriteValue spriteValue) return spriteValue;
-            if (value is JObject obj)
-            {
-                var fileId = obj["fileId"]?.Value<string>();
-                var sliceIndex = obj["sliceIndex"]?.Value<int?>();
-                return fileId == null || sliceIndex == null
-                    ? null
-                    : new SpriteValue { fileId = fileId!, sliceIndex = sliceIndex.Value };
-            }
-            if (value is IDictionary<string, object?> dict &&
-                dict.TryGetValue("fileId", out var rawFileId) &&
-                rawFileId is string dictFileId &&
-                dict.TryGetValue("sliceIndex", out var rawSliceIndex))
-            {
-                return rawSliceIndex switch
-                {
-                    int i => new SpriteValue { fileId = dictFileId, sliceIndex = i },
-                    long l => new SpriteValue { fileId = dictFileId, sliceIndex = (int)l },
-                    double d => new SpriteValue { fileId = dictFileId, sliceIndex = Convert.ToInt32(d) },
-                    _ => null,
-                };
-            }
-            return null;
-        }
-
-        private static FileValue? ToFileValue(object? value)
-        {
-            if (value is null) return null;
-            if (value is FileValue fileValue) return fileValue;
-            if (value is JObject obj)
-            {
-                var fileId = obj["fileId"]?.Value<string>();
-                return string.IsNullOrWhiteSpace(fileId)
-                    ? null
-                    : new FileValue { fileId = fileId! };
-            }
-            if (value is IDictionary<string, object?> dict &&
-                dict.TryGetValue("fileId", out var rawFileId) &&
-                rawFileId is string dictFileId)
-            {
-                return new FileValue { fileId = dictFileId };
-            }
-            return null;
+                MemberValueFactory.ToFileValue(value));
         }
 
         public static T? ReadNSPropertyClass<T>(

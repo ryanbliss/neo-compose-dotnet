@@ -1208,7 +1208,10 @@ namespace NeoCompose.Runtime.Json
         {
             if (token.Type != JTokenType.Object) return false;
             var record = (JObject)token;
-            if (record.Count != 2) return false;
+            if (record.Count != 2 && record.Count != 3) return false;
+            if (record.Count == 3
+                && record["rowValueId"]?.Type is not (JTokenType.String or JTokenType.Null))
+                return false;
             JToken? classId = record["classId"];
             if (classId is null || classId.Type != JTokenType.String) return false;
             JToken? variantId = record["variantId"];
@@ -1610,7 +1613,10 @@ namespace NeoCompose.Runtime.Json
         {
             if (token.Type != JTokenType.Object) return false;
             var record = (JObject)token;
-            if (record.Count != 2) return false;
+            if (record.Count != 2 && record.Count != 3) return false;
+            if (record.Count == 3
+                && record["rowValueId"]?.Type is not (JTokenType.String or JTokenType.Null))
+                return false;
             JToken? classId = record["classId"];
             if (classId is null || classId.Type != JTokenType.String) return false;
             JToken? variantId = record["variantId"];
