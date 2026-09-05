@@ -380,14 +380,10 @@ namespace NeoCompose.Tests
                     deepId,
                     replayArgumentId,
                     "the virtual nested root must not retain its discarded Session constructor argument id");
-                Assert.AreEqual(
+                AssertAggregateReferenceArguments(
+                    nested.value,
                     ExternalArgumentId,
-                    nested.value.constructorArgs["__arg_1__"]!.Value<string>(),
-                    "an aggregate argument that settles no child remains an external durable reference");
-                Assert.AreEqual(
-                    UuidLookingLiteral,
-                    nested.value.constructorArgs["__arg_2__"]!.Value<string>(),
-                    "a String argument is data even when it looks like a value id");
+                    UuidLookingLiteral);
                 Assert.AreEqual(
                     nested.Get<NeoMemberList>("Items").value!.id,
                     nested.value.constructorArgs["__arg_3__"]!.Value<string>());
@@ -407,12 +403,10 @@ namespace NeoCompose.Tests
                 Assert.AreEqual(
                     deepId,
                     written.constructorArgs!["__arg_0__"]!.Value<string>());
-                Assert.AreEqual(
+                AssertAggregateReferenceArguments(
+                    written,
                     ExternalArgumentId,
-                    written.constructorArgs["__arg_1__"]!.Value<string>());
-                Assert.AreEqual(
-                    UuidLookingLiteral,
-                    written.constructorArgs["__arg_2__"]!.Value<string>());
+                    UuidLookingLiteral);
                 // Match the persisted sparse shape: construction-equal
                 // collection fields are omitted, so replay must attach the
                 // recorded aggregate arguments rather than read stored body
@@ -443,12 +437,10 @@ namespace NeoCompose.Tests
                 .Get<NeoMemberClassWritable>("Holder")
                 .Get<NeoMemberClassWritable>("Nested");
             Assert.AreEqual(nestedId, reloaded.value!.id);
-            Assert.AreEqual(
+            AssertAggregateReferenceArguments(
+                reloaded.value,
                 ExternalArgumentId,
-                reloaded.value.constructorArgs!["__arg_1__"]!.Value<string>());
-            Assert.AreEqual(
-                UuidLookingLiteral,
-                reloaded.value.constructorArgs["__arg_2__"]!.Value<string>());
+                UuidLookingLiteral);
             Assert.AreEqual(
                 "item value",
                 ((NeoMemberStringWritable)reloaded
@@ -1609,29 +1601,11 @@ namespace NeoCompose.Tests
             ((ClassMember)data.members["nested-deep"]).defaultValue =
                 new ObjectMemberValueBase
                 {
-                    init = new InitializerBody
-                    {
-                        code = "InitialDeep",
-                        compiled = new FunctionWithReturnType
-                        {
-                            compilerRevision =
-                                FunctionWithReturnType.CurrentCompilerRevision,
-                            parameters = constructorParameters,
-                            typeInfo = deepType,
-                            instructions = new Instruction[]
-                            {
-                                new ReturnInstruction
-                                {
-                                    type = InstructionKind.Return,
-                                    pointer = new VariablePointer
-                                    {
-                                        type = PointerKind.Variable,
-                                        variableId = "__arg_0__",
-                                    },
-                                },
-                            },
-                        },
-                    },
+                    init = ReturnVariableInitializer(
+                        "InitialDeep",
+                        deepType,
+                        constructorParameters,
+                        "__arg_0__"),
                 };
             data.members["nested-entry"] = new StringMember
             {
@@ -1780,36 +1754,59 @@ namespace NeoCompose.Tests
             MemberKind kind,
             TypeInfo entryTypeInfo,
             Variable[] parameters,
-            string variableId)
-        {
-            return new InitializerBody
-            {
-                code = code,
-                compiled = new FunctionWithReturnType
+            string variableId) =>
+            ReturnVariableInitializer(
+                code,
+                new CollectionTypeInfo
                 {
-                    compilerRevision =
-                        FunctionWithReturnType.CurrentCompilerRevision,
-                    parameters = parameters,
-                    typeInfo = new CollectionTypeInfo
+                    type = kind,
+                    required = true,
+                    entryTypeInfo = entryTypeInfo,
+                },
+                parameters,
+                variableId);
+
+        private static InitializerBody ReturnVariableInitializer(
+            string code,
+            TypeInfo typeInfo,
+            Variable[] parameters,
+            string variableId) => new()
+        {
+            code = code,
+            compiled = new FunctionWithReturnType
+            {
+                compilerRevision =
+                    FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = parameters,
+                typeInfo = typeInfo,
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
                     {
-                        type = kind,
-                        required = true,
-                        entryTypeInfo = entryTypeInfo,
-                    },
-                    instructions = new Instruction[]
-                    {
-                        new ReturnInstruction
+                        type = InstructionKind.Return,
+                        pointer = new VariablePointer
                         {
-                            type = InstructionKind.Return,
-                            pointer = new VariablePointer
-                            {
-                                type = PointerKind.Variable,
-                                variableId = variableId,
-                            },
+                            type = PointerKind.Variable,
+                            variableId = variableId,
                         },
                     },
                 },
-            };
+            },
+        };
+
+        private static void AssertAggregateReferenceArguments(
+            ObjectMemberValue value,
+            string externalArgumentId,
+            string uuidLookingLiteral)
+        {
+            Assert.AreEqual(
+                externalArgumentId,
+                value.constructorArgs!["__arg_1__"]!.Value<string>(),
+                "an aggregate argument that settles no child remains an external durable reference");
+            Assert.AreEqual(
+                uuidLookingLiteral,
+                value.constructorArgs["__arg_2__"]!.Value<string>(),
+                "a String argument is data even when it looks like a value id");
         }
 
         private static ClassTypeInfo ClassType(string classId) => new()

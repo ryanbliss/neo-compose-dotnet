@@ -4815,24 +4815,9 @@ namespace NeoCompose.Runtime
             object? suppliedValue = argument.value;
             if (argument.value is NeoConstructorValueReference reference)
             {
-                if (reference.ownership is not NeoValueOwnership ownership
-                    || !client.TryGetValue(
-                        ownership,
-                        reference.valueId,
-                        out MemberValue? row))
-                {
-                    throw new InvalidOperationException(
-                        $"Neo value '{reference.valueId}' for argument '{argument.name}' of constructor '{record.id}' was not found in its recorded storage.");
-                }
                 suppliedValue = UnwrapStoredConstructorArgument(
-                    client,
-                    row,
-                    effectiveDeclared,
-                    null,
-                    ctx,
-                    ownership,
-                    $"argument '{argument.name}' of constructor '{record.id}'",
-                    new HashSet<string>(StringComparer.Ordinal));
+                    client, reference, effectiveDeclared, ctx,
+                    $"argument '{argument.name}' of constructor '{record.id}'");
             }
             return NeoScriptValueMarshaller.Normalize(
                 client,
@@ -4845,176 +4830,83 @@ namespace NeoCompose.Runtime
 
         private static object? UnwrapStoredConstructorArgument(
             NeoClient client,
-            MemberValue row,
+            NeoConstructorValueReference reference,
             TypeInfo declaredType,
-            Member? collectionMember,
             NeoScript.NSGetterEvaluator.Context ctx,
-            NeoValueOwnership ownership,
-            string subject,
-            HashSet<string> activeCollectionRows)
+            string subject)
         {
-            if (declaredType.type is not (MemberKind.List or MemberKind.Dictionary))
-            {
-                if (collectionMember is null
-                    && !client.TryInferMemberForValueId(row.id, out collectionMember))
-                {
-                    return NeoScript.NSGetterEvaluator.UnwrapRow(
-                        row,
-                        ctx,
-                        ownership);
-                }
-                return NeoScript.NSGetterEvaluator.UnwrapRow(
-                    row,
-                    ctx,
-                    ownership,
-                    collectionMember);
-            }
+            if (reference.ownership is not NeoValueOwnership ownership)
+                throw new InvalidOperationException($"Stored {subject} has no storage ownership.");
+            client.TryInferMemberForValueId(reference.valueId, out Member? member);
+            // Resolve typed row links before Normalize validates their values.
+            // Keep Class rows in this evaluator context so they retain identity.
+            var active = new HashSet<(NeoValueOwnership, string)>();
+            return Read(reference.valueId, member, ownership, declaredType);
 
-            string visitKey = $"{ownership}:{row.id}";
-            if (!activeCollectionRows.Add(visitKey))
+            object? Read(
+                string valueId, Member? sourceMember, NeoValueOwnership storage, TypeInfo expectedType)
             {
-                throw new InvalidOperationException(
-                    $"Stored {subject} contains a cyclic collection reference at value '{row.id}'.");
-            }
-            try
-            {
-                if (collectionMember is null
-                    && !client.TryInferMemberForValueId(
-                        row.id,
-                        out collectionMember))
-                {
+                if (!client.TryGetValue(storage, valueId, out MemberValue? row) || row.IsRemoved)
                     throw new InvalidOperationException(
-                        $"Stored {subject} value '{row.id}' has no declared collection member.");
-                }
-                if (collectionMember is null
-                    || !TryResolveCollectionEntryMember(
-                        client,
-                        collectionMember,
-                        out Member? entryMember))
+                        $"Stored {subject} references missing value '{valueId}' in {storage} storage.");
+                if (expectedType.type is not (MemberKind.List or MemberKind.Dictionary))
                 {
+                    return sourceMember is null
+                        ? NeoScript.NSGetterEvaluator.UnwrapRow(row, ctx, storage)
+                        : NeoScript.NSGetterEvaluator.UnwrapRow(row, ctx, storage, sourceMember);
+                }
+                if ((expectedType.type == MemberKind.List && sourceMember is not ListMember)
+                    || (expectedType.type == MemberKind.Dictionary && sourceMember is not DictionaryMember))
                     throw new InvalidOperationException(
-                        $"Stored {subject} value '{row.id}' has no declared collection entry member.");
-                }
-                bool shapeMatches = declaredType.type switch
-                {
-                    MemberKind.List => collectionMember is ListMember
-                        && row is ArrayMemberValue,
-                    MemberKind.Dictionary => collectionMember is DictionaryMember
-                        && row is ObjectMemberValue,
-                    _ => false,
-                };
-                if (!shapeMatches)
-                {
-                    throw new InvalidOperationException(
-                        $"Stored {subject} value '{row.id}' does not match its declared {declaredType.type} shape.");
-                }
-
-                var entryEnv = NeoGenericResolution.EnvFromStamp(
-                    row.genericBindings);
-                entryMember = NeoGenericResolution.SubstituteMember(
-                    client,
-                    entryMember,
-                    entryEnv);
-                TypeInfo? entryType = declaredType switch
+                        $"Stored {subject} value '{valueId}' has no matching {expectedType.type} member.");
+                TypeInfo? entryType = expectedType switch
                 {
                     FunctionArgumentTypeInfo argument => argument.entryTypeInfo,
                     CollectionTypeInfo collection => collection.entryTypeInfo,
                     _ => null,
                 };
                 if (entryType is null)
-                {
+                    throw new InvalidOperationException($"Stored {subject} has no declared collection entry type.");
+                if (!active.Add((storage, valueId)))
                     throw new InvalidOperationException(
-                        $"Stored {subject} is missing its declared collection entry type.");
-                }
-                NeoValueOwnership entryOwnership =
-                    client.DeclaredOwnership(entryMember) ?? ownership;
-
-                if (row is ArrayMemberValue listRow)
+                        $"Stored {subject} contains a cyclic collection reference at value '{valueId}'.");
+                try
                 {
-                    if (listRow.value is null) return null;
-                    IEnumerable<string> entryIds =
-                        collectionMember is ListMember listMember
-                        && client.IsUnorderedList(listMember)
-                            ? client.GetUnorderedListEntryIds(row.id)
-                            : listRow.value;
-                    var values = new List<object?>();
-                    foreach (string entryId in entryIds)
+                    if (!TryResolveCollectionEntryMember(client, sourceMember, out Member? entryMember))
+                        throw new InvalidOperationException(
+                            $"Stored {subject} value '{valueId}' has no declared collection entry member.");
+                    entryMember = NeoGenericResolution.SubstituteMember(
+                        client, entryMember, NeoGenericResolution.EnvFromStamp(row.genericBindings));
+                    NeoValueOwnership entryStorage = client.DeclaredOwnership(entryMember) ?? storage;
+
+                    switch (sourceMember)
                     {
-                        values.Add(UnwrapStoredConstructorCollectionEntry(
-                            client,
-                            entryId,
-                            entryMember,
-                            entryType,
-                            ctx,
-                            entryOwnership,
-                            subject,
-                            activeCollectionRows));
+                        case ListMember list when row is ArrayMemberValue listRow:
+                            if (listRow.value is null) return null;
+                            IEnumerable<string> ids = client.IsUnorderedList(list)
+                                ? client.GetUnorderedListEntryIds(valueId)
+                                : listRow.value;
+                            var values = new List<object?>();
+                            foreach (string id in ids)
+                                values.Add(Read(id, entryMember, entryStorage, entryType));
+                            return values.ToArray();
+                        case DictionaryMember when row is ObjectMemberValue dictionaryRow:
+                            if (dictionaryRow.value is null) return null;
+                            var valuesByKey = new Dictionary<string, object?>(
+                                dictionaryRow.value.Count, StringComparer.Ordinal);
+                            foreach (var pair in dictionaryRow.value)
+                                valuesByKey[pair.Key] = Read(pair.Value, entryMember, entryStorage, entryType);
+                            return valuesByKey;
+                        default:
+                            throw new InvalidOperationException(
+                                $"Stored {subject} value '{valueId}' does not match its declared collection shape.");
                     }
-                    return values.ToArray();
                 }
-
-                var dictionaryRow = (ObjectMemberValue)row;
-                if (dictionaryRow.value is null) return null;
-                var dictionary = new Dictionary<string, object?>(
-                    dictionaryRow.value.Count,
-                    StringComparer.Ordinal);
-                foreach (KeyValuePair<string, string> pair in dictionaryRow.value)
+                finally
                 {
-                    dictionary[pair.Key] =
-                        UnwrapStoredConstructorCollectionEntry(
-                            client,
-                            pair.Value,
-                            entryMember,
-                            entryType,
-                            ctx,
-                            entryOwnership,
-                            $"{subject} key '{pair.Key}'",
-                            activeCollectionRows);
+                    active.Remove((storage, valueId));
                 }
-                return dictionary;
             }
-            finally
-            {
-                activeCollectionRows.Remove(visitKey);
-            }
-        }
-
-        private static object? UnwrapStoredConstructorCollectionEntry(
-            NeoClient client,
-            string entryId,
-            Member entryMember,
-            TypeInfo entryType,
-            NeoScript.NSGetterEvaluator.Context ctx,
-            NeoValueOwnership ownership,
-            string subject,
-            HashSet<string> activeCollectionRows)
-        {
-            if (!client.TryGetValue(
-                    ownership,
-                    entryId,
-                    out MemberValue? entryRow)
-                || entryRow.IsRemoved)
-            {
-                throw new InvalidOperationException(
-                    $"Stored {subject} references missing value '{entryId}' in {ownership} storage.");
-            }
-            if (entryType.type is MemberKind.List or MemberKind.Dictionary)
-            {
-                return UnwrapStoredConstructorArgument(
-                    client,
-                    entryRow,
-                    entryType,
-                    entryMember,
-                    ctx,
-                    ownership,
-                    subject,
-                    activeCollectionRows);
-            }
-            return NeoScript.NSGetterEvaluator.UnwrapRow(
-                entryRow,
-                ctx,
-                ownership,
-                entryMember);
         }
 
         /// <summary>

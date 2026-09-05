@@ -1299,14 +1299,7 @@ namespace NeoCompose.Tests
             ProjectData data = BuildProjectData();
             AddSparseSaveClass(data);
 
-            string countValueId;
-            using (NeoClient probe = NeoTestSaveStack.ClientFromSchema(data))
-            {
-                countValueId = probe.SaveRoot
-                    .Get<NeoMemberClassWritable>("Sparse")
-                    .Get<NeoMemberIntWritable>("Count")
-                    .value!.id;
-            }
+            string countValueId = SparseCountValueId(data);
 
             ObjectMemberValue staleDetails = RecordValue(
                 "value-stale-save-details",
@@ -1391,14 +1384,7 @@ namespace NeoCompose.Tests
         {
             ProjectData writableData = BuildProjectData();
             AddSparseSaveClass(writableData);
-            string countValueId;
-            using (NeoClient probe = NeoTestSaveStack.ClientFromSchema(writableData))
-            {
-                countValueId = probe.SaveRoot
-                    .Get<NeoMemberClassWritable>("Sparse")
-                    .Get<NeoMemberIntWritable>("Count")
-                    .value!.id;
-            }
+            string countValueId = SparseCountValueId(writableData);
 
             ProjectData data = BuildProjectData();
             AddSparseSaveClass(data);
@@ -2532,6 +2518,15 @@ namespace NeoCompose.Tests
             data.values[sparseValue.id] = sparseValue;
             ((ObjectMemberValue)data.values["value-root-save"])
                 .value![sparse.name] = sparseValue.id;
+        }
+
+        private static string SparseCountValueId(ProjectData data)
+        {
+            using NeoClient probe = NeoTestSaveStack.ClientFromSchema(data);
+            return probe.SaveRoot
+                .Get<NeoMemberClassWritable>("Sparse")
+                .Get<NeoMemberIntWritable>("Count")
+                .value!.id;
         }
 
         private static ClassMember ClassMemberOf(
