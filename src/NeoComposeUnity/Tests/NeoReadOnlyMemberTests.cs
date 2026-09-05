@@ -1294,6 +1294,158 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ExistingSave_PreservesReadonlyAliasReachableThroughSparseInstance()
+        {
+            ProjectData data = BuildProjectData();
+            AddSparseSaveClass(data);
+
+            string countValueId = SparseCountValueId(data);
+
+            ObjectMemberValue staleDetails = RecordValue(
+                "value-stale-save-details",
+                "class-details",
+                new Dictionary<string, string>
+                {
+                    ["Name"] = "value-stale-save-detail-name",
+                });
+            staleDetails.instanceConstructorId = null;
+            staleDetails.constructorArgs = new Dictionary<string, JToken?>();
+            var staleSave = new ProjectSaveData
+            {
+                name = "pre-conversion-sparse-alias",
+                projectId = ProjectId,
+                version = new VersionData
+                {
+                    id = "unit-test-version",
+                    label = "unit-test-version",
+                },
+                createdAt = "x",
+                updatedAt = "x",
+                values = new Dictionary<string, MemberValue>
+                {
+                    ["value-weapon-save"] = RecordValue(
+                        "value-weapon-save",
+                        "class-weapon",
+                        new Dictionary<string, string>
+                        {
+                            ["BaseDamage"] = countValueId,
+                            ["Details"] = staleDetails.id,
+                        }),
+                    [countValueId] = new NumberMemberValue
+                    {
+                        id = countValueId,
+                        createdAt = "x",
+                        updatedAt = "x",
+                        value = 88,
+                    },
+                    [staleDetails.id] = staleDetails,
+                    ["value-stale-save-detail-name"] = new StringMemberValue
+                    {
+                        id = "value-stale-save-detail-name",
+                        createdAt = "x",
+                        updatedAt = "x",
+                        value = "stale",
+                    },
+                },
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                data,
+                loadedSaveContent: JsonConvert.SerializeObject(staleSave));
+
+            Assert.AreEqual(
+                12,
+                client.SaveRoot
+                    .Get<NeoMemberClassWritable>("Weapon")
+                    .Get<NeoMemberInt>("BaseDamage")
+                    .value!.value);
+            NeoMemberIntWritable count = client.SaveRoot
+                .Get<NeoMemberClassWritable>("Sparse")
+                .Get<NeoMemberIntWritable>("Count");
+            Assert.AreEqual(countValueId, count.value!.id);
+            Assert.AreEqual(
+                88,
+                count.value.value,
+                "Recovery must retain a writable override that remains reachable through the sparse virtual index.");
+
+            JObject serialized = JObject.Parse(client.SerializeSaveData());
+            var values = (JObject)serialized["values"]!;
+            var weapon = (JObject)values["value-weapon-save"]!["value"]!;
+            Assert.IsNull(weapon["BaseDamage"]);
+            Assert.IsNull(weapon["Details"]);
+            Assert.IsNotNull(values[countValueId]);
+            Assert.IsNull(values[staleDetails.id]);
+            Assert.IsNull(values["value-stale-save-detail-name"]);
+            CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
+        }
+
+        [Test]
+        public void ExistingSave_RemovesReadonlyOverrideAtItsFormerSparseId()
+        {
+            ProjectData writableData = BuildProjectData();
+            AddSparseSaveClass(writableData);
+            string countValueId = SparseCountValueId(writableData);
+
+            ProjectData data = BuildProjectData();
+            AddSparseSaveClass(data);
+            var countMember = (IntMember)data.members["member-sparse-count"];
+            countMember.Storage = NeoMemberStorage.Immutable;
+            countMember.Mutability = NeoMemberMutabilityKind.ReadOnly;
+
+            ObjectMemberValue sparseShadow = RecordValue(
+                "value-sparse-save",
+                "class-sparse",
+                new Dictionary<string, string>
+                {
+                    ["Count"] = countValueId,
+                });
+            sparseShadow.instanceConstructorId = null;
+            sparseShadow.constructorArgs = new Dictionary<string, JToken?>();
+            var staleSave = new ProjectSaveData
+            {
+                name = "pre-readonly-sparse-override",
+                projectId = ProjectId,
+                version = new VersionData
+                {
+                    id = "unit-test-version",
+                    label = "unit-test-version",
+                },
+                createdAt = "x",
+                updatedAt = "x",
+                values = new Dictionary<string, MemberValue>
+                {
+                    [sparseShadow.id] = sparseShadow,
+                    [countValueId] = new NumberMemberValue
+                    {
+                        id = countValueId,
+                        createdAt = "x",
+                        updatedAt = "x",
+                        value = 88,
+                    },
+                },
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                data,
+                loadedSaveContent: JsonConvert.SerializeObject(staleSave));
+
+            NeoMemberInt count = client.SaveRoot
+                .Get<NeoMemberClassWritable>("Sparse")
+                .Get<NeoMemberInt>("Count");
+            Assert.AreEqual(5, count.value!.value);
+            Assert.IsFalse(count is NeoMemberIntWritable);
+
+            JObject serialized = JObject.Parse(client.SerializeSaveData());
+            var values = (JObject)serialized["values"]!;
+            var sparse = (JObject)values[sparseShadow.id]!["value"]!;
+            Assert.IsNull(sparse["Count"]);
+            Assert.IsNull(
+                values[countValueId],
+                "Recovery must remove the stale Save row even when replay derives the read-only member's former sparse id.");
+            CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
+        }
+
+        [Test]
         public void ExistingSave_RecoversReadonlyKeyFromClassIdLessNestedRow()
         {
             ProjectData data = BuildProjectData();
@@ -2321,6 +2473,60 @@ namespace NeoCompose.Tests
                     },
                 },
             };
+        }
+
+        private static void AddSparseSaveClass(ProjectData data)
+        {
+            var count = new IntMember
+            {
+                id = "member-sparse-count",
+                projectId = ProjectId,
+                name = "Count",
+                kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new NumberMemberValueBase { value = 5 },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var sparse = ClassMemberOf(
+                "member-sparse",
+                "Sparse",
+                "class-sparse",
+                "value-sparse-save");
+            sparse.Requirement = NeoMemberRequirementKind.Required;
+            sparse.Storage = NeoMemberStorage.Save;
+
+            data.members[count.id] = count;
+            data.members[sparse.id] = sparse;
+            data.classes["class-root-save"].schema[sparse.name] = sparse.id;
+            NeoSchemaClass sparseClass = ClassOf(
+                "class-sparse",
+                "Sparse",
+                new Dictionary<string, string>
+                {
+                    [count.name] = count.id,
+                });
+            sparseClass.allowedStorage = NeoMemberStorage.Save;
+            data.classes[sparseClass.id] = sparseClass;
+
+            ObjectMemberValue sparseValue = RecordValue(
+                "value-sparse-save",
+                sparseClass.id,
+                new Dictionary<string, string>());
+            sparseValue.instanceConstructorId = null;
+            sparseValue.constructorArgs = new Dictionary<string, JToken?>();
+            data.values[sparseValue.id] = sparseValue;
+            ((ObjectMemberValue)data.values["value-root-save"])
+                .value![sparse.name] = sparseValue.id;
+        }
+
+        private static string SparseCountValueId(ProjectData data)
+        {
+            using NeoClient probe = NeoTestSaveStack.ClientFromSchema(data);
+            return probe.SaveRoot
+                .Get<NeoMemberClassWritable>("Sparse")
+                .Get<NeoMemberIntWritable>("Count")
+                .value!.id;
         }
 
         private static ClassMember ClassMemberOf(

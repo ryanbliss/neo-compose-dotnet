@@ -119,6 +119,14 @@ namespace NeoCompose.Runtime
             internal readonly Dictionary<string, VirtualExpansionNode> dictionaryChildren = new();
         }
 
+        private sealed class VirtualClassPlacement
+        {
+            internal string rootId = null!;
+            internal string parentValueId = null!;
+            internal Member member = null!;
+            internal NeoValueOwnership ownership;
+        }
+
         /// <summary>
         /// P75 root eligibility. A row is a sparse instance root when it
         /// carries an arm of the creation-provenance stamp: an explicit
@@ -267,10 +275,12 @@ namespace NeoCompose.Runtime
             virtualValues.Clear();
             virtualValueOwnership.Clear();
             virtualClassChildren.Clear();
+            virtualClassPlacementByChildId.Clear();
             virtualEntriesByContainer.Clear();
             virtualContainerByRow.Clear();
             virtualValueIdsByRoot.Clear();
             virtualClassParentIdsByRoot.Clear();
+            virtualClassChildIdsByRoot.Clear();
             virtualFootprintByRoot.Clear();
             virtualRootByFootprintId.Clear();
             MemberValue[] allRows = data.values.Values
@@ -293,9 +303,54 @@ namespace NeoCompose.Runtime
                 .ThenBy(row => row.id, StringComparer.Ordinal)
                 .ToArray();
 
+            var pendingRoots = roots.ToDictionary(
+                root => root.id,
+                StringComparer.Ordinal);
+            var readyRoots = new Queue<ObjectMemberValue>();
             foreach (ObjectMemberValue root in roots)
             {
+                if (!CanReplayVirtualInstanceRoot(root)) continue;
+                pendingRoots.Remove(root.id);
+                readyRoots.Enqueue(root);
+            }
+            while (readyRoots.Count > 0)
+            {
+                ObjectMemberValue root = readyRoots.Dequeue();
                 ExpandVirtualInstanceRootOrReport(root, failClosed);
+                if (!virtualClassChildIdsByRoot.TryGetValue(
+                        root.id,
+                        out HashSet<string>? classChildIds))
+                {
+                    continue;
+                }
+                foreach (string classChildId in classChildIds)
+                {
+                    if (!pendingRoots.Remove(
+                            classChildId,
+                            out ObjectMemberValue? nestedRoot))
+                    {
+                        continue;
+                    }
+                    readyRoots.Enqueue(nestedRoot);
+                }
+            }
+            // Recovery already removed illegal read-only Class keys, but its
+            // stale value rows cannot be judged until sparse writable paths
+            // have entered the virtual index. Delete only after every root
+            // reachable through those paths has replayed.
+            RemoveRecoveredReadOnlySaveValues();
+            // Preserve the existing fail-closed diagnostic for genuinely
+            // orphaned persisted roots. A nested root is no longer handled
+            // here because its parent's indexed Class edge queued it above.
+            foreach (ObjectMemberValue root in roots)
+            {
+                if (!pendingRoots.ContainsKey(root.id)) continue;
+                if (ResolveValueRow(root.id) is not ObjectMemberValue currentRoot
+                    || !IsVirtualInstanceRoot(currentRoot))
+                {
+                    continue;
+                }
+                ExpandVirtualInstanceRootOrReport(currentRoot, failClosed);
             }
 
             DisposeWrappersTouchingRows(outgoingVirtualIds);
@@ -304,6 +359,13 @@ namespace NeoCompose.Runtime
             // variant code could resolve Assets/Save/Session. Rebind their
             // wrapper trees once the virtual child index is complete.
             RefreshAllVirtualWrapperTrees();
+        }
+
+        private bool CanReplayVirtualInstanceRoot(ObjectMemberValue root)
+        {
+            return sessionData.values.ContainsKey(root.id)
+                || (TryInferMemberForValueId(root.id, out Member? member)
+                    && member is ClassMember);
         }
 
         /// <summary>
@@ -973,7 +1035,20 @@ namespace NeoCompose.Runtime
                     or MemberKind.List
                     or MemberKind.Dictionary)
             {
-                return UnwrapVirtualReplayRow(token.Value<string>()!);
+                string valueId = token.Value<string>()!;
+                if (!TryGetValue(valueId, out MemberValue? _))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructor argument references missing value '{valueId}'.");
+                }
+                if (!TryGetValueOwnership(
+                        valueId,
+                        out NeoValueOwnership ownership))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructor argument value '{valueId}' has no resolvable storage ownership, so the instance cannot be replayed against it.");
+                }
+                return new NeoConstructorValueReference(valueId, ownership);
             }
             return typeInfo.type switch
             {
@@ -1161,6 +1236,24 @@ namespace NeoCompose.Runtime
                         obj.value = node.classChildren.ToDictionary(
                             pair => pair.Key,
                             pair => pair.Value.virtualId);
+                        if (obj.constructorArgs is not null)
+                        {
+                            foreach (var link in
+                                EnumerateConstructorSettledAggregateLinks(
+                                    obj,
+                                    includeMaterializedChildren: true))
+                            {
+                                if (!node.classChildren.TryGetValue(
+                                        link.schemaKey,
+                                        out VirtualExpansionNode? child)
+                                    || child.row.id != link.valueId)
+                                {
+                                    continue;
+                                }
+                                obj.constructorArgs[link.parameterId] =
+                                    new JValue(child.virtualId);
+                            }
+                        }
                     }
                     else if (node.member is DictionaryMember)
                     {
@@ -1226,6 +1319,10 @@ namespace NeoCompose.Runtime
                     string? childMaterializedId = null;
                     if (stored is not null)
                         stored.TryGetValue(pair.Key, out childMaterializedId);
+                    NeoValueOwnership childOwnership =
+                        (pair.Value.member is null
+                            ? null
+                            : DeclaredOwnership(pair.Value.member)) ?? ownership;
                     if (childMaterializedId is null)
                     {
                         if (!virtualClassChildren.TryGetValue(
@@ -1237,6 +1334,15 @@ namespace NeoCompose.Runtime
                             TrackVirtualClassParent(instanceRoot.id, effectiveId);
                         }
                         links[pair.Key] = pair.Value.virtualId;
+                        if (pair.Value.member is not null)
+                        {
+                            TrackVirtualClassPlacement(
+                                instanceRoot.id,
+                                effectiveId,
+                                pair.Value.virtualId,
+                                pair.Value.member,
+                                childOwnership);
+                        }
                     }
                     // Ownership switches at declared member boundaries: a
                     // Save-storage member's pins live in the SAVE store, and
@@ -1246,9 +1352,7 @@ namespace NeoCompose.Runtime
                     OverlaySparseInstance(
                         pair.Value,
                         childMaterializedId,
-                        (pair.Value.member is null
-                            ? null
-                            : DeclaredOwnership(pair.Value.member)) ?? ownership,
+                        childOwnership,
                         instanceRoot);
                 }
                 return;
@@ -1364,12 +1468,23 @@ namespace NeoCompose.Runtime
                 // Asset made the save sweep skip the very expansion ids its
                 // pins materialize under (an Outpost's OutpostSaveData after
                 // the collapse virtualized the key).
+                NeoValueOwnership childOwnership =
+                    (child.member is null
+                        ? null
+                        : DeclaredOwnership(child.member)) ?? ownership;
+                if (child.member is not null)
+                {
+                    TrackVirtualClassPlacement(
+                        instanceRoot.id,
+                        node.virtualId,
+                        child.virtualId,
+                        child.member,
+                        childOwnership);
+                }
                 IndexVirtualSubtree(
                     child,
                     instanceRoot,
-                    (child.member is null
-                        ? null
-                        : DeclaredOwnership(child.member)) ?? ownership);
+                    childOwnership);
             }
             foreach (VirtualExpansionNode child in node.listChildren)
                 IndexVirtualSubtree(child, instanceRoot, ownership);
@@ -1497,6 +1612,31 @@ namespace NeoCompose.Runtime
             ids.Add(parentId);
         }
 
+        private void TrackVirtualClassPlacement(
+            string rootId,
+            string parentValueId,
+            string childValueId,
+            Member member,
+            NeoValueOwnership ownership)
+        {
+            virtualClassPlacementByChildId[childValueId] =
+                new VirtualClassPlacement
+                {
+                    rootId = rootId,
+                    parentValueId = parentValueId,
+                    member = member,
+                    ownership = ownership,
+                };
+            if (!virtualClassChildIdsByRoot.TryGetValue(
+                    rootId,
+                    out HashSet<string>? ids))
+            {
+                ids = new HashSet<string>(StringComparer.Ordinal);
+                virtualClassChildIdsByRoot[rootId] = ids;
+            }
+            ids.Add(childValueId);
+        }
+
         private void TrackVirtualFootprint(string rootId, string valueId)
         {
             if (!virtualFootprintByRoot.TryGetValue(rootId, out HashSet<string>? ids))
@@ -1555,6 +1695,22 @@ namespace NeoCompose.Runtime
                 foreach (string parentId in parentIds)
                     virtualClassChildren.Remove(parentId);
                 virtualClassParentIdsByRoot.Remove(rootId);
+            }
+            if (virtualClassChildIdsByRoot.TryGetValue(
+                    rootId,
+                    out HashSet<string>? childIds))
+            {
+                foreach (string childId in childIds)
+                {
+                    if (virtualClassPlacementByChildId.TryGetValue(
+                            childId,
+                            out VirtualClassPlacement? placement)
+                        && placement.rootId == rootId)
+                    {
+                        virtualClassPlacementByChildId.Remove(childId);
+                    }
+                }
+                virtualClassChildIdsByRoot.Remove(rootId);
             }
         }
 

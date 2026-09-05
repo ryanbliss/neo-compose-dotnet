@@ -56,8 +56,10 @@ namespace HelloWorld.Assets.Tests
         private const string NeoObjectLayerLinkClassId = "system_04ef83b0-3171-4299-9580-902708690750";
         private const string ObjectLayerLinkClassId = "f1b08825-2ad0-4666-acf1-3df7ffbda64e";
         private const string ObjectLayerLinkRelationId = "neo-tile-grid-record-relations-v1-relation-62fe5d6862a5acb378441d9ba0d0745a";
-        private const string ObjectLayerLinkValueId = "0e638a67-3d86-45c3-a13b-e0888a46d538";
-        private const string ObjectLayerLinkObjectsValueId = "1d57ae36-0e0a-4558-a03b-27b5eb0a733d";
+        private const string ObjectLayerLinkRootValueId = "0e638a67-3d86-45c3-a13b-e0888a46d538";
+        private const string ObjectLayerLinkObjectsMemberId = "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2";
+        // UUIDv5 for the authored link root and the Objects declaration path.
+        private const string ObjectLayerLinkObjectsValueId = "9342c926-b84f-554f-b42f-56e17c68632a";
         private const string ObjectLayerLinkTargetClassId = "neo-tile-grid-record-relations-v1-class-d1b21a408630eedaf664ccf5720d874f";
         private const string OldConsoleWorldPartitionKey = "world:b44d80a9-7760-4919-8844-0cb71d08b788";
         private static readonly string[] OldConsoleLandingDialogueIds =
@@ -160,7 +162,7 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void ObjectLayerLinkSplit_PreservesAuthoredIdentitiesAndUsesAbstractSystemBase()
+        public void ObjectLayerLinkSplit_PreservesAuthoredRootAndCanonicalChildIdentities_UsesAbstractSystemBase()
         {
             Assert.IsTrue(typeof(NeoTileLayerLink).IsAbstract);
             Assert.IsTrue(typeof(NeoObjectLayerLink).IsAbstract);
@@ -190,7 +192,7 @@ namespace HelloWorld.Assets.Tests
                 "worldAuthoring",
                 systemBase["system"]!["kind"]!.Value<string>());
             Assert.AreEqual(
-                "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
+                ObjectLayerLinkObjectsMemberId,
                 systemBase["schema"]!["Objects"]!.Value<string>());
 
             Assert.AreEqual("ObjectLayerLink", authoredLink["name"]!.Value<string>());
@@ -225,11 +227,15 @@ namespace HelloWorld.Assets.Tests
             Assert.IsFalse(allValues.Any(value =>
                 value["classId"]?.Value<string>() == NeoObjectLayerLinkClassId));
 
-            var linkValue = project["valuePartitions"]![OldConsoleWorldPartitionKey]![ObjectLayerLinkValueId]!;
+            var linkValue = project["valuePartitions"]![OldConsoleWorldPartitionKey]![ObjectLayerLinkRootValueId]!;
             Assert.AreEqual(ObjectLayerLinkClassId, linkValue["classId"]!.Value<string>());
             Assert.AreEqual(
                 ObjectLayerLinkObjectsValueId,
                 linkValue["value"]!["Objects"]!.Value<string>());
+            var objectsValue = project["valuePartitions"]![OldConsoleWorldPartitionKey]![ObjectLayerLinkObjectsValueId];
+            Assert.IsNotNull(objectsValue);
+            Assert.AreEqual(ObjectLayerLinkObjectsValueId, objectsValue!["id"]!.Value<string>());
+            Assert.AreEqual(JTokenType.Array, objectsValue["value"]!.Type);
             // The relation above is the canonical target. Current exports no
             // longer duplicate it as a legacy layerClassId child value.
             Assert.IsNull(linkValue["value"]!["layerClassId"]);

@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [0.32.1] - 2026-09-04
+
+### Fixed
+
+- Object placement preserves constructor-settled values and source identities
+  when cloning sparse authored assets, including nested children.
+- Nested constructions persisted at virtual child IDs reload through their
+  typed Class placements. Replay queues each root when its parent is available.
+- Read-only Save recovery preserves writable overrides reached through sparse
+  paths while removing stale read-only values and their orphaned subtrees.
+- Constructor-settled aggregate arguments use durable virtual child IDs and
+  retain their row identity in the replay evaluator, including storage ownership.
+
 ## [0.32.0] - 2026-08-31
 
 ### Added

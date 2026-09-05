@@ -107,10 +107,13 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, MemberValue> virtualValues = new();
         private readonly Dictionary<string, NeoValueOwnership> virtualValueOwnership = new();
         private readonly Dictionary<string, Dictionary<string, string>> virtualClassChildren = new();
+        private readonly Dictionary<string, VirtualClassPlacement>
+            virtualClassPlacementByChildId = new();
         private readonly Dictionary<string, HashSet<string>> virtualEntriesByContainer = new();
         private readonly Dictionary<string, string> virtualContainerByRow = new();
         private readonly Dictionary<string, HashSet<string>> virtualValueIdsByRoot = new();
         private readonly Dictionary<string, HashSet<string>> virtualClassParentIdsByRoot = new();
+        private readonly Dictionary<string, HashSet<string>> virtualClassChildIdsByRoot = new();
         private IReadOnlyDictionary<string, MemberValue> readOnlyAuthoredRows =
             new Dictionary<string, MemberValue>();
         private IReadOnlyDictionary<string, string> readOnlyAuthoredClassIds =
@@ -623,7 +626,6 @@ namespace NeoCompose.Runtime
             sessionData = BuildDefaultSessionData();
             BuildMembershipIndex();
             BuildAuthoredOwnershipMap();
-            RemoveRecoveredReadOnlySaveValues();
             InitializeSaveDefaults();
             InitializeSessionDefaults();
             assets = new(this, data.project.rootAssetsMemberId, null);
@@ -3138,6 +3140,14 @@ namespace NeoCompose.Runtime
                 parentValueId = child.containerId;
                 return true;
             }
+            if (virtualClassPlacementByChildId.TryGetValue(
+                    childValueId,
+                    out VirtualClassPlacement? virtualPlacement)
+                && virtualPlacement.ownership == childOwnership)
+            {
+                parentValueId = virtualPlacement.parentValueId;
+                return true;
+            }
 
             foreach (var candidate in EnumerateParentRows())
             {
@@ -3677,7 +3687,8 @@ namespace NeoCompose.Runtime
             string schemaKey,
             string valueId,
             Member member)> EnumerateConstructorSettledAggregateLinks(
-                ObjectMemberValue parent)
+                ObjectMemberValue parent,
+                bool includeMaterializedChildren = false)
         {
             if (parent.constructorArgs is null
                 || parent.instanceConstructorId is not string constructorId
@@ -3701,7 +3712,8 @@ namespace NeoCompose.Runtime
                         constructorLink,
                         parameter.name,
                         out MergedSchemaEntry? schemaEntry)
-                    || parent.value?.ContainsKey(schemaEntry.schemaKey) == true
+                    || (!includeMaterializedChildren
+                        && parent.value?.ContainsKey(schemaEntry.schemaKey) == true)
                     || !TryGetMember(schemaEntry.memberId, out Member? member))
                 {
                     continue;
@@ -3800,6 +3812,13 @@ namespace NeoCompose.Runtime
                     member = candidate;
                     return true;
                 }
+            }
+            if (virtualClassPlacementByChildId.TryGetValue(
+                    valueId,
+                    out VirtualClassPlacement? virtualPlacement))
+            {
+                member = virtualPlacement.member;
+                return true;
             }
 
             // Unordered-list membership is stored on the child row rather
@@ -7452,6 +7471,11 @@ namespace NeoCompose.Runtime
                     ownership,
                     current.valueId))
                 {
+                    NeoValueOwnership childOwnership =
+                        (virtualChild.member is null
+                            ? null
+                            : DeclaredOwnership(virtualChild.member)) ?? ownership;
+                    if (childOwnership != ownership) continue;
                     pending.Enqueue((virtualChild.valueId, virtualChild.member));
                 }
                 if (!store.values.TryGetValue(current.valueId, out MemberValue? val)
