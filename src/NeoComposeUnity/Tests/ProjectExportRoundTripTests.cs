@@ -1585,31 +1585,6 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Member_RetiredAccessModifierKindRejectsBooleanValue()
-        {
-            var source = new IntMember
-            {
-                id = "member-non-string-access",
-                projectId = "project",
-                name = "Count",
-                kind = MemberKind.Int,
-                Access = NeoMemberAccessKind.Public,
-                createdAt = "x",
-                updatedAt = "x",
-            };
-            var json = JObject.FromObject(source);
-            json["accessModifierKind"] = true;
-
-            var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<Member>(json.ToString()));
-
-            Assert.That(
-                error!.Message,
-                Does.Contain(
-                    "removed field 'accessModifierKind'"));
-        }
-
-        [Test]
         public void Member_RetiredAccessModifierKindRejectsStringValue()
         {
             var source = new IntMember

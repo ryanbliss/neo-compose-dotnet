@@ -28,13 +28,8 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NeoLoader_CanBeInstantiated()
+        public void NeoLoader_CommitPersistsGeneratedSaveWithNumericTimestamps()
         {
-            // Placeholder smoke test — verifies the asmdef + test wiring
-            // builds and the class is reachable. Replace as the real
-            // surface lands.
-            var instance = new NeoLoader();
-            Assert.IsNotNull(instance);
             // A fresh draft builds default save data; committing persists it to the
             // local store (the durable round-trip the removed handleSave delegate used
             // to perform), so the persisted JSON can be inspected here.

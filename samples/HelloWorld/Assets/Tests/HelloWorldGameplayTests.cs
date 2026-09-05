@@ -474,39 +474,7 @@ namespace HelloWorld.Assets.Tests
                     continue;
                 }
                 triggeredCount += 1;
-                System.Exception error = null;
-                NeoDialogueTextNode current = null;
-                var finished = false;
-                dialogue.OnError += ex => error = ex;
-                dialogue.OnShow += node => current = node;
-                dialogue.OnPause += pause => pause.Resume();
-                dialogue.OnFinish += () => finished = true;
-                try
-                {
-                    dialogue.Start();
-                    for (var step = 0; step < 60 && error == null && !finished; step++)
-                    {
-                        Assert.IsNotNull(current, $"{outpost.Name}: dialogue stalled before finishing");
-                        var node = current;
-                        current = null;
-                        if (node.Options.Count > 0)
-                        {
-                            var option = node.Options.FirstOrDefault(o => o.Selectable);
-                            Assert.IsNotNull(option, $"{outpost.Name}: node has no selectable option");
-                            option.Select();
-                        }
-                        else
-                        {
-                            node.Next();
-                        }
-                    }
-                    Assert.IsNull(error, $"{outpost.Name}: {error}");
-                    Assert.IsTrue(finished, $"{outpost.Name}: dialogue exceeded the 60-step limit");
-                }
-                finally
-                {
-                    dialogue.Dispose();
-                }
+                WalkDialogue(dialogue, outpost.Name, preferFirstOption: true);
             }
             Assert.Greater(triggeredCount, 0, "The sample should expose at least one intro dialogue.");
         }
