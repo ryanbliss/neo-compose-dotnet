@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace NeoCompose.Runtime
@@ -288,7 +289,7 @@ namespace NeoCompose.Runtime
             if (InitializerOf(schemaMember) is not null)
             {
                 throw new System.InvalidOperationException(
-                    $"Member '{schemaMember.name}' has a computed default and cannot be materialized as a literal.");
+                    $"Member '{schemaMember.name}' ({schemaMember.id}) has a computed default and cannot be materialized as a literal.");
             }
             return schemaMember switch
             {
@@ -467,6 +468,7 @@ namespace NeoCompose.Runtime
                         {
                             classId = member.defaultValue.value.classId,
                             variantId = member.defaultValue.value.variantId,
+                            rowValueId = member.defaultValue.value.rowValueId,
                         },
                     classId = member.defaultValue.classId,
                 },
@@ -480,6 +482,12 @@ namespace NeoCompose.Runtime
             // classes, or any reference type).
             if (payload is null) return default!;
             if (payload is TExpected match) return match;
+            if (typeof(TExpected) == typeof(SpriteValue)
+                && ToSpriteValue(payload) is SpriteValue sprite)
+                return (TExpected)(object)sprite;
+            if (typeof(TExpected) == typeof(FileValue)
+                && ToFileValue(payload) is FileValue file)
+                return (TExpected)(object)file;
             if (typeof(TExpected) == typeof(double?))
             {
                 if (payload is int i) return (TExpected)(object)(double?)i;
@@ -503,6 +511,54 @@ namespace NeoCompose.Runtime
                 $"Cannot set {member.GetType().Name} {member.id} from " +
                 $"{payload.GetType().Name}; expected {typeof(TExpected).Name}",
                 nameof(payload));
+        }
+
+        internal static SpriteValue? ToSpriteValue(object? value)
+        {
+            if (value is null) return null;
+            if (value is SpriteValue spriteValue) return spriteValue;
+            if (value is JObject obj)
+            {
+                var fileId = obj["fileId"]?.Value<string>();
+                var sliceIndex = obj["sliceIndex"]?.Value<int?>();
+                return fileId == null || sliceIndex == null
+                    ? null
+                    : new SpriteValue { fileId = fileId!, sliceIndex = sliceIndex.Value };
+            }
+            if (value is IDictionary<string, object?> dict &&
+                dict.TryGetValue("fileId", out var rawFileId) &&
+                rawFileId is string dictFileId &&
+                dict.TryGetValue("sliceIndex", out var rawSliceIndex))
+            {
+                return rawSliceIndex switch
+                {
+                    int i => new SpriteValue { fileId = dictFileId, sliceIndex = i },
+                    long l => new SpriteValue { fileId = dictFileId, sliceIndex = (int)l },
+                    double d => new SpriteValue { fileId = dictFileId, sliceIndex = System.Convert.ToInt32(d) },
+                    _ => null,
+                };
+            }
+            return null;
+        }
+
+        internal static FileValue? ToFileValue(object? value)
+        {
+            if (value is null) return null;
+            if (value is FileValue fileValue) return fileValue;
+            if (value is JObject obj)
+            {
+                var fileId = obj["fileId"]?.Value<string>();
+                return string.IsNullOrWhiteSpace(fileId)
+                    ? null
+                    : new FileValue { fileId = fileId! };
+            }
+            if (value is IDictionary<string, object?> dict &&
+                dict.TryGetValue("fileId", out var rawFileId) &&
+                rawFileId is string dictFileId)
+            {
+                return new FileValue { fileId = dictFileId };
+            }
+            return null;
         }
 
         private static string[]? CloneArray(string[]? source)

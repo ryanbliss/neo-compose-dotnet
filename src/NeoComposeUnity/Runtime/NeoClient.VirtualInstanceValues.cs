@@ -96,6 +96,10 @@ namespace NeoCompose.Runtime
         /// </summary>
         private bool virtualInstanceReplayReady;
 
+        internal bool IsAwaitingVirtualInstanceReplay(ObjectMemberValue? row) =>
+            (!virtualInstanceReplayReady || isReplayingVirtualInstance)
+            && row is not null && IsVirtualInstanceRoot(row);
+
         /// <summary>
         /// Every row id one instance root's expansion touched — the virtual
         /// ids it minted AND the materialized ids that answered its nodes.
@@ -299,7 +303,8 @@ namespace NeoCompose.Runtime
                 // outer-root virtual scope. Replaying shallow-to-deep lets the
                 // nested root's own durable recipe overwrite that provisional
                 // mapping with the authoritative nested-root scope.
-                .OrderBy(row => AuthoredContainmentDepth(row.id, parentByValueId))
+                .OrderBy(row => VariantGraphs.ContainsKey(row.id) ? 0 : 1)
+                .ThenBy(row => AuthoredContainmentDepth(row.id, parentByValueId))
                 .ThenBy(row => row.id, StringComparer.Ordinal)
                 .ToArray();
 
@@ -339,18 +344,17 @@ namespace NeoCompose.Runtime
             // have entered the virtual index. Delete only after every root
             // reachable through those paths has replayed.
             RemoveRecoveredReadOnlySaveValues();
-            // Preserve the existing fail-closed diagnostic for genuinely
-            // orphaned persisted roots. A nested root is no longer handled
-            // here because its parent's indexed Class edge queued it above.
-            foreach (ObjectMemberValue root in roots)
+            // Unreferenced authored rows are not part of a runtime graph.
+            // Exports can retain detached historical children; do not execute
+            // their constructors. Persisted save roots still fail closed.
+            foreach (ObjectMemberValue root in pendingRoots.Values)
             {
-                if (!pendingRoots.ContainsKey(root.id)) continue;
-                if (ResolveValueRow(root.id) is not ObjectMemberValue currentRoot
-                    || !IsVirtualInstanceRoot(currentRoot))
+                if (saveData.values.TryGetValue(root.id, out MemberValue? saved)
+                    && saved is ObjectMemberValue currentRoot
+                    && IsVirtualInstanceRoot(currentRoot))
                 {
-                    continue;
+                    ExpandVirtualInstanceRootOrReport(currentRoot, failClosed);
                 }
-                ExpandVirtualInstanceRootOrReport(currentRoot, failClosed);
             }
 
             DisposeWrappersTouchingRows(outgoingVirtualIds);
@@ -531,7 +535,8 @@ namespace NeoCompose.Runtime
             NeoMemberClassWritable node,
             NeoValueOwnership ownership,
             string? variantId,
-            string? rowValueId)
+            string? rowValueId,
+            bool replay = true)
         {
             string valueId = node.value?.id
                 ?? throw new InvalidOperationException(
@@ -572,8 +577,11 @@ namespace NeoCompose.Runtime
                 root.hasInstanceConstructorId ? root.instanceConstructorId : null,
                 root.constructorArgs ?? new Dictionary<string, JToken?>());
             SetWritableValue(ownership, root, "instanceVariantId");
-            ExpandVirtualInstanceRoot(root);
-            RefreshVirtualWrapperTree(node);
+            if (replay)
+            {
+                ExpandVirtualInstanceRoot(root);
+                RefreshVirtualWrapperTree(node);
+            }
         }
 
         /// <summary>
@@ -640,7 +648,8 @@ namespace NeoCompose.Runtime
                 if (row is ObjectMemberValue objectRow && objectRow.value is not null)
                 {
                     foreach (string childId in objectRow.value.Values)
-                        parentByValueId.TryAdd(childId, row.id);
+                        if (childId is not null)
+                            parentByValueId.TryAdd(childId, row.id);
 
                     if (!string.IsNullOrEmpty(objectRow.classId)
                         && !string.IsNullOrEmpty(objectRow.instanceConstructorId)
@@ -656,7 +665,8 @@ namespace NeoCompose.Runtime
                 else if (row is ArrayMemberValue arrayRow && arrayRow.value is not null)
                 {
                     foreach (string childId in arrayRow.value)
-                        parentByValueId.TryAdd(childId, row.id);
+                        if (childId is not null)
+                            parentByValueId.TryAdd(childId, row.id);
                 }
                 if (row.containerId is not null)
                     parentByValueId.TryAdd(row.id, row.containerId);
@@ -698,10 +708,12 @@ namespace NeoCompose.Runtime
                 .OfType<ObjectMemberValue>()
                 .Where(row => row.classId is not null)
                 .Where(IsVirtualInstanceRoot)
-                .OrderBy(row => AuthoredContainmentDepth(row.id, parentByValueId))
+                .OrderBy(row => VariantGraphs.ContainsKey(row.id) ? 0 : 1)
+                .ThenBy(row => AuthoredContainmentDepth(row.id, parentByValueId))
                 .ThenBy(row => row.id, StringComparer.Ordinal))
             {
-                ExpandVirtualInstanceRootOrReport(root, failClosed: true);
+                if (CanReplayVirtualInstanceRoot(root))
+                    ExpandVirtualInstanceRootOrReport(root, failClosed: true);
             }
         }
 
