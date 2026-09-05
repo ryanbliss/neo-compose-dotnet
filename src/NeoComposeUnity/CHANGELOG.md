@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.32.2] - 2026-09-05
+
+### Fixed
+
+- Full Unity exports allow up to five minutes for paginated snapshot reads and
+  C# generation, instead of failing at the ordinary 30-second request timeout.
+  Other API requests retain their existing timeout.
+
 ## [0.32.1] - 2026-09-04
 
 ### Fixed

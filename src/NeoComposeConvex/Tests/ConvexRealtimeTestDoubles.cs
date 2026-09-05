@@ -45,7 +45,8 @@ namespace NeoCompose.Convex.Tests
             new List<(string, string, string?, string?)>();
 
         public Task<NeoComposeWebResponse> SendAsync(
-            string url, string method, string? jsonBody, string? bearerToken)
+            string url, string method, string? jsonBody, string? bearerToken,
+            int timeoutSeconds = NeoComposeWebRequests.DefaultTimeoutSeconds)
         {
             Requests.Add((url, method, jsonBody, bearerToken));
             if (Responses.Count == 0)
