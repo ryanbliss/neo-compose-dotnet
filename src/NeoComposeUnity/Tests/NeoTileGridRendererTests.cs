@@ -679,6 +679,115 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ObjectPlacementsCloneConstructorSettledSparseChildrenRecursively()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var asset = (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "shop-object",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories())!;
+            ConstructorRecord rootConstructor = ConfigureSparseListConstructor(
+                client,
+                "shop-object-constructor",
+                ObjectClassId,
+                "object-children-member",
+                "Children",
+                TileLayerLinkClassId);
+            ConstructorRecord childConstructor = ConfigureSparseListConstructor(
+                client,
+                "shop-child-constructor",
+                TileLayerLinkClassId,
+                "tile-layer-link-tiles-member",
+                "Tiles",
+                TileInstanceClassId);
+            var authored = (Dictionary<string, MemberValue>)client.values;
+            var assetRow = (ObjectMemberValue)authored["shop-object"];
+            assetRow.instanceConstructorId = rootConstructor.id;
+            assetRow.constructorArgs = new Dictionary<string, JToken?>
+            {
+                [NeoClient.ConstructorParameterId(rootConstructor, 0)] =
+                    "shop-constructor-children",
+            };
+            authored["shop-constructor-children"] = new ArrayMemberValue
+            {
+                id = "shop-constructor-children",
+                value = new[] { "shop-constructor-child" },
+            };
+            authored["shop-constructor-child"] = new ObjectMemberValue
+            {
+                id = "shop-constructor-child",
+                classId = TileLayerLinkClassId,
+                value = new Dictionary<string, string>(),
+                instanceConstructorId = childConstructor.id,
+                constructorArgs = new Dictionary<string, JToken?>
+                {
+                    [NeoClient.ConstructorParameterId(childConstructor, 0)] =
+                        "shop-constructor-child-tiles",
+                },
+            };
+            authored["shop-constructor-child-tiles"] = new ArrayMemberValue
+            {
+                id = "shop-constructor-child-tiles",
+                value = new[] { "shop-constructor-tile" },
+            };
+            authored["shop-constructor-tile"] = new ObjectMemberValue
+            {
+                id = "shop-constructor-tile",
+                classId = TileInstanceClassId,
+                value = new Dictionary<string, string>
+                {
+                    ["Cell"] = "shop-constructor-tile-cell",
+                },
+            };
+            authored["shop-constructor-tile-cell"] = new Vector2MemberValue
+            {
+                id = "shop-constructor-tile-cell",
+                value = new NeoVector2Value { x = 23, y = -17 },
+            };
+
+            var primitive = NeoTileGridPrimitive.ResolveForSave(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string>
+                {
+                    [typeof(TestComposedObject)] = ObjectClassId,
+                });
+            var layer = primitive.BindWritableObjectLayer<TestAuthoredObjectLayer>(
+                ObjectsLayerClassId,
+                new[] { ObjectClassId });
+
+            Assert.IsTrue(layer.Spawn(new Vector2Int(4, 5), asset).Ok);
+            NeoResolvedObjectInstance placed = layer.GetObject(new Vector2Int(4, 5))!;
+            var placedRoot = (ObjectMemberValue)client.saveValues[placed.InstanceId.Value];
+            var placedChildren = (ArrayMemberValue)client.saveValues[
+                placedRoot.value!["Children"]];
+            var placedChild = (ObjectMemberValue)client.saveValues[
+                placedChildren.value!.Single()];
+            var placedTiles = (ArrayMemberValue)client.saveValues[
+                placedChild.value!["Tiles"]];
+            var placedTile = (ObjectMemberValue)client.saveValues[
+                placedTiles.value!.Single()];
+            var placedCell = (Vector2MemberValue)client.saveValues[
+                placedTile.value!["Cell"]];
+
+            Assert.AreEqual("shop-constructor-children", placedChildren.sourceValueId);
+            Assert.AreEqual("shop-constructor-child", placedChild.sourceValueId);
+            Assert.AreEqual("shop-constructor-child-tiles", placedTiles.sourceValueId);
+            Assert.AreEqual("shop-constructor-tile", placedTile.sourceValueId);
+            Assert.AreEqual("shop-constructor-tile-cell", placedCell.sourceValueId);
+            Assert.AreEqual(23, placedCell.value!.x);
+            Assert.AreEqual(-17, placedCell.value.y);
+            CollectionAssert.DoesNotContain(
+                client.sessionValues.Keys,
+                placedTiles.id,
+                "the nested Save member must remain in the placement's Save ownership");
+        }
+
+        [Test]
         public void AnimationChildOverrideWritesOnlyTheMatchingPlacedChild()
         {
             ProjectData data = BuildPlacementAnimationProjectData();
@@ -6072,6 +6181,47 @@ namespace NeoCompose.Tests
                 value = new NeoVector2Value { x = 12, y = 13 },
             };
             return data;
+        }
+
+        private static ConstructorRecord ConfigureSparseListConstructor(
+            NeoClient client,
+            string constructorId,
+            string classId,
+            string listMemberId,
+            string parameterName,
+            string entryClassId)
+        {
+            var classes = (Dictionary<string, NeoSchemaClass>)client.classes;
+            var members = (Dictionary<string, NeoCompose.Runtime.Json.Member>)client.members;
+            var constructors = (Dictionary<string, ConstructorRecord>)client.constructors;
+            ((ListMember)members[listMemberId]).defaultValue = new ArrayMemberValueBase
+            {
+                init = new InitializerBody { code = parameterName },
+            };
+            var constructor = new ConstructorRecord
+            {
+                id = constructorId,
+                projectId = "project-a",
+                classId = classId,
+                argumentTypes = new[]
+                {
+                    new FunctionArgumentTypeInfo
+                    {
+                        name = parameterName,
+                        type = MemberKind.List,
+                        required = true,
+                        entryTypeInfo = new ClassTypeInfo
+                        {
+                            type = MemberKind.Class,
+                            required = true,
+                            classId = entryClassId,
+                        },
+                    },
+                },
+            };
+            constructors[constructor.id] = constructor;
+            classes[classId].constructorIds = new[] { constructor.id };
+            return constructor;
         }
 
         private static void ConfigureObjectPlacementFootprint(

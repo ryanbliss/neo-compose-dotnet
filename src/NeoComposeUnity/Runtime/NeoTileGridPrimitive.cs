@@ -3264,18 +3264,17 @@ namespace NeoCompose.Runtime
             // Storage partitions: the spawned object's subtree lives in its
             // container's partition (see CreatePlacementRows).
             string? partitionMapKey = client.ResolveValueRow(link.ListValueId)?.mapKey;
+            ObjectMemberValue? assetRow = assetValueId is not null
+                ? client.ResolveValueRow(assetValueId) as ObjectMemberValue
+                : null;
             var record = ClonePlacementClassChildren(
                 objectClassId,
-                assetValueId is not null
-                    && client.ResolveValueRow(assetValueId) is ObjectMemberValue assetRow
-                        ? assetRow.value
-                        : null,
+                assetRow,
                 writeOwnership,
                 partitionMapKey,
                 positionKey,
                 sizeKey);
-            if (assetValueId is not null
-                && client.ResolveValueRow(assetValueId) is ObjectMemberValue)
+            if (assetValueId is not null && assetRow is not null)
             {
                 record["assetValueId"] = assetValueId;
             }
@@ -3328,7 +3327,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         private Dictionary<string, string> ClonePlacementClassChildren(
             string classId,
-            IReadOnlyDictionary<string, string>? authoredValues,
+            ObjectMemberValue? authoredRow,
             NeoValueOwnership inheritedOwnership,
             string? mapKey,
             params string?[] excludedKeys)
@@ -3347,17 +3346,21 @@ namespace NeoCompose.Runtime
                 NeoValueOwnership ownership =
                     client.DeclaredOwnership(member) ?? inheritedOwnership;
 
-                MemberValue? source = null;
-                if (authoredValues is not null
-                    && authoredValues.TryGetValue(entry.schemaKey, out string sourceId))
+                MemberValue? source = authoredRow is null
+                    ? null
+                    : client.ResolveClassChildRow(authoredRow, entry.schemaKey);
+                if (source is null
+                    && authoredRow?.value?.ContainsKey(entry.schemaKey) == true)
                 {
-                    source = client.ResolveValueRow(sourceId);
+                    // An explicit missing or removed edge stays absent. Only
+                    // an omitted key may inherit the declaration fallback.
+                    continue;
                 }
-                else if (member.valueId is not null)
+                if (source is null && member.valueId is not null)
                 {
                     source = client.ResolveValueRow(member.valueId);
                 }
-                else
+                else if (source is null)
                 {
                     source = MemberValueFactory.CreateFromDefault(
                         member,
@@ -3406,12 +3409,13 @@ namespace NeoCompose.Runtime
             {
                 case ObjectMemberValue objectClone
                     when objectClone.value is not null
+                    && source is ObjectMemberValue sourceObject
                     && member is ClassMember classMember:
                 {
                     string effectiveClassId = source.classId ?? classMember.classId;
                     var mapped = ClonePlacementClassChildren(
                         effectiveClassId,
-                        objectClone.value,
+                        sourceObject,
                         ownership,
                         mapKey);
                     objectClone.value = mapped;
