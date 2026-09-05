@@ -557,6 +557,23 @@ namespace NeoCompose.Runtime.NeoScript
                 IReadOnlyDictionary<string, NeoGenericEnvEntry>>
                 genericEnvironmentCache { get; }
             internal NeoScriptAllocationTracker allocationTracker { get; private set; }
+            internal ClassMember? initializerPlacement { get; set; }
+
+            internal bool TryGetConstructionClassContext(
+                string classId,
+                out IReadOnlyDictionary<string, GenericBinding>? classArguments,
+                out IReadOnlyDictionary<string, string>? storedGenericBindings)
+            {
+                if (initializerPlacement?.classId == classId
+                    && initializerPlacement.classArguments is not null)
+                {
+                    classArguments = initializerPlacement.classArguments;
+                    storedGenericBindings = null;
+                    return true;
+                }
+                return client.TryGetReplayingVirtualInstanceClassContext(
+                    classId, out classArguments, out storedGenericBindings);
+            }
             internal CollectionCallbackPreparationMetrics?
                 collectionCallbackPreparationMetrics { get; set; }
 
@@ -661,6 +678,7 @@ namespace NeoCompose.Runtime.NeoScript
             private Context ShareAllocationTracker(Context child)
             {
                 child.allocationTracker = allocationTracker;
+                child.initializerPlacement = initializerPlacement;
                 child.linkedFunctionCallHandler = linkedFunctionCallHandler;
                 child.collectionCallbackPreparationMetrics =
                     collectionCallbackPreparationMetrics;
@@ -2874,11 +2892,12 @@ namespace NeoCompose.Runtime.NeoScript
         {
             bool head = EvalCondition(expression.condition, scope, ctx);
             if (expression.connective is null) return head;
-            bool tail = EvalBooleanExpression(expression.connective.to, scope, ctx);
             switch (expression.connective.type)
             {
-                case LogicalOpKind.And: return head && tail;
-                case LogicalOpKind.Or: return head || tail;
+                case LogicalOpKind.And:
+                    return head && EvalBooleanExpression(expression.connective.to, scope, ctx);
+                case LogicalOpKind.Or:
+                    return head || EvalBooleanExpression(expression.connective.to, scope, ctx);
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unknown logical operator '{expression.connective.type}'");
@@ -2978,7 +2997,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
 
             NeoGeneratedTypesSupport.NeoResolvedDeclaredConstructor resolved;
-            ctx.client.TryGetReplayingVirtualInstanceClassContext(
+            ctx.TryGetConstructionClassContext(
                 info.schemaClassInfo.classId,
                 out IReadOnlyDictionary<string, GenericBinding>?
                     replayClassArguments,
@@ -3197,7 +3216,8 @@ namespace NeoCompose.Runtime.NeoScript
                     node,
                     source.ownership,
                     lookupRow,
-                    lookupRowValueId);
+                    lookupRowValueId,
+                    freshlyConstructed: ctx.allocationTracker.IsAllocatedSessionRoot(source.valueId));
                 MemberValue? applied = node.value;
                 if (applied is not null)
                 {
@@ -3283,7 +3303,7 @@ namespace NeoCompose.Runtime.NeoScript
                         };
                     }
                     NeoGeneratedTypesSupport.RuntimeConstructorMetadata metadata;
-                    ctx.client.TryGetReplayingVirtualInstanceClassContext(
+                    ctx.TryGetConstructionClassContext(
                         constructor.info.schemaClassInfo.classId,
                         out IReadOnlyDictionary<string, GenericBinding>?
                             replayClassArguments,

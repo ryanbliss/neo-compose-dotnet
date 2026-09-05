@@ -55,6 +55,43 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void VariantInitializeCanApplyItselfToTheObjectItJustConstructed()
+        {
+            ProjectData data = BuildVariantProjectData();
+            data.values["value-up-initialize"] = Closure("value-up-initialize",
+                Return(VariantApplyPointer(ClassConstructorPointer(WidgetClassId),
+                    VariantRef(WidgetClassId, "variant-up"))));
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(
+                client, WidgetClassId, client.variants["variant-up"]);
+
+            Assert.AreEqual("up", ReadLabel(client, node));
+            Assert.AreEqual("apply-ran", ReadRowMember(client, node.value!.id, "Trace"));
+        }
+
+        [Test]
+        public void VariantRecordClosesItsOpenGenericGraph()
+        {
+            ProjectData data = BuildVariantProjectData();
+            data.classes[VariantClassId].genericParams = new List<GenericParamDeclaration>
+            {
+                new() { id = "target-param", name = "TObject" },
+            };
+            data.members["variant-overrides"] = new GenericMember
+            {
+                id = "variant-overrides", name = "Overrides", kind = MemberKind.Generic,
+                genericParamId = "target-param", Payload = NeoMemberPayloadKind.Partial,
+            };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(
+                client, WidgetClassId, client.variants["variant-up"]);
+
+            Assert.AreEqual("up", ReadLabel(client, node));
+        }
+
+        [Test]
         public void VariantInitialize_RunsOverridesButNotApply()
         {
             NeoClient client = LoadClient();
@@ -448,10 +485,24 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(made);
         }
 
-        [Test]
-        public void VariantMemberRead_DrivesToVariantWithoutAStaticPath()
+        [TestCase(null)]
+        [TestCase("lookup-row")]
+        public void VariantMemberRead_DrivesToVariantWithoutAStaticPath(string? rowValueId)
         {
             NeoClient client = LoadClient();
+            var row = (VariantMemberValue)client.ProjectDataForRuntime.values["value-target-chosen"];
+            row.value!.rowValueId = rowValueId;
+            string json = Newtonsoft.Json.JsonConvert.SerializeObject(row);
+            var decoded = Newtonsoft.Json.JsonConvert.DeserializeObject<MemberValue>(json);
+            Assert.IsInstanceOf<VariantMemberValue>(decoded);
+            Assert.AreEqual(rowValueId, ((VariantMemberValue)decoded!).value!.rowValueId);
+            var decodedDefault = Newtonsoft.Json.JsonConvert.DeserializeObject<MemberValueBase>(json);
+            Assert.IsInstanceOf<VariantMemberValueBase>(decodedDefault);
+            Assert.AreEqual(rowValueId, ((VariantMemberValueBase)decodedDefault!).value!.rowValueId);
+            // This plain variant needs no lookup argument; exercise its actual
+            // application after validating that wire identity survived parsing.
+            ((VariantMemberValue)decoded).value!.rowValueId = null;
+            client.ProjectDataForRuntime.values[row.id] = decoded;
             NSGetterEvaluator.Context ctx = Context(client);
             string targetId = NewSessionInstance(client);
 
@@ -1270,7 +1321,7 @@ namespace NeoCompose.Tests
                         pointer = new VariablePointer
                         {
                             type = PointerKind.Variable,
-                            variableId = "__this__",
+                            variableId = "__source__",
                         },
                         key = Literal(schemaKey),
                     },
@@ -1324,6 +1375,9 @@ namespace NeoCompose.Tests
             params Instruction[] instructions)
         {
             DelegateMemberValue closure = Closure(id, instructions);
+            var parameters = new List<Variable>(closure.value!.action!.parameters);
+            parameters.Insert(2, new Variable { id = "__source__", typeInfo = ClassType(WidgetClassId) });
+            closure.value.action.parameters = parameters.ToArray();
             closure.value!.action!.typeInfo = new PrimitiveTypeInfo
             {
                 type = MemberKind.Null,
@@ -1337,6 +1391,9 @@ namespace NeoCompose.Tests
             params Instruction[] instructions)
         {
             DelegateMemberValue closure = LookupClosure(id, instructions);
+            var parameters = new List<Variable>(closure.value!.action!.parameters);
+            parameters.Insert(2, new Variable { id = "__source__", typeInfo = ClassType(WidgetClassId) });
+            closure.value.action.parameters = parameters.ToArray();
             closure.value!.action!.typeInfo = new PrimitiveTypeInfo
             {
                 type = MemberKind.Null,

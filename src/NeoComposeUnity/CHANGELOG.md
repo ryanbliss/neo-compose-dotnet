@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [0.32.3] - 2026-09-05
+
+### Fixed
+
+- Post-sync validation resolves authored constructor arguments before runtime
+  stores exist, fixing the load-time null reference in generic aggregates.
+- Sparse construction preserves closed generic bindings, optional defaults and
+  nulls, immutable authored instances, and concrete children of abstract slots.
+- Variant graphs resolve their target type before replay. Apply receives its
+  source argument, references retain lookup-row identity, and applying a variant
+  to a freshly constructed value does not recursively rerun Initialize.
+- NeoScript boolean operators short-circuit; sprite and audio references use the
+  same conversion for constructor defaults and assignments.
+- Detached authored rows do not execute constructors during load.
+
 ## [0.32.2] - 2026-09-05
 
 ### Fixed

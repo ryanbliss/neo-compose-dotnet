@@ -69,6 +69,13 @@ namespace NeoCompose.Runtime
             string lexicalThisValueId,
             NeoValueOwnership lexicalThisOwnership,
             params object?[] args)
+            => InvokeValueReference(lexicalThisValueId, lexicalThisOwnership, false, args);
+
+        internal NeoConstructorValueReference? InvokeValueReference(
+            string lexicalThisValueId,
+            NeoValueOwnership lexicalThisOwnership,
+            bool passReceiverArgument,
+            params object?[] args)
         {
             if (!client.TryGetValue(
                     lexicalThisOwnership,
@@ -88,8 +95,15 @@ namespace NeoCompose.Runtime
                 row,
                 ctx,
                 lexicalThisOwnership);
+            if (passReceiverArgument)
+            {
+                var invocationArgs = new object?[args.Length + 1];
+                invocationArgs[0] = receiver;
+                Array.Copy(args, 0, invocationArgs, 1, args.Length);
+                args = invocationArgs;
+            }
             (object? result, NSGetterEvaluator.Context invocationContext) =
-                InvokeCore(args, ctx.WithThis(receiver));
+                InvokeCore(args, ctx.WithThis(passReceiverArgument ? null : receiver));
             return NSGetterEvaluator.ConstructorReferenceOf(
                 result,
                 invocationContext);

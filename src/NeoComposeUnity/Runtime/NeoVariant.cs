@@ -395,7 +395,8 @@ namespace NeoCompose.Runtime
             NeoMemberClassWritable node,
             NeoValueOwnership ownership,
             object? lookupRow = null,
-            string? lookupRowValueId = null)
+            string? lookupRowValueId = null,
+            bool freshlyConstructed = false)
         {
             if (record is null)
             {
@@ -408,7 +409,8 @@ namespace NeoCompose.Runtime
                     node,
                     ownership,
                     variantId: null,
-                    rowValueId: null);
+                    rowValueId: null,
+                    replay: !freshlyConstructed);
                 return;
             }
             object?[] arguments = LookupArguments(
@@ -417,6 +419,15 @@ namespace NeoCompose.Runtime
                 lookupRow,
                 lookupRowValueId);
             RunApplyClosure(client, record, node, ownership, arguments);
+            if (freshlyConstructed)
+            {
+                // Replaying Initialize for a value it just constructed would
+                // recurse when Initialize calls RefreshVariant/ToVariant.
+                client.StampVirtualInstanceVariant(node, ownership, record.id,
+                    lookupRowValueId, replay: false);
+                ApplyDeclarativeHalves(client, record, node, ownership);
+                return;
+            }
             client.StampVirtualInstanceVariant(
                 node,
                 ownership,
@@ -466,6 +477,7 @@ namespace NeoCompose.Runtime
             apply.InvokeValueReference(
                 sourceValueId!,
                 ownership,
+                passReceiverArgument: true,
                 lookupArguments);
         }
 
@@ -683,20 +695,51 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Variant '{DescribeVariant(record)}' root value '{record.valueId}' carries no classId.");
             }
-            var factoryMember = new ClassMember
-            {
-                id = $"__neo_variant_{record.id}",
-                name = "Variant",
-                kind = MemberKind.Class,
-                classId = graphClassId,
-                createdAt = row.createdAt,
-                updatedAt = row.updatedAt,
-            };
+            ClassMember factoryMember = GraphMember(client, record);
             NeoValueOwnership ownership =
                 client.TryGetValueOwnership(record.valueId, out NeoValueOwnership resolved)
                     ? resolved
                     : NeoValueOwnership.Asset;
             return new NeoMemberClass(client, factoryMember, record.valueId, ownership);
+        }
+
+        internal static ClassMember GraphMember(NeoClient client, VariantRecord record)
+        {
+            if (!client.TryGetValue(record.valueId, out ObjectMemberValue? row)
+                || row.classId is null
+                || !client.TryGetClass(row.classId, out NeoSchemaClass? graphClass))
+            {
+                throw new InvalidOperationException($"Variant '{DescribeVariant(record)}' has no typed value graph.");
+            }
+            var member = new ClassMember
+            {
+                id = $"__neo_variant_{record.id}", name = "Variant", kind = MemberKind.Class,
+                classId = graphClass.id, valueId = row.id,
+                createdAt = row.createdAt, updatedAt = row.updatedAt,
+            };
+            // The variant record owns the TObject binding, even when its
+            // structural graph has no ordinary Class-member placement.
+            if (graphClass.genericParams is { Count: > 0 })
+            {
+                member.classArguments = new Dictionary<string, GenericBinding>
+                {
+                    [graphClass.genericParams[0].id] = new()
+                    {
+                        kind = NeoGenericBindingKind.Member,
+                        memberId = client.VariantTargetMember(record).id,
+                    },
+                };
+                if (graphClass.genericParams.Count > 1
+                    && ResolveLookupBinding(client, record) is { } binding
+                    && client.TryGetMember(binding.collectionMemberId, out ListMember? collection))
+                {
+                    member.classArguments[graphClass.genericParams[1].id] = new GenericBinding
+                    {
+                        kind = NeoGenericBindingKind.Member, memberId = collection.entryMemberId,
+                    };
+                }
+            }
+            return member;
         }
 
         private static NeoMemberClassWritable RequireConstructedNode(

@@ -82,6 +82,31 @@ namespace NeoCompose.Runtime
         /// the type check happens on retrieval.
         /// </summary>
         private readonly Dictionary<string, object> variantHandles = new();
+        private Dictionary<string, VariantRecord>? variantsByValueId;
+        private readonly Dictionary<string, ClassMember> variantTargetMembers = new();
+
+        private Dictionary<string, VariantRecord> VariantGraphs =>
+            variantsByValueId ??= data.variants.Values
+                .Where(record => !string.IsNullOrEmpty(record.valueId))
+                .GroupBy(record => record.valueId)
+                .ToDictionary(group => group.Key, group => group.First());
+
+        internal ClassMember VariantTargetMember(VariantRecord record)
+        {
+            string id = $"__neo_variant_binding_{record.id}";
+            if (!variantTargetMembers.TryGetValue(id, out ClassMember? member)
+                || member.classId != record.classId)
+            {
+                member = new ClassMember
+                {
+                    id = id, name = "TObject", kind = MemberKind.Class,
+                    classId = record.classId,
+                };
+                variantTargetMembers[id] = member;
+            }
+            return member;
+        }
+
         /// <summary>
         /// Compiled definitions, keyed exactly as <see cref="animationClips"/>
         /// is. Kept apart from the handle dictionary because that one is typed
@@ -409,6 +434,8 @@ namespace NeoCompose.Runtime
             // A variant handle is minted against this client's records, so it
             // is dropped on the same schedule a recompile drops clips.
             variantHandles.Clear();
+            variantsByValueId = null;
+            variantTargetMembers.Clear();
             DisposeAnimationDefinitions();
             reportedAnimationChildSkips.Clear();
             reportedAnimationApplySkips.Clear();
@@ -681,6 +708,8 @@ namespace NeoCompose.Runtime
             // A variant handle is minted against this client's records, so it
             // is dropped on the same schedule a recompile drops clips.
             variantHandles.Clear();
+            variantsByValueId = null;
+            variantTargetMembers.Clear();
             DisposeAnimationDefinitions();
             reportedAnimationChildSkips.Clear();
             reportedAnimationApplySkips.Clear();
@@ -694,6 +723,12 @@ namespace NeoCompose.Runtime
 
         internal bool TryGetMember<TMember>(string id, [NotNullWhen(true)] out TMember? member) where TMember : Member
         {
+            if (variantTargetMembers.TryGetValue(id, out ClassMember? target)
+                && target is TMember typedTarget)
+            {
+                member = typedTarget;
+                return true;
+            }
             if (data.members.TryGetValue(id, out Member idMatch))
             {
                 if (idMatch is TMember match)
@@ -2128,7 +2163,7 @@ namespace NeoCompose.Runtime
                     RecordClass(valueId, classId!);
                 }
 
-                foreach (var child in EnumerateOwnedChildLinks(row, governingMember))
+                foreach (var child in EnumerateOwnedChildLinks(row, governingMember, rows))
                 {
                     Visit(child.valueId, child.member);
                 }
@@ -2185,7 +2220,7 @@ namespace NeoCompose.Runtime
                     member,
                     $"__neo_readonly_default_projection:{member.RuntimeDeclarationIdentity}");
                 if (declarationDefault is null) continue;
-                foreach (var child in EnumerateOwnedChildLinks(declarationDefault, member))
+                foreach (var child in EnumerateOwnedChildLinks(declarationDefault, member, rows))
                 {
                     Visit(child.valueId, child.member);
                 }
@@ -3496,7 +3531,8 @@ namespace NeoCompose.Runtime
 
         private IEnumerable<(string valueId, Member? member)> EnumerateOwnedChildLinks(
             MemberValue row,
-            Member? sourceMember)
+            Member? sourceMember,
+            IReadOnlyDictionary<string, MemberValue>? rows = null)
         {
             switch (row)
             {
@@ -3509,7 +3545,7 @@ namespace NeoCompose.Runtime
                             yield return (pair.Value, childMember);
                         }
                     }
-                    foreach (var link in EnumerateConstructorSettledAggregateLinks(obj))
+                    foreach (var link in EnumerateConstructorSettledAggregateLinks(obj, rows: rows))
                     {
                         yield return (link.valueId, link.member);
                     }
@@ -3590,15 +3626,21 @@ namespace NeoCompose.Runtime
             return false;
         }
 
-        private bool IsAggregateStoredMember(Member member, string childValueId)
+        private bool IsAggregateStoredMember(
+            Member member,
+            string childValueId,
+            IReadOnlyDictionary<string, MemberValue>? rows)
         {
             if (member is ClassMember or ListMember or DictionaryMember)
             {
                 return true;
             }
-            return member is GenericMember
-                && TryGetValue(childValueId, out MemberValue? child)
-                && child is ObjectMemberValue or ArrayMemberValue;
+            if (member is not GenericMember) return false;
+            MemberValue? child;
+            bool found = rows is null
+                ? TryGetValue(childValueId, out child)
+                : rows.TryGetValue(childValueId, out child);
+            return found && child is ObjectMemberValue or ArrayMemberValue;
         }
 
         private bool TryResolveRecordedConstructorSettlement(
@@ -3688,7 +3730,8 @@ namespace NeoCompose.Runtime
             string valueId,
             Member member)> EnumerateConstructorSettledAggregateLinks(
                 ObjectMemberValue parent,
-                bool includeMaterializedChildren = false)
+                bool includeMaterializedChildren = false,
+                IReadOnlyDictionary<string, MemberValue>? rows = null)
         {
             if (parent.constructorArgs is null
                 || parent.instanceConstructorId is not string constructorId
@@ -3726,7 +3769,7 @@ namespace NeoCompose.Runtime
                 }
                 string? childValueId = token.Value<string>();
                 if (string.IsNullOrWhiteSpace(childValueId)
-                    || !IsAggregateStoredMember(member, childValueId!))
+                    || !IsAggregateStoredMember(member, childValueId!, rows))
                 {
                     continue;
                 }
@@ -3812,6 +3855,11 @@ namespace NeoCompose.Runtime
                     member = candidate;
                     return true;
                 }
+            }
+            if (VariantGraphs.TryGetValue(valueId, out VariantRecord? variant))
+            {
+                member = NeoVariantSupport.GraphMember(this, variant);
+                return true;
             }
             if (virtualClassPlacementByChildId.TryGetValue(
                     valueId,
@@ -4161,6 +4209,15 @@ namespace NeoCompose.Runtime
                 ObjectMemberValue o => new ObjectMemberValue
                 {
                     value = o.value == null ? null : new Dictionary<string, string>(o.value),
+                },
+                VariantMemberValue v => new VariantMemberValue
+                {
+                    value = v.value == null ? null : new VariantRefValue
+                    {
+                        classId = v.value.classId,
+                        variantId = v.value.variantId,
+                        rowValueId = v.value.rowValueId,
+                    },
                 },
                 FileMemberValue f => new FileMemberValue
                 {
