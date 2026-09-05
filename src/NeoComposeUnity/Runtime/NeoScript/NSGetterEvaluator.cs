@@ -1015,6 +1015,13 @@ namespace NeoCompose.Runtime.NeoScript
             NeoValueOwnership ownership) =>
             UnwrapCached(row, ctx, ownership);
 
+        internal static object? UnwrapRow(
+            MemberValue row,
+            Context ctx,
+            NeoValueOwnership ownership,
+            JsonMember member) =>
+            UnwrapCached(row, ctx, ownership, member);
+
         internal static object? EvaluatePointer(
             Pointer pointer,
             Dictionary<string, object?> scope,

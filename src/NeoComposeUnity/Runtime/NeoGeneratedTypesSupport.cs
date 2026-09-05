@@ -4812,13 +4812,209 @@ namespace NeoCompose.Runtime
                     client,
                     declared,
                     resolved.genericEnv);
+            object? suppliedValue = argument.value;
+            if (argument.value is NeoConstructorValueReference reference)
+            {
+                if (reference.ownership is not NeoValueOwnership ownership
+                    || !client.TryGetValue(
+                        ownership,
+                        reference.valueId,
+                        out MemberValue? row))
+                {
+                    throw new InvalidOperationException(
+                        $"Neo value '{reference.valueId}' for argument '{argument.name}' of constructor '{record.id}' was not found in its recorded storage.");
+                }
+                suppliedValue = UnwrapStoredConstructorArgument(
+                    client,
+                    row,
+                    effectiveDeclared,
+                    null,
+                    ctx,
+                    ownership,
+                    $"argument '{argument.name}' of constructor '{record.id}'",
+                    new HashSet<string>(StringComparer.Ordinal));
+            }
             return NeoScriptValueMarshaller.Normalize(
                 client,
                 NeoValueOwnership.Session,
-                argument.value,
+                suppliedValue,
                 effectiveDeclared,
                 ctx,
                 $"argument '{argument.name}' of constructor '{record.id}'");
+        }
+
+        private static object? UnwrapStoredConstructorArgument(
+            NeoClient client,
+            MemberValue row,
+            TypeInfo declaredType,
+            Member? collectionMember,
+            NeoScript.NSGetterEvaluator.Context ctx,
+            NeoValueOwnership ownership,
+            string subject,
+            HashSet<string> activeCollectionRows)
+        {
+            if (declaredType.type is not (MemberKind.List or MemberKind.Dictionary))
+            {
+                if (collectionMember is null
+                    && !client.TryInferMemberForValueId(row.id, out collectionMember))
+                {
+                    return NeoScript.NSGetterEvaluator.UnwrapRow(
+                        row,
+                        ctx,
+                        ownership);
+                }
+                return NeoScript.NSGetterEvaluator.UnwrapRow(
+                    row,
+                    ctx,
+                    ownership,
+                    collectionMember);
+            }
+
+            string visitKey = $"{ownership}:{row.id}";
+            if (!activeCollectionRows.Add(visitKey))
+            {
+                throw new InvalidOperationException(
+                    $"Stored {subject} contains a cyclic collection reference at value '{row.id}'.");
+            }
+            try
+            {
+                if (collectionMember is null
+                    && !client.TryInferMemberForValueId(
+                        row.id,
+                        out collectionMember))
+                {
+                    throw new InvalidOperationException(
+                        $"Stored {subject} value '{row.id}' has no declared collection member.");
+                }
+                if (collectionMember is null
+                    || !TryResolveCollectionEntryMember(
+                        client,
+                        collectionMember,
+                        out Member? entryMember))
+                {
+                    throw new InvalidOperationException(
+                        $"Stored {subject} value '{row.id}' has no declared collection entry member.");
+                }
+                bool shapeMatches = declaredType.type switch
+                {
+                    MemberKind.List => collectionMember is ListMember
+                        && row is ArrayMemberValue,
+                    MemberKind.Dictionary => collectionMember is DictionaryMember
+                        && row is ObjectMemberValue,
+                    _ => false,
+                };
+                if (!shapeMatches)
+                {
+                    throw new InvalidOperationException(
+                        $"Stored {subject} value '{row.id}' does not match its declared {declaredType.type} shape.");
+                }
+
+                var entryEnv = NeoGenericResolution.EnvFromStamp(
+                    row.genericBindings);
+                entryMember = NeoGenericResolution.SubstituteMember(
+                    client,
+                    entryMember,
+                    entryEnv);
+                TypeInfo? entryType = declaredType switch
+                {
+                    FunctionArgumentTypeInfo argument => argument.entryTypeInfo,
+                    CollectionTypeInfo collection => collection.entryTypeInfo,
+                    _ => null,
+                };
+                if (entryType is null)
+                {
+                    throw new InvalidOperationException(
+                        $"Stored {subject} is missing its declared collection entry type.");
+                }
+                NeoValueOwnership entryOwnership =
+                    client.DeclaredOwnership(entryMember) ?? ownership;
+
+                if (row is ArrayMemberValue listRow)
+                {
+                    if (listRow.value is null) return null;
+                    IEnumerable<string> entryIds =
+                        collectionMember is ListMember listMember
+                        && client.IsUnorderedList(listMember)
+                            ? client.GetUnorderedListEntryIds(row.id)
+                            : listRow.value;
+                    var values = new List<object?>();
+                    foreach (string entryId in entryIds)
+                    {
+                        values.Add(UnwrapStoredConstructorCollectionEntry(
+                            client,
+                            entryId,
+                            entryMember,
+                            entryType,
+                            ctx,
+                            entryOwnership,
+                            subject,
+                            activeCollectionRows));
+                    }
+                    return values.ToArray();
+                }
+
+                var dictionaryRow = (ObjectMemberValue)row;
+                if (dictionaryRow.value is null) return null;
+                var dictionary = new Dictionary<string, object?>(
+                    dictionaryRow.value.Count,
+                    StringComparer.Ordinal);
+                foreach (KeyValuePair<string, string> pair in dictionaryRow.value)
+                {
+                    dictionary[pair.Key] =
+                        UnwrapStoredConstructorCollectionEntry(
+                            client,
+                            pair.Value,
+                            entryMember,
+                            entryType,
+                            ctx,
+                            entryOwnership,
+                            $"{subject} key '{pair.Key}'",
+                            activeCollectionRows);
+                }
+                return dictionary;
+            }
+            finally
+            {
+                activeCollectionRows.Remove(visitKey);
+            }
+        }
+
+        private static object? UnwrapStoredConstructorCollectionEntry(
+            NeoClient client,
+            string entryId,
+            Member entryMember,
+            TypeInfo entryType,
+            NeoScript.NSGetterEvaluator.Context ctx,
+            NeoValueOwnership ownership,
+            string subject,
+            HashSet<string> activeCollectionRows)
+        {
+            if (!client.TryGetValue(
+                    ownership,
+                    entryId,
+                    out MemberValue? entryRow)
+                || entryRow.IsRemoved)
+            {
+                throw new InvalidOperationException(
+                    $"Stored {subject} references missing value '{entryId}' in {ownership} storage.");
+            }
+            if (entryType.type is MemberKind.List or MemberKind.Dictionary)
+            {
+                return UnwrapStoredConstructorArgument(
+                    client,
+                    entryRow,
+                    entryType,
+                    entryMember,
+                    ctx,
+                    ownership,
+                    subject,
+                    activeCollectionRows);
+            }
+            return NeoScript.NSGetterEvaluator.UnwrapRow(
+                entryRow,
+                ctx,
+                ownership,
+                entryMember);
         }
 
         /// <summary>

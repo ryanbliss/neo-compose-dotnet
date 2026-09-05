@@ -290,6 +290,184 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void PersistedNestedSparseRootAtItsVirtualIdReplaysAfterItsParent()
+        {
+            string nestedId;
+            string saved;
+            using (NeoClient first = NeoTestSaveStack.ClientFromSchema(
+                BuildNestedProjectData()))
+            {
+                NeoMemberClassWritable nested = first.save
+                    .Get<NeoMemberClassWritable>("Thing")
+                    .Get<NeoMemberClassWritable>("Nested");
+                nestedId = nested.value!.id;
+                // Make Base a real selection change so the public ToVariant
+                // seam persists the virtual receiver instead of returning early.
+                nested.value.instanceVariantId = "previous-variant";
+                var generated = new SparseNestedValue(first, nested);
+
+                NeoGeneratedTypesSupport.ApplyVariant(
+                    generated,
+                    NeoGeneratedTypesSupport.ResolveBaseVariant<SparseNestedValue>(
+                        first,
+                        "nested-class"));
+
+                Assert.IsTrue(first.saveValues.ContainsKey(nestedId));
+                Assert.IsFalse(first.saveValues.ContainsKey("thing-instance"),
+                    "ToVariant writes the nested stable id without materializing its sparse parent link.");
+                saved = first.SerializeSaveData();
+            }
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                BuildNestedProjectData(),
+                loadedSaveContent: saved);
+
+            NeoMemberClassWritable nestedValue = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberClassWritable>("Nested");
+            Assert.AreEqual(nestedId, nestedValue.value!.id);
+            Assert.AreEqual(
+                5d,
+                nestedValue
+                    .Get<NeoMemberClassWritable>("Deep")
+                    .Get<NeoMemberIntWritable>("Count")
+                    .value!.value);
+        }
+
+        private sealed class SparseNestedValue : NeoGeneratedClassValue
+        {
+            internal SparseNestedValue(
+                NeoClient client,
+                NeoMemberClassWritable node)
+                : base(
+                    client,
+                    node,
+                    "nested-class",
+                    isReadOnly: false,
+                    inheritedStorageOwnership: NeoValueOwnership.Save)
+            {
+            }
+
+            internal static SparseNestedValue CreateWritable(
+                NeoClient client,
+                NeoMemberClassWritable node)
+            {
+                return new SparseNestedValue(client, node);
+            }
+        }
+
+        [Test]
+        public void NestedAggregateConstructorArgumentUsesDurableVirtualId()
+        {
+            const string ExternalArgumentId = "external-deep";
+            const string UuidLookingLiteral =
+                "12345678-1234-1234-1234-123456789abc";
+            string nestedId;
+            string deepId;
+            string saved;
+            using (NeoClient first = NeoTestSaveStack.ClientFromSchema(
+                BuildNestedAggregateConstructorProjectData()))
+            {
+                NeoMemberClassWritable nested = first.save
+                    .Get<NeoMemberClassWritable>("Thing")
+                    .Get<NeoMemberClassWritable>("Holder")
+                    .Get<NeoMemberClassWritable>("Nested");
+                nestedId = nested.value!.id;
+                deepId = nested.Get<NeoMemberClassWritable>("Deep").value!.id;
+                string replayArgumentId = nested.value
+                    .constructorArgs!["__arg_0__"]!.Value<string>();
+                Assert.AreEqual(
+                    deepId,
+                    replayArgumentId,
+                    "the virtual nested root must not retain its discarded Session constructor argument id");
+                Assert.AreEqual(
+                    ExternalArgumentId,
+                    nested.value.constructorArgs["__arg_1__"]!.Value<string>(),
+                    "an aggregate argument that settles no child remains an external durable reference");
+                Assert.AreEqual(
+                    UuidLookingLiteral,
+                    nested.value.constructorArgs["__arg_2__"]!.Value<string>(),
+                    "a String argument is data even when it looks like a value id");
+                Assert.AreEqual(
+                    nested.Get<NeoMemberList>("Items").value!.id,
+                    nested.value.constructorArgs["__arg_3__"]!.Value<string>());
+                Assert.AreEqual(
+                    nested.Get<NeoMemberDictionary>("Labels").value!.id,
+                    nested.value.constructorArgs["__arg_4__"]!.Value<string>());
+                nested.value.instanceVariantId = "previous-variant";
+                var generated = new SparseNestedValue(first, nested);
+
+                Assert.DoesNotThrow(() => NeoGeneratedTypesSupport.ApplyVariant(
+                    generated,
+                    NeoGeneratedTypesSupport.ResolveBaseVariant<SparseNestedValue>(
+                        first,
+                        "nested-class")));
+
+                var written = (ObjectMemberValue)first.saveValues[nestedId];
+                Assert.AreEqual(
+                    deepId,
+                    written.constructorArgs!["__arg_0__"]!.Value<string>());
+                Assert.AreEqual(
+                    ExternalArgumentId,
+                    written.constructorArgs["__arg_1__"]!.Value<string>());
+                Assert.AreEqual(
+                    UuidLookingLiteral,
+                    written.constructorArgs["__arg_2__"]!.Value<string>());
+                // Match the persisted sparse shape: construction-equal
+                // collection fields are omitted, so replay must attach the
+                // recorded aggregate arguments rather than read stored body
+                // links that happen to mask a copied CLR value.
+                written.value!.Remove("Items");
+                written.value.Remove("Labels");
+                first.RefreshVirtualInstanceVariant(
+                    nested,
+                    NeoValueOwnership.Save);
+                Assert.AreEqual(
+                    "item value",
+                    ((NeoMemberStringWritable)nested
+                        .Get<NeoMemberList>("Items")
+                        .Single()).value!.value);
+                Assert.AreEqual(
+                    "label value",
+                    ((NeoMemberStringWritable)((NeoMemberList)nested
+                        .Get<NeoMemberDictionary>("Labels")
+                        .Single().Value).Single()).value!.value);
+                saved = first.SerializeSaveData();
+            }
+
+            using NeoClient second = NeoTestSaveStack.ClientFromSchema(
+                BuildNestedAggregateConstructorProjectData(),
+                loadedSaveContent: saved);
+            NeoMemberClassWritable reloaded = second.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberClassWritable>("Holder")
+                .Get<NeoMemberClassWritable>("Nested");
+            Assert.AreEqual(nestedId, reloaded.value!.id);
+            Assert.AreEqual(
+                ExternalArgumentId,
+                reloaded.value.constructorArgs!["__arg_1__"]!.Value<string>());
+            Assert.AreEqual(
+                UuidLookingLiteral,
+                reloaded.value.constructorArgs["__arg_2__"]!.Value<string>());
+            Assert.AreEqual(
+                "item value",
+                ((NeoMemberStringWritable)reloaded
+                    .Get<NeoMemberList>("Items")
+                    .Single()).value!.value);
+            Assert.AreEqual(
+                "label value",
+                ((NeoMemberStringWritable)((NeoMemberList)reloaded
+                    .Get<NeoMemberDictionary>("Labels")
+                    .Single().Value).Single()).value!.value);
+            Assert.AreEqual(
+                5d,
+                reloaded
+                    .Get<NeoMemberClassWritable>("Deep")
+                    .Get<NeoMemberIntWritable>("Count")
+                    .value!.value);
+        }
+
+        [Test]
         public void SystemRootPropagatesItsNamespaceToVirtualChildren()
         {
             ProjectData data = BuildProjectData();
@@ -902,6 +1080,32 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GarbageCollectorKeepsOverrideWrittenUnderVirtualOrderedList()
+        {
+            ProjectData data = BuildUnorderedListProjectData("thing-item-a");
+            ((ListMember)data.members["thing-items"]).ListKind =
+                NeoListKind.Ordered;
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberList items = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberList>("Items");
+            var entry = (NeoMemberStringWritable)items.Single();
+            string listId = items.value!.id;
+            string entryId = entry.value!.id;
+
+            entry.Set("Saved override");
+
+            Assert.IsFalse(client.saveValues.ContainsKey(listId),
+                "writing an omitted child keeps its virtual container sparse");
+            Assert.IsTrue(client.saveValues.ContainsKey(entryId));
+            CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
+            Assert.AreEqual(0, client.RunGarbageCollector());
+            Assert.AreEqual(
+                "Saved override",
+                ((StringMemberValue)client.saveValues[entryId]).value);
+        }
+
+        [Test]
         public void LiveApplyScopesAMalformedRootAndKeepsTheOthers()
         {
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(
@@ -1309,6 +1513,314 @@ namespace NeoCompose.Tests
             data.classes["deep-class"].schema["Count"] = "deep-count";
             return data;
         }
+
+        private static ProjectData BuildNestedAggregateConstructorProjectData()
+        {
+            ProjectData data = BuildNestedProjectData();
+            var deepType = new ClassTypeInfo
+            {
+                type = MemberKind.Class,
+                required = true,
+                classId = "deep-class",
+            };
+            var deepArgument = new FunctionArgumentTypeInfo
+            {
+                name = "InitialDeep",
+                type = MemberKind.Class,
+                required = true,
+                classId = "deep-class",
+            };
+            var externalDeepArgument = new FunctionArgumentTypeInfo
+            {
+                name = "ExternalDeep",
+                type = MemberKind.Class,
+                required = true,
+                classId = "deep-class",
+            };
+            var literalArgument = new FunctionArgumentTypeInfo
+            {
+                name = "Literal",
+                type = MemberKind.String,
+                required = true,
+            };
+            var stringType = new PrimitiveTypeInfo
+            {
+                type = MemberKind.String,
+                required = true,
+            };
+            var stringListType = new CollectionTypeInfo
+            {
+                type = MemberKind.List,
+                required = true,
+                entryTypeInfo = stringType,
+            };
+            var itemsArgument = new FunctionArgumentTypeInfo
+            {
+                name = "InitialItems",
+                type = MemberKind.List,
+                required = true,
+                entryTypeInfo = stringType,
+            };
+            var labelsArgument = new FunctionArgumentTypeInfo
+            {
+                name = "InitialLabels",
+                type = MemberKind.Dictionary,
+                required = true,
+                entryTypeInfo = stringListType,
+            };
+            Variable[] constructorParameters =
+            {
+                ConstructorVariable("__this__", ClassType("nested-class")),
+                ConstructorVariable("__root__", ClassType("save-root-class")),
+                ConstructorVariable("__arg_0__", deepArgument),
+                ConstructorVariable("__arg_1__", externalDeepArgument),
+                ConstructorVariable("__arg_2__", literalArgument),
+                ConstructorVariable("__arg_3__", itemsArgument),
+                ConstructorVariable("__arg_4__", labelsArgument),
+            };
+            data.classes["nested-class"].constructorIds =
+                new[] { "nested-ctor" };
+            data.constructors["nested-ctor"] = new ConstructorRecord
+            {
+                id = "nested-ctor",
+                projectId = "p75-project",
+                classId = "nested-class",
+                argumentTypes = new[]
+                {
+                    deepArgument,
+                    externalDeepArgument,
+                    literalArgument,
+                    itemsArgument,
+                    labelsArgument,
+                },
+                code = string.Empty,
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = constructorParameters,
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Null,
+                        required = true,
+                    },
+                    instructions = Array.Empty<Instruction>(),
+                },
+            };
+            ((ClassMember)data.members["nested-deep"]).defaultValue =
+                new ObjectMemberValueBase
+                {
+                    init = new InitializerBody
+                    {
+                        code = "InitialDeep",
+                        compiled = new FunctionWithReturnType
+                        {
+                            compilerRevision =
+                                FunctionWithReturnType.CurrentCompilerRevision,
+                            parameters = constructorParameters,
+                            typeInfo = deepType,
+                            instructions = new Instruction[]
+                            {
+                                new ReturnInstruction
+                                {
+                                    type = InstructionKind.Return,
+                                    pointer = new VariablePointer
+                                    {
+                                        type = PointerKind.Variable,
+                                        variableId = "__arg_0__",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                };
+            data.members["nested-entry"] = new StringMember
+            {
+                id = "nested-entry",
+                projectId = "p75-project",
+                name = "Entry",
+                kind = MemberKind.String,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            data.members["nested-items"] = new ListMember
+            {
+                id = "nested-items",
+                projectId = "p75-project",
+                name = "Items",
+                kind = MemberKind.List,
+                Requirement = NeoMemberRequirementKind.Required,
+                ListKind = NeoListKind.Ordered,
+                entryMemberId = "nested-entry",
+                defaultValue = new ArrayMemberValueBase
+                {
+                    init = AggregateArgumentInitializer(
+                        "InitialItems",
+                        MemberKind.List,
+                        stringType,
+                        constructorParameters,
+                        "__arg_3__"),
+                },
+            };
+            data.members["nested-labels"] = new DictionaryMember
+            {
+                id = "nested-labels",
+                projectId = "p75-project",
+                name = "Labels",
+                kind = MemberKind.Dictionary,
+                Requirement = NeoMemberRequirementKind.Required,
+                entryMemberId = "nested-label-entry",
+                KeyKind = NeoDictionaryKeyKind.String,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    init = AggregateArgumentInitializer(
+                        "InitialLabels",
+                        MemberKind.Dictionary,
+                        stringListType,
+                        constructorParameters,
+                        "__arg_4__"),
+                },
+            };
+            data.members["nested-label-entry"] = new ListMember
+            {
+                id = "nested-label-entry",
+                projectId = "p75-project",
+                name = "Label Entry",
+                kind = MemberKind.List,
+                Requirement = NeoMemberRequirementKind.Required,
+                ListKind = NeoListKind.Ordered,
+                entryMemberId = "nested-entry",
+            };
+            data.classes["nested-class"].schema["Items"] = "nested-items";
+            data.classes["nested-class"].schema["Labels"] = "nested-labels";
+            data.classes["thing-class"].schema.Remove("Nested");
+            data.classes["thing-class"].schema["Holder"] = "thing-holder";
+            data.classes["holder-class"] = SchemaClass(
+                "holder-class",
+                "Holder",
+                NeoMemberStorage.Save);
+            data.classes["holder-class"].schema["Nested"] = "thing-nested";
+            data.members["thing-holder"] = new ClassMember
+            {
+                id = "thing-holder",
+                projectId = "p75-project",
+                name = "Holder",
+                kind = MemberKind.Class,
+                classId = "holder-class",
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    classId = "holder-class",
+                    value = new Dictionary<string, string>
+                    {
+                        ["Nested"] = "nested-template",
+                    },
+                },
+            };
+            data.values["nested-template"] = new ObjectMemberValue
+            {
+                id = "nested-template",
+                classId = "nested-class",
+                value = new Dictionary<string, string>
+                {
+                    ["Deep"] = "deep-template",
+                    ["Items"] = "items-template",
+                    ["Labels"] = "labels-template",
+                },
+                instanceConstructorId = "nested-ctor",
+                constructorArgs = new Dictionary<string, JToken?>
+                {
+                    ["__arg_0__"] = "deep-template",
+                    ["__arg_1__"] = "external-deep",
+                    ["__arg_2__"] =
+                        "12345678-1234-1234-1234-123456789abc",
+                    ["__arg_3__"] = "items-template",
+                    ["__arg_4__"] = "labels-template",
+                },
+            };
+            data.values["deep-template"] = ObjectValue(
+                "deep-template",
+                "deep-class");
+            data.values["external-deep"] = ObjectValue(
+                "external-deep",
+                "deep-class");
+            data.values["items-template"] = new ArrayMemberValue
+            {
+                id = "items-template",
+                value = new[] { "item-template" },
+            };
+            data.values["item-template"] = new StringMemberValue
+            {
+                id = "item-template",
+                value = "item value",
+            };
+            data.values["labels-template"] = new ObjectMemberValue
+            {
+                id = "labels-template",
+                value = new Dictionary<string, string>
+                {
+                    ["primary"] = "label-template",
+                },
+            };
+            data.values["label-template"] = new ArrayMemberValue
+            {
+                id = "label-template",
+                value = new[] { "label-item-template" },
+            };
+            data.values["label-item-template"] = new StringMemberValue
+            {
+                id = "label-item-template",
+                value = "label value",
+            };
+            ((ClassMember)data.members["thing-nested"]).valueId =
+                "nested-template";
+            return data;
+        }
+
+        private static InitializerBody AggregateArgumentInitializer(
+            string code,
+            MemberKind kind,
+            TypeInfo entryTypeInfo,
+            Variable[] parameters,
+            string variableId)
+        {
+            return new InitializerBody
+            {
+                code = code,
+                compiled = new FunctionWithReturnType
+                {
+                    compilerRevision =
+                        FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = parameters,
+                    typeInfo = new CollectionTypeInfo
+                    {
+                        type = kind,
+                        required = true,
+                        entryTypeInfo = entryTypeInfo,
+                    },
+                    instructions = new Instruction[]
+                    {
+                        new ReturnInstruction
+                        {
+                            type = InstructionKind.Return,
+                            pointer = new VariablePointer
+                            {
+                                type = PointerKind.Variable,
+                                variableId = variableId,
+                            },
+                        },
+                    },
+                },
+            };
+        }
+
+        private static ClassTypeInfo ClassType(string classId) => new()
+        {
+            type = MemberKind.Class,
+            required = true,
+            classId = classId,
+        };
+
+        private static Variable ConstructorVariable(string id, TypeInfo typeInfo) =>
+            new() { id = id, typeInfo = typeInfo };
 
         private static NeoSchemaClass SchemaClass(
             string id,
