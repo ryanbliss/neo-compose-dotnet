@@ -4,6 +4,8 @@
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
@@ -56,10 +58,12 @@ namespace HelloWorld.Assets.Tests
         private const string NeoObjectLayerLinkClassId = "system_04ef83b0-3171-4299-9580-902708690750";
         private const string ObjectLayerLinkClassId = "f1b08825-2ad0-4666-acf1-3df7ffbda64e";
         private const string ObjectLayerLinkRelationId = "neo-tile-grid-record-relations-v1-relation-62fe5d6862a5acb378441d9ba0d0745a";
-        private const string ObjectLayerLinkValueId = "0e638a67-3d86-45c3-a13b-e0888a46d538";
-        private const string ObjectLayerLinkObjectsValueId = "1d57ae36-0e0a-4558-a03b-27b5eb0a733d";
+        private const string ObjectLayerLinkRootValueId = "0e638a67-3d86-45c3-a13b-e0888a46d538";
+        private const string ObjectLayerLinkObjectsMemberId = "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2";
+        private const string ObjectLayerLinkObjectsPath = "$/{\"kind\":\"class\",\"schemaKey\":\"Objects\"}";
         private const string ObjectLayerLinkTargetClassId = "neo-tile-grid-record-relations-v1-class-d1b21a408630eedaf664ccf5720d874f";
         private const string OldConsoleWorldPartitionKey = "world:b44d80a9-7760-4919-8844-0cb71d08b788";
+        private const string VirtualValueNamespace = "3e8ca0b3-e3f1-5d5f-bf2f-6ab5ee3896d0";
         private static readonly string[] OldConsoleLandingDialogueIds =
         {
             "2a49e84a-ab1f-4468-a9a3-f29796cbf086",
@@ -92,6 +96,42 @@ namespace HelloWorld.Assets.Tests
         private static string LoadFixture(string fileName)
         {
             return File.ReadAllText(Path.Combine(FixturesRoot, fileName));
+        }
+
+        // Keep this expectation independent of the exported child id. The
+        // sample test assembly cannot access NeoClient's internal UUIDv5
+        // helper, so this is the small RFC 4122 oracle for the authored root
+        // used by the fixture.
+        private static string DeriveCanonicalVirtualChildId(
+            string instanceRootId,
+            string sourceIdentity)
+        {
+            string namespaceHex = VirtualValueNamespace.Replace("-", string.Empty);
+            var namespaceBytes = new byte[namespaceHex.Length / 2];
+            for (int index = 0; index < namespaceBytes.Length; index++)
+            {
+                namespaceBytes[index] = System.Convert.ToByte(
+                    namespaceHex.Substring(index * 2, 2),
+                    16);
+            }
+
+            byte[] nameBytes = Encoding.UTF8.GetBytes(
+                $"{instanceRootId}:{sourceIdentity}");
+            byte[] input = new byte[namespaceBytes.Length + nameBytes.Length];
+            System.Buffer.BlockCopy(namespaceBytes, 0, input, 0, namespaceBytes.Length);
+            System.Buffer.BlockCopy(nameBytes, 0, input, namespaceBytes.Length, nameBytes.Length);
+
+            byte[] hash;
+            using (SHA1 sha1 = SHA1.Create())
+            {
+                hash = sha1.ComputeHash(input);
+            }
+            hash[6] = (byte)((hash[6] & 0x0f) | 0x50);
+            hash[8] = (byte)((hash[8] & 0x3f) | 0x80);
+            string hex = System.BitConverter.ToString(hash, 0, 16)
+                .Replace("-", string.Empty)
+                .ToLowerInvariant();
+            return $"{hex.Substring(0, 8)}-{hex.Substring(8, 4)}-{hex.Substring(12, 4)}-{hex.Substring(16, 4)}-{hex.Substring(20, 12)}";
         }
 
         [Test]
@@ -160,7 +200,7 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void ObjectLayerLinkSplit_PreservesAuthoredIdentitiesAndUsesAbstractSystemBase()
+        public void ObjectLayerLinkSplit_PreservesAuthoredRootAndCanonicalChildIdentities_UsesAbstractSystemBase()
         {
             Assert.IsTrue(typeof(NeoTileLayerLink).IsAbstract);
             Assert.IsTrue(typeof(NeoObjectLayerLink).IsAbstract);
@@ -190,7 +230,7 @@ namespace HelloWorld.Assets.Tests
                 "worldAuthoring",
                 systemBase["system"]!["kind"]!.Value<string>());
             Assert.AreEqual(
-                "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
+                ObjectLayerLinkObjectsMemberId,
                 systemBase["schema"]!["Objects"]!.Value<string>());
 
             Assert.AreEqual("ObjectLayerLink", authoredLink["name"]!.Value<string>());
@@ -225,11 +265,18 @@ namespace HelloWorld.Assets.Tests
             Assert.IsFalse(allValues.Any(value =>
                 value["classId"]?.Value<string>() == NeoObjectLayerLinkClassId));
 
-            var linkValue = project["valuePartitions"]![OldConsoleWorldPartitionKey]![ObjectLayerLinkValueId]!;
+            var expectedObjectsValueId = DeriveCanonicalVirtualChildId(
+                ObjectLayerLinkRootValueId,
+                $"path:{ObjectLayerLinkObjectsMemberId}:{ObjectLayerLinkObjectsPath}");
+            var linkValue = project["valuePartitions"]![OldConsoleWorldPartitionKey]![ObjectLayerLinkRootValueId]!;
             Assert.AreEqual(ObjectLayerLinkClassId, linkValue["classId"]!.Value<string>());
             Assert.AreEqual(
-                ObjectLayerLinkObjectsValueId,
+                expectedObjectsValueId,
                 linkValue["value"]!["Objects"]!.Value<string>());
+            var objectsValue = project["valuePartitions"]![OldConsoleWorldPartitionKey]![expectedObjectsValueId];
+            Assert.IsNotNull(objectsValue);
+            Assert.AreEqual(expectedObjectsValueId, objectsValue!["id"]!.Value<string>());
+            Assert.AreEqual(JTokenType.Array, objectsValue["value"]!.Type);
             // The relation above is the canonical target. Current exports no
             // longer duplicate it as a legacy layerClassId child value.
             Assert.IsNull(linkValue["value"]!["layerClassId"]);
