@@ -378,7 +378,7 @@ Root root = new() {
           Planet = .pluto
         }
       ],
-      ScreenshotEmptyGrid = new OldConsoleLandingGrid() {
+      ScreenshotEmptyGrid = new OldConsoleLandingGrid {
         DisplayName = "Screenshot Empty Grid"
       },
       SortingLayers = [
