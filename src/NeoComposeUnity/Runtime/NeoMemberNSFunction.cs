@@ -1548,12 +1548,15 @@ namespace NeoCompose.Runtime
                         _ => null,
                     };
                     if (entryType is null) return;
+                    NeoValueOwnership? rowOwnership =
+                        NSGetterEvaluator.FindRowOwnershipByReference(value, ctx);
                     int index = 0;
                     foreach (object? entry in (System.Collections.IEnumerable)value)
                     {
                         ValidateResolvedRuntimeValue(
                             client,
-                            entry,
+                            rowOwnership is null ? entry
+                                : NSGetterEvaluator.ResolveValueIfId(entry, ctx, rowOwnership),
                             entryType,
                             ctx,
                             $"entry {index++} of {subject}");
@@ -1574,11 +1577,14 @@ namespace NeoCompose.Runtime
                         throw new InvalidOperationException(
                             $"{subject} did not normalize to a dictionary.");
                     }
+                    NeoValueOwnership? rowOwnership =
+                        NSGetterEvaluator.FindRowOwnershipByReference(value, ctx);
                     foreach (System.Collections.DictionaryEntry entry in dictionary)
                     {
                         ValidateResolvedRuntimeValue(
                             client,
-                            entry.Value,
+                            rowOwnership is null ? entry.Value
+                                : NSGetterEvaluator.ResolveValueIfId(entry.Value, ctx, rowOwnership),
                             entryType,
                             ctx,
                             $"key '{entry.Key}' of {subject}");
