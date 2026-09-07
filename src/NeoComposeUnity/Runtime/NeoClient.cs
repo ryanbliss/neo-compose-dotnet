@@ -3568,7 +3568,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private Member? TryResolveOwnedChildMember(
+        internal Member? TryResolveOwnedChildMember(
             MemberValue row,
             Member? sourceMember,
             string key)

@@ -116,7 +116,7 @@ namespace NeoCompose.Runtime
     /// Kept in the SDK runtime so generated files only contain
     /// project-specific schema wrappers.
     /// </summary>
-    public static class NeoGeneratedTypesSupport
+    public static partial class NeoGeneratedTypesSupport
     {
         /// <summary>
         /// Returns the persisted Neo binding carried by a typed delegate from
@@ -302,6 +302,8 @@ namespace NeoCompose.Runtime
         private sealed class ConstructorSchemaCache
         {
             internal readonly object gate = new();
+            internal ConstructorInitializerIndex? initializerIndex;
+            internal readonly Dictionary<ConstructorRecord, bool> baseReadsThis = new();
             internal readonly Dictionary<string, IList<MergedSchemaEntry>>
                 mergedSchemas = new();
             internal readonly Dictionary<
@@ -455,18 +457,21 @@ namespace NeoCompose.Runtime
         internal sealed class NeoConstructionScope
         {
             private readonly NeoClient client;
-            private readonly IReadOnlyList<object?> initializerArguments;
+            private readonly IReadOnlyDictionary<string, object?[]> initializerArguments;
+            private readonly string? constructedClassId;
             private NeoScript.NSGetterEvaluator.Context? evaluationContext;
 
             internal NeoConstructionScope(
                 NeoClient client,
                 NeoScript.NSGetterEvaluator.Context? evaluationContext,
-                IReadOnlyList<object?>? initializerArguments = null)
+                IReadOnlyDictionary<string, object?[]>? initializerArguments = null,
+                string? constructedClassId = null)
             {
                 this.client = client;
                 this.evaluationContext = evaluationContext;
                 this.initializerArguments = initializerArguments
-                    ?? Array.Empty<object?>();
+                    ?? new Dictionary<string, object?[]>();
+                this.constructedClassId = constructedClassId;
             }
 
             /// <summary>
@@ -553,10 +558,16 @@ namespace NeoCompose.Runtime
                         $"{member.name} initializer");
                 // A generic entry initializer constructs in its closed placement.
                 initializerContext.initializerPlacement = member as ClassMember;
-                IReadOnlyList<object?> arguments =
-                    init.compiled.parameters is { Length: > 2 }
-                        ? initializerArguments
-                        : Array.Empty<object?>();
+                IReadOnlyList<object?> arguments = Array.Empty<object?>();
+                int expected = Math.Max(0, (init.compiled.parameters?.Length ?? 0) - 2);
+                if (expected > 0)
+                {
+                    string? owner = ResolveInitializerOwner(client, init, member, constructedClassId);
+                    if (owner is null || !initializerArguments.TryGetValue(owner, out object?[]? scoped))
+                        throw new InvalidOperationException($"Initializer '{member.name}' cannot resolve its declaring constructor scope before member initialization.");
+                    arguments = scoped;
+                    if (arguments.Count != expected) throw new InvalidOperationException($"Initializer '{member.name}' expected {expected} arguments in '{owner}', got {arguments.Count}.");
+                }
                 return NeoScript.NSGetterEvaluator.Evaluate(
                     init.compiled,
                     initializerContext.thisValue is null
@@ -3962,10 +3973,12 @@ namespace NeoCompose.Runtime
             object?[] positionalArguments = OrderDeclaredArguments(
                 resolved.link.record,
                 argumentValues);
+            var initializerArguments = PrepareConstructorInitializerArguments(client, resolved.link, positionalArguments, constructionCtx);
             var scope = new NeoConstructionScope(
                 client,
                 constructionCtx,
-                positionalArguments);
+                initializerArguments,
+                resolved.classTypeInfo.classId);
 
             // Step 1 — member initializers. No fields are supplied here: an
             // overridden member's initializer still RUNS and is then overwritten
@@ -4017,7 +4030,8 @@ namespace NeoCompose.Runtime
                     positionalArguments,
                     thisValue,
                     root.id,
-                    constructionCtx);
+                    constructionCtx,
+                    initializerArguments);
 
                 // Step 4 — the call site wins. Its expressions are evaluated
                 // HERE, after the body, exactly as C# runs an object
@@ -4148,6 +4162,56 @@ namespace NeoCompose.Runtime
             return ordered;
         }
 
+        private static object?[] EvaluateDeclaredBaseArguments(
+            NeoClient client,
+            NeoResolvedConstructorLink link,
+            object?[] argumentValues,
+            object? thisValue,
+            NeoScript.NSGetterEvaluator.Context ctx)
+        {
+            ConstructorRecord record = link.record!;
+            ConstructorRecord baseRecord = link.baseLink!.record!;
+            var baseArguments = new object?[baseRecord.argumentTypes.Length];
+            var boundBaseSlots = new bool[baseRecord.argumentTypes.Length];
+            ConstructorBaseArgument[] declaredBaseArguments =
+                record.baseArguments ?? Array.Empty<ConstructorBaseArgument>();
+            FunctionWithReturnType[] compiled =
+                record.compiledBaseArguments ?? Array.Empty<FunctionWithReturnType>();
+            for (int i = 0; i < declaredBaseArguments.Length; i++)
+            {
+                boundBaseSlots[link.baseArgumentTargets[i]] = true;
+                // Clauses that read `this` run after member initialization.
+                // Other clauses also provide the base initializer's arguments.
+                baseArguments[link.baseArgumentTargets[i]] = ExecuteConstructorBody(
+                    client,
+                    compiled[i],
+                    BuildConstructorScope(record, argumentValues, thisValue, ctx),
+                    ctx.WithThis(thisValue),
+                    expectValue: true,
+                    $"Base argument '{declaredBaseArguments[i].name}' of constructor '{record.id}'");
+            }
+            // P65 §2.5 callee-side fill, same as a direct constructor
+            // call: the base overload's own current default completes each
+            // omitted slot. Base resolution already required every
+            // unbound slot to be defaulted, so a bare slot here is stale
+            // IR rather than a tolerable absence.
+            for (int i = 0; i < baseRecord.argumentTypes.Length; i++)
+            {
+                if (boundBaseSlots[i]) continue;
+                FunctionArgumentTypeInfo baseParameter =
+                    baseRecord.argumentTypes[i];
+                if (!NeoParameterDefaults.HasDefault(baseParameter))
+                {
+                    throw new InvalidOperationException(
+                        $"Declared constructor '{record.id}' binds no argument for base parameter '{baseParameter.name}' of constructor '{baseRecord.id}'. Regenerate the NeoScript IR from the current schema.");
+                }
+                baseArguments[i] = NeoParameterDefaults.DefaultRuntimeValue(
+                    baseParameter,
+                    $"Constructor '{baseRecord.id}'");
+            }
+            return baseArguments;
+        }
+
         private static void RunDeclaredConstructorChain(
             NeoClient client,
             NeoResolvedDeclaredConstructor resolved,
@@ -4155,7 +4219,8 @@ namespace NeoCompose.Runtime
             object?[] argumentValues,
             object? thisValue,
             string rootValueId,
-            NeoScript.NSGetterEvaluator.Context ctx)
+            NeoScript.NSGetterEvaluator.Context ctx,
+            IReadOnlyDictionary<string, object?[]> initializerArguments)
         {
             ConstructorRecord? record = link.record;
             if (record is null) return;
@@ -4165,50 +4230,8 @@ namespace NeoCompose.Runtime
                 ConstructorRecord baseRecord = link.baseLink.record
                     ?? throw new InvalidOperationException(
                         $"Declared constructor '{record.id}' resolved an empty base link.");
-                var baseArguments = new object?[baseRecord.argumentTypes.Length];
-                var boundBaseSlots = new bool[baseRecord.argumentTypes.Length];
-                ConstructorBaseArgument[] declaredBaseArguments =
-                    record.baseArguments ?? Array.Empty<ConstructorBaseArgument>();
-                FunctionWithReturnType[] compiled =
-                    record.compiledBaseArguments ?? Array.Empty<FunctionWithReturnType>();
-                for (int i = 0; i < declaredBaseArguments.Length; i++)
-                {
-                    boundBaseSlots[link.baseArgumentTargets[i]] = true;
-                    // `this` is the instance under construction, not null: step
-                    // 1 has already run every member initializer, so a base
-                    // argument may legitimately read `this.X` as well as the
-                    // parameters it was handed. This is what
-                    // `evaluateBaseConstructorArguments` binds in
-                    // evaluateNSGetter.ts, and binding null here would silently
-                    // produce a different base member value on the same
-                    // project.
-                    baseArguments[link.baseArgumentTargets[i]] = ExecuteConstructorBody(
-                        client,
-                        compiled[i],
-                        BuildConstructorScope(record, argumentValues, thisValue, ctx),
-                        ctx.WithThis(thisValue),
-                        expectValue: true,
-                        $"Base argument '{declaredBaseArguments[i].name}' of constructor '{record.id}'");
-                }
-                // P65 §2.5 callee-side fill, same as a direct constructor
-                // call: the base overload's own current default completes each
-                // omitted slot. Base resolution already required every
-                // unbound slot to be defaulted, so a bare slot here is stale
-                // IR rather than a tolerable absence.
-                for (int i = 0; i < baseRecord.argumentTypes.Length; i++)
-                {
-                    if (boundBaseSlots[i]) continue;
-                    FunctionArgumentTypeInfo baseParameter =
-                        baseRecord.argumentTypes[i];
-                    if (!NeoParameterDefaults.HasDefault(baseParameter))
-                    {
-                        throw new InvalidOperationException(
-                            $"Declared constructor '{record.id}' binds no argument for base parameter '{baseParameter.name}' of constructor '{baseRecord.id}'. Regenerate the NeoScript IR from the current schema.");
-                    }
-                    baseArguments[i] = NeoParameterDefaults.DefaultRuntimeValue(
-                        baseParameter,
-                        $"Constructor '{baseRecord.id}'");
-                }
+                object?[] baseArguments = initializerArguments.TryGetValue(baseRecord.classId, out object?[]? prepared)
+                    ? prepared : EvaluateDeclaredBaseArguments(client, link, argumentValues, thisValue, ctx);
                 RunDeclaredConstructorChain(
                     client,
                     resolved,
@@ -4216,7 +4239,8 @@ namespace NeoCompose.Runtime
                     baseArguments,
                     thisValue,
                     rootValueId,
-                    ctx);
+                    ctx,
+                    initializerArguments);
             }
 
             // P49 §1.5 — the base clause's initializer block, applied once the
@@ -5213,6 +5237,8 @@ namespace NeoCompose.Runtime
                 // P67 §6 — a defaulted variant member is settled, so it must
                 // stop being demanded as a runtime constructor argument.
                 VariantMember member => member.defaultValue is not null,
+                DelegateMember member => member.defaultValue is not null,
+                ActionMember member => member.defaultValue is not null,
                 _ => false,
             };
         }
@@ -6208,6 +6234,22 @@ namespace NeoCompose.Runtime
                                 },
                             classId = member.defaultValue.classId,
                         };
+                case DelegateMember member:
+                    return member.defaultValue is null ? null : new DelegateMemberValue
+                    {
+                        id = Guid.NewGuid().ToString(),
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = member.defaultValue.value?.PersistedCopy(),
+                    };
+                case ActionMember member:
+                    return member.defaultValue is null ? null : new ActionMemberValue
+                    {
+                        id = Guid.NewGuid().ToString(),
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = member.defaultValue.value?.PersistedCopy(),
+                    };
                 case StringMember member:
                     return member.defaultValue is null
                         ? null
@@ -6667,6 +6709,24 @@ namespace NeoCompose.Runtime
                         value = sourceValue.value is null
                             ? null
                             : new FileValue { fileId = sourceValue.value.fileId },
+                        classId = source.classId,
+                    };
+                case DelegateMember when source is DelegateMemberValue sourceValue:
+                    return new DelegateMemberValue
+                    {
+                        id = Guid.NewGuid().ToString(),
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = sourceValue.value?.PersistedCopy(),
+                        classId = source.classId,
+                    };
+                case ActionMember when source is ActionMemberValue sourceValue:
+                    return new ActionMemberValue
+                    {
+                        id = Guid.NewGuid().ToString(),
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = sourceValue.value?.PersistedCopy(),
                         classId = source.classId,
                     };
                 case ClassMember classMember

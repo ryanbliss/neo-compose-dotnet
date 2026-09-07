@@ -2530,7 +2530,7 @@ namespace NeoCompose.Runtime.NeoScript
                 member = NeoGenericResolution.SubstituteMember(
                     ctx.client,
                     member,
-                    NeoGenericResolution.ResolveEnv(runtimeChain));
+                    NeoNSFunctionRuntime.ResolveReceiverGenericEnv(ctx.client, receiver, ctx, $"Member '{member.name}'"));
             }
 
             DispatchResult declarationDefault = ReadOnlyDeclarationDefault(member, ctx);
@@ -4932,7 +4932,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// Routes through <see cref="UnwrapCached"/> so the same heap
         /// object round-trips for the same id within a Compute call.
         /// </summary>
-        private static object? ResolveValueIfId(
+        internal static object? ResolveValueIfId(
             object? at,
             Context ctx,
             NeoValueOwnership? preferredOwnership = null,
@@ -5792,12 +5792,12 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     return indexedRow.classId;
                 }
-                return ctx.client.TryInferMemberForValueId(
+                return rowRef.classId ?? (ctx.client.TryInferMemberForValueId(
                         rowRef.valueId,
                         out JsonMember? indexedMember)
                     && indexedMember is ClassMember indexedClassMember
                         ? indexedClassMember.classId
-                        : null;
+                        : null);
             }
             if (value is INeoValueReference valueReference
                 && !string.IsNullOrEmpty(valueReference.valueId))

@@ -34,6 +34,33 @@ namespace NeoCompose.Tests
         // -------------------------------------------------------------------
 
         [Test]
+        public void InheritedInitializer_UsesItsDeclaringConstructorArguments()
+        {
+            ProjectData data = BuildProjectData();
+            var part = data.classes["part-class"];
+            var tag = (StringMember)data.members[part.schema["Tag"]];
+            tag.defaultValue = new StringMemberValueBase
+            {
+                init = new InitializerBody
+                {
+                    code = "Prefix",
+                    compiled = BaseClauseGetter(part.id, 1, ArgumentPointer(0))
+                }
+            };
+            ConstructorRecord derived = data.constructors["ctor-sub"];
+            derived.argumentTypes = new[] { StringArgument("Suffix"), StringArgument("Other") };
+            derived.action!.parameters = new[] { EnvelopeParameter("__this__", ClassType("sub-class")), EnvelopeParameter("__root__", ClassType("root-class")), EnvelopeParameter("__arg_0__", StringArgument("Suffix")), EnvelopeParameter("__arg_1__", StringArgument("Other")) };
+            derived.compiledBaseArguments![0].parameters = derived.action.parameters;
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            object? result = NSGetterEvaluator.Evaluate(ReturnFunction(DeclaredConstructorPointer(
+                ClassType("sub-class"), "ctor-sub", new[] { new DeclaredConstructorArgument { name = "Suffix", valuePointer = StringPointer("base-value") }, new DeclaredConstructorArgument { name = "Other", valuePointer = StringPointer("different") } },
+                Array.Empty<FunctionClassConstructorField>())), ctx);
+            ObjectMemberValue root = RequireConstructedRoot(client, ctx, result);
+            Assert.AreEqual("base-value", ReadString(client, root, "Tag"));
+        }
+
+        [Test]
         public void DeclaredConstructor_MemberInitializersRunThenTheBodyOverwrites()
         {
             NeoClient client = BuildClient();

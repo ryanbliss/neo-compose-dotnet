@@ -19,6 +19,36 @@ namespace NeoCompose.Tests
     public class NSFunctionRuntimeTests
     {
         [Test]
+        public void StaticFunction_UsesTheCompilerThisAndRootEnvelope()
+        {
+            var argument = new FunctionArgumentTypeInfo { name = "amount", type = MemberKind.Int, required = true };
+            var function = ScriptFunction("static-identity", "Identity", false, IntType(), new[] { argument },
+                Action(IntType(), new[] { argument }, Return(Variable("__arg_0__"))));
+            function.Modifier = NeoMemberModifierKind.Static;
+            using NeoClient client = BuildClient(new JsonMember[] { function }, ReceiverClass());
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            Assert.AreEqual(17, NeoNSFunctionRuntime.InvokeImmediate(client, function.id, null, new object?[] { 17 }, ctx));
+            Assert.Throws<NSGetterRuntimeError>(() => NeoNSFunctionRuntime.InvokeImmediate(client, function.id, new object(), new object?[] { 17 }, ctx));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void RowBackedCollectionArguments_ValidateChildValuesAndKeepIdentity(bool dictionary)
+        {
+            var row = new NumberMemberValue { id = "entry", value = 23, createdAt = "x", updatedAt = "x" };
+            MemberValue collection = dictionary
+                ? new ObjectMemberValue { id = "collection", value = new Dictionary<string, string> { ["key"] = row.id } }
+                : new ArrayMemberValue { id = "collection", value = new[] { row.id } };
+            using NeoClient client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass(), additionalValues: new[] { row, collection });
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            object value = NSGetterEvaluator.UnwrapRow(collection, ctx, NeoValueOwnership.Asset)!;
+            var type = new CollectionTypeInfo { type = dictionary ? MemberKind.Dictionary : MemberKind.List, required = true, entryTypeInfo = IntType() };
+            Assert.AreSame(value, NeoScriptValueMarshaller.Normalize(client, NeoValueOwnership.Asset, value, type, ctx, "collection argument"));
+            type.entryTypeInfo = new PrimitiveTypeInfo { type = MemberKind.Bool, required = true };
+            Assert.Throws<InvalidOperationException>(() => NeoScriptValueMarshaller.Normalize(client, NeoValueOwnership.Asset, value, type, ctx, "collection argument"));
+        }
+
+        [Test]
         public void DelegateDto_UsesOrdinal25RecursiveSignatureAndCallIr()
         {
             const string json = @"{

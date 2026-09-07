@@ -408,7 +408,8 @@ namespace NeoCompose.Runtime
             }
 
             FunctionWithReturnType action = function.Action;
-            int receiverParameterCount = isStatic ? 1 : 2;
+            // The compiler keeps both synthetic parameters for static functions too.
+            int receiverParameterCount = 2;
             int expectedParameters = function.ArgumentTypes.Length + receiverParameterCount;
             if (action.parameters is null || action.parameters.Length != expectedParameters)
             {
@@ -449,19 +450,9 @@ namespace NeoCompose.Runtime
             }
 
             var scope = new Dictionary<string, object?>(expectedParameters);
-            int rootParameterIndex;
-            int argumentParameterOffset;
-            if (isStatic)
-            {
-                rootParameterIndex = 0;
-                argumentParameterOffset = 1;
-            }
-            else
-            {
-                scope[action.parameters[0].id] = receiver;
-                rootParameterIndex = 1;
-                argumentParameterOffset = 2;
-            }
+            const int rootParameterIndex = 1;
+            const int argumentParameterOffset = 2;
+            scope[action.parameters[0].id] = receiver;
             scope[action.parameters[rootParameterIndex].id] = ctx.rootValue;
             for (int i = 0; i < args.Length; i++)
             {
@@ -608,7 +599,11 @@ namespace NeoCompose.Runtime
                 NeoClient client,
                 object receiver,
                 NSGetterEvaluator.Context ctx,
-                NeoResolvedNSFunction function)
+                NeoResolvedNSFunction function) =>
+            ResolveReceiverGenericEnv(client, receiver, ctx, $"NSFunction '{function.Member.name}'");
+
+        internal static IReadOnlyDictionary<string, NeoGenericEnvEntry> ResolveReceiverGenericEnv(
+            NeoClient client, object receiver, NSGetterEvaluator.Context ctx, string subject)
         {
             string? runtimeClassId = NSGetterEvaluator.FindRowClassIdByReference(
                 receiver,
@@ -616,7 +611,7 @@ namespace NeoCompose.Runtime
             if (string.IsNullOrEmpty(runtimeClassId))
             {
                 throw new NSGetterRuntimeError(
-                    $"NSFunction '{function.Member.name}' uses generic signature classes, but its receiver has no runtime class.");
+                    $"{subject} uses generic types, but its receiver has no runtime class.");
             }
 
             string? receiverValueId = NSGetterEvaluator.FindRowIdByReference(
@@ -624,7 +619,7 @@ namespace NeoCompose.Runtime
                 ctx);
             string? cacheKey = string.IsNullOrEmpty(receiverValueId)
                 ? null
-                : runtimeClassId + "\n" + receiverValueId;
+                : runtimeClassId + "\n" + NSGetterEvaluator.FindRowOwnershipByReference(receiver, ctx) + "\n" + receiverValueId;
             if (cacheKey is not null
                 && ctx.genericEnvironmentCache.TryGetValue(
                     cacheKey, out IReadOnlyDictionary<
@@ -643,6 +638,14 @@ namespace NeoCompose.Runtime
                 constructedArguments = classPlacement.classArguments;
             }
 
+            // A persisted closure closes forwarded placement parameters.
+            NeoValueOwnership receiverOwnership = NSGetterEvaluator.FindRowOwnershipByReference(receiver, ctx) ?? ctx.valueOwnership;
+            if (receiverValueId is not null && client.TryGetValue(receiverOwnership, receiverValueId, out MemberValue? row)
+                && row.genericBindings is not null)
+            {
+                constructedArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
+                    row.genericBindings, constructedArguments);
+            }
             try
             {
                 IReadOnlyDictionary<string, NeoGenericEnvEntry> resolved =
@@ -659,7 +662,7 @@ namespace NeoCompose.Runtime
             catch (Exception exception)
             {
                 throw new NSGetterRuntimeError(
-                    $"NSFunction '{function.Member.name}' could not resolve the receiver's generic environment: {exception.Message}");
+                    $"{subject} could not resolve the receiver's generic environment: {exception.Message}");
             }
         }
 
@@ -1648,6 +1651,18 @@ namespace NeoCompose.Runtime
                 LookupTypeInfo lookup => lookup.entryTypeInfo,
                 _ => null,
             };
+            // Row-backed collections contain child ids. Validate their values,
+            // then preserve the collection identity for indexing and writes.
+            NeoValueOwnership? rowOwnership = NSGetterEvaluator.FindRowOwnershipByReference(value, ctx);
+            if (rowOwnership is not null && value is object?[] rows)
+            {
+                if (entryType is not null)
+                    foreach (object? entry in rows)
+                        Normalize(client, rowOwnership.Value,
+                            NSGetterEvaluator.ResolveValueIfId(entry, ctx, rowOwnership),
+                            entryType, ctx, $"entry of {subject}");
+                return rows;
+            }
             var result = new List<object?>();
             foreach (object? entry in enumerable)
             {
@@ -1725,6 +1740,16 @@ namespace NeoCompose.Runtime
                 CollectionTypeInfo collection => collection.entryTypeInfo,
                 _ => null,
             };
+            NeoValueOwnership? rowOwnership = NSGetterEvaluator.FindRowOwnershipByReference(value, ctx);
+            if (rowOwnership is not null && value is Dictionary<string, object?> rows)
+            {
+                if (entryType is not null)
+                    foreach (object? entry in rows.Values)
+                        Normalize(client, rowOwnership.Value,
+                            NSGetterEvaluator.ResolveValueIfId(entry, ctx, rowOwnership),
+                            entryType, ctx, $"entry of {subject}");
+                return rows;
+            }
             var result = new Dictionary<string, object?>();
             if (value is IDictionary dictionary)
             {

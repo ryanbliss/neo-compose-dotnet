@@ -3187,6 +3187,12 @@ namespace NeoCompose.Tests
                     {
                         new Variable
                         {
+                            id = "__this__",
+                            typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                            pointer = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" },
+                        },
+                        new Variable
+                        {
                             id = "__root__",
                             typeInfo = new ClassTypeInfo
                             {

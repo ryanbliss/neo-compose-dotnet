@@ -115,8 +115,11 @@ namespace NeoCompose.Tests
             data.classes["thing-class"].schema["ReadOnly"] = "read-only";
             data.members["read-only"] = new IntMember
             {
-                id = "read-only", projectId = "p75-project", name = "ReadOnly",
-                kind = MemberKind.Int, Storage = NeoMemberStorage.Immutable,
+                id = "read-only",
+                projectId = "p75-project",
+                name = "ReadOnly",
+                kind = MemberKind.Int,
+                Storage = NeoMemberStorage.Immutable,
                 Mutability = NeoMemberMutabilityKind.ReadOnly,
                 defaultValue = new NumberMemberValueBase { value = 1 },
             };
@@ -129,14 +132,18 @@ namespace NeoCompose.Tests
                 .Get<NeoMemberStringWritable>("Name").value!.value);
         }
 
-        [TestCase(42d)]
-        [TestCase(null)]
-        public void SparseComputedLeafWaitsForConstructorReplay(double? expected)
+        [TestCase(42d, false)]
+        [TestCase(null, false)]
+        [TestCase(42d, true)]
+        [TestCase(null, true)]
+        public void SparseComputedLeafWaitsForConstructorReplay(double? expected, bool immutable)
         {
             ProjectData data = BuildProjectData();
             var argument = new FunctionArgumentTypeInfo
             {
-                name = "InitialCount", type = MemberKind.Int, required = expected.HasValue,
+                name = "InitialCount",
+                type = MemberKind.Int,
+                required = expected.HasValue,
             };
             var parameters = new[]
             {
@@ -147,7 +154,9 @@ namespace NeoCompose.Tests
             data.classes["thing-class"].constructorIds = new[] { "thing-ctor" };
             data.constructors["thing-ctor"] = new ConstructorRecord
             {
-                id = "thing-ctor", projectId = "p75-project", classId = "thing-class",
+                id = "thing-ctor",
+                projectId = "p75-project",
+                classId = "thing-class",
                 argumentTypes = new[] { argument },
                 action = new FunctionWithReturnType
                 {
@@ -167,10 +176,12 @@ namespace NeoCompose.Tests
             root.instanceConstructorId = "thing-ctor";
             root.constructorArgs = new Dictionary<string, JToken?> { ["__arg_0__"] = expected.HasValue ? JToken.FromObject(expected.Value) : JValue.CreateNull() };
 
+            if (immutable) data.members["thing-count"].Storage = NeoMemberStorage.Immutable;
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
 
-            Assert.AreEqual(expected, client.save.Get<NeoMemberClassWritable>("Thing")
-                .Get<NeoMemberIntWritable>("Count").value!.value);
+            var count = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberInt>("Count");
+            Assert.AreEqual(expected, count.value!.value);
+            if (immutable) Assert.IsNotInstanceOf<NeoMemberIntWritable>(count);
         }
 
         [Test]
@@ -182,7 +193,8 @@ namespace NeoCompose.Tests
                 id = "member-reference",
                 value = new Dictionary<string, string>
                 {
-                    ["memberId"] = "thing-count", ["valueId"] = null!,
+                    ["memberId"] = "thing-count",
+                    ["valueId"] = null!,
                 },
             };
 
@@ -204,7 +216,9 @@ namespace NeoCompose.Tests
             };
             data.members["payload-name"] = new GenericMember
             {
-                id = "payload-name", name = "Name", kind = MemberKind.Generic,
+                id = "payload-name",
+                name = "Name",
+                kind = MemberKind.Generic,
                 genericParamId = parameterId,
             };
             var binding = (ClassMember)data.members["payload-binding"];
