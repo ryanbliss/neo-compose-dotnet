@@ -113,23 +113,21 @@ namespace NeoCompose.Unity.Editor
                     config.projectJsonDirectory,
                     NeoComposeEditorDefaults.ProjectJsonFileName);
                 onProgress?.Invoke("Exporting project...");
-                var incremental = await TryBuildIncrementalExportAsync(
+                var attempt = await BuildPublishedExportAsync(
                     config,
                     projectJsonPath,
                     generatedTypesPath,
                     onProgress);
-                if (incremental?.unchanged == true)
+                if (attempt.unchanged)
                 {
+                    if (attempt.response.syncState != null)
+                        exportCache.Save(config.projectId, config.versionId, attempt.response.syncState);
                     return NeoComposeSyncResult.Success(
                         "Neo Compose project is already synchronized.",
-                        incremental.response);
+                        attempt.response);
                 }
-                var isIncremental = incremental != null;
-                var exportResponse = incremental?.response
-                    ?? await apiClient.ExportProjectAsync(
-                        config.apiBaseUrl,
-                        config.projectId,
-                        config.versionId);
+                var exportResponse = attempt.response;
+                var isIncremental = exportResponse.mode == "incremental";
                 var diagnosticErrors = exportResponse.diagnostics
                     .Where(d => string.Equals(d.severity, "error", StringComparison.OrdinalIgnoreCase))
                     .ToArray();
@@ -248,6 +246,55 @@ namespace NeoCompose.Unity.Editor
             public bool unchanged;
         }
 
+        private async Task<IncrementalExportAttempt> BuildPublishedExportAsync(
+            NeoComposeConfig config,
+            string projectJsonPath,
+            string generatedTypesPath,
+            Action<string>? onProgress)
+        {
+            for (var attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    var result = await TryBuildIncrementalExportAsync(
+                        config, projectJsonPath, generatedTypesPath, onProgress)
+                        ?? new IncrementalExportAttempt
+                        {
+                            response = await apiClient.ExportProjectAsync(
+                                config.apiBaseUrl, config.projectId, config.versionId),
+                        };
+                    var readBase = RequireReadBase(result.response.readBase);
+                    // Even a fully cached or unchanged assembly needs a final server check.
+                    await ReadSnapshotsAsync(config,
+                        result.response.version?.id ?? config.versionId,
+                        Array.Empty<string>(), readBase);
+                    return result;
+                }
+                catch (NeoComposeProjectReadRestartException) when (attempt < 2)
+                {
+                    onProgress?.Invoke("The project changed. Restarting export...");
+                }
+            }
+        }
+
+        private static NeoComposeProjectReadBase RequireReadBase(NeoComposeProjectReadBase? readBase)
+        {
+            if (readBase == null)
+                throw new InvalidOperationException("The export did not identify a published project revision.");
+            readBase.Validate();
+            return readBase;
+        }
+
+        private async Task<NeoComposeUnityExportSnapshotResponse> ReadSnapshotsAsync(
+            NeoComposeConfig config, string versionId, string[] snapshotIds, NeoComposeProjectReadBase readBase)
+        {
+            var response = await apiClient.ExportProjectSnapshotsAsync(
+                config.apiBaseUrl, config.projectId, versionId, snapshotIds, readBase);
+            if (!readBase.Matches(RequireReadBase(response.readBase)))
+                throw new NeoComposeProjectReadRestartException();
+            return response;
+        }
+
         private async Task<IncrementalExportAttempt?> TryBuildIncrementalExportAsync(
             NeoComposeConfig config,
             string projectJsonPath,
@@ -256,6 +303,14 @@ namespace NeoCompose.Unity.Editor
         {
             var state = exportCache.Load(config.projectId, config.versionId);
             if (state == null || state.schemaVersion != 1) return null;
+            // Failed attempts must not mutate the cache's cursor or head selection.
+            state = new NeoComposeUnityExportSyncState
+            {
+                schemaVersion = state.schemaVersion,
+                cursor = state.cursor,
+                heads = new List<NeoComposeUnityExportHeadDescriptor>(state.heads),
+                snapshots = new List<NeoComposeUnityExportCachedSnapshot>(state.snapshots),
+            };
             if (!assets.FileExists(projectJsonPath)) return null;
             if (!assets.FileExists(generatedTypesPath)) return null;
             if (string.IsNullOrWhiteSpace(assets.ReadAllText(generatedTypesPath))) return null;
@@ -266,6 +321,7 @@ namespace NeoCompose.Unity.Editor
                 config.versionId,
                 state.cursor);
             if (delta.fullResync || delta.cursor == null) return null;
+            var readBase = RequireReadBase(delta.readBase);
             // Value records are the high-volume content path and map directly
             // onto the exported values/valuePartitions dictionaries. Every
             // other record kind can affect global materialization (dialogue
@@ -280,13 +336,13 @@ namespace NeoCompose.Unity.Editor
             if (delta.records.Count == 0)
             {
                 state.cursor = delta.cursor;
-                exportCache.Save(config.projectId, config.versionId, state);
                 return new IncrementalExportAttempt
                 {
                     unchanged = true,
                     response = new NeoComposeUnityExportResponse
                     {
                         mode = "incremental",
+                        readBase = readBase,
                         projectId = config.projectId,
                         projectJson = assets.ReadAllText(projectJsonPath),
                         syncState = state,
@@ -302,18 +358,15 @@ namespace NeoCompose.Unity.Editor
                 .Where(snapshotId => !snapshotsById.ContainsKey(snapshotId))
                 .Distinct()
                 .ToArray();
-            if (missingIds.Length > 0)
+            for (var offset = 0; offset < missingIds.Length; offset += 500)
             {
-                var fetched = await apiClient.ExportProjectSnapshotsAsync(
-                    config.apiBaseUrl,
-                    config.projectId,
-                    config.versionId,
-                    missingIds);
+                var batch = missingIds.Skip(offset).Take(500).ToArray();
+                var fetched = await ReadSnapshotsAsync(config, config.versionId, batch, readBase);
                 foreach (var snapshot in fetched.snapshots)
                 {
                     snapshotsById[snapshot.id] = snapshot;
                 }
-                if (missingIds.Any(snapshotId => !snapshotsById.ContainsKey(snapshotId)))
+                if (batch.Any(snapshotId => !snapshotsById.ContainsKey(snapshotId)))
                 {
                     return null;
                 }
@@ -396,6 +449,7 @@ namespace NeoCompose.Unity.Editor
                 response = new NeoComposeUnityExportResponse
                 {
                     mode = "incremental",
+                    readBase = readBase,
                     projectId = config.projectId,
                     projectName = project?["name"]?.Value<string>() ?? "",
                     projectJson = root.ToString(Formatting.Indented),

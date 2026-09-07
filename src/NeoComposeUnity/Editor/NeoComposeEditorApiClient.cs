@@ -39,7 +39,8 @@ namespace NeoCompose.Unity.Editor
             string apiBaseUrl,
             string projectId,
             string versionId,
-            string[] snapshotIds);
+            string[] snapshotIds,
+            NeoComposeProjectReadBase readBase);
         Task<NeoComposeUnityExportFileDownloadResponse> ExportProjectFileDownloadsAsync(
             string apiBaseUrl,
             string projectId,
@@ -209,11 +210,14 @@ namespace NeoCompose.Unity.Editor
             string apiBaseUrl,
             string projectId,
             string versionId,
-            string[] snapshotIds)
+            string[] snapshotIds,
+            NeoComposeProjectReadBase readBase)
         {
             RequireProjectId(projectId);
             RequireVersionId(versionId);
             if (snapshotIds == null) throw new ArgumentNullException(nameof(snapshotIds));
+            if (readBase == null) throw new ArgumentNullException(nameof(readBase));
+            readBase.Validate();
             var url = BuildUrl(
                 apiBaseUrl,
                 $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/export/snapshots");
@@ -222,7 +226,7 @@ namespace NeoCompose.Unity.Editor
                 apiBaseUrl,
                 url,
                 operation,
-                JsonConvert.SerializeObject(new { versionId, snapshotIds }));
+                JsonConvert.SerializeObject(new { versionId, snapshotIds, readBase }));
             return Deserialize<NeoComposeUnityExportSnapshotResponse>(json, "project export snapshots");
         }
 
@@ -275,6 +279,8 @@ namespace NeoCompose.Unity.Editor
             }
 
             if (response.IsSuccessStatus) return response.Text;
+            if (response.StatusCode == 409 && TryReadServerError(response.Text) == "project-read-restart")
+                throw new NeoComposeProjectReadRestartException();
 
             // 401: authentication failure. The session is gone or invalid; the
             // caller routes to re-sign-in. The device flow has no refresh token,

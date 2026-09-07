@@ -421,6 +421,7 @@ namespace NeoCompose.Tests
             var api = new FakeApiClient();
             api.deltaResponse = new NeoComposeUnityExportDeltaManifestResponse
             {
+                readBase = PublishedReadBase(),
                 cursor = new NeoComposeUnityExportCursor
                 {
                     createdAt = 200,
@@ -526,7 +527,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(result.success, result.message);
             Assert.AreEqual(0, api.fullExportCalls);
             Assert.AreEqual(1, api.deltaExportCalls);
-            Assert.AreEqual(1, api.snapshotExportCalls);
+            Assert.AreEqual(2, api.snapshotExportCalls);
             Assert.AreEqual(
                 "// existing generated",
                 assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
@@ -540,6 +541,121 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(
                 new[] { "snapshot-value-2" },
                 cache.state?.snapshots.Select(snapshot => snapshot.id).ToArray());
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Synchronizer_RestartsValueAssemblyBeforePublishingFilesOrCursor(bool cached)
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            var assets = new FakeAssetService();
+            const string projectPath = "Assets/Resources/Neo/project.json";
+            const string originalJson = "{\"variantFolders\":{},\"metadata\":{\"schemaVersion\":31,\"projectId\":\"project-1\",\"versionId\":\"version-1\"},\"project\":{\"id\":\"project-1\"},\"values\":{\"v\":{\"id\":\"v\",\"value\":1}},\"files\":{},\"textureTemplates\":{},\"audioClipTemplates\":{}}";
+            assets.files[projectPath] = originalJson;
+            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing";
+            NeoComposeUnityExportCachedSnapshot Snapshot(int value) => new()
+            {
+                id = "snapshot-" + value, recordKind = "value", recordId = "v", contentHash = "hash-" + value,
+                data = JObject.FromObject(new { id = "v", value }),
+            };
+            var initial = new NeoComposeUnityExportSyncState
+            {
+                cursor = new NeoComposeUnityExportCursor { createdAt = 1 },
+                snapshots = cached ? new List<NeoComposeUnityExportCachedSnapshot> { Snapshot(2) } : new(),
+            };
+            var cache = new FakeExportCache { state = initial };
+            api.deltaResponseForCall = call => new NeoComposeUnityExportDeltaManifestResponse
+            {
+                readBase = PublishedReadBase("tx-" + (call + 1)),
+                cursor = new NeoComposeUnityExportCursor { createdAt = call + 1 },
+                records = new List<NeoComposeUnityExportHeadDescriptor>
+                {
+                    new() { recordKind = "value", recordId = "v", snapshotId = "snapshot-" + (call + 1) },
+                },
+            };
+            api.snapshotResponseForCall = (_, ids, readBase) =>
+            {
+                Assert.AreSame(initial, cache.state);
+                Assert.AreEqual(0, cache.saves);
+                Assert.AreEqual(originalJson, assets.files[projectPath]);
+                if (ids.Length == 0 && readBase.logicalRevisionId == "tx-2")
+                    throw new NeoComposeProjectReadRestartException();
+                return new NeoComposeUnityExportSnapshotResponse
+                {
+                    readBase = readBase,
+                    snapshots = ids.Length == 0 ? new() : new() { Snapshot(readBase.logicalRevisionId == "tx-2" ? 2 : 3) },
+                };
+            };
+            var result = await new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets, cache)
+                .SynchronizeAsync(config);
+            Assert.IsTrue(result.success, result.message);
+            Assert.AreEqual(2, api.deltaExportCalls);
+            Assert.AreEqual(0, api.fullExportCalls);
+            Assert.AreEqual(cached ? 3 : 4, api.snapshotExportCalls);
+            Assert.IsTrue(api.requestedCursors.All(cursor => cursor.createdAt == 1));
+            Assert.AreEqual(1, initial.cursor.createdAt);
+            Assert.AreEqual(3, cache.state!.cursor.createdAt);
+            Assert.AreEqual("tx-3", result.exportResponse!.readBase!.logicalRevisionId);
+            Assert.AreEqual(3, JObject.Parse(assets.files[projectPath])["values"]?["v"]?["value"]?.Value<int>());
+        }
+
+        [TestCase(1)]
+        [TestCase(3)]
+        public async Task Synchronizer_EmptyDeltaValidatesBeforeAdvancingItsCursor(int failedAttempts)
+        {
+            var api = new FakeApiClient();
+            var assets = new FakeAssetService();
+            assets.files["Assets/Resources/Neo/project.json"] = "{}";
+            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing";
+            var initial = new NeoComposeUnityExportSyncState { cursor = new NeoComposeUnityExportCursor { createdAt = 1 } };
+            var cache = new FakeExportCache { state = initial };
+            api.deltaResponse.cursor = new NeoComposeUnityExportCursor { createdAt = 2 };
+            api.snapshotResponseForCall = (call, ids, readBase) =>
+            {
+                Assert.IsEmpty(ids);
+                Assert.AreSame(initial, cache.state);
+                Assert.AreEqual(0, cache.saves);
+                if (call <= failedAttempts) throw new NeoComposeProjectReadRestartException();
+                return new NeoComposeUnityExportSnapshotResponse { readBase = readBase };
+            };
+            if (failedAttempts == 3)
+                UnityEngine.TestTools.LogAssert.Expect(LogType.Error,
+                    new System.Text.RegularExpressions.Regex("NeoComposeProjectReadRestartException"));
+            var result = await new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets, cache)
+                .SynchronizeAsync(MakeConfig());
+            Assert.AreEqual(failedAttempts < 3, result.success, result.message);
+            Assert.AreEqual(failedAttempts < 3 ? 2 : 3, api.deltaExportCalls);
+            Assert.AreEqual(failedAttempts < 3 ? 1 : 0, cache.saves);
+            Assert.AreEqual(1, initial.cursor.createdAt);
+            Assert.IsTrue(api.requestedCursors.All(cursor => cursor.createdAt == 1));
+            Assert.IsEmpty(assets.createdDirectories);
+            Assert.IsFalse(assets.savedConfig);
+        }
+
+        [Test]
+        public async Task Synchronizer_RestartsFullExportWhenFinalPairChanges()
+        {
+            var api = new FakeApiClient();
+            var assets = new FakeAssetService();
+            api.snapshotResponseForCall = (call, ids, readBase) =>
+            {
+                Assert.IsEmpty(ids);
+                Assert.IsEmpty(assets.files);
+                if (call == 1)
+                {
+                    api.exportResponse.readBase = PublishedReadBase("new-revision");
+                    api.exportResponse.projectJson = "{\"project\":{\"name\":\"new\"}}";
+                    throw new NeoComposeProjectReadRestartException();
+                }
+                return new NeoComposeUnityExportSnapshotResponse { readBase = readBase };
+            };
+            var result = await new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets, new FakeExportCache())
+                .SynchronizeAsync(MakeConfig());
+            Assert.IsTrue(result.success, result.message);
+            Assert.AreEqual(2, api.fullExportCalls);
+            Assert.AreEqual("new-revision", result.exportResponse!.readBase!.logicalRevisionId);
+            StringAssert.Contains("new", assets.files["Assets/Resources/Neo/project.json"]);
         }
 
         [TestCase(null)]
@@ -667,6 +783,7 @@ namespace NeoCompose.Tests
             {
                 deltaResponse = new NeoComposeUnityExportDeltaManifestResponse
                 {
+                    readBase = PublishedReadBase(),
                     cursor = new NeoComposeUnityExportCursor
                     {
                         createdAt = 200,
@@ -712,7 +829,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(result.success, result.message);
             Assert.AreEqual(1, api.deltaExportCalls);
             Assert.AreEqual(1, api.fullExportCalls);
-            Assert.AreEqual(0, api.snapshotExportCalls);
+            Assert.AreEqual(1, api.snapshotExportCalls);
         }
 
         [Test]
@@ -1801,10 +1918,17 @@ namespace NeoCompose.Tests
             AssetDatabase.CreateFolder("Assets", "NeoComposeEditorTestsTemp");
         }
 
+        private static NeoComposeProjectReadBase PublishedReadBase(string revision = "tx-2") => new()
+        {
+            headGenerationId = "generation-1",
+            logicalRevisionId = revision,
+        };
+
         private sealed class FakeApiClient : INeoComposeEditorApiClient
         {
             public readonly NeoComposeUnityExportResponse exportResponse = new()
             {
+                readBase = PublishedReadBase(),
                 projectId = "project-1",
                 projectName = "Project One",
                 projectJson = "{}",
@@ -1819,12 +1943,17 @@ namespace NeoCompose.Tests
             public string? lastExportVersionId;
             public NeoComposeUnityExportDeltaManifestResponse deltaResponse = new()
             {
+                readBase = PublishedReadBase(),
                 cursor = new NeoComposeUnityExportCursor(),
             };
             public NeoComposeUnityExportSnapshotResponse snapshotResponse = new();
             public int fullExportCalls;
             public int deltaExportCalls;
             public int snapshotExportCalls;
+            public readonly List<NeoComposeUnityExportCursor> requestedCursors = new();
+            public readonly List<string[]> requestedSnapshotIds = new();
+            public System.Func<int, NeoComposeUnityExportDeltaManifestResponse>? deltaResponseForCall;
+            public System.Func<int, string[], NeoComposeProjectReadBase, NeoComposeUnityExportSnapshotResponse>? snapshotResponseForCall;
             public NeoComposeUnityExportFileDownloadResponse fileDownloadResponse = new();
             public readonly Dictionary<string, byte[]> downloads = new();
             public string[] lastFileDownloadIds = System.Array.Empty<string>();
@@ -1888,17 +2017,21 @@ namespace NeoCompose.Tests
             {
                 deltaExportCalls++;
                 lastExportVersionId = versionId;
-                return Task.FromResult(deltaResponse);
+                requestedCursors.Add(cursor);
+                return Task.FromResult(deltaResponseForCall?.Invoke(deltaExportCalls) ?? deltaResponse);
             }
 
             public Task<NeoComposeUnityExportSnapshotResponse> ExportProjectSnapshotsAsync(
                 string apiBaseUrl,
                 string projectId,
                 string versionId,
-                string[] snapshotIds)
+                string[] snapshotIds,
+                NeoComposeProjectReadBase readBase)
             {
                 snapshotExportCalls++;
-                return Task.FromResult(snapshotResponse);
+                requestedSnapshotIds.Add(snapshotIds);
+                snapshotResponse.readBase = readBase;
+                return Task.FromResult(snapshotResponseForCall?.Invoke(snapshotExportCalls, snapshotIds, readBase) ?? snapshotResponse);
             }
 
             public Task<NeoComposeUnityExportFileDownloadResponse> ExportProjectFileDownloadsAsync(
@@ -2101,6 +2234,7 @@ namespace NeoCompose.Tests
         private sealed class FakeExportCache : INeoComposeEditorExportCache
         {
             public NeoComposeUnityExportSyncState? state;
+            public int saves;
 
             public NeoComposeUnityExportSyncState? Load(string projectId, string versionId)
             {
@@ -2109,6 +2243,7 @@ namespace NeoCompose.Tests
 
             public void Save(string projectId, string versionId, NeoComposeUnityExportSyncState next)
             {
+                saves++;
                 state = next;
             }
 
