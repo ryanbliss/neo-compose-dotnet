@@ -28,7 +28,7 @@ namespace NeoCompose.Runtime
             {
                 if (member.Format == NeoStringFormatKind.Plain) return null;
                 if (value?.neoLocalizationMode == NeoStringLocalizationMode.Literal) return null;
-                return value?.value;
+                return string.IsNullOrEmpty(value?.value) ? null : value.value;
             }
         }
 

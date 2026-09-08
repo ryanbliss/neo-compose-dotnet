@@ -388,10 +388,10 @@ namespace NeoCompose.Runtime
                     previousChildren.Remove(entry.schemaKey);
                     continue;
                 }
-                // Root wrappers exist before sparse constructors replay. Their
-                // computed children are bound when replay refreshes these trees.
+                // Root and inherited child wrappers exist before constructors
+                // replay. Computed children bind when replay refreshes the tree.
                 if (childValueId is null
-                    && client.IsAwaitingVirtualInstanceReplay(value)
+                    && client.IsAwaitingInstanceInitializers
                     && MemberValueFactory.InitializerOf(childMember) is not null)
                 {
                     continue;

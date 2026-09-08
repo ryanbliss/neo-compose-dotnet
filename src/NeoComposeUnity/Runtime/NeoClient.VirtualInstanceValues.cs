@@ -97,9 +97,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         private bool virtualInstanceReplayReady;
 
-        internal bool IsAwaitingVirtualInstanceReplay(ObjectMemberValue? row) =>
-            (!virtualInstanceReplayReady || isReplayingVirtualInstance)
-            && row is not null && IsVirtualInstanceRoot(row);
+        internal bool IsAwaitingInstanceInitializers =>
+            !virtualInstanceReplayReady || isReplayingVirtualInstance;
 
         /// <summary>
         /// Every row id one instance root's expansion touched — the virtual
@@ -646,7 +645,55 @@ namespace NeoCompose.Runtime
             IEnumerable<MemberValue> rows)
         {
             var parentByValueId = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (MemberValue row in rows)
+            var rowsById = new Dictionary<string, MemberValue>(StringComparer.Ordinal);
+            foreach (MemberValue row in rows) rowsById[row.id] = row;
+            var rowsByContainer = new Dictionary<string, List<MemberValue>>(StringComparer.Ordinal);
+            foreach (MemberValue row in rowsById.Values)
+            {
+                if (row.containerId is null) continue;
+                if (!rowsByContainer.TryGetValue(row.containerId, out var children))
+                    rowsByContainer[row.containerId] = children = new List<MemberValue>();
+                children.Add(row);
+            }
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            void Visit(MemberValue row, Member? member)
+            {
+                if (!visited.Add($"{row.id}:{member?.RuntimeDeclarationIdentity ?? "<none>"}")) return;
+                foreach (var child in EnumerateOwnedChildLinks(row, member))
+                {
+                    parentByValueId.TryAdd(child.valueId, row.id);
+                    if (rowsById.TryGetValue(child.valueId, out MemberValue? childRow))
+                        Visit(childRow, child.member);
+                }
+                if (member is ListMember list && IsUnorderedList(list)
+                    && TryResolveCollectionEntryMember(list) is Member entryMember
+                    && rowsByContainer.TryGetValue(row.id, out var entries))
+                    foreach (MemberValue entry in entries)
+                    {
+                        parentByValueId.TryAdd(entry.id, row.id);
+                        Visit(entry, entryMember);
+                    }
+            }
+            foreach (var binding in saveData.staticBindings.Concat(sessionData.staticBindings))
+                if (binding.Value is string rootId && rowsById.TryGetValue(rootId, out var root)
+                    && data.members.TryGetValue(binding.Key, out Member? member)) Visit(root, member);
+            foreach (var variant in VariantGraphs)
+                if (rowsById.TryGetValue(variant.Key, out var root))
+                    Visit(root, NeoVariantSupport.GraphMember(this, variant.Value));
+            foreach (Member member in data.members.Values)
+            {
+                if (member.valueId is string rootId && rowsById.TryGetValue(rootId, out MemberValue? root))
+                    Visit(root, member);
+                if (member is not (ClassMember or ListMember or DictionaryMember)
+                    || MemberValueFactory.InitializerOf(member) is not null) continue;
+                var defaultRow = CreateDeclarationDefaultValue(member,
+                    $"__neo_parent_projection:{member.RuntimeDeclarationIdentity}");
+                if (defaultRow is null) continue;
+                foreach (var child in EnumerateOwnedChildLinks(defaultRow, member))
+                    if (rowsById.TryGetValue(child.valueId, out MemberValue? childRow))
+                        Visit(childRow, child.member);
+            }
+            foreach (MemberValue row in rowsById.Values)
             {
                 if (row is ObjectMemberValue objectRow && objectRow.value is not null)
                 {
@@ -1256,6 +1303,7 @@ namespace NeoCompose.Runtime
                             foreach (var link in
                                 EnumerateConstructorSettledAggregateLinks(
                                     obj,
+                                    node.member,
                                     includeMaterializedChildren: true))
                             {
                                 if (!node.classChildren.TryGetValue(

@@ -2163,7 +2163,7 @@ namespace NeoCompose.Runtime
                     RecordClass(valueId, classId!);
                 }
 
-                foreach (var child in EnumerateOwnedChildLinks(row, governingMember, rows))
+                foreach (var child in EnumerateOwnedChildLinks(row, governingMember))
                 {
                     Visit(child.valueId, child.member);
                 }
@@ -2220,7 +2220,7 @@ namespace NeoCompose.Runtime
                     member,
                     $"__neo_readonly_default_projection:{member.RuntimeDeclarationIdentity}");
                 if (declarationDefault is null) continue;
-                foreach (var child in EnumerateOwnedChildLinks(declarationDefault, member, rows))
+                foreach (var child in EnumerateOwnedChildLinks(declarationDefault, member))
                 {
                     Visit(child.valueId, child.member);
                 }
@@ -3020,7 +3020,7 @@ namespace NeoCompose.Runtime
                             && obj.constructorArgs is not null)
                         {
                             foreach (var link in
-                                EnumerateConstructorSettledAggregateLinks(sourceObject))
+                                EnumerateConstructorSettledAggregateLinks(sourceObject, sourceMember))
                             {
                                 NeoValueOwnership childOwnership =
                                     DeclaredOwnership(link.member) ?? sourceOwnership;
@@ -3194,7 +3194,7 @@ namespace NeoCompose.Runtime
                 // We still resolve the schema for an actual payload match below,
                 // which is what distinguishes owned Class/List/Dictionary edges
                 // from lookup/reference edges.
-                if (!DirectlyReferencesValueId(parent, childValueId)) continue;
+                if (!MightReferenceChildValueId(parent, childValueId)) continue;
                 Member? parentMember = TryInferMemberForValueId(
                     candidateId,
                     out Member? inferredParent)
@@ -3290,10 +3290,11 @@ namespace NeoCompose.Runtime
             {
                 return true;
             }
-            return DirectlyReferencesValueId(parent!, childValueId);
+            TryInferMemberForValueId(parentValueId, out Member? parentMember);
+            return EnumerateOwnedChildLinks(parent!, parentMember).Any(link => link.valueId == childValueId);
         }
 
-        private bool DirectlyReferencesValueId(
+        private static bool MightReferenceChildValueId(
             MemberValue parent,
             string childValueId)
         {
@@ -3301,11 +3302,8 @@ namespace NeoCompose.Runtime
             {
                 case ObjectMemberValue obj when obj.value is not null:
                     if (obj.value.ContainsValue(childValueId)) return true;
-                    foreach (var link in EnumerateConstructorSettledAggregateLinks(obj))
-                    {
-                        if (link.valueId == childValueId) return true;
-                    }
-                    return false;
+                    return obj.constructorArgs?.Values.Any(token =>
+                        token?.Type == JTokenType.String && token.Value<string>() == childValueId) == true;
                 case ArrayMemberValue arr when arr.value is not null:
                     return System.Array.IndexOf(arr.value, childValueId) >= 0;
                 default:
@@ -3491,7 +3489,7 @@ namespace NeoCompose.Runtime
                         && obj.constructorArgs is not null)
                     {
                         foreach (var link in
-                            EnumerateConstructorSettledAggregateLinks(sourceObject))
+                            EnumerateConstructorSettledAggregateLinks(sourceObject, sourceMember))
                         {
                             if (!TryGetValue(link.valueId, out MemberValue? _)) continue;
                             string clonedChildId = CloneValueGraphToOwnership(
@@ -3531,8 +3529,7 @@ namespace NeoCompose.Runtime
 
         private IEnumerable<(string valueId, Member? member)> EnumerateOwnedChildLinks(
             MemberValue row,
-            Member? sourceMember,
-            IReadOnlyDictionary<string, MemberValue>? rows = null)
+            Member? sourceMember)
         {
             switch (row)
             {
@@ -3545,7 +3542,7 @@ namespace NeoCompose.Runtime
                             yield return (pair.Value, childMember);
                         }
                     }
-                    foreach (var link in EnumerateConstructorSettledAggregateLinks(obj, rows: rows))
+                    foreach (var link in EnumerateConstructorSettledAggregateLinks(obj, sourceMember))
                     {
                         yield return (link.valueId, link.member);
                     }
@@ -3590,7 +3587,24 @@ namespace NeoCompose.Runtime
             {
                 return null;
             }
-            return childMember;
+            return ResolveOwnedMemberType(row, sourceMember, classId!, childMember);
+        }
+
+        private Member ResolveOwnedMemberType(
+            MemberValue row, Member? sourceMember, string classId, Member member)
+        {
+            if (member is not GenericMember
+                && (member is not ClassMember constructed || constructed.classArguments?.Values.Any(argument => argument.IsForward) != true))
+                return member;
+            var arguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
+                row.genericBindings, (sourceMember as ClassMember)?.classArguments);
+            var environment = NeoGenericResolution.ResolveInstanceEnv(this, classId, arguments);
+            // Metadata/template scans can precede a closed owning placement.
+            // Its later contextual walk supplies the binding and classifies the edge.
+            if (member is GenericMember generic
+                && (!environment.TryGetValue(generic.genericParamId, out var binding) || !binding.IsBound))
+                return member;
+            return NeoGenericResolution.SubstituteMember(this, member, environment);
         }
 
         private Member? TryResolveCollectionEntryMember(Member? collectionMember)
@@ -3624,23 +3638,6 @@ namespace NeoCompose.Runtime
                 }
             }
             return false;
-        }
-
-        private bool IsAggregateStoredMember(
-            Member member,
-            string childValueId,
-            IReadOnlyDictionary<string, MemberValue>? rows)
-        {
-            if (member is ClassMember or ListMember or DictionaryMember)
-            {
-                return true;
-            }
-            if (member is not GenericMember) return false;
-            MemberValue? child;
-            bool found = rows is null
-                ? TryGetValue(childValueId, out child)
-                : rows.TryGetValue(childValueId, out child);
-            return found && child is ObjectMemberValue or ArrayMemberValue;
         }
 
         private bool TryResolveRecordedConstructorSettlement(
@@ -3730,8 +3727,8 @@ namespace NeoCompose.Runtime
             string valueId,
             Member member)> EnumerateConstructorSettledAggregateLinks(
                 ObjectMemberValue parent,
-                bool includeMaterializedChildren = false,
-                IReadOnlyDictionary<string, MemberValue>? rows = null)
+                Member? sourceMember = null,
+                bool includeMaterializedChildren = false)
         {
             if (parent.constructorArgs is null
                 || parent.instanceConstructorId is not string constructorId
@@ -3767,9 +3764,10 @@ namespace NeoCompose.Runtime
                 {
                     continue;
                 }
+                member = ResolveOwnedMemberType(parent, sourceMember, parent.classId!, member);
                 string? childValueId = token.Value<string>();
                 if (string.IsNullOrWhiteSpace(childValueId)
-                    || !IsAggregateStoredMember(member, childValueId!, rows))
+                    || member is not (ClassMember or ListMember or DictionaryMember))
                 {
                     continue;
                 }
@@ -3784,6 +3782,7 @@ namespace NeoCompose.Runtime
         private bool TryResolveConstructorSettledAggregateMember(
             ObjectMemberValue parent,
             string childValueId,
+            Member? sourceMember,
             [NotNullWhen(true)] out Member? member)
         {
             member = null;
@@ -3796,7 +3795,7 @@ namespace NeoCompose.Runtime
             {
                 return false;
             }
-            foreach (var link in EnumerateConstructorSettledAggregateLinks(parent))
+            foreach (var link in EnumerateConstructorSettledAggregateLinks(parent, sourceMember))
             {
                 if (link.valueId != childValueId) continue;
                 member = link.member;
@@ -3888,13 +3887,17 @@ namespace NeoCompose.Runtime
             foreach (var parent in EnumerateAllValueRows())
             {
                 if (parent.Value is ObjectMemberValue constructedParent
-                    && TryResolveConstructorSettledAggregateMember(
-                        constructedParent,
-                        valueId,
-                        out Member? constructedMember))
+                    && constructedParent.constructorArgs?.Values.Any(token =>
+                        token?.Type == JTokenType.String && token.Value<string>() == valueId) == true)
                 {
-                    member = constructedMember;
-                    return true;
+                    TryInferMemberForValueId(parent.Key,
+                        new HashSet<string>(visitingValueIds), out Member? placement);
+                    if (TryResolveConstructorSettledAggregateMember(
+                        constructedParent, valueId, placement, out Member? constructedMember))
+                    {
+                        member = constructedMember;
+                        return true;
+                    }
                 }
                 if (parent.Value is not ObjectMemberValue objectValue
                     || objectValue.value == null)

@@ -102,10 +102,16 @@ namespace NeoCompose.Tests
                 payload.Get<NeoMemberStringWritable>("Name").value!.value);
         }
 
-        [Test]
-        public void ReadOnlyValidationResolvesGenericConstructorChildrenBeforeRuntimeStoresExist()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ReadOnlyValidationResolvesGenericConstructorChildrenBeforeRuntimeStoresExist(bool placementOnly)
         {
             ProjectData data = BuildGenericConstructorProjectData();
+            if (placementOnly)
+            {
+                UsePlacementGenericBinding(data);
+                data.values["constructor-payload"].classId = null;
+            }
             ConstructorRecord constructor = data.constructors["thing-ctor"];
             ((GenericMember)data.members["thing-payload"]).defaultValue = new NullMemberValueBase
             {
@@ -130,6 +136,97 @@ namespace NeoCompose.Tests
                 .Get<NeoMemberClassWritable>("Thing")
                 .Get<NeoMemberClassWritable>("Payload")
                 .Get<NeoMemberStringWritable>("Name").value!.value);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void GenericLookupInitializerKeepsTheSelectionWrapperAndCatalogOwnership(bool placementOnly)
+        {
+            ProjectData data = BuildGenericConstructorProjectData();
+            if (placementOnly) UsePlacementGenericBinding(data);
+            data.classes["payload-class"].allowedStorage = NeoMemberStorage.Immutable;
+            data.members["catalog-entry"] = new ClassMember
+            {
+                id = "catalog-entry", projectId = "p75-project", name = "CatalogEntry",
+                kind = MemberKind.Class, classId = "payload-class",
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Immutable,
+            };
+            data.members["catalog"] = new ListMember
+            {
+                id = "catalog", projectId = "p75-project", name = "Catalog",
+                kind = MemberKind.List, entryMemberId = "catalog-entry",
+                ListKind = NeoListKind.Ordered, Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Immutable, valueId = "catalog-values",
+            };
+            data.values["catalog-values"] = new ArrayMemberValue
+            {
+                id = "catalog-values", value = new[] { "constructor-payload" },
+            };
+            data.classes["assets-root-class"].schema["Catalog"] = "catalog";
+            ((ObjectMemberValue)data.values["value-assets"]).value!["Catalog"] = "catalog-values";
+            data.members["payload-binding"] = new LookupMember
+            {
+                id = "payload-binding", projectId = "p75-project", name = "PayloadBinding",
+                kind = MemberKind.Lookup, collectionMemberId = "catalog",
+                collectionValueId = "catalog-values", Selection = NeoMemberSelectionKind.Single,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            ConstructorRecord constructor = data.constructors["thing-ctor"];
+            var argument = new FunctionArgumentTypeInfo
+            {
+                name = "InitialItem", type = MemberKind.Class,
+                classId = "payload-class", required = true,
+            };
+            constructor.argumentTypes = new[] { argument };
+            constructor.action!.parameters[2].typeInfo = argument;
+            ((GenericMember)data.members["thing-payload"]).defaultValue = new NullMemberValueBase
+            {
+                init = ReturnVariableInitializer("InitialItem", argument,
+                    constructor.action.parameters, "__arg_0__"),
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var root = (ObjectMemberValue)data.values["thing-instance"];
+            Assert.IsFalse(root.value!.ContainsKey("Payload"));
+            MemberValue? resolved = client.ResolveClassChildRow(root, "Payload");
+            Assert.IsInstanceOf<ArrayMemberValue>(resolved);
+            CollectionAssert.AreEqual(new[] { "constructor-payload" }, ((ArrayMemberValue)resolved!).value);
+            Assert.AreNotEqual("constructor-payload", resolved.id);
+            CollectionAssert.AreEqual(new[] { "constructor-payload" }, client.save
+                .Get<NeoMemberClassWritable>("Thing").Get<NeoMemberLookup>("Payload").Selected());
+            Assert.IsTrue(client.TryGetValueOwnership("constructor-payload", out NeoValueOwnership ownership));
+            Assert.AreEqual(NeoValueOwnership.Asset, ownership);
+            Assert.IsFalse(client.TryFindOwnedParent(NeoValueOwnership.Save, "constructor-payload", out _));
+        }
+
+        [Test]
+        public void OmittedNestedClassWaitsForItsComputedDefaultDuringRootReplay()
+        {
+            ProjectData data = BuildNestedProjectData();
+            var type = new PrimitiveTypeInfo { type = MemberKind.Int, required = true };
+            ((IntMember)data.members["deep-count"]).defaultValue = new NumberMemberValueBase
+            {
+                init = new InitializerBody
+                {
+                    code = "5",
+                    compiled = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = Array.Empty<Variable>(), typeInfo = type,
+                        instructions = new Instruction[] { new ReturnInstruction
+                        {
+                            type = InstructionKind.Return,
+                            pointer = new ValuePointer { type = PointerKind.Value,
+                                value = new Value { typeInfo = type, value = JToken.FromObject(5) } },
+                        } },
+                    },
+                },
+            };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            Assert.AreEqual(5, client.save.Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberClassWritable>("Nested").Get<NeoMemberClassWritable>("Deep")
+                .Get<NeoMemberIntWritable>("Count").value!.value);
         }
 
         [TestCase(42d, false)]
@@ -1452,6 +1549,17 @@ namespace NeoCompose.Tests
             data.values[other.id] = other;
             ((ObjectMemberValue)data.values["value-save"]).value!["Other"] = other.id;
             return data;
+        }
+
+        private static void UsePlacementGenericBinding(ProjectData data)
+        {
+            var root = (ObjectMemberValue)data.values["thing-instance"];
+            ((ClassMember)data.members["thing-member"]).classArguments = root.genericBindings!
+                .ToDictionary(pair => pair.Key, pair => new GenericBinding
+                {
+                    kind = NeoGenericBindingKind.Member, memberId = pair.Value,
+                });
+            root.genericBindings = null;
         }
 
         private static ProjectData BuildGenericConstructorProjectData()
