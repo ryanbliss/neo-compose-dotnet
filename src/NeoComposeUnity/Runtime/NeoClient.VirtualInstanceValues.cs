@@ -97,8 +97,39 @@ namespace NeoCompose.Runtime
         /// </summary>
         private bool virtualInstanceReplayReady;
 
-        internal bool IsAwaitingInstanceInitializers =>
-            !virtualInstanceReplayReady || isReplayingVirtualInstance;
+        private int awaitingVirtualInstanceChildDepth;
+
+        internal bool IsAwaitingVirtualInstanceInitializers(
+            ObjectMemberValue? row) =>
+            !virtualInstanceReplayReady
+            && (awaitingVirtualInstanceChildDepth > 0
+                || (row is not null && IsVirtualInstanceRoot(row)));
+
+        internal VirtualInstanceChildConstructionScope EnterVirtualInstanceChildConstruction(
+            ObjectMemberValue? row)
+        {
+            bool entered = IsAwaitingVirtualInstanceInitializers(row);
+            if (entered) awaitingVirtualInstanceChildDepth++;
+            return new VirtualInstanceChildConstructionScope(this, entered);
+        }
+
+        internal readonly struct VirtualInstanceChildConstructionScope : IDisposable
+        {
+            private readonly NeoClient? client;
+
+            internal VirtualInstanceChildConstructionScope(
+                NeoClient client,
+                bool entered)
+            {
+                this.client = entered ? client : null;
+            }
+
+            public void Dispose()
+            {
+                if (client is null) return;
+                client.awaitingVirtualInstanceChildDepth--;
+            }
+        }
 
         /// <summary>
         /// Every row id one instance root's expansion touched — the virtual
@@ -648,8 +679,19 @@ namespace NeoCompose.Runtime
         private Dictionary<string, string> BuildParentByValueId(
             IEnumerable<MemberValue> rows)
         {
+            MemberValue[] snapshot = rows.ToArray();
             var parentByValueId = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (MemberValue row in rows)
+            var arrayById = new Dictionary<string, ArrayMemberValue>(StringComparer.Ordinal);
+            foreach (ArrayMemberValue array in snapshot.OfType<ArrayMemberValue>())
+                arrayById.TryAdd(array.id, array);
+            var lookupByConflictingArrayId =
+                new Dictionary<string, bool?>(StringComparer.Ordinal);
+            // Object and explicit container edges identify the owning graph
+            // without schema inference. Establish those first so an array only
+            // needs its member type when one of its entries already has a
+            // stronger parent. That collision is the only place List ownership
+            // and Lookup reference semantics differ for replay ordering.
+            foreach (MemberValue row in snapshot)
             {
                 if (row is ObjectMemberValue objectRow)
                 {
@@ -668,17 +710,73 @@ namespace NeoCompose.Runtime
                         }
                     }
                 }
-                else if (row is ArrayMemberValue arrayRow && arrayRow.value is not null)
-                {
-                    if (TryInferMemberForValueId(row.id, out Member? arrayMember) && arrayMember is LookupMember) continue;
-                    foreach (string childId in arrayRow.value)
-                        if (childId is not null)
-                            parentByValueId.TryAdd(childId, row.id);
-                }
                 if (row.containerId is not null)
                     parentByValueId.TryAdd(row.id, row.containerId);
             }
+            foreach (ArrayMemberValue arrayRow in snapshot.OfType<ArrayMemberValue>())
+            {
+                if (arrayRow.value is null) continue;
+                foreach (string childId in arrayRow.value)
+                {
+                    if (childId is null
+                        || lookupByConflictingArrayId.TryGetValue(
+                            arrayRow.id,
+                            out bool? knownCurrent)
+                        && knownCurrent == true)
+                    {
+                        continue;
+                    }
+                    if (parentByValueId.TryAdd(childId, arrayRow.id)) continue;
+                    if (!parentByValueId.TryGetValue(
+                            childId,
+                            out string? priorParentId)
+                        || priorParentId == arrayRow.id)
+                    {
+                        continue;
+                    }
+                    bool? currentLookup = IsLookup(arrayRow);
+                    bool? priorLookup = arrayById.TryGetValue(
+                            priorParentId,
+                            out ArrayMemberValue? priorArray)
+                        ? IsLookup(priorArray)
+                        : false;
+                    if (priorLookup == true) RemoveTentativeEdges(priorArray!);
+                    if (currentLookup == true) RemoveTentativeEdges(arrayRow);
+                    if (priorLookup == true && currentLookup == false)
+                        parentByValueId[childId] = arrayRow.id;
+                }
+            }
             return parentByValueId;
+
+            bool? IsLookup(ArrayMemberValue array)
+            {
+                if (lookupByConflictingArrayId.TryGetValue(
+                        array.id,
+                        out bool? cached))
+                    return cached;
+                bool? result = TryInferMemberForValueId(
+                        array.id,
+                        out Member? member)
+                    ? member is LookupMember
+                    : null;
+                lookupByConflictingArrayId.Add(array.id, result);
+                return result;
+            }
+
+            void RemoveTentativeEdges(ArrayMemberValue array)
+            {
+                foreach (string valueId in array.value ?? Array.Empty<string>())
+                {
+                    if (valueId is not null
+                        && parentByValueId.TryGetValue(
+                            valueId,
+                            out string? parentId)
+                        && parentId == array.id)
+                    {
+                        parentByValueId.Remove(valueId);
+                    }
+                }
+            }
         }
 
         private static int AuthoredContainmentDepth(

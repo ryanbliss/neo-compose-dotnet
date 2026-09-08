@@ -388,15 +388,20 @@ namespace NeoCompose.Runtime
                     previousChildren.Remove(entry.schemaKey);
                     continue;
                 }
-                // Root and inherited child wrappers exist before constructors
-                // replay. Computed children bind when replay refreshes the tree.
+                // A sparse root's wrapper tree exists before its constructor
+                // replay. Computed children bind when replay refreshes that
+                // tree, including through intermediate Class children.
                 if (childValueId is null
-                    && client.IsAwaitingInstanceInitializers
+                    && client.IsAwaitingVirtualInstanceInitializers(value)
                     && MemberValueFactory.InitializerOf(childMember) is not null)
                 {
                     continue;
                 }
-                var child = CreateChild(client, childMember, childValueId);
+                NeoMember child;
+                using (client.EnterVirtualInstanceChildConstruction(value))
+                {
+                    child = CreateChild(client, childMember, childValueId);
+                }
                 if (childMember.Mutability == NeoMemberMutabilityKind.ReadOnly)
                 {
                     child.RetainDeclarationReference();

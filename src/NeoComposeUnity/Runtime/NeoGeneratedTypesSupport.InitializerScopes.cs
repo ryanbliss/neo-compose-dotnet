@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using NeoCompose.Runtime.Json;
-using Newtonsoft.Json.Linq;
 using Member = NeoCompose.Runtime.Json.Member;
 
 namespace NeoCompose.Runtime
@@ -35,14 +34,15 @@ namespace NeoCompose.Runtime
                 {
                     if (!cache.baseReadsThis.TryGetValue(record, out readsThis))
                     {
-                        // Compiled IR is immutable. Inspect each constructor once,
-                        // retaining neither a per-call JSON tree nor repeated walks.
+                        // Compiled IR is immutable. Inspect each constructor once
+                        // through its typed graph, without serializing a second
+                        // JSON tree or mistaking object-shaped literal data for IR.
                         readsThis = (record.compiledBaseArguments ?? Array.Empty<FunctionWithReturnType>())
                             .Any(body => body.parameters is { Length: > 0 }
-                                && JToken.FromObject(body.instructions) is JContainer instructions
-                                && instructions.Descendants().OfType<JObject>().Any(pointer =>
-                                    (string?)pointer["type"] == "variable"
-                                    && (string?)pointer["variableId"] == body.parameters[0].id));
+                                && NeoScript.NeoScriptIrWalker.AnyPointer(
+                                    body.instructions,
+                                    pointer => pointer is VariablePointer variable
+                                        && variable.variableId == body.parameters[0].id));
                         cache.baseReadsThis.Add(record, readsThis);
                     }
                 }

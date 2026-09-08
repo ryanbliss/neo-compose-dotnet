@@ -75,6 +75,124 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void TypedIrWalkerDistinguishesLiteralPayloadsFromNestedIr()
+        {
+            var stringType = new PrimitiveTypeInfo
+            {
+                type = MemberKind.String,
+                required = true,
+            };
+            var body = new FunctionWithReturnType
+            {
+                parameters = Array.Empty<Variable>(),
+                typeInfo = stringType,
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new ListLiteralPointer
+                        {
+                            type = PointerKind.ListLiteral,
+                            typeInfo = new CollectionTypeInfo
+                            {
+                                type = MemberKind.List,
+                                required = true,
+                                entryTypeInfo = stringType,
+                            },
+                            entries = new Pointer[]
+                            {
+                                new ValuePointer
+                                {
+                                    type = PointerKind.Value,
+                                    value = new Value
+                                    {
+                                        typeInfo = stringType,
+                                        value = JObject.FromObject(new
+                                        {
+                                            type = PointerKind.Variable,
+                                            variableId = "__this__",
+                                        }),
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+
+            Assert.IsFalse(NeoScriptIrWalker.AnyPointer(
+                body.instructions,
+                pointer => pointer is VariablePointer variable
+                    && variable.variableId == "__this__"));
+
+            ((ListLiteralPointer)((ReturnInstruction)body.instructions[0]).pointer!)
+                .entries = new Pointer[]
+                {
+                    new DelegateClosurePointer
+                    {
+                        type = PointerKind.DelegateClosure,
+                        captures = Array.Empty<Pointer>(),
+                        action = ReturnFunction(new VariablePointer
+                        {
+                            type = PointerKind.Variable,
+                            variableId = "__this__",
+                        }),
+                    },
+                };
+            Assert.IsTrue(NeoScriptIrWalker.AnyPointer(
+                body.instructions,
+                pointer => pointer is VariablePointer variable
+                    && variable.variableId == "__this__"));
+        }
+
+        [Test]
+        public void TypedIrWalkerFindsVariablesInsideExecutedCollectionCallbacks()
+        {
+            FunctionWithReturnType callback = ReturnFunction(
+                new VariablePointer
+                {
+                    type = PointerKind.Variable,
+                    variableId = "__this__",
+                });
+            Instruction[] instructions =
+            {
+                new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = new FunctionPointer
+                    {
+                        type = PointerKind.Function,
+                        function = new SelectFunction
+                        {
+                            type = FunctionKind.Select,
+                            info = new FunctionCollectionSelectInfo
+                            {
+                                collectionPointer = new ListLiteralPointer
+                                {
+                                    type = PointerKind.ListLiteral,
+                                    typeInfo = new CollectionTypeInfo
+                                    {
+                                        type = MemberKind.List,
+                                        required = true,
+                                        entryTypeInfo = callback.typeInfo,
+                                    },
+                                    entries = Array.Empty<Pointer>(),
+                                },
+                                function = callback,
+                            },
+                        },
+                    },
+                },
+            };
+
+            Assert.IsTrue(NeoScriptIrWalker.AnyPointer(
+                instructions,
+                pointer => pointer is VariablePointer variable
+                    && variable.variableId == "__this__"));
+        }
+
+        [Test]
         public void InheritedInitializer_UsesItsDeclaringConstructorArguments()
         {
             ProjectData data = BuildProjectData();
