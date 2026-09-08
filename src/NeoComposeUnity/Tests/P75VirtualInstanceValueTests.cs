@@ -18,6 +18,162 @@ namespace NeoCompose.Tests
     public class P75VirtualInstanceValueTests
     {
         [Test]
+        public void SparseConstructorReplaysALaterSiblingBeforeUnwrappingItsArgument()
+        {
+            ProjectData data = BuildGenericConstructorProjectData();
+            AddSparsePayloadSibling(data);
+            ConstructorRecord constructor = data.constructors["thing-ctor"];
+            data.members["thing-payload"] = new ClassMember
+            {
+                id = "thing-payload", projectId = "p75-project", name = "Payload", kind = MemberKind.Class,
+                classId = "payload-class", Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    init = ReturnVariableInitializer("Payload", ClassType("payload-class"), constructor.action!.parameters, "__arg_0__"),
+                },
+            };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            Assert.AreEqual("default", client.save.Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberClassWritable>("Payload").Get<NeoMemberStringWritable>("Name").value!.value);
+            Assert.AreEqual("default", client.save.Get<NeoMemberClassWritable>("ZPayload")
+                .Get<NeoMemberStringWritable>("Name").value!.value);
+        }
+
+        [Test]
+        public void SparseInitializerReadsALaterSharedCatalogOverrideOfAnAbstractGetter()
+        {
+            ProjectData data = BuildProjectData();
+            var baseClass = SchemaClass("catalog-base", "CatalogBase", NeoMemberStorage.Immutable);
+            baseClass.schema["Down"] = "catalog-down-getter";
+            var concrete = SchemaClass("catalog-concrete", "CatalogConcrete", NeoMemberStorage.Immutable);
+            concrete.extendsClassId = baseClass.id;
+            concrete.schema["Down"] = "catalog-down-value";
+            data.classes[baseClass.id] = baseClass;
+            data.classes[concrete.id] = concrete;
+            data.members["catalog-down-getter"] = new NSPropertyMember
+            {
+                id = "catalog-down-getter", projectId = "p75-project", name = "Down", kind = MemberKind.NSProperty,
+                Modifier = NeoMemberModifierKind.Abstract, returnTypeInfo = IntTypeInfo(),
+            };
+            data.members["catalog-down-value"] = new IntMember
+            {
+                id = "catalog-down-value", projectId = "p75-project", name = "Down", kind = MemberKind.Int,
+                extendsMemberId = "catalog-down-getter", Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new NumberMemberValueBase { value = 42 },
+            };
+            data.members["catalog-member"] = new ClassMember
+            {
+                id = "catalog-member", projectId = "p75-project", name = "Catalog", kind = MemberKind.Class,
+                classId = baseClass.id, Requirement = NeoMemberRequirementKind.Required, Storage = NeoMemberStorage.Immutable,
+            };
+            data.classes["assets-root-class"].schema["Catalog"] = "catalog-member";
+            var catalog = ObjectValue("zz-catalog", concrete.id);
+            catalog.instanceConstructorId = null;
+            catalog.constructorArgs = new Dictionary<string, JToken?>();
+            data.values[catalog.id] = catalog;
+            ((ObjectMemberValue)data.values["value-assets"]).value!["Catalog"] = catalog.id;
+            ((IntMember)data.members["thing-count"]).defaultValue = new NumberMemberValueBase
+            {
+                init = new InitializerBody
+                {
+                    code = "root.Assets.Catalog.Down",
+                    compiled = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = new[] { ConstructorVariable("__this__", ClassType("thing-class")), ConstructorVariable("__root__", ClassType("__root__")) },
+                        typeInfo = IntTypeInfo(),
+                        instructions = new Instruction[]
+                        {
+                            new ReturnInstruction
+                            {
+                                type = InstructionKind.Return,
+                                pointer = new CallGetterPointer
+                                {
+                                    type = PointerKind.CallGetter, memberId = "catalog-down-getter",
+                                    receiver = CallReceiver.Instance(PointerKeyOf(PointerKeyOf(RootPointer(), "Assets"), "Catalog")),
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            Assert.AreEqual(42d, client.save.Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberIntWritable>("Count").value!.value);
+        }
+
+        [Test]
+        public void SparseConstructorDependencyCycleStillFailsClosed()
+        {
+            ProjectData data = BuildGenericConstructorProjectData();
+            AddSparsePayloadSibling(data);
+            var sibling = (ObjectMemberValue)data.values["zz-payload"];
+            sibling.instanceConstructorId = "payload-ctor";
+            sibling.constructorArgs = new Dictionary<string, JToken?> { ["__arg_0__"] = "thing-instance" };
+            var argument = new FunctionArgumentTypeInfo { name = "Other", type = MemberKind.Class, classId = "thing-class", required = true };
+            data.classes["payload-class"].constructorIds = new[] { "payload-ctor" };
+            data.constructors["payload-ctor"] = new ConstructorRecord
+            {
+                id = "payload-ctor", projectId = "p75-project", classId = "payload-class", argumentTypes = new[] { argument },
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[] { ConstructorVariable("__this__", ClassType("payload-class")), ConstructorVariable("__root__", ClassType("save-root-class")), ConstructorVariable("__arg_0__", argument) },
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true }, instructions = Array.Empty<Instruction>(),
+                },
+            };
+            Exception error = Assert.Throws<InvalidOperationException>(() => NeoTestSaveStack.ClientFromSchema(data))!;
+            StringAssert.Contains("Sparse constructor dependency cycle", error.ToString());
+        }
+
+        [Test]
+        public void ArgumentReadOfTheCurrentlyReplayingRootUsesItsPartialThis()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            typeof(NeoClient).GetField("isReplayingVirtualInstance", flags)!.SetValue(client, true);
+            typeof(NeoClient).GetField("replayingVirtualInstanceRootId", flags)!.SetValue(client, "thing-instance");
+            ((HashSet<string>)typeof(NeoClient).GetField("replayingVirtualRootIds", flags)!.GetValue(client)!).Add("thing-instance");
+            ((Dictionary<string, HashSet<string>>)typeof(NeoClient).GetField("virtualValueIdsByRoot", flags)!.GetValue(client)!).Remove("thing-instance");
+            Assert.DoesNotThrow(() => typeof(NeoClient).GetMethod("EnsureVirtualReplayArgumentReady", flags)!.Invoke(client, new object[] { "thing-instance" }));
+        }
+
+        [Test]
+        public void NestedSparseRootWhoseIdSortsFirstRetainsItsOwnPlacementIndex()
+        {
+            ProjectData data = BuildNestedProjectData();
+            var nested = ObjectValue("aaa-nested", "nested-class");
+            nested.instanceConstructorId = null;
+            nested.constructorArgs = new Dictionary<string, JToken?>();
+            data.values[nested.id] = nested;
+            ((ObjectMemberValue)data.values["thing-instance"]).value!["Nested"] = nested.id;
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var count = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberClassWritable>("Nested")
+                .Get<NeoMemberClassWritable>("Deep").Get<NeoMemberIntWritable>("Count");
+            Assert.AreEqual(5d, count.value!.value);
+            var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            var placements = (System.Collections.IDictionary)typeof(NeoClient).GetField("virtualClassPlacementByChildId", flags)!.GetValue(client)!;
+            object placement = placements[count.value.id]!;
+            Assert.AreEqual(nested.id, placement.GetType().GetField("rootId", flags | System.Reflection.BindingFlags.Public)!.GetValue(placement));
+        }
+
+        private static void AddSparsePayloadSibling(ProjectData data)
+        {
+            data.classes["save-root-class"].schema["ZPayload"] = "sibling-payload";
+            data.members["sibling-payload"] = new ClassMember
+            {
+                id = "sibling-payload", projectId = "p75-project", name = "ZPayload", kind = MemberKind.Class,
+                classId = "payload-class", Requirement = NeoMemberRequirementKind.Required, Storage = NeoMemberStorage.Save,
+            };
+            var sibling = ObjectValue("zz-payload", "payload-class");
+            sibling.instanceConstructorId = null;
+            sibling.constructorArgs = new Dictionary<string, JToken?>();
+            data.values[sibling.id] = sibling;
+            ((ObjectMemberValue)data.values["value-save"]).value!["ZPayload"] = sibling.id;
+            ((ObjectMemberValue)data.values["thing-instance"]).constructorArgs!["__arg_0__"] = sibling.id;
+        }
+
+        [Test]
         public void SparseInstanceTracksDefaultAndWritesAtStableVirtualId()
         {
             using NeoClient first = NeoTestSaveStack.ClientFromSchema(BuildProjectData());

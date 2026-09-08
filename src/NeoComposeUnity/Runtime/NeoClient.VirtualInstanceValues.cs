@@ -218,7 +218,11 @@ namespace NeoCompose.Runtime
             out string? childValueId)
         {
             childValueId = null;
-            if (!virtualClassChildren.ContainsKey(parentValueId)) EnsureVirtualReplayArgumentReady(parentValueId);
+            // Constructor bodies can read sparse shared catalog values that are
+            // not constructor arguments. Resolve only the value actually read;
+            // ordinary post-construction reads never trigger replay here.
+            if (isReplayingVirtualInstance && !virtualClassChildren.ContainsKey(parentValueId))
+                EnsureVirtualReplayArgumentReady(parentValueId);
             return virtualClassChildren.TryGetValue(
                     parentValueId,
                     out Dictionary<string, string>? children)
@@ -645,59 +649,11 @@ namespace NeoCompose.Runtime
             IEnumerable<MemberValue> rows)
         {
             var parentByValueId = new Dictionary<string, string>(StringComparer.Ordinal);
-            var rowsById = new Dictionary<string, MemberValue>(StringComparer.Ordinal);
-            foreach (MemberValue row in rows) rowsById[row.id] = row;
-            var rowsByContainer = new Dictionary<string, List<MemberValue>>(StringComparer.Ordinal);
-            foreach (MemberValue row in rowsById.Values)
+            foreach (MemberValue row in rows)
             {
-                if (row.containerId is null) continue;
-                if (!rowsByContainer.TryGetValue(row.containerId, out var children))
-                    rowsByContainer[row.containerId] = children = new List<MemberValue>();
-                children.Add(row);
-            }
-            var visited = new HashSet<string>(StringComparer.Ordinal);
-            void Visit(MemberValue row, Member? member)
-            {
-                if (!visited.Add($"{row.id}:{member?.RuntimeDeclarationIdentity ?? "<none>"}")) return;
-                foreach (var child in EnumerateOwnedChildLinks(row, member))
+                if (row is ObjectMemberValue objectRow)
                 {
-                    parentByValueId.TryAdd(child.valueId, row.id);
-                    if (rowsById.TryGetValue(child.valueId, out MemberValue? childRow))
-                        Visit(childRow, child.member);
-                }
-                if (member is ListMember list && IsUnorderedList(list)
-                    && TryResolveCollectionEntryMember(list) is Member entryMember
-                    && rowsByContainer.TryGetValue(row.id, out var entries))
-                    foreach (MemberValue entry in entries)
-                    {
-                        parentByValueId.TryAdd(entry.id, row.id);
-                        Visit(entry, entryMember);
-                    }
-            }
-            foreach (var binding in saveData.staticBindings.Concat(sessionData.staticBindings))
-                if (binding.Value is string rootId && rowsById.TryGetValue(rootId, out var root)
-                    && data.members.TryGetValue(binding.Key, out Member? member)) Visit(root, member);
-            foreach (var variant in VariantGraphs)
-                if (rowsById.TryGetValue(variant.Key, out var root))
-                    Visit(root, NeoVariantSupport.GraphMember(this, variant.Value));
-            foreach (Member member in data.members.Values)
-            {
-                if (member.valueId is string rootId && rowsById.TryGetValue(rootId, out MemberValue? root))
-                    Visit(root, member);
-                if (member is not (ClassMember or ListMember or DictionaryMember)
-                    || MemberValueFactory.InitializerOf(member) is not null) continue;
-                var defaultRow = CreateDeclarationDefaultValue(member,
-                    $"__neo_parent_projection:{member.RuntimeDeclarationIdentity}");
-                if (defaultRow is null) continue;
-                foreach (var child in EnumerateOwnedChildLinks(defaultRow, member))
-                    if (rowsById.TryGetValue(child.valueId, out MemberValue? childRow))
-                        Visit(childRow, child.member);
-            }
-            foreach (MemberValue row in rowsById.Values)
-            {
-                if (row is ObjectMemberValue objectRow && objectRow.value is not null)
-                {
-                    foreach (string childId in objectRow.value.Values)
+                    if (objectRow.value is not null) foreach (string childId in objectRow.value.Values)
                         if (childId is not null)
                             parentByValueId.TryAdd(childId, row.id);
 
@@ -714,6 +670,7 @@ namespace NeoCompose.Runtime
                 }
                 else if (row is ArrayMemberValue arrayRow && arrayRow.value is not null)
                 {
+                    if (TryInferMemberForValueId(row.id, out Member? arrayMember) && arrayMember is LookupMember) continue;
                     foreach (string childId in arrayRow.value)
                         if (childId is not null)
                             parentByValueId.TryAdd(childId, row.id);
@@ -820,7 +777,8 @@ namespace NeoCompose.Runtime
 
         private void EnsureVirtualReplayArgumentReady(string valueId)
         {
-            if (!virtualInstanceReplayReady || !isReplayingVirtualInstance) return;
+            if (!virtualInstanceReplayReady || !isReplayingVirtualInstance
+                || valueId == replayingVirtualInstanceRootId) return;
             if ((data.values.ContainsKey(valueId) || saveData.values.ContainsKey(valueId))
                 && ResolveValueRow(valueId) is ObjectMemberValue root
                 && IsVirtualInstanceRoot(root)
@@ -922,7 +880,8 @@ namespace NeoCompose.Runtime
                     expandedRoot,
                     constructed.member,
                     "$",
-                    claimedVirtualIds);
+                    claimedVirtualIds,
+                    new Dictionary<MemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>>());
                 OverlaySparseInstance(
                     graph,
                     instanceRoot.id,
@@ -1205,7 +1164,8 @@ namespace NeoCompose.Runtime
             MemberValue row,
             Member member,
             string path,
-            Dictionary<string, string> claimedVirtualIds)
+            Dictionary<string, string> claimedVirtualIds,
+            Dictionary<MemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>> environments)
         {
             string sourceIdentity = VirtualSourceIdentity(row, member, path);
             string virtualId = path == "$"
@@ -1234,22 +1194,19 @@ namespace NeoCompose.Runtime
             if (member is ClassMember classMember && row is ObjectMemberValue classRow)
             {
                 string classId = classRow.classId ?? classMember.classId;
-                var arguments = NeoGenericResolution.CloseClassArgumentsFromStamp(row.genericBindings, classMember.classArguments);
-                var env = NeoGenericResolution.ResolveInstanceEnv(this, classId, arguments);
                 foreach (var entry in ResolveStoredInstanceSchema(classId))
                 {
                     if (classRow.value is null || !classRow.value.TryGetValue(entry.schemaKey, out string childId)
-                        || !TryGetMember(entry.memberId, out Member? childMember)) continue;
-                    childMember = NeoGenericResolution.SubstituteMember(this, childMember, env);
+                        || !TryGetMember(entry.memberId, out Member? declaration)
+                        || TryResolveOwnedChildMember(classRow, classMember, entry.schemaKey, environments, declaration) is not Member childMember) continue;
                     node.classChildren[entry.schemaKey] = Child(childId, childMember,
                         AppendVirtualPath(path, "class", "schemaKey", entry.schemaKey));
                 }
             }
             else if (member is ListMember list && row is ArrayMemberValue array)
             {
-                if (!TryGetMember(list.entryMemberId, out Member? entry))
+                if (TryResolveCollectionEntryMember(list, row) is not Member entry)
                     throw new InvalidOperationException($"Missing list entry declaration '{list.entryMemberId}'.");
-                entry = NeoGenericResolution.SubstituteMember(this, entry, NeoGenericResolution.EnvFromStamp(row.genericBindings));
                 IEnumerable<string> ids = IsUnorderedList(list) ? GetUnorderedListEntryIds(row.id) : array.value ?? Array.Empty<string>();
                 int index = 0;
                 foreach (string id in ids)
@@ -1258,9 +1215,8 @@ namespace NeoCompose.Runtime
             }
             else if (member is DictionaryMember dictionary && row is ObjectMemberValue entries)
             {
-                if (!TryGetMember(dictionary.entryMemberId, out Member? entry))
+                if (TryResolveCollectionEntryMember(dictionary, row) is not Member entry)
                     throw new InvalidOperationException($"Missing dictionary entry declaration '{dictionary.entryMemberId}'.");
-                entry = NeoGenericResolution.SubstituteMember(this, entry, NeoGenericResolution.EnvFromStamp(row.genericBindings));
                 foreach (var pair in entries.value ?? new Dictionary<string, string>())
                     node.dictionaryChildren[pair.Key] = Child(pair.Value, entry,
                         AppendVirtualPath(path, "dictionary", "key", pair.Key));
@@ -1269,7 +1225,7 @@ namespace NeoCompose.Runtime
             {
                 var child = IndexVirtualExpansion(instanceRoot,
                     ResolveValueRow(id) ?? throw new InvalidOperationException($"Replay lost child '{id}' at '{childPath}'."),
-                    childMember, childPath, claimedVirtualIds);
+                    childMember, childPath, claimedVirtualIds, environments);
                 child.parent = node;
                 return child;
             }

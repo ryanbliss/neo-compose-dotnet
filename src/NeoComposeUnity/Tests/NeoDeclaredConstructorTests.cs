@@ -34,6 +34,47 @@ namespace NeoCompose.Tests
         // -------------------------------------------------------------------
 
         [Test]
+        public void ThreeLevelInitializerArgumentsFollowEveryBaseForwardingAndInvalidateWithSchema()
+        {
+            ProjectData data = BuildProjectData();
+            var tag = (StringMember)data.members["part-tag"];
+            tag.defaultValue = new StringMemberValueBase { init = new InitializerBody { code = "Prefix", compiled = BaseClauseGetter("part-class", 1, ArgumentPointer(0)) } };
+            data.constructors["ctor-sub"].compiledBaseArguments![0] = BaseClauseGetter("sub-class", 1, StringPointer("base-only"));
+            var leaf = new NeoSchemaClass { id = "leaf-class", projectId = ProjectId, name = "Leaf", extendsClassId = "sub-class", schema = new Dictionary<string, string>(), constructorIds = new[] { "ctor-leaf" } };
+            data.classes[leaf.id] = leaf;
+            ConstructorRecord ctor = ConstructorFor("ctor-leaf", leaf.id, new[] { StringArgument("Ignored"), StringArgument("Forwarded") });
+            ctor.baseArguments = new[] { new ConstructorBaseArgument { name = "Suffix", code = "Forwarded" } };
+            ctor.compiledBaseArguments = new[] { BaseClauseGetter(leaf.id, 2, ArgumentPointer(1)) };
+            data.constructors[ctor.id] = ctor;
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            string ConstructTag()
+            {
+                var ctx = new NSGetterEvaluator.Context(client, null, null);
+                object? result = NSGetterEvaluator.Evaluate(ReturnFunction(DeclaredConstructorPointer(ClassType(leaf.id), ctor.id,
+                    new[] { new DeclaredConstructorArgument { name = "Ignored", valuePointer = StringPointer("wrong") }, new DeclaredConstructorArgument { name = "Forwarded", valuePointer = StringPointer("derived-only") } }, Array.Empty<FunctionClassConstructorField>())), ctx);
+                return ReadString(client, RequireConstructedRoot(client, ctx, result), "Tag");
+            }
+            Assert.AreEqual("base-only", ConstructTag());
+            // The client schema dictionaries are normally immutable. Tooling's explicit
+            // invalidation seam must discard initializer ownership together with merged schemas.
+            client.classes["part-class"].schema.Remove("Tag");
+            client.classes["sub-class"].schema["Tag"] = "part-tag";
+            client.InvalidateSchemaResolutionCaches();
+            Assert.AreEqual("derived-only", ConstructTag());
+        }
+
+        [Test]
+        public void InitializerArgumentPreparationStopsBeforeABaseClauseReadsThis()
+        {
+            using NeoClient client = BuildClient();
+            ConstructorRecord record = client.constructors["ctor-sub-reads-this"];
+            var link = NeoGeneratedTypesSupport.ResolveConstructorLink(client, record, new HashSet<string>());
+            var method = typeof(NeoGeneratedTypesSupport).GetMethod("PrepareConstructorInitializerArguments", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            var result = (Dictionary<string, object?[]>)method.Invoke(null, new object[] { client, link, Array.Empty<object?>(), new NSGetterEvaluator.Context(client, null, null) })!;
+            CollectionAssert.AreEquivalent(new[] { "sub-class" }, result.Keys);
+        }
+
+        [Test]
         public void InheritedInitializer_UsesItsDeclaringConstructorArguments()
         {
             ProjectData data = BuildProjectData();
@@ -926,6 +967,10 @@ namespace NeoCompose.Tests
                 frames.id,
                 out JsonMember? inferred));
             Assert.AreEqual(parts.id, inferred!.id);
+            root.value = null;
+            Assert.IsTrue(client.StillHasOwnedChildReference(NeoValueOwnership.Asset, root.id, frames.id),
+                "Settled constructor arguments remain inspectable when the parent body is null.");
+            Assert.IsFalse(client.StillHasOwnedChildReference(NeoValueOwnership.Asset, root.id, "unrelated"));
         }
 
         [Test]

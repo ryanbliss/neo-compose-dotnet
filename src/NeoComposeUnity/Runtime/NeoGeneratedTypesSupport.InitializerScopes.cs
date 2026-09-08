@@ -12,6 +12,8 @@ namespace NeoCompose.Runtime
 {
     public static partial class NeoGeneratedTypesSupport
     {
+        internal static void InvalidateConstructorSchemaCaches(NeoClient client) => ConstructorSchemaCaches.Remove(client);
+
         private sealed class ConstructorInitializerIndex
         {
             internal readonly Dictionary<InitializerBody, string> membersByInitializer = new();
