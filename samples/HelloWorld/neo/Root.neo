@@ -54,7 +54,6 @@ Root root = new() {
         RocketThrustSfx = AudioClips.RocketThrust
       },
       Computed = new ComputedText() {
-        baseText = "Hello",
         optionalSuffix = "!"
       },
       Items = [
@@ -3515,31 +3514,11 @@ Root root = new() {
               Objects = [
                 @id("4406f40a-2a75-4773-bb54-93507bd9f83a")
                 new RecoveryCacheObject() {
-                  Children = [
-                    @id("a5c5595a-f83e-4a22-b025-7a97b2791ece")
-                    new NeoSpriteObject() {
-                      Sprite = Images.RecoveryCacheObject.Slice(0)
-                    }
-                  ],
-                  PlacementTiles = [
-                    @id("47b11808-1904-4168-a8a6-43f590f93101")
-                    new NeoObjectPlacementTile()
-                  ],
                   Position = new(6, 2, 0)
                 },
     
                 @id("7eb15a04-29e2-4b11-9727-c928fba742b1")
                 new PlayerSpawnObject {
-                  Children = [
-                    @id("89f12e1d-3f07-47b5-a86e-8fb02b1152dd")
-                    new NeoSpriteObject() {
-                      Sprite = Images.PlayerSpawnObject.Slice(0)
-                    }
-                  ],
-                  PlacementTiles = [
-                    @id("c999170b-36a0-4050-a383-8eb1bedece34")
-                    new NeoObjectPlacementTile()
-                  ],
                   Position = new(-7, 2, 0)
                 }
               ]
@@ -3570,7 +3549,6 @@ Root root = new() {
   @storage(allowed: .Save)
   Save Save =
     new() {
-      NeoMemory = new NeoMemory(),
       OutpostSaveMap = {
         "0bfa8e27-27e0-41b2-b90b-6d3c9442905a": new OutpostSaveData(),
         "18154c7e-8f9a-4767-b44c-a25b0e1ca234": new OutpostSaveData(),
