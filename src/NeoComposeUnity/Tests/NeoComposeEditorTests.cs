@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
@@ -541,6 +542,131 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(
                 new[] { "snapshot-value-2" },
                 cache.state?.snapshots.Select(snapshot => snapshot.id).ToArray());
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Synchronizer_DeletesCapturedBoulderAndPreservesSharedRows(bool includeFileManifest)
+        {
+            using var fixtureFile = File.OpenRead(
+                "Packages/com.ryanbliss.neocompose/Tests/neowyn-boulder-delete.json.gz");
+            using var compressed = new GZipStream(fixtureFile, CompressionMode.Decompress);
+            using var reader = new StreamReader(compressed);
+            var fixture = JObject.Parse(reader.ReadToEnd());
+            var before = (JObject)fixture["beforeExport"]!;
+            var deletedIds = fixture["deletedValueIds"]!.Values<string>().ToHashSet();
+            // File reachability deliberately requires a full export. A data-only
+            // manifest exercises tombstones with the same captured value rows.
+            if (!includeFileManifest) before["files"] = new JObject();
+            var beforeRows = ExportedValueRows(before);
+            using (var beforeClient = NeoTestSaveStack.LoadClient(
+                       before.ToString(Formatting.None)))
+            {
+                Assert.IsNotNull(beforeClient);
+            }
+            Assert.AreEqual(26, deletedIds.Count);
+            Assert.IsTrue(((JObject)before["values"]!).Properties().Any(row => deletedIds.Contains(row.Name)));
+            Assert.IsTrue(((JObject)before["valuePartitions"]!).Properties()
+                .Any(partition => ((JObject)partition.Value).Properties().Any(row => deletedIds.Contains(row.Name))));
+
+            var config = MakeConfig();
+            config.SelectProject(before["project"]!["id"]!.Value<string>(), "Neowyn");
+            config.targetReleaseChannelId = before["metadata"]!["releaseChannels"]![0]!["id"]!.Value<string>();
+            config.versionId = before["metadata"]!["versionId"]!.Value<string>();
+            var api = new FakeApiClient();
+            api.deltaResponse.cursor = new NeoComposeUnityExportCursor
+            {
+                createdAt = 200,
+                transactionIds = new List<string> { "boulder-delete" },
+                versionsStamp = "1:100",
+            };
+            api.deltaResponse.records = deletedIds.Select(id => new NeoComposeUnityExportHeadDescriptor
+            {
+                recordKind = "value", recordId = id, deleted = true,
+            }).ToList();
+            var cache = new FakeExportCache
+            {
+                state = new NeoComposeUnityExportSyncState
+                {
+                    cursor = new NeoComposeUnityExportCursor { createdAt = 100, versionsStamp = "1:100" },
+                    heads = beforeRows.Keys.Select(id => new NeoComposeUnityExportHeadDescriptor
+                    {
+                        recordKind = "value", recordId = id,
+                        snapshotId = "snapshot:" + id, contentHash = "hash:" + id,
+                    }).ToList(),
+                },
+            };
+            // Assemble the fake server's full response from the fixture's complete
+            // deletion set, keeping one captured export in the test resource.
+            var afterExport = (JObject)before.DeepClone();
+            foreach (var row in ExportedValueRows(afterExport))
+                if (deletedIds.Contains(row.Key)) row.Value.Parent!.Remove();
+            foreach (var partition in ((JObject)afterExport["valuePartitions"]!).Properties().ToArray())
+                if (!partition.Value.HasValues) partition.Remove();
+            api.exportResponse.projectJson = afterExport.ToString(Formatting.None);
+            api.exportResponse.projectId = config.projectId;
+            foreach (var file in ((JObject)afterExport["files"]!).Properties())
+            {
+                var downloadUrl = "fixture:" + file.Name;
+                api.fileDownloadResponse.files[file.Name] = new NeoComposeUnityExportFileDownload
+                {
+                    fileId = file.Name, downloadUrl = downloadUrl,
+                };
+                api.downloads[downloadUrl] = new byte[] { 0 };
+            }
+            var assets = new FakeAssetService();
+            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing generated";
+            assets.files["Assets/Resources/Neo/project.json"] = before.ToString(Formatting.None);
+            var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets, cache);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsTrue(result.success, result.message);
+            Assert.AreEqual(includeFileManifest ? 1 : 0, api.fullExportCalls);
+            Assert.AreEqual(1, api.deltaExportCalls);
+            var writtenJson = assets.files["Assets/Resources/Neo/project.json"];
+            var written = JObject.Parse(writtenJson);
+            var retained = ExportedValueRows(written);
+            Assert.AreEqual(beforeRows.Count - deletedIds.Count, retained.Count);
+            foreach (var row in beforeRows)
+            {
+                if (deletedIds.Contains(row.Key))
+                    Assert.IsFalse(retained.ContainsKey(row.Key), row.Key);
+                else
+                    Assert.AreEqual(row.Value.ToString(Formatting.None),
+                        retained[row.Key].ToString(Formatting.None), "Shared/source/default row " + row.Key);
+            }
+            Assert.AreEqual(before["variants"]!.ToString(Formatting.None), written["variants"]!.ToString(Formatting.None));
+            Assert.IsFalse(((JObject)written["valuePartitions"]!).ContainsKey("sdk-boulder-delete"));
+            if (!includeFileManifest)
+            {
+                Assert.AreEqual("// existing generated", assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
+                Assert.AreEqual("boulder-delete", cache.state!.cursor.transactionIds.Single());
+                Assert.IsFalse(cache.state.heads.Any(head => deletedIds.Contains(head.recordId)));
+                Assert.IsTrue(api.requestedSnapshotIds.All(ids => ids.Length == 0),
+                    "Tombstones need no value snapshots.");
+            }
+            using var projectStore = new NeoProjectStore(
+                dataSource: new NeoJsonProjectDataSource(writtenJson),
+                localStore: new NeoInMemoryLocalSaveStore());
+            await projectStore.LoadAsync();
+            var loaded = projectStore.Schema!;
+            var loadedIds = loaded.values.Keys.ToHashSet();
+            foreach (var partition in loaded.valuePartitions!.Values)
+                loadedIds.UnionWith(partition.ToObject<Dictionary<string, MemberValue>>()!.Keys);
+            Assert.AreEqual(retained.Count, loadedIds.Count);
+            foreach (var id in deletedIds)
+                Assert.IsFalse(loadedIds.Contains(id), id);
+            using var client = NeoTestSaveStack.LoadClient(writtenJson);
+            Assert.IsNotNull(client);
+        }
+
+        private static Dictionary<string, JToken> ExportedValueRows(JObject export)
+        {
+            return ((JObject)export["values"]!).Properties()
+                .Concat(((JObject)export["valuePartitions"]!).Properties()
+                    .SelectMany(partition => ((JObject)partition.Value).Properties()))
+                .ToDictionary(row => row.Name, row => row.Value);
         }
 
         [TestCase(false)]

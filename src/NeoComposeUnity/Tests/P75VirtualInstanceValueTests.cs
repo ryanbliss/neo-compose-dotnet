@@ -41,6 +41,264 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NestedReplayKeepsOuterTemporarySessionRowsAwaitingInitializers()
+        {
+            ProjectData data = BuildProjectData();
+            var nestedClass = SchemaClass(
+                "outer-nested-class", "OuterNested", NeoMemberStorage.Immutable | NeoMemberStorage.Session);
+            nestedClass.schema["Computed"] = "outer-computed";
+            var outerClass = SchemaClass(
+                "outer-class", "Outer", NeoMemberStorage.Immutable | NeoMemberStorage.Save | NeoMemberStorage.Session);
+            outerClass.schema["Nested"] = "outer-nested";
+            outerClass.schema["Observed"] = "outer-observed";
+            outerClass.constructorIds = new[] { "outer-ctor" };
+            var innerClass = SchemaClass(
+                "inner-class", "Inner", NeoMemberStorage.Save);
+            innerClass.schema["Result"] = "inner-result";
+            innerClass.constructorIds = new[] { "inner-ctor" };
+            data.classes[nestedClass.id] = nestedClass;
+            data.classes[outerClass.id] = outerClass;
+            data.classes[innerClass.id] = innerClass;
+
+            data.classes["save-root-class"].schema["Outer"] = "save-outer";
+            data.classes["save-root-class"].schema["Inner"] = "save-inner";
+            data.classes["session-root-class"].schema["Outer"] = "session-outer";
+            data.classes["assets-root-class"].schema["Source"] = "assets-source";
+            data.members["assets-source"] = ClassPlacement(
+                "assets-source", "Source", outerClass.id, NeoMemberStorage.Immutable);
+            data.members["save-outer"] = ClassPlacement(
+                "save-outer", "Outer", outerClass.id, NeoMemberStorage.Save);
+            data.members["save-inner"] = ClassPlacement(
+                "save-inner", "Inner", innerClass.id, NeoMemberStorage.Save);
+            data.members["session-outer"] = ClassPlacement(
+                "session-outer",
+                "Outer",
+                outerClass.id,
+                NeoMemberStorage.Session,
+                NeoMemberRequirementKind.Optional);
+            data.members["outer-nested"] = new ClassMember
+            {
+                id = "outer-nested", projectId = "p75-project", name = "Nested", kind = MemberKind.Class,
+                classId = nestedClass.id, Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    classId = nestedClass.id,
+                    value = new Dictionary<string, string>(),
+                },
+            };
+            data.members["outer-computed"] = new IntMember
+            {
+                id = "outer-computed", projectId = "p75-project", name = "Computed", kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = ComputedIntInitializer(7),
+            };
+            data.members["outer-observed"] = new IntMember
+            {
+                id = "outer-observed", projectId = "p75-project", name = "Observed", kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new NumberMemberValueBase { value = 0 },
+            };
+            data.members["inner-result"] = new IntMember
+            {
+                id = "inner-result", projectId = "p75-project", name = "Result", kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new NumberMemberValueBase { value = 1 },
+            };
+
+            data.constructors["inner-ctor"] = new ConstructorRecord
+            {
+                id = "inner-ctor",
+                projectId = "p75-project",
+                classId = innerClass.id,
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        ConstructorVariable("__this__", ClassType(innerClass.id)),
+                        ConstructorVariable("__root__", ClassType("__root__")),
+                    },
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Null,
+                        required = true,
+                    },
+                    instructions = new Instruction[]
+                    {
+                        new FunctionCallInstruction
+                        {
+                            type = InstructionKind.FunctionCall,
+                            call = ApplyBaseVariant(
+                                PointerKeyOf(
+                                    PointerKeyOf(
+                                        PointerKeyOf(RootPointer(), "Session"),
+                                        "Outer"),
+                                    "Nested"),
+                                nestedClass.id),
+                        },
+                    },
+                },
+            };
+
+            var initialOuterArgument = new FunctionArgumentTypeInfo
+            {
+                name = "InitialOuter",
+                type = MemberKind.Class,
+                required = true,
+                classId = outerClass.id,
+            };
+            data.constructors["outer-ctor"] = new ConstructorRecord
+            {
+                id = "outer-ctor",
+                projectId = "p75-project",
+                classId = outerClass.id,
+                argumentTypes = new[] { initialOuterArgument },
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        ConstructorVariable("__this__", ClassType(outerClass.id)),
+                        ConstructorVariable("__root__", ClassType("__root__")),
+                        ConstructorVariable("__arg_0__", initialOuterArgument),
+                    },
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Null,
+                        required = true,
+                    },
+                    instructions = new Instruction[]
+                    {
+                        AssignClass(
+                            PointerKeyOf(
+                                PointerKeyOf(RootPointer(), "Session"),
+                                "Outer"),
+                            CloneClass(
+                                PointerKeyOf(PointerKeyOf(RootPointer(), "Assets"), "Source"),
+                                outerClass.id),
+                            outerClass.id,
+                            WritabilityKind.Session),
+                        new AssignInstruction
+                        {
+                            type = InstructionKind.Assign,
+                            target = new WriteTarget
+                            {
+                                pointer = PointerKeyOf(
+                                    new VariablePointer
+                                    {
+                                        type = PointerKind.Variable,
+                                        variableId = "__this__",
+                                    },
+                                    "Observed"),
+                                typeInfo = IntTypeInfo(),
+                                writability = WritabilityKind.Session,
+                            },
+                            operatorValue = "=",
+                            pointer = PointerKeyOf(
+                                PointerKeyOf(
+                                    PointerKeyOf(RootPointer(), "Save"),
+                                    "Inner"),
+                                "Result"),
+                        },
+                        AssignClass(
+                            PointerKeyOf(
+                                PointerKeyOf(RootPointer(), "Session"),
+                                "Outer"),
+                            new VariablePointer
+                            {
+                                type = PointerKind.Variable,
+                                variableId = "__arg_0__",
+                            },
+                            outerClass.id,
+                            WritabilityKind.Session),
+                    },
+                },
+            };
+
+            // Replay Outer first. Its constructor publishes a sparse source clone,
+            // then reads Inner and restores the durable Session reference.
+            // Applying Base inside Inner constructs a wrapper for that clone's
+            // Nested row; Base is already selected, so the application is a no-op.
+            var outer = ObjectValue("aaa-outer", outerClass.id);
+            outer.instanceConstructorId = "outer-ctor";
+            outer.constructorArgs = new Dictionary<string, JToken?>
+            {
+                ["__arg_0__"] = "session-outer-initial",
+            };
+            var inner = ObjectValue("zzz-inner", innerClass.id);
+            inner.instanceConstructorId = "inner-ctor";
+            inner.constructorArgs = new Dictionary<string, JToken?>();
+            data.values[outer.id] = outer;
+            data.values[inner.id] = inner;
+            // The stored source has a constructor recipe and a durable Nested
+            // spine. Computed is supplied virtually by its declaration.
+            var source = ObjectValue(
+                "bbb-source",
+                outerClass.id,
+                new Dictionary<string, string> { ["Nested"] = "source-nested" });
+            source.instanceConstructorId = "outer-ctor";
+            source.constructorArgs = new Dictionary<string, JToken?>
+            {
+                ["__arg_0__"] = "session-outer-initial",
+            };
+            data.values[source.id] = source;
+            data.values["source-nested"] = ObjectValue("source-nested", nestedClass.id);
+            ((ObjectMemberValue)data.values["value-assets"]).value!["Source"] = source.id;
+            data.values["session-outer-initial"] = ObjectValue(
+                "session-outer-initial",
+                outerClass.id,
+                new Dictionary<string, string>
+                {
+                    ["Nested"] = "session-outer-initial-nested",
+                    ["Observed"] = "session-outer-initial-observed",
+                });
+            data.values["session-outer-initial-nested"] = ObjectValue(
+                "session-outer-initial-nested",
+                nestedClass.id,
+                new Dictionary<string, string>
+                {
+                    ["Computed"] = "session-outer-initial-computed",
+                });
+            data.values["session-outer-initial-computed"] =
+                new NumberMemberValue
+                {
+                    id = "session-outer-initial-computed",
+                    value = 0,
+                };
+            data.values["session-outer-initial-observed"] =
+                new NumberMemberValue
+                {
+                    id = "session-outer-initial-observed",
+                    value = 0,
+                };
+            var saveRoot = (ObjectMemberValue)data.values["value-save"];
+            saveRoot.value!["Outer"] = outer.id;
+            saveRoot.value["Inner"] = inner.id;
+            ((ObjectMemberValue)data.values["value-session"]).value!["Outer"] =
+                "session-outer-initial";
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            Assert.AreEqual(
+                1d,
+                client.save.Get<NeoMemberClassWritable>("Outer")
+                    .Get<NeoMemberIntWritable>("Observed").value!.value);
+            Assert.AreEqual(
+                7d,
+                client.save.Get<NeoMemberClassWritable>("Outer")
+                    .Get<NeoMemberClassWritable>("Nested")
+                    .Get<NeoMemberIntWritable>("Computed").value!.value);
+            Assert.AreEqual(
+                1d,
+                client.save.Get<NeoMemberClassWritable>("Inner")
+                    .Get<NeoMemberIntWritable>("Result").value!.value);
+            Assert.AreEqual(
+                "session-outer-initial",
+                client.session.Get<NeoMemberClassWritable>("Outer").value!.id);
+        }
+
+        [Test]
         public void SparseInitializerReadsALaterSharedCatalogOverrideOfAnAbstractGetter()
         {
             ProjectData data = BuildProjectData();
@@ -2771,6 +3029,97 @@ namespace NeoCompose.Tests
         {
             type = MemberKind.Int,
             required = true,
+        };
+
+        private static NumberMemberValueBase ComputedIntInitializer(int value) =>
+            new()
+            {
+                init = new InitializerBody
+                {
+                    code = value.ToString(),
+                    compiled = new FunctionWithReturnType
+                    {
+                        compilerRevision =
+                            FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = Array.Empty<Variable>(),
+                        typeInfo = IntTypeInfo(),
+                        instructions = new Instruction[]
+                        {
+                            new ReturnInstruction
+                            {
+                                type = InstructionKind.Return,
+                                pointer = IntLiteral(value),
+                            },
+                        },
+                    },
+                },
+            };
+
+        private static ClassMember ClassPlacement(
+            string id,
+            string name,
+            string classId,
+            NeoMemberStorage storage,
+            NeoMemberRequirementKind requirement = NeoMemberRequirementKind.Required) => new()
+        {
+            id = id,
+            projectId = "p75-project",
+            name = name,
+            kind = MemberKind.Class,
+            classId = classId,
+            Storage = storage,
+            Requirement = requirement,
+        };
+
+        private static FunctionPointer ApplyBaseVariant(Pointer receiver, string classId) => new()
+        {
+            type = PointerKind.Function,
+            function = new VariantApplyFunction
+            {
+                type = FunctionKind.VariantApply,
+                info = new FunctionVariantApplyInfo
+                {
+                    receiverPointer = receiver,
+                    variantPointer = new VariantPointer
+                    {
+                        type = PointerKind.Variant,
+                        classId = classId,
+                        variantId = null,
+                    },
+                    schemaClassInfo = ClassType(classId),
+                },
+            },
+        };
+
+        private static AssignInstruction AssignClass(
+            Pointer target,
+            Pointer value,
+            string classId,
+            string writability) => new()
+        {
+            type = InstructionKind.Assign,
+            target = new WriteTarget
+            {
+                pointer = target,
+                typeInfo = ClassType(classId),
+                writability = writability,
+            },
+            operatorValue = "=",
+            pointer = value,
+        };
+
+        private static FunctionPointer CloneClass(Pointer receiver, string classId) => new()
+        {
+            type = PointerKind.Function,
+            function = new ClassCloneFunction
+            {
+                type = FunctionKind.ClassClone,
+                info = new FunctionClassCloneInfo
+                {
+                    receiverPointer = receiver,
+                    schemaClassInfo = ClassType(classId),
+                },
+            },
         };
 
         private static VariablePointer RootPointer() => new()

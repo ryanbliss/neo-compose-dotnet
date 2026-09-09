@@ -3205,7 +3205,7 @@ namespace NeoCompose.Runtime.NeoScript
                     createdAt = row.createdAt,
                     updatedAt = row.updatedAt,
                 };
-                var node = new NeoMemberClassWritable(
+                using var node = new NeoMemberClassWritable(
                     ctx.client,
                     member,
                     source.valueId,
