@@ -378,7 +378,9 @@ Root root = new() {
           Planet = .pluto
         }
       ],
-      ScreenshotEmptyGrid = new OldConsoleLandingGrid(),
+      ScreenshotEmptyGrid = new OldConsoleLandingGrid {
+        DisplayName = "Screenshot Empty Grid"
+      },
       SortingLayers = [
         @id("88c0d53b-94ee-4f48-839b-9148d07828fb")
         new NeoSortingLayer() {
