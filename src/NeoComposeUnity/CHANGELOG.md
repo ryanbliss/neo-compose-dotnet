@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Fully sparse constructed values replay inherited initializers and computed
+  children with their recorded constructor arguments and collection ownership.
+- Generic ownership traversal distinguishes owned aggregates from Lookup targets
+  using the member's closed type in its containing instance.
+- Empty localized member strings expose no localization ID.
+
 ## [0.33.0] - 2026-09-05
 
 ### Changed

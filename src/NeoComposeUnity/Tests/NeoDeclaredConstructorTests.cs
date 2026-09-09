@@ -34,6 +34,192 @@ namespace NeoCompose.Tests
         // -------------------------------------------------------------------
 
         [Test]
+        public void ThreeLevelInitializerArgumentsFollowEveryBaseForwardingAndInvalidateWithSchema()
+        {
+            ProjectData data = BuildProjectData();
+            var tag = (StringMember)data.members["part-tag"];
+            tag.defaultValue = new StringMemberValueBase { init = new InitializerBody { code = "Prefix", compiled = BaseClauseGetter("part-class", 1, ArgumentPointer(0)) } };
+            data.constructors["ctor-sub"].compiledBaseArguments![0] = BaseClauseGetter("sub-class", 1, StringPointer("base-only"));
+            var leaf = new NeoSchemaClass { id = "leaf-class", projectId = ProjectId, name = "Leaf", extendsClassId = "sub-class", schema = new Dictionary<string, string>(), constructorIds = new[] { "ctor-leaf" } };
+            data.classes[leaf.id] = leaf;
+            ConstructorRecord ctor = ConstructorFor("ctor-leaf", leaf.id, new[] { StringArgument("Ignored"), StringArgument("Forwarded") });
+            ctor.baseArguments = new[] { new ConstructorBaseArgument { name = "Suffix", code = "Forwarded" } };
+            ctor.compiledBaseArguments = new[] { BaseClauseGetter(leaf.id, 2, ArgumentPointer(1)) };
+            data.constructors[ctor.id] = ctor;
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            string ConstructTag()
+            {
+                var ctx = new NSGetterEvaluator.Context(client, null, null);
+                object? result = NSGetterEvaluator.Evaluate(ReturnFunction(DeclaredConstructorPointer(ClassType(leaf.id), ctor.id,
+                    new[] { new DeclaredConstructorArgument { name = "Ignored", valuePointer = StringPointer("wrong") }, new DeclaredConstructorArgument { name = "Forwarded", valuePointer = StringPointer("derived-only") } }, Array.Empty<FunctionClassConstructorField>())), ctx);
+                return ReadString(client, RequireConstructedRoot(client, ctx, result), "Tag");
+            }
+            Assert.AreEqual("base-only", ConstructTag());
+            // The client schema dictionaries are normally immutable. Tooling's explicit
+            // invalidation seam must discard initializer ownership together with merged schemas.
+            client.classes["part-class"].schema.Remove("Tag");
+            client.classes["sub-class"].schema["Tag"] = "part-tag";
+            client.InvalidateSchemaResolutionCaches();
+            Assert.AreEqual("derived-only", ConstructTag());
+        }
+
+        [Test]
+        public void InitializerArgumentPreparationStopsBeforeABaseClauseReadsThis()
+        {
+            using NeoClient client = BuildClient();
+            ConstructorRecord record = client.constructors["ctor-sub-reads-this"];
+            var link = NeoGeneratedTypesSupport.ResolveConstructorLink(client, record, new HashSet<string>());
+            var method = typeof(NeoGeneratedTypesSupport).GetMethod("PrepareConstructorInitializerArguments", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            var result = (Dictionary<string, object?[]>)method.Invoke(null, new object[] { client, link, Array.Empty<object?>(), new NSGetterEvaluator.Context(client, null, null) })!;
+            CollectionAssert.AreEquivalent(new[] { "sub-class" }, result.Keys);
+        }
+
+        [Test]
+        public void TypedIrWalkerDistinguishesLiteralPayloadsFromNestedIr()
+        {
+            var stringType = new PrimitiveTypeInfo
+            {
+                type = MemberKind.String,
+                required = true,
+            };
+            var body = new FunctionWithReturnType
+            {
+                parameters = Array.Empty<Variable>(),
+                typeInfo = stringType,
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new ListLiteralPointer
+                        {
+                            type = PointerKind.ListLiteral,
+                            typeInfo = new CollectionTypeInfo
+                            {
+                                type = MemberKind.List,
+                                required = true,
+                                entryTypeInfo = stringType,
+                            },
+                            entries = new Pointer[]
+                            {
+                                new ValuePointer
+                                {
+                                    type = PointerKind.Value,
+                                    value = new Value
+                                    {
+                                        typeInfo = stringType,
+                                        value = JObject.FromObject(new
+                                        {
+                                            type = PointerKind.Variable,
+                                            variableId = "__this__",
+                                        }),
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+
+            Assert.IsFalse(NeoScriptIrWalker.AnyPointer(
+                body.instructions,
+                pointer => pointer is VariablePointer variable
+                    && variable.variableId == "__this__"));
+
+            ((ListLiteralPointer)((ReturnInstruction)body.instructions[0]).pointer!)
+                .entries = new Pointer[]
+                {
+                    new DelegateClosurePointer
+                    {
+                        type = PointerKind.DelegateClosure,
+                        captures = Array.Empty<Pointer>(),
+                        action = ReturnFunction(new VariablePointer
+                        {
+                            type = PointerKind.Variable,
+                            variableId = "__this__",
+                        }),
+                    },
+                };
+            Assert.IsTrue(NeoScriptIrWalker.AnyPointer(
+                body.instructions,
+                pointer => pointer is VariablePointer variable
+                    && variable.variableId == "__this__"));
+        }
+
+        [Test]
+        public void TypedIrWalkerFindsVariablesInsideExecutedCollectionCallbacks()
+        {
+            FunctionWithReturnType callback = ReturnFunction(
+                new VariablePointer
+                {
+                    type = PointerKind.Variable,
+                    variableId = "__this__",
+                });
+            Instruction[] instructions =
+            {
+                new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = new FunctionPointer
+                    {
+                        type = PointerKind.Function,
+                        function = new SelectFunction
+                        {
+                            type = FunctionKind.Select,
+                            info = new FunctionCollectionSelectInfo
+                            {
+                                collectionPointer = new ListLiteralPointer
+                                {
+                                    type = PointerKind.ListLiteral,
+                                    typeInfo = new CollectionTypeInfo
+                                    {
+                                        type = MemberKind.List,
+                                        required = true,
+                                        entryTypeInfo = callback.typeInfo,
+                                    },
+                                    entries = Array.Empty<Pointer>(),
+                                },
+                                function = callback,
+                            },
+                        },
+                    },
+                },
+            };
+
+            Assert.IsTrue(NeoScriptIrWalker.AnyPointer(
+                instructions,
+                pointer => pointer is VariablePointer variable
+                    && variable.variableId == "__this__"));
+        }
+
+        [Test]
+        public void InheritedInitializer_UsesItsDeclaringConstructorArguments()
+        {
+            ProjectData data = BuildProjectData();
+            var part = data.classes["part-class"];
+            var tag = (StringMember)data.members[part.schema["Tag"]];
+            tag.defaultValue = new StringMemberValueBase
+            {
+                init = new InitializerBody
+                {
+                    code = "Prefix",
+                    compiled = BaseClauseGetter(part.id, 1, ArgumentPointer(0))
+                }
+            };
+            ConstructorRecord derived = data.constructors["ctor-sub"];
+            derived.argumentTypes = new[] { StringArgument("Suffix"), StringArgument("Other") };
+            derived.action!.parameters = new[] { EnvelopeParameter("__this__", ClassType("sub-class")), EnvelopeParameter("__root__", ClassType("root-class")), EnvelopeParameter("__arg_0__", StringArgument("Suffix")), EnvelopeParameter("__arg_1__", StringArgument("Other")) };
+            derived.compiledBaseArguments![0].parameters = derived.action.parameters;
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            object? result = NSGetterEvaluator.Evaluate(ReturnFunction(DeclaredConstructorPointer(
+                ClassType("sub-class"), "ctor-sub", new[] { new DeclaredConstructorArgument { name = "Suffix", valuePointer = StringPointer("base-value") }, new DeclaredConstructorArgument { name = "Other", valuePointer = StringPointer("different") } },
+                Array.Empty<FunctionClassConstructorField>())), ctx);
+            ObjectMemberValue root = RequireConstructedRoot(client, ctx, result);
+            Assert.AreEqual("base-value", ReadString(client, root, "Tag"));
+        }
+
+        [Test]
         public void DeclaredConstructor_MemberInitializersRunThenTheBodyOverwrites()
         {
             NeoClient client = BuildClient();
@@ -899,6 +1085,10 @@ namespace NeoCompose.Tests
                 frames.id,
                 out JsonMember? inferred));
             Assert.AreEqual(parts.id, inferred!.id);
+            root.value = null;
+            Assert.IsTrue(client.StillHasOwnedChildReference(NeoValueOwnership.Asset, root.id, frames.id),
+                "Settled constructor arguments remain inspectable when the parent body is null.");
+            Assert.IsFalse(client.StillHasOwnedChildReference(NeoValueOwnership.Asset, root.id, "unrelated"));
         }
 
         [Test]

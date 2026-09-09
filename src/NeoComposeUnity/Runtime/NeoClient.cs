@@ -1467,6 +1467,7 @@ namespace NeoCompose.Runtime
             classInheritanceChains.Clear();
             instanceSurfaceSchemas.Clear();
             storedInstanceSchemas.Clear();
+            NeoGeneratedTypesSupport.InvalidateConstructorSchemaCaches(this);
             readOnlyMemberSchemas.Clear();
         }
 
@@ -2163,7 +2164,7 @@ namespace NeoCompose.Runtime
                     RecordClass(valueId, classId!);
                 }
 
-                foreach (var child in EnumerateOwnedChildLinks(row, governingMember, rows))
+                foreach (var child in EnumerateOwnedChildLinks(row, governingMember))
                 {
                     Visit(child.valueId, child.member);
                 }
@@ -2220,7 +2221,7 @@ namespace NeoCompose.Runtime
                     member,
                     $"__neo_readonly_default_projection:{member.RuntimeDeclarationIdentity}");
                 if (declarationDefault is null) continue;
-                foreach (var child in EnumerateOwnedChildLinks(declarationDefault, member, rows))
+                foreach (var child in EnumerateOwnedChildLinks(declarationDefault, member))
                 {
                     Visit(child.valueId, child.member);
                 }
@@ -3020,7 +3021,7 @@ namespace NeoCompose.Runtime
                             && obj.constructorArgs is not null)
                         {
                             foreach (var link in
-                                EnumerateConstructorSettledAggregateLinks(sourceObject))
+                                EnumerateConstructorSettledAggregateLinks(sourceObject, sourceMember))
                             {
                                 NeoValueOwnership childOwnership =
                                     DeclaredOwnership(link.member) ?? sourceOwnership;
@@ -3194,7 +3195,7 @@ namespace NeoCompose.Runtime
                 // We still resolve the schema for an actual payload match below,
                 // which is what distinguishes owned Class/List/Dictionary edges
                 // from lookup/reference edges.
-                if (!DirectlyReferencesValueId(parent, childValueId)) continue;
+                if (!MightReferenceChildValueId(parent, childValueId)) continue;
                 Member? parentMember = TryInferMemberForValueId(
                     candidateId,
                     out Member? inferredParent)
@@ -3290,22 +3291,22 @@ namespace NeoCompose.Runtime
             {
                 return true;
             }
-            return DirectlyReferencesValueId(parent!, childValueId);
+            if (!MightReferenceChildValueId(parent!, childValueId)) return false;
+            if (EnumerateOwnedChildLinks(parent!, null).Any(link => link.valueId == childValueId)) return true;
+            TryInferMemberForValueId(parentValueId, out Member? parentMember);
+            return EnumerateOwnedChildLinks(parent!, parentMember).Any(link => link.valueId == childValueId);
         }
 
-        private bool DirectlyReferencesValueId(
+        private static bool MightReferenceChildValueId(
             MemberValue parent,
             string childValueId)
         {
             switch (parent)
             {
-                case ObjectMemberValue obj when obj.value is not null:
-                    if (obj.value.ContainsValue(childValueId)) return true;
-                    foreach (var link in EnumerateConstructorSettledAggregateLinks(obj))
-                    {
-                        if (link.valueId == childValueId) return true;
-                    }
-                    return false;
+                case ObjectMemberValue obj:
+                    if (obj.value?.ContainsValue(childValueId) == true) return true;
+                    return obj.constructorArgs?.Values.Any(token =>
+                        token?.Type == JTokenType.String && token.Value<string>() == childValueId) == true;
                 case ArrayMemberValue arr when arr.value is not null:
                     return System.Array.IndexOf(arr.value, childValueId) >= 0;
                 default:
@@ -3491,7 +3492,7 @@ namespace NeoCompose.Runtime
                         && obj.constructorArgs is not null)
                     {
                         foreach (var link in
-                            EnumerateConstructorSettledAggregateLinks(sourceObject))
+                            EnumerateConstructorSettledAggregateLinks(sourceObject, sourceMember))
                         {
                             if (!TryGetValue(link.valueId, out MemberValue? _)) continue;
                             string clonedChildId = CloneValueGraphToOwnership(
@@ -3531,13 +3532,12 @@ namespace NeoCompose.Runtime
 
         private IEnumerable<(string valueId, Member? member)> EnumerateOwnedChildLinks(
             MemberValue row,
-            Member? sourceMember,
-            IReadOnlyDictionary<string, MemberValue>? rows = null)
+            Member? sourceMember)
         {
             switch (row)
             {
-                case ObjectMemberValue obj when obj.value is not null:
-                    foreach (var pair in obj.value)
+                case ObjectMemberValue obj:
+                    if (obj.value is not null) foreach (var pair in obj.value)
                     {
                         Member? childMember = TryResolveOwnedChildMember(row, sourceMember, pair.Key);
                         if (childMember is not null)
@@ -3545,7 +3545,7 @@ namespace NeoCompose.Runtime
                             yield return (pair.Value, childMember);
                         }
                     }
-                    foreach (var link in EnumerateConstructorSettledAggregateLinks(obj, rows: rows))
+                    foreach (var link in EnumerateConstructorSettledAggregateLinks(obj, sourceMember))
                     {
                         yield return (link.valueId, link.member);
                     }
@@ -3568,16 +3568,16 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private Member? TryResolveOwnedChildMember(
+        internal Member? TryResolveOwnedChildMember(
             MemberValue row,
             Member? sourceMember,
-            string key)
+            string key,
+            Dictionary<MemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>>? environments = null,
+            Member? declaredMember = null)
         {
             if (sourceMember is DictionaryMember dictionary)
             {
-                return TryGetMember(dictionary.entryMemberId, out Member? entryMember)
-                    ? entryMember
-                    : null;
+                return TryResolveCollectionEntryMember(dictionary, row);
             }
 
             string? classId = (row as ObjectMemberValue)?.classId;
@@ -3586,14 +3586,39 @@ namespace NeoCompose.Runtime
                 classId = classMember.classId;
             }
             if (string.IsNullOrEmpty(classId)) return null;
-            if (!TryResolveMergedSchemaMember(classId!, key, out Member? childMember))
+            Member? childMember = declaredMember;
+            if (childMember is null && !TryResolveMergedSchemaMember(classId!, key, out childMember))
             {
                 return null;
             }
-            return childMember;
+            return ResolveOwnedMemberType(row, sourceMember, classId!, childMember, environments);
         }
 
-        private Member? TryResolveCollectionEntryMember(Member? collectionMember)
+        private Member ResolveOwnedMemberType(
+            MemberValue row, Member? sourceMember, string classId, Member member,
+            Dictionary<MemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>>? environments = null)
+        {
+            if (!NeedsOwnedMemberContext(member))
+                return member;
+            if (environments is null || !environments.TryGetValue(row, out var environment))
+            {
+                var arguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
+                    row.genericBindings, (sourceMember as ClassMember)?.classArguments);
+                environment = NeoGenericResolution.ResolveInstanceEnv(this, classId, arguments);
+                if (environments is not null) environments[row] = environment;
+            }
+            // Metadata/template scans can precede a closed owning placement.
+            // Its later contextual walk supplies the binding and classifies the edge.
+            if (member is GenericMember generic
+                && (!environment.TryGetValue(generic.genericParamId, out var binding) || !binding.IsBound))
+                return member;
+            return NeoGenericResolution.SubstituteMember(this, member, environment);
+        }
+
+        private static bool NeedsOwnedMemberContext(Member member) => member is GenericMember
+            || member is ClassMember constructed && constructed.classArguments?.Values.Any(argument => argument.IsForward) == true;
+
+        private Member? TryResolveCollectionEntryMember(Member? collectionMember, MemberValue? row = null)
         {
             string? entryMemberId = collectionMember switch
             {
@@ -3601,10 +3626,12 @@ namespace NeoCompose.Runtime
                 DictionaryMember dictionary => dictionary.entryMemberId,
                 _ => null,
             };
-            return !string.IsNullOrEmpty(entryMemberId)
-                && TryGetMember(entryMemberId!, out Member? entryMember)
-                    ? entryMember
-                    : null;
+            if (string.IsNullOrEmpty(entryMemberId) || !TryGetMember(entryMemberId!, out Member? entryMember)) return null;
+            if (row?.genericBindings is null || !NeedsOwnedMemberContext(entryMember)) return entryMember;
+            var environment = NeoGenericResolution.EnvFromStamp(row.genericBindings);
+            if (entryMember is GenericMember generic
+                && (!environment.TryGetValue(generic.genericParamId, out var binding) || !binding.IsBound)) return entryMember;
+            return NeoGenericResolution.SubstituteMember(this, entryMember, environment);
         }
 
         private bool TryResolveMergedSchemaMember(
@@ -3624,23 +3651,6 @@ namespace NeoCompose.Runtime
                 }
             }
             return false;
-        }
-
-        private bool IsAggregateStoredMember(
-            Member member,
-            string childValueId,
-            IReadOnlyDictionary<string, MemberValue>? rows)
-        {
-            if (member is ClassMember or ListMember or DictionaryMember)
-            {
-                return true;
-            }
-            if (member is not GenericMember) return false;
-            MemberValue? child;
-            bool found = rows is null
-                ? TryGetValue(childValueId, out child)
-                : rows.TryGetValue(childValueId, out child);
-            return found && child is ObjectMemberValue or ArrayMemberValue;
         }
 
         private bool TryResolveRecordedConstructorSettlement(
@@ -3730,8 +3740,8 @@ namespace NeoCompose.Runtime
             string valueId,
             Member member)> EnumerateConstructorSettledAggregateLinks(
                 ObjectMemberValue parent,
-                bool includeMaterializedChildren = false,
-                IReadOnlyDictionary<string, MemberValue>? rows = null)
+                Member? sourceMember = null,
+                bool includeMaterializedChildren = false)
         {
             if (parent.constructorArgs is null
                 || parent.instanceConstructorId is not string constructorId
@@ -3767,9 +3777,10 @@ namespace NeoCompose.Runtime
                 {
                     continue;
                 }
+                member = ResolveOwnedMemberType(parent, sourceMember, parent.classId!, member);
                 string? childValueId = token.Value<string>();
                 if (string.IsNullOrWhiteSpace(childValueId)
-                    || !IsAggregateStoredMember(member, childValueId!, rows))
+                    || member is not (ClassMember or ListMember or DictionaryMember))
                 {
                     continue;
                 }
@@ -3784,6 +3795,7 @@ namespace NeoCompose.Runtime
         private bool TryResolveConstructorSettledAggregateMember(
             ObjectMemberValue parent,
             string childValueId,
+            Member? sourceMember,
             [NotNullWhen(true)] out Member? member)
         {
             member = null;
@@ -3796,7 +3808,7 @@ namespace NeoCompose.Runtime
             {
                 return false;
             }
-            foreach (var link in EnumerateConstructorSettledAggregateLinks(parent))
+            foreach (var link in EnumerateConstructorSettledAggregateLinks(parent, sourceMember))
             {
                 if (link.valueId != childValueId) continue;
                 member = link.member;
@@ -3836,164 +3848,60 @@ namespace NeoCompose.Runtime
             HashSet<string> visitingValueIds,
             [NotNullWhen(true)] out Member? member)
         {
-            // Value data is expected to be a tree, but inference also runs while
-            // validating/importing hand-built or partially-mutated graphs. Keep
-            // the traversal bounded when malformed owned edges form a cycle.
-            // Each recursive branch receives a copy of this path set below, so
-            // adding here detects only ancestors and does not suppress a valid
-            // search through a sibling branch.
-            if (!visitingValueIds.Add(valueId))
+            if (!visitingValueIds.Add(valueId)) { member = null; return false; }
+            try
             {
+                if (TryInferDirectMemberForValueId(valueId, out member)) return true;
+                if (VariantGraphs.TryGetValue(valueId, out VariantRecord? variant))
+                { member = NeoVariantSupport.GraphMember(this, variant); return true; }
+                if (virtualClassPlacementByChildId.TryGetValue(valueId, out VirtualClassPlacement? virtualPlacement))
+                { member = virtualPlacement.member; return true; }
+                if (TryGetValue(valueId, out MemberValue? containedValue)
+                    && !string.IsNullOrEmpty(containedValue.containerId)
+                    && TryInferMemberForValueId(containedValue.containerId!, visitingValueIds, out Member? containerMember)
+                    && TryResolveCollectionEntryMember(containerMember) is Member containedMember)
+                { member = containedMember; return true; }
+
+                foreach (var parent in EnumerateAllValueRows())
+                {
+                    if (!MightReferenceChildValueId(parent.Value, valueId)) continue;
+                    Member? parentMember = null;
+                    bool parentInferred = false;
+                    Member? ParentMember()
+                    {
+                        if (!parentInferred)
+                        {
+                            parentInferred = true;
+                            TryInferMemberForValueId(parent.Key, visitingValueIds, out parentMember);
+                        }
+                        return parentMember;
+                    }
+                    if (parent.Value is ObjectMemberValue obj)
+                    {
+                        if (obj.value is not null) foreach (var pair in obj.value)
+                        {
+                            if (pair.Value != valueId) continue;
+                            Member? child = TryResolveOwnedChildMember(obj, null, pair.Key);
+                            if (child is null || NeedsOwnedMemberContext(child))
+                                child = TryResolveOwnedChildMember(obj, ParentMember(), pair.Key);
+                            if (child is not null) { member = child; return true; }
+                        }
+                        if (obj.constructorArgs?.Values.Any(token => token?.Type == JTokenType.String && token.Value<string>() == valueId) == true)
+                        {
+                            if (TryResolveConstructorSettledAggregateMember(obj, valueId, null, out Member? settled)
+                                && !NeedsOwnedMemberContext(settled)) { member = settled; return true; }
+                            if (TryResolveConstructorSettledAggregateMember(obj, valueId, ParentMember(), out settled))
+                            { member = settled; return true; }
+                        }
+                    }
+                    else if (parent.Value is ArrayMemberValue
+                        && TryResolveCollectionEntryMember(ParentMember(), parent.Value) is Member entry)
+                    { member = entry; return true; }
+                }
                 member = null;
                 return false;
             }
-
-            foreach (var candidate in data.members.Values)
-            {
-                if (candidate.valueId == valueId)
-                {
-                    member = candidate;
-                    return true;
-                }
-            }
-            if (VariantGraphs.TryGetValue(valueId, out VariantRecord? variant))
-            {
-                member = NeoVariantSupport.GraphMember(this, variant);
-                return true;
-            }
-            if (virtualClassPlacementByChildId.TryGetValue(
-                    valueId,
-                    out VirtualClassPlacement? virtualPlacement))
-            {
-                member = virtualPlacement.member;
-                return true;
-            }
-
-            // Unordered-list membership is stored on the child row rather
-            // than in the list body's discriminator. Follow that back-pointer
-            // before scanning body-owned placements so partition-loaded tile
-            // entries infer the same declared entry member as ordered lists.
-            if (TryGetValue(valueId, out MemberValue? containedValue)
-                && !string.IsNullOrEmpty(containedValue.containerId)
-                && TryInferMemberForValueId(
-                    containedValue.containerId!,
-                    new HashSet<string>(visitingValueIds),
-                    out Member? containerMember)
-                && TryResolveCollectionEntryMember(containerMember) is Member containedMember)
-            {
-                member = containedMember;
-                return true;
-            }
-
-            foreach (var parent in EnumerateAllValueRows())
-            {
-                if (parent.Value is ObjectMemberValue constructedParent
-                    && TryResolveConstructorSettledAggregateMember(
-                        constructedParent,
-                        valueId,
-                        out Member? constructedMember))
-                {
-                    member = constructedMember;
-                    return true;
-                }
-                if (parent.Value is not ObjectMemberValue objectValue
-                    || objectValue.value == null)
-                {
-                    continue;
-                }
-
-                foreach (var pair in objectValue.value)
-                {
-                    if (pair.Value != valueId) continue;
-                    if (TryInferMemberForValueId(
-                            parent.Key,
-                            new HashSet<string>(visitingValueIds),
-                            out Member? parentMember)
-                        && TryResolveCollectionEntryMember(parentMember) is Member parentEntryMember)
-                    {
-                        member = parentEntryMember;
-                        return true;
-                    }
-
-                    if (TryInferNeoSchemaClassIdForValueId(
-                            parent.Key,
-                            new HashSet<string>(visitingValueIds),
-                            out string? parentClassId)
-                        && !string.IsNullOrEmpty(parentClassId)
-                        && TryResolveMergedSchemaMember(parentClassId!, pair.Key, out Member? childMember))
-                    {
-                        member = childMember;
-                        return true;
-                    }
-                }
-            }
-
-            foreach (var parent in EnumerateAllValueRows())
-            {
-                if (parent.Value is ArrayMemberValue arrayValue
-                    && arrayValue.value != null
-                    && System.Array.IndexOf(arrayValue.value, valueId) >= 0
-                    && TryInferMemberForValueId(
-                        parent.Key,
-                        new HashSet<string>(visitingValueIds),
-                        out Member? collectionMember)
-                    && TryResolveCollectionEntryMember(collectionMember) is Member entryMember)
-                {
-                    member = entryMember;
-                    return true;
-                }
-
-                if (parent.Value is ObjectMemberValue dictionaryValue
-                    && dictionaryValue.value != null
-                    && dictionaryValue.value.ContainsValue(valueId)
-                    && TryInferMemberForValueId(
-                        parent.Key,
-                        new HashSet<string>(visitingValueIds),
-                        out collectionMember)
-                    && TryResolveCollectionEntryMember(collectionMember) is Member dictionaryEntryMember)
-                {
-                    member = dictionaryEntryMember;
-                    return true;
-                }
-            }
-
-            member = null;
-            return false;
-        }
-
-        private bool TryInferNeoSchemaClassIdForValueId(
-            string valueId,
-            HashSet<string> visitingValueIds,
-            [NotNullWhen(true)] out string? classId)
-        {
-            if (!visitingValueIds.Add(valueId))
-            {
-                classId = null;
-                return false;
-            }
-            if (TryGetValue(valueId, out ObjectMemberValue? value)
-                && !string.IsNullOrEmpty(value.classId))
-            {
-                classId = value.classId;
-                return true;
-            }
-            // Member inference owns the visit marker for this same node.
-            // Keep ancestor markers, but let that traversal add valueId once;
-            // otherwise the shared defensive path set would reject the first
-            // legitimate inference step as though it were a cycle.
-            visitingValueIds.Remove(valueId);
-            if (TryInferMemberForValueId(
-                    valueId,
-                    visitingValueIds,
-                    out Member? member)
-                && member is ClassMember classMember
-                && !string.IsNullOrEmpty(classMember.classId))
-            {
-                classId = classMember.classId;
-                return true;
-            }
-            classId = null;
-            return false;
+            finally { visitingValueIds.Remove(valueId); }
         }
 
         private bool TryInferDirectMemberForValueId(

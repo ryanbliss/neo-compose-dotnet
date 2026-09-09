@@ -28,6 +28,7 @@ namespace NeoCompose.Runtime
         private const int MaxVirtualInstanceRebuildPasses = 8;
         private bool isInitializingVirtualInstanceValues;
         private bool isReplayingVirtualInstance;
+        private readonly HashSet<string> replayingVirtualRootIds = new(StringComparer.Ordinal);
         private string? replayingVirtualInstanceRootId;
         private string? replayingVirtualInstanceClassId;
         private IReadOnlyDictionary<string, GenericBinding>?
@@ -96,9 +97,39 @@ namespace NeoCompose.Runtime
         /// </summary>
         private bool virtualInstanceReplayReady;
 
-        internal bool IsAwaitingVirtualInstanceReplay(ObjectMemberValue? row) =>
-            (!virtualInstanceReplayReady || isReplayingVirtualInstance)
-            && row is not null && IsVirtualInstanceRoot(row);
+        private int awaitingVirtualInstanceChildDepth;
+
+        internal bool IsAwaitingVirtualInstanceInitializers(
+            ObjectMemberValue? row) =>
+            !virtualInstanceReplayReady
+            && (awaitingVirtualInstanceChildDepth > 0
+                || (row is not null && IsVirtualInstanceRoot(row)));
+
+        internal VirtualInstanceChildConstructionScope EnterVirtualInstanceChildConstruction(
+            ObjectMemberValue? row)
+        {
+            bool entered = IsAwaitingVirtualInstanceInitializers(row);
+            if (entered) awaitingVirtualInstanceChildDepth++;
+            return new VirtualInstanceChildConstructionScope(this, entered);
+        }
+
+        internal readonly struct VirtualInstanceChildConstructionScope : IDisposable
+        {
+            private readonly NeoClient? client;
+
+            internal VirtualInstanceChildConstructionScope(
+                NeoClient client,
+                bool entered)
+            {
+                this.client = entered ? client : null;
+            }
+
+            public void Dispose()
+            {
+                if (client is null) return;
+                client.awaitingVirtualInstanceChildDepth--;
+            }
+        }
 
         /// <summary>
         /// Every row id one instance root's expansion touched — the virtual
@@ -109,6 +140,10 @@ namespace NeoCompose.Runtime
         /// </summary>
         private readonly Dictionary<string, HashSet<string>> virtualFootprintByRoot = new();
         private readonly Dictionary<string, string> virtualRootByFootprintId = new();
+        private readonly Dictionary<string, HashSet<string>>
+            constructorArgumentRootsByValueId = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, HashSet<string>>
+            constructorArgumentValueIdsByRoot = new(StringComparer.Ordinal);
         private bool virtualInstanceValuesDirty;
 
         private sealed class VirtualExpansionNode
@@ -218,6 +253,11 @@ namespace NeoCompose.Runtime
             out string? childValueId)
         {
             childValueId = null;
+            // Constructor bodies can read sparse shared catalog values that are
+            // not constructor arguments. Resolve only the value actually read;
+            // ordinary post-construction reads never trigger replay here.
+            if (isReplayingVirtualInstance && !virtualClassChildren.ContainsKey(parentValueId))
+                EnsureVirtualReplayArgumentReady(parentValueId);
             return virtualClassChildren.TryGetValue(
                     parentValueId,
                     out Dictionary<string, string>? children)
@@ -287,6 +327,8 @@ namespace NeoCompose.Runtime
             virtualClassChildIdsByRoot.Clear();
             virtualFootprintByRoot.Clear();
             virtualRootByFootprintId.Clear();
+            constructorArgumentRootsByValueId.Clear();
+            constructorArgumentValueIdsByRoot.Clear();
             MemberValue[] allRows = data.values.Values
                 .Concat(saveData.values.Values)
                 .Concat(sessionData.values.Values)
@@ -321,7 +363,8 @@ namespace NeoCompose.Runtime
             while (readyRoots.Count > 0)
             {
                 ObjectMemberValue root = readyRoots.Dequeue();
-                ExpandVirtualInstanceRootOrReport(root, failClosed);
+                if (!virtualValueIdsByRoot.ContainsKey(root.id))
+                    ExpandVirtualInstanceRootOrReport(root, failClosed);
                 if (!virtualClassChildIdsByRoot.TryGetValue(
                         root.id,
                         out HashSet<string>? classChildIds))
@@ -439,9 +482,11 @@ namespace NeoCompose.Runtime
                     affectedRootIds.Add(owningRootId);
                 }
                 // The row is creation data some root replays against.
-                foreach (string argumentRootId in RootsUsingConstructorArgumentRow(valueId))
+                if (constructorArgumentRootsByValueId.TryGetValue(
+                        valueId,
+                        out HashSet<string>? argumentRootIds))
                 {
-                    affectedRootIds.Add(argumentRootId);
+                    affectedRootIds.UnionWith(argumentRootIds);
                 }
             }
             foreach (string retiredRootId in retiredRootIds)
@@ -476,24 +521,53 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        /// <summary>
-        /// Roots whose <c>constructorArgs</c> name this value id, and which
-        /// therefore replay differently once it changes.
-        /// </summary>
-        private IEnumerable<string> RootsUsingConstructorArgumentRow(string valueId)
+        private void IndexConstructorArgumentRows(ObjectMemberValue root)
         {
-            foreach (string rootId in virtualFootprintByRoot.Keys)
+            RemoveConstructorArgumentRows(root.id);
+            if (root.constructorArgs is null) return;
+            foreach (JToken? argument in root.constructorArgs.Values)
             {
-                if (ResolveValueRow(rootId) is not ObjectMemberValue root) continue;
-                if (root.constructorArgs is null) continue;
-                foreach (JToken? argument in root.constructorArgs.Values)
+                if (argument?.Type != JTokenType.String) continue;
+                string? valueId = argument.Value<string>();
+                if (valueId is null) continue;
+                if (!constructorArgumentRootsByValueId.TryGetValue(
+                        valueId,
+                        out HashSet<string>? roots))
                 {
-                    if (argument is null) continue;
-                    if (argument.Type != JTokenType.String) continue;
-                    if (argument.Value<string>() != valueId) continue;
-                    yield return rootId;
-                    break;
+                    roots = new HashSet<string>(StringComparer.Ordinal);
+                    constructorArgumentRootsByValueId[valueId] = roots;
                 }
+                roots.Add(root.id);
+                if (!constructorArgumentValueIdsByRoot.TryGetValue(
+                        root.id,
+                        out HashSet<string>? valueIds))
+                {
+                    valueIds = new HashSet<string>(StringComparer.Ordinal);
+                    constructorArgumentValueIdsByRoot[root.id] = valueIds;
+                }
+                valueIds.Add(valueId);
+            }
+        }
+
+        private void RemoveConstructorArgumentRows(string rootId)
+        {
+            if (!constructorArgumentValueIdsByRoot.Remove(
+                    rootId,
+                    out HashSet<string>? valueIds))
+            {
+                return;
+            }
+            foreach (string valueId in valueIds)
+            {
+                if (!constructorArgumentRootsByValueId.TryGetValue(
+                        valueId,
+                        out HashSet<string>? roots))
+                {
+                    continue;
+                }
+                roots.Remove(rootId);
+                if (roots.Count == 0)
+                    constructorArgumentRootsByValueId.Remove(valueId);
             }
         }
 
@@ -642,12 +716,23 @@ namespace NeoCompose.Runtime
         private Dictionary<string, string> BuildParentByValueId(
             IEnumerable<MemberValue> rows)
         {
+            MemberValue[] snapshot = rows.ToArray();
             var parentByValueId = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (MemberValue row in rows)
+            var arrayById = new Dictionary<string, ArrayMemberValue>(StringComparer.Ordinal);
+            foreach (ArrayMemberValue array in snapshot.OfType<ArrayMemberValue>())
+                arrayById.TryAdd(array.id, array);
+            var lookupByConflictingArrayId =
+                new Dictionary<string, bool?>(StringComparer.Ordinal);
+            // Object and explicit container edges identify the owning graph
+            // without schema inference. Establish those first so an array only
+            // needs its member type when one of its entries already has a
+            // stronger parent. That collision is the only place List ownership
+            // and Lookup reference semantics differ for replay ordering.
+            foreach (MemberValue row in snapshot)
             {
-                if (row is ObjectMemberValue objectRow && objectRow.value is not null)
+                if (row is ObjectMemberValue objectRow)
                 {
-                    foreach (string childId in objectRow.value.Values)
+                    if (objectRow.value is not null) foreach (string childId in objectRow.value.Values)
                         if (childId is not null)
                             parentByValueId.TryAdd(childId, row.id);
 
@@ -662,16 +747,73 @@ namespace NeoCompose.Runtime
                         }
                     }
                 }
-                else if (row is ArrayMemberValue arrayRow && arrayRow.value is not null)
-                {
-                    foreach (string childId in arrayRow.value)
-                        if (childId is not null)
-                            parentByValueId.TryAdd(childId, row.id);
-                }
                 if (row.containerId is not null)
                     parentByValueId.TryAdd(row.id, row.containerId);
             }
+            foreach (ArrayMemberValue arrayRow in snapshot.OfType<ArrayMemberValue>())
+            {
+                if (arrayRow.value is null) continue;
+                foreach (string childId in arrayRow.value)
+                {
+                    if (childId is null
+                        || lookupByConflictingArrayId.TryGetValue(
+                            arrayRow.id,
+                            out bool? knownCurrent)
+                        && knownCurrent == true)
+                    {
+                        continue;
+                    }
+                    if (parentByValueId.TryAdd(childId, arrayRow.id)) continue;
+                    if (!parentByValueId.TryGetValue(
+                            childId,
+                            out string? priorParentId)
+                        || priorParentId == arrayRow.id)
+                    {
+                        continue;
+                    }
+                    bool? currentLookup = IsLookup(arrayRow);
+                    bool? priorLookup = arrayById.TryGetValue(
+                            priorParentId,
+                            out ArrayMemberValue? priorArray)
+                        ? IsLookup(priorArray)
+                        : false;
+                    if (priorLookup == true) RemoveTentativeEdges(priorArray!);
+                    if (currentLookup == true) RemoveTentativeEdges(arrayRow);
+                    if (priorLookup == true && currentLookup == false)
+                        parentByValueId[childId] = arrayRow.id;
+                }
+            }
             return parentByValueId;
+
+            bool? IsLookup(ArrayMemberValue array)
+            {
+                if (lookupByConflictingArrayId.TryGetValue(
+                        array.id,
+                        out bool? cached))
+                    return cached;
+                bool? result = TryInferMemberForValueId(
+                        array.id,
+                        out Member? member)
+                    ? member is LookupMember
+                    : null;
+                lookupByConflictingArrayId.Add(array.id, result);
+                return result;
+            }
+
+            void RemoveTentativeEdges(ArrayMemberValue array)
+            {
+                foreach (string valueId in array.value ?? Array.Empty<string>())
+                {
+                    if (valueId is not null
+                        && parentByValueId.TryGetValue(
+                            valueId,
+                            out string? parentId)
+                        && parentId == array.id)
+                    {
+                        parentByValueId.Remove(valueId);
+                    }
+                }
+            }
         }
 
         private static int AuthoredContainmentDepth(
@@ -762,6 +904,26 @@ namespace NeoCompose.Runtime
 
         private void ExpandVirtualInstanceRoot(ObjectMemberValue instanceRoot)
         {
+            if (!replayingVirtualRootIds.Add(instanceRoot.id))
+                throw new InvalidOperationException($"Sparse constructor dependency cycle at '{instanceRoot.id}'.");
+            try { ExpandVirtualInstanceRootCore(instanceRoot); }
+            finally { replayingVirtualRootIds.Remove(instanceRoot.id); }
+        }
+
+        private void EnsureVirtualReplayArgumentReady(string valueId)
+        {
+            if (!virtualInstanceReplayReady || !isReplayingVirtualInstance
+                || valueId == replayingVirtualInstanceRootId) return;
+            if ((data.values.ContainsKey(valueId) || saveData.values.ContainsKey(valueId))
+                && ResolveValueRow(valueId) is ObjectMemberValue root
+                && IsVirtualInstanceRoot(root)
+                && !virtualValueIdsByRoot.ContainsKey(root.id)
+                && CanReplayVirtualInstanceRoot(root))
+                ExpandVirtualInstanceRootOrReport(root, failClosed: true);
+        }
+
+        private void ExpandVirtualInstanceRootCore(ObjectMemberValue instanceRoot)
+        {
             var releasedVirtualIds = new HashSet<string>(StringComparer.Ordinal);
             if (virtualValueIdsByRoot.TryGetValue(
                     instanceRoot.id,
@@ -850,14 +1012,17 @@ namespace NeoCompose.Runtime
                 var claimedVirtualIds = new Dictionary<string, string>(StringComparer.Ordinal);
                 VirtualExpansionNode graph = IndexVirtualExpansion(
                     instanceRoot,
-                    constructed,
+                    expandedRoot,
+                    constructed.member,
                     "$",
-                    claimedVirtualIds);
+                    claimedVirtualIds,
+                    new Dictionary<MemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>>());
                 OverlaySparseInstance(
                     graph,
                     instanceRoot.id,
                     ownership,
                     instanceRoot);
+                IndexConstructorArgumentRows(instanceRoot);
                 // The sweep above only covers ids that were ALREADY virtual.
                 // A member the previous pass found materialized contributed no
                 // prior id, so a pass that turns it back into a virtual one —
@@ -1048,6 +1213,7 @@ namespace NeoCompose.Runtime
                     or MemberKind.Dictionary)
             {
                 string valueId = token.Value<string>()!;
+                EnsureVirtualReplayArgumentReady(valueId);
                 if (!TryGetValue(valueId, out MemberValue? _))
                 {
                     throw new InvalidOperationException(
@@ -1082,6 +1248,7 @@ namespace NeoCompose.Runtime
 
         private object UnwrapVirtualReplayRow(string valueId)
         {
+            EnsureVirtualReplayArgumentReady(valueId);
             if (!TryGetValue(valueId, out MemberValue? row))
             {
                 throw new InvalidOperationException(
@@ -1130,14 +1297,12 @@ namespace NeoCompose.Runtime
 
         private VirtualExpansionNode IndexVirtualExpansion(
             ObjectMemberValue instanceRoot,
-            NeoMember wrapper,
+            MemberValue row,
+            Member member,
             string path,
-            Dictionary<string, string> claimedVirtualIds)
+            Dictionary<string, string> claimedVirtualIds,
+            Dictionary<MemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>> environments)
         {
-            MemberValue row = wrapper.value
-                ?? throw new InvalidOperationException(
-                    $"Virtual expansion path '{path}' has no value row.");
-            Member member = wrapper.member;
             string sourceIdentity = VirtualSourceIdentity(row, member, path);
             string virtualId = path == "$"
                 ? instanceRoot.id
@@ -1159,69 +1324,46 @@ namespace NeoCompose.Runtime
                 virtualId = virtualId,
             };
 
-            if (member is ClassMember classMember
-                && row is ObjectMemberValue classRow
-                && wrapper is NeoMemberClass classNode)
+            // Replay rows live in temporary Session storage, including immutable
+            // members. Read the constructed graph directly: read-only wrappers
+            // select Asset storage and can omit those temporary children.
+            if (member is ClassMember classMember && row is ObjectMemberValue classRow)
             {
-                foreach (var pair in classNode)
+                string classId = classRow.classId ?? classMember.classId;
+                foreach (var entry in ResolveStoredInstanceSchema(classId))
                 {
-                    string childPath = AppendVirtualPath(
-                        path,
-                        "class",
-                        "schemaKey",
-                        pair.Key);
-                    if (pair.Value.value is null) continue;
-                    VirtualExpansionNode child = IndexVirtualExpansion(
-                        instanceRoot,
-                        pair.Value,
-                        childPath,
-                        claimedVirtualIds);
-                    child.parent = node;
-                    node.classChildren[pair.Key] = child;
+                    if (classRow.value is null || !classRow.value.TryGetValue(entry.schemaKey, out string childId)
+                        || !TryGetMember(entry.memberId, out Member? declaration)
+                        || TryResolveOwnedChildMember(classRow, classMember, entry.schemaKey, environments, declaration) is not Member childMember) continue;
+                    node.classChildren[entry.schemaKey] = Child(childId, childMember,
+                        AppendVirtualPath(path, "class", "schemaKey", entry.schemaKey));
                 }
             }
-            else if (member is ListMember
-                && wrapper is NeoMemberList listNode)
+            else if (member is ListMember list && row is ArrayMemberValue array)
             {
+                if (TryResolveCollectionEntryMember(list, row) is not Member entry)
+                    throw new InvalidOperationException($"Missing list entry declaration '{list.entryMemberId}'.");
+                IEnumerable<string> ids = IsUnorderedList(list) ? GetUnorderedListEntryIds(row.id) : array.value ?? Array.Empty<string>();
                 int index = 0;
-                foreach (NeoMember childWrapper in listNode)
-                {
-                    if (childWrapper.value is null) continue;
-                    string childPath = AppendVirtualPath(
-                        path,
-                        "list",
-                        "index",
-                        index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                        numericValue: true);
-                    VirtualExpansionNode child = IndexVirtualExpansion(
-                        instanceRoot,
-                        childWrapper,
-                        childPath,
-                        claimedVirtualIds);
-                    child.parent = node;
-                    node.listChildren.Add(child);
-                    index++;
-                }
+                foreach (string id in ids)
+                    node.listChildren.Add(Child(id, entry, AppendVirtualPath(path, "list", "index",
+                        (index++).ToString(System.Globalization.CultureInfo.InvariantCulture), numericValue: true)));
             }
-            else if (member is DictionaryMember
-                && wrapper is NeoMemberDictionary dictionaryNode)
+            else if (member is DictionaryMember dictionary && row is ObjectMemberValue entries)
             {
-                foreach (var pair in dictionaryNode)
-                {
-                    if (pair.Value.value is null) continue;
-                    string childPath = AppendVirtualPath(
-                        path,
-                        "dictionary",
-                        "key",
-                        pair.Key);
-                    VirtualExpansionNode child = IndexVirtualExpansion(
-                        instanceRoot,
-                        pair.Value,
-                        childPath,
-                        claimedVirtualIds);
-                    child.parent = node;
-                    node.dictionaryChildren[pair.Key] = child;
-                }
+                if (TryResolveCollectionEntryMember(dictionary, row) is not Member entry)
+                    throw new InvalidOperationException($"Missing dictionary entry declaration '{dictionary.entryMemberId}'.");
+                foreach (var pair in entries.value ?? new Dictionary<string, string>())
+                    node.dictionaryChildren[pair.Key] = Child(pair.Value, entry,
+                        AppendVirtualPath(path, "dictionary", "key", pair.Key));
+            }
+            VirtualExpansionNode Child(string id, Member childMember, string childPath)
+            {
+                var child = IndexVirtualExpansion(instanceRoot,
+                    ResolveValueRow(id) ?? throw new InvalidOperationException($"Replay lost child '{id}' at '{childPath}'."),
+                    childMember, childPath, claimedVirtualIds, environments);
+                child.parent = node;
+                return child;
             }
             return node;
         }
@@ -1253,6 +1395,7 @@ namespace NeoCompose.Runtime
                             foreach (var link in
                                 EnumerateConstructorSettledAggregateLinks(
                                     obj,
+                                    node.member,
                                     includeMaterializedChildren: true))
                             {
                                 if (!node.classChildren.TryGetValue(
@@ -1661,6 +1804,7 @@ namespace NeoCompose.Runtime
 
         private void ClearVirtualInstanceRoot(string rootId)
         {
+            RemoveConstructorArgumentRows(rootId);
             if (virtualFootprintByRoot.TryGetValue(
                     rootId,
                     out HashSet<string>? footprint))

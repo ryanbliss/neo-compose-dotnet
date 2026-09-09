@@ -517,6 +517,17 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoMemberString_EmptyPrimaryTextHasNoLocalizationIdentity()
+        {
+            var client = LoadLocalizedStringClient(localized: true, storedValue: "");
+            var member = RequireMember<StringMember>(client, "member-title");
+            var node = new NeoMemberString(client, member, null);
+
+            Assert.IsNull(node.TextId);
+            Assert.AreEqual("", node.Text);
+        }
+
+        [Test]
         public void NeoMemberString_TextKeepsNonLocalizableStringsLiteral()
         {
             var client = LoadLocalizedStringClient(localized: false);
@@ -585,7 +596,7 @@ namespace NeoCompose.Tests
             return NeoTestSaveStack.LoadClient(projectJson, options, source);
         }
 
-        private static NeoClient LoadLocalizedStringClient(bool localized, string initialSave = "")
+        private static NeoClient LoadLocalizedStringClient(bool localized, string initialSave = "", string storedValue = "text-title")
         {
             var projectJson = $@"{{
   ""metadata"": {{
@@ -653,7 +664,7 @@ namespace NeoCompose.Tests
       ""id"": ""title-value"",
       ""createdAt"": ""1970-01-01T00:00:00.000Z"",
       ""updatedAt"": ""1970-01-01T00:00:00.000Z"",
-      ""value"": ""text-title""
+      ""value"": ""{storedValue}""
     }}
   }},
   ""enums"": {{}},
