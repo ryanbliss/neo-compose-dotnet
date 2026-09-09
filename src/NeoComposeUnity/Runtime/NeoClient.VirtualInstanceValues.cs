@@ -140,6 +140,10 @@ namespace NeoCompose.Runtime
         /// </summary>
         private readonly Dictionary<string, HashSet<string>> virtualFootprintByRoot = new();
         private readonly Dictionary<string, string> virtualRootByFootprintId = new();
+        private readonly Dictionary<string, HashSet<string>>
+            constructorArgumentRootsByValueId = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, HashSet<string>>
+            constructorArgumentValueIdsByRoot = new(StringComparer.Ordinal);
         private bool virtualInstanceValuesDirty;
 
         private sealed class VirtualExpansionNode
@@ -323,6 +327,8 @@ namespace NeoCompose.Runtime
             virtualClassChildIdsByRoot.Clear();
             virtualFootprintByRoot.Clear();
             virtualRootByFootprintId.Clear();
+            constructorArgumentRootsByValueId.Clear();
+            constructorArgumentValueIdsByRoot.Clear();
             MemberValue[] allRows = data.values.Values
                 .Concat(saveData.values.Values)
                 .Concat(sessionData.values.Values)
@@ -476,9 +482,11 @@ namespace NeoCompose.Runtime
                     affectedRootIds.Add(owningRootId);
                 }
                 // The row is creation data some root replays against.
-                foreach (string argumentRootId in RootsUsingConstructorArgumentRow(valueId))
+                if (constructorArgumentRootsByValueId.TryGetValue(
+                        valueId,
+                        out HashSet<string>? argumentRootIds))
                 {
-                    affectedRootIds.Add(argumentRootId);
+                    affectedRootIds.UnionWith(argumentRootIds);
                 }
             }
             foreach (string retiredRootId in retiredRootIds)
@@ -513,24 +521,53 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        /// <summary>
-        /// Roots whose <c>constructorArgs</c> name this value id, and which
-        /// therefore replay differently once it changes.
-        /// </summary>
-        private IEnumerable<string> RootsUsingConstructorArgumentRow(string valueId)
+        private void IndexConstructorArgumentRows(ObjectMemberValue root)
         {
-            foreach (string rootId in virtualFootprintByRoot.Keys)
+            RemoveConstructorArgumentRows(root.id);
+            if (root.constructorArgs is null) return;
+            foreach (JToken? argument in root.constructorArgs.Values)
             {
-                if (ResolveValueRow(rootId) is not ObjectMemberValue root) continue;
-                if (root.constructorArgs is null) continue;
-                foreach (JToken? argument in root.constructorArgs.Values)
+                if (argument?.Type != JTokenType.String) continue;
+                string? valueId = argument.Value<string>();
+                if (valueId is null) continue;
+                if (!constructorArgumentRootsByValueId.TryGetValue(
+                        valueId,
+                        out HashSet<string>? roots))
                 {
-                    if (argument is null) continue;
-                    if (argument.Type != JTokenType.String) continue;
-                    if (argument.Value<string>() != valueId) continue;
-                    yield return rootId;
-                    break;
+                    roots = new HashSet<string>(StringComparer.Ordinal);
+                    constructorArgumentRootsByValueId[valueId] = roots;
                 }
+                roots.Add(root.id);
+                if (!constructorArgumentValueIdsByRoot.TryGetValue(
+                        root.id,
+                        out HashSet<string>? valueIds))
+                {
+                    valueIds = new HashSet<string>(StringComparer.Ordinal);
+                    constructorArgumentValueIdsByRoot[root.id] = valueIds;
+                }
+                valueIds.Add(valueId);
+            }
+        }
+
+        private void RemoveConstructorArgumentRows(string rootId)
+        {
+            if (!constructorArgumentValueIdsByRoot.Remove(
+                    rootId,
+                    out HashSet<string>? valueIds))
+            {
+                return;
+            }
+            foreach (string valueId in valueIds)
+            {
+                if (!constructorArgumentRootsByValueId.TryGetValue(
+                        valueId,
+                        out HashSet<string>? roots))
+                {
+                    continue;
+                }
+                roots.Remove(rootId);
+                if (roots.Count == 0)
+                    constructorArgumentRootsByValueId.Remove(valueId);
             }
         }
 
@@ -985,6 +1022,7 @@ namespace NeoCompose.Runtime
                     instanceRoot.id,
                     ownership,
                     instanceRoot);
+                IndexConstructorArgumentRows(instanceRoot);
                 // The sweep above only covers ids that were ALREADY virtual.
                 // A member the previous pass found materialized contributed no
                 // prior id, so a pass that turns it back into a virtual one —
@@ -1766,6 +1804,7 @@ namespace NeoCompose.Runtime
 
         private void ClearVirtualInstanceRoot(string rootId)
         {
+            RemoveConstructorArgumentRows(rootId);
             if (virtualFootprintByRoot.TryGetValue(
                     rootId,
                     out HashSet<string>? footprint))

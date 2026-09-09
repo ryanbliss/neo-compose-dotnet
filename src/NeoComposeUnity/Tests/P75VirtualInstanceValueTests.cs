@@ -1857,6 +1857,96 @@ namespace NeoCompose.Tests
                     .value!.value);
         }
 
+        [Test]
+        public void LiveApplyTracksSharedRetargetedAndRetiredConstructorArgumentRoots()
+        {
+            ProjectData data = BuildLiveConstructorArgumentProjectData();
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            NeoMemberClassWritable thing = client.save
+                .Get<NeoMemberClassWritable>("Thing");
+            NeoMemberClassWritable other = client.save
+                .Get<NeoMemberClassWritable>("Other");
+            Assert.AreEqual("from constructor argument", PayloadName(thing));
+            Assert.AreEqual("from constructor argument", PayloadName(other));
+
+            JObject incoming = JObject.Parse(client.SerializeSaveData());
+            NeoMemberClassWritable heldThingPayload = thing
+                .Get<NeoMemberClassWritable>("Payload");
+            NeoMemberClassWritable heldOtherPayload = other
+                .Get<NeoMemberClassWritable>("Payload");
+            ReplacePayload(incoming, "constructor-payload", "shared-update");
+            client.ApplyExternalSaveContent(incoming.ToString());
+
+            Assert.IsTrue(heldThingPayload.isDisposed);
+            Assert.IsTrue(heldOtherPayload.isDisposed);
+            Assert.AreEqual("shared-update", PayloadName(thing));
+            Assert.AreEqual("shared-update", PayloadName(other));
+
+            incoming = JObject.Parse(client.SerializeSaveData());
+            var retargetedThing = ObjectValue("thing-instance", "thing-class");
+            retargetedThing.instanceConstructorId = "thing-ctor";
+            retargetedThing.constructorArgs = new Dictionary<string, JToken?>
+            {
+                ["__arg_0__"] = "alternate-payload",
+            };
+            retargetedThing.genericBindings = new Dictionary<string, string>(
+                ((ObjectMemberValue)data.values["thing-instance"]).genericBindings!);
+            ((JObject)incoming["values"]!)[retargetedThing.id] =
+                JObject.FromObject(retargetedThing);
+            client.ApplyExternalSaveContent(incoming.ToString());
+
+            heldThingPayload = thing
+                .Get<NeoMemberClassWritable>("Payload");
+            heldOtherPayload = other
+                .Get<NeoMemberClassWritable>("Payload");
+            Assert.AreEqual("alternate", PayloadName(thing));
+
+            incoming = JObject.Parse(client.SerializeSaveData());
+            ReplacePayload(incoming, "constructor-payload", "updated-original");
+            client.ApplyExternalSaveContent(incoming.ToString());
+
+            Assert.IsFalse(
+                heldThingPayload.isDisposed,
+                "Retargeting a root must remove its old constructor-argument edge.");
+            Assert.IsTrue(
+                heldOtherPayload.isDisposed,
+                "Every root sharing the changed argument must be replayed.");
+            Assert.AreEqual("alternate", PayloadName(thing));
+            Assert.AreEqual("updated-original", PayloadName(other));
+
+            heldThingPayload = thing.Get<NeoMemberClassWritable>("Payload");
+            incoming = JObject.Parse(client.SerializeSaveData());
+            ReplacePayload(incoming, "alternate-payload", "updated-alternate");
+            client.ApplyExternalSaveContent(incoming.ToString());
+
+            Assert.IsTrue(
+                heldThingPayload.isDisposed,
+                "A root must follow the constructor-argument edge added by retargeting.");
+            Assert.AreEqual("updated-alternate", PayloadName(thing));
+
+            incoming = JObject.Parse(client.SerializeSaveData());
+            var retiredThing = ObjectValue(
+                "thing-instance",
+                "thing-class",
+                new Dictionary<string, string>
+                {
+                    ["Payload"] = "alternate-payload",
+                });
+            ((JObject)incoming["values"]!)[retiredThing.id] =
+                JObject.FromObject(retiredThing);
+            client.ApplyExternalSaveContent(incoming.ToString());
+            heldThingPayload = thing.Get<NeoMemberClassWritable>("Payload");
+
+            incoming = JObject.Parse(client.SerializeSaveData());
+            ReplacePayload(incoming, "alternate-payload", "after-retirement");
+            client.ApplyExternalSaveContent(incoming.ToString());
+
+            Assert.IsFalse(
+                heldThingPayload.isDisposed,
+                "Retiring a sparse root must remove its constructor-argument edge.");
+        }
+
         private static ProjectData BuildTwoRootProjectData()
         {
             ProjectData data = BuildProjectData();
@@ -1877,6 +1967,87 @@ namespace NeoCompose.Tests
             data.values[other.id] = other;
             ((ObjectMemberValue)data.values["value-save"]).value!["Other"] = other.id;
             return data;
+        }
+
+        private static ProjectData BuildLiveConstructorArgumentProjectData()
+        {
+            ProjectData data = BuildGenericConstructorProjectData();
+            ConstructorRecord constructor = data.constructors["thing-ctor"];
+            data.members["thing-payload"] = new ClassMember
+            {
+                id = "thing-payload",
+                projectId = "p75-project",
+                name = "Payload",
+                kind = MemberKind.Class,
+                classId = "payload-class",
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    init = ReturnVariableInitializer(
+                        "Payload",
+                        ClassType("payload-class"),
+                        constructor.action!.parameters,
+                        "__arg_0__"),
+                },
+            };
+            data.classes["save-root-class"].schema["Other"] = "other-member";
+            data.members["other-member"] = new ClassMember
+            {
+                id = "other-member",
+                projectId = "p75-project",
+                name = "Other",
+                kind = MemberKind.Class,
+                classId = "thing-class",
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Save,
+            };
+            var other = ObjectValue("other-instance", "thing-class");
+            other.instanceConstructorId = "thing-ctor";
+            other.constructorArgs = new Dictionary<string, JToken?>
+            {
+                ["__arg_0__"] = "constructor-payload",
+            };
+            other.genericBindings = new Dictionary<string, string>(
+                ((ObjectMemberValue)data.values["thing-instance"]).genericBindings!);
+            data.values[other.id] = other;
+            ((ObjectMemberValue)data.values["value-save"]).value!["Other"] =
+                other.id;
+            data.values["alternate-payload"] = ObjectValue(
+                "alternate-payload",
+                "payload-class",
+                new Dictionary<string, string>
+                {
+                    ["Name"] = "alternate-payload-name",
+                });
+            data.values["alternate-payload-name"] = new StringMemberValue
+            {
+                id = "alternate-payload-name",
+                value = "alternate",
+            };
+            return data;
+        }
+
+        private static string? PayloadName(NeoMemberClassWritable root) =>
+            root.Get<NeoMemberClassWritable>("Payload")
+                .Get<NeoMemberStringWritable>("Name")
+                .value!.value;
+
+        private static void ReplacePayload(
+            JObject save,
+            string payloadId,
+            string text)
+        {
+            string nameId = $"{payloadId}-live-name-{text}";
+            var values = (JObject)save["values"]!;
+            values[payloadId] = JObject.FromObject(ObjectValue(
+                payloadId,
+                "payload-class",
+                new Dictionary<string, string> { ["Name"] = nameId }));
+            values[nameId] = JObject.FromObject(new StringMemberValue
+            {
+                id = nameId,
+                value = text,
+            });
         }
 
         private static void UsePlacementGenericBinding(ProjectData data)
