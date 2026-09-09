@@ -984,7 +984,11 @@ namespace NeoCompose.Runtime
             replayingVirtualInstanceClassId = instanceRoot.classId;
             replayingVirtualInstanceClassArguments = replayClassArguments;
             replayingVirtualInstanceGenericBindings = instanceRoot.genericBindings;
-            replayingVirtualInstancePreexistingSessionValueIds = before;
+            // Nested replay starts after the outer constructor published its
+            // temporary Session graph. Keep the outer boundary so those rows
+            // still await their remaining member initializers.
+            if (!wasReplaying)
+                replayingVirtualInstancePreexistingSessionValueIds = before;
             try
             {
                 constructed = ReplayVirtualInstance(
