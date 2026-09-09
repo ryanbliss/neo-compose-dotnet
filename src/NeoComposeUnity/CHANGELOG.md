@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Nested values created during sparse constructor replay wait for their computed
+  children before the SDK binds them, fixing Neowyn project initialization.
+
 - Fully sparse constructed values replay inherited initializers and computed
   children with their recorded constructor arguments and collection ownership.
 - Generic ownership traversal distinguishes owned aggregates from Lookup targets

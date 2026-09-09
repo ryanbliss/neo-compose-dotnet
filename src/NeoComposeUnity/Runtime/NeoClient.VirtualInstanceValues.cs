@@ -98,12 +98,22 @@ namespace NeoCompose.Runtime
         private bool virtualInstanceReplayReady;
 
         private int awaitingVirtualInstanceChildDepth;
+        // Constructor replay publishes a temporary Session graph before all
+        // member initializers have run. Only rows allocated after this
+        // snapshot may defer a missing computed child; a preexisting sibling
+        // read during the same initializer must keep its ordinary behavior.
+        private HashSet<string>? replayingVirtualInstancePreexistingSessionValueIds;
 
         internal bool IsAwaitingVirtualInstanceInitializers(
             ObjectMemberValue? row) =>
-            !virtualInstanceReplayReady
-            && (awaitingVirtualInstanceChildDepth > 0
-                || (row is not null && IsVirtualInstanceRoot(row)));
+            (isReplayingVirtualInstance
+                && row is not null
+                && sessionData.values.ContainsKey(row.id)
+                && replayingVirtualInstancePreexistingSessionValueIds is not null
+                && !replayingVirtualInstancePreexistingSessionValueIds.Contains(row.id))
+            || (!virtualInstanceReplayReady
+                && (awaitingVirtualInstanceChildDepth > 0
+                    || (row is not null && IsVirtualInstanceRoot(row))));
 
         internal VirtualInstanceChildConstructionScope EnterVirtualInstanceChildConstruction(
             ObjectMemberValue? row)
@@ -967,11 +977,14 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, string>?
                 previousReplayingGenericBindings =
                     replayingVirtualInstanceGenericBindings;
+            HashSet<string>? previousPreexistingSessionValueIds =
+                replayingVirtualInstancePreexistingSessionValueIds;
             isReplayingVirtualInstance = true;
             replayingVirtualInstanceRootId = instanceRoot.id;
             replayingVirtualInstanceClassId = instanceRoot.classId;
             replayingVirtualInstanceClassArguments = replayClassArguments;
             replayingVirtualInstanceGenericBindings = instanceRoot.genericBindings;
+            replayingVirtualInstancePreexistingSessionValueIds = before;
             try
             {
                 constructed = ReplayVirtualInstance(
@@ -994,6 +1007,8 @@ namespace NeoCompose.Runtime
                     previousReplayingClassArguments;
                 replayingVirtualInstanceGenericBindings =
                     previousReplayingGenericBindings;
+                replayingVirtualInstancePreexistingSessionValueIds =
+                    previousPreexistingSessionValueIds;
             }
 
             string temporaryRootId = constructed.value?.id
