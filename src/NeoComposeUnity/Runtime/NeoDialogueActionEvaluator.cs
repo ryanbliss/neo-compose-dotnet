@@ -162,27 +162,28 @@ namespace NeoCompose.Runtime
             return new PreparedCallback(client, body, ctx, options);
         }
 
+        /// <summary>
+        /// Every executed body must be stamped with exactly
+        /// <see cref="FunctionWithReturnType.CurrentCompilerRevision"/>. The
+        /// deployment recompiles its whole fleet on every revision bump, so a
+        /// stale or missing stamp means the export and this SDK disagree about
+        /// the IR contract rather than that an old-but-valid body is running.
+        /// </summary>
         private static void ValidateBodyForExecution(
             FunctionWithReturnType body)
         {
-            int compilerRevision = body.compilerRevision ?? 1;
-            if (compilerRevision < 1
-                || compilerRevision > FunctionWithReturnType.CurrentCompilerRevision)
+            if (body.compilerRevision is null)
             {
                 throw new NeoScriptPreExecutionValidationError(
-                    $"Unsupported NeoScript compiler revision {compilerRevision}; this runtime supports revisions 1 through {FunctionWithReturnType.CurrentCompilerRevision}.");
+                    $"NeoScript body carries no compiler revision stamp; this SDK executes only revision {FunctionWithReturnType.CurrentCompilerRevision}. Re-export the project from a Neo Compose deployment at revision {FunctionWithReturnType.CurrentCompilerRevision}.");
+            }
+            if (body.compilerRevision.Value
+                != FunctionWithReturnType.CurrentCompilerRevision)
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    $"NeoScript body is stamped compiler revision {body.compilerRevision.Value}; this SDK executes only revision {FunctionWithReturnType.CurrentCompilerRevision}. Re-export the project from a deployment at revision {FunctionWithReturnType.CurrentCompilerRevision}, or install the SDK release that matches the export.");
             }
             ValidateControlFlowInstructionMetadata(body.instructions);
-            if (compilerRevision < FunctionWithReturnType.CurrentCompilerRevision)
-            {
-                IrDiscriminatorVerdict verdict = IrDiscriminatorVerdictFor(
-                    body.instructions);
-                if (compilerRevision < verdict.minimumCompilerRevision)
-                {
-                    throw new NeoScriptPreExecutionValidationError(
-                        $"NeoScript {verdict.minimumRevisionFeature} IR requires compiler revision {verdict.minimumCompilerRevision}; body declares revision {compilerRevision}.");
-                }
-            }
         }
 
         /// <summary>
@@ -264,152 +265,6 @@ namespace NeoCompose.Runtime
                     client,
                     ctx,
                     ownerTerminal);
-            }
-        }
-
-        /// <summary>
-        /// What one JToken pass over a compiled body found. Every stale-body
-        /// revision gate reads it, and it is computed once per instruction
-        /// array: a body is deserialized once and then invoked arbitrarily
-        /// often — per frame, for an animation setter — so re-serializing the
-        /// whole IR tree on each call would be pure allocation churn. Spec §7
-        /// promises no fleet recompile, so the pre-revision-8 bodies that trip
-        /// these gates are the common case, not an edge case.
-        /// </summary>
-        private sealed class IrDiscriminatorVerdict
-        {
-            internal int minimumCompilerRevision = 1;
-            internal string minimumRevisionFeature = "baseline";
-
-            internal void Require(int revision, string feature)
-            {
-                if (revision <= minimumCompilerRevision) return;
-                minimumCompilerRevision = revision;
-                minimumRevisionFeature = feature;
-            }
-        }
-
-        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
-            Instruction[],
-            IrDiscriminatorVerdict> IrDiscriminatorVerdicts = new();
-
-        /// <summary>
-        /// How many JToken passes an instruction array has paid. Zero until
-        /// the first gated execution; never more than one thereafter.
-        /// </summary>
-        internal static int IrDiscriminatorScanCount(Instruction[] instructions) =>
-            IrDiscriminatorVerdicts.TryGetValue(instructions, out _) ? 1 : 0;
-
-        private static IrDiscriminatorVerdict IrDiscriminatorVerdictFor(
-            Instruction[]? instructions)
-        {
-            if (instructions is null || instructions.Length == 0)
-            {
-                return EmptyIrDiscriminatorVerdict;
-            }
-            if (IrDiscriminatorVerdicts.TryGetValue(
-                    instructions,
-                    out IrDiscriminatorVerdict? cached))
-            {
-                return cached;
-            }
-            var verdict = new IrDiscriminatorVerdict();
-            JContainer body = (JContainer)JToken.FromObject(instructions);
-            foreach (JObject node in CompilerIrObjects(body))
-            {
-                string? type = node["type"]?.Value<string>();
-                ObserveRevisionRequirement(verdict, type, node);
-            }
-            // A concurrent first execution of the same body may have raced us
-            // here; either verdict is the same answer, so keep whichever
-            // landed first.
-            return IrDiscriminatorVerdicts.GetValue(instructions, _ => verdict);
-        }
-
-        private static IEnumerable<JObject> CompilerIrObjects(JToken token)
-        {
-            if (token is JArray array)
-            {
-                foreach (JToken child in array.Children())
-                {
-                    foreach (JObject nested in CompilerIrObjects(child))
-                    {
-                        yield return nested;
-                    }
-                }
-                yield break;
-            }
-            if (token is not JObject obj) yield break;
-            yield return obj;
-            bool isLiteralValue = obj.Property("type") is null
-                && obj.Property("typeInfo") is not null
-                && obj.Property("value") is not null;
-            foreach (JProperty property in obj.Properties())
-            {
-                if (isLiteralValue && property.Name == "value") continue;
-                foreach (JObject nested in CompilerIrObjects(property.Value))
-                {
-                    yield return nested;
-                }
-            }
-        }
-
-        private static readonly IrDiscriminatorVerdict EmptyIrDiscriminatorVerdict =
-            new();
-
-        private static void ObserveRevisionRequirement(
-            IrDiscriminatorVerdict verdict,
-            string? type,
-            JObject node)
-        {
-            switch (type)
-            {
-                case InstructionKind.For:
-                case InstructionKind.ForEach:
-                case InstructionKind.Break:
-                case InstructionKind.Continue:
-                    verdict.Require(4, "loop");
-                    return;
-                case InstructionKind.Switch:
-                    verdict.Require(5, "switch");
-                    return;
-                case InstructionKind.Try:
-                    verdict.Require(6, "try/catch");
-                    return;
-                case PointerKind.CallDelegate:
-                    verdict.Require(7, "delegate-call");
-                    return;
-                case PointerKind.CallAction:
-                case InstructionKind.AddActionListener:
-                case InstructionKind.RemoveActionListener:
-                    verdict.Require(8, "NSAction");
-                    return;
-                case PointerKind.Conditional:
-                    verdict.Require(12, "conditional");
-                    return;
-                case PointerKind.DelegateClosure:
-                    verdict.Require(12, "captured-closure");
-                    return;
-                case PointerKind.CallFunction:
-                    if (string.Equals(
-                            node["missingMemberFallback"]?.Value<string>(),
-                            "valueEquality",
-                            StringComparison.Ordinal))
-                    {
-                        verdict.Require(12, "generic-Equals");
-                    }
-                    return;
-                case FunctionKind.IndexOf:
-                    verdict.Require(13, "IndexOf");
-                    return;
-                case FunctionKind.Count:
-                    JToken? countPredicate = node["info"]?["function"];
-                    if (countPredicate is not null
-                        && countPredicate.Type != JTokenType.Null)
-                    {
-                        verdict.Require(13, "predicate-Count");
-                    }
-                    return;
             }
         }
 

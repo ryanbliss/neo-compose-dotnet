@@ -1453,7 +1453,7 @@ namespace NeoCompose.Tests
                     code = $"() => Reference(id: \"{selectedValueId}\", withProvenance: true)",
                     action = new FunctionWithReturnType
                     {
-                        compilerRevision = 7,
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                         parameters = new[]
                         {
                             AnimationEnvelopeVariable("__this__"),

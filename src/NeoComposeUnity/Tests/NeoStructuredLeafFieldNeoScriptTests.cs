@@ -498,6 +498,7 @@ namespace NeoCompose.Tests
         {
             return new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 instructions = instructions,
                 typeInfo = new PrimitiveTypeInfo

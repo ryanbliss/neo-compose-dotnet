@@ -25,7 +25,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""for consumes continue and break while updating an outer local"",
       ""getter"": {
-        ""compilerRevision"": 4,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -243,7 +243,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""reverse for loop executes its decrement iterator"",
       ""getter"": {
-        ""compilerRevision"": 4,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -420,7 +420,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""false initial condition consumes no iteration"",
       ""getter"": {
-        ""compilerRevision"": 4,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -567,7 +567,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""foreach snapshots list membership and preserves order under remove"",
       ""getter"": {
-        ""compilerRevision"": 4,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -757,7 +757,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""foreach dictionary binds values in collection order"",
       ""getter"": {
-        ""compilerRevision"": 4,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -936,7 +936,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""return escapes nested loops"",
       ""getter"": {
-        ""compilerRevision"": 4,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -1096,7 +1096,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""nested loops share the top-level iteration budget"",
       ""getter"": {
-        ""compilerRevision"": 4,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -1284,7 +1284,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""foreach dictionary uses JavaScript Object.values order for numeric-like keys"",
       ""getter"": {
-        ""compilerRevision"": 4,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -1460,7 +1460,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""foreach over an empty collection consumes no iteration"",
       ""getter"": {
-        ""compilerRevision"": 4,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -1534,7 +1534,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""foreach iterates a hand-authored derived Where collection"",
       ""getter"": {
-        ""compilerRevision"": 4,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -1617,7 +1617,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 4,
+                    ""compilerRevision"": 13,
                     ""parameters"": [
                       {
                         ""id"": ""value"",
@@ -1739,7 +1739,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""foreach evaluates its derived collection receiver exactly once"",
       ""getter"": {
-        ""compilerRevision"": 4,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -1802,7 +1802,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 4,
+                    ""compilerRevision"": 13,
                     ""parameters"": [
                       {
                         ""id"": ""value"",
@@ -1983,7 +1983,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""throw escapes a foreach body without visiting later entries"",
       ""getter"": {
-        ""compilerRevision"": 4,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -2078,7 +2078,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""foreach consumes ordered values through the Lookup collection contract"",
       ""getter"": {
-        ""compilerRevision"": 4,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -2267,7 +2267,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""switch matches an int stacked label and only the selected section writes"",
       ""getter"": {
-        ""compilerRevision"": 5,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -2446,7 +2446,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""switch matches a string label and propagates return"",
       ""getter"": {
-        ""compilerRevision"": 5,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -2546,7 +2546,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""switch matches a bool label"",
       ""getter"": {
-        ""compilerRevision"": 5,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -2646,7 +2646,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""switch matches an enum label by normalized option"",
       ""getter"": {
-        ""compilerRevision"": 5,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -2750,7 +2750,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""switch matches null for an optional selector"",
       ""getter"": {
-        ""compilerRevision"": 5,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -2850,7 +2850,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""switch matches null for an optional int selector"",
       ""getter"": {
-        ""compilerRevision"": 5,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -2950,7 +2950,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""switch runs default when no case matches"",
       ""getter"": {
-        ""compilerRevision"": 5,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -3024,7 +3024,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""switch without default falls through when no case matches"",
       ""getter"": {
-        ""compilerRevision"": 5,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -3125,7 +3125,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""switch consumes break and propagates continue to its enclosing for loop"",
       ""getter"": {
-        ""compilerRevision"": 5,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -3331,7 +3331,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""switch propagates throw from the selected section"",
       ""getter"": {
-        ""compilerRevision"": 5,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -3405,7 +3405,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""switch evaluates its derived selector exactly once"",
       ""getter"": {
-        ""compilerRevision"": 5,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -3444,7 +3444,7 @@ namespace NeoCompose.Tests
                           ]
                         },
                         ""function"": {
-                          ""compilerRevision"": 4,
+                          ""compilerRevision"": 13,
                           ""parameters"": [
                             {
                               ""id"": ""value"",
@@ -3623,7 +3623,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""switch-in-switch consumes inner break before completing the outer section"",
       ""getter"": {
-        ""compilerRevision"": 5,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -3799,7 +3799,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""loop-in-switch consumes loop break before completing the selected section"",
       ""getter"": {
-        ""compilerRevision"": 5,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -4039,7 +4039,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""try-inside-switch catches an authored error before the section breaks"",
       ""getter"": {
-        ""compilerRevision"": 6,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -4173,7 +4173,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""try selects the first true filter and skips later clauses"",
       ""getter"": {
-        ""compilerRevision"": 6,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -4383,7 +4383,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""try continues past false filters and the fallback catches"",
       ""getter"": {
-        ""compilerRevision"": 6,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -4537,7 +4537,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""try propagates the original error when no catch matches"",
       ""getter"": {
-        ""compilerRevision"": 6,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -4628,7 +4628,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""try treats a catchable filter error as false and preserves the original"",
       ""getter"": {
-        ""compilerRevision"": 6,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -4809,7 +4809,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""an error in a selected catch escapes siblings to an enclosing try"",
       ""getter"": {
-        ""compilerRevision"": 6,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -4951,7 +4951,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""return propagates through try without entering catches"",
       ""getter"": {
-        ""compilerRevision"": 6,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -5023,7 +5023,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""break and continue propagate through try to the enclosing for loop"",
       ""getter"": {
-        ""compilerRevision"": 6,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -5285,7 +5285,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""writes completed before a caught error remain visible"",
       ""getter"": {
-        ""compilerRevision"": 6,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -5382,7 +5382,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""try catches a deliberate arithmetic runtime error with its exact message"",
       ""getter"": {
-        ""compilerRevision"": 6,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {
@@ -5489,7 +5489,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""try preserves an empty thrown message"",
       ""getter"": {
-        ""compilerRevision"": 6,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [
           {

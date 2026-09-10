@@ -176,8 +176,7 @@ namespace NeoCompose.Tests
                                 code = "new()",
                                 compiled = new FunctionWithReturnType
                                 {
-                                    compilerRevision =
-                                        FunctionWithReturnType.CurrentCompilerRevision,
+                                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                                     parameters = Array.Empty<Variable>(),
                                     typeInfo = ChainType(index + 1),
                                     instructions = new Instruction[]

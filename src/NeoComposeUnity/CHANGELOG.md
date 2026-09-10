@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** compiled NeoScript bodies must be stamped at compiler revision
+  13 exactly. The runtime no longer accepts a range of older revisions or an
+  absent stamp, and the per-instruction minimum-revision scan is gone: a stale
+  or unstamped body is rejected before execution with a message naming the
+  revision to re-export from. Deployments recompile their whole fleet on a
+  revision bump, so every executed body carries the current stamp.
+
 ### Fixed
 
 - Nested values created during sparse constructor replay wait for their computed

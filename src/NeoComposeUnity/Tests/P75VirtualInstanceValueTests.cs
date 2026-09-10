@@ -1444,6 +1444,7 @@ namespace NeoCompose.Tests
             ctx = ctx.WithRoot(root);
             var action = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = System.Array.Empty<Variable>(),
                 typeInfo = new PrimitiveTypeInfo
                 {
@@ -2927,8 +2928,7 @@ namespace NeoCompose.Tests
             code = code,
             compiled = new FunctionWithReturnType
             {
-                compilerRevision =
-                    FunctionWithReturnType.CurrentCompilerRevision,
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = parameters,
                 typeInfo = typeInfo,
                 instructions = new Instruction[]
@@ -3039,8 +3039,7 @@ namespace NeoCompose.Tests
                     code = value.ToString(),
                     compiled = new FunctionWithReturnType
                     {
-                        compilerRevision =
-                            FunctionWithReturnType.CurrentCompilerRevision,
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                         parameters = Array.Empty<Variable>(),
                         typeInfo = IntTypeInfo(),
                         instructions = new Instruction[]

@@ -168,6 +168,7 @@ namespace NeoCompose.Tests
             };
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 typeInfo = new PrimitiveTypeInfo
                 {
@@ -238,6 +239,7 @@ namespace NeoCompose.Tests
             bool select = callbackKind == FunctionKind.Select;
             var predicate = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new[]
                 {
                     new Variable
@@ -388,6 +390,7 @@ namespace NeoCompose.Tests
                 : callbackPointer;
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 typeInfo = intType,
                 instructions = new Instruction[]
@@ -459,6 +462,7 @@ namespace NeoCompose.Tests
                 };
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 typeInfo = optionalString,
                 instructions = new Instruction[]
@@ -534,6 +538,7 @@ namespace NeoCompose.Tests
                     };
                     predicate = new FunctionWithReturnType
                     {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                         parameters = new[] { parameter },
                         typeInfo = new PrimitiveTypeInfo
                         {
@@ -568,6 +573,7 @@ namespace NeoCompose.Tests
                 }
                 return new FunctionWithReturnType
                 {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                     parameters = Array.Empty<Variable>(),
                     typeInfo = stringType,
                     instructions = new Instruction[]
@@ -1097,6 +1103,7 @@ namespace NeoCompose.Tests
             var ctx = new NSGetterEvaluator.Context(client, null, null);
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 typeInfo = new CollectionTypeInfo
                 {
@@ -1148,6 +1155,7 @@ namespace NeoCompose.Tests
                 OwnedChildConstructorPointer("nested"));
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 typeInfo = OwnedChildType(),
                 instructions = new Instruction[]
@@ -1426,6 +1434,7 @@ namespace NeoCompose.Tests
             };
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 typeInfo = OwnedParentClass(),
                 instructions = new Instruction[]
@@ -1786,6 +1795,7 @@ namespace NeoCompose.Tests
             ctx = ctx.WithThis(exactSaveReference);
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 typeInfo = OwnedParentClass(),
                 instructions = new Instruction[]
@@ -1999,6 +2009,7 @@ namespace NeoCompose.Tests
             };
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 typeInfo = resultType,
                 instructions = new Instruction[]
@@ -2058,6 +2069,7 @@ namespace NeoCompose.Tests
                 NSGetterEvaluator.Evaluate(
                     new FunctionWithReturnType
                     {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                         parameters = Array.Empty<Variable>(),
                         typeInfo = openType,
                         instructions = new Instruction[]
@@ -2235,6 +2247,7 @@ namespace NeoCompose.Tests
             };
             var function = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 typeInfo = ProfileType(),
                 instructions = new Instruction[]
@@ -2478,6 +2491,7 @@ namespace NeoCompose.Tests
             int rowsBefore = client.sessionValues.Count;
             var body = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 typeInfo = new VoidTypeInfo
                 {
@@ -3136,6 +3150,7 @@ namespace NeoCompose.Tests
         {
             return new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 typeInfo = ProfileType(),
                 instructions = new Instruction[]
@@ -3154,6 +3169,7 @@ namespace NeoCompose.Tests
         {
             return new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 typeInfo = new PrimitiveTypeInfo
                 {
@@ -3183,6 +3199,7 @@ namespace NeoCompose.Tests
                 Dispatch = deferred ? NeoFunctionDispatchKind.Asynchronous : NeoFunctionDispatchKind.Synchronous,
                 action = new FunctionWithReturnType
                 {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                     parameters = new[]
                     {
                         new Variable

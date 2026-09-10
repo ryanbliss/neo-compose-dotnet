@@ -391,11 +391,12 @@ namespace NeoCompose.Runtime.Json
     public class FunctionWithReturnType
     {
         /// <summary>
-        /// Latest NeoScript compiler revision understood by this runtime.
-        /// Revision 1 is the legacy unstamped wire shape; revision 2 pins
-        /// declaration member ids on member pointers; revision 3 adds the
-        /// P43 <c>declaredConstructor</c> function kind; revision 4 adds
-        /// P50 loop and loop-control instructions; revision 5 adds the P51
+        /// The only NeoScript compiler revision this runtime executes.
+        /// Revision history: revision 1 is the original wire shape;
+        /// revision 2 pins declaration member ids on member pointers;
+        /// revision 3 adds the P43 <c>declaredConstructor</c> function kind;
+        /// revision 4 adds P50 loop and loop-control instructions;
+        /// revision 5 adds the P51
         /// <c>switch</c> instruction; revision 6 adds the P52
         /// <c>try</c> instruction; revision 7 adds first-class delegate calls;
         /// revision 8 adds the P62 NSAction listener instructions and the
@@ -411,8 +412,12 @@ namespace NeoCompose.Runtime.Json
         public const int CurrentCompilerRevision = 13;
 
         /// <summary>
-        /// Optional for backward compatibility. Absence means legacy
-        /// compiler revision 1.
+        /// Required on every body this runtime executes: it must equal
+        /// <see cref="CurrentCompilerRevision"/> exactly. Nullable only
+        /// because the JSON wire shape may omit the property; an absent stamp
+        /// is rejected at execution rather than treated as an older revision.
+        /// Every revision bump recompiles the whole deployment fleet, so a
+        /// stale stamp means the export predates this SDK.
         /// </summary>
         public int? compilerRevision;
         public Variable[] parameters = null!;

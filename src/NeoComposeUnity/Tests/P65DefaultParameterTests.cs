@@ -555,6 +555,7 @@ namespace NeoCompose.Tests
             if (argumentCount >= 2) args.Add(Text("?"));
             return new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 typeInfo = StringType(),
                 instructions = new Instruction[]
@@ -900,6 +901,7 @@ namespace NeoCompose.Tests
                 Dispatch = NeoFunctionDispatchKind.Synchronous,
                 action = new FunctionWithReturnType
                 {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                     parameters = parameters,
                     instructions = instructions,
                     typeInfo = returnType,

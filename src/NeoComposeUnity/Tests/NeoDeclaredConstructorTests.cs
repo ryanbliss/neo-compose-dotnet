@@ -84,6 +84,7 @@ namespace NeoCompose.Tests
             };
             var body = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 typeInfo = stringType,
                 instructions = new Instruction[]
@@ -531,6 +532,7 @@ namespace NeoCompose.Tests
             object? result = NSGetterEvaluator.Evaluate(
                 new FunctionWithReturnType
                 {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                     parameters = Array.Empty<Variable>(),
                     typeInfo = new PrimitiveTypeInfo
                     {
@@ -958,8 +960,7 @@ namespace NeoCompose.Tests
                 NSGetterEvaluator.Evaluate(
                     new FunctionWithReturnType
                     {
-                        compilerRevision =
-                            FunctionWithReturnType.CurrentCompilerRevision,
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                         parameters = Array.Empty<Variable>(),
                         typeInfo = ClassType("gear-class"),
                         instructions = new Instruction[]

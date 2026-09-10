@@ -241,6 +241,7 @@ namespace NeoCompose.Tests
 
         private static FunctionWithReturnType EmptyCallback() => new()
         {
+            compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
             parameters = Array.Empty<Variable>(),
             typeInfo = new VoidTypeInfo
             {
@@ -252,6 +253,7 @@ namespace NeoCompose.Tests
 
         private static FunctionWithReturnType OneInstructionCallback() => new()
         {
+            compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
             parameters = Array.Empty<Variable>(),
             typeInfo = RequiredType(MemberKind.Bool),
             instructions = new Instruction[]
@@ -275,6 +277,7 @@ namespace NeoCompose.Tests
             }
             return new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 typeInfo = RequiredType(MemberKind.String),
                 instructions = new Instruction[]

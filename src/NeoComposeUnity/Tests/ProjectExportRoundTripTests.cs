@@ -197,6 +197,7 @@ namespace NeoCompose.Tests
                 returnTypeInfo = typeInfo,
                 getter = new FunctionWithReturnType
                 {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                     parameters = System.Array.Empty<Variable>(),
                     instructions = System.Array.Empty<Instruction>(),
                     typeInfo = typeInfo,
@@ -204,6 +205,7 @@ namespace NeoCompose.Tests
                 setterCode = "root.Save.Score = value;",
                 setter = new FunctionWithReturnType
                 {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                     parameters = System.Array.Empty<Variable>(),
                     instructions = new Instruction[]
                     {
@@ -319,7 +321,7 @@ namespace NeoCompose.Tests
     ""init"": {
       ""code"": ""StaticFunc(\""bar\"")"",
       ""compiled"": {
-        ""compilerRevision"": 3,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 3, ""required"": true }
@@ -334,7 +336,7 @@ namespace NeoCompose.Tests
 
             Assert.IsNotNull(member.defaultValue!.init);
             Assert.AreEqual("StaticFunc(\"bar\")", member.defaultValue.init!.code);
-            Assert.AreEqual(3, member.defaultValue.init.compiled!.compilerRevision);
+            Assert.AreEqual(13, member.defaultValue.init.compiled!.compilerRevision);
             Assert.IsNull(member.defaultValue.value);
             Assert.IsNull(member.defaultValue.classId);
         }
@@ -547,14 +549,14 @@ namespace NeoCompose.Tests
       ""argumentTypes"": [{ ""name"": ""AllCaps"", ""type"": 1, ""required"": true }],
       ""code"": ""\t\tif (AllCaps) {\n\t\t\tthis.Bar = \""BAR\"";\n\t\t}"",
       ""action"": {
-        ""compilerRevision"": 3,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 0, ""required"": true }
       },
       ""baseArguments"": [{ ""name"": ""Seed"", ""code"": ""AllCaps"" }],
       ""compiledBaseArguments"": [{
-        ""compilerRevision"": 3,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 1, ""required"": true }
@@ -615,14 +617,14 @@ namespace NeoCompose.Tests
       ""argumentTypes"": [{ ""name"": ""bar"", ""type"": 3, ""required"": true }],
       ""code"": """",
       ""action"": {
-        ""compilerRevision"": 3,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 0, ""required"": true }
       },
       ""baseInitializerFields"": [{ ""name"": ""Bar"", ""code"": ""bar"" }],
       ""compiledBaseInitializerFields"": [{
-        ""compilerRevision"": 3,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 3, ""required"": true }
@@ -681,7 +683,7 @@ namespace NeoCompose.Tests
       ""argumentTypes"": [{ ""name"": ""bar"", ""type"": 3, ""required"": true }],
       ""code"": null,
       ""action"": {
-        ""compilerRevision"": 3,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 0, ""required"": true }
@@ -695,7 +697,7 @@ namespace NeoCompose.Tests
       ""classId"": ""class-bar"",
       ""argumentTypes"": [],
       ""action"": {
-        ""compilerRevision"": 3,
+        ""compilerRevision"": 13,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 0, ""required"": true }

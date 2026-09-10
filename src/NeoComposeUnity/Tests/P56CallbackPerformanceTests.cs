@@ -127,6 +127,7 @@ namespace NeoCompose.Tests
             Pointer entry = StringValue("entry");
             var callback = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new[]
                 {
                     new Variable

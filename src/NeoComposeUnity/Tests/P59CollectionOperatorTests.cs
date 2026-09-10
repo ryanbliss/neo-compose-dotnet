@@ -224,27 +224,6 @@ namespace NeoCompose.Tests
                 JsonConvert.SerializeObject(indexOf));
         }
 
-        [Test]
-        public void RevisionGateRequiresThirteenForIndexOfAndPredicateCountOnly()
-        {
-            Pointer source = Collection(false, ("0", "keep"));
-            Assert.DoesNotThrow(() => EvaluateBody(Count(source), 12));
-
-            var countError = Assert.Throws<NeoScriptPreExecutionValidationError>(
-                () => EvaluateBody(
-                    Count(source, Callback(CallbackKind.MatchKeep)),
-                    12));
-            StringAssert.Contains(
-                "predicate-Count IR requires compiler revision 13",
-                countError!.Message);
-
-            var indexError = Assert.Throws<NeoScriptPreExecutionValidationError>(
-                () => EvaluateBody(IndexOf(source, Text("keep")), 12));
-            StringAssert.Contains(
-                "IndexOf IR requires compiler revision 13",
-                indexError!.Message);
-        }
-
         [TestCase(false, false)]
         [TestCase(false, true)]
         [TestCase(true, false)]
@@ -288,6 +267,7 @@ namespace NeoCompose.Tests
                 callbackKind);
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
                 typeInfo = dictionary
                     && callbackKind != CallbackKind.Select
@@ -394,19 +374,6 @@ namespace NeoCompose.Tests
                 pointer,
                 new Dictionary<string, object?>(),
                 context);
-        }
-
-        private static object? EvaluateBody(Pointer pointer, int compilerRevision)
-        {
-            return NSGetterEvaluator.Evaluate(
-                new FunctionWithReturnType
-                {
-                    compilerRevision = compilerRevision,
-                    parameters = Array.Empty<Variable>(),
-                    typeInfo = IntType(),
-                    instructions = new Instruction[] { Return(pointer) },
-                },
-                new NSGetterEvaluator.Context(BuildClient(), null, null));
         }
 
         private static Pointer BuildOperator(
@@ -524,6 +491,7 @@ namespace NeoCompose.Tests
             };
             return new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new[] { entry },
                 typeInfo = kind is CallbackKind.Select
                     or CallbackKind.ThrowSelect
@@ -532,12 +500,6 @@ namespace NeoCompose.Tests
                 instructions = instructions,
             };
         }
-
-        private static PrimitiveTypeInfo IntType() => new()
-        {
-            type = MemberKind.Int,
-            required = true,
-        };
 
         private static Pointer Collection(
             bool dictionary,

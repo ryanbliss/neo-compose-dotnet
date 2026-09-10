@@ -69,8 +69,7 @@ namespace NeoCompose.Tests
         {
             CallbackProfile profile = BuildProfile(dictionary: false);
             FunctionWithReturnType callback = WhereCallback(profile.Getter);
-            callback.compilerRevision =
-                FunctionWithReturnType.CurrentCompilerRevision + 1;
+            callback.compilerRevision = FunctionWithReturnType.CurrentCompilerRevision + 1;
             callback.instructions = new Instruction[]
             {
                 new ThrowInstruction
@@ -89,7 +88,10 @@ namespace NeoCompose.Tests
                             null,
                             null)))!;
 
-            StringAssert.Contains("Unsupported NeoScript compiler revision", error.Message);
+            StringAssert.Contains(
+                "is stamped compiler revision "
+                    + (FunctionWithReturnType.CurrentCompilerRevision + 1),
+                error.Message);
             StringAssert.DoesNotContain("callback body executed", error.Message);
         }
 

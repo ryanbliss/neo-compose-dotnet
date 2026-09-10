@@ -3406,6 +3406,7 @@ namespace NeoCompose.Tests
         {
             return new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 typeInfo = StringTypeInfo(),
                 parameters = new Variable[0],
                 instructions = new Instruction[]
@@ -3428,6 +3429,7 @@ namespace NeoCompose.Tests
         {
             return new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 typeInfo = typeInfo,
                 parameters = new Variable[0],
                 instructions = new Instruction[]
@@ -3480,6 +3482,7 @@ namespace NeoCompose.Tests
         {
             return new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 typeInfo = new PrimitiveTypeInfo
                 {
                     type = MemberKind.Bool,
@@ -3702,6 +3705,7 @@ namespace NeoCompose.Tests
         {
             return new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 typeInfo = new PrimitiveTypeInfo
                 {
                     type = MemberKind.Null,
