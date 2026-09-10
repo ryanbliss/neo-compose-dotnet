@@ -111,7 +111,13 @@ namespace NeoCompose.Runtime
                 && sessionData.values.ContainsKey(row.id)
                 && replayingVirtualInstancePreexistingSessionValueIds is not null
                 && !replayingVirtualInstancePreexistingSessionValueIds.Contains(row.id))
-            || (!virtualInstanceReplayReady
+            // Replay also reaches rows that are NOT in the temporary Session
+            // graph: an implicit construction delegates its content to the
+            // placement declaration's authored default, and a variant-stamped
+            // root resolves its variant graph, both of which are asset rows.
+            // Those await their initializers for the whole replay, not just
+            // from the moment replay published a temporary graph.
+            || ((!virtualInstanceReplayReady || isReplayingVirtualInstance)
                 && (awaitingVirtualInstanceChildDepth > 0
                     || (row is not null && IsVirtualInstanceRoot(row))));
 
