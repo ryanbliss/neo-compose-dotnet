@@ -77,7 +77,7 @@ namespace NeoCompose.Tests
         public void ActionValue_RejectsAClosureListener()
         {
             const string json =
-                @"{'listeners':[{'code':'() => 1','action':{'compilerRevision':7}}]}";
+                @"{'listeners':[{'code':'() => 1','action':{'compilerRevision':13}}]}";
 
             var error = Assert.Throws<JsonSerializationException>(
                 () => JsonConvert.DeserializeObject<NeoActionValue>(json));
@@ -212,13 +212,18 @@ namespace NeoCompose.Tests
                 null,
                 NeoValueOwnership.Session);
 
+            var closure = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+            };
+
             Assert.Throws<NeoActionListenerException>(() => node.SetListeners(
                 new[]
                 {
                     new NeoDelegateValue
                     {
                         code = "() => 1",
-                        action = new FunctionWithReturnType { compilerRevision = 7 },
+                        action = closure,
                     },
                 }));
         }

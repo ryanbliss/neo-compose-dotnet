@@ -101,7 +101,7 @@ namespace NeoCompose.Tests
                 'returnTypeInfo':{'type':21,'required':true,'ownerClassId':'track','genericParamId':'child'},
                 'argumentTypes':[{'name':'amount','type':2,'required':true}],
                 'defaultValue':{'value':{'code':'amount => amount','action':{
-                    'compilerRevision':7,
+                    'compilerRevision':13,
                     'parameters':[
                         {'id':'__this__','typeInfo':{'type':7,'required':true,'classId':'receiver-class'},'pointer':{'type':'variable','variableId':'__this__'}},
                         {'id':'__root__','typeInfo':{'type':7,'required':true,'classId':'root-class'},'pointer':{'type':'variable','variableId':'__root__'}},
@@ -117,7 +117,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(25, (int)member.kind);
             Assert.IsInstanceOf<GenericTypeInfo>(member.returnTypeInfo);
             Assert.AreEqual("amount", member.argumentTypes[0].name);
-            Assert.AreEqual(7, member.defaultValue!.value!.action!.compilerRevision);
+            Assert.AreEqual(13, member.defaultValue!.value!.action!.compilerRevision);
 
             const string callJson = @"{
                 'type':'functionCall','call':{
@@ -212,57 +212,6 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void DelegateCall_RequiresCompilerRevisionSeven()
-        {
-            NeoClient client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
-            var body = new FunctionWithReturnType
-            {
-                compilerRevision = 6,
-                parameters = new[]
-                {
-                    Parameter("__this__", new ClassTypeInfo
-                    {
-                        type = MemberKind.Class,
-                        required = true,
-                        classId = "receiver-class",
-                    }),
-                    Parameter("__root__", new ClassTypeInfo
-                    {
-                        type = MemberKind.Class,
-                        required = true,
-                        classId = "root-class",
-                    }),
-                },
-                instructions = new Instruction[]
-                {
-                    new FunctionCallInstruction
-                    {
-                        type = InstructionKind.FunctionCall,
-                        call = new CallDelegatePointer
-                        {
-                            type = PointerKind.CallDelegate,
-                            @delegate = Variable("selector"),
-                            args = Array.Empty<Pointer>(),
-                            callSiteId = "delegate-revision",
-                        },
-                    },
-                    Return(Literal(IntType(), new JValue(0))),
-                },
-                typeInfo = IntType(),
-            };
-
-            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
-                NSGetterEvaluator.Evaluate(
-                    body,
-                    new NSGetterEvaluator.Context(
-                        client,
-                        new Dictionary<string, object?>(),
-                        new Dictionary<string, object?>())));
-
-            StringAssert.Contains("requires compiler revision 7", error!.Message);
-        }
-
-        [Test]
         public void DelegateClosure_CapturesLexicalThisAndBindsArguments()
         {
             NeoClient client = BuildClient(
@@ -283,7 +232,7 @@ namespace NeoCompose.Tests
                 IntType(),
                 new[] { Argument("amount", MemberKind.Int) },
                 Return(Add(Key(Variable("__this__"), "Count"), Variable("__arg_0__"))));
-            closureAction.compilerRevision = 7;
+            closureAction.compilerRevision = FunctionWithReturnType.CurrentCompilerRevision;
             var delegateType = new DelegateTypeInfo
             {
                 type = MemberKind.NSDelegate,
@@ -293,7 +242,7 @@ namespace NeoCompose.Tests
             };
             var getter = new FunctionWithReturnType
             {
-                compilerRevision = 7,
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new[]
                 {
                     Parameter("__this__", new ClassTypeInfo
@@ -345,7 +294,7 @@ namespace NeoCompose.Tests
             };
             var closureAction = new FunctionWithReturnType
             {
-                compilerRevision = 12,
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new[]
                 {
                     Parameter("__this__", NullType()),
@@ -366,7 +315,7 @@ namespace NeoCompose.Tests
             };
             var factory = new FunctionWithReturnType
             {
-                compilerRevision = 12,
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new[]
                 {
                     Parameter("__this__", NullType()),
@@ -424,7 +373,7 @@ namespace NeoCompose.Tests
             };
             var action = new FunctionWithReturnType
             {
-                compilerRevision = 12,
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new[]
                 {
                     Parameter("__this__", NullType()),
@@ -473,7 +422,7 @@ namespace NeoCompose.Tests
                 BoolType(),
                 new[] { otherArgument },
                 Return(Boolean(false)));
-            equalsAction.compilerRevision = 12;
+            equalsAction.compilerRevision = FunctionWithReturnType.CurrentCompilerRevision;
             NSFunctionMember equals = ScriptFunction(
                 "generic-equals",
                 "Equals",
@@ -498,7 +447,7 @@ namespace NeoCompose.Tests
             };
             var body = new FunctionWithReturnType
             {
-                compilerRevision = 12,
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new[]
                 {
                     Parameter("__this__", new ClassTypeInfo
@@ -541,7 +490,7 @@ namespace NeoCompose.Tests
                 BoolType(),
                 Array.Empty<FunctionArgumentTypeInfo>(),
                 Return(call));
-            body.compilerRevision = 12;
+            body.compilerRevision = FunctionWithReturnType.CurrentCompilerRevision;
             NeoClient client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
 
             object? result = NSGetterEvaluator.Evaluate(
@@ -565,7 +514,7 @@ namespace NeoCompose.Tests
                 IntType(),
                 new[] { otherArgument },
                 Return(Number(1)));
-            equalsAction.compilerRevision = 12;
+            equalsAction.compilerRevision = FunctionWithReturnType.CurrentCompilerRevision;
             NSFunctionMember equals = ScriptFunction(
                 "invalid-generic-equals",
                 "Equals",
@@ -1827,6 +1776,7 @@ namespace NeoCompose.Tests
             };
             var lambda = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new[] { Parameter("entry", IntType()) },
                 instructions = new Instruction[]
                 {
@@ -2688,6 +2638,7 @@ namespace NeoCompose.Tests
         {
             var predicate = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new[]
                 {
                     Parameter("entry", IntType()),
@@ -2985,79 +2936,6 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Invoke_RevisionThreeRejectsEveryP50InstructionAtAnyDepth()
-        {
-            CollectionTypeInfo listType = ListType(IntType());
-            FunctionWithReturnType[] bodies =
-            {
-                Action(
-                    IntType(),
-                    Array.Empty<FunctionArgumentTypeInfo>(),
-                    new ForInstruction
-                    {
-                        type = InstructionKind.For,
-                        initializer = LocalVariable("i", Number(0), IntType()),
-                        condition = Compare(
-                            OperatorKind.LessThan,
-                            Variable("i"),
-                            Number(0)),
-                        iterator = AssignLocal(
-                            "i",
-                            Add(Variable("i"), Number(1)),
-                            IntType()),
-                        instructions = Array.Empty<Instruction>(),
-                    },
-                    Return(Number(0))),
-                Action(
-                    IntType(),
-                    Array.Empty<FunctionArgumentTypeInfo>(),
-                    new ForEachInstruction
-                    {
-                        type = InstructionKind.ForEach,
-                        binding = new LoopBinding
-                        {
-                            id = "item",
-                            typeInfo = IntType(),
-                            isReadonly = true,
-                        },
-                        collectionPointer = List(),
-                        collectionTypeInfo = listType,
-                        instructions = Array.Empty<Instruction>(),
-                    },
-                    Return(Number(0))),
-                Action(
-                    IntType(),
-                    Array.Empty<FunctionArgumentTypeInfo>(),
-                    new BreakInstruction { type = InstructionKind.Break },
-                    Return(Number(0))),
-                Action(
-                    IntType(),
-                    Array.Empty<FunctionArgumentTypeInfo>(),
-                    If(
-                        Compare(
-                            OperatorKind.EqualTo,
-                            Number(1),
-                            Number(1)),
-                        new ContinueInstruction
-                        {
-                            type = InstructionKind.Continue,
-                        }),
-                    Return(Number(0))),
-            };
-
-            foreach (FunctionWithReturnType body in bodies)
-            {
-                body.compilerRevision = 3;
-                NeoScriptPreExecutionValidationError error =
-                    Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
-                        InvokeTryBody(body, IntType()))!;
-                StringAssert.Contains(
-                    "loop IR requires compiler revision 4",
-                    error.Message);
-            }
-        }
-
-        [Test]
         public void Invoke_ForLoopEnforcesTheSharedIterationBudget()
         {
             FunctionWithReturnType body = LoopAction(
@@ -3211,8 +3089,7 @@ namespace NeoCompose.Tests
                 IntType(),
                 Array.Empty<FunctionArgumentTypeInfo>(),
                 Return(Number(0)));
-            futureRevision.compilerRevision =
-                FunctionWithReturnType.CurrentCompilerRevision + 1;
+            futureRevision.compilerRevision = FunctionWithReturnType.CurrentCompilerRevision + 1;
             AssertCalledValidationBypassesCatch(
                 ScriptFunction(
                     "fn-future-revision-callee",
@@ -3221,23 +3098,8 @@ namespace NeoCompose.Tests
                     IntType(),
                     Array.Empty<FunctionArgumentTypeInfo>(),
                     futureRevision),
-                "Unsupported NeoScript compiler revision");
-
-            FunctionWithReturnType oldLoopRevision = Action(
-                IntType(),
-                Array.Empty<FunctionArgumentTypeInfo>(),
-                new BreakInstruction { type = InstructionKind.Break },
-                Return(Number(0)));
-            oldLoopRevision.compilerRevision = 3;
-            AssertCalledValidationBypassesCatch(
-                ScriptFunction(
-                    "fn-old-loop-revision-callee",
-                    "OldLoopRevisionCallee",
-                    false,
-                    IntType(),
-                    Array.Empty<FunctionArgumentTypeInfo>(),
-                    oldLoopRevision),
-                "loop IR requires compiler revision 4");
+                "this SDK executes only revision "
+                    + FunctionWithReturnType.CurrentCompilerRevision);
 
             CollectionTypeInfo listType = ListType(IntType());
             AssertCalledValidationBypassesCatch(
@@ -3513,7 +3375,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Invoke_TryPropagatesLoopControlAndRejectsOldRevision()
+        public void Invoke_TryPropagatesLoopControl()
         {
             FunctionWithReturnType body = TryAction(
                 IntType(),
@@ -3565,12 +3427,6 @@ namespace NeoCompose.Tests
             Assert.AreEqual(
                 2L,
                 Convert.ToInt64(InvokeTryBody(body, IntType())));
-
-            body.compilerRevision = 5;
-            NeoScriptPreExecutionValidationError error =
-                Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
-                    InvokeTryBody(body, IntType()))!;
-            StringAssert.Contains("requires compiler revision 6", error.Message);
         }
 
         [Test]
@@ -3860,7 +3716,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Invoke_SwitchRejectsMismatchedSelectorDuplicateLabelsAndOldRevision()
+        public void Invoke_SwitchRejectsMismatchedSelectorAndDuplicateLabels()
         {
             SwitchInstruction mismatch = Switch(
                 Text("1"),
@@ -3934,28 +3790,6 @@ namespace NeoCompose.Tests
                 });
             error = InvokeSwitchError(fallthrough, validation: true);
             StringAssert.Contains("selected section reached its end", error.Message);
-
-            FunctionWithReturnType stale = SwitchAction(
-                Switch(
-                    Number(1),
-                    IntType(),
-                    Array.Empty<SwitchSection>()),
-                Return(Number(0)));
-            stale.compilerRevision = 4;
-            NSFunctionMember function = ScriptFunction(
-                "fn-switch-revision",
-                "SwitchRevision",
-                false,
-                IntType(),
-                Array.Empty<FunctionArgumentTypeInfo>(),
-                stale);
-            NeoClient client = BuildClient(
-                new JsonMember[] { function },
-                ReceiverClass(("SwitchRevision", function.id)));
-            error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
-                new NeoMemberNSFunction(client, function, null)
-                    .Invoke("receiver-value", Array.Empty<object?>()))!;
-            StringAssert.Contains("requires compiler revision 5", error.Message);
         }
 
         [Test]
@@ -5357,6 +5191,7 @@ namespace NeoCompose.Tests
             }
             return new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = parameters,
                 instructions = instructions,
                 typeInfo = returnType,
@@ -5371,27 +5206,19 @@ namespace NeoCompose.Tests
 
         private static FunctionWithReturnType LoopAction(
             TypeInfo returnType,
-            params Instruction[] instructions)
-        {
-            FunctionWithReturnType body = Action(
+            params Instruction[] instructions) =>
+            Action(
                 returnType,
                 Array.Empty<FunctionArgumentTypeInfo>(),
                 instructions);
-            body.compilerRevision = 4;
-            return body;
-        }
 
         private static FunctionWithReturnType TryAction(
             TypeInfo returnType,
-            params Instruction[] instructions)
-        {
-            FunctionWithReturnType body = Action(
+            params Instruction[] instructions) =>
+            Action(
                 returnType,
                 Array.Empty<FunctionArgumentTypeInfo>(),
                 instructions);
-            body.compilerRevision = 6;
-            return body;
-        }
 
         private static TryInstruction TryBlock(
             Instruction[] instructions,
@@ -5424,15 +5251,11 @@ namespace NeoCompose.Tests
         };
 
         private static FunctionWithReturnType SwitchAction(
-            params Instruction[] instructions)
-        {
-            FunctionWithReturnType body = Action(
+            params Instruction[] instructions) =>
+            Action(
                 IntType(),
                 Array.Empty<FunctionArgumentTypeInfo>(),
                 instructions);
-            body.compilerRevision = 5;
-            return body;
-        }
 
         private static SwitchInstruction Switch(
             Pointer selector,

@@ -662,32 +662,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CompilerRevision_ThirteenExecutesAndFourteenIsRejected()
-        {
-            NeoClient client = LoadClient();
-            FunctionWithReturnType thirteen = Getter(Return(Literal("ok")));
-            thirteen.compilerRevision = 13;
-            Assert.DoesNotThrow(() =>
-                NeoScriptExecutor.PrepareCallback(
-                    client,
-                    thirteen,
-                    Context(client),
-                    options: null));
-
-            FunctionWithReturnType fourteen = Getter(Return(Literal("ok")));
-            fourteen.compilerRevision = 14;
-            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
-                NeoScriptExecutor.PrepareCallback(
-                    client,
-                    fourteen,
-                    Context(client),
-                    options: null))!;
-            StringAssert.Contains("compiler revision 14", error.Message);
-            StringAssert.Contains("revisions 1 through 13", error.Message);
-        }
-
-        [Test]
-        public void ConditionalPointer_RequiresRevisionTwelve()
+        public void ConditionalPointer_PreparesAtTheCurrentRevision()
         {
             NeoClient client = LoadClient();
             var conditional = new ConditionalPointer
@@ -710,17 +685,6 @@ namespace NeoCompose.Tests
                 whenFalse = Literal("no"),
             };
             FunctionWithReturnType body = Getter(Return(conditional));
-            body.compilerRevision = 11;
-
-            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
-                NeoScriptExecutor.PrepareCallback(
-                    client,
-                    body,
-                    Context(client),
-                    options: null))!;
-            StringAssert.Contains("conditional IR requires compiler revision 12", error.Message);
-
-            body.compilerRevision = 12;
             Assert.DoesNotThrow(() =>
                 NeoScriptExecutor.PrepareCallback(
                     client,
@@ -730,7 +694,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void DelegateClosurePointer_RequiresRevisionTwelve()
+        public void DelegateClosurePointer_PreparesAtTheCurrentRevision()
         {
             NeoClient client = LoadClient();
             var stringType = new PrimitiveTypeInfo
@@ -755,17 +719,6 @@ namespace NeoCompose.Tests
             };
             FunctionWithReturnType body = Getter(Return(closure));
             body.typeInfo = delegateType;
-            body.compilerRevision = 11;
-
-            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
-                NeoScriptExecutor.PrepareCallback(
-                    client,
-                    body,
-                    Context(client),
-                    options: null))!;
-            StringAssert.Contains("captured-closure IR requires compiler revision 12", error.Message);
-
-            body.compilerRevision = 12;
             Assert.DoesNotThrow(() =>
                 NeoScriptExecutor.PrepareCallback(
                     client,
@@ -775,7 +728,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GenericEqualsFallback_RequiresRevisionTwelve()
+        public void GenericEqualsFallback_PreparesAtTheCurrentRevision()
         {
             NeoClient client = LoadClient();
             var seven = new ValuePointer
@@ -806,17 +759,6 @@ namespace NeoCompose.Tests
                 type = MemberKind.Bool,
                 required = true,
             };
-            body.compilerRevision = 11;
-
-            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
-                NeoScriptExecutor.PrepareCallback(
-                    client,
-                    body,
-                    Context(client),
-                    options: null))!;
-            StringAssert.Contains("generic-Equals IR requires compiler revision 12", error.Message);
-
-            body.compilerRevision = 12;
             Assert.DoesNotThrow(() =>
                 NeoScriptExecutor.PrepareCallback(
                     client,

@@ -33,6 +33,14 @@ from both the untouched fixture and the synchronized result. This covers sparse
 constructor replay through the captured time model's computed Sprite default,
 in addition to the project-store row checks.
 
+The capture's 478 compiled NeoScript bodies were re-stamped in place to
+compiler revision 13 when the SDK dropped revision-range tolerance
+(neo-compose#649). The captured document carried 51 bodies at revision 11, 10 at
+8 and 5 at 7, which the SDK no longer executes. The fleet recompile that shipped
+with that change puts the same production document on revision 13, so a
+regeneration from a post-migration capture reproduces this state; regenerating
+from the pre-migration source above does not.
+
 Run the focused cases from the SDK checkout:
 
 ```sh

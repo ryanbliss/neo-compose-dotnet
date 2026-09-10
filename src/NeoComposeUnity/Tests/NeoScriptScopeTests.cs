@@ -66,6 +66,7 @@ namespace NeoCompose.Tests
             PrimitiveTypeInfo boolType = RequiredType(MemberKind.Bool);
             var callback = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new[]
                 {
                     new Variable

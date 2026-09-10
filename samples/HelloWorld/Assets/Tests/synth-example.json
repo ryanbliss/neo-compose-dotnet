@@ -450,6 +450,7 @@
         "required": true
       },
       "getter": {
+        "compilerRevision": 13,
         "parameters": [
           {
             "id": "__this__",
@@ -672,6 +673,7 @@
                                   ]
                                 },
                                 "function": {
+                                  "compilerRevision": 13,
                                   "parameters": [
                                     {
                                       "id": "n",
@@ -772,6 +774,7 @@
         "required": true
       },
       "getter": {
+        "compilerRevision": 13,
         "parameters": [],
         "typeInfo": {
           "type": 3,
@@ -844,6 +847,7 @@
         "required": true
       },
       "getter": {
+        "compilerRevision": 13,
         "parameters": [],
         "typeInfo": {
           "type": 1,
@@ -871,6 +875,7 @@
         ]
       },
       "setter": {
+        "compilerRevision": 13,
         "parameters": [],
         "typeInfo": {
           "type": 0,

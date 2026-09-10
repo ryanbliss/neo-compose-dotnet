@@ -271,8 +271,7 @@ namespace NeoCompose.Tests
                             code = "SavedWidget",
                             compiled = new FunctionWithReturnType
                             {
-                                compilerRevision =
-                                    FunctionWithReturnType.CurrentCompilerRevision,
+                                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                                 parameters = Array.Empty<Variable>(),
                                 typeInfo = ClassType(widgetClass.id),
                                 instructions = new Instruction[]

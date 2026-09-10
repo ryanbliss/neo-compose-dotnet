@@ -132,7 +132,7 @@ namespace NeoCompose.Tests
             FunctionWithReturnType getter = ReturnFunction(
                 conditional,
                 MemberKind.String);
-            getter.compilerRevision = 12;
+            getter.compilerRevision = FunctionWithReturnType.CurrentCompilerRevision;
             object? result = NSGetterEvaluator.Evaluate(
                 getter,
                 new NSGetterEvaluator.Context(
@@ -337,6 +337,7 @@ namespace NeoCompose.Tests
                 NeoValueOwnership.Save);
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = System.Array.Empty<Variable>(),
                 typeInfo = new ClassTypeInfo
                 {
@@ -401,6 +402,7 @@ namespace NeoCompose.Tests
             });
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new Variable[0],
                 typeInfo = new PrimitiveTypeInfo
                 {
@@ -442,6 +444,7 @@ namespace NeoCompose.Tests
                 });
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = System.Array.Empty<Variable>(),
                 typeInfo = new PrimitiveTypeInfo
                 {
@@ -601,6 +604,7 @@ namespace NeoCompose.Tests
             wrapper.FunctionHandler = handler;
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new Variable[0],
                 typeInfo = new PrimitiveTypeInfo
                 {
@@ -651,6 +655,7 @@ namespace NeoCompose.Tests
             });
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new Variable[0],
                 typeInfo = new PrimitiveTypeInfo
                 {
@@ -692,6 +697,7 @@ namespace NeoCompose.Tests
             var client = LoadClient();
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new Variable[0],
                 typeInfo = new PrimitiveTypeInfo
                 {
@@ -845,6 +851,7 @@ namespace NeoCompose.Tests
             var thisValue = NSGetterEvaluator.UnwrapRow(row, ctx);
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new Variable[0],
                 typeInfo = new PrimitiveTypeInfo
                 {
@@ -1280,6 +1287,7 @@ namespace NeoCompose.Tests
                 },
                 getter = new FunctionWithReturnType
                 {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                     parameters = new Variable[0],
                     typeInfo = new PrimitiveTypeInfo
                     {
@@ -1363,6 +1371,7 @@ namespace NeoCompose.Tests
         {
             return new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new Variable[0],
                 typeInfo = new PrimitiveTypeInfo
                 {

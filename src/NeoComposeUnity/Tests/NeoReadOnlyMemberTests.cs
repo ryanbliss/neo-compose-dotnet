@@ -210,7 +210,7 @@ namespace NeoCompose.Tests
             var context = new NSGetterEvaluator.Context(client, null, null);
             var getter = new FunctionWithReturnType
             {
-                compilerRevision = 2,
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = System.Array.Empty<Variable>(),
                 typeInfo = new PrimitiveTypeInfo
                 {
@@ -514,13 +514,14 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NeoScriptCompilerRevision_AcceptsLegacyAndCurrentAndRejectsFuture()
+        public void NeoScriptCompilerRevision_AcceptsOnlyTheCurrentStamp()
         {
             NeoClient client = LoadClient();
             var context = new NSGetterEvaluator.Context(client, null, null);
 
-            var legacy = new FunctionWithReturnType
+            var body = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = System.Array.Empty<Variable>(),
                 typeInfo = new PrimitiveTypeInfo
                 {
@@ -549,19 +550,29 @@ namespace NeoCompose.Tests
                 },
             };
 
-            Assert.AreEqual(7d, NSGetterEvaluator.Evaluate(legacy, context));
+            Assert.AreEqual(7d, NSGetterEvaluator.Evaluate(body, context));
 
-            legacy.compilerRevision = FunctionWithReturnType.CurrentCompilerRevision;
-            Assert.AreEqual(7d, NSGetterEvaluator.Evaluate(legacy, context));
+            body.compilerRevision = null;
+            var unstampedError = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+                NSGetterEvaluator.Evaluate(body, context));
+            StringAssert.Contains(
+                "carries no compiler revision stamp", unstampedError!.Message);
 
-            legacy.compilerRevision = FunctionWithReturnType.CurrentCompilerRevision + 1;
+            body.compilerRevision = FunctionWithReturnType.CurrentCompilerRevision - 1;
+            var staleError = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
+                NSGetterEvaluator.Evaluate(body, context));
+            StringAssert.Contains(
+                "this SDK executes only revision "
+                    + FunctionWithReturnType.CurrentCompilerRevision,
+                staleError!.Message);
+
+            body.compilerRevision = FunctionWithReturnType.CurrentCompilerRevision + 1;
             var futureError = Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
-                NSGetterEvaluator.Evaluate(legacy, context));
-            StringAssert.Contains("Unsupported NeoScript compiler revision", futureError!.Message);
-
-            legacy.compilerRevision = 0;
-            Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
-                NSGetterEvaluator.Evaluate(legacy, context));
+                NSGetterEvaluator.Evaluate(body, context));
+            StringAssert.Contains(
+                "is stamped compiler revision "
+                    + (FunctionWithReturnType.CurrentCompilerRevision + 1),
+                futureError!.Message);
         }
 
         [Test]
@@ -1178,7 +1189,7 @@ namespace NeoCompose.Tests
             NeoClient client = LoadClient();
             var action = new FunctionWithReturnType
             {
-                compilerRevision = 2,
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = System.Array.Empty<Variable>(),
                 typeInfo = new PrimitiveTypeInfo
                 {
@@ -1814,6 +1825,7 @@ namespace NeoCompose.Tests
         {
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = System.Array.Empty<Variable>(),
                 typeInfo = new PrimitiveTypeInfo
                 {
@@ -1912,6 +1924,7 @@ namespace NeoCompose.Tests
         {
             var getter = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = System.Array.Empty<Variable>(),
                 typeInfo = new PrimitiveTypeInfo
                 {

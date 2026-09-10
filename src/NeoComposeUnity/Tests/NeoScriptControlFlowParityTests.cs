@@ -31,49 +31,49 @@ namespace NeoCompose.Tests
             "Packages/com.ryanbliss.neocompose/Tests";
 
         /// <summary>
-        /// Every case in the shared fixture, in fixture order, paired with the
-        /// wire revision its feature was authored against: 13 P50 cases at
-        /// revision 4, 13 P51 cases at 5, and 11 P52 cases at 6.
+        /// Every case in the shared fixture, in fixture order: 13 P50, 13 P51
+        /// and 11 P52 cases. Every case is stamped at the single compiler
+        /// revision this SDK executes.
         /// </summary>
-        private static readonly (string Name, int Revision)[] ExpectedCases =
+        private static readonly string[] ExpectedCases =
         {
-            ("for consumes continue and break while updating an outer local", 4),
-            ("reverse for loop executes its decrement iterator", 4),
-            ("false initial condition consumes no iteration", 4),
-            ("foreach snapshots list membership and preserves order under remove", 4),
-            ("foreach dictionary binds values in collection order", 4),
-            ("return escapes nested loops", 4),
-            ("nested loops share the top-level iteration budget", 4),
-            ("foreach dictionary uses JavaScript Object.values order for numeric-like keys", 4),
-            ("foreach over an empty collection consumes no iteration", 4),
-            ("foreach iterates a hand-authored derived Where collection", 4),
-            ("foreach evaluates its derived collection receiver exactly once", 4),
-            ("throw escapes a foreach body without visiting later entries", 4),
-            ("foreach consumes ordered values through the Lookup collection contract", 4),
-            ("switch matches an int stacked label and only the selected section writes", 5),
-            ("switch matches a string label and propagates return", 5),
-            ("switch matches a bool label", 5),
-            ("switch matches an enum label by normalized option", 5),
-            ("switch matches null for an optional selector", 5),
-            ("switch matches null for an optional int selector", 5),
-            ("switch runs default when no case matches", 5),
-            ("switch without default falls through when no case matches", 5),
-            ("switch consumes break and propagates continue to its enclosing for loop", 5),
-            ("switch propagates throw from the selected section", 5),
-            ("switch evaluates its derived selector exactly once", 5),
-            ("switch-in-switch consumes inner break before completing the outer section", 5),
-            ("loop-in-switch consumes loop break before completing the selected section", 5),
-            ("try-inside-switch catches an authored error before the section breaks", 6),
-            ("try selects the first true filter and skips later clauses", 6),
-            ("try continues past false filters and the fallback catches", 6),
-            ("try propagates the original error when no catch matches", 6),
-            ("try treats a catchable filter error as false and preserves the original", 6),
-            ("an error in a selected catch escapes siblings to an enclosing try", 6),
-            ("return propagates through try without entering catches", 6),
-            ("break and continue propagate through try to the enclosing for loop", 6),
-            ("writes completed before a caught error remain visible", 6),
-            ("try catches a deliberate arithmetic runtime error with its exact message", 6),
-            ("try preserves an empty thrown message", 6),
+            "for consumes continue and break while updating an outer local",
+            "reverse for loop executes its decrement iterator",
+            "false initial condition consumes no iteration",
+            "foreach snapshots list membership and preserves order under remove",
+            "foreach dictionary binds values in collection order",
+            "return escapes nested loops",
+            "nested loops share the top-level iteration budget",
+            "foreach dictionary uses JavaScript Object.values order for numeric-like keys",
+            "foreach over an empty collection consumes no iteration",
+            "foreach iterates a hand-authored derived Where collection",
+            "foreach evaluates its derived collection receiver exactly once",
+            "throw escapes a foreach body without visiting later entries",
+            "foreach consumes ordered values through the Lookup collection contract",
+            "switch matches an int stacked label and only the selected section writes",
+            "switch matches a string label and propagates return",
+            "switch matches a bool label",
+            "switch matches an enum label by normalized option",
+            "switch matches null for an optional selector",
+            "switch matches null for an optional int selector",
+            "switch runs default when no case matches",
+            "switch without default falls through when no case matches",
+            "switch consumes break and propagates continue to its enclosing for loop",
+            "switch propagates throw from the selected section",
+            "switch evaluates its derived selector exactly once",
+            "switch-in-switch consumes inner break before completing the outer section",
+            "loop-in-switch consumes loop break before completing the selected section",
+            "try-inside-switch catches an authored error before the section breaks",
+            "try selects the first true filter and skips later clauses",
+            "try continues past false filters and the fallback catches",
+            "try propagates the original error when no catch matches",
+            "try treats a catchable filter error as false and preserves the original",
+            "an error in a selected catch escapes siblings to an enclosing try",
+            "return propagates through try without entering catches",
+            "break and continue propagate through try to the enclosing for loop",
+            "writes completed before a caught error remain visible",
+            "try catches a deliberate arithmetic runtime error with its exact message",
+            "try preserves an empty thrown message",
         };
 
         [Test]
@@ -85,11 +85,7 @@ namespace NeoCompose.Tests
                 cases.Count,
                 "The shared control-flow fixture must contain the finalized 13 P50, 13 P51, and 11 P52 cases; re-vendor it from the web repo.");
 
-            var expectedRevisions = new Dictionary<string, int>();
-            foreach ((string caseName, int caseRevision) in ExpectedCases)
-            {
-                expectedRevisions.Add(caseName, caseRevision);
-            }
+            var expectedNames = new HashSet<string>(ExpectedCases);
 
             var names = new HashSet<string>();
             int errorCases = 0;
@@ -100,16 +96,16 @@ namespace NeoCompose.Tests
                 if (testCase["expectedError"] is not null) errorCases++;
 
                 Assert.IsTrue(
-                    expectedRevisions.TryGetValue(name, out int expectedRevision),
+                    expectedNames.Contains(name),
                     $"The shared fixture declares an unlisted case '{name}'.");
                 FunctionWithReturnType getter = Getter((JObject)testCase, name);
                 Assert.AreEqual(
-                    expectedRevision,
+                    FunctionWithReturnType.CurrentCompilerRevision,
                     getter.compilerRevision,
-                    $"Case '{name}' must remain authored against its feature's wire revision.");
+                    $"Case '{name}' must be stamped at the revision this SDK executes.");
             }
 
-            CollectionAssert.AreEquivalent(expectedRevisions.Keys, names);
+            CollectionAssert.AreEquivalent(expectedNames, names);
             Assert.AreEqual(4, errorCases);
         }
 
@@ -125,7 +121,7 @@ namespace NeoCompose.Tests
                     .Replace("-", string.Empty)
                     .ToLowerInvariant();
                 Assert.AreEqual(
-                    "1f7690413eb59d22af11c68ed603f316b5ea64382d964315a4d0a893aea820b2",
+                    "c0f4653f95cd0d264930365e8e1f36072afcfba996f418cdf1436dcbee3efa00",
                     actual,
                     "The vendored fixture bytes drifted from the reviewed web source.");
             }
@@ -211,7 +207,7 @@ namespace NeoCompose.Tests
         public void P54BoundsEvaluatorCreatedCollectionEntries()
         {
             const string json = @"{
-              ""compilerRevision"": 1,
+              ""compilerRevision"": 13,
               ""parameters"": [],
               ""instructions"": [{
                 ""type"": ""return"",
@@ -373,7 +369,7 @@ namespace NeoCompose.Tests
         private static FunctionWithReturnType SimpleIntGetter()
         {
             const string json = @"{
-              ""compilerRevision"": 1,
+              ""compilerRevision"": 13,
               ""parameters"": [],
               ""instructions"": [{
                 ""type"": ""return"",

@@ -373,6 +373,50 @@ namespace HelloWorld.Assets.Tests
             }
         }
 
+        /// <summary>
+        /// The shipped export must be stamped at the single compiler revision
+        /// the SDK executes. Anything older is a body no dialogue, member or
+        /// constructor in the sample can run; re-pull the project from a
+        /// deployment at that revision instead of hand-editing the stamp.
+        /// </summary>
+        [Test]
+        public void SampleExport_IsStampedAtTheCurrentCompilerRevision()
+        {
+            var export = Resources.Load<TextAsset>("Neo/project");
+            Assert.IsNotNull(export, "The sample export is not in Resources.");
+
+            var stale = new List<string>();
+            var bodies = 0;
+            foreach (var body in JObject.Parse(export.text)
+                .DescendantsAndSelf()
+                .OfType<JObject>())
+            {
+                // The compiled-body wire shape: a parameter list plus an
+                // instruction list.
+                if (body["parameters"] is not JArray
+                    || body["instructions"] is not JArray)
+                {
+                    continue;
+                }
+                bodies += 1;
+                var stamp = body["compilerRevision"];
+                if (stamp != null
+                    && stamp.Type == JTokenType.Integer
+                    && stamp.Value<int>()
+                        == FunctionWithReturnType.CurrentCompilerRevision)
+                {
+                    continue;
+                }
+                stale.Add($"{body.Path} = {stamp?.ToString() ?? "absent"}");
+            }
+
+            Assert.Greater(bodies, 0, "The sample export carries no compiled bodies.");
+            CollectionAssert.IsEmpty(
+                stale,
+                "Re-pull the sample export from a deployment at compiler revision "
+                    + FunctionWithReturnType.CurrentCompilerRevision + ".");
+        }
+
         [Test]
         public void DialogueUI_RendersAboveSceneCameras()
         {

@@ -42611,7 +42611,7 @@
                 "defaultSaveOptionChoices": true
             },
             "sourceName": "CapitolOGIntro",
-            "updatedAt": 1788356107173,
+            "updatedAt": 1789020356800,
             "nodes": {
                 "050f1583-b0fa-44a4-964b-74d2c267aad8": {
                     "id": "050f1583-b0fa-44a4-964b-74d2c267aad8",
@@ -43249,6 +43249,7 @@
                             "id": "cc2ffd9e-c4e7-4cbe-b2cf-53ed2777510f",
                             "logic": {
                                 "action": {
+                                    "compilerRevision": 13,
                                     "instructions": [
                                         {
                                             "operator": "++",
@@ -43702,6 +43703,7 @@
                             "id": "acf5e41c-755e-4dd6-9307-fbefd33f019e",
                             "logic": {
                                 "action": {
+                                    "compilerRevision": 13,
                                     "instructions": [
                                         {
                                             "operator": "=",
@@ -43766,6 +43768,7 @@
                             "id": "0207d58c-639e-4634-932c-45e12dbe790e",
                             "logic": {
                                 "action": {
+                                    "compilerRevision": 13,
                                     "instructions": [
                                         {
                                             "call": {
@@ -46510,7 +46513,7 @@
                 "defaultSaveOptionChoices": true
             },
             "sourceName": "UrsaMajorTheStarsDontMove",
-            "updatedAt": 1787651676257,
+            "updatedAt": 1789020356800,
             "nodes": {
                 "2a5974f2-d1f6-49fb-98f8-c0ecb0c875be": {
                     "actions": [
@@ -46518,7 +46521,7 @@
                             "id": "ff48b978-e50d-49e7-9b00-a001f63b9464",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 8,
+                                    "compilerRevision": 13,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -46785,7 +46788,7 @@
                             "id": "240474f0-0df8-4735-ac4d-774fa036b5bb",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 8,
+                                    "compilerRevision": 13,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -47231,7 +47234,7 @@
                             "id": "8a69573c-5a18-4ec2-b6ac-cd57f2c53da2",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 8,
+                                    "compilerRevision": 13,
                                     "dependencies": {
                                         "recordIds": [
                                             "3ed7f33a-67fe-4671-8af9-c8339751894b",
@@ -47481,7 +47484,7 @@
                             "id": "8055814e-6ac3-40a7-bce2-4894563ebdfd",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 8,
+                                    "compilerRevision": 13,
                                     "dependencies": {
                                         "recordIds": [
                                             "42487172-af8c-49ff-b88a-2397894542fe",
@@ -47714,7 +47717,7 @@
                                         {
                                             "code": "return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"c8eb381b-9c3f-4120-b8c3-3872cdde5148\"; }));",
                                             "getter": {
-                                                "compilerRevision": 8,
+                                                "compilerRevision": 13,
                                                 "dependencies": {
                                                     "recordIds": [
                                                         "214df1a1-abca-4141-987b-380a5417c70a",
@@ -47812,7 +47815,7 @@
                                                                                     "type": "keyOf"
                                                                                 },
                                                                                 "function": {
-                                                                                    "compilerRevision": 8,
+                                                                                    "compilerRevision": 13,
                                                                                     "instructions": [
                                                                                         {
                                                                                             "pointer": {
@@ -48018,7 +48021,7 @@
                     {
                         "code": "return !root.Save.Quest.EvidenceArchive && (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes);",
                         "getter": {
-                            "compilerRevision": 8,
+                            "compilerRevision": 13,
                             "dependencies": {
                                 "recordIds": [
                                     "3ed7f33a-67fe-4671-8af9-c8339751894b",
@@ -52034,7 +52037,7 @@
                 "defaultSaveOptionChoices": true
             },
             "sourceName": "PourLordsMoneyOlderThanLight",
-            "updatedAt": 1787651676257,
+            "updatedAt": 1789020356800,
             "nodes": {
                 "1c6ce424-63cf-44d8-a6ec-e5ef80a07292": {
                     "id": "1c6ce424-63cf-44d8-a6ec-e5ef80a07292",
@@ -52291,7 +52294,7 @@
                             "id": "a77da640-7669-4f9f-b453-95efa9a73fd7",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 8,
+                                    "compilerRevision": 13,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -52491,7 +52494,7 @@
                             "id": "8298ae34-02cf-4f7b-bbd9-ea33403ae250",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 8,
+                                    "compilerRevision": 13,
                                     "dependencies": {
                                         "recordIds": [
                                             "3ed7f33a-67fe-4671-8af9-c8339751894b",
@@ -52741,7 +52744,7 @@
                             "id": "7bc9e7d2-22bd-4ba3-af81-4dc7b665dc88",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 8,
+                                    "compilerRevision": 13,
                                     "dependencies": {
                                         "recordIds": [
                                             "0794a73f-60b2-4ce0-b191-83d0829fe7bb",
@@ -52997,7 +53000,7 @@
                                         {
                                             "code": "return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"18b9a621-ea41-4ac7-8a46-9cc443f2b480\"; }));",
                                             "getter": {
-                                                "compilerRevision": 8,
+                                                "compilerRevision": 13,
                                                 "dependencies": {
                                                     "recordIds": [
                                                         "214df1a1-abca-4141-987b-380a5417c70a",
@@ -53095,7 +53098,7 @@
                                                                                     "type": "keyOf"
                                                                                 },
                                                                                 "function": {
-                                                                                    "compilerRevision": 8,
+                                                                                    "compilerRevision": 13,
                                                                                     "instructions": [
                                                                                         {
                                                                                             "pointer": {
@@ -53278,7 +53281,7 @@
                     {
                         "code": "return (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes) && !root.Save.Quest.EvidenceLedger && this.Save.Reputation >= 1;",
                         "getter": {
-                            "compilerRevision": 8,
+                            "compilerRevision": 13,
                             "dependencies": {
                                 "recordIds": [
                                     "0794a73f-60b2-4ce0-b191-83d0829fe7bb",
@@ -62504,7 +62507,7 @@
                 "defaultSaveOptionChoices": true
             },
             "sourceName": "EtnaTheHymnsWereLogs",
-            "updatedAt": 1787651676257,
+            "updatedAt": 1789020356800,
             "nodes": {
                 "01b4a453-6c26-4886-9470-701095c346b4": {
                     "actions": [
@@ -62512,7 +62515,7 @@
                             "id": "c9eb5167-5de6-438a-bd2c-f80f8adf29e1",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 8,
+                                    "compilerRevision": 13,
                                     "dependencies": {
                                         "recordIds": [
                                             "42487172-af8c-49ff-b88a-2397894542fe",
@@ -62969,7 +62972,7 @@
                             "id": "1c5b294b-eff6-4baa-89ca-f55aa755c0aa",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 8,
+                                    "compilerRevision": 13,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -63247,7 +63250,7 @@
                             "id": "2b55ed52-fad7-4e0c-89cf-9cd602e8d6b7",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 8,
+                                    "compilerRevision": 13,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -63447,7 +63450,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.threePaths && !root.Save.Quest.EvidenceArchive && root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"0e9655ec-dc98-477c-b0ff-90d8f203040a\"; }));",
                         "getter": {
-                            "compilerRevision": 8,
+                            "compilerRevision": 13,
                             "dependencies": {
                                 "recordIds": [
                                     "214df1a1-abca-4141-987b-380a5417c70a",
@@ -63736,7 +63739,7 @@
                                                                                         "type": "keyOf"
                                                                                     },
                                                                                     "function": {
-                                                                                        "compilerRevision": 8,
+                                                                                        "compilerRevision": 13,
                                                                                         "instructions": [
                                                                                             {
                                                                                                 "pointer": {
@@ -66666,6 +66669,7 @@
             "conditions": [
                 {
                     "getter": {
+                        "compilerRevision": 13,
                         "instructions": [
                             {
                                 "pointer": {
@@ -66738,7 +66742,7 @@
             "priorityGroupIdOverride": null,
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "type": 1,
-            "updatedAt": 1788356107173
+            "updatedAt": 1789020356800
         },
         "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43": {
             "collectionMemberId": "2827aefd-7f57-48ea-994c-c5c39ec659e3",
@@ -66746,6 +66750,7 @@
             "conditions": [
                 {
                     "getter": {
+                        "compilerRevision": 13,
                         "instructions": [
                             {
                                 "pointer": {
@@ -66818,7 +66823,7 @@
             "priorityGroupIdOverride": null,
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "type": 1,
-            "updatedAt": 1788356107173
+            "updatedAt": 1789020356800
         }
     },
     "priorityGroups": {
@@ -68384,7 +68389,7 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "0c79ed4d47df353b756c9fef5908952d36c6e6327d51caa8be51e079d436792e",
+        "projectDocumentContentHash": "2e52f698c3f9f7bfadf7b26abf2c0826b93d440ca594c8470bb54f373d9b95f4",
         "codegenContractHash": "12acbe4af50061d453c633b9cfbe94317bb908bcb6cb853155d787c9ebaddd35",
         "runtimeDataContractHash": "8d589ef5b492c0d8a72a665475329a1e45a9db75910f5a0e899a8c45b3ec8950"
     }

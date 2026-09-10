@@ -184,6 +184,7 @@ namespace NeoCompose.Tests
             return NSGetterEvaluator.Evaluate(
                 new FunctionWithReturnType
                 {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                     parameters = Array.Empty<Variable>(),
                     instructions = new Instruction[]
                     {

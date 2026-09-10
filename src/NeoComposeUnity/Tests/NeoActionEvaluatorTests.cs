@@ -158,7 +158,7 @@ namespace NeoCompose.Tests
         {
             NeoClient client = BuildClient(
                 storedListeners: ListenerSet(Listener(BumpOneMemberId)));
-            RunBody(client, Revision8(CallActionInstruction()));
+            RunBody(client, Body(CallActionInstruction()));
 
             Assert.AreEqual(1d, CounterValue(client));
         }
@@ -178,7 +178,7 @@ namespace NeoCompose.Tests
                 storedListeners: ListenerSet(
                     Listener(BumpOneMemberId, valueId: null)));
 
-            RunBody(client, Revision8(OwnerCallActionInstruction()));
+            RunBody(client, Body(OwnerCallActionInstruction()));
 
             Assert.AreEqual(1d, CounterValue(client));
         }
@@ -193,7 +193,7 @@ namespace NeoCompose.Tests
                     Listener(ElsewhereMemberId, valueId: null)));
 
             NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
-                RunBody(client, Revision8(OwnerCallActionInstruction())))!;
+                RunBody(client, Body(OwnerCallActionInstruction())))!;
 
             // Receiver-less is the pre-P62 behavior: the listener runs with a
             // null `this`, so its own field write is what fails. The frame
@@ -220,7 +220,7 @@ namespace NeoCompose.Tests
                 storedListeners: ListenerSet(
                     Listener(BumpOneMemberId, valueId: null)));
 
-            RunBody(client, Revision8(CallActionInstruction()));
+            RunBody(client, Body(CallActionInstruction()));
 
             Assert.AreEqual(1d, CounterValue(client));
         }
@@ -233,7 +233,7 @@ namespace NeoCompose.Tests
                     Listener(ElsewhereMemberId, valueId: null)));
 
             NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
-                RunBody(client, Revision8(CallActionInstruction())))!;
+                RunBody(client, Body(CallActionInstruction())))!;
 
             StringAssert.Contains(
                 $"action[{SaveRootValueId}] listener 0 threw:",
@@ -254,7 +254,7 @@ namespace NeoCompose.Tests
                     Listener(StaticActionMemberId, valueId: null)),
                 staticActionListeners: ListenerSet(Listener(BumpOneMemberId)));
 
-            RunBody(client, Revision8(CallActionInstruction()));
+            RunBody(client, Body(CallActionInstruction()));
 
             Assert.AreEqual(1d, CounterValue(client));
         }
@@ -268,7 +268,7 @@ namespace NeoCompose.Tests
                 staticActionListeners: new NeoActionValue());
 
             Assert.DoesNotThrow(() =>
-                RunBody(client, Revision8(CallActionInstruction())));
+                RunBody(client, Body(CallActionInstruction())));
             Assert.AreEqual(0d, CounterValue(client));
         }
 
@@ -287,7 +287,7 @@ namespace NeoCompose.Tests
         {
             NeoClient client = BuildClient();
 
-            RunBody(client, Revision8(AddListener(BumpOneMemberId)));
+            RunBody(client, Body(AddListener(BumpOneMemberId)));
 
             NeoDelegateValue stored = StoredListeners(client).listeners[0];
             Assert.IsFalse(
@@ -301,7 +301,7 @@ namespace NeoCompose.Tests
         {
             NeoClient client = BuildClient();
 
-            RunBody(client, Revision8(AddListener(BumpOneMemberId)));
+            RunBody(client, Body(AddListener(BumpOneMemberId)));
 
             NeoActionValue stored = StoredListeners(client);
             Assert.AreEqual(1, stored.listeners.Count);
@@ -314,7 +314,7 @@ namespace NeoCompose.Tests
         {
             NeoClient client = BuildClient();
 
-            RunBody(client, Revision8(
+            RunBody(client, Body(
                 AddListener(BumpOneMemberId),
                 AddListener(BumpOneMemberId)));
 
@@ -326,7 +326,7 @@ namespace NeoCompose.Tests
         {
             NeoClient client = BuildClient();
 
-            RunBody(client, Revision8(
+            RunBody(client, Body(
                 AddListener(BumpOneMemberId),
                 AddListener(BumpOneMemberId, valueId: null)));
 
@@ -341,7 +341,7 @@ namespace NeoCompose.Tests
         {
             NeoClient client = BuildClient();
 
-            RunBody(client, Revision8(
+            RunBody(client, Body(
                 AddListener(BumpTwoMemberId),
                 AddListener(BumpOneMemberId)));
 
@@ -358,7 +358,7 @@ namespace NeoCompose.Tests
                     Listener(BumpOneMemberId),
                     Listener(BumpTwoMemberId)));
 
-            RunBody(client, Revision8(RemoveListener(BumpOneMemberId)));
+            RunBody(client, Body(RemoveListener(BumpOneMemberId)));
 
             NeoActionValue stored = StoredListeners(client);
             Assert.AreEqual(1, stored.listeners.Count);
@@ -372,7 +372,7 @@ namespace NeoCompose.Tests
                 storedListeners: ListenerSet(Listener(BumpTwoMemberId)));
 
             Assert.DoesNotThrow(() =>
-                RunBody(client, Revision8(RemoveListener(BumpOneMemberId))));
+                RunBody(client, Body(RemoveListener(BumpOneMemberId))));
 
             NeoActionValue stored = StoredListeners(client);
             Assert.AreEqual(1, stored.listeners.Count);
@@ -384,7 +384,7 @@ namespace NeoCompose.Tests
         {
             NeoClient client = BuildClient();
 
-            RunBody(client, Revision8(
+            RunBody(client, Body(
                 AddListener(BumpOneMemberId),
                 AddListener(BumpTwoMemberId),
                 CallActionInstruction()));
@@ -415,144 +415,9 @@ namespace NeoCompose.Tests
             };
 
             NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
-                RunBody(client, Revision8(instruction)))!;
+                RunBody(client, Body(instruction)))!;
 
             StringAssert.Contains("member-target listener", error.Message);
-        }
-
-        // -------------------------------------------------------------
-        // Revision-8 gate (spec §3.2)
-        // -------------------------------------------------------------
-
-        [Test]
-        public void CallActionPointer_RequiresRevisionEight()
-        {
-            NeoClient client = BuildClient();
-            FunctionWithReturnType body = Body(CallActionInstruction());
-            body.compilerRevision = 7;
-
-            NeoScriptPreExecutionValidationError error =
-                Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
-                    RunBody(client, body))!;
-
-            StringAssert.Contains("NSAction IR requires compiler revision 8", error.Message);
-        }
-
-        [Test]
-        public void AddActionListener_RequiresRevisionEight()
-        {
-            NeoClient client = BuildClient();
-            FunctionWithReturnType body = Body(AddListener(BumpOneMemberId));
-            body.compilerRevision = 7;
-
-            NeoScriptPreExecutionValidationError error =
-                Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
-                    RunBody(client, body))!;
-
-            StringAssert.Contains("NSAction IR requires compiler revision 8", error.Message);
-        }
-
-        [Test]
-        public void RemoveActionListener_RequiresRevisionEight()
-        {
-            NeoClient client = BuildClient();
-            FunctionWithReturnType body = Body(RemoveListener(BumpOneMemberId));
-            body.compilerRevision = 7;
-
-            NeoScriptPreExecutionValidationError error =
-                Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
-                    RunBody(client, body))!;
-
-            StringAssert.Contains("NSAction IR requires compiler revision 8", error.Message);
-        }
-
-        [Test]
-        public void ActionIrNestedInAnExpressionStillTripsTheGate()
-        {
-            NeoClient client = BuildClient();
-            FunctionWithReturnType body = Body(new IfInstruction
-            {
-                type = InstructionKind.If,
-                branches = new[]
-                {
-                    new ConditionalBranch
-                    {
-                        expression = new BooleanExpression
-                        {
-                            condition = new Condition
-                            {
-                                type = OperatorKind.EqualTo,
-                                operand1 = Number(1),
-                                operand2 = Number(1),
-                            },
-                        },
-                        instructions = new Instruction[] { CallActionInstruction() },
-                    },
-                },
-            });
-            body.compilerRevision = 7;
-
-            NeoScriptPreExecutionValidationError error =
-                Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
-                    RunBody(client, body))!;
-
-            StringAssert.Contains("NSAction IR requires compiler revision 8", error.Message);
-        }
-
-        [Test]
-        public void FutureRevisionIsRejectedAboveTheCurrentCeiling()
-        {
-            NeoClient client = BuildClient();
-            FunctionWithReturnType body = Body(CallActionInstruction());
-            body.compilerRevision =
-                FunctionWithReturnType.CurrentCompilerRevision + 1;
-
-            NeoScriptPreExecutionValidationError error =
-                Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
-                    RunBody(client, body))!;
-
-            StringAssert.Contains("Unsupported NeoScript compiler revision", error.Message);
-        }
-
-        [Test]
-        public void StaleRevisionBodiesWithoutActionIrStayValid()
-        {
-            NeoClient client = BuildClient();
-            FunctionWithReturnType body = Body();
-            body.compilerRevision = 7;
-
-            Assert.DoesNotThrow(() => RunBody(client, body));
-        }
-
-        /// <summary>
-        /// Spec §7 promises no fleet recompile, so a stale-revision body is
-        /// re-executed indefinitely — per frame for an animation setter. The
-        /// gate's IR sweep therefore has to be paid once per body, not once
-        /// per invocation.
-        /// </summary>
-        [Test]
-        public void StaleRevisionGateSweepsEachBodyOnce()
-        {
-            NeoClient client = BuildClient();
-            FunctionWithReturnType body = Body(SetSaveCounter(5));
-            body.compilerRevision = 7;
-
-            Assert.AreEqual(
-                0,
-                NeoScriptExecutor.IrDiscriminatorScanCount(body.instructions));
-
-            RunBody(client, body);
-            Assert.AreEqual(
-                1,
-                NeoScriptExecutor.IrDiscriminatorScanCount(body.instructions));
-
-            RunBody(client, body);
-            RunBody(client, body);
-            Assert.AreEqual(
-                1,
-                NeoScriptExecutor.IrDiscriminatorScanCount(body.instructions),
-                "the revision gate must not re-serialize the IR tree per call");
-            Assert.AreEqual(5d, CounterValue(client));
         }
 
         // -------------------------------------------------------------
@@ -739,18 +604,10 @@ namespace NeoCompose.Tests
             valueId = valueId,
         };
 
-        private static FunctionWithReturnType Revision8(
-            params Instruction[] instructions)
-        {
-            FunctionWithReturnType body = Body(instructions);
-            body.compilerRevision =
-                FunctionWithReturnType.CurrentCompilerRevision;
-            return body;
-        }
-
         private static FunctionWithReturnType Body(
             params Instruction[] instructions) => new()
         {
+            compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
             parameters = Array.Empty<Variable>(),
             instructions = instructions,
             typeInfo = new VoidTypeInfo
@@ -851,19 +708,6 @@ namespace NeoCompose.Tests
             type = MemberKind.NSAction,
             required = true,
             argumentTypes = Array.Empty<TypeInfo>(),
-        };
-
-        private static AssignInstruction SetSaveCounter(double value) => new()
-        {
-            type = InstructionKind.Assign,
-            target = new WriteTarget
-            {
-                pointer = KeyOf(KeyOf(RootVariable(), "Save"), "Counter"),
-                typeInfo = IntType(),
-                writability = WritabilityKind.Save,
-            },
-            operatorValue = "=",
-            pointer = Number(value),
         };
 
         private static NeoClient BuildClient(
@@ -1091,6 +935,7 @@ namespace NeoCompose.Tests
             Dispatch = NeoFunctionDispatchKind.Synchronous,
             action = new FunctionWithReturnType
             {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new[]
                 {
                     Parameter("__this__", new ClassTypeInfo

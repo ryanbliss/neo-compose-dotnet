@@ -431,7 +431,7 @@
       },
       "code": "\t\treturn this.VisitCount > 0;",
       "getter": {
-        "compilerRevision": 7,
+        "compilerRevision": 13,
         "parameters": [
           {
             "id": "__this__",
@@ -842,7 +842,7 @@
       },
       "code": "\t\treturn $\"{this.Name}, {this.Moon}, {this.Planet}\";",
       "getter": {
-        "compilerRevision": 7,
+        "compilerRevision": 13,
         "parameters": [
           {
             "id": "__this__",
@@ -1056,7 +1056,7 @@
       },
       "code": "\t\tint found = 0;\n\t\tif (this.EvidenceArchive) { found = found + 1; }\n\t\tif (this.EvidenceLedger) { found = found + 1; }\n\t\tif (this.EvidenceFaith) { found = found + 1; }\n\t\tstring urgency = \"\";\n\t\tif (this.FlareClock >= 6) { urgency = \"The storms are stacking — hurry. \"; }\n\t\tif (this.FlareClock >= 9) { urgency = \"THE SKY IS TEARING. Finish it. \"; }\n\t\tif (this.Stage == QuestStage.arrival) {\n\t\t\treturn $\"{urgency}Rumors ride the flare-wakes. Start with the greeter at Capitol OG.\";\n\t\t}\n\t\tif (this.Stage == QuestStage.followTheWakes) {\n\t\t\treturn $\"{urgency}Hear the prophecy at Mercurial, and ask the corn farmer on Iowan what the freighters saw.\";\n\t\t}\n\t\tif (this.Stage == QuestStage.threePaths) {\n\t\t\tif (found >= 2) {\n\t\t\t\treturn $\"{urgency}Go BACK to Capitol OG — the greeter's script is fraying. Two proofs are enough.\";\n\t\t\t}\n\t\t\tif (!this.EvidenceArchive) {\n\t\t\t\treturn $\"{urgency}Proof of the frozen sky: revisit Ursa Major's observatory, then offer Storm Corn at Etna Diadem. Outposts you've met have new things to say.\";\n\t\t\t}\n\t\t\tif (!this.EvidenceLedger) {\n\t\t\t\treturn $\"{urgency}Proof in old money: go back to the Pour Lords, then feed their manifest to the relay at Caelus.\";\n\t\t\t}\n\t\t\treturn $\"{urgency}Proof from the verses: sit with the Patriarch at Mercurial again, then buy the Oldest Pattern from the Venusians.\";\n\t\t}\n\t\tif (this.Stage == QuestStage.vaultOpen) {\n\t\t\treturn $\"{urgency}Descend beneath Capitol OG. Bring the Abyssal Lantern from Europapas.\";\n\t\t}\n\t\tif (this.Stage == QuestStage.endgame) {\n\t\t\treturn $\"{urgency}The Old Console at Capitol OG awaits your final output. The Regent's Signet may open one more door.\";\n\t\t}\n\t\treturn \"The run has ended. Thank you for playing.\";",
       "getter": {
-        "compilerRevision": 7,
+        "compilerRevision": 13,
         "parameters": [
           {
             "id": "__this__",
@@ -2264,7 +2264,7 @@
       },
       "code": "\t\treturn $\"{this.Name}, {this.Moon}, {this.Planet}\";",
       "getter": {
-        "compilerRevision": 7,
+        "compilerRevision": 13,
         "parameters": [
           {
             "id": "__this__",
@@ -2515,7 +2515,7 @@
       },
       "code": "\t\treturn $\"{this.Name}, {this.Planet}\";",
       "getter": {
-        "compilerRevision": 7,
+        "compilerRevision": 13,
         "parameters": [
           {
             "id": "__this__",
@@ -3245,7 +3245,7 @@
       },
       "code": "return this.Asset!.Leg.Walk.Down;",
       "getter": {
-        "compilerRevision": 7,
+        "compilerRevision": 13,
         "parameters": [
           {
             "id": "__this__",
@@ -3513,7 +3513,7 @@
       },
       "code": "\t\tPlanet planet = root.Save.World;\n\t\tstring suffix = this.optionalSuffix ?? \"\";\n\t\treturn $\"{this.baseText} {planet}{suffix}\";",
       "getter": {
-        "compilerRevision": 7,
+        "compilerRevision": 13,
         "parameters": [
           {
             "id": "__this__",
@@ -3774,7 +3774,7 @@
         "init": {
           "code": "label",
           "compiled": {
-            "compilerRevision": 7,
+            "compilerRevision": 13,
             "parameters": [
               {
                 "id": "__this__",
@@ -3873,7 +3873,7 @@
         "init": {
           "code": "speed",
           "compiled": {
-            "compilerRevision": 7,
+            "compilerRevision": 13,
             "parameters": [
               {
                 "id": "__this__",
@@ -3959,7 +3959,7 @@
         "init": {
           "code": "label",
           "compiled": {
-            "compilerRevision": 7,
+            "compilerRevision": 13,
             "parameters": [
               {
                 "id": "__this__",
@@ -4081,7 +4081,7 @@
         "init": {
           "code": "segment",
           "compiled": {
-            "compilerRevision": 7,
+            "compilerRevision": 13,
             "parameters": [
               {
                 "id": "__this__",
@@ -4308,7 +4308,7 @@
       },
       "code": "\t\treturn this.SaveUnsafe!;",
       "getter": {
-        "compilerRevision": 7,
+        "compilerRevision": 13,
         "parameters": [
           {
             "id": "__this__",
@@ -4686,7 +4686,7 @@
       },
       "code": "\t\treturn root.Save.OutpostSaveMap.FirstOrDefault((key, value) => { return key == this.Id; });",
       "getter": {
-        "compilerRevision": 7,
+        "compilerRevision": 13,
         "parameters": [
           {
             "id": "__this__",
@@ -4772,7 +4772,7 @@
                     }
                   },
                   "function": {
-                    "compilerRevision": 7,
+                    "compilerRevision": 13,
                     "parameters": [
                       {
                         "id": "key",
@@ -5764,7 +5764,7 @@
       },
       "code": "return this.VisitCount > 0;",
       "getter": {
-        "compilerRevision": 7,
+        "compilerRevision": 13,
         "parameters": [
           {
             "id": "__this__",
@@ -7021,7 +7021,7 @@
       },
       "code": "return this.VisitCount > 0;",
       "getter": {
-        "compilerRevision": 7,
+        "compilerRevision": 13,
         "parameters": [
           {
             "id": "__this__",
@@ -9231,7 +9231,7 @@
       ],
       "code": null,
       "action": {
-        "compilerRevision": 7,
+        "compilerRevision": 13,
         "parameters": [
           {
             "id": "__this__",
@@ -9311,7 +9311,7 @@
       ],
       "code": null,
       "action": {
-        "compilerRevision": 7,
+        "compilerRevision": 13,
         "parameters": [
           {
             "id": "__this__",
@@ -9397,7 +9397,7 @@
       ],
       "code": "this.Selector = () => { throw \"fixture selector\"; };",
       "action": {
-        "compilerRevision": 7,
+        "compilerRevision": 13,
         "parameters": [
           {
             "id": "__this__",
@@ -9527,7 +9527,7 @@
                 "value": {
                   "code": "() => { throw \"fixture selector\"; }",
                   "action": {
-                    "compilerRevision": 7,
+                    "compilerRevision": 13,
                     "parameters": [
                       {
                         "id": "__this__",
@@ -16466,7 +16466,7 @@
       "init": {
         "code": "new MaterializedPantsTrack(\n  label: \"WalkDown\",\n  segment: @id(\"bbbb000b-0000-4000-8000-00000000000b\")\n    new MaterializedSpriteSegment(speed: 3)\n) {\n  StartFrame = 1\n}",
         "compiled": {
-          "compilerRevision": 7,
+          "compilerRevision": 13,
           "parameters": [
             {
               "id": "__this__",
@@ -16842,7 +16842,7 @@
       "value": {
         "code": "() => { return Reference<PantsSprite>(id: \"aaaa1002-0000-4000-8000-000000001002\"); }",
         "action": {
-          "compilerRevision": 7,
+          "compilerRevision": 13,
           "parameters": [
             {
               "id": "__this__",
@@ -19494,7 +19494,7 @@
       "value": {
         "code": "() => { throw \"fixture selector\"; }",
         "action": {
-          "compilerRevision": 7,
+          "compilerRevision": 13,
           "parameters": [
             {
               "id": "__this__",
