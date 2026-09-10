@@ -410,6 +410,79 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ConstructingWithARowBackedArgumentRecordsItsIdNotItsContents()
+        {
+            // P75 §4 — creation data is a recipe, so a row-backed argument is
+            // recorded as the row it names. Every argument reaches the stamp
+            // already marshalled into the evaluator's own record shape, which
+            // carries no id of its own; serializing that shape stores the
+            // row's CONTENTS instead, and replay then rebuilds the instance
+            // from a payload map rather than from the row the caller passed.
+            ProjectData data = BuildProjectData();
+            var holderClass = SchemaClass(
+                "holder-class", "Holder", NeoMemberStorage.Session);
+            holderClass.constructorIds = new[] { "holder-ctor" };
+            data.classes[holderClass.id] = holderClass;
+            var argument = new FunctionArgumentTypeInfo
+            {
+                name = "held",
+                type = MemberKind.Class,
+                classId = "thing-class",
+                required = true,
+            };
+            data.constructors["holder-ctor"] = new ConstructorRecord
+            {
+                id = "holder-ctor",
+                projectId = "p75-project",
+                classId = holderClass.id,
+                argumentTypes = new[] { argument },
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        ConstructorVariable("__this__", ClassType(holderClass.id)),
+                        ConstructorVariable("__root__", ClassType("save-root-class")),
+                        ConstructorVariable("__arg_0__", argument),
+                    },
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Null,
+                        required = true,
+                    },
+                    instructions = Array.Empty<Instruction>(),
+                },
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            using var held = new HeldThingValue(
+                client, client.save.Get<NeoMemberClassWritable>("Thing"));
+            NeoMemberClassWritable holder =
+                NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client,
+                    holderClass.id,
+                    "holder-ctor",
+                    new[] { new NeoDeclaredConstructorArgument("held", held) });
+
+            JToken? recorded = holder.value!.constructorArgs!["__arg_0__"];
+            Assert.AreEqual(JTokenType.String, recorded!.Type);
+            Assert.AreEqual("thing-instance", recorded.Value<string>());
+        }
+
+        private sealed class HeldThingValue : NeoGeneratedClassValue
+        {
+            internal HeldThingValue(NeoClient client, NeoMemberClassWritable node)
+                : base(
+                    client,
+                    node,
+                    "thing-class",
+                    isReadOnly: false,
+                    inheritedStorageOwnership: NeoValueOwnership.Save)
+            {
+            }
+        }
+
+        [Test]
         public void SparseConstructorDependencyCycleStillFailsClosed()
         {
             ProjectData data = BuildGenericConstructorProjectData();

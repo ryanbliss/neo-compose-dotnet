@@ -282,6 +282,43 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void DeclaredLayerWithNoLinkBindsToItsClassDefaultsAndRefusesWrites()
+        {
+            // Every grid is seeded with a default object layer, and an author
+            // may declare layers they have not linked yet. Those are empty,
+            // not broken: binding one must not throw, or resolving the grid
+            // fails before any layer the author does use can be read.
+            var data = BuildClassBackedTileGridProjectData();
+            // The background tile layer stays declared through
+            // `relation-grid-layer`; only the links that gave it content go.
+            ((ArrayMemberValue)data.values["town-grid-children"]).value =
+                new[] { "objects-link" };
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoTileGridPrimitive.ResolveForSave(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+
+            var layer = primitive.BindWritableTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+
+            Assert.IsNull(layer.LayerOverrideValueId);
+            Assert.AreEqual(BackgroundLayerClassId, layer.LayerClassId);
+
+            NeoPlacementResult write = primitive.TrySetTileClass(
+                BackgroundLayerClassId,
+                new Vector2Int(2, 3),
+                TileClassId,
+                new[] { TileClassId });
+
+            Assert.IsFalse(write.Ok);
+            Assert.AreEqual("tile-grid-layer-link-missing", write.ErrorCode);
+        }
+
+        [Test]
         public void SchemaTenGridLinkRejectsAbstractTargetLayer()
         {
             var data = BuildClassBackedTileGridProjectData();

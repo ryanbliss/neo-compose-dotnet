@@ -1121,14 +1121,12 @@ namespace NeoCompose.Runtime
             bool isTileLayer)
         {
             NeoGridLayerLinkModel? overrideOwner = null;
-            bool foundLayer = false;
             foreach (var link in ResolveGridLinks(null))
             {
                 if (link.IsTileLink != isTileLayer || link.LayerId != layerClassId)
                 {
                     continue;
                 }
-                foundLayer = true;
                 if (link.LayerOverrideValueId is null) continue;
                 if (overrideOwner is not null)
                 {
@@ -1137,11 +1135,13 @@ namespace NeoCompose.Runtime
                 }
                 overrideOwner = link;
             }
-            if (!foundLayer)
-            {
-                throw new InvalidOperationException(
-                    $"Grid '{GridValueId}' has no binding for layer class '{layerClassId}'.");
-            }
+            // A grid declares its layers through record relations; linking one
+            // is what gives it content to hold. A declared layer nothing links
+            // — the object layer every grid is seeded with, or one the author
+            // has not placed anything on yet — is empty, not broken, and binds
+            // to its class defaults like any link that owns no override. Writes
+            // still refuse it, through `tile-grid-layer-link-missing`, which
+            // names what is actually absent.
             return overrideOwner?.LayerOverrideValueId;
         }
 
