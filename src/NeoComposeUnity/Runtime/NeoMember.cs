@@ -155,6 +155,15 @@ namespace NeoCompose.Runtime
             OnChanged?.Invoke(changed);
         }
 
+        internal void AssertContainingClassesCanBeConstructed()
+        {
+            for (NeoMember? ancestor = this; ancestor is not null; ancestor = ancestor.parent)
+            {
+                if (ancestor is NeoMemberClassWritable classAncestor)
+                    classAncestor.AssertUnboundObjectCanBeConstructed();
+            }
+        }
+
         /// <summary>
         /// Binds <paramref name="childValueId"/> into this container's
         /// value row so a <paramref name="child"/> that minted a
@@ -683,6 +692,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Cannot bind a new value on an asset-owned member '{member.id}'.");
             }
+            parent?.AssertContainingClassesCanBeConstructed();
             client.SetWritableValue(ownership, newRow);
             value = newRow;
             boundValueId = newRow.id;

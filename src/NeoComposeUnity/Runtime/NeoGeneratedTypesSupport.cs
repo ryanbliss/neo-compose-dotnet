@@ -2636,16 +2636,8 @@ namespace NeoCompose.Runtime
                         // AssertDeclaredConstructorRootIsComplete. Nested rows
                         // always keep the check; nothing writes into them
                         // between preparation and publication.
-                        // P75 replay parity: the web's replay omits a required
-                        // member it cannot construct — the sparse root's
-                        // materialized rows supply it in the overlay, and the
-                        // server-side collapse verifier proved MERGED
-                        // completeness. Requiring construction-only
-                        // completeness here rejected corpora the server
-                        // verified at zero flags (HelloWorld's stamped Assets
-                        // root).
-                        if (!trustedMaterialization
-                            && member.Requirement == NeoMemberRequirementKind.Required
+                        // Sparse replay gets omitted members from its stored overlay.
+                        if (member.Requirement == NeoMemberRequirementKind.Required
                             && requireRequiredMembers
                             && !client.IsReplayingVirtualInstance)
                         {
@@ -2811,6 +2803,10 @@ namespace NeoCompose.Runtime
             if (!trustedMaterialization)
             {
                 ValidateConstructedRowShape(client, member, row, path);
+            }
+            else if (member.Requirement == NeoMemberRequirementKind.Required && IsNullStoredValue(row))
+            {
+                throw new InvalidOperationException($"Constructed required field '{path}' has a null value.");
             }
 
             switch (member)
@@ -2997,6 +2993,9 @@ namespace NeoCompose.Runtime
                 Vector2Member or Vector2IntMember => row is Vector2MemberValue,
                 Vector3Member or Vector3IntMember => row is Vector3MemberValue,
                 ColorMember => row is ColorMemberValue,
+                VariantMember => row is VariantMemberValue,
+                DelegateMember => row is DelegateMemberValue,
+                ActionMember => row is ActionMemberValue,
                 _ => false,
             };
             if (!shapeMatches)
@@ -3049,6 +3048,10 @@ namespace NeoCompose.Runtime
                 Vector2MemberValue value => value.value is null,
                 Vector3MemberValue value => value.value is null,
                 ColorMemberValue value => value.value is null,
+                DelegateMemberValue value => value.value is null,
+                ActionMemberValue value => value.value is null,
+                VariantMemberValue value => value.value is null,
+                PartialLeafMemberValue value => value.value is null,
                 _ => true,
             };
         }
@@ -5874,7 +5877,8 @@ namespace NeoCompose.Runtime
             NeoConstructionScope scope,
             string path,
             IReadOnlyDictionary<string, GenericBinding>? classArguments = null,
-            RuntimeClassPlan? classPlan = null)
+            RuntimeClassPlan? classPlan = null,
+            bool requireCompleteDefault = false)
         {
             if (!scope.classStack.Add(classId))
             {
@@ -5915,10 +5919,8 @@ namespace NeoCompose.Runtime
                         throw new InvalidOperationException(
                             $"Class '{classId}' schema key '{entry.schemaKey}' references missing member '{entry.memberId}'.");
                     }
-                    // Generic slots substitute to their binding before the
-                    // required check and default construction — required and
-                    // defaultValue travel with the binding
-                    // (specs/class-generics.md Decision 10).
+                    // Substitute the type before checking requirements. Defaults
+                    // remain owned by the member declaration.
                     if (resolvedClassPlan is null)
                     {
                         member = NeoGenericResolution.SubstituteMember(
@@ -5951,24 +5953,30 @@ namespace NeoCompose.Runtime
                         {
                             value[entry.schemaKey] = initValueId;
                         }
-                        continue;
                     }
-
-                    if (member.Requirement != NeoMemberRequirementKind.Required
-                        && !HasExplicitDefaultValue(member)) continue;
-
-                    var defaultRow = CreateDefaultValueRow(
-                        client,
-                        member,
-                        rows,
-                        nowIso,
-                        scope,
-                        env,
-                        $"{path}.{entry.schemaKey}");
-                    if (defaultRow is null) continue;
-
-                    rows.Add(defaultRow);
-                    value[entry.schemaKey] = defaultRow.id;
+                    else if (HasExplicitDefaultValue(member))
+                    {
+                        var defaultRow = CreateDefaultValueRow(
+                            client,
+                            member,
+                            rows,
+                            nowIso,
+                            scope,
+                            env,
+                            $"{path}.{entry.schemaKey}");
+                        if (defaultRow is not null)
+                        {
+                            rows.Add(defaultRow);
+                            value[entry.schemaKey] = defaultRow.id;
+                        }
+                    }
+                    if (requireCompleteDefault
+                        && member.Requirement == NeoMemberRequirementKind.Required
+                        && !value.ContainsKey(entry.schemaKey))
+                    {
+                        throw new InvalidOperationException(
+                            $"Class default '{path}' is missing required member '{entry.schemaKey}'/'{entry.memberId}'.");
+                    }
                 }
 
                 return new ObjectMemberValue
@@ -6375,21 +6383,12 @@ namespace NeoCompose.Runtime
             NeoConstructionScope scope,
             string path)
         {
-            if (member.Requirement != NeoMemberRequirementKind.Required
-                && member.defaultValue is { value: null })
+            if (member.defaultValue is null || member.defaultValue.value is null)
             {
                 return null;
             }
-            var effectiveClassId = member.defaultValue?.classId
-                ?? member.classId;
-            // An abstract slot without a default must be supplied by the
-            // constructor or the stored replay overlay, never instantiated.
-            if (member.defaultValue is null
-                && client.TryGetClass(effectiveClassId, out NeoSchemaClass? schemaClass)
-                && schemaClass.Modifier == NeoClassModifierKind.Abstract)
-            {
-                return null;
-            }
+            var effectiveClassId = member.defaultValue.classId ?? member.classId;
+            AssertMemberWiseConstructionIsAvailable(client, effectiveClassId);
             // The slot's constructed arguments travel with every descent
             // below — the default's effective type may be the DECLARED open
             // type, closed only by the slot (specs/class-generics.md
@@ -6411,7 +6410,8 @@ namespace NeoCompose.Runtime
                 nowIso,
                 scope,
                 path,
-                member.classArguments);
+                member.classArguments,
+                requireCompleteDefault: true);
         }
 
         private static Dictionary<string, string> CloneDefaultClassChildren(
@@ -6441,9 +6441,12 @@ namespace NeoCompose.Runtime
 
             foreach (var pair in source)
             {
-                if (!schemaByKey.TryGetValue(pair.Key, out var entry)) continue;
-                if (!client.TryGetMember(entry.memberId, out Member? member)) continue;
-                if (!client.TryGetValue(pair.Value, out MemberValue? sourceRow)) continue;
+                if (!schemaByKey.TryGetValue(pair.Key, out var entry))
+                    throw new InvalidOperationException($"Class default '{path}' supplies unknown schema key '{pair.Key}'.");
+                if (!client.TryGetMember(entry.memberId, out Member? member))
+                    throw new InvalidOperationException($"Class default '{path}.{pair.Key}' references missing member '{entry.memberId}'.");
+                if (!client.TryGetValue(pair.Value, out MemberValue? sourceRow))
+                    throw new InvalidOperationException($"Class default '{path}.{pair.Key}' references missing value '{pair.Value}'.");
 
                 Member effectiveMember = NeoGenericResolution.SubstituteMember(
                     client,
@@ -6480,7 +6483,6 @@ namespace NeoCompose.Runtime
                     env,
                     $"{path}.{pair.Key}",
                     clonedIdsBySourceId);
-                if (cloned is null) continue;
 
                 rows.Add(cloned);
                 result[pair.Key] = cloned.id;
@@ -6517,6 +6519,8 @@ namespace NeoCompose.Runtime
                 MemberValue? sourceRow = client.ResolveClassChildRow(
                     source,
                     entry.schemaKey);
+                if (sourceRow is null && source.value?.TryGetValue(entry.schemaKey, out string sourceValueId) == true)
+                    throw new InvalidOperationException($"Class default '{path}.{entry.schemaKey}' references missing value '{sourceValueId}'.");
                 if (sourceRow is null || sourceRow.IsRemoved) continue;
                 Member effectiveMember = NeoGenericResolution.SubstituteMember(
                     client,
@@ -6540,7 +6544,7 @@ namespace NeoCompose.Runtime
                     continue;
                 }
 
-                MemberValue? cloned = CloneStoredValueForMember(
+                MemberValue cloned = CloneStoredValueForMember(
                     client,
                     effectiveMember,
                     sourceRow,
@@ -6550,7 +6554,6 @@ namespace NeoCompose.Runtime
                     env,
                     $"{path}.{entry.schemaKey}",
                     clonedIdsBySourceId);
-                if (cloned is null) continue;
                 rows.Add(cloned);
                 result[entry.schemaKey] = cloned.id;
                 clonedIdsBySourceId[sourceRow.id] = cloned.id;
@@ -6614,7 +6617,7 @@ namespace NeoCompose.Runtime
                 new Dictionary<string, string>(StringComparer.Ordinal));
         }
 
-        private static MemberValue? CloneStoredValueForMember(
+        private static MemberValue CloneStoredValueForMember(
             NeoClient client,
             Member member,
             MemberValue source,
@@ -6750,10 +6753,47 @@ namespace NeoCompose.Runtime
                         value = sourceValue.value?.PersistedCopy(),
                         classId = source.classId,
                     };
+                case VariantMember when source is VariantMemberValue sourceValue:
+                    return new VariantMemberValue
+                    {
+                        id = Guid.NewGuid().ToString(), createdAt = nowIso, updatedAt = nowIso,
+                        classId = source.classId,
+                        value = sourceValue.value is null ? null : new VariantRefValue
+                        {
+                            classId = sourceValue.value.classId,
+                            variantId = sourceValue.value.variantId,
+                            rowValueId = sourceValue.value.rowValueId,
+                        },
+                    };
                 case ClassMember classMember
                     when source is ObjectMemberValue sourceValue:
                 {
+                    if (sourceValue.value is null)
+                    {
+                        if (classMember.Requirement == NeoMemberRequirementKind.Required)
+                            throw new InvalidOperationException($"Class default '{path}' has a null required value.");
+                        return new ObjectMemberValue
+                        {
+                            id = Guid.NewGuid().ToString(), createdAt = nowIso, updatedAt = nowIso,
+                            classId = sourceValue.classId, value = null,
+                        };
+                    }
                     string classId = sourceValue.classId ?? classMember.classId;
+                    if (sourceValue.instanceConstructorId is string constructorId)
+                    {
+                        ConstructorRecord constructor = RequireConstructorRecord(client, classId,
+                            classId, constructorId);
+                        for (int index = 0; index < constructor.argumentTypes.Length; index++)
+                        {
+                            string parameterId = NeoClient.ConstructorParameterId(constructor, index);
+                            if (!NeoParameterDefaults.HasDefault(constructor.argumentTypes[index])
+                                && sourceValue.constructorArgs?.ContainsKey(parameterId) != true)
+                            {
+                                throw new InvalidOperationException(
+                                    $"Class default '{path}' constructor '{constructorId}' is missing argument '{parameterId}'.");
+                            }
+                        }
+                    }
                     var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
                         sourceValue.genericBindings, classMember.classArguments);
                     ObjectMemberValue clone = CreateWritableClassValueRow(
@@ -6773,7 +6813,8 @@ namespace NeoCompose.Runtime
                         nowIso,
                         scope,
                         path,
-                        classArguments);
+                        classArguments,
+                        requireCompleteDefault: true);
                     CopyDefaultConstructionProvenance(
                         client,
                         sourceValue,
@@ -6806,7 +6847,8 @@ namespace NeoCompose.Runtime
                         path,
                         clonedIdsBySourceId);
                 default:
-                    return null;
+                    throw new InvalidOperationException(
+                        $"Class default '{path}' references value '{source.id}' with carrier '{source.GetType().Name}', which cannot supply member '{member.id}' of kind '{member.kind}'.");
             }
         }
 
@@ -6949,12 +6991,6 @@ namespace NeoCompose.Runtime
                         entryEnv,
                         $"{path}[{pair.Key}]",
                         clonedIdsBySourceId);
-                    if (cloned is null)
-                    {
-                        throw new InvalidOperationException(
-                            $"Dictionary default for '{member.name}' key '{pair.Key}' has incompatible row shape '{sourceRow.GetType().Name}'.");
-                    }
-
                     rows.Add(cloned);
                     value[pair.Key] = cloned.id;
                     clonedIdsBySourceId[sourceRow.id] = cloned.id;
@@ -7061,12 +7097,6 @@ namespace NeoCompose.Runtime
                         entryEnv,
                         $"{path}[{value.Count}]",
                         clonedIdsBySourceId);
-                    if (cloned is null)
-                    {
-                        throw new InvalidOperationException(
-                            $"List default for '{member.name}' has incompatible row shape '{sourceRow.GetType().Name}'.");
-                    }
-
                     rows.Add(cloned);
                     if (unordered) cloned.containerId = rowId;
                     value.Add(cloned.id);
@@ -7135,23 +7165,19 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Default-value row for a Color member. Unlike the vectors,
-        /// Color has a well-defined identity default — opaque white
-        /// (specs/color-member.md decision 4) — so an absent authored
-        /// default still materializes a row rather than leaving a required
-        /// field valueless.
+        /// Materializes an authored Color default.
         /// </summary>
-        private static ColorMemberValue CreateDefaultColorRow(
+        private static ColorMemberValue? CreateDefaultColorRow(
             string nowIso,
             MemberValueBase<NeoColorValue?>? defaultValue)
         {
+            if (defaultValue is null) return null;
             return new ColorMemberValue
             {
                 id = Guid.NewGuid().ToString(),
                 createdAt = nowIso,
                 updatedAt = nowIso,
-                value = CloneColor(defaultValue?.value)
-                    ?? new NeoColorValue { r = 1f, g = 1f, b = 1f, a = 1f },
+                value = CloneColor(defaultValue.value),
                 classId = defaultValue?.classId,
             };
         }
@@ -7184,22 +7210,19 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Default-value row for a Decimal member. Decimal has a
-        /// well-defined non-null default — canonical "0"
-        /// (specs/decimal-member.md decision 4) — so an absent authored
-        /// default still materializes a row (a string row, decision 5) rather
-        /// than leaving a required field valueless.
+        /// Materializes an authored Decimal default.
         /// </summary>
-        private static StringMemberValue CreateDefaultDecimalRow(
+        private static StringMemberValue? CreateDefaultDecimalRow(
             string nowIso,
             MemberValueBase<string?>? defaultValue)
         {
+            if (defaultValue is null) return null;
             return new StringMemberValue
             {
                 id = Guid.NewGuid().ToString(),
                 createdAt = nowIso,
                 updatedAt = nowIso,
-                value = defaultValue?.value ?? "0",
+                value = defaultValue.value,
             };
         }
 

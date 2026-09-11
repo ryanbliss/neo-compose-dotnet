@@ -615,17 +615,13 @@ namespace NeoCompose.Tests
         // ------------------------------------------------------------------
 
         [Test]
-        public void DefaultColorRow_MissingAuthoredDefaultIsOpaqueWhite()
+        public void DefaultColorRow_MissingAuthoredDefaultRequiresAnArgument()
         {
-            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
-            var palette = NeoGeneratedTypesSupport.CreateWritableClassValue(
-                client,
-                PaletteClassId,
-                new Dictionary<string, string>(),
-                System.Array.Empty<MemberValue>());
-
-            var main = new NeoColor(palette.Get<NeoMemberColorWritable>("Main"));
-            Assert.AreEqual(Color.white, main.Value);
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                NeoGeneratedTypesSupport.CreateWritableClassValue(client, PaletteClassId,
+                    new Dictionary<string, string>(), System.Array.Empty<MemberValue>()));
+            StringAssert.Contains("missing required member", error!.Message);
         }
 
         [Test]
@@ -635,8 +631,11 @@ namespace NeoCompose.Tests
             var palette = NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 PaletteClassId,
-                new Dictionary<string, string>(),
-                System.Array.Empty<MemberValue>());
+                new Dictionary<string, string> { ["Main"] = "supplied-main" },
+                new MemberValue[] { new ColorMemberValue
+                {
+                    id = "supplied-main", value = new NeoColorValue { r = 1, g = 1, b = 1, a = 1 },
+                } });
 
             var alt = new NeoColor(palette.Get<NeoMemberColorWritable>("Alt"));
             Assert.AreEqual(new Color(0.25f, 0.5f, 0.75f, 0.5f), alt.Value);

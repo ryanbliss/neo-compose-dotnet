@@ -221,7 +221,10 @@ namespace NeoCompose.Runtime.Json
             return value is not null || !string.IsNullOrEmpty(extendsMemberId);
         }
 
-        public bool ShouldSerializedefaultValue() => ShouldSerializeChainResolvedField("defaultValue");
+        public bool ShouldSerializedefaultValue() =>
+            DeclaresWireField("defaultValue")
+            && TryReadOriginalChainResolvedField("defaultValue", out object? declarationDefault)
+            && declarationDefault is not null;
         public bool ShouldSerializestorageKey() => ShouldSerializeChainResolvedField("storageKey");
         public bool ShouldSerializeminValue() => ShouldSerializeChainResolvedField("minValue");
         public bool ShouldSerializemaxValue() => ShouldSerializeChainResolvedField("maxValue");
@@ -789,8 +792,8 @@ namespace NeoCompose.Runtime.Json
     /// exists under a closed context where
     /// <c>NeoGenericResolution.SubstituteMember</c> has already replaced
     /// it with the terminal binding member), so <c>TValue</c> is
-    /// <c>object?</c> and <c>defaultValue</c>/<c>requirement</c> are never set
-    /// (both travel with the binding — Decision 10).
+    /// <c>object?</c>. Defaults belong to this declaration; nullability comes
+    /// from the binding type.
     /// </summary>
     public class GenericMember : Member<object?>
     {

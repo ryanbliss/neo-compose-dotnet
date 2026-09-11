@@ -1641,7 +1641,7 @@ namespace NeoCompose.Tests
 
             Assert.IsInstanceOf<IntMember>(substituted);
             Assert.AreEqual(true, substituted.Mutability == NeoMemberMutabilityKind.ReadOnly);
-            Assert.AreEqual(7, ((IntMember)substituted).defaultValue!.value);
+            Assert.IsNull(((IntMember)substituted).defaultValue);
         }
 
         [Test]
@@ -1717,7 +1717,6 @@ namespace NeoCompose.Tests
                 name = "Binding A",
                 kind = MemberKind.Int,
                 Requirement = NeoMemberRequirementKind.Required,
-                defaultValue = new NumberMemberValueBase { value = 7 },
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1728,7 +1727,6 @@ namespace NeoCompose.Tests
                 name = "Binding B",
                 kind = MemberKind.Int,
                 Requirement = NeoMemberRequirementKind.Required,
-                defaultValue = new NumberMemberValueBase { value = 9 },
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1758,6 +1756,20 @@ namespace NeoCompose.Tests
                 "class-closed-a", "ClosedA", bindingA.id);
             data.classes["class-closed-b"] = ClosedGenericClass(
                 "class-closed-b", "ClosedB", bindingB.id);
+            foreach (var entry in new[] { ("a", 7d), ("b", 9d) })
+            {
+                var declaration = new GenericMember
+                {
+                    id = $"member-readonly-{entry.Item1}", projectId = ProjectId, name = "Value",
+                    kind = MemberKind.Generic, genericParamId = "param-t",
+                    extendsMemberId = slot.id,
+                    Mutability = NeoMemberMutabilityKind.ReadOnly,
+                    defaultValue = new NullMemberValueBase { value = entry.Item2 },
+                    createdAt = "x", updatedAt = "x",
+                };
+                data.members[declaration.id] = declaration;
+                data.classes[$"class-closed-{entry.Item1}"].schema["Value"] = declaration.id;
+            }
             data.classes["class-root-save"].schema["ClosedA"] = closedA.id;
             data.classes["class-root-save"].schema["ClosedB"] = closedB.id;
             ((ObjectMemberValue)data.values["value-root-save"]).value!["ClosedA"] =
