@@ -111,7 +111,13 @@ namespace NeoCompose.Runtime
                 && sessionData.values.ContainsKey(row.id)
                 && replayingVirtualInstancePreexistingSessionValueIds is not null
                 && !replayingVirtualInstancePreexistingSessionValueIds.Contains(row.id))
-            || (!virtualInstanceReplayReady
+            // Replay also reaches rows that are NOT in the temporary Session
+            // graph: an implicit construction delegates its content to the
+            // placement declaration's authored default, and a variant-stamped
+            // root resolves its variant graph, both of which are asset rows.
+            // Those await their initializers for the whole replay, not just
+            // from the moment replay published a temporary graph.
+            || ((!virtualInstanceReplayReady || isReplayingVirtualInstance)
                 && (awaitingVirtualInstanceChildDepth > 0
                     || (row is not null && IsVirtualInstanceRoot(row))));
 
@@ -217,10 +223,20 @@ namespace NeoCompose.Runtime
         /// materialized row, and structured runtime values keep their JSON
         /// shape. This is the exact inverse of
         /// <see cref="VirtualReplayArgument"/>.
+        ///
+        /// <para><paramref name="resolveRowId"/> supplies the row id for the
+        /// argument kinds replay reads back as an id — Class, Interface, List
+        /// and Dictionary. A row-backed argument does not always arrive as a
+        /// generated wrapper: once it has passed through the evaluator it is
+        /// the plain record or array shape, which carries no id of its own.
+        /// Serializing that shape would record the row's <i>contents</i> as
+        /// the recipe, and replay would then rebuild the instance from a
+        /// payload map instead of the row it was actually built from.</para>
         /// </summary>
         internal static JToken? ConstructorArgumentToken(
             object? value,
-            string describeArgument)
+            string describeArgument,
+            Func<object?, string?>? resolveRowId = null)
         {
             switch (value)
             {
@@ -244,6 +260,11 @@ namespace NeoCompose.Runtime
                     return new JValue(Convert.ToInt64(value));
                 case float or double or decimal:
                     return new JValue(Convert.ToDouble(value));
+            }
+            if (resolveRowId?.Invoke(value) is string rowId
+                && !string.IsNullOrEmpty(rowId))
+            {
+                return new JValue(rowId);
             }
             try
             {

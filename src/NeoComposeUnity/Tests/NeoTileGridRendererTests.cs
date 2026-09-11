@@ -282,6 +282,72 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void DeclaredLayerWithNoLinkBindsToItsClassDefaultsAndRefusesWrites()
+        {
+            // Every grid is seeded with a default object layer, and an author
+            // may declare layers they have not linked yet. Those are empty,
+            // not broken: binding one must not throw, or resolving the grid
+            // fails before any layer the author does use can be read.
+            var data = BuildClassBackedTileGridProjectData();
+            // The background tile layer stays declared through
+            // `relation-grid-layer`; only the links that gave it content go.
+            ((ArrayMemberValue)data.values["town-grid-children"]).value =
+                new[] { "objects-link" };
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoTileGridPrimitive.ResolveForSave(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+
+            var layer = primitive.BindWritableTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+
+            Assert.IsNull(layer.LayerOverrideValueId);
+            Assert.AreEqual(BackgroundLayerClassId, layer.LayerClassId);
+
+            NeoPlacementResult write = primitive.TrySetTileClass(
+                BackgroundLayerClassId,
+                new Vector2Int(2, 3),
+                TileClassId,
+                new[] { TileClassId });
+
+            Assert.IsFalse(write.Ok);
+            Assert.AreEqual("tile-grid-layer-link-missing", write.ErrorCode);
+        }
+
+        [Test]
+        public void UndeclaredLayerWithNoLinkStillFailsClosed()
+        {
+            // The other half of the rule above. A declared layer nothing
+            // links is empty; a layer the grid never declared is a caller
+            // naming a layer this grid does not have, and no link and no
+            // relation reach it, so nothing downstream would catch it.
+            var data = BuildClassBackedTileGridProjectData();
+            ((ArrayMemberValue)data.values["town-grid-children"]).value =
+                new[] { "objects-link" };
+            data.internalRecordRelations.Remove("relation-grid-layer");
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoTileGridPrimitive.ResolveForSave(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+
+            InvalidOperationException error =
+                Assert.Throws<InvalidOperationException>(() =>
+                    primitive.BindWritableTileLayer<TestAuthoredTileLayer>(
+                        BackgroundLayerClassId,
+                        new[] { TileClassId }))!;
+
+            StringAssert.Contains("does not declare layer class", error.Message);
+            StringAssert.Contains(BackgroundLayerClassId, error.Message);
+        }
+
+        [Test]
         public void SchemaTenGridLinkRejectsAbstractTargetLayer()
         {
             var data = BuildClassBackedTileGridProjectData();

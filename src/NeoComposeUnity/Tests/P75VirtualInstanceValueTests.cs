@@ -41,6 +41,54 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ReplayDefersComputedChildrenUnderAnAuthoredPlacementDefault()
+        {
+            // Implicit replay delegates content to the placement declaration,
+            // whose rows are authored assets rather than the temporary Session
+            // graph a constructor publishes. The deferral has to cover the
+            // whole replay, not only rows replay just minted, or those authored
+            // rows' computed leaves are materialized as literals and fail closed.
+            ProjectData data = BuildProjectData(defaultCount: 1);
+            var nestedClass = SchemaClass(
+                "placement-nested-class", "PlacementNested", NeoMemberStorage.Save);
+            nestedClass.schema["Computed"] = "placement-computed";
+            data.classes[nestedClass.id] = nestedClass;
+            data.members["placement-computed"] = new IntMember
+            {
+                id = "placement-computed", projectId = "p75-project", name = "Computed",
+                kind = MemberKind.Int, Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = ComputedIntInitializer(7),
+            };
+            data.classes["thing-class"].schema["Nested"] = "thing-nested";
+            data.members["thing-nested"] = ClassPlacement(
+                "thing-nested", "Nested", nestedClass.id, NeoMemberStorage.Save);
+
+            var placement = (ClassMember)data.members["thing-member"];
+            placement.defaultValue = new ObjectMemberValueBase
+            {
+                classId = "thing-class",
+                value = new Dictionary<string, string>
+                {
+                    ["Count"] = "placement-count",
+                    ["Nested"] = "placement-nested",
+                },
+            };
+            data.values["placement-count"] = new NumberMemberValue
+            {
+                id = "placement-count", value = 5,
+            };
+            // Computed is deliberately absent: replay mints it.
+            data.values["placement-nested"] = ObjectValue(
+                "placement-nested", nestedClass.id);
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            Assert.AreEqual(7, client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberClassWritable>("Nested")
+                .Get<NeoMemberIntWritable>("Computed").value!.value);
+        }
+
+        [Test]
         public void NestedReplayKeepsOuterTemporarySessionRowsAwaitingInitializers()
         {
             ProjectData data = BuildProjectData();
@@ -359,6 +407,79 @@ namespace NeoCompose.Tests
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
             Assert.AreEqual(42d, client.save.Get<NeoMemberClassWritable>("Thing")
                 .Get<NeoMemberIntWritable>("Count").value!.value);
+        }
+
+        [Test]
+        public void ConstructingWithARowBackedArgumentRecordsItsIdNotItsContents()
+        {
+            // P75 §4 — creation data is a recipe, so a row-backed argument is
+            // recorded as the row it names. Every argument reaches the stamp
+            // already marshalled into the evaluator's own record shape, which
+            // carries no id of its own; serializing that shape stores the
+            // row's CONTENTS instead, and replay then rebuilds the instance
+            // from a payload map rather than from the row the caller passed.
+            ProjectData data = BuildProjectData();
+            var holderClass = SchemaClass(
+                "holder-class", "Holder", NeoMemberStorage.Session);
+            holderClass.constructorIds = new[] { "holder-ctor" };
+            data.classes[holderClass.id] = holderClass;
+            var argument = new FunctionArgumentTypeInfo
+            {
+                name = "held",
+                type = MemberKind.Class,
+                classId = "thing-class",
+                required = true,
+            };
+            data.constructors["holder-ctor"] = new ConstructorRecord
+            {
+                id = "holder-ctor",
+                projectId = "p75-project",
+                classId = holderClass.id,
+                argumentTypes = new[] { argument },
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        ConstructorVariable("__this__", ClassType(holderClass.id)),
+                        ConstructorVariable("__root__", ClassType("save-root-class")),
+                        ConstructorVariable("__arg_0__", argument),
+                    },
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Null,
+                        required = true,
+                    },
+                    instructions = Array.Empty<Instruction>(),
+                },
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            using var held = new HeldThingValue(
+                client, client.save.Get<NeoMemberClassWritable>("Thing"));
+            NeoMemberClassWritable holder =
+                NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client,
+                    holderClass.id,
+                    "holder-ctor",
+                    new[] { new NeoDeclaredConstructorArgument("held", held) });
+
+            JToken? recorded = holder.value!.constructorArgs!["__arg_0__"];
+            Assert.AreEqual(JTokenType.String, recorded!.Type);
+            Assert.AreEqual("thing-instance", recorded.Value<string>());
+        }
+
+        private sealed class HeldThingValue : NeoGeneratedClassValue
+        {
+            internal HeldThingValue(NeoClient client, NeoMemberClassWritable node)
+                : base(
+                    client,
+                    node,
+                    "thing-class",
+                    isReadOnly: false,
+                    inheritedStorageOwnership: NeoValueOwnership.Save)
+            {
+            }
         }
 
         [Test]
@@ -991,6 +1112,56 @@ namespace NeoCompose.Tests
             Assert.Throws<InvalidOperationException>(() =>
                 NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(client, "thing-class", null,
                     Array.Empty<NeoDeclaredConstructorArgument>(), Array.Empty<NeoGeneratedConstructorValue>()));
+        }
+
+        [Test]
+        public void SaveScopedReadFallsThroughToAnAssetOwnedVirtualRow()
+        {
+            // Assets underlie every graph, so a Save- or Session-scoped read
+            // that misses its own store falls through to them. A virtual row
+            // has to fall through exactly like the authored row it stands in
+            // for — an NSProperty getter invoked with Save ownership over an
+            // asset-owned instance reads its receiver through this path.
+            ProjectData data = BuildProjectData();
+            data.classes["thing-class"].allowedStorage = NeoMemberStorage.Immutable;
+            data.classes["save-root-class"].schema.Remove("Thing");
+            data.classes["assets-root-class"].schema["Thing"] = "thing-member";
+            data.members["thing-member"].Storage = NeoMemberStorage.Immutable;
+            ((ObjectMemberValue)data.values["value-save"]).value!.Remove("Thing");
+            ((ObjectMemberValue)data.values["value-assets"]).value!["Thing"] = "thing-instance";
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            string virtualId = client.assets.Get<NeoMemberClass>("Thing")
+                .Get<NeoMemberInt>("Count").value!.id;
+            Assert.IsFalse(client.values.ContainsKey(virtualId),
+                "The leaf has to be virtual for this to test anything.");
+
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Asset, virtualId, out MemberValue? asAsset));
+            Assert.AreEqual(virtualId, asAsset!.id);
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Save, virtualId, out MemberValue? asSave));
+            Assert.AreEqual(virtualId, asSave!.id);
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Session, virtualId, out MemberValue? asSession));
+            Assert.AreEqual(virtualId, asSession!.id);
+        }
+
+        [Test]
+        public void AssetScopedReadStillRefusesASaveOwnedVirtualRow()
+        {
+            // The reverse never falls through: assets must not resolve through
+            // a writable graph the caller asked to stay out of.
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            string virtualId = client.save.Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberIntWritable>("Count").value!.id;
+            Assert.IsFalse(client.values.ContainsKey(virtualId));
+
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Save, virtualId, out MemberValue? asSave));
+            Assert.AreEqual(virtualId, asSave!.id);
+            Assert.IsFalse(client.TryGetValue(
+                NeoValueOwnership.Asset, virtualId, out MemberValue? _));
         }
 
         [Test]

@@ -4053,7 +4053,8 @@ namespace NeoCompose.Runtime
                     client,
                     resolved,
                     argumentValues,
-                    root.id);
+                    root.id,
+                    constructionCtx);
                 node.RefreshChildrenAfterConstruction();
             }
             catch
@@ -4076,7 +4077,8 @@ namespace NeoCompose.Runtime
             NeoClient client,
             NeoResolvedDeclaredConstructor resolved,
             IReadOnlyDictionary<string, object?> argumentValues,
-            string rootValueId)
+            string rootValueId,
+            NeoScript.NSGetterEvaluator.Context ctx)
         {
             if (!client.TryGetValue(
                     NeoValueOwnership.Session,
@@ -4101,10 +4103,29 @@ namespace NeoCompose.Runtime
                     {
                         continue;
                     }
+                    // The kinds replay reads back as a row id are exactly the
+                    // kinds recorded as one. A structured leaf — a sprite, a
+                    // vector, a colour — is reference-identified too, so
+                    // without this narrowing it would be recorded as its row's
+                    // id and replayed as a JSON literal.
+                    TypeInfo declaredType =
+                        NeoNSFunctionRuntime.ResolveInvocationTypeInfo(
+                            client,
+                            argument,
+                            resolved.genericEnv);
+                    Func<object?, string?>? resolveRowId =
+                        declaredType.type is MemberKind.Class
+                            or MemberKind.Interface
+                            or MemberKind.List
+                            or MemberKind.Dictionary
+                            ? candidate => NeoScript.NSGetterEvaluator
+                                .ConstructorReferenceOf(candidate, ctx)?.valueId
+                            : null;
                     constructorArgs[NeoClient.ConstructorParameterId(record, index)] =
                         NeoClient.ConstructorArgumentToken(
                             value,
-                            $"'{argument.name}' of constructor '{record.id}' on class '{resolved.schemaClass.name}'");
+                            $"'{argument.name}' of constructor '{record.id}' on class '{resolved.schemaClass.name}'",
+                            resolveRowId);
                 }
             }
             NeoClient.StampConstructionProvenance(live, record?.id, constructorArgs);
