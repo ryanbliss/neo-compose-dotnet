@@ -682,13 +682,13 @@ namespace NeoCompose.Runtime
             var client = new NeoClient(loader, content, assetDatabase, localization, saveOptions, true);
             try
             {
-                await Awaitable.NextFrameAsync(cancellationToken);
+                await YieldInitializationAsync(cancellationToken);
                 var budget = System.Diagnostics.Stopwatch.StartNew();
                 foreach (var step in client.InitializeVirtualInstanceValuesSteps(true))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (budget.ElapsedMilliseconds < 8) continue;
-                    await Awaitable.NextFrameAsync(cancellationToken);
+                    await YieldInitializationAsync(cancellationToken);
                     budget.Restart();
                 }
                 client.CompleteInitialization();
@@ -699,6 +699,18 @@ namespace NeoCompose.Runtime
                 client.Dispose();
                 throw;
             }
+        }
+
+        private static async Awaitable YieldInitializationAsync(
+            System.Threading.CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (Application.isPlaying)
+                await Awaitable.NextFrameAsync(cancellationToken);
+            else
+                // Editor consumers have an update loop, but no player frames.
+                await System.Threading.Tasks.Task.Yield();
+            cancellationToken.ThrowIfCancellationRequested();
         }
 
         private void CompleteInitialization()

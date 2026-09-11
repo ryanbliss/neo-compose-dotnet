@@ -65,7 +65,7 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void CreateNew_IsLocalOnlyUntilCommit_ThenListedOnReturn()
+        public async System.Threading.Tasks.Task CreateNew_IsLocalOnlyUntilCommit_ThenListedOnReturn()
         {
             var store = Store(new NeoFileLocalSaveStore(TempDir()));
             store.LoadAsync().GetAwaiter().GetResult();
@@ -75,7 +75,7 @@ namespace HelloWorld.Assets.Tests
             store.RefreshSavesAsync().GetAwaiter().GetResult();
             Assert.IsEmpty(store.Saves, "A new draft persists nothing until the first commit.");
 
-            var neo = HelloWorldNeo.Load(synchronizer).GetAwaiter().GetResult();
+            var neo = await HelloWorldNeo.Load(synchronizer);
             var destination = neo.Assets.Outposts.First(o => o.valueId != neo.Save.Location.valueId);
             neo.Save.World = destination.Planet;
             var worldId = neo.Save.World.optionId;
@@ -88,19 +88,19 @@ namespace HelloWorld.Assets.Tests
             Assert.AreEqual(synchronizer.CustomId, store.Saves[0].customId);
 
             // Reopening it restores the played state.
-            var reloaded = HelloWorldNeo.Load(store.Open(synchronizer.CustomId)).GetAwaiter().GetResult();
+            var reloaded = await HelloWorldNeo.Load(store.Open(synchronizer.CustomId));
             Assert.AreEqual(worldId, reloaded.Save.World.optionId);
             reloaded.Dispose();
         }
 
         [Test]
-        public void Archive_MarksSaveArchivedAndHidesItFromTheActiveList()
+        public async System.Threading.Tasks.Task Archive_MarksSaveArchivedAndHidesItFromTheActiveList()
         {
             var store = Store(new NeoFileLocalSaveStore(TempDir()));
             store.LoadAsync().GetAwaiter().GetResult();
 
             var synchronizer = store.CreateNew("Doomed");
-            var neo = HelloWorldNeo.Load(synchronizer).GetAwaiter().GetResult();
+            var neo = await HelloWorldNeo.Load(synchronizer);
             neo.CommitAsync().GetAwaiter().GetResult();
             neo.Dispose();
             store.RefreshSavesAsync().GetAwaiter().GetResult();
@@ -114,7 +114,7 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void CloudRoundTrip_SyncsSaveToASecondDevice()
+        public async System.Threading.Tasks.Task CloudRoundTrip_SyncsSaveToASecondDevice()
         {
             var cloud = new InMemoryCloud();
 
@@ -126,7 +126,7 @@ namespace HelloWorld.Assets.Tests
             storeA.LoadAsync().GetAwaiter().GetResult();
 
             var synchronizer = storeA.CreateNew("Cloud Game");
-            var neoA = HelloWorldNeo.Load(synchronizer).GetAwaiter().GetResult();
+            var neoA = await HelloWorldNeo.Load(synchronizer);
             var destination = neoA.Assets.Outposts.First(o => o.valueId != neoA.Save.Location.valueId);
             neoA.Save.World = destination.Planet;
             var worldId = neoA.Save.World.optionId;
@@ -147,7 +147,7 @@ namespace HelloWorld.Assets.Tests
                 storeB.Saves.Any(s => s.customId == customId),
                 "The cloud save appears on a second device.");
 
-            var neoB = HelloWorldNeo.Load(storeB.Open(customId)).GetAwaiter().GetResult();
+            var neoB = await HelloWorldNeo.Load(storeB.Open(customId));
             Assert.AreEqual(worldId, neoB.Save.World.optionId, "The played state round-trips through the cloud.");
             neoB.Dispose();
         }

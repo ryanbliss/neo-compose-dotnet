@@ -20,8 +20,8 @@ namespace NeoCompose.Runtime
         /// <see cref="NeoProjectStore"/>). The project schema comes from the loader's
         /// owning store — there is no <c>projectJson</c> argument. Resolves the active
         /// save's content asynchronously (conflict / migration / clone handled by the
-        /// loader) before constructing the client. Set yieldDuringInitialization
-        /// to replay constructor defaults across frames on the Unity main thread.
+        /// loader) before constructing the client. Initialization replays constructor
+        /// defaults across frames on the Unity main thread.
         /// The client is only published after replay and validation complete.
         /// </summary>
         public async Awaitable<NeoClient> Load(
@@ -30,8 +30,7 @@ namespace NeoCompose.Runtime
             NeoLocalizationOptions? localizationOptions = null,
             INeoLocalizationLocaleFileSource? localizationFileSource = null,
             NeoSaveOptions? saveOptions = null,
-            System.Threading.CancellationToken cancellationToken = default,
-            bool yieldDuringInitialization = false)
+            System.Threading.CancellationToken cancellationToken = default)
         {
             if (loader == null) throw new ArgumentNullException(nameof(loader));
             ProjectData data = loader.Schema
@@ -45,10 +44,8 @@ namespace NeoCompose.Runtime
             string? content = await loader.LoadSaveContentAsync();
             cancellationToken.ThrowIfCancellationRequested();
             assetDatabase ??= NeoAssetDatabase.LoadDefault();
-            return yieldDuringInitialization
-                ? await NeoClient.CreateAsync(loader, content, assetDatabase, localization,
-                    saveOptions, cancellationToken)
-                : new NeoClient(loader, content, assetDatabase, localization, saveOptions);
+            return await NeoClient.CreateAsync(loader, content, assetDatabase, localization,
+                saveOptions, cancellationToken);
         }
     }
 

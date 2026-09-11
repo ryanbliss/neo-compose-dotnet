@@ -31,9 +31,7 @@ namespace NeoCompose.Tests
             NeoDialogueRuntimeOptions? dialogueOptions = null)
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
-            var app = TestProjectNeo.Load(stack.Synchronizer, dialogueOptions)
-                .GetAwaiter()
-                .GetResult();
+            var app = new TestProjectNeo(NeoTestSaveStack.LoadSynchronously(stack.Synchronizer), dialogueOptions);
             saveBuffer = app.SerializeSaveData();
             return app;
         }
@@ -123,11 +121,11 @@ namespace NeoCompose.Tests
         /// wire the synchronizer to the client by hand. Disposal detaches it.
         /// </summary>
         [Test]
-        public void LiveContentSource_AppliesInboundContentWithoutManualWiring()
+        public async System.Threading.Tasks.Task LiveContentSource_AppliesInboundContentWithoutManualWiring()
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
             var loader = new LiveContentLoader(stack.Synchronizer);
-            var app = TestProjectNeo.Load(loader).GetAwaiter().GetResult();
+            var app = await TestProjectNeo.Load(loader);
 
             app.Save.Score = 7;
             var inbound = app.SerializeSaveData();
@@ -234,14 +232,12 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedLoad_PassesCustomSaveNameBuilderToNeoClient()
+        public async System.Threading.Tasks.Task GeneratedLoad_PassesCustomSaveNameBuilderToNeoClient()
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
-            var app = TestProjectNeo.Load(
+            var app = await TestProjectNeo.Load(
                 stack.Synchronizer,
-                saveOptions: new NeoSaveOptions { BuildSaveName = () => "patient-comet-808" })
-                .GetAwaiter()
-                .GetResult();
+                saveOptions: new NeoSaveOptions { BuildSaveName = () => "patient-comet-808" });
 
             Assert.IsNotNull(app);
             var save = JsonConvert.DeserializeObject<ProjectSaveData>(app.SerializeSaveData());
@@ -640,7 +636,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedConstructor_ClonesSparseConstructedDefaultsWithTheirRecipe()
+        public async System.Threading.Tasks.Task GeneratedConstructor_ClonesSparseConstructedDefaultsWithTheirRecipe()
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
             ProjectData data = stack.Synchronizer.Schema;
@@ -904,9 +900,7 @@ namespace NeoCompose.Tests
                 };
             data.values[sparseSource.id] = sparseSource;
 
-            using TestProjectNeo app = TestProjectNeo.Load(stack.Synchronizer)
-                .GetAwaiter()
-                .GetResult();
+            using TestProjectNeo app = await TestProjectNeo.Load(stack.Synchronizer);
             NeoMemberClassWritable holder =
                 NeoGeneratedTypesSupport.CreateWritableClassValue(
                     app.Client,
@@ -1293,16 +1287,16 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedSession_ReloadStartsFromAuthoredDefaults()
+        public async System.Threading.Tasks.Task GeneratedSession_ReloadStartsFromAuthoredDefaults()
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
 
-            var first = TestProjectNeo.Load(stack.Synchronizer).GetAwaiter().GetResult();
+            var first = await TestProjectNeo.Load(stack.Synchronizer);
             first.Session.Score = 777777;
             first.Save.Score = 12;
             first.CommitAsync().GetAwaiter().GetResult();
 
-            var second = TestProjectNeo.Load(stack.Reopen()).GetAwaiter().GetResult();
+            var second = await TestProjectNeo.Load(stack.Reopen());
 
             Assert.AreEqual(12, second.Save.Score);
             Assert.AreEqual(10, second.Session.Score);

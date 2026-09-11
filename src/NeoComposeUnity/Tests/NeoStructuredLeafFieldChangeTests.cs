@@ -37,7 +37,7 @@ namespace NeoCompose.Tests
         {
             var stack = NeoTestSaveStack.Create(
                 File.ReadAllText(Path.Combine(PackageRoot, "synth-example.json")));
-            return TestProjectNeo.Load(stack.Synchronizer).GetAwaiter().GetResult();
+            return new TestProjectNeo(NeoTestSaveStack.LoadSynchronously(stack.Synchronizer));
         }
 
         /// <summary>

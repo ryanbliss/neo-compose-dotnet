@@ -6,10 +6,10 @@
 
 ### Added
 
-- `NeoLoader.Load` accepts `yieldDuringInitialization: true` to replay constructor
-  defaults across frames on the Unity main thread, with a cancellation token.
-  The client is returned only after replay and validation complete. Existing
-  callers keep their current scheduling unless they opt in.
+- `NeoLoader.Load` replays constructor defaults across frames on the Unity main
+  thread and accepts an optional cancellation token. The client is returned only
+  after replay and validation complete. Callers must await the load; synchronous
+  completion is no longer assumed. Generated client loaders forward cancellation.
 
 ### Fixed
 

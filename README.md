@@ -34,11 +34,9 @@ authoring and synchronization workflow.
 Games can keep their loading screen updating while constructor defaults replay:
 
 ```csharp
-var runtime = await new NeoLoader().Load(
+var game = await HelloWorldNeo.Load(
     synchronizer,
-    cancellationToken: destroyCancellationToken,
-    yieldDuringInitialization: true);
-var game = new HelloWorldNeo(runtime);
+    cancellationToken: destroyCancellationToken);
 ```
 
 Call this from the Unity main thread. Replay yields between completed steps after
@@ -46,8 +44,7 @@ an 8 ms work budget; individual constructors remain atomic, so this is not a har
 frame-time cap. The returned client is fully initialized. Cancellation disposes
 the partial client and throws `OperationCanceledException`.
 
-The option defaults to `false`, preserving existing callers' scheduling. Keep the
-loading scene visible until world rendering completes, then dispose the client
+Keep the loading scene visible until world rendering completes, then dispose the client
 when its owning game session ends.
 
 ## Tests
