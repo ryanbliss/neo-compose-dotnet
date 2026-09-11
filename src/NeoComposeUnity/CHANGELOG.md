@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [0.35.1] - 2026-09-11
+
+### Added
+
+- `NeoLoader.Load` accepts `yieldDuringInitialization: true` to replay constructor
+  defaults across frames on the Unity main thread, with a cancellation token.
+  The client is returned only after replay and validation complete. Existing
+  callers keep their current scheduling unless they opt in.
+
+### Fixed
+
+- Class-backed grid tiles and sparse layer settings read declaration defaults
+  instead of unrelated stored declaration values. Explicit layer overrides still
+  win and remain writable. This restores Neowyn grass sprites and smart-tile rules
+  and places the boulder on its configured Foreground sorting layer.
+- Sprite reflection resolves the nearest generated property declaration when a
+  derived type hides an inherited sprite projection with a different return type.
+
 ## [0.35.0] - 2026-09-11
 
 ### Changed

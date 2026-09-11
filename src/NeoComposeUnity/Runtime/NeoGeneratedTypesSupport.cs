@@ -7532,6 +7532,7 @@ namespace NeoCompose.Runtime
             {
                 id = $"__neo_class_default:{classId}",
                 name = "ClassDefault",
+                useDeclarationDefaults = true,
                 kind = MemberKind.Class,
                 classId = classId,
                 defaultValue = new ObjectMemberValueBase
@@ -7542,7 +7543,7 @@ namespace NeoCompose.Runtime
                 createdAt = now,
                 updatedAt = now,
             };
-            object value = factory(client, new NeoMemberClass(client, member, null));
+            object value = factory(client, (NeoMemberClass)NeoMember.Create(client, member, null));
             if (value is not NeoGeneratedClassValue generated)
             {
                 throw new InvalidOperationException(

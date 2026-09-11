@@ -100,6 +100,11 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         internal string? substitutedDeclarationIdentity;
 
+        // Runtime projection used by class references and grid layer settings.
+        // Explicit child bindings win; absent children read declaration defaults.
+        [JsonIgnore]
+        internal bool useDeclarationDefaults;
+
         [JsonIgnore]
         internal string RuntimeDeclarationIdentity =>
             substitutedDeclarationIdentity ?? id;

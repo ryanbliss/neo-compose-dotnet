@@ -35,6 +35,31 @@ namespace NeoCompose.Tests
     public class NeoTileAssetFactorySpriteProjectionTests
     {
         [Test]
+        public void ResolveSprite_PrefersHiddenDerivedProjection()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var sprite = MakeSprite();
+            var baseSprite = MakeSprite();
+            try
+            {
+                var tile = new DerivedSpriteTile(client) { Sprite = new NeoSprite(sprite) };
+                ((ReadOnlyWrapperSpriteTile)tile).Sprite = new NeoReadOnlySprite(baseSprite);
+                Assert.AreSame(sprite, NeoTileAssetFactory.ResolveSprite(tile));
+            }
+            finally
+            {
+                DestroySprite(sprite);
+                DestroySprite(baseSprite);
+            }
+        }
+
+        private sealed class DerivedSpriteTile : ReadOnlyWrapperSpriteTile
+        {
+            public DerivedSpriteTile(NeoClient client) : base(client) { }
+            public new NeoSprite? Sprite { get; set; }
+        }
+
+        [Test]
         public void ResolveSprite_ReadsAWrapperTypedSpriteProperty()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
@@ -171,7 +196,7 @@ namespace NeoCompose.Tests
             public NeoSprite? Sprite { get; set; }
         }
 
-        private sealed class ReadOnlyWrapperSpriteTile : NeoGeneratedClassValue
+        private class ReadOnlyWrapperSpriteTile : NeoGeneratedClassValue
         {
             public ReadOnlyWrapperSpriteTile(NeoClient client)
                 : base(client, client.save, TileClassId) { }

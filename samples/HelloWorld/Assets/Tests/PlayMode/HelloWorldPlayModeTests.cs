@@ -27,6 +27,56 @@ namespace HelloWorld.Assets.Tests.PlayMode
         private const string ProjectResourcePath = "Neo/project";
 
         [UnityTest]
+        public IEnumerator YieldingInitialization_PublishesCompleteClientAndPreservesSave()
+        {
+            using var store = CreateLoadedStore();
+            using var synchronizer = store.CreateNew("playmode-yielding-load");
+            var pending = new NeoLoader().Load(synchronizer,
+                localizationOptions: EnglishLocalizationOptions(), yieldDuringInitialization: true);
+            var awaiter = pending.GetAwaiter();
+            Assert.IsFalse(awaiter.IsCompleted, "Opt-in initialization must allow a frame before replay.");
+            float deadline = Time.realtimeSinceStartup + 30;
+            while (!awaiter.IsCompleted && Time.realtimeSinceStartup < deadline) yield return null;
+            Assert.IsTrue(awaiter.IsCompleted);
+            using (var client = new HelloWorldNeo(awaiter.GetResult()))
+            {
+                Assert.AreEqual("Hello Earth!", client.Assets.Computed.fullText);
+                client.Save.Bits = 123;
+                client.CommitAsync().GetAwaiter().GetResult();
+            }
+            using var reopened = store.Open(synchronizer.CustomId);
+            pending = new NeoLoader().Load(reopened,
+                localizationOptions: EnglishLocalizationOptions(), yieldDuringInitialization: true);
+            awaiter = pending.GetAwaiter();
+            deadline = Time.realtimeSinceStartup + 30;
+            while (!awaiter.IsCompleted && Time.realtimeSinceStartup < deadline) yield return null;
+            Assert.IsTrue(awaiter.IsCompleted);
+            using var restored = new HelloWorldNeo(awaiter.GetResult());
+            Assert.AreEqual(123, restored.Save.Bits);
+            Assert.AreEqual("Hello Earth!", restored.Assets.Computed.fullText);
+        }
+
+        [UnityTest]
+        public IEnumerator YieldingInitialization_CanCancelBeforePublishingClient()
+        {
+            using var store = CreateLoadedStore();
+            using var synchronizer = store.CreateNew("playmode-cancelled-load");
+            using var cancellation = new System.Threading.CancellationTokenSource();
+            var pending = new NeoLoader().Load(synchronizer,
+                localizationOptions: EnglishLocalizationOptions(),
+                cancellationToken: cancellation.Token, yieldDuringInitialization: true);
+            var awaiter = pending.GetAwaiter();
+            Assert.IsFalse(awaiter.IsCompleted);
+            cancellation.Cancel();
+            yield return null;
+            Assert.IsTrue(awaiter.IsCompleted);
+            Assert.Throws<System.OperationCanceledException>(() => { awaiter.GetResult(); });
+            using var client = HelloWorldNeo.Load(synchronizer,
+                localizationOptions: EnglishLocalizationOptions()).GetAwaiter().GetResult();
+            Assert.AreEqual("Hello Earth!", client.Assets.Computed.fullText);
+        }
+
+        [UnityTest]
         public IEnumerator CurrentSchemaExport_LoadsClassAndMemberContractInPlayMode()
         {
             Assert.IsTrue(Application.isPlaying, "This gate must run through the PlayMode test runner.");

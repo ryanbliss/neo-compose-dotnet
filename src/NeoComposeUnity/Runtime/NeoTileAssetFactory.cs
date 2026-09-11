@@ -116,10 +116,15 @@ namespace NeoCompose.Runtime
 
         private static Sprite? TryReadSpriteProperty(object source, string propertyName)
         {
-            var property = source.GetType().GetProperty(
-                propertyName,
-                BindingFlags.Public | BindingFlags.Instance);
-            return property == null ? null : TryReadSpriteProperty(source, property);
+            // Generated subclasses can hide an inherited property with a narrower
+            // projection type. Resolve the nearest declaration, like C# member access.
+            for (var type = source.GetType(); type != null; type = type.BaseType)
+            {
+                var property = type.GetProperty(propertyName,
+                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+                if (property != null) return TryReadSpriteProperty(source, property);
+            }
+            return null;
         }
 
         private static Sprite? TryReadSpriteProperty(object source, PropertyInfo property)
