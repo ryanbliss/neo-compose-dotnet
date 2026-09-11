@@ -42,7 +42,7 @@ class RecoveryCacheObject : ConsoleObject {
 
   @id("94472662-a3a9-4c02-8abb-6229442e1e49")
   @system(kind: .WorldAuthoring)
-  public override NeoCollider? Collider = new NeoCollider {
+  public override NeoCollider? Collider = new() {
     Size = new(0.781, 0.744),
     Offset = new(0.512, 0.451),
     IsTrigger = false

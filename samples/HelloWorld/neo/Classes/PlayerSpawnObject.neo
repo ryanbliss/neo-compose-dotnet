@@ -38,7 +38,7 @@ class PlayerSpawnObject : ConsoleObject {
   ];
 
   @id("e5f5125c-fe5c-46b4-9589-9c6ae6fcba19")
-  public override NeoCollider? Collider = new NeoCollider {
+  public override NeoCollider? Collider = new() {
     Size = new(0.961, 0.93),
     Offset = new(0.506, 0.503),
     IsTrigger = false

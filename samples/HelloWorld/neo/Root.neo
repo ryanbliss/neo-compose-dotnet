@@ -1,4 +1,4 @@
-// This file is read only.
+// Root member declarations are read only. Initializers may be edited or extracted.
 Root root = new() {
   @id("8f1dbf20-8d7c-49e0-9e0f-5e172da6f684")
   @storage(allowed: .Immutable)

@@ -18,7 +18,7 @@ class GlassFloorTile : ConsoleTile {
 
   @id("neo-tile-grid-record-relations-v1-member-49e10224390d0b64abdf608051b2fcd5")
   @system(kind: .WorldAuthoring)
-  public override NeoSmartTile? SmartTile = new NeoSmartTile {
+  public override NeoSmartTile? SmartTile = new() {
     DefaultCollider = .Sprite,
     Rules = [
       @id("39dc4d5d-cb3e-47b5-a316-e0db8a049c1d")

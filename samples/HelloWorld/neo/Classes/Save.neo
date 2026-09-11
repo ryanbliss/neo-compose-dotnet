@@ -18,13 +18,13 @@ class Save {
 
   @id("system_85e52252-1044-4c07-b8b5-3adc35f2dc66")
   @system(kind: .DialogueMemoryContainer)
-  public virtual NeoMemory NeoMemory;
+  public virtual NeoMemory NeoMemory = new();
 
   @id("f977a94e-aa40-414c-9812-dacdd50110a8")
   public virtual Dictionary<string, OutpostSaveData?> OutpostSaveMap = {};
 
   @id("4868ab84-027a-405d-bfca-d04d4d4917fa")
-  public virtual QuestState Quest = new QuestState {
+  public virtual QuestState Quest = new() {
     Ending = .none,
     EvidenceArchive = false,
     EvidenceFaith = false,

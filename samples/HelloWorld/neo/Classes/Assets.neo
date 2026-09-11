@@ -8,13 +8,13 @@ class Assets {
   public virtual Audio Audio;
 
   @id("92fe2bbb-e542-40a7-9d5e-7a7ad5b9abca")
-  public virtual ComputedText Computed;
+  public virtual ComputedText Computed = new();
 
   @id("214df1a1-abca-4141-987b-380a5417c70a")
   public virtual List<Item> Items = [];
 
   @id("2c57948b-7479-47e0-b97c-242f6d543ae0")
-  public virtual LookupContainer LookupContainer;
+  public virtual LookupContainer LookupContainer = new();
 
   @id("2827aefd-7f57-48ea-994c-c5c39ec659e3")
   @column(member: Name, width: 158, pin: .Leading)
@@ -30,7 +30,7 @@ class Assets {
   public virtual List<Outpost> Outposts = [];
 
   @id("adb76be1-a78d-4736-8375-1c579455c396")
-  public virtual OldConsoleLandingGrid ScreenshotEmptyGrid;
+  public virtual OldConsoleLandingGrid ScreenshotEmptyGrid = new();
 
   @id("system_7ec79ef8-a216-407f-8886-9f770bc9895b")
   @system(kind: .WorldAuthoring)
