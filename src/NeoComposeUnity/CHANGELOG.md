@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.34.1] - 2026-09-10
+
+0.34.0 was never published; its notes are included here.
+
 ### Changed
 
 - **Breaking:** compiled NeoScript bodies must be stamped at compiler revision
@@ -31,7 +35,6 @@
   constructed from.
 - Nested values created during sparse constructor replay wait for their computed
   children before the SDK binds them, fixing Neowyn project initialization.
-
 - Fully sparse constructed values replay inherited initializers and computed
   children with their recorded constructor arguments and collection ownership.
 - Generic ownership traversal distinguishes owned aggregates from Lookup targets
