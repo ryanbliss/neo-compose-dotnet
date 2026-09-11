@@ -13,6 +13,22 @@
 
 ### Fixed
 
+- Sparse constructor replay defers computed children for the whole replay, not
+  only for rows in the temporary Session graph it publishes. An implicit
+  construction delegating to its placement declaration's authored default, and a
+  variant-stamped root resolving its variant graph, both reach asset rows, which
+  no longer materialize an initializer-backed default as a literal.
+- Ownership-scoped reads fall through to asset-owned virtual rows the same way
+  they already fall through to authored asset rows. Answering an asset-scoped
+  read with a Save- or Session-owned row stays refused.
+- A grid layer the grid declares but nothing links binds to its layer class
+  defaults instead of failing the whole grid. Writes to it are still refused
+  with `tile-grid-layer-link-missing`, and a layer the grid does not declare at
+  all is still refused at bind time.
+- Creation data records a row-backed constructor argument as its row id rather
+  than the row's contents, so replaying an instance built at runtime — including
+  `ToVariant` back to the base variant — rebuilds it from the row it was
+  constructed from.
 - Nested values created during sparse constructor replay wait for their computed
   children before the SDK binds them, fixing Neowyn project initialization.
 
