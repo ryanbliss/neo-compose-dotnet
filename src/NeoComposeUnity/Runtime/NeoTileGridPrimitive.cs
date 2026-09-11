@@ -1121,12 +1121,14 @@ namespace NeoCompose.Runtime
             bool isTileLayer)
         {
             NeoGridLayerLinkModel? overrideOwner = null;
+            bool linked = false;
             foreach (var link in ResolveGridLinks(null))
             {
                 if (link.IsTileLink != isTileLayer || link.LayerId != layerClassId)
                 {
                     continue;
                 }
+                linked = true;
                 if (link.LayerOverrideValueId is null) continue;
                 if (overrideOwner is not null)
                 {
@@ -1142,7 +1144,44 @@ namespace NeoCompose.Runtime
             // to its class defaults like any link that owns no override. Writes
             // still refuse it, through `tile-grid-layer-link-missing`, which
             // names what is actually absent.
+            //
+            // A layer the grid does not declare AT ALL is the other mistake,
+            // and it stays refused here: no link names it and no relation
+            // reaches it, so nothing downstream would ever catch it.
+            if (!linked && !DeclaresLayer(layerClassId, isTileLayer))
+            {
+                throw new InvalidOperationException(
+                    $"Grid '{GridValueId}' does not declare layer class '{layerClassId}'.");
+            }
             return overrideOwner?.LayerOverrideValueId;
+        }
+
+        /// <summary>
+        /// Whether the grid's class declares <paramref name="layerClassId"/>
+        /// through its effective grid-layer relations, which is what codegen
+        /// emits a <c>BindWritable*Layer</c> overload for.
+        /// </summary>
+        private bool DeclaresLayer(string layerClassId, bool isTileLayer)
+        {
+            if (client.ResolveValueRow(GridValueId) is not ObjectMemberValue gridRow
+                || string.IsNullOrEmpty(gridRow.classId))
+            {
+                return false;
+            }
+            string relationKind = isTileLayer
+                ? InternalRecordRelationKinds.WorldGridTileLayer
+                : InternalRecordRelationKinds.WorldGridObjectLayer;
+            foreach (string declared in
+                     client.InternalRecordRelations.ResolveTargetIds(
+                         relationKind,
+                         gridRow.classId!))
+            {
+                if (string.Equals(declared, layerClassId, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private protected NeoGridLayerLinkModel? ResolveDirectWriteTargetLink(
