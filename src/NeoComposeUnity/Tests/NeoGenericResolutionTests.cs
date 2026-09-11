@@ -1125,6 +1125,139 @@ namespace NeoCompose.Tests
             StringAssert.Contains("missing required member", error!.Message);
         }
 
+        [TestCase(false, false, false)]
+        [TestCase(false, true, false)]
+        [TestCase(true, false, false)]
+        [TestCase(true, true, false)]
+        [TestCase(true, false, true)]
+        [TestCase(true, true, true)]
+        public void ClassDefaultRejectsInvalidChildEvenWhenFieldCanBeOmitted(bool requiredWithDefault, bool storedClass, bool mismatchedCarrier)
+        {
+            ProjectData data = NeoGenericTestFixture.BuildProjectData();
+            data.classes["dangling-target"] = new NeoSchemaClass
+            {
+                id = "dangling-target", name = "Target", projectId = "project-a",
+                schema = new Dictionary<string, string> { ["Count"] = "dangling-count" },
+            };
+            data.members["dangling-count"] = new FloatMember
+            {
+                id = "dangling-count", name = "Count", projectId = "project-a", kind = MemberKind.Float,
+                Requirement = requiredWithDefault ? NeoMemberRequirementKind.Required : NeoMemberRequirementKind.Optional,
+                defaultValue = requiredWithDefault ? new NumberMemberValueBase { value = 4.5 } : null,
+            };
+            data.classes["dangling-host"] = new NeoSchemaClass
+            {
+                id = "dangling-host", name = "Host", projectId = "project-a",
+                schema = new Dictionary<string, string> { ["Target"] = "dangling-slot" },
+            };
+            if (mismatchedCarrier)
+                data.values["missing-count-row"] = new StringMemberValue { id = "missing-count-row", value = "wrong carrier" };
+            var contents = new Dictionary<string, string> { ["Count"] = "missing-count-row" };
+            data.members["dangling-slot"] = new ClassMember
+            {
+                id = "dangling-slot", name = "Target", projectId = "project-a", kind = MemberKind.Class,
+                classId = "dangling-target", defaultValue = new ObjectMemberValueBase { value = contents },
+            };
+            string constructionClass = "dangling-host";
+            if (storedClass)
+            {
+                data.values["stored-target"] = new ObjectMemberValue
+                {
+                    id = "stored-target", classId = "dangling-target", value = contents,
+                };
+                data.classes["dangling-wrapper"] = new NeoSchemaClass
+                {
+                    id = "dangling-wrapper", name = "Wrapper", projectId = "project-a",
+                    schema = new Dictionary<string, string> { ["Host"] = "dangling-host-slot" },
+                };
+                data.members["dangling-host-slot"] = new ClassMember
+                {
+                    id = "dangling-host-slot", name = "Host", projectId = "project-a", kind = MemberKind.Class,
+                    classId = "dangling-host", defaultValue = new ObjectMemberValueBase
+                    { value = new Dictionary<string, string> { ["Target"] = "stored-target" } },
+                };
+                constructionClass = "dangling-wrapper";
+            }
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                NeoGeneratedTypesSupport.CreateWritableClassValue(client, constructionClass,
+                    new Dictionary<string, string>(), System.Array.Empty<MemberValue>()));
+            StringAssert.Contains("missing-count-row", error!.Message);
+        }
+
+        [TestCase(MemberKind.Variant)]
+        [TestCase(MemberKind.NSDelegate)]
+        [TestCase(MemberKind.NSAction)]
+        public void ClassDefaultCopiesStoredHandle(MemberKind kind)
+        {
+            ProjectData data = NeoGenericTestFixture.BuildProjectData();
+            data.classes["variant-target"] = new NeoSchemaClass
+            {
+                id = "variant-target", name = "Target", projectId = "project-a",
+                schema = new Dictionary<string, string> { ["Variant"] = "variant-slot" },
+            };
+            data.members["variant-slot"] = new VariantMember
+            {
+                id = "variant-slot", name = "Variant", projectId = "project-a", kind = MemberKind.Variant,
+                targetTypeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = "class-card-base", required = true },
+            };
+            data.classes["variant-host"] = new NeoSchemaClass
+            {
+                id = "variant-host", name = "Host", projectId = "project-a",
+                schema = new Dictionary<string, string> { ["Target"] = "variant-host-slot" },
+            };
+            data.members["variant-host-slot"] = new ClassMember
+            {
+                id = "variant-host-slot", name = "Target", projectId = "project-a", kind = MemberKind.Class,
+                classId = "variant-target", defaultValue = new ObjectMemberValueBase
+                { value = new Dictionary<string, string> { ["Variant"] = "stored-variant" } },
+            };
+            data.values["stored-variant"] = new VariantMemberValue
+            {
+                id = "stored-variant", value = new VariantRefValue { classId = "class-card-base" },
+            };
+            if (kind != MemberKind.Variant)
+            {
+                var voidType = new VoidTypeInfo { type = MemberKind.Void };
+                var arguments = System.Array.Empty<FunctionArgumentTypeInfo>();
+                data.members["copy-callback"] = new FunctionMember
+                {
+                    id = "copy-callback", name = "Callback", kind = MemberKind.Function,
+                    returnTypeInfo = voidType, argumentTypes = arguments,
+                };
+                data.classes["variant-target"].schema["Callback"] = "copy-callback";
+                data.members["variant-slot"] = kind == MemberKind.NSDelegate
+                    ? new DelegateMember { returnTypeInfo = voidType, argumentTypes = arguments }
+                    : new ActionMember { argumentTypes = arguments };
+                data.members["variant-slot"].id = "variant-slot";
+                data.members["variant-slot"].name = "Variant";
+                data.members["variant-slot"].kind = kind;
+                data.values["stored-variant"] = kind == MemberKind.NSDelegate
+                    ? new DelegateMemberValue { value = new NeoDelegateValue { memberId = "copy-callback" } }
+                    : new ActionMemberValue { value = new NeoActionValue() };
+                data.values["stored-variant"].id = "stored-variant";
+            }
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var host = NeoGeneratedTypesSupport.CreateWritableClassValue(client, "variant-host",
+                new Dictionary<string, string>(), System.Array.Empty<MemberValue>());
+            var target = host.Get<NeoMemberClassWritable>("Target");
+            string clonedId = target.value!.value!["Variant"];
+            Assert.IsTrue(client.TryGetValue(clonedId, out MemberValue? cloned));
+            Assert.IsTrue(client.TryGetValue("stored-variant", out MemberValue? source));
+            Assert.AreNotEqual(source!.id, cloned!.id);
+            object? Body(MemberValue row) => row switch
+            {
+                VariantMemberValue variant => variant.value,
+                DelegateMemberValue callback => callback.value,
+                ActionMemberValue action => action.value,
+                _ => throw new System.InvalidOperationException(),
+            };
+            Assert.AreEqual(source.GetType(), cloned.GetType());
+            Assert.AreEqual(JsonConvert.SerializeObject(Body(source)),
+                JsonConvert.SerializeObject(Body(cloned)));
+            Assert.AreNotSame(Body(source), Body(cloned));
+        }
+
         [TestCase(false, false, false, false, false)]
         [TestCase(true, false, true, false, false)]
         [TestCase(true, true, false, false, false)]

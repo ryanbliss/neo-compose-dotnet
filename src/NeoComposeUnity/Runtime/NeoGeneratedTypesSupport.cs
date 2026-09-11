@@ -2993,6 +2993,9 @@ namespace NeoCompose.Runtime
                 Vector2Member or Vector2IntMember => row is Vector2MemberValue,
                 Vector3Member or Vector3IntMember => row is Vector3MemberValue,
                 ColorMember => row is ColorMemberValue,
+                VariantMember => row is VariantMemberValue,
+                DelegateMember => row is DelegateMemberValue,
+                ActionMember => row is ActionMemberValue,
                 _ => false,
             };
             if (!shapeMatches)
@@ -6438,9 +6441,12 @@ namespace NeoCompose.Runtime
 
             foreach (var pair in source)
             {
-                if (!schemaByKey.TryGetValue(pair.Key, out var entry)) continue;
-                if (!client.TryGetMember(entry.memberId, out Member? member)) continue;
-                if (!client.TryGetValue(pair.Value, out MemberValue? sourceRow)) continue;
+                if (!schemaByKey.TryGetValue(pair.Key, out var entry))
+                    throw new InvalidOperationException($"Class default '{path}' supplies unknown schema key '{pair.Key}'.");
+                if (!client.TryGetMember(entry.memberId, out Member? member))
+                    throw new InvalidOperationException($"Class default '{path}.{pair.Key}' references missing member '{entry.memberId}'.");
+                if (!client.TryGetValue(pair.Value, out MemberValue? sourceRow))
+                    throw new InvalidOperationException($"Class default '{path}.{pair.Key}' references missing value '{pair.Value}'.");
 
                 Member effectiveMember = NeoGenericResolution.SubstituteMember(
                     client,
@@ -6477,7 +6483,6 @@ namespace NeoCompose.Runtime
                     env,
                     $"{path}.{pair.Key}",
                     clonedIdsBySourceId);
-                if (cloned is null) continue;
 
                 rows.Add(cloned);
                 result[pair.Key] = cloned.id;
@@ -6514,6 +6519,8 @@ namespace NeoCompose.Runtime
                 MemberValue? sourceRow = client.ResolveClassChildRow(
                     source,
                     entry.schemaKey);
+                if (sourceRow is null && source.value?.TryGetValue(entry.schemaKey, out string sourceValueId) == true)
+                    throw new InvalidOperationException($"Class default '{path}.{entry.schemaKey}' references missing value '{sourceValueId}'.");
                 if (sourceRow is null || sourceRow.IsRemoved) continue;
                 Member effectiveMember = NeoGenericResolution.SubstituteMember(
                     client,
@@ -6537,7 +6544,7 @@ namespace NeoCompose.Runtime
                     continue;
                 }
 
-                MemberValue? cloned = CloneStoredValueForMember(
+                MemberValue cloned = CloneStoredValueForMember(
                     client,
                     effectiveMember,
                     sourceRow,
@@ -6547,7 +6554,6 @@ namespace NeoCompose.Runtime
                     env,
                     $"{path}.{entry.schemaKey}",
                     clonedIdsBySourceId);
-                if (cloned is null) continue;
                 rows.Add(cloned);
                 result[entry.schemaKey] = cloned.id;
                 clonedIdsBySourceId[sourceRow.id] = cloned.id;
@@ -6611,7 +6617,7 @@ namespace NeoCompose.Runtime
                 new Dictionary<string, string>(StringComparer.Ordinal));
         }
 
-        private static MemberValue? CloneStoredValueForMember(
+        private static MemberValue CloneStoredValueForMember(
             NeoClient client,
             Member member,
             MemberValue source,
@@ -6747,6 +6753,18 @@ namespace NeoCompose.Runtime
                         value = sourceValue.value?.PersistedCopy(),
                         classId = source.classId,
                     };
+                case VariantMember when source is VariantMemberValue sourceValue:
+                    return new VariantMemberValue
+                    {
+                        id = Guid.NewGuid().ToString(), createdAt = nowIso, updatedAt = nowIso,
+                        classId = source.classId,
+                        value = sourceValue.value is null ? null : new VariantRefValue
+                        {
+                            classId = sourceValue.value.classId,
+                            variantId = sourceValue.value.variantId,
+                            rowValueId = sourceValue.value.rowValueId,
+                        },
+                    };
                 case ClassMember classMember
                     when source is ObjectMemberValue sourceValue:
                 {
@@ -6829,7 +6847,8 @@ namespace NeoCompose.Runtime
                         path,
                         clonedIdsBySourceId);
                 default:
-                    return null;
+                    throw new InvalidOperationException(
+                        $"Class default '{path}' references value '{source.id}' with carrier '{source.GetType().Name}', which cannot supply member '{member.id}' of kind '{member.kind}'.");
             }
         }
 
@@ -6972,12 +6991,6 @@ namespace NeoCompose.Runtime
                         entryEnv,
                         $"{path}[{pair.Key}]",
                         clonedIdsBySourceId);
-                    if (cloned is null)
-                    {
-                        throw new InvalidOperationException(
-                            $"Dictionary default for '{member.name}' key '{pair.Key}' has incompatible row shape '{sourceRow.GetType().Name}'.");
-                    }
-
                     rows.Add(cloned);
                     value[pair.Key] = cloned.id;
                     clonedIdsBySourceId[sourceRow.id] = cloned.id;
@@ -7084,12 +7097,6 @@ namespace NeoCompose.Runtime
                         entryEnv,
                         $"{path}[{value.Count}]",
                         clonedIdsBySourceId);
-                    if (cloned is null)
-                    {
-                        throw new InvalidOperationException(
-                            $"List default for '{member.name}' has incompatible row shape '{sourceRow.GetType().Name}'.");
-                    }
-
                     rows.Add(cloned);
                     if (unordered) cloned.containerId = rowId;
                     value.Add(cloned.id);
