@@ -1305,7 +1305,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ChainResolvedScalars_ExplicitNullStopsInheritance()
+        public void ChainResolvedScalars_NullClearsConfigButInheritsDeclarationDefault()
         {
             var root = new StringMember
             {
@@ -1335,15 +1335,15 @@ namespace NeoCompose.Tests
             Assert.AreEqual("vault", inherited.storageKey);
             Assert.AreEqual("root-default", inherited.defaultValue!.value);
             Assert.IsNull(cleared.storageKey);
-            Assert.IsNull(cleared.defaultValue);
+            Assert.AreEqual("root-default", cleared.defaultValue!.value);
             Assert.IsNull(afterClear.storageKey);
-            Assert.IsNull(afterClear.defaultValue);
+            Assert.AreEqual("root-default", afterClear.defaultValue!.value);
             var serializedInherited = JObject.Parse(JsonConvert.SerializeObject(inherited));
             var serializedClear = JObject.Parse(JsonConvert.SerializeObject(cleared));
             Assert.IsFalse(serializedInherited.ContainsKey("storageKey"));
             Assert.IsFalse(serializedInherited.ContainsKey("defaultValue"));
             Assert.AreEqual(JTokenType.Null, serializedClear["storageKey"]!.Type);
-            Assert.AreEqual(JTokenType.Null, serializedClear["defaultValue"]!.Type);
+            Assert.IsFalse(serializedClear.ContainsKey("defaultValue"));
         }
 
         [Test]

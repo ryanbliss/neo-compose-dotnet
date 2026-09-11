@@ -527,9 +527,9 @@ namespace NeoCompose.Runtime
         /// <list type="bullet">
         ///   <item><description><b>Generic slots</b> resolve to their
         ///   binding member. The binding supplies <c>kind</c>, all
-        ///   per-kind config, <c>defaultValue</c>, and <c>requirement</c>
+        ///   per-kind config and <c>requirement</c>
         ///   (nullability is part of the type — one <c>T</c> is one type).
-        ///   The slot keeps its identity/placement fields: <c>id</c>,
+        ///   The slot keeps its default and identity/placement fields: <c>id</c>,
         ///   <c>name</c>, <c>access</c>, <c>modifier</c>,
         ///   <c>mutability</c>, <c>storage</c>,
         ///   <c>storageKey</c>.
@@ -559,6 +559,37 @@ namespace NeoCompose.Runtime
                 member,
                 env,
                 new HashSet<string>(StringComparer.Ordinal));
+        }
+
+        private static void CopyDeclarationDefault(Member member, MemberValueBase<object?>? declarationDefault)
+        {
+            switch (member)
+            {
+                case Member<object?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
+                case Member<bool?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
+                case Member<double?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
+                case Member<string?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
+                case Member<Dictionary<string, string>?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
+                case Member<string[]?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
+                case Member<NeoDelegateValue?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
+                case Member<NeoActionValue?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
+                case Member<VariantRefValue?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
+                case Member<SpriteValue?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
+                case Member<FileValue?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
+                case Member<NeoVector2Value?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
+                case Member<NeoVector3Value?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
+                case Member<NeoColorValue?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
+                default:
+                    throw new InvalidOperationException($"Member '{member.id}' cannot carry a declaration default.");
+            }
+        }
+
+        private static void CopyDeclarationDefault<T>(Member<T> member, MemberValueBase<object?>? declarationDefault)
+        {
+            member.defaultValue = declarationDefault is null
+                ? null
+                : (MemberValueBase<T>)MemberValueFactory.ConvertDeclarationDefault(
+                    declarationDefault, typeof(MemberValueBase<T>));
         }
 
         private static Member SubstituteMember(
@@ -661,14 +692,7 @@ namespace NeoCompose.Runtime
                 // it describes where that member's value lives at its own
                 // placement, not at this slot's.
                 substituted.DeclaredDistribution = generic.ChainDeclaredDistribution;
-                InitializerBody? declarationInitializer =
-                    MemberValueFactory.InitializerOf(generic);
-                if (declarationInitializer is not null)
-                {
-                    MemberValueFactory.SetInitializer(
-                        substituted,
-                        declarationInitializer);
-                }
+                CopyDeclarationDefault(substituted, generic.defaultValue);
                 substituted.extendsMemberId = null;
                 substituted.substitutedDeclarationIdentity =
                     $"{generic.id}@{binding.id}";

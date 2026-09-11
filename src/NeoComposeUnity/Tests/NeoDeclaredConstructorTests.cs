@@ -944,6 +944,70 @@ namespace NeoCompose.Tests
             StringAssert.Contains(
                 "cannot be constructed without one",
                 error.Message);
+            ((StringMember)client.members["gear-tag"]).defaultValue = new StringMemberValueBase { value = "tag" };
+            var unbound = new NeoMemberClassWritable(client, new ClassMember
+            {
+                id = "unbound-gear", name = "Gear", kind = MemberKind.Class, classId = "gear-class",
+            }, null, NeoValueOwnership.Save);
+            int rowCount = client.saveValues.Count;
+            var writeError = Assert.Throws<InvalidOperationException>(() =>
+                unbound.SetSerializedValue("Label", NeoValueWritePayload.FromValue("member-wise")));
+            StringAssert.Contains("required constructor", writeError!.Message);
+            Assert.AreEqual(rowCount, client.saveValues.Count);
+        }
+
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(true, true)]
+        public void NestedLiteralDefaultCopiesExistingValuesAndPreservesConstructorProvenance(bool constructed, bool omitArguments)
+        {
+            ProjectData data = BuildProjectData();
+            ((StringMember)data.members["gear-tag"]).defaultValue = new StringMemberValueBase { value = "tag" };
+            data.classes["default-wrapper"] = new NeoSchemaClass
+            {
+                id = "default-wrapper", projectId = ProjectId, name = "Wrapper",
+                schema = new Dictionary<string, string> { ["Gear"] = "default-gear" },
+            };
+            data.members["default-gear"] = new ClassMember
+            {
+                id = "default-gear", projectId = ProjectId, name = "Gear",
+                kind = MemberKind.Class, classId = "gear-class", Requirement = NeoMemberRequirementKind.Required,
+            };
+            data.classes["default-host"] = new NeoSchemaClass
+            {
+                id = "default-host", projectId = ProjectId, name = "Host",
+                schema = new Dictionary<string, string> { ["Wrapper"] = "host-wrapper" },
+            };
+            data.members["host-wrapper"] = new ClassMember
+            {
+                id = "host-wrapper", projectId = ProjectId, name = "Wrapper",
+                kind = MemberKind.Class, classId = "default-wrapper",
+                defaultValue = new ObjectMemberValueBase
+                {
+                    value = new Dictionary<string, string> { ["Gear"] = "gear-default" },
+                },
+            };
+            var source = ObjectValue("gear-default", "gear-class");
+            if (constructed)
+            {
+                source.instanceConstructorId = "ctor-gear";
+                source.constructorArgs = omitArguments ? null
+                    : new Dictionary<string, JToken?> { ["__arg_0__"] = new JValue("constructed") };
+            }
+            source.value!["Label"] = "gear-default-label";
+            data.values["gear-default-label"] = new StringMemberValue { id = "gear-default-label", value = "constructed" };
+            data.values[source.id] = source;
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable Construct() => NeoGeneratedTypesSupport.CreateWritableClassValue(
+                client, "default-host", new Dictionary<string, string>(), Array.Empty<MemberValue>());
+            if (omitArguments)
+            {
+                StringAssert.Contains("missing argument", Assert.Throws<InvalidOperationException>(() => Construct())!.Message);
+                return;
+            }
+            var gear = Construct().Get<NeoMemberClassWritable>("Wrapper").Get<NeoMemberClassWritable>("Gear");
+            Assert.AreEqual(constructed ? "ctor-gear" : null, gear.value!.instanceConstructorId);
+            Assert.AreEqual("constructed", gear.Get<NeoMemberStringWritable>("Label").value!.value);
         }
 
         [Test]

@@ -726,6 +726,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void SetSerializedValue(string key, NeoValueWritePayload? setValue)
         {
+            AssertContainingClassesCanBeConstructed();
             string nowIso = System.DateTime.UtcNow.ToString("o");
 
             // Resolution flows through the merged schema (inheritance
@@ -991,6 +992,24 @@ namespace NeoCompose.Runtime
             NotifyChildChanged(key);
         }
 
+        internal void AssertUnboundObjectCanBeConstructed()
+        {
+            if (value?.value is not null) return;
+            try
+            {
+                NeoGeneratedTypesSupport.ValidateRuntimeClassConstructorMetadata(
+                    client,
+                    new ClassTypeInfo { type = MemberKind.Class, classId = schemaClass.id, required = true },
+                    System.Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>(),
+                    member.classArguments);
+            }
+            catch (System.InvalidOperationException error)
+            {
+                throw new System.InvalidOperationException(
+                    $"Construct and assign Class '{schemaClass.name}' before writing its members. {error.Message}", error);
+            }
+        }
+
         /// <summary>
         /// Returns the record's own object row guaranteed writable (a
         /// clone-on-write shadow at the stable id), minting + binding a
@@ -998,6 +1017,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         private ObjectMemberValue EnsureWritableObject(string nowIso)
         {
+            AssertContainingClassesCanBeConstructed();
             var writable = EnsureWritableValue();
             if (writable is not null)
             {

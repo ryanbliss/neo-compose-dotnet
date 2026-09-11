@@ -26,7 +26,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Resolve_FloatSlot_ReadsBindingDefault()
+        public void Resolve_FloatSlotDoesNotUseBindingDefault()
         {
             var client = LoadClient();
             var card = client.save.Get<NeoMemberClassWritable>("Card");
@@ -35,7 +35,7 @@ namespace NeoCompose.Tests
             var codec = NeoGenericBindings.Resolve<double>(client, node);
 
             Assert.AreEqual(MemberKind.Float, codec.Kind);
-            Assert.AreEqual(3.5, codec.Read(node));
+            Assert.Throws<System.InvalidOperationException>(() => codec.Read(node));
         }
 
         [Test]
@@ -62,7 +62,7 @@ namespace NeoCompose.Tests
             var node = card.Get<NeoMember>("Speed");
 
             var codec = NeoGenericBindings.Resolve<double?>(client, node);
-            Assert.AreEqual(3.5, codec.Read(node));
+            Assert.IsNull(codec.Read(node));
 
             var payload = codec.Serialize(1.5);
             Assert.IsNotNull(payload);

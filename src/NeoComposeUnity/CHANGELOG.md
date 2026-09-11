@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-09-11
+
+### Changed
+
+- **Breaking:** generic bindings provide types and nullability only. Literal and
+  computed defaults come from member declarations and their inheritance chain.
+  Regenerate C# types after exporting the migrated project. Required members
+  without declaration defaults now require constructor arguments.
+- Construction no longer invents empty Class, white Color, or zero Decimal
+  defaults. Nested literal defaults must satisfy every required descendant and
+  preserve required-constructor provenance.
+- Writes through an unbound Class require valid parameterless construction.
+  Otherwise, construct and assign the Class before writing its members.
+
+### Fixed
+
+- Generic default conversion preserves prepared initializer identity and inherited
+  defaults. A null default carrier inherits an available base declaration default;
+  a literal `{ value: null }` remains an explicit nullable default. Existing
+  virtual instances remain writable through clone-on-write.
+
 ## [0.34.1] - 2026-09-10
 
 0.34.0 was never published; its notes are included here.

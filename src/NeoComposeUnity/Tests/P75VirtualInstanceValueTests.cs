@@ -1013,6 +1013,7 @@ namespace NeoCompose.Tests
         public void GenericInitializerRetainsItsPlacementWhenConstructedAndImported(bool computed)
         {
             ProjectData data = BuildGenericConstructorProjectData();
+            var literalDefault = ((GenericMember)data.members["thing-payload"]).defaultValue;
             const string parameterId = "payload-param";
             data.classes["payload-class"].genericParams = new List<GenericParamDeclaration>
             {
@@ -1086,7 +1087,7 @@ namespace NeoCompose.Tests
                 },
             };
 
-            if (!computed) ((GenericMember)data.members["thing-payload"]).defaultValue = null;
+            if (!computed) ((GenericMember)data.members["thing-payload"]).defaultValue = literalDefault;
 
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
 
@@ -1211,6 +1212,7 @@ namespace NeoCompose.Tests
         {
             ProjectData data = BuildNestedProjectData();
             data.classes["nested-class"].Modifier = NeoClassModifierKind.Abstract;
+            ((ClassMember)data.members["thing-nested"]).defaultValue = null;
             NeoSchemaClass concrete = SchemaClass("concrete-class", "Concrete", NeoMemberStorage.Save);
             concrete.extendsClassId = "nested-class";
             data.classes[concrete.id] = concrete;
@@ -2536,14 +2538,11 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = payloadClass.id,
                 Requirement = NeoMemberRequirementKind.Required,
-                defaultValue = new ObjectMemberValueBase
-                {
-                    classId = payloadClass.id,
-                    value = new Dictionary<string, string>
-                    {
-                        ["Name"] = "payload-default-name",
-                    },
-                },
+            };
+            ((GenericMember)data.members["thing-payload"]).defaultValue = new NullMemberValueBase
+            {
+                classId = payloadClass.id,
+                value = new Dictionary<string, string> { ["Name"] = "payload-default-name" },
             };
             data.members["placement-string-binding"] = new StringMember
             {
@@ -2798,6 +2797,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = "nested-class",
                 Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ObjectMemberValueBase { value = new Dictionary<string, string>() },
             };
             data.members["nested-deep"] = new ClassMember
             {
@@ -2807,6 +2807,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 classId = "deep-class",
                 Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ObjectMemberValueBase { value = new Dictionary<string, string>() },
             };
             data.members["deep-count"] = new IntMember
             {

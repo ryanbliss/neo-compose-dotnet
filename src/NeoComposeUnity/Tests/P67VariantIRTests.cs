@@ -591,8 +591,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "StringBinding",
                 kind = MemberKind.String,
-                Requirement = NeoMemberRequirementKind.Required,
-                defaultValue = new StringMemberValueBase { value = "from stamp" },
+                Requirement = NeoMemberRequirementKind.Optional,
             };
             data.members["widget-int-binding"] = new IntMember
             {
@@ -600,8 +599,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "IntBinding",
                 kind = MemberKind.Int,
-                Requirement = NeoMemberRequirementKind.Required,
-                defaultValue = new NumberMemberValueBase { value = 7 },
+                Requirement = NeoMemberRequirementKind.Optional,
             };
             ((ClassMember)data.members["lookup-entry"]).classArguments =
                 new Dictionary<string, GenericBinding>
@@ -633,6 +631,8 @@ namespace NeoCompose.Tests
                 },
             };
             var stored = ObjectValue("stored-widget-value", WidgetClassId);
+            stored.value!["Payload"] = "stored-payload";
+            data.values["stored-payload"] = new StringMemberValue { id = "stored-payload", value = "from stamp" };
             stored.instanceVariantId = "variant-up";
             stored.genericBindings = new Dictionary<string, string>
             {

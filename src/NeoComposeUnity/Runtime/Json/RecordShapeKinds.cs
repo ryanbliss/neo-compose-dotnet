@@ -308,6 +308,8 @@ namespace NeoCompose.Runtime.Json
                 {
                     continue;
                 }
+                // A null default carrier declares no local default; keep the inherited one.
+                if (field == "defaultValue" && value is null) continue;
                 if (value is null)
                 {
                     resolved.ClearChainResolvedValue(index);
@@ -344,6 +346,14 @@ namespace NeoCompose.Runtime.Json
             {
                 resolved.TryGetChainResolvedValue(index, out object? value);
                 string field = ResolutionFields[index];
+                // Generic overrides use an object carrier while concrete
+                // declarations use a typed carrier for the same default.
+                if (field == "defaultValue" && value is MemberValueBase
+                    && ResolveAccessor(member.GetType(), field) is FieldInfo defaultField
+                    && !defaultField.FieldType.IsInstanceOfType(value))
+                {
+                    value = MemberValueFactory.ConvertDeclarationDefault((MemberValueBase)value, defaultField.FieldType);
+                }
                 if (TryWrite(member, field, value))
                 {
                     member.RecordMaterializedChainResolvedField(field, value);
@@ -532,11 +542,6 @@ namespace NeoCompose.Runtime.Json
                 Distribution = member.DeclaredDistribution ?? inherited.Distribution,
             };
             MemberChainResolvedFields.Apply(member, inherited, resolved);
-            if (genericReset && !member.DeclaresWireField("defaultValue"))
-            {
-                resolved.ClearChainResolvedValue(
-                    MemberChainResolvedFields.IndexOf("defaultValue"));
-            }
             return resolved;
         }
 
