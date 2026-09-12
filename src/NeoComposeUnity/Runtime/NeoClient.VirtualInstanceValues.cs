@@ -303,10 +303,15 @@ namespace NeoCompose.Runtime
         /// </summary>
         private void InitializeVirtualInstanceValues(bool failClosed = true)
         {
+            foreach (var step in InitializeVirtualInstanceValuesSteps(failClosed)) { }
+        }
+
+        private IEnumerable<byte> InitializeVirtualInstanceValuesSteps(bool failClosed)
+        {
             if (isInitializingVirtualInstanceValues)
             {
                 virtualInstanceValuesDirty = true;
-                return;
+                yield break;
             }
             isInitializingVirtualInstanceValues = true;
             try
@@ -325,7 +330,7 @@ namespace NeoCompose.Runtime
                             $"P75 virtual instance replay did not converge after {MaxVirtualInstanceRebuildPasses} passes. A constructor or variant Initialize is writing rows that invalidate the instance index on every pass.");
                     }
                     virtualInstanceValuesDirty = false;
-                    InitializeVirtualInstanceValuesCore(failClosed);
+                    foreach (var step in InitializeVirtualInstanceValuesCore(failClosed)) yield return step;
                 }
                 while (virtualInstanceValuesDirty);
             }
@@ -335,7 +340,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private void InitializeVirtualInstanceValuesCore(bool failClosed)
+        private IEnumerable<byte> InitializeVirtualInstanceValuesCore(bool failClosed)
         {
             // Wrapper nodes retain the row object they were built from, and a
             // full rebuild mints new rows at the SAME deterministic ids. The
@@ -366,8 +371,8 @@ namespace NeoCompose.Runtime
                 .GroupBy(row => row.id, StringComparer.Ordinal)
                 .Select(group => group.Last())
                 .ToArray();
-            Dictionary<string, string> parentByValueId =
-                BuildParentByValueId(allRows);
+            var parentByValueId = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var step in BuildParentByValueIdSteps(allRows, parentByValueId)) yield return step;
             ObjectMemberValue[] roots = allRows
                 .OfType<ObjectMemberValue>()
                 .Where(row => row.classId is not null)
@@ -387,12 +392,14 @@ namespace NeoCompose.Runtime
             var readyRoots = new Queue<ObjectMemberValue>();
             foreach (ObjectMemberValue root in roots)
             {
+                yield return 0;
                 if (!CanReplayVirtualInstanceRoot(root)) continue;
                 pendingRoots.Remove(root.id);
                 readyRoots.Enqueue(root);
             }
             while (readyRoots.Count > 0)
             {
+                yield return 0;
                 ObjectMemberValue root = readyRoots.Dequeue();
                 if (!virtualValueIdsByRoot.ContainsKey(root.id))
                     ExpandVirtualInstanceRootOrReport(root, failClosed);
@@ -423,6 +430,7 @@ namespace NeoCompose.Runtime
             // their constructors. Persisted save roots still fail closed.
             foreach (ObjectMemberValue root in pendingRoots.Values)
             {
+                yield return 0;
                 if (saveData.values.TryGetValue(root.id, out MemberValue? saved)
                     && saved is ObjectMemberValue currentRoot
                     && IsVirtualInstanceRoot(currentRoot))
@@ -747,8 +755,15 @@ namespace NeoCompose.Runtime
         private Dictionary<string, string> BuildParentByValueId(
             IEnumerable<MemberValue> rows)
         {
-            MemberValue[] snapshot = rows.ToArray();
             var parentByValueId = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var step in BuildParentByValueIdSteps(rows, parentByValueId)) { }
+            return parentByValueId;
+        }
+
+        private IEnumerable<byte> BuildParentByValueIdSteps(
+            IEnumerable<MemberValue> rows, Dictionary<string, string> parentByValueId)
+        {
+            MemberValue[] snapshot = rows.ToArray();
             var arrayById = new Dictionary<string, ArrayMemberValue>(StringComparer.Ordinal);
             foreach (ArrayMemberValue array in snapshot.OfType<ArrayMemberValue>())
                 arrayById.TryAdd(array.id, array);
@@ -761,6 +776,7 @@ namespace NeoCompose.Runtime
             // and Lookup reference semantics differ for replay ordering.
             foreach (MemberValue row in snapshot)
             {
+                yield return 0;
                 if (row is ObjectMemberValue objectRow)
                 {
                     if (objectRow.value is not null) foreach (string childId in objectRow.value.Values)
@@ -783,6 +799,7 @@ namespace NeoCompose.Runtime
             }
             foreach (ArrayMemberValue arrayRow in snapshot.OfType<ArrayMemberValue>())
             {
+                yield return 0;
                 if (arrayRow.value is null) continue;
                 foreach (string childId in arrayRow.value)
                 {
@@ -814,7 +831,6 @@ namespace NeoCompose.Runtime
                         parentByValueId[childId] = arrayRow.id;
                 }
             }
-            return parentByValueId;
 
             bool? IsLookup(ArrayMemberValue array)
             {

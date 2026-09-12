@@ -47,9 +47,7 @@ namespace NeoCompose.Tests
         private static TestProjectNeo LoadGeneratedClient(out NeoTestSaveStack stack)
         {
             stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
-            return TestProjectNeo.Load(stack.Synchronizer)
-                .GetAwaiter()
-                .GetResult();
+            return new TestProjectNeo(NeoTestSaveStack.LoadSynchronously(stack.Synchronizer));
         }
 
         // ------------------------------------------------------------------
@@ -70,7 +68,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void SaveDictionary_OverlayCreatedEntry_RoundTripsUnderOptionIdKeys()
+        public async System.Threading.Tasks.Task SaveDictionary_OverlayCreatedEntry_RoundTripsUnderOptionIdKeys()
         {
             var app = LoadGeneratedClient(out var stack);
 
@@ -82,9 +80,7 @@ namespace NeoCompose.Tests
             string persisted = stack.PersistedContent()!;
             StringAssert.Contains($"\"{Element.ice.optionId}\"", persisted);
 
-            var reloaded = TestProjectNeo.Load(stack.Reopen())
-                .GetAwaiter()
-                .GetResult();
+            var reloaded = await TestProjectNeo.Load(stack.Reopen());
             Assert.AreEqual(5, reloaded.Save.ElementStats[Element.ice]);
             // Authored entry and the dangling `storm` key both survive.
             Assert.AreEqual(12, reloaded.Save.ElementStats[Element.fire]);

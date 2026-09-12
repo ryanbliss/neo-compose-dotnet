@@ -309,10 +309,18 @@ namespace Assets.Scripts.Neo
             Dialogues = new NeoDialogues(this, dialogueOptions);
         }
 
-        public static async Awaitable<TestProjectNeo> Load(INeoSaveLoader synchronizer, NeoDialogueRuntimeOptions? dialogueOptions = null, NeoAssetDatabase? assetDatabase = null, NeoLocalizationOptions? localizationOptions = null, NeoSaveOptions? saveOptions = null)
+        public static async Awaitable<TestProjectNeo> Load(INeoSaveLoader synchronizer, NeoDialogueRuntimeOptions? dialogueOptions = null, NeoAssetDatabase? assetDatabase = null, NeoLocalizationOptions? localizationOptions = null, NeoSaveOptions? saveOptions = null, System.Threading.CancellationToken cancellationToken = default)
         {
-            var client = await new NeoLoader().Load(synchronizer, assetDatabase, localizationOptions, null, saveOptions);
-            return new TestProjectNeo(client, dialogueOptions);
+            var client = await new NeoLoader().Load(synchronizer, assetDatabase, localizationOptions, null, saveOptions, cancellationToken);
+            try
+            {
+                return new TestProjectNeo(client, dialogueOptions);
+            }
+            catch
+            {
+                client.Dispose();
+                throw;
+            }
         }
 
         public INeoSaveLoader Synchronizer => Client.Synchronizer;

@@ -341,6 +341,17 @@ namespace NeoCompose.Runtime
                 }
                 if (!client.TryGetMember(entry.memberId, out Member? childMember)) continue;
                 childMember = SubstituteChildMember(childMember);
+                if (member.useDeclarationDefaults)
+                {
+                    // Class references and sparse layer settings inherit declaration
+                    // defaults. A declaration's editable stored row is not that default.
+                    var declaration = childMember.ShallowClone();
+                    declaration.valueId = null;
+                    declaration.useDeclarationDefaults = true;
+                    declaration.substitutedDeclarationIdentity =
+                        $"__neo_class_default_member:{member.RuntimeDeclarationIdentity}/{childMember.RuntimeDeclarationIdentity}";
+                    childMember = declaration;
+                }
                 string? childValueId = null;
                 if (childMember.Mutability != NeoMemberMutabilityKind.ReadOnly)
                 {

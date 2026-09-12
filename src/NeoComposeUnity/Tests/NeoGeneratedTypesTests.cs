@@ -31,9 +31,7 @@ namespace NeoCompose.Tests
             NeoDialogueRuntimeOptions? dialogueOptions = null)
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
-            var app = TestProjectNeo.Load(stack.Synchronizer, dialogueOptions)
-                .GetAwaiter()
-                .GetResult();
+            var app = new TestProjectNeo(NeoTestSaveStack.LoadSynchronously(stack.Synchronizer), dialogueOptions);
             saveBuffer = app.SerializeSaveData();
             return app;
         }
@@ -123,11 +121,11 @@ namespace NeoCompose.Tests
         /// wire the synchronizer to the client by hand. Disposal detaches it.
         /// </summary>
         [Test]
-        public void LiveContentSource_AppliesInboundContentWithoutManualWiring()
+        public async System.Threading.Tasks.Task LiveContentSource_AppliesInboundContentWithoutManualWiring()
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
             var loader = new LiveContentLoader(stack.Synchronizer);
-            var app = TestProjectNeo.Load(loader).GetAwaiter().GetResult();
+            var app = await TestProjectNeo.Load(loader);
 
             app.Save.Score = 7;
             var inbound = app.SerializeSaveData();
@@ -148,6 +146,67 @@ namespace NeoCompose.Tests
                 sources,
                 Has.Count.EqualTo(1),
                 "a disposed client detaches from the live content source");
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task LiveContentSource_KeepsLatestUpdateDuringInitialization()
+        {
+            using var source = LoadGeneratedClient(out _);
+            source.Save.Score = 7;
+            var first = source.SerializeSaveData();
+            source.Save.Score = 9;
+            var latest = source.SerializeSaveData();
+            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
+            var loader = new LiveContentLoader(stack.Synchronizer);
+            var pending = TestProjectNeo.Load(loader);
+            Assert.IsFalse(pending.GetAwaiter().IsCompleted);
+            loader.RaiseLiveContent(first);
+            loader.RaiseLiveContent(latest);
+            using var app = await pending;
+            Assert.AreEqual(9, app.Save.Score, "Load must include the latest update received while it yielded.");
+            Assert.AreEqual(1, loader.SubscriberCount, "Only the normal live subscription should remain.");
+            loader.RaiseLiveContent(first);
+            Assert.AreEqual(7, app.Save.Score, "Live updates still work after initialization.");
+            app.Dispose();
+            Assert.AreEqual(0, loader.SubscriberCount);
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task LiveContentSource_CancellationDetachesInitializationListener()
+        {
+            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
+            var loader = new LiveContentLoader(stack.Synchronizer);
+            using var cancellation = new System.Threading.CancellationTokenSource();
+            var pending = TestProjectNeo.Load(loader, cancellationToken: cancellation.Token);
+            Assert.IsFalse(pending.GetAwaiter().IsCompleted);
+            Assert.AreEqual(1, loader.SubscriberCount);
+            cancellation.Cancel();
+            try
+            {
+                using var unexpected = await pending;
+                Assert.Fail("Loading should have been canceled.");
+            }
+            catch (System.OperationCanceledException) { }
+            Assert.AreEqual(0, loader.SubscriberCount);
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task LiveContentSource_FailedInitializationDetachesListener()
+        {
+            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
+            var loader = new LiveContentLoader(stack.Synchronizer);
+            var pending = TestProjectNeo.Load(loader);
+            loader.RaiseLiveContent("invalid-save-content");
+            try
+            {
+                using var unexpected = await pending;
+                Assert.Fail("Loading should reject malformed buffered content.");
+            }
+            catch (System.InvalidOperationException error)
+            {
+                StringAssert.Contains("could not be parsed", error.Message);
+            }
+            Assert.AreEqual(0, loader.SubscriberCount);
         }
 
         /// <summary>
@@ -174,6 +233,7 @@ namespace NeoCompose.Tests
                 inner.CommitSaveContentAsync(content, replaceSnapshot);
 
             public event System.Action<string>? OnLiveContentChanged;
+            public int SubscriberCount => OnLiveContentChanged?.GetInvocationList().Length ?? 0;
 
             public void RaiseLiveContent(string content) =>
                 OnLiveContentChanged?.Invoke(content);
@@ -234,14 +294,12 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedLoad_PassesCustomSaveNameBuilderToNeoClient()
+        public async System.Threading.Tasks.Task GeneratedLoad_PassesCustomSaveNameBuilderToNeoClient()
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
-            var app = TestProjectNeo.Load(
+            var app = await TestProjectNeo.Load(
                 stack.Synchronizer,
-                saveOptions: new NeoSaveOptions { BuildSaveName = () => "patient-comet-808" })
-                .GetAwaiter()
-                .GetResult();
+                saveOptions: new NeoSaveOptions { BuildSaveName = () => "patient-comet-808" });
 
             Assert.IsNotNull(app);
             var save = JsonConvert.DeserializeObject<ProjectSaveData>(app.SerializeSaveData());
@@ -640,7 +698,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedConstructor_ClonesSparseConstructedDefaultsWithTheirRecipe()
+        public async System.Threading.Tasks.Task GeneratedConstructor_ClonesSparseConstructedDefaultsWithTheirRecipe()
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
             ProjectData data = stack.Synchronizer.Schema;
@@ -904,9 +962,7 @@ namespace NeoCompose.Tests
                 };
             data.values[sparseSource.id] = sparseSource;
 
-            using TestProjectNeo app = TestProjectNeo.Load(stack.Synchronizer)
-                .GetAwaiter()
-                .GetResult();
+            using TestProjectNeo app = await TestProjectNeo.Load(stack.Synchronizer);
             NeoMemberClassWritable holder =
                 NeoGeneratedTypesSupport.CreateWritableClassValue(
                     app.Client,
@@ -1293,16 +1349,16 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedSession_ReloadStartsFromAuthoredDefaults()
+        public async System.Threading.Tasks.Task GeneratedSession_ReloadStartsFromAuthoredDefaults()
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
 
-            var first = TestProjectNeo.Load(stack.Synchronizer).GetAwaiter().GetResult();
+            var first = await TestProjectNeo.Load(stack.Synchronizer);
             first.Session.Score = 777777;
             first.Save.Score = 12;
             first.CommitAsync().GetAwaiter().GetResult();
 
-            var second = TestProjectNeo.Load(stack.Reopen()).GetAwaiter().GetResult();
+            var second = await TestProjectNeo.Load(stack.Reopen());
 
             Assert.AreEqual(12, second.Save.Score);
             Assert.AreEqual(10, second.Session.Score);

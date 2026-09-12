@@ -65,29 +65,27 @@ namespace HelloWorld.Assets.Tests
         }
 
         /// <summary>Spawns a gameplay screen over the given save (as the menu's Continue / Create do).</summary>
-        private HelloWorldGameplay Spawn(NeoSaveSynchronizer synchronizer)
+        private async System.Threading.Tasks.Task<HelloWorldGameplay> Spawn(NeoSaveSynchronizer synchronizer)
         {
             var go = new GameObject("HelloWorld Gameplay");
             spawned.Add(go);
             var gameplay = go.AddComponent<HelloWorldGameplay>();
-            gameplay.EnterAsync(synchronizer).GetAwaiter().GetResult();
+            await gameplay.EnterAsync(synchronizer);
             return gameplay;
         }
 
         /// <summary>Loads the generated client without constructing the sample UI.</summary>
-        private HelloWorldNeo LoadedClient()
+        private async System.Threading.Tasks.Task<HelloWorldNeo> LoadedClient()
         {
-            var client = HelloWorldNeo.Load(LoadedStore().CreateNew())
-                .GetAwaiter()
-                .GetResult();
+            var client = await HelloWorldNeo.Load(LoadedStore().CreateNew());
             clients.Add(client);
             return client;
         }
 
         [Test]
-        public void VisitOutpost_UpdatesLocationGeneratedTextAndVisitCounts()
+        public async System.Threading.Tasks.Task VisitOutpost_UpdatesLocationGeneratedTextAndVisitCounts()
         {
-            var gameplay = Spawn(LoadedStore().CreateNew());
+            var gameplay = await Spawn(LoadedStore().CreateNew());
 
             Assert.AreEqual(HelloText(Planet.earth), gameplay.HelloWorldText);
             Assert.AreEqual(Planet.earth, gameplay.World);
@@ -111,9 +109,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void FlareClock_TicksPerHop_WithOuterSystemSurcharge()
+        public async System.Threading.Tasks.Task FlareClock_TicksPerHop_WithOuterSystemSurcharge()
         {
-            var gameplay = Spawn(LoadedStore().CreateNew());
+            var gameplay = await Spawn(LoadedStore().CreateNew());
             foreach (var outpost in gameplay.Outposts) outpost.Save.Unlocked = true;
             var inner = gameplay.Outposts.First(o => o.Planet == Planet.mars);
             var outer = gameplay.Outposts.First(o => o.Planet == Planet.neptune);
@@ -126,9 +124,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void FlareClock_GyroWaivesOuterSurcharge_ParasolShieldsFirstHops()
+        public async System.Threading.Tasks.Task FlareClock_GyroWaivesOuterSurcharge_ParasolShieldsFirstHops()
         {
-            var gameplay = Spawn(LoadedStore().CreateNew());
+            var gameplay = await Spawn(LoadedStore().CreateNew());
             foreach (var outpost in gameplay.Outposts) outpost.Save.Unlocked = true;
             var outer = gameplay.Outposts.First(o => o.Planet == Planet.neptune);
             var inner = gameplay.Outposts.First(o => o.Planet == Planet.mars);
@@ -146,12 +144,12 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void LoopEnding_ErasesTheSaveAndExitsToMenu()
+        public async System.Threading.Tasks.Task LoopEnding_ErasesTheSaveAndExitsToMenu()
         {
             var store = LoadedStore();
             var synchronizer = store.CreateNew();
             var customId = synchronizer.CustomId;
-            var gameplay = Spawn(synchronizer);
+            var gameplay = await Spawn(synchronizer);
             string erased = null;
             var exited = false;
             gameplay.OnEraseSave += id => erased = id;
@@ -165,9 +163,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void OtherEndings_KeepTheSave()
+        public async System.Threading.Tasks.Task OtherEndings_KeepTheSave()
         {
-            var gameplay = Spawn(LoadedStore().CreateNew());
+            var gameplay = await Spawn(LoadedStore().CreateNew());
             string erased = null;
             gameplay.OnEraseSave += id => erased = id;
 
@@ -180,7 +178,9 @@ namespace HelloWorld.Assets.Tests
         [UnityTest]
         public IEnumerator OldConsoleLanding_EasterEggOpensGenerated2DWorldScene()
         {
-            var gameplay = Spawn(LoadedStore().CreateNew());
+            var loading = Spawn(LoadedStore().CreateNew());
+            while (!loading.IsCompleted) yield return null;
+            var gameplay = loading.GetAwaiter().GetResult();
 
             Assert.IsFalse(gameplay.OldConsoleLandingOpen);
 
@@ -213,7 +213,9 @@ namespace HelloWorld.Assets.Tests
         [UnityTest]
         public IEnumerator OldConsoleLanding_BarrierClearUpdatesGameplayCacheFromTileDelta()
         {
-            var gameplay = Spawn(LoadedStore().CreateNew());
+            var loading = Spawn(LoadedStore().CreateNew());
+            while (!loading.IsCompleted) yield return null;
+            var gameplay = loading.GetAwaiter().GetResult();
             var neo = GameplayNeo(gameplay);
             LandingSceneGameplay landing = null;
 
@@ -267,7 +269,9 @@ namespace HelloWorld.Assets.Tests
         [UnityTest]
         public IEnumerator OldConsoleLanding_InteractWithBootGlyphDoesNotLoopTileLookup()
         {
-            var gameplay = Spawn(LoadedStore().CreateNew());
+            var loading = Spawn(LoadedStore().CreateNew());
+            while (!loading.IsCompleted) yield return null;
+            var gameplay = loading.GetAwaiter().GetResult();
             var neo = GameplayNeo(gameplay);
             LandingSceneGameplay landing = null;
             var triggered = false;
@@ -336,12 +340,12 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void AudioAssets_GroupedUnderAssetsAudio_ResolveSynchronizedClips()
+        public async System.Threading.Tasks.Task AudioAssets_GroupedUnderAssetsAudio_ResolveSynchronizedClips()
         {
             // The whole audio pipeline in one assertion set: authored project
             // files -> Assets.Audio schema references -> synced Resources ->
             // generated AudioClip properties. A missing/unsynced clip throws.
-            var audio = LoadedClient().Assets.Audio;
+            var audio = (await LoadedClient()).Assets.Audio;
 
             Assert.IsNotNull(audio.DialogOpenSfx);
             Assert.IsNotNull(audio.DialogNextSfx);
@@ -354,11 +358,11 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void ArtAssets_GroupedUnderAssetsArt_KeepAnimationsAndSprites()
+        public async System.Threading.Tasks.Task ArtAssets_GroupedUnderAssetsArt_KeepAnimationsAndSprites()
         {
             // Regression for the Assets root cleanup: the sprites/animations
             // moved under Assets.Art and must still resolve their synced data.
-            var art = LoadedClient().Assets.Art;
+            var art = (await LoadedClient()).Assets.Art;
 
             Assert.IsNotNull(art.ShipAnimation);
             Assert.Greater(art.ShipAnimation.Frames.Count, 0);
@@ -458,12 +462,12 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void EveryIntroDialogue_PlaysEveryFirstPathWithoutActionErrors()
+        public async System.Threading.Tasks.Task EveryIntroDialogue_PlaysEveryFirstPathWithoutActionErrors()
         {
             // Field repro harness: walk each outpost's intro start-to-finish,
             // always choosing the FIRST selectable option, and fail on any
             // dialogue action error (the class of crash dryrun can't see).
-            var neo = LoadedClient();
+            var neo = (await LoadedClient());
             foreach (var outpost in neo.Assets.Outposts) outpost.Save.Unlocked = true;
             var triggeredCount = 0;
 
@@ -480,13 +484,13 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void QuestHint_EvaluatesAtEveryStage_AndNamesOutposts()
+        public async System.Threading.Tasks.Task QuestHint_EvaluatesAtEveryStage_AndNamesOutposts()
         {
             // Regression for the AssignInstruction crash: NextHint is a
             // push-compiled getter with local-variable reassignment, so it
             // must EVALUATE live at every stage — and per playtest feedback
             // it must name outposts, not unlabeled planets/moons.
-            var quest = LoadedClient().Save.Quest;
+            var quest = (await LoadedClient()).Save.Quest;
 
             StringAssert.Contains("Capitol OG", quest.NextHint);
 
@@ -512,13 +516,13 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void StageTransitions_AreMonotonic_RegardlessOfVisitOrder()
+        public async System.Threading.Tasks.Task StageTransitions_AreMonotonic_RegardlessOfVisitOrder()
         {
             // The stuck-save bug: Iowan's intro advances to threePaths, but
             // Mercurial's intro used to unconditionally reset the stage to
             // followTheWakes when visited afterwards. The guards must keep
             // progression forward-only in ANY visit order.
-            var gameplay = Spawn(LoadedStore().CreateNew());
+            var gameplay = await Spawn(LoadedStore().CreateNew());
             var neo = GameplayNeo(gameplay);
             foreach (var outpost in gameplay.Outposts) outpost.Save.Unlocked = true;
 
@@ -535,9 +539,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void FlareOverflow_RebootsWorld_KeepsCargo_AndColdBootGreets()
+        public async System.Threading.Tasks.Task FlareOverflow_RebootsWorld_KeepsCargo_AndColdBootGreets()
         {
-            var gameplay = Spawn(LoadedStore().CreateNew());
+            var gameplay = await Spawn(LoadedStore().CreateNew());
             var neo = GameplayNeo(gameplay);
             foreach (var outpost in gameplay.Outposts) outpost.Save.Unlocked = true;
 
@@ -560,7 +564,7 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void EveryQuestDialogue_PlaysEveryPathWithoutActionErrors()
+        public async System.Threading.Tasks.Task EveryQuestDialogue_PlaysEveryPathWithoutActionErrors()
         {
             // The act-2/3 dialogues only fire with the right stage, items,
             // reputation, and bits — dryrun can't reach them from a fresh
@@ -575,7 +579,7 @@ namespace HelloWorld.Assets.Tests
                 // This fixture intentionally uses the gameplay host: entering a
                 // save performs the sample's initial dialogue/memory setup before
                 // later quest starts are exercised.
-                var gameplay = Spawn(LoadedStore().CreateNew());
+                var gameplay = await Spawn(LoadedStore().CreateNew());
                 var neo = GameplayNeo(gameplay);
                 foreach (var outpost in gameplay.Outposts) outpost.Save.Unlocked = true;
                 neo.Save.Bits = 900;
@@ -622,7 +626,7 @@ namespace HelloWorld.Assets.Tests
             }
 
             // Self-heal: chain starts must pull a followTheWakes save forward.
-            var healNeo = LoadedClient();
+            var healNeo = (await LoadedClient());
             foreach (var outpost in healNeo.Assets.Outposts) outpost.Save.Unlocked = true;
             healNeo.Save.Quest.Stage = QuestStage.followTheWakes;
             healNeo.Save.Quest.EvidenceLedger = true;
@@ -754,9 +758,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void ResetSave_DiscardsUnsavedVisit()
+        public async System.Threading.Tasks.Task ResetSave_DiscardsUnsavedVisit()
         {
-            var gameplay = Spawn(LoadedStore().CreateNew());
+            var gameplay = await Spawn(LoadedStore().CreateNew());
 
             var destination = gameplay.Outposts.First(outpost =>
                 outpost.valueId != gameplay.CurrentOutpost.valueId);
@@ -764,7 +768,7 @@ namespace HelloWorld.Assets.Tests
             gameplay.OnVisitOutpost(destination);
             Assert.AreEqual(HelloText(destination.Planet), gameplay.HelloWorldText);
 
-            gameplay.ResetAsync().GetAwaiter().GetResult();
+            await gameplay.ResetAsync();
 
             Assert.AreEqual(HelloText(Planet.earth), gameplay.HelloWorldText);
             Assert.AreEqual(Planet.earth, gameplay.World);
@@ -772,12 +776,12 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void Save_PersistsVisitAndReopensByCustomId()
+        public async System.Threading.Tasks.Task Save_PersistsVisitAndReopensByCustomId()
         {
             // Create + play + save a brand-new save (dynamic customId, as the menu does).
             var synchronizer = LoadedStore().CreateNew();
             var customId = synchronizer.CustomId;
-            var gameplay = Spawn(synchronizer);
+            var gameplay = await Spawn(synchronizer);
             var destination = gameplay.Outposts.First(outpost =>
                 outpost.valueId != gameplay.CurrentOutpost.valueId);
             destination.Save.Unlocked = true;
@@ -786,7 +790,7 @@ namespace HelloWorld.Assets.Tests
 
             // Reopen that same save by its id from a fresh store, as the menu's
             // Continue does — the played state is restored.
-            var reloaded = Spawn(LoadedStore().Open(customId));
+            var reloaded = await Spawn(LoadedStore().Open(customId));
 
             Assert.AreEqual(HelloText(destination.Planet), reloaded.HelloWorldText);
             Assert.AreEqual(destination.Planet, reloaded.World);
@@ -797,9 +801,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void VisitOutpost_IgnoresLockedOutpost()
+        public async System.Threading.Tasks.Task VisitOutpost_IgnoresLockedOutpost()
         {
-            var gameplay = Spawn(LoadedStore().CreateNew());
+            var gameplay = await Spawn(LoadedStore().CreateNew());
 
             var startingOutpost = gameplay.CurrentOutpost;
             var lockedDestination = gameplay.Outposts.First(outpost =>

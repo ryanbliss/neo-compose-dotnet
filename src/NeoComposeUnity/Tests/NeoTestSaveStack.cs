@@ -61,10 +61,7 @@ namespace NeoCompose.Tests
         /// <summary>Resolves the active save and constructs a <see cref="NeoClient"/>.</summary>
         public NeoClient Load(NeoSaveOptions? options = null)
         {
-            return new NeoLoader()
-                .Load(Synchronizer, saveOptions: options)
-                .GetAwaiter()
-                .GetResult();
+            return LoadSynchronously(Synchronizer, options: options);
         }
 
         /// <summary>
@@ -86,10 +83,22 @@ namespace NeoCompose.Tests
             }
 
             var stack = Create(projectJson, options, localStore);
-            return new NeoLoader()
-                .Load(stack.Synchronizer, null, localizationOptions, localizationFileSource, options)
-                .GetAwaiter()
-                .GetResult();
+            return LoadSynchronously(stack.Synchronizer, localizationOptions, localizationFileSource, options);
+        }
+
+        // Pure logic fixtures construct clients synchronously. Loader integration
+        // tests await NeoLoader.Load or the generated loader instead.
+        public static NeoClient LoadSynchronously(
+            INeoSaveLoader loader, NeoLocalizationOptions? localizationOptions = null,
+            INeoLocalizationLocaleFileSource? localizationFileSource = null,
+            NeoSaveOptions? options = null)
+        {
+            NeoProjectDataValidator.Validate(loader.Schema);
+            localizationOptions ??= NeoComposeConfig.LoadDefault()?.ToLocalizationOptions();
+            var localization = NeoLocalization.LoadMain(loader.Schema.localization,
+                localizationFileSource ?? new NeoResourcesLocalizationLocaleFileSource(), localizationOptions);
+            return new NeoClient(loader, loader.LoadSaveContentAsync().GetAwaiter().GetResult(),
+                NeoAssetDatabase.LoadDefault(), localization, options);
         }
 
         /// <summary>

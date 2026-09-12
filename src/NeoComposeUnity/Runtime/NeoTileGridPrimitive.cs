@@ -1241,6 +1241,7 @@ namespace NeoCompose.Runtime
             {
                 id = memberId,
                 name = "ClassDefault",
+                useDeclarationDefaults = true,
                 kind = MemberKind.Class,
                 classId = classId,
                 defaultValue = new ObjectMemberValueBase

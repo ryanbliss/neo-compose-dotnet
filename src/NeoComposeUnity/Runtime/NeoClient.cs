@@ -630,6 +630,13 @@ namespace NeoCompose.Runtime
             NeoAssetDatabase? assetDatabase = null,
             NeoLocalization? localization = null,
             NeoSaveOptions? saveOptions = null)
+            : this(loader, loadedSaveContent, assetDatabase, localization, saveOptions, false) { }
+
+        private readonly bool loadedExistingSave;
+
+        private NeoClient(INeoSaveLoader loader, string? loadedSaveContent,
+            NeoAssetDatabase? assetDatabase, NeoLocalization? localization,
+            NeoSaveOptions? saveOptions, bool deferReplay)
         {
             this.loader = loader ?? throw new System.ArgumentNullException(nameof(loader));
             this.data = loader.Schema;
@@ -649,7 +656,7 @@ namespace NeoCompose.Runtime
             ValidateRootClassMember(data.project.rootSessionMemberId, nameof(Project.rootSessionMemberId));
             ValidateCallableMembers();
             ValidateConstructorRecords();
-            bool loadedExistingSave = LoadSaveDataOrDefault(loadedSaveContent);
+            loadedExistingSave = LoadSaveDataOrDefault(loadedSaveContent);
             sessionData = BuildDefaultSessionData();
             BuildMembershipIndex();
             BuildAuthoredOwnershipMap();
@@ -659,7 +666,66 @@ namespace NeoCompose.Runtime
             save = new(this, data.project.rootSaveFileMemberId, null, NeoValueOwnership.Save);
             session = new(this, data.project.rootSessionMemberId, null, NeoValueOwnership.Session);
             virtualInstanceReplayReady = true;
-            InitializeVirtualInstanceValues();
+            if (!deferReplay)
+            {
+                InitializeVirtualInstanceValues();
+                CompleteInitialization();
+            }
+        }
+
+        internal static async Awaitable<NeoClient> CreateAsync(
+            INeoSaveLoader loader, string? content, NeoAssetDatabase? assetDatabase,
+            NeoLocalization localization, NeoSaveOptions? saveOptions,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var client = new NeoClient(loader, content, assetDatabase, localization, saveOptions, true);
+            var liveSource = loader as INeoLiveContentSource;
+            string? pendingLiveContent = null;
+            void BufferLiveContent(string latest) => pendingLiveContent = latest;
+            // Live messages are complete snapshots. Keep the latest while replay yields.
+            if (liveSource != null) liveSource.OnLiveContentChanged += BufferLiveContent;
+            try
+            {
+                await YieldInitializationAsync(cancellationToken);
+                var budget = System.Diagnostics.Stopwatch.StartNew();
+                foreach (var step in client.InitializeVirtualInstanceValuesSteps(true))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (budget.ElapsedMilliseconds < 8) continue;
+                    await YieldInitializationAsync(cancellationToken);
+                    budget.Restart();
+                }
+                if (pendingLiveContent != null)
+                    client.ApplyExternalSaveContent(pendingLiveContent);
+                client.CompleteInitialization();
+                return client;
+            }
+            catch
+            {
+                client.Dispose();
+                throw;
+            }
+            finally
+            {
+                if (liveSource != null) liveSource.OnLiveContentChanged -= BufferLiveContent;
+            }
+        }
+
+        private static async Awaitable YieldInitializationAsync(
+            System.Threading.CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (Application.isPlaying)
+                await Awaitable.NextFrameAsync(cancellationToken);
+            else
+                // Editor consumers have an update loop, but no player frames.
+                await System.Threading.Tasks.Task.Yield();
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        private void CompleteInitialization()
+        {
             NeoAnimationCompiler.ValidateProject(this);
             if (loadedExistingSave)
             {

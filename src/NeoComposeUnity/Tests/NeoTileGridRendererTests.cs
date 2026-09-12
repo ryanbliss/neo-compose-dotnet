@@ -46,6 +46,72 @@ namespace NeoCompose.Tests
         private const string BackgroundLayerClassId = "background-layer-class";
         private const string ObjectsLayerClassId = "objects-layer-class";
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void LayerSettingsUseDeclarationDefaultsBeneathExplicitOverrides(bool writable)
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            foreach (string id in new[] { "background-layer-name-member", "background-layer-description-member" })
+            {
+                var member = (StringMember)data.members[id];
+                member.valueId = id + "-stored";
+                data.values[member.valueId] = new StringMemberValue { id = member.valueId, value = "Wrong stored value" };
+            }
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            var layer = writable
+                ? primitive.BindWritableTileLayer<TestAuthoredTileLayer>(BackgroundLayerClassId, new[] { TileClassId })
+                : primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(BackgroundLayerClassId, new[] { TileClassId });
+            Assert.That(layer.Name, Is.EqualTo("Override Background"));
+            Assert.That(layer.Description, Is.EqualTo("Default layer description"));
+            if (writable)
+            {
+                layer.SetDescription("Saved override");
+                Assert.That(layer.Description, Is.EqualTo("Saved override"));
+                var rebound = primitive.BindWritableTileLayer<TestAuthoredTileLayer>(BackgroundLayerClassId, new[] { TileClassId });
+                Assert.That(rebound.Description, Is.EqualTo("Saved override"));
+                Assert.That(((StringMemberValue)data.values["background-layer-description-member-stored"]).value,
+                    Is.EqualTo("Wrong stored value"));
+            }
+        }
+
+        [Test]
+        public void ClassDefaultIgnoresStoredDeclarationValueWithoutChangingStoredReads()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            var declaration = new StringMember
+            {
+                id = "tile-default-name", name = "Name", kind = MemberKind.String,
+                valueId = "stored-tile-name", Format = NeoStringFormatKind.Plain,
+                defaultValue = new StringMemberValueBase { value = "Grass" },
+            };
+            data.members[declaration.id] = declaration;
+            data.classes[TileClassId].schema["Name"] = declaration.id;
+            data.values[declaration.valueId] = new StringMemberValue
+            {
+                id = declaration.valueId, value = "",
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+            {
+                [TileClassId] = (owner, node) => new TestDefaultTile(owner, node),
+            };
+            var tile = (TestDefaultTile)NeoGeneratedTypesSupport.CreateReadOnlyClassDefault(client, TileClassId, factories);
+            Assert.That(tile.Name, Is.EqualTo("Grass"));
+            Assert.That(NeoGeneratedTypesSupport.CreateReadOnlyClassDefault(client, TileClassId, factories), Is.Not.Null);
+            var stored = (NeoMemberString)NeoMember.Create(client, declaration, null);
+            Assert.That(stored.Text, Is.EqualTo(""));
+            Assert.That(tile.valueId, Is.Null);
+            Assert.That(declaration.valueId, Is.EqualTo("stored-tile-name"));
+        }
+
+        private sealed class TestDefaultTile : NeoGeneratedClassValue
+        {
+            public TestDefaultTile(NeoClient client, NeoMemberClass node) : base(client, node, TileClassId) { }
+            public string? Name => node.Get<NeoMemberString>("Name").Text;
+        }
+
         [Test]
         public void SchemaNineClassBackedLayerResolvesClassDefaultTileWithoutDefinitionValue()
         {
@@ -5024,7 +5090,7 @@ namespace NeoCompose.Tests
                 NeoClient client,
                 NeoMemberClass node,
                 bool isReadOnly = true)
-                : base(client, node, BackgroundLayerClassId, isReadOnly)
+                : base(client, node, BackgroundLayerClassId, isReadOnly, node.ownership)
             {
             }
 
@@ -5032,6 +5098,9 @@ namespace NeoCompose.Tests
 
             public string? Description =>
                 node.Get<NeoMemberString>("Description").Text;
+
+            public void SetDescription(string value) =>
+                writableNode.Get<NeoMemberStringWritable>("Description").Set(value);
 
             public NeoPlacementResult Place<TAsset>(Vector2Int cell)
                 where TAsset : class => TrySetTileClass<TAsset>(cell);

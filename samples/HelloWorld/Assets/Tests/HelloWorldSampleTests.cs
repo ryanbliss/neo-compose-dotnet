@@ -138,22 +138,22 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void NeoLoader_LoadsTheSampleFixtureFromAConsumerAssembly()
+        public async System.Threading.Tasks.Task NeoLoader_LoadsTheSampleFixtureFromAConsumerAssembly()
         {
             // The sample consumes the loader as any other package consumer does —
             // no friend access, no generated facade. Builds a client through the
             // save stack (project store → synchronizer) over the sample's own
             // fixture copy, then reads the loaded schema back off the public
             // surface. NeoLoader's own behavior lives in the package's tests.
-            var client = LoadRawClient(LoadFixture("synth-example.json"));
+            var client = await LoadRawClient(LoadFixture("synth-example.json"));
 
             Assert.AreEqual(10d, client.AssetsRoot.Get<NeoMemberInt>("Score").value!.value);
         }
 
         [Test]
-        public void GeneratedSampleTypes_ComputeNSGetterFromSampleProject()
+        public async System.Threading.Tasks.Task GeneratedSampleTypes_ComputeNSGetterFromSampleProject()
         {
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
 
             Assert.AreEqual(Planet.earth, client.Save.World);
             Assert.AreEqual("Hello", client.Assets.Computed.baseText);
@@ -242,9 +242,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void GeneratedSampleTypes_ExplicitSpanishLocalizationResolvesLocalizableTextAndPreservesEnumLiterals()
+        public async System.Threading.Tasks.Task GeneratedSampleTypes_ExplicitSpanishLocalizationResolvesLocalizableTextAndPreservesEnumLiterals()
         {
-            var client = LoadSampleClient(SpanishLocalizationOptions());
+            var client = await LoadSampleClient(SpanishLocalizationOptions());
 
             Assert.AreEqual("es-ES", client.Localization.CurrentLocale);
             Assert.AreEqual("Hola", client.Assets.Computed.baseText);
@@ -256,12 +256,12 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void GeneratedSampleTypes_LoadUsesResourcesConfigWhenLocalizationOptionsAreNull()
+        public async System.Threading.Tasks.Task GeneratedSampleTypes_LoadUsesResourcesConfigWhenLocalizationOptionsAreNull()
         {
             var configOptions = NeoComposeConfig.LoadDefault()!.ToLocalizationOptions();
 
-            var defaultClient = LoadSampleClient(CreateSampleProjectSource(), localizationOptions: null);
-            var explicitConfigClient = LoadSampleClient(CreateSampleProjectSource(), localizationOptions: configOptions);
+            var defaultClient = await LoadSampleClient(CreateSampleProjectSource(), localizationOptions: null);
+            var explicitConfigClient = await LoadSampleClient(CreateSampleProjectSource(), localizationOptions: configOptions);
 
             Assert.AreEqual(explicitConfigClient.Localization.CurrentLocale, defaultClient.Localization.CurrentLocale);
             Assert.AreEqual(explicitConfigClient.Assets.Computed.baseText, defaultClient.Assets.Computed.baseText);
@@ -269,9 +269,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void GeneratedEnumValues_CompareStaticObjectsToGeneratedProperties()
+        public async System.Threading.Tasks.Task GeneratedEnumValues_CompareStaticObjectsToGeneratedProperties()
         {
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
 
             var savedWorld = client.Save.World;
             Assert.AreSame(Planet.earth, savedWorld);
@@ -294,9 +294,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void GeneratedDialogue_LinkedTextNodePrimaryResolvesTypedAsset()
+        public async System.Threading.Tasks.Task GeneratedDialogue_LinkedTextNodePrimaryResolvesTypedAsset()
         {
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
 
             var capitol = client.Assets.Outposts.FirstOrDefault(outpost =>
                 outpost.Name == "Capitol OG");
@@ -333,9 +333,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void GeneratedDialogue_OldConsoleLandingFlowsAreAuthoredNeoDialogues()
+        public async System.Threading.Tasks.Task GeneratedDialogue_OldConsoleLandingFlowsAreAuthoredNeoDialogues()
         {
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
 
             foreach (var dialogueId in OldConsoleLandingDialogueIds)
             {
@@ -439,9 +439,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void GeneratedNSGetters_InRepeatedClassValuesResolveAgainstEachOutpost()
+        public async System.Threading.Tasks.Task GeneratedNSGetters_InRepeatedClassValuesResolveAgainstEachOutpost()
         {
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
 
             _ = client.Save.Location.FullDisplayText;
             var displayTexts = client.Assets.Outposts
@@ -456,9 +456,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void GeneratedNSGetters_SaveUnsafeResolvesPerOutpost()
+        public async System.Threading.Tasks.Task GeneratedNSGetters_SaveUnsafeResolvesPerOutpost()
         {
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
 
             var outposts = client.Assets.Outposts.ToArray();
             Assert.Greater(outposts.Length, 3);
@@ -479,9 +479,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void GeneratedReadOnlyOutpost_AllowsSaveBackedChildMutation()
+        public async System.Threading.Tasks.Task GeneratedReadOnlyOutpost_AllowsSaveBackedChildMutation()
         {
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
 
             IReadOnlyOutpost outpost = client.Assets.Outposts.First();
             Assert.IsTrue(outpost.IsReadOnly);
@@ -499,9 +499,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void GeneratedSaveBackedDescendant_AllowsWritableCastFromBaseInterface()
+        public async System.Threading.Tasks.Task GeneratedSaveBackedDescendant_AllowsWritableCastFromBaseInterface()
         {
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
 
             IReadOnlyNeoLayerGroupBase group = client.Assets.Worlds.OldConsoleLanding.Children
                 .First(check => check.Name == "Blocked Path");
@@ -520,9 +520,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void GeneratedChildAccessors_ResolveTypedChildrenFromTheLiveList()
+        public async System.Threading.Tasks.Task GeneratedChildAccessors_ResolveTypedChildrenFromTheLiveList()
         {
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
             var grid = client.Assets.Worlds.OldConsoleLanding;
 
             // GetComponent-style: first assignable child, writable-resolved.
@@ -547,9 +547,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void CellPatternQueries_FindNearbyTilesAndObjectsNearestFirst()
+        public async System.Threading.Tasks.Task CellPatternQueries_FindNearbyTilesAndObjectsNearestFirst()
         {
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
             var content = client.Assets.Worlds.OldConsoleLanding.Content;
             var blocked = client.Assets.Worlds.OldConsoleLanding.GetRequiredChild<BlockedPath>();
             var reach = NeoCellPattern.Cross(1);
@@ -578,9 +578,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void TileLayerLinkQueries_MatchTheTilesTheLinkProjectsOntoItsLayer()
+        public async System.Threading.Tasks.Task TileLayerLinkQueries_MatchTheTilesTheLinkProjectsOntoItsLayer()
         {
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
             var content = client.Assets.Worlds.OldConsoleLanding.Content;
             var blocked = client.Assets.Worlds.OldConsoleLanding.GetRequiredChild<BlockedPath>();
 
@@ -609,13 +609,13 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void TileLayerLinkQueries_SeeTheCurrentTilesDuringChangeCallbacks()
+        public async System.Threading.Tasks.Task TileLayerLinkQueries_SeeTheCurrentTilesDuringChangeCallbacks()
         {
             // Regression guard for the notification-ordering trap: value rows
             // update before change events fire, while wrapper child nodes can
             // lag one dispatch behind. The link projection must read current
             // state even inside a collision-layer change callback.
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
             var content = client.Assets.Worlds.OldConsoleLanding.Content;
             var blocked = client.Assets.Worlds.OldConsoleLanding.GetRequiredChild<BlockedPath>();
             var go = new GameObject("Link projection callback test");
@@ -647,9 +647,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void ComputeCellBounds_SpansTheAuthoredWorld()
+        public async System.Threading.Tasks.Task ComputeCellBounds_SpansTheAuthoredWorld()
         {
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
             var content = client.Assets.Worlds.OldConsoleLanding.Content;
 
             var bounds = content.ComputeCellBounds();
@@ -664,9 +664,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void GeneratedClassValues_ReturnCachedInstances()
+        public async System.Threading.Tasks.Task GeneratedClassValues_ReturnCachedInstances()
         {
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
 
             var firstRead = client.Assets.Outposts.ToArray();
             var secondRead = client.Assets.Outposts.ToArray();
@@ -684,9 +684,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void TileGridRenderer_RendersOldConsoleLandingGeneratedContent()
+        public async System.Threading.Tasks.Task TileGridRenderer_RendersOldConsoleLandingGeneratedContent()
         {
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
             var content = client.Assets.Worlds.OldConsoleLanding.Content;
 
             Assert.IsInstanceOf<VoidTile>(
@@ -846,9 +846,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void TileGridSaveMutation_RemovesOldConsoleLandingCollisionBarrier()
+        public async System.Threading.Tasks.Task TileGridSaveMutation_RemovesOldConsoleLandingCollisionBarrier()
         {
-            var (store, client) = LoadSampleStack(EnglishLocalizationOptions());
+            var (store, client) = await LoadSampleStack(EnglishLocalizationOptions());
             var blockerCell = new Vector2Int(0, 1);
             var saveContent = OldConsoleLandingGridContent.ResolveForSave(
                 client.Client,
@@ -864,7 +864,7 @@ namespace HelloWorld.Assets.Tests
             Assert.IsNull(client.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(blockerCell));
             client.CommitAsync().GetAwaiter().GetResult();
 
-            var reopened = ReopenSampleClient(store, EnglishLocalizationOptions());
+            var reopened = await ReopenSampleClient(store, EnglishLocalizationOptions());
             Assert.IsNull(reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(blockerCell));
             Assert.IsInstanceOf<SealBarrierTile>(
                 reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(new Vector2Int(0, 2))?.Info);
@@ -872,9 +872,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void GeneratedBlockedPathClearPath_RemovesLinkedCollisionTiles()
+        public async System.Threading.Tasks.Task GeneratedBlockedPathClearPath_RemovesLinkedCollisionTiles()
         {
-            var (store, client) = LoadSampleStack(EnglishLocalizationOptions());
+            var (store, client) = await LoadSampleStack(EnglishLocalizationOptions());
             var blocked = client.Assets.Worlds.OldConsoleLanding.Children
                 .First(check => check.Name == "Blocked Path") as BlockedPath;
             Assert.IsNotNull(blocked);
@@ -900,7 +900,7 @@ namespace HelloWorld.Assets.Tests
             CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
 
             client.CommitAsync().GetAwaiter().GetResult();
-            var reopened = ReopenSampleClient(store, EnglishLocalizationOptions());
+            var reopened = await ReopenSampleClient(store, EnglishLocalizationOptions());
             foreach (var cell in blockerCells)
             {
                 Assert.IsNull(reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(cell));
@@ -908,9 +908,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void TileGridRenderer_LiveSyncClearsOldConsoleLandingBarrierWhenSourceTilesClear()
+        public async System.Threading.Tasks.Task TileGridRenderer_LiveSyncClearsOldConsoleLandingBarrierWhenSourceTilesClear()
         {
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
             var content = client.Assets.Worlds.OldConsoleLanding.Content;
             var blocked = client.Assets.Worlds.OldConsoleLanding.Children
                 .First(check => check.Name == "Blocked Path") as BlockedPath;
@@ -958,9 +958,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void TileGridContent_CellLookupsResolveLayersObjectsAndLiveDeltas()
+        public async System.Threading.Tasks.Task TileGridContent_CellLookupsResolveLayersObjectsAndLiveDeltas()
         {
-            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
             var content = client.Assets.Worlds.OldConsoleLanding.Content;
             var blocked = client.Assets.Worlds.OldConsoleLanding.Children
                 .First(check => check.Name == "Blocked Path") as BlockedPath;
@@ -984,9 +984,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void TileGridSaveAndSessionMutation_UsesClassDefaultTiles()
+        public async System.Threading.Tasks.Task TileGridSaveAndSessionMutation_UsesClassDefaultTiles()
         {
-            var (store, client) = LoadSampleStack(EnglishLocalizationOptions());
+            var (store, client) = await LoadSampleStack(EnglishLocalizationOptions());
             var cell = new Vector2Int(20, 20);
             var saveContent = OldConsoleLandingGridContent.ResolveForSave(
                 client.Client,
@@ -1008,7 +1008,7 @@ namespace HelloWorld.Assets.Tests
                 client.Assets.Worlds.OldConsoleLanding.Content.Background.GetTile(cell)?.Info);
             client.CommitAsync().GetAwaiter().GetResult();
 
-            var reopened = ReopenSampleClient(store, EnglishLocalizationOptions());
+            var reopened = await ReopenSampleClient(store, EnglishLocalizationOptions());
             var reopenedTile = reopened.Assets.Worlds.OldConsoleLanding.Content.Background.GetTiles()
                 .Single(tile => tile.Cell == cell);
             Assert.AreEqual(placed.InstanceId, reopenedTile.InstanceId);
@@ -1024,7 +1024,7 @@ namespace HelloWorld.Assets.Tests
             Assert.IsInstanceOf<BootGlyphTile>(
                 reopened.Assets.Worlds.OldConsoleLanding.Content.Background.GetTile(cell)?.Info);
 
-            var persistedAfterSession = ReopenSampleClient(store, EnglishLocalizationOptions());
+            var persistedAfterSession = await ReopenSampleClient(store, EnglishLocalizationOptions());
             var persistedTile = persistedAfterSession.Assets.Worlds.OldConsoleLanding.Content.Background.GetTiles()
                 .Single(tile => tile.Cell == cell);
             Assert.AreEqual(placed.InstanceId, persistedTile.InstanceId);
@@ -1032,9 +1032,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void TileGridSaveMutation_UsesClassDefaultObjects()
+        public async System.Threading.Tasks.Task TileGridSaveMutation_UsesClassDefaultObjects()
         {
-            var (store, client) = LoadSampleStack(EnglishLocalizationOptions());
+            var (store, client) = await LoadSampleStack(EnglishLocalizationOptions());
             var cell = new Vector2Int(21, 20);
             var saveContent = OldConsoleLandingGridContent.ResolveForSave(
                 client.Client,
@@ -1059,7 +1059,7 @@ namespace HelloWorld.Assets.Tests
             Assert.IsInstanceOf<VaultPlaqueObject>(swapped.Info);
             client.CommitAsync().GetAwaiter().GetResult();
 
-            var reopened = ReopenSampleClient(store, EnglishLocalizationOptions());
+            var reopened = await ReopenSampleClient(store, EnglishLocalizationOptions());
             var reopenedInstance = reopened.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObjects()
                 .Single(obj => obj.Cell == cell);
             Assert.AreEqual(placed.InstanceId, reopenedInstance.InstanceId);
@@ -1072,21 +1072,20 @@ namespace HelloWorld.Assets.Tests
             Assert.IsNull(reopened.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject(cell));
             reopened.CommitAsync().GetAwaiter().GetResult();
 
-            var persistedAfterDespawn = ReopenSampleClient(store, EnglishLocalizationOptions());
+            var persistedAfterDespawn = await ReopenSampleClient(store, EnglishLocalizationOptions());
             Assert.IsNull(
                 persistedAfterDespawn.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject(cell));
         }
 
         // Builds the generated sample client over the Phase 9 save stack (project
         // store → save synchronizer) in place of the removed loadSave/handleSave
-        // delegates. The async load completes synchronously over the in-hand JSON +
-        // in-memory store, so blocking here is safe.
-        private HelloWorldNeo LoadSampleClient(NeoLocalizationOptions localizationOptions = null)
+        // delegates. Await initialization so constructor replay can yield.
+        private async System.Threading.Tasks.Task<HelloWorldNeo> LoadSampleClient(NeoLocalizationOptions localizationOptions = null)
         {
-            return LoadSampleClient(CreateSampleProjectSource(), localizationOptions);
+            return await LoadSampleClient(CreateSampleProjectSource(), localizationOptions);
         }
 
-        private HelloWorldNeo LoadSampleClient(
+        private async System.Threading.Tasks.Task<HelloWorldNeo> LoadSampleClient(
             IProjectDataSource projectSource,
             NeoLocalizationOptions localizationOptions)
         {
@@ -1094,32 +1093,28 @@ namespace HelloWorld.Assets.Tests
                 dataSource: projectSource,
                 localStore: new NeoInMemoryLocalSaveStore()));
             store.LoadAsync().GetAwaiter().GetResult();
-            return Own(HelloWorldNeo.Load(
+            return Own(await HelloWorldNeo.Load(
                     store.Open("save"),
-                    localizationOptions: localizationOptions)
-                .GetAwaiter()
-                .GetResult());
+                    localizationOptions: localizationOptions));
         }
 
-        private (NeoProjectStore Store, HelloWorldNeo Client) LoadSampleStack(
+        private async System.Threading.Tasks.Task<(NeoProjectStore Store, HelloWorldNeo Client)> LoadSampleStack(
             NeoLocalizationOptions localizationOptions)
         {
             var store = Own(new NeoProjectStore(
                 dataSource: CreateSampleProjectSource(),
                 localStore: new NeoInMemoryLocalSaveStore()));
             store.LoadAsync().GetAwaiter().GetResult();
-            return (store, ReopenSampleClient(store, localizationOptions));
+            return (store, await ReopenSampleClient(store, localizationOptions));
         }
 
-        private HelloWorldNeo ReopenSampleClient(
+        private async System.Threading.Tasks.Task<HelloWorldNeo> ReopenSampleClient(
             NeoProjectStore store,
             NeoLocalizationOptions localizationOptions)
         {
-            return Own(HelloWorldNeo.Load(
+            return Own(await HelloWorldNeo.Load(
                     store.Open("save"),
-                    localizationOptions: localizationOptions)
-                .GetAwaiter()
-                .GetResult());
+                    localizationOptions: localizationOptions));
         }
 
         private static void AssertPlacementOk(NeoPlacementResult result, string? context = null)
@@ -1131,13 +1126,13 @@ namespace HelloWorld.Assets.Tests
 
         // Builds a raw NeoClient (not the generated HelloWorld facade) over the save
         // stack — for smoke-testing the loader against an arbitrary project schema.
-        private NeoClient LoadRawClient(string projectJson)
+        private async System.Threading.Tasks.Task<NeoClient> LoadRawClient(string projectJson)
         {
             var store = Own(new NeoProjectStore(
                 dataSource: new NeoJsonProjectDataSource(projectJson),
                 localStore: new NeoInMemoryLocalSaveStore()));
             store.LoadAsync().GetAwaiter().GetResult();
-            return Own(new NeoLoader().Load(store.Open("save")).GetAwaiter().GetResult());
+            return Own(await new NeoLoader().Load(store.Open("save")));
         }
 
         private T Own<T>(T resource) where T : System.IDisposable
