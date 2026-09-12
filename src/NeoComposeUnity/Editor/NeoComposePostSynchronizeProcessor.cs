@@ -277,6 +277,7 @@ namespace NeoCompose.Unity.Editor
                 readOnlyFactories);
 
             var callbackClassIds = GetSynchronizeCallbackClassIds(generatedProjectType);
+            if (callbackClassIds.Count == 0) return;
             foreach (string valueId in EnumerateProjectValueIds(projectData))
             {
                 // Declaration/default rows are not necessarily constructed instances.

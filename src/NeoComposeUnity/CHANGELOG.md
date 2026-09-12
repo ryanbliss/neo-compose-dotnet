@@ -2,6 +2,8 @@
 
 ## [0.35.2] - 2026-09-11
 
+- Skip materializing declaration defaults for unimplemented post-sync callbacks. Synchronize the HelloWorld screenshot-grid source and bundled export.
+
 - Await client initialization during editor post-sync validation so generated projects receive a fully initialized client.
 
 ## [Unreleased]
