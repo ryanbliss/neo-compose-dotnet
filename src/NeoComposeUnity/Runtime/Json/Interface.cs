@@ -108,7 +108,7 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null) return null;
 
-            var json = JObject.Load(reader);
+            var json = NeoJsonObjectReader.Read(reader);
             RecordShapeContractGuard.ValidateInterfaceMember(json);
             var kind = StrictRecordShapeEnums.ReadDefaulted(
                 json,

@@ -67,7 +67,7 @@ namespace NeoCompose.Runtime.Json
             JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null) return null;
-            var obj = JObject.Load(reader);
+            var obj = NeoJsonObjectReader.Read(reader);
             ValidateObjectBeforeDiscriminator(obj);
             var disc = obj[DiscriminatorField];
             if (disc == null)

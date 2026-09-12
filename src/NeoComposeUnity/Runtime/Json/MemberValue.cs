@@ -435,7 +435,7 @@ namespace NeoCompose.Runtime.Json
             object? existingValue,
             JsonSerializer serializer)
         {
-            var obj = JObject.Load(reader);
+            var obj = NeoJsonObjectReader.Read(reader);
             if (!LooksLikeVector2Value(obj))
             {
                 throw new JsonSerializationException(
@@ -514,7 +514,7 @@ namespace NeoCompose.Runtime.Json
             object? existingValue,
             JsonSerializer serializer)
         {
-            var obj = JObject.Load(reader);
+            var obj = NeoJsonObjectReader.Read(reader);
             if (!LooksLikeVector3Value(obj))
             {
                 throw new JsonSerializationException(
@@ -583,7 +583,7 @@ namespace NeoCompose.Runtime.Json
             object? existingValue,
             JsonSerializer serializer)
         {
-            var obj = JObject.Load(reader);
+            var obj = NeoJsonObjectReader.Read(reader);
             if (obj.Count != 4)
             {
                 throw new JsonSerializationException(
@@ -1032,7 +1032,7 @@ namespace NeoCompose.Runtime.Json
                     "Partial structured-leaf value must be an object with exactly one "
                     + $"'{NeoPartialLeafValue.EnvelopeKey}' key.");
             }
-            return NeoPartialLeafValue.FromEnvelope(JObject.Load(reader));
+            return NeoPartialLeafValue.FromEnvelope(NeoJsonObjectReader.Read(reader));
         }
 
         public override void WriteJson(
@@ -1098,7 +1098,7 @@ namespace NeoCompose.Runtime.Json
             JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null) return null;
-            var obj = JObject.Load(reader);
+            var obj = NeoJsonObjectReader.Read(reader);
             // P42 decision D10 — a MemberValueBase is only ever a
             // Member.defaultValue, which is never an animation override
             // graph, so a `~partial` envelope here is invalid wherever it
@@ -1513,7 +1513,7 @@ namespace NeoCompose.Runtime.Json
             JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null) return null;
-            var obj = JObject.Load(reader);
+            var obj = NeoJsonObjectReader.Read(reader);
             // P76 §5 — every row set expands once, where it is assembled
             // (ProjectDataConverter). By the time a row reaches here it is
             // logical, so a surviving envelope means the expansion boundary was
@@ -1661,11 +1661,9 @@ namespace NeoCompose.Runtime.Json
             if (!objectType.IsGenericType) return null;
             if (objectType.GetGenericTypeDefinition() != genericIntermediate) return null;
 
-            if (_cache.TryGetValue(objectType, out var cached)) return cached;
-
             lock (_lock)
             {
-                if (_cache.TryGetValue(objectType, out cached)) return cached;
+                if (_cache.TryGetValue(objectType, out var cached)) return cached;
                 foreach (var t in genericIntermediate.Assembly.GetTypes())
                 {
                     if (!t.IsClass || t.IsAbstract) continue;

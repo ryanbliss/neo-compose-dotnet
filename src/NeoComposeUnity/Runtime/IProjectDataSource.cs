@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using System.Threading.Tasks;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -55,14 +56,17 @@ namespace NeoCompose.Runtime
 
         public Awaitable<string> ReadProjectJsonAsync() => NeoAwaitable.FromResult(projectJson);
 
-        Awaitable<ProjectData> IParsedProjectDataSource.ReadProjectDataAsync()
+        Awaitable<ProjectData> IParsedProjectDataSource.ReadProjectDataAsync() =>
+            NeoAwaitable.FromResult(ReadProjectData());
+
+        internal ProjectData ReadProjectData()
         {
             lock (parseLock)
             {
                 parsedProjectData ??= JsonConvert.DeserializeObject<ProjectData>(projectJson)
                     ?? throw new InvalidOperationException(
                         "Neo Compose project JSON could not be deserialized.");
-                return NeoAwaitable.FromResult(parsedProjectData);
+                return parsedProjectData;
             }
         }
     }
@@ -71,11 +75,33 @@ namespace NeoCompose.Runtime
     /// The config-driven default: loads the project JSON from a
     /// <see cref="TextAsset"/> under <c>Resources</c> at the path configured in
     /// <see cref="NeoComposeConfig.projectJsonDirectory"/>. Asynchronous so it is
-    /// shape-compatible with a future cloud fetch.
+    /// shape-compatible with a future cloud fetch. In players with thread
+    /// support, parsing runs in the background so the loading UI can keep
+    /// updating. Reusing a source reuses its parsed project schema.
     /// </summary>
-    public sealed class NeoResourcesProjectDataSource : IProjectDataSource
+    public sealed class NeoResourcesProjectDataSource : IProjectDataSource, IParsedProjectDataSource
     {
         private readonly string resourcePath;
+        private Task<ProjectData>? parsedProjectDataTask;
+
+        async Awaitable<ProjectData> IParsedProjectDataSource.ReadProjectDataAsync()
+        {
+            if (parsedProjectDataTask == null)
+            {
+                // Resource access stays on Unity's main thread. Only the managed
+                // JSON conversion runs in the pool; awaiting Task returns to the
+                // caller's Unity context before the store touches runtime state.
+                string json = await ReadProjectJsonAsync();
+                var source = new NeoJsonProjectDataSource(json);
+#if !UNITY_WEBGL || UNITY_EDITOR
+                if (Application.isPlaying)
+                    parsedProjectDataTask = Task.Run(source.ReadProjectData);
+                else
+#endif
+                    parsedProjectDataTask = Task.FromResult(source.ReadProjectData());
+            }
+            return await parsedProjectDataTask;
+        }
 
         public NeoResourcesProjectDataSource(string resourcePath)
         {

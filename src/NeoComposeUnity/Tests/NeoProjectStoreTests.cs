@@ -21,6 +21,20 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void DisposedStoreDoesNotPublishALateProjectLoad()
+        {
+            var source = new ControllableProjectDataSource();
+            var store = new NeoProjectStore(dataSource: source,
+                localStore: new NeoInMemoryLocalSaveStore());
+            var loading = store.LoadAsync();
+            store.Dispose();
+            source.Complete(NeoSaveTestSupport.ProjectJson);
+            Assert.ThrowsAsync<System.ObjectDisposedException>(async () => await loading);
+            Assert.That(store.Schema, Is.Null);
+            Assert.That(store.State, Is.EqualTo(NeoProjectStoreState.Errored));
+        }
+
+        [Test]
         public async Task LoadAsync_GoesLoadingThenReady_AndGatesOpenUntilReady()
         {
             var source = new ControllableProjectDataSource();

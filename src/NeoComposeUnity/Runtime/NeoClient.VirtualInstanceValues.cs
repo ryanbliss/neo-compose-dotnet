@@ -313,6 +313,7 @@ namespace NeoCompose.Runtime
                 virtualInstanceValuesDirty = true;
                 yield break;
             }
+            using var inferenceScope = BeginValueInferenceScope();
             isInitializingVirtualInstanceValues = true;
             try
             {
@@ -882,6 +883,7 @@ namespace NeoCompose.Runtime
         private void InitializeVirtualInstanceValuesForLoadedRows(
             IEnumerable<MemberValue> loadedRows)
         {
+            using var inferenceScope = BeginValueInferenceScope();
             MemberValue[] rows = loadedRows.ToArray();
             // Only this partition's roots are replayed, but their DEPTH has to
             // be measured against the whole corpus: a partition root nested

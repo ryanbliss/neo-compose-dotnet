@@ -1,0 +1,393 @@
+{
+  "baselineCommit": "5f74c20838ea7cd8d393f6d8e5eb1e2d4d11442b",
+  "dateUtc": "2026-09-12",
+  "unity": "6000.5.4f1",
+  "environment": "Linux x86_64, Unity Editor Mono, batchmode -nographics, unthrottled test runner",
+  "cpu": "Intel Core i7-9700K @ 3.60 GHz",
+  "samples": {
+    "beforeEdit": [
+      {
+        "profile": "STARTUP_PROFILE",
+        "sample": 0,
+        "jsonChars": 3660497,
+        "parseMs": 662.31,
+        "storeMs": 298.62,
+        "clientMs": 8883.856,
+        "gridMs": 25.784,
+        "renderMs": 94.101,
+        "tiles": 624
+      },
+      {
+        "profile": "STARTUP_PROFILE",
+        "sample": 1,
+        "jsonChars": 3660497,
+        "parseMs": 253.889,
+        "storeMs": 203.238,
+        "clientMs": 7798.144,
+        "gridMs": 7.038,
+        "renderMs": 12.212,
+        "tiles": 624
+      },
+      {
+        "profile": "STARTUP_PROFILE",
+        "sample": 2,
+        "jsonChars": 3660497,
+        "parseMs": 260.913,
+        "storeMs": 203.605,
+        "clientMs": 8058.492,
+        "gridMs": 7.57,
+        "renderMs": 13.165,
+        "tiles": 624
+      },
+      {
+        "profile": "STARTUP_PROFILE",
+        "sample": 3,
+        "jsonChars": 3660497,
+        "parseMs": 267.278,
+        "storeMs": 199.905,
+        "clientMs": 7691.99,
+        "gridMs": 7.052,
+        "renderMs": 12.547,
+        "tiles": 624
+      },
+      {
+        "profile": "STARTUP_PROFILE",
+        "sample": 4,
+        "jsonChars": 3660497,
+        "parseMs": 265.438,
+        "storeMs": 200.774,
+        "clientMs": 8174.44,
+        "gridMs": 8.747,
+        "renderMs": 17.314,
+        "tiles": 624
+      },
+      {
+        "profile": "STARTUP_PROFILE",
+        "sample": 5,
+        "jsonChars": 3660497,
+        "parseMs": 581.627,
+        "storeMs": 229.082,
+        "clientMs": 8713.527,
+        "gridMs": 7.655,
+        "renderMs": 13.14,
+        "tiles": 624
+      },
+      {
+        "profile": "LARGE_JSON_PROFILE",
+        "sample": 0,
+        "addedRows": 10000,
+        "jsonChars": 2601589,
+        "parseMs": 397.765
+      },
+      {
+        "profile": "LARGE_JSON_PROFILE",
+        "sample": 1,
+        "addedRows": 10000,
+        "jsonChars": 2601589,
+        "parseMs": 304.555
+      },
+      {
+        "profile": "LARGE_JSON_PROFILE",
+        "sample": 2,
+        "addedRows": 10000,
+        "jsonChars": 2601589,
+        "parseMs": 369.638
+      },
+      {
+        "profile": "LARGE_JSON_PROFILE",
+        "sample": 3,
+        "addedRows": 10000,
+        "jsonChars": 2601589,
+        "parseMs": 312.268
+      },
+      {
+        "profile": "LARGE_JSON_PROFILE",
+        "sample": 0,
+        "addedRows": 100000,
+        "jsonChars": 13401589,
+        "parseMs": 1863.443
+      },
+      {
+        "profile": "LARGE_JSON_PROFILE",
+        "sample": 1,
+        "addedRows": 100000,
+        "jsonChars": 13401589,
+        "parseMs": 1428.552
+      },
+      {
+        "profile": "LARGE_JSON_PROFILE",
+        "sample": 2,
+        "addedRows": 100000,
+        "jsonChars": 13401589,
+        "parseMs": 1482.784
+      },
+      {
+        "profile": "LARGE_JSON_PROFILE",
+        "sample": 3,
+        "addedRows": 100000,
+        "jsonChars": 13401589,
+        "parseMs": 1799.75
+      }
+    ],
+    "afterEdit": [
+      {
+        "profile": "STARTUP_PROFILE",
+        "sample": 0,
+        "jsonChars": 3660497,
+        "parseMs": 193.874,
+        "storeMs": 124.882,
+        "clientMs": 816.854,
+        "gridMs": 25.201,
+        "renderMs": 93.098,
+        "tiles": 624
+      },
+      {
+        "profile": "STARTUP_PROFILE",
+        "sample": 1,
+        "jsonChars": 3660497,
+        "parseMs": 130.842,
+        "storeMs": 175.915,
+        "clientMs": 496.72,
+        "gridMs": 7.213,
+        "renderMs": 12.994,
+        "tiles": 624
+      },
+      {
+        "profile": "STARTUP_PROFILE",
+        "sample": 2,
+        "jsonChars": 3660497,
+        "parseMs": 126.946,
+        "storeMs": 124.176,
+        "clientMs": 697.812,
+        "gridMs": 7.605,
+        "renderMs": 12.684,
+        "tiles": 624
+      },
+      {
+        "profile": "STARTUP_PROFILE",
+        "sample": 3,
+        "jsonChars": 3660497,
+        "parseMs": 126.621,
+        "storeMs": 124.636,
+        "clientMs": 649.461,
+        "gridMs": 7.547,
+        "renderMs": 12.719,
+        "tiles": 624
+      },
+      {
+        "profile": "STARTUP_PROFILE",
+        "sample": 4,
+        "jsonChars": 3660497,
+        "parseMs": 125.954,
+        "storeMs": 132.498,
+        "clientMs": 552.422,
+        "gridMs": 7.442,
+        "renderMs": 12.786,
+        "tiles": 624
+      },
+      {
+        "profile": "STARTUP_PROFILE",
+        "sample": 5,
+        "jsonChars": 3660497,
+        "parseMs": 131.675,
+        "storeMs": 200.214,
+        "clientMs": 498.437,
+        "gridMs": 7.078,
+        "renderMs": 14.974,
+        "tiles": 624
+      },
+      {
+        "profile": "LARGE_JSON_PROFILE",
+        "sample": 0,
+        "addedRows": 10000,
+        "jsonChars": 2601589,
+        "parseMs": 231.664
+      },
+      {
+        "profile": "LARGE_JSON_PROFILE",
+        "sample": 1,
+        "addedRows": 10000,
+        "jsonChars": 2601589,
+        "parseMs": 197.778
+      },
+      {
+        "profile": "LARGE_JSON_PROFILE",
+        "sample": 2,
+        "addedRows": 10000,
+        "jsonChars": 2601589,
+        "parseMs": 252.263
+      },
+      {
+        "profile": "LARGE_JSON_PROFILE",
+        "sample": 3,
+        "addedRows": 10000,
+        "jsonChars": 2601589,
+        "parseMs": 232.511
+      },
+      {
+        "profile": "LARGE_JSON_PROFILE",
+        "sample": 0,
+        "addedRows": 100000,
+        "jsonChars": 13401589,
+        "parseMs": 1308.591
+      },
+      {
+        "profile": "LARGE_JSON_PROFILE",
+        "sample": 1,
+        "addedRows": 100000,
+        "jsonChars": 13401589,
+        "parseMs": 990.668
+      },
+      {
+        "profile": "LARGE_JSON_PROFILE",
+        "sample": 2,
+        "addedRows": 100000,
+        "jsonChars": 13401589,
+        "parseMs": 1109.444
+      },
+      {
+        "profile": "LARGE_JSON_PROFILE",
+        "sample": 3,
+        "addedRows": 100000,
+        "jsonChars": 13401589,
+        "parseMs": 1130.191
+      }
+    ],
+    "beforePlayer": [
+      {
+        "profile": "STARTUP_PLAYER_PROFILE",
+        "sample": 0,
+        "storeMs": 661.271,
+        "storeFrames": 0,
+        "clientMs": 1617.459,
+        "clientFrames": 153,
+        "gridMs": 9.413,
+        "renderMs": 116.275,
+        "renderFrames": 6
+      },
+      {
+        "profile": "STARTUP_PLAYER_PROFILE",
+        "sample": 1,
+        "storeMs": 261.067,
+        "storeFrames": 0,
+        "clientMs": 1452.952,
+        "clientFrames": 151,
+        "gridMs": 0.382,
+        "renderMs": 18.916,
+        "renderFrames": 6
+      },
+      {
+        "profile": "STARTUP_PLAYER_PROFILE",
+        "sample": 2,
+        "storeMs": 257.252,
+        "storeFrames": 0,
+        "clientMs": 1481.367,
+        "clientFrames": 156,
+        "gridMs": 0.383,
+        "renderMs": 25.326,
+        "renderFrames": 6
+      },
+      {
+        "profile": "STARTUP_PLAYER_PROFILE",
+        "sample": 3,
+        "storeMs": 215.173,
+        "storeFrames": 0,
+        "clientMs": 1714.128,
+        "clientFrames": 166,
+        "gridMs": 0.416,
+        "renderMs": 20.41,
+        "renderFrames": 6
+      },
+      {
+        "profile": "STARTUP_PLAYER_PROFILE",
+        "sample": 4,
+        "storeMs": 264.064,
+        "storeFrames": 0,
+        "clientMs": 1529.388,
+        "clientFrames": 158,
+        "gridMs": 0.419,
+        "renderMs": 20.856,
+        "renderFrames": 6
+      },
+      {
+        "profile": "STARTUP_PLAYER_PROFILE",
+        "sample": 5,
+        "storeMs": 272.867,
+        "storeFrames": 0,
+        "clientMs": 1535.328,
+        "clientFrames": 157,
+        "gridMs": 5.181,
+        "renderMs": 41.099,
+        "renderFrames": 6
+      }
+    ],
+    "afterPlayer": [
+      {
+        "profile": "STARTUP_PLAYER_PROFILE",
+        "sample": 0,
+        "storeMs": 585.845,
+        "storeFrames": 5509,
+        "clientMs": 352.543,
+        "clientFrames": 17,
+        "gridMs": 9.689,
+        "renderMs": 119.797,
+        "renderFrames": 6
+      },
+      {
+        "profile": "STARTUP_PLAYER_PROFILE",
+        "sample": 1,
+        "storeMs": 136.225,
+        "storeFrames": 1309,
+        "clientMs": 165.05,
+        "clientFrames": 11,
+        "gridMs": 0.415,
+        "renderMs": 20.205,
+        "renderFrames": 2
+      },
+      {
+        "profile": "STARTUP_PLAYER_PROFILE",
+        "sample": 2,
+        "storeMs": 188.06,
+        "storeFrames": 1544,
+        "clientMs": 128.882,
+        "clientFrames": 12,
+        "gridMs": 0.407,
+        "renderMs": 30.79,
+        "renderFrames": 3
+      },
+      {
+        "profile": "STARTUP_PLAYER_PROFILE",
+        "sample": 3,
+        "storeMs": 139.583,
+        "storeFrames": 1354,
+        "clientMs": 175.25,
+        "clientFrames": 14,
+        "gridMs": 0.469,
+        "renderMs": 21.547,
+        "renderFrames": 2
+      },
+      {
+        "profile": "STARTUP_PLAYER_PROFILE",
+        "sample": 4,
+        "storeMs": 140.165,
+        "storeFrames": 1342,
+        "clientMs": 174.687,
+        "clientFrames": 14,
+        "gridMs": 0.418,
+        "renderMs": 20.733,
+        "renderFrames": 2
+      },
+      {
+        "profile": "STARTUP_PLAYER_PROFILE",
+        "sample": 5,
+        "storeMs": 137.198,
+        "storeFrames": 1314,
+        "clientMs": 181.903,
+        "clientFrames": 15,
+        "gridMs": 0.42,
+        "renderMs": 20.009,
+        "renderFrames": 2
+      }
+    ]
+  }
+}

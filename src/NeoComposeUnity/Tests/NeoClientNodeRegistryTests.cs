@@ -75,6 +75,51 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void RowDisposalTracksReboundRowsAndRetainsTheOverrideBinding()
+        {
+            using var client = LoadClient();
+            using var node = new RebindableNode(client, "indexed", "override");
+            node.Bind(new StringMemberValue { id = "old", value = "old" });
+            node.Bind(new StringMemberValue { id = "new", value = "new" });
+            client.DisposeWrappersTouchingRows(new[] { "old" });
+            Assert.That(node.isDisposed, Is.False);
+            client.DisposeWrappersTouchingRows(new[] { "new" });
+            Assert.That(node.isDisposed, Is.True);
+
+            using var absent = new RebindableNode(client, "absent", "override");
+            absent.Bind(null);
+            client.DisposeWrappersTouchingRows(new[] { "override" });
+            Assert.That(absent.isDisposed, Is.True);
+        }
+
+        [Test]
+        public void RowDisposalDoesNotRetainReplacedRegistryEntries()
+        {
+            using var client = LoadClient();
+            using var previous = new RebindableNode(client, "replaced", null);
+            previous.Bind(new StringMemberValue { id = "old" });
+            using var replacement = new RebindableNode(client, "replaced", null);
+            replacement.Bind(new StringMemberValue { id = "current" });
+            previous.Bind(new StringMemberValue { id = "changed-after-replacement" });
+            previous.Dispose();
+            client.DisposeWrappersTouchingRows(new[] { "old", "changed-after-replacement" });
+            Assert.That(replacement.isDisposed, Is.False);
+            client.DisposeWrappersTouchingRows(new[] { "current" });
+            Assert.That(replacement.isDisposed, Is.True);
+        }
+
+        private sealed class RebindableNode : NeoMember
+        {
+            internal RebindableNode(NeoClient client, string memberId, string? overrideId)
+                : base(client, new StringMember { id = memberId, kind = MemberKind.String }, overrideId)
+            {
+                client.RegisterNode(this);
+            }
+
+            internal void Bind(MemberValue? row) => value = row;
+        }
+
+        [Test]
         public void MakeNodeKey_NoOverride_IsBareMemberId()
         {
             Assert.AreEqual("asset:member-x", NeoClient.MakeNodeKey("member-x", null));

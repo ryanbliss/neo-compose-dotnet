@@ -272,6 +272,7 @@ namespace NeoCompose.Runtime
                     }
                 }
 
+                ThrowIfDisposed();
                 NeoProjectDataValidator.Validate(schema);
                 core = new InternalProjectStore(
                     schema,
