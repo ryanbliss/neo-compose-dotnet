@@ -3306,24 +3306,24 @@
             "updatedAt": 1788081156259
         },
         "adb76be1-a78d-4736-8375-1c579455c396": {
-            "id": "adb76be1-a78d-4736-8375-1c579455c396",
-            "name": "ScreenshotEmptyGrid",
-            "kind": 7,
-            "requirement": 1,
-            "defaultValue": {
-                "value": {
-                    "CellSize": "653c231d-16ed-4777-b67c-bc69adfef59b",
-                    "Children": "f5690985-e9c7-4a40-a434-1e1e1caea8f2",
-                    "PixelsPerUnit": "d099abda-a359-4c82-b1ff-61f69dc1283f",
-                    "DisplayName": "910fe528-dee6-4bfd-88e5-d3fa9bcf1b98"
-                },
-                "classId": "b44d80a9-7760-4919-8844-0cb71d08b788"
-            },
             "classId": "b44d80a9-7760-4919-8844-0cb71d08b788",
-            "valueId": "3089c4cc-1238-48af-a379-2d0212d0bf31",
             "createdAt": 1784531210276,
+            "defaultValue": {
+                "classId": "b44d80a9-7760-4919-8844-0cb71d08b788",
+                "value": {
+                    "CellSize": "4abaead5-48a3-4acc-ab93-ab2e0d5e691b",
+                    "Children": "dc4104f3-5d2f-4d88-8daf-02696dc6cb4e",
+                    "DisplayName": "1a48e9fc-c785-41ea-a823-1911370f8ec3",
+                    "PixelsPerUnit": "79143832-0b34-4803-9658-4f729b7e78fb"
+                }
+            },
+            "id": "adb76be1-a78d-4736-8375-1c579455c396",
+            "kind": 7,
+            "name": "ScreenshotEmptyGrid",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1789116472582
+            "requirement": 1,
+            "updatedAt": 1789170358229,
+            "valueId": "3089c4cc-1238-48af-a379-2d0212d0bf31"
         },
         "b56410b3-b2da-4681-897f-a25ce0a0ceb1": {
             "createdAt": 1778176440439,
@@ -13991,6 +13991,13 @@
             "value": 220,
             "classId": null
         },
+        "1a48e9fc-c785-41ea-a823-1911370f8ec3": {
+            "createdAt": 1789170358229,
+            "id": "1a48e9fc-c785-41ea-a823-1911370f8ec3",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1789178469844,
+            "value": "Screenshot empty grid"
+        },
         "1bd90798-cbcc-40d5-b2c1-2d64d4306c9a": {
             "createdAt": 1782957228454,
             "id": "1bd90798-cbcc-40d5-b2c1-2d64d4306c9a",
@@ -15334,6 +15341,17 @@
                 "assetClassId": "d931c907-19cd-4f3d-b04a-e6f1945fb216"
             }
         },
+        "4abaead5-48a3-4acc-ab93-ab2e0d5e691b": {
+            "createdAt": 1789170358229,
+            "id": "4abaead5-48a3-4acc-ab93-ab2e0d5e691b",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1789170358229,
+            "value": {
+                "x": 1,
+                "y": 1,
+                "z": 0
+            }
+        },
         "4b4ff858-9c56-4df8-8f3a-46e06d53a7e0": {
             "classId": null,
             "createdAt": 1778705339915,
@@ -16251,17 +16269,6 @@
             ],
             "classId": null
         },
-        "653c231d-16ed-4777-b67c-bc69adfef59b": {
-            "id": "653c231d-16ed-4777-b67c-bc69adfef59b",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "value": {
-                "x": 1,
-                "y": 1,
-                "z": 0
-            },
-            "createdAt": 1789116472582,
-            "updatedAt": 1789116472582
-        },
         "6624f779-20b7-4728-a313-4e4ac8929963": {
             "classId": null,
             "createdAt": 1778021392932,
@@ -16796,6 +16803,13 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1788358543243,
             "value": null
+        },
+        "79143832-0b34-4803-9658-4f729b7e78fb": {
+            "createdAt": 1789170358229,
+            "id": "79143832-0b34-4803-9658-4f729b7e78fb",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1789170358229,
+            "value": 100
         },
         "79c7cc7c-29b3-5198-840f-dac2ee61c0ab": {
             "classId": "96e8284d-ae43-4e91-919d-86c25ce098e0",
@@ -17461,13 +17475,6 @@
                 "system_53438afa-206b-5bec-a202-c9b60d1ad8b6"
             ],
             "classId": null
-        },
-        "910fe528-dee6-4bfd-88e5-d3fa9bcf1b98": {
-            "id": "910fe528-dee6-4bfd-88e5-d3fa9bcf1b98",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "value": "Screenshot Empty Grid",
-            "createdAt": 1789116472582,
-            "updatedAt": 1789116472582
         },
         "913fd757-d6ee-488e-866f-c7af41aa544b": {
             "classId": "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -18987,13 +18994,6 @@
                 "system_53438afa-206b-5bec-a202-c9b60d1ad8b6"
             ],
             "classId": null
-        },
-        "d099abda-a359-4c82-b1ff-61f69dc1283f": {
-            "id": "d099abda-a359-4c82-b1ff-61f69dc1283f",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "value": 100,
-            "createdAt": 1789116472582,
-            "updatedAt": 1789116472582
         },
         "d0d48343-8748-40bf-b35a-3e88cdd7e3a5": {
             "classId": "system_d48b66ab-4d59-47e7-a25a-591fe97062de",
@@ -34843,6 +34843,14 @@
                     "y": -3
                 }
             },
+            "dc4104f3-5d2f-4d88-8daf-02696dc6cb4e": {
+                "createdAt": 1789170358229,
+                "id": "dc4104f3-5d2f-4d88-8daf-02696dc6cb4e",
+                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
+                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+                "updatedAt": 1789170358229,
+                "value": []
+            },
             "dc9999ee-0454-43bd-8ee3-29e9d3c22f07": {
                 "classId": "system_4689bc94-de98-46cd-b220-efe118f4106c",
                 "constructorArgs": {},
@@ -36744,14 +36752,6 @@
                     "x": -4,
                     "y": -9
                 }
-            },
-            "f5690985-e9c7-4a40-a434-1e1e1caea8f2": {
-                "id": "f5690985-e9c7-4a40-a434-1e1e1caea8f2",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "value": [],
-                "createdAt": 1789116472582,
-                "updatedAt": 1789116472582,
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788"
             },
             "f6c1acf2-c937-466c-8036-78c8bf80e645": {
                 "classId": "system_4689bc94-de98-46cd-b220-efe118f4106c",
@@ -68428,8 +68428,8 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "d68551112a34cf59d1e25996ec6c92fb7d083ea5ba35ab1ad99b0e49c31d4123",
-        "codegenContractHash": "12acbe4af50061d453c633b9cfbe94317bb908bcb6cb853155d787c9ebaddd35",
-        "runtimeDataContractHash": "8d589ef5b492c0d8a72a665475329a1e45a9db75910f5a0e899a8c45b3ec8950"
+        "projectDocumentContentHash": "922e2377017c2288ab84d9dcfa703c60d75149500f22675d4197c740c137772a",
+        "codegenContractHash": "43205c6540d139550e8d2c4b94392decd03b5f287787bd5f3f4d01c324a4befe",
+        "runtimeDataContractHash": "ba7bba56f99e89e848409bf04ea8e469f0a54254c76214efce1ee18f30928ab8"
     }
 }

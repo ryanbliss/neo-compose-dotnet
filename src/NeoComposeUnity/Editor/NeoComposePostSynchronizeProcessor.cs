@@ -144,11 +144,12 @@ namespace NeoCompose.Unity.Editor
 
                 using (TaskCoordinator.BeginCollection(generation))
                 {
-                    Run(
+                    await RunAsync(
                         projectJson,
                         projectData,
                         generation.AssetDatabasePath,
-                        generatedProjectType);
+                        generatedProjectType,
+                        cancellation.Token);
                 }
 
                 await CompletionPipeline.RunAsync(
@@ -238,20 +239,25 @@ namespace NeoCompose.Unity.Editor
             }
         }
 
-        private static void Run(
+        private static async Awaitable RunAsync(
             string projectJson,
             ProjectData projectData,
             string assetDatabasePath,
-            Type generatedProjectType)
+            Type generatedProjectType,
+            CancellationToken cancellationToken)
         {
             // Immutable animation definitions may have changed. Stop live
             // players and discard compiled clip caches before callbacks see
             // the synchronized project data.
             NeoClient.InvalidateAllAnimationClips();
-            using var project = LoadGeneratedProject(
+            using var store = new NeoProjectStore(
+                dataSource: new NeoJsonProjectDataSource(projectJson),
+                localStore: new NeoInMemoryLocalSaveStore());
+            using var project = await LoadGeneratedProjectAsync(
                 generatedProjectType,
-                projectJson,
-                assetDatabasePath);
+                store,
+                assetDatabasePath,
+                cancellationToken);
             MethodInfo resolveMethod = generatedProjectType.GetMethod(
                     "ResolveDialogueValue",
                     BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
@@ -270,8 +276,16 @@ namespace NeoCompose.Unity.Editor
                 client,
                 readOnlyFactories);
 
+            var callbackClassIds = GetSynchronizeCallbackClassIds(generatedProjectType);
+            if (callbackClassIds.Count == 0) return;
             foreach (string valueId in EnumerateProjectValueIds(projectData))
             {
+                // Declaration/default rows are not necessarily constructed instances.
+                // Do not materialize them merely to call the base no-op callback.
+                if (!client.TryGetValue(valueId, out ObjectMemberValue? value)
+                    || !callbackClassIds.Contains(
+                        NeoGeneratedTypesSupport.ResolveClassValueClassId(client, valueId, value) ?? ""))
+                    continue;
                 object? resolved = resolveMethod.Invoke(project, new object[] { valueId });
                 if (resolved is not NeoGeneratedClassValue classValue) continue;
                 string key = classValue.valueId ?? valueId;
@@ -279,6 +293,19 @@ namespace NeoCompose.Unity.Editor
 
                 InvokeOnDidSynchronize(classValue);
             }
+        }
+
+        internal static HashSet<string> GetSynchronizeCallbackClassIds(Type generatedProjectType)
+        {
+            var classIds = generatedProjectType.GetField(
+                    "NeoClassIdsByType", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+                ?.GetValue(null) as IReadOnlyDictionary<Type, string>
+                ?? throw new MissingFieldException(generatedProjectType.FullName, "NeoClassIdsByType");
+            return classIds
+                .Where(entry => entry.Key.GetMethod(nameof(NeoGeneratedClassValue.OnDidSynchronize))
+                    ?.DeclaringType is Type declaringType && declaringType != typeof(NeoGeneratedClassValue))
+                .Select(entry => entry.Value)
+                .ToHashSet(StringComparer.Ordinal);
         }
 
         private static void InvokeOnDidSynchronize(NeoGeneratedClassValue classValue)
@@ -584,53 +611,52 @@ namespace NeoCompose.Unity.Editor
             return string.IsNullOrWhiteSpace(sanitized) ? "neo-tile" : sanitized;
         }
 
-        private static IDisposable LoadGeneratedProject(
+        internal static async Awaitable<IDisposable> LoadGeneratedProjectAsync(
             Type generatedProjectType,
-            string projectJson,
-            string assetDatabasePath)
+            NeoProjectStore store,
+            string assetDatabasePath,
+            CancellationToken cancellationToken = default)
         {
             NeoAssetDatabase? assetDatabase = string.IsNullOrWhiteSpace(assetDatabasePath)
                 ? null
                 : AssetDatabase.LoadAssetAtPath<NeoAssetDatabase>(assetDatabasePath);
-            // Editor validation only needs a constructed client over the just-synced
-            // schema; a from-scratch local draft (empty save built from defaults) is
-            // enough to enumerate generated values. The store/synchronizer load
-            // completes synchronously over the in-hand JSON + in-memory store, so it's
-            // safe to drive the async path inline here.
-            var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(projectJson),
-                localStore: new NeoInMemoryLocalSaveStore());
-            store.LoadAsync().GetAwaiter().GetResult();
+            await store.LoadAsync();
+            cancellationToken.ThrowIfCancellationRequested();
             NeoSaveSynchronizer synchronizer = store.CreateNew();
-            NeoClient client = new NeoLoader()
-                .Load(synchronizer, assetDatabase)
-                .GetAwaiter()
-                .GetResult();
+            NeoClient client = await new NeoLoader().Load(
+                synchronizer, assetDatabase, cancellationToken: cancellationToken);
 
-            ConstructorInfo? constructor = generatedProjectType.GetConstructor(
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                binder: null,
-                types: new[] { typeof(NeoClient), typeof(NeoDialogueRuntimeOptions) },
-                modifiers: null);
-            if (constructor != null)
+            try
             {
-                return (IDisposable)constructor.Invoke(new object?[] { client, null });
-            }
+                ConstructorInfo? constructor = generatedProjectType.GetConstructor(
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                    binder: null,
+                    types: new[] { typeof(NeoClient), typeof(NeoDialogueRuntimeOptions) },
+                    modifiers: null);
+                if (constructor != null)
+                {
+                    return (IDisposable)constructor.Invoke(new object?[] { client, null });
+                }
 
-            constructor = generatedProjectType.GetConstructor(
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                binder: null,
-                types: new[] { typeof(NeoClient) },
-                modifiers: null);
-            if (constructor != null)
+                constructor = generatedProjectType.GetConstructor(
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                    binder: null,
+                    types: new[] { typeof(NeoClient) },
+                    modifiers: null);
+                if (constructor != null)
+                {
+                    return (IDisposable)constructor.Invoke(new object[] { client });
+                }
+
+                throw new MissingMethodException(
+                    generatedProjectType.FullName,
+                    ".ctor(NeoClient, NeoDialogueRuntimeOptions)");
+            }
+            catch
             {
-                return (IDisposable)constructor.Invoke(new object[] { client });
+                client.Dispose();
+                throw;
             }
-
-            client.Dispose();
-            throw new MissingMethodException(
-                generatedProjectType.FullName,
-                ".ctor(NeoClient, NeoDialogueRuntimeOptions)");
         }
 
         private static IEnumerable<string> EnumerateProjectValueIds(ProjectData projectData)
