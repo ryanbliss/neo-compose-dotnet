@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.35.2] - 2026-09-11
+
+- Await client initialization during editor post-sync validation so generated projects receive a fully initialized client.
+
 ## [Unreleased]
 
 ## [0.35.1] - 2026-09-11

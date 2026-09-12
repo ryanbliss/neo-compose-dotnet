@@ -1663,6 +1663,21 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task PostSynchronizeProcessor_AwaitsGeneratedClientInitialization()
+        {
+            using var store = new NeoProjectStore(
+                dataSource: new NeoJsonProjectDataSource(File.ReadAllText(
+                    "Packages/com.ryanbliss.neocompose/Tests/synth-example.json")),
+                localStore: new NeoInMemoryLocalSaveStore());
+            using var project = await NeoComposePostSynchronizeProcessor.LoadGeneratedProjectAsync(
+                typeof(Assets.Scripts.Neo.TestProjectNeo), store, "");
+            var generated = (Assets.Scripts.Neo.TestProjectNeo)project;
+            Assert.IsNotNull(generated.Client);
+            Assert.IsNotNull(generated.Save);
+            Assert.DoesNotThrow(() => generated.Client.SerializeSaveData());
+        }
+
+        [Test]
         public void PostSynchronizeProcessor_IndexesClassBackedTileAssets()
         {
             var projectData = new ProjectData
