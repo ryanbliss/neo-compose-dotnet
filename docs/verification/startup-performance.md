@@ -82,8 +82,9 @@ Validation included the full EditMode suite with 2,048 passing tests and three
 existing skips, all 14 PlayMode tests, and the focused final parsing, store,
 registry, and benchmark tests. Regression coverage checks reader positioning,
 input ownership, rebinding, same-key replacement, replay and partitions,
-main-thread continuation, shared parsing, disposal during load, and exact tile
-budgets across layers. `agent:verify` passed against the isolated Hello World rig.
+main-thread continuation, overlapping loads sharing parsing, disposal during load,
+exact tile and object budgets across layers, and yielding after a callback exceeds
+the time budget. `agent:verify` passed against the isolated Hello World rig.
 
 Run the profiles from the SDK checkout:
 

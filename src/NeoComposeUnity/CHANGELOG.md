@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.35.3] - 2026-09-11
+
+- Reduce project JSON deserialization allocations and parse resource-backed project JSON off the main thread during play on supported platforms.
+- Speed up client preparation with indexed value inference and wrapper cleanup.
+- Render world grids with an 8 ms cooperative frame budget by default, retaining explicit tile and object limits and avoiding unnecessary frame waits.
+
 ## [0.35.2] - 2026-09-11
 
 - Skip materializing declaration defaults for unimplemented post-sync callbacks. Synchronize the HelloWorld screenshot-grid source and bundled export.

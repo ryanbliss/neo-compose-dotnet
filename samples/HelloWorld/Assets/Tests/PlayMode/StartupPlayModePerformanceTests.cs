@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using HelloWorld.Assets.Scripts.Neo;
@@ -65,6 +66,100 @@ namespace HelloWorld.Assets.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator RenderingYieldsAfterSlowCallbacksAndHonorsObjectBudgetsAcrossLayers()
+        {
+            Task check = CheckTimeAndObjectBudgets();
+            while (!check.IsCompleted) yield return null;
+            check.GetAwaiter().GetResult();
+        }
+
+        private static async Task CheckTimeAndObjectBudgets()
+        {
+            using var store = new NeoProjectStore(
+                dataSource: new NeoResourcesProjectDataSource("Neo/project"),
+                localStore: new NeoInMemoryLocalSaveStore());
+            await store.LoadAsync();
+            using var client = await HelloWorldNeo.Load(store.CreateNew());
+            INeoTileGridContent content = client.Assets.Worlds.OldConsoleLanding.Content;
+            var sourceObjects = content.ObjectLayersInOrder[0].GetObjects();
+            Assert.That(sourceObjects.Count, Is.GreaterThan(0));
+            var layers = new IReadOnlyNeoObjectLayerRuntime[]
+            {
+                new SingleObjectLayer("first", sourceObjects[0]),
+                new SingleObjectLayer("second", sourceObjects[0]),
+            };
+
+            foreach (bool finiteTimeBudget in new[] { false, true })
+            {
+                var root = new GameObject("Object render budget test");
+                try
+                {
+                    var renderer = root.AddComponent<NeoTileGridRenderer>();
+                    var lifecycle = new BudgetLifecycle(finiteTimeBudget);
+                    renderer.Lifecycle = lifecycle;
+                    int frame = Time.frameCount;
+                    await renderer.RenderAsync(content.Primitive,
+                        System.Array.Empty<IReadOnlyNeoTileLayerRuntime>(), layers,
+                        new NeoTileGridRenderOptions
+                        {
+                            MaxObjectsPerFrame = finiteTimeBudget ? int.MaxValue : 1,
+                            MaxMillisecondsPerFrame = finiteTimeBudget ? 1 : double.PositiveInfinity,
+                            YieldBeforeRender = false,
+                            LiveSync = false,
+                        });
+                    Assert.That(lifecycle.ObjectFrames.Count, Is.EqualTo(2));
+                    if (finiteTimeBudget)
+                    {
+                        for (int i = 0; i < 2; i++)
+                            Assert.That(lifecycle.ObjectFrames[i], Is.GreaterThan(lifecycle.LayerFrames[i]),
+                                "A callback that exceeds the time budget must yield before spawning.");
+                    }
+                    else
+                    {
+                        Assert.That(lifecycle.ObjectFrames, Is.EqualTo(new[] { frame, frame + 1 }));
+                        Assert.That(Time.frameCount, Is.EqualTo(frame + 1), "No trailing frame wait.");
+                    }
+                }
+                finally { Object.DestroyImmediate(root); }
+            }
+        }
+
+        private sealed class SingleObjectLayer : ReadOnlyNeoObjectLayerRuntime
+        {
+            private readonly NeoResolvedObjectInstance[] objects;
+
+            internal SingleObjectLayer(string id, NeoResolvedObjectInstance template)
+                : base(id, id, template.Object.classId)
+            {
+                objects = new[] { new NeoResolvedObjectInstance(id + "-object", id,
+                    template.Cell, template.Footprint, template.Object, template.Order) };
+            }
+
+            public override IReadOnlyList<NeoResolvedObjectInstance> GetObjects() => objects;
+        }
+
+        private sealed class BudgetLifecycle : NeoTileGridLifecycle
+        {
+            private readonly bool slow;
+            internal readonly List<int> LayerFrames = new();
+            internal readonly List<int> ObjectFrames = new();
+
+            internal BudgetLifecycle(bool slow) => this.slow = slow;
+
+            public override void OnObjectLayerCreated(NeoObjectLayerContext context)
+            {
+                LayerFrames.Add(Time.frameCount);
+                if (slow) System.Threading.Thread.Sleep(5);
+            }
+
+            public override bool ShouldRenderObject(NeoObjectRenderContext context)
+            {
+                ObjectFrames.Add(Time.frameCount);
+                return true;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator ResourceParsingResumesOnMainThreadAndSharesItsSchema()
         {
             Task check = CheckResourceSource();
@@ -80,9 +175,11 @@ namespace HelloWorld.Assets.Tests.PlayMode
                 localStore: new NeoInMemoryLocalSaveStore());
             using var second = new NeoProjectStore(dataSource: source,
                 localStore: new NeoInMemoryLocalSaveStore());
-            await first.LoadAsync();
+            var firstLoad = first.LoadAsync();
+            var secondLoad = second.LoadAsync();
+            await firstLoad;
             Assert.That(System.Threading.Thread.CurrentThread.ManagedThreadId, Is.EqualTo(mainThread));
-            await second.LoadAsync();
+            await secondLoad;
             Assert.That(System.Threading.Thread.CurrentThread.ManagedThreadId, Is.EqualTo(mainThread));
             Assert.That(second.Schema, Is.SameAs(first.Schema));
         }
