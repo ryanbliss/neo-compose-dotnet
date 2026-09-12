@@ -32,6 +32,7 @@ abstract class ExitPromptObject : ConsoleObject {
       Size = new(1, 1, 0),
       Tiles = [
         @id("fa6f6f5c-f432-41cc-aa5a-c92445b947fb")
+        @tile(RedNovaWarningTile)
         new NeoTileInstance {
           Cell = new(1, 0)
         }
