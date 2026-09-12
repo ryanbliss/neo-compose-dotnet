@@ -31,7 +31,10 @@ class Assets {
 
   @id("adb76be1-a78d-4736-8375-1c579455c396")
   public virtual OldConsoleLandingGrid ScreenshotEmptyGrid = new() {
-    DisplayName = "Screenshot Empty Grid"
+    DisplayName = "Screenshot empty grid",
+    CellSize = new(1, 1, 0),
+    Children = [],
+    PixelsPerUnit = 100
   };
 
   @id("system_7ec79ef8-a216-407f-8886-9f770bc9895b")

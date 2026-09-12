@@ -276,8 +276,15 @@ namespace NeoCompose.Unity.Editor
                 client,
                 readOnlyFactories);
 
+            var callbackClassIds = GetSynchronizeCallbackClassIds(generatedProjectType);
             foreach (string valueId in EnumerateProjectValueIds(projectData))
             {
+                // Declaration/default rows are not necessarily constructed instances.
+                // Do not materialize them merely to call the base no-op callback.
+                if (!client.TryGetValue(valueId, out ObjectMemberValue? value)
+                    || !callbackClassIds.Contains(
+                        NeoGeneratedTypesSupport.ResolveClassValueClassId(client, valueId, value) ?? ""))
+                    continue;
                 object? resolved = resolveMethod.Invoke(project, new object[] { valueId });
                 if (resolved is not NeoGeneratedClassValue classValue) continue;
                 string key = classValue.valueId ?? valueId;
@@ -285,6 +292,19 @@ namespace NeoCompose.Unity.Editor
 
                 InvokeOnDidSynchronize(classValue);
             }
+        }
+
+        internal static HashSet<string> GetSynchronizeCallbackClassIds(Type generatedProjectType)
+        {
+            var classIds = generatedProjectType.GetField(
+                    "NeoClassIdsByType", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+                ?.GetValue(null) as IReadOnlyDictionary<Type, string>
+                ?? throw new MissingFieldException(generatedProjectType.FullName, "NeoClassIdsByType");
+            return classIds
+                .Where(entry => entry.Key.GetMethod(nameof(NeoGeneratedClassValue.OnDidSynchronize))
+                    ?.DeclaringType is Type declaringType && declaringType != typeof(NeoGeneratedClassValue))
+                .Select(entry => entry.Value)
+                .ToHashSet(StringComparer.Ordinal);
         }
 
         private static void InvokeOnDidSynchronize(NeoGeneratedClassValue classValue)

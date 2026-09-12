@@ -1662,6 +1662,41 @@ namespace NeoCompose.Tests
             }
         }
 
+        private abstract class NoSyncCallback : NeoGeneratedClassValue
+        {
+            protected NoSyncCallback(NeoClient client, NeoMemberClass node)
+                : base(client, node, "fixture") { }
+        }
+
+        private abstract class SyncCallback : NoSyncCallback
+        {
+            protected SyncCallback(NeoClient client, NeoMemberClass node) : base(client, node) { }
+            public override void OnDidSynchronize() { }
+        }
+
+        private abstract class InheritedSyncCallback : SyncCallback
+        {
+            protected InheritedSyncCallback(NeoClient client, NeoMemberClass node) : base(client, node) { }
+        }
+
+        private class CallbackProject
+        {
+            internal static readonly IReadOnlyDictionary<System.Type, string> NeoClassIdsByType =
+                new Dictionary<System.Type, string>
+                {
+                    [typeof(NoSyncCallback)] = "no-op",
+                    [typeof(SyncCallback)] = "callback",
+                    [typeof(InheritedSyncCallback)] = "inherited",
+                };
+        }
+
+        [Test]
+        public void PostSynchronizeProcessor_OnlyResolvesImplementedCallbacks()
+        {
+            CollectionAssert.AreEquivalent(new[] { "callback", "inherited" },
+                NeoComposePostSynchronizeProcessor.GetSynchronizeCallbackClassIds(typeof(CallbackProject)));
+        }
+
         [Test]
         public async Task PostSynchronizeProcessor_AwaitsGeneratedClientInitialization()
         {

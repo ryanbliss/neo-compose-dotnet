@@ -1515,7 +1515,7 @@ namespace NeoCompose.Runtime
                 $"Deferred Function '{functionName}' expected handle type {expectedType.Name}, got {deferred.GetType().Name}.");
         }
 
-        private static string? ResolveClassValueClassId(
+        internal static string? ResolveClassValueClassId(
             NeoClient client,
             string valueId,
             ObjectMemberValue value)
