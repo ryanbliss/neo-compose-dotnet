@@ -148,6 +148,67 @@ namespace NeoCompose.Tests
                 "a disposed client detaches from the live content source");
         }
 
+        [Test]
+        public async System.Threading.Tasks.Task LiveContentSource_KeepsLatestUpdateDuringInitialization()
+        {
+            using var source = LoadGeneratedClient(out _);
+            source.Save.Score = 7;
+            var first = source.SerializeSaveData();
+            source.Save.Score = 9;
+            var latest = source.SerializeSaveData();
+            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
+            var loader = new LiveContentLoader(stack.Synchronizer);
+            var pending = TestProjectNeo.Load(loader);
+            Assert.IsFalse(pending.GetAwaiter().IsCompleted);
+            loader.RaiseLiveContent(first);
+            loader.RaiseLiveContent(latest);
+            using var app = await pending;
+            Assert.AreEqual(9, app.Save.Score, "Load must include the latest update received while it yielded.");
+            Assert.AreEqual(1, loader.SubscriberCount, "Only the normal live subscription should remain.");
+            loader.RaiseLiveContent(first);
+            Assert.AreEqual(7, app.Save.Score, "Live updates still work after initialization.");
+            app.Dispose();
+            Assert.AreEqual(0, loader.SubscriberCount);
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task LiveContentSource_CancellationDetachesInitializationListener()
+        {
+            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
+            var loader = new LiveContentLoader(stack.Synchronizer);
+            using var cancellation = new System.Threading.CancellationTokenSource();
+            var pending = TestProjectNeo.Load(loader, cancellationToken: cancellation.Token);
+            Assert.IsFalse(pending.GetAwaiter().IsCompleted);
+            Assert.AreEqual(1, loader.SubscriberCount);
+            cancellation.Cancel();
+            try
+            {
+                using var unexpected = await pending;
+                Assert.Fail("Loading should have been canceled.");
+            }
+            catch (System.OperationCanceledException) { }
+            Assert.AreEqual(0, loader.SubscriberCount);
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task LiveContentSource_FailedInitializationDetachesListener()
+        {
+            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
+            var loader = new LiveContentLoader(stack.Synchronizer);
+            var pending = TestProjectNeo.Load(loader);
+            loader.RaiseLiveContent("invalid-save-content");
+            try
+            {
+                using var unexpected = await pending;
+                Assert.Fail("Loading should reject malformed buffered content.");
+            }
+            catch (System.InvalidOperationException error)
+            {
+                StringAssert.Contains("could not be parsed", error.Message);
+            }
+            Assert.AreEqual(0, loader.SubscriberCount);
+        }
+
         /// <summary>
         /// Wraps the test stack's synchronizer so the test controls when live
         /// content arrives (the real synchronizer only raises it from a live
@@ -172,6 +233,7 @@ namespace NeoCompose.Tests
                 inner.CommitSaveContentAsync(content, replaceSnapshot);
 
             public event System.Action<string>? OnLiveContentChanged;
+            public int SubscriberCount => OnLiveContentChanged?.GetInvocationList().Length ?? 0;
 
             public void RaiseLiveContent(string content) =>
                 OnLiveContentChanged?.Invoke(content);

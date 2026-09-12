@@ -13,6 +13,9 @@
 
 ### Fixed
 
+- Live save updates received while initialization yields are buffered and applied
+  before the client is returned. Cancellation and failures detach the temporary
+  listener.
 - Class-backed grid tiles and sparse layer settings read declaration defaults
   instead of unrelated stored declaration values. Explicit layer overrides still
   win and remain writable. This restores Neowyn grass sprites and smart-tile rules

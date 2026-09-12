@@ -680,6 +680,11 @@ namespace NeoCompose.Runtime
         {
             cancellationToken.ThrowIfCancellationRequested();
             var client = new NeoClient(loader, content, assetDatabase, localization, saveOptions, true);
+            var liveSource = loader as INeoLiveContentSource;
+            string? pendingLiveContent = null;
+            void BufferLiveContent(string latest) => pendingLiveContent = latest;
+            // Live messages are complete snapshots. Keep the latest while replay yields.
+            if (liveSource != null) liveSource.OnLiveContentChanged += BufferLiveContent;
             try
             {
                 await YieldInitializationAsync(cancellationToken);
@@ -691,6 +696,8 @@ namespace NeoCompose.Runtime
                     await YieldInitializationAsync(cancellationToken);
                     budget.Restart();
                 }
+                if (pendingLiveContent != null)
+                    client.ApplyExternalSaveContent(pendingLiveContent);
                 client.CompleteInitialization();
                 return client;
             }
@@ -698,6 +705,10 @@ namespace NeoCompose.Runtime
             {
                 client.Dispose();
                 throw;
+            }
+            finally
+            {
+                if (liveSource != null) liveSource.OnLiveContentChanged -= BufferLiveContent;
             }
         }
 
