@@ -382,13 +382,15 @@ namespace NeoCompose.Unity.Editor
                 return null;
             }
             var headsByKey = state.heads.ToDictionary(HeadKey);
+            var valueIndex = new ExportedValueDeltaIndex(
+                root, delta.records.Select(record => record.recordId));
             var projectFileIds = root["files"] is JObject files
-                ? files.Properties().Select(property => property.Name).ToArray()
-                : Array.Empty<string>();
+                ? files.Properties().Select(property => property.Name).ToHashSet(StringComparer.Ordinal)
+                : new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var descriptor in delta.records)
             {
-                var oldValue = FindExportedValue(root, descriptor.recordId);
+                var oldValue = valueIndex.Find(descriptor.recordId);
                 NeoComposeUnityExportCachedSnapshot? snapshot = null;
                 if (!descriptor.deleted)
                 {
@@ -403,13 +405,12 @@ namespace NeoCompose.Unity.Editor
                 // File inclusion is a global reachability calculation. A value
                 // that adds or removes any known file id uses the full export
                 // rather than risking a stale asset manifest.
-                if (projectFileIds.Any(fileId =>
-                        TokenContainsString(oldValue, fileId)
-                        || TokenContainsString(snapshot?.data, fileId)))
+                if (TokenContainsAnyString(oldValue, projectFileIds)
+                    || TokenContainsAnyString(snapshot?.data, projectFileIds))
                 {
                     return null;
                 }
-                ApplyValueDelta(root, descriptor.recordId, snapshot?.data);
+                valueIndex.Apply(descriptor.recordId, snapshot?.data);
                 var nextHead = new NeoComposeUnityExportHeadDescriptor
                 {
                     recordKind = descriptor.recordKind,
@@ -465,56 +466,101 @@ namespace NeoCompose.Unity.Editor
         private static string HeadKey(NeoComposeUnityExportHeadDescriptor head) =>
             head.recordKind + ":" + head.recordId;
 
-        private static JToken? FindExportedValue(JObject root, string valueId)
+        private sealed class ExportedValueDeltaIndex
         {
-            if (root["values"] is JObject values && values.TryGetValue(valueId, out var main))
+            private readonly JObject values;
+            private readonly JObject partitions;
+            private readonly Dictionary<string, List<JProperty>> locations;
+
+            public ExportedValueDeltaIndex(JObject root, IEnumerable<string> changedValueIds)
             {
-                return main;
-            }
-            if (root["valuePartitions"] is not JObject partitions) return null;
-            foreach (var partition in partitions.Properties())
-            {
-                if (partition.Value is JObject rows && rows.TryGetValue(valueId, out var value))
+                values = root["values"] as JObject ?? new JObject();
+                if (values.Parent == null) root["values"] = values;
+                partitions = root["valuePartitions"] as JObject ?? new JObject();
+                if (partitions.Parent == null) root["valuePartitions"] = partitions;
+                locations = changedValueIds.Distinct(StringComparer.Ordinal)
+                    .ToDictionary(id => id, _ => new List<JProperty>(), StringComparer.Ordinal);
+                IndexRows(values);
+                foreach (var partition in partitions.Properties().ToArray())
                 {
-                    return value;
+                    if (partition.Value is not JObject rows) continue;
+                    if (rows.Count == 0) partition.Remove();
+                    else IndexRows(rows);
                 }
             }
-            return null;
-        }
 
-        private static void ApplyValueDelta(JObject root, string valueId, JToken? rawData)
-        {
-            var values = root["values"] as JObject;
-            if (values == null)
+            private void IndexRows(JObject rows)
             {
-                values = new JObject();
-                root["values"] = values;
+                // Probe the smaller set: a short delta must not enumerate every
+                // row of a large partition, and a bulk delta must not rescan each
+                // partition for every changed id. Retain only changed locations.
+                if (rows.Count > locations.Count)
+                {
+                    foreach (var pair in locations)
+                    {
+                        var property = rows.Property(pair.Key);
+                        if (property != null) pair.Value.Add(property);
+                    }
+                    return;
+                }
+                foreach (var property in rows.Properties())
+                {
+                    if (locations.TryGetValue(property.Name, out var found)) found.Add(property);
+                }
             }
-            values.Remove(valueId);
-            var partitions = root["valuePartitions"] as JObject;
-            if (partitions == null)
+
+            public JToken? Find(string valueId)
             {
-                partitions = new JObject();
-                root["valuePartitions"] = partitions;
+                var found = locations[valueId];
+                return found.Count == 0 ? null : found[0].Value;
             }
-            foreach (var partition in partitions.Properties().ToArray())
+
+            public void Apply(string valueId, JToken? rawData)
             {
-                if (partition.Value is not JObject rows) continue;
-                rows.Remove(valueId);
-                if (!rows.Properties().Any()) partition.Remove();
+                JObject? target = null;
+                JObject? record = null;
+                if (rawData != null)
+                {
+                    record = rawData.DeepClone() as JObject
+                        ?? throw new JsonSerializationException("A project record snapshot must be an object.");
+                    var mapKey = record["mapKey"]?.Value<string>();
+                    target = values;
+                    if (!string.IsNullOrEmpty(mapKey))
+                    {
+                        target = partitions[mapKey] as JObject;
+                        if (target == null)
+                        {
+                            target = new JObject();
+                            partitions[mapKey] = target;
+                        }
+                    }
+                }
+
+                var found = locations[valueId];
+                JProperty? retained = null;
+                foreach (var property in found)
+                {
+                    var owner = (JObject)property.Parent!;
+                    if (ReferenceEquals(owner, target) && retained == null)
+                    {
+                        // Replacing the payload avoids remove/append shifts in
+                        // JObject's ordered property list for ordinary updates.
+                        retained = property;
+                        continue;
+                    }
+                    property.Remove();
+                    if (!ReferenceEquals(owner, values) && owner.Count == 0) owner.Parent?.Remove();
+                }
+                found.Clear();
+                if (target == null) return;
+                if (retained == null)
+                {
+                    retained = new JProperty(valueId, record);
+                    target.Add(retained);
+                }
+                else retained.Value = record!;
+                found.Add(retained);
             }
-            if (rawData == null) return;
-            var record = rawData.DeepClone() as JObject
-                ?? throw new JsonSerializationException("A project record snapshot must be an object.");
-            var mapKey = record["mapKey"]?.Value<string>();
-            if (string.IsNullOrEmpty(mapKey))
-            {
-                values[valueId] = record;
-                return;
-            }
-            var target = partitions[mapKey] as JObject ?? new JObject();
-            partitions[mapKey] = target;
-            target[valueId] = record;
         }
 
         private static NeoComposeUnityExportSyncState PrepareSyncStateForCache(
@@ -535,14 +581,18 @@ namespace NeoCompose.Unity.Editor
             return state;
         }
 
-        private static bool TokenContainsString(JToken? token, string expected)
+        private static bool TokenContainsAnyString(JToken? token, HashSet<string> expected)
         {
-            if (token == null) return false;
+            if (token == null || expected.Count == 0) return false;
             if (token.Type == JTokenType.String)
             {
-                return token.Value<string>() == expected;
+                return token.Value<string>() is string value && expected.Contains(value);
             }
-            return token.Children().Any(child => TokenContainsString(child, expected));
+            foreach (var child in token.Children())
+            {
+                if (TokenContainsAnyString(child, expected)) return true;
+            }
+            return false;
         }
 
         private static string ComputeProjectDocumentContentHash(
