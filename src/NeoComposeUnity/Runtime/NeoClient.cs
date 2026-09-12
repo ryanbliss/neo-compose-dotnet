@@ -3932,9 +3932,8 @@ namespace NeoCompose.Runtime
                     && TryResolveCollectionEntryMember(containerMember) is Member containedMember)
                 { member = containedMember; return true; }
 
-                foreach (var parent in EnumerateAllValueRows())
+                foreach (var parent in InferMemberParents(valueId))
                 {
-                    if (!MightReferenceChildValueId(parent.Value, valueId)) continue;
                     Member? parentMember = null;
                     bool parentInferred = false;
                     Member? ParentMember()
@@ -3978,6 +3977,8 @@ namespace NeoCompose.Runtime
             string valueId,
             [NotNullWhen(true)] out Member? member)
         {
+            if (valueInferenceScopeDepth > 0)
+                return ValueInferenceIndex.Members.TryGetValue(valueId, out member);
             foreach (var candidate in data.members.Values)
             {
                 if (candidate.valueId == valueId)
@@ -4815,6 +4816,7 @@ namespace NeoCompose.Runtime
                     $"Value partition '{mapKey}' could not be deserialized into value rows.");
             }
 
+            authoredValueInferenceIndex = null;
             var rowIds = new HashSet<string>();
             foreach (var pair in rows)
             {
@@ -4892,6 +4894,7 @@ namespace NeoCompose.Runtime
                 }
                 data.values.Remove(rowId);
             }
+            authoredValueInferenceIndex = null;
             loadedPartitionRowIds.Remove(mapKey);
             OnValuePartitionChanged?.Invoke(mapKey);
         }
@@ -4925,13 +4928,11 @@ namespace NeoCompose.Runtime
         {
             HashSet<string> rowIdSet = rowIds as HashSet<string>
                 ?? new HashSet<string>(rowIds);
-            var staleNodes = new List<NeoMember>();
-            foreach (var node in nodesInternal.Values)
+            if (rowIdSet.Count == 0) return;
+            var staleNodes = new HashSet<NeoMember>();
+            foreach (string rowId in rowIdSet)
             {
-                bool touches =
-                    (node.value is not null && rowIdSet.Contains(node.value.id))
-                    || (node.overrideValueId is not null && rowIdSet.Contains(node.overrideValueId));
-                if (touches) staleNodes.Add(node);
+                if (nodesByValueId.TryGetValue(rowId, out var nodes)) staleNodes.UnionWith(nodes);
             }
             var staleGenerated = new List<NeoGeneratedClassValue>();
             foreach (var generated in generatedValuesInternal.Values)
@@ -5273,7 +5274,9 @@ namespace NeoCompose.Runtime
                 node.member.RuntimeDeclarationIdentity,
                 node.overrideValueId,
                 node.ownership);
+            if (nodesInternal.TryGetValue(key, out NeoMember previous)) UnindexNode(previous);
             nodesInternal[key] = node;
+            IndexNode(node);
         }
 
         /// <summary>
@@ -5295,6 +5298,7 @@ namespace NeoCompose.Runtime
             if (nodesInternal.TryGetValue(key, out NeoMember existing) && existing == node)
             {
                 nodesInternal.Remove(key);
+                UnindexNode(node);
             }
         }
 

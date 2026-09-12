@@ -78,7 +78,7 @@ namespace NeoCompose.Runtime.Json
             JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null) return null;
-            JObject obj = JObject.Load(reader);
+            JObject obj = NeoJsonObjectReader.Read(reader);
             if (obj.Count != 1 || obj.Property("listeners") is null)
             {
                 throw new JsonSerializationException(

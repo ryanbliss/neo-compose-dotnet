@@ -1022,7 +1022,7 @@ namespace NeoCompose.Runtime.Json
             object? existingValue,
             JsonSerializer serializer)
         {
-            var json = JObject.Load(reader);
+            var json = NeoJsonObjectReader.Read(reader);
             var typeToken = json["type"] ?? throw new JsonSerializationException(
                 "Function argument type info is missing 'type'.");
             var type = ReadArgumentType(typeToken);

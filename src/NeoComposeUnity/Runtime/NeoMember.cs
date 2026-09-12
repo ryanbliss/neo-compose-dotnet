@@ -39,7 +39,17 @@ namespace NeoCompose.Runtime
         /// reaching into the typed intermediate.
         /// </summary>
         public string? overrideValueId { get; }
-        public MemberValue? value { get; protected set; }
+        private MemberValue? boundValue;
+        internal bool IsRegisteredWithClient { get; set; }
+        public MemberValue? value
+        {
+            get => boundValue;
+            protected set
+            {
+                client.UpdateNodeValueIndex(this, boundValue?.id, value?.id);
+                boundValue = value;
+            }
+        }
         /// <summary>
         /// The P42 <c>~partial</c> structured-leaf row bound to this node, or
         /// null (the overwhelmingly common case).

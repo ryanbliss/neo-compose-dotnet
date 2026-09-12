@@ -15,9 +15,20 @@ namespace NeoCompose.Runtime
 {
     public sealed class NeoTileGridRenderOptions
     {
-        public int MaxTilesPerFrame { get; set; } = 512;
+        public int MaxTilesPerFrame { get; set; } = int.MaxValue;
 
-        public int MaxObjectsPerFrame { get; set; } = 8;
+        public int MaxObjectsPerFrame { get; set; } = int.MaxValue;
+
+        /// <summary>
+        /// Cooperative CPU budget shared by all layers. A tile snapshot or one
+        /// object spawn can exceed it; the renderer yields before starting more
+        /// work. Positive infinity disables the time limit. Explicit tile and
+        /// object count limits still apply.
+        /// </summary>
+        public double MaxMillisecondsPerFrame { get; set; } = 8;
+
+        internal double NormalizedMaxMillisecondsPerFrame =>
+            MaxMillisecondsPerFrame > 0 ? MaxMillisecondsPerFrame : 8;
 
         public bool YieldBeforeRender { get; set; } = true;
 
@@ -582,22 +593,37 @@ namespace NeoCompose.Runtime
                 await YieldNextFrameAsync(token);
             }
 
+            var frameBudget = System.Diagnostics.Stopwatch.StartNew();
+            int tilesThisFrame = 0;
+            int objectsThisFrame = 0;
+            async Awaitable YieldRenderFrameAsync()
+            {
+                await YieldNextFrameAsync(token);
+                frameBudget.Restart();
+                tilesThisFrame = 0;
+                objectsThisFrame = 0;
+            }
+
             var grid = EnsureGrid();
             var createdTargets = new List<TileLayerTargetRegistration>();
             try
             {
                 if (clearBeforeRender)
                 {
+                    bool needsDestroyFrame = grid.transform.childCount > 0
+                        || tileTargetsByLayerId.Count > 0;
                     DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.Replaced);
                     ClearChildren(grid.transform);
                     ClearRenderedIndexes();
-                    await YieldNextFrameAsync(token);
+                    if (needsDestroyFrame) await YieldRenderFrameAsync();
                 }
 
                 int sortingOrder = 0;
                 foreach (var layer in tileLayers)
                 {
                     token.ThrowIfCancellationRequested();
+                    if (frameBudget.Elapsed.TotalMilliseconds >= options.NormalizedMaxMillisecondsPerFrame)
+                        await YieldRenderFrameAsync();
                     tileLayersByLayerId[layer.LayerId] = layer;
                     var registration = CreateTileLayerTarget(
                         grid.transform,
@@ -612,14 +638,22 @@ namespace NeoCompose.Runtime
                     Lifecycle?.OnTileLayerCreated(new NeoTileLayerContext(this, layer, tilemap));
                     token.ThrowIfCancellationRequested();
 
-                    var positions = new List<Vector3Int>(options.NormalizedMaxTilesPerFrame);
-                    var tiles = new List<TileBase>(options.NormalizedMaxTilesPerFrame);
+                    var positions = new List<Vector3Int>(Math.Min(512, options.NormalizedMaxTilesPerFrame));
+                    var tiles = new List<TileBase>(Math.Min(512, options.NormalizedMaxTilesPerFrame));
                     var renderedTiles = new Dictionary<Vector2Int, TileBase>();
                     var snapshot = NeoWorldLayerRuntimeSupport.GetRenderSnapshot(layer);
                     CacheTileLayerSnapshot(layer.LayerId, snapshot);
                     foreach (var tile in snapshot.Winners)
                     {
                         token.ThrowIfCancellationRequested();
+                        if (tilesThisFrame >= options.NormalizedMaxTilesPerFrame
+                            || frameBudget.Elapsed.TotalMilliseconds >= options.NormalizedMaxMillisecondsPerFrame)
+                        {
+                            SetTileBatch(tilemap, positions, tiles);
+                            positions.Clear();
+                            tiles.Clear();
+                            await YieldRenderFrameAsync();
+                        }
                         var tileBase = TileBaseFor(tile.Tile);
                         if (tileBase == null) continue;
 
@@ -627,12 +661,12 @@ namespace NeoCompose.Runtime
                         tiles.Add(tileBase);
                         renderedTiles[tile.Cell] = tileBase;
                         CacheRenderedTileSource(layer.LayerId, tile);
-                        if (positions.Count < options.NormalizedMaxTilesPerFrame) continue;
+                        tilesThisFrame++;
+                        if (positions.Count < 512) continue;
 
                         SetTileBatch(tilemap, positions, tiles);
                         positions.Clear();
                         tiles.Clear();
-                        await YieldNextFrameAsync(token);
                     }
 
                     if (positions.Count > 0)
@@ -644,7 +678,6 @@ namespace NeoCompose.Runtime
                     renderedTilesByLayerId[layer.LayerId] = renderedTiles;
                     registration.Provider?.OnInitiallyRendered(
                         CreateTargetContext(registration));
-                    await YieldNextFrameAsync(token);
                 }
 
                 if (renderObjects && objectLayers != null)
@@ -652,6 +685,8 @@ namespace NeoCompose.Runtime
                     foreach (var layer in objectLayers)
                     {
                         token.ThrowIfCancellationRequested();
+                        if (frameBudget.Elapsed.TotalMilliseconds >= options.NormalizedMaxMillisecondsPerFrame)
+                            await YieldRenderFrameAsync();
                         objectLayersByLayerId[layer.LayerId] = layer;
                         var root = CreateObjectLayerRoot(grid.transform, layer);
                         Lifecycle?.OnObjectLayerCreated(new NeoObjectLayerContext(this, layer, root));
@@ -659,20 +694,17 @@ namespace NeoCompose.Runtime
                             sortingOrder++ * FallbackSortingOrderStride;
                         objectLayerFallbackSortingOrdersByLayerId[layer.LayerId] =
                             layerFallbackSortingOrder;
-                        var renderedThisFrame = 0;
                         foreach (var obj in layer.GetObjects())
                         {
                             token.ThrowIfCancellationRequested();
+                            if (objectsThisFrame >= options.NormalizedMaxObjectsPerFrame
+                                || frameBudget.Elapsed.TotalMilliseconds >= options.NormalizedMaxMillisecondsPerFrame)
+                                await YieldRenderFrameAsync();
                             if (!ShouldRenderObjectInstance(layer, obj)) continue;
                             objectRootsByInstanceId[obj.InstanceId] =
                                 SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
-                            renderedThisFrame += 1;
-                            if (renderedThisFrame < options.NormalizedMaxObjectsPerFrame) continue;
-                            renderedThisFrame = 0;
-                            await YieldNextFrameAsync(token);
+                            objectsThisFrame++;
                         }
-
-                        await YieldNextFrameAsync(token);
                     }
                 }
 
