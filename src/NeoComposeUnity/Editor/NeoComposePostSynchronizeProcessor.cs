@@ -22,8 +22,7 @@ namespace NeoCompose.Unity.Editor
     internal static class NeoComposePostSynchronizeAssetImporter
     {
         internal static void ImportChangedOutputs(
-            string projectJsonPath,
-            string generatedTypesPath,
+            IReadOnlyList<string> changedPaths,
             Action<string> importAsset)
         {
             if (importAsset == null) throw new ArgumentNullException(nameof(importAsset));
@@ -32,8 +31,7 @@ namespace NeoCompose.Unity.Editor
             // Unity's asset pipeline. Importing them directly also starts script
             // compilation when generated C# changed, without scanning every asset
             // in the project through AssetDatabase.Refresh.
-            importAsset(projectJsonPath);
-            importAsset(generatedTypesPath);
+            foreach (var path in changedPaths) importAsset(path);
         }
     }
 
@@ -65,11 +63,8 @@ namespace NeoCompose.Unity.Editor
             EditorApplication.delayCall += TryRunPending;
         }
 
-        public static void Schedule(NeoComposeConfig config, string projectJsonPath)
+        public static void Schedule(NeoComposeConfig config, string projectJsonPath, IReadOnlyList<string> changedPaths)
         {
-            string generatedTypesPath = NeoComposePathUtility.CombineAssetPath(
-                config.generatedTypesDirectory,
-                NeoComposeEditorDefaults.GeneratedTypesFileName);
             string assetDatabasePath = NeoComposePathUtility.CombineAssetPath(
                 config.projectJsonDirectory,
                 NeoComposeEditorDefaults.AssetDatabaseFileName);
@@ -81,17 +76,18 @@ namespace NeoCompose.Unity.Editor
                 ProjectId = config.projectId,
                 VersionId = config.versionId,
                 ProjectJsonPath = projectJsonPath,
-                GeneratedTypesPath = generatedTypesPath,
                 AssetDatabasePath = assetDatabasePath,
                 GeneratedNamespace = config.namespaceForGeneratedTypes,
                 Status = NeoPostSynchronizeGenerationStatus.Pending,
             };
             Persistence.Save(generation);
 
-            NeoComposePostSynchronizeAssetImporter.ImportChangedOutputs(
-                projectJsonPath,
-                generatedTypesPath,
-                AssetDatabase.ImportAsset);
+            AssetDatabase.StartAssetEditing();
+            try
+            {
+                NeoComposePostSynchronizeAssetImporter.ImportChangedOutputs(changedPaths, AssetDatabase.ImportAsset);
+            }
+            finally { AssetDatabase.StopAssetEditing(); }
             EditorApplication.delayCall += TryRunPending;
         }
 

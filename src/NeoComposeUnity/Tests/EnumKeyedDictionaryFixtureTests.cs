@@ -19,7 +19,7 @@ namespace NeoCompose.Tests
     /// <summary>
     /// specs/dictionary-key-classes.md §13.3 — fixture-based validation of
     /// enum-keyed dictionaries end to end. All typed access here goes through
-    /// the real §13.2 codegen output: <c>NeoGeneratedTypes.cs</c> is emitted
+    /// the real §13.2 codegen output: the C# files under <c>Generated/</c> are emitted
     /// verbatim from <c>synth-example.json</c> by the web repo's
     /// <c>scripts/dump-nsgetter-expected.ts</c> (no hand-idealized wrappers),
     /// so these tests consume exactly what codegen emits.

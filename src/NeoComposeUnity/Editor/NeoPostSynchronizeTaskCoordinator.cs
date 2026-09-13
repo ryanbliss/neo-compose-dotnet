@@ -156,7 +156,6 @@ namespace NeoCompose.Unity.Editor
         public string ProjectId { get; set; } = "";
         public string VersionId { get; set; } = "";
         public string ProjectJsonPath { get; set; } = "";
-        public string GeneratedTypesPath { get; set; } = "";
         public string AssetDatabasePath { get; set; } = "";
         public string GeneratedNamespace { get; set; } = "";
         public NeoPostSynchronizeGenerationStatus Status { get; set; }
