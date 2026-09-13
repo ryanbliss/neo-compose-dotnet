@@ -2356,8 +2356,8 @@ namespace NeoCompose.Tests
         {
             var assets = new FakeAssetService();
             var files = new[] {
-                new NeoComposeGeneratedFile { path = "Generated/Classes/id-one.g.cs", content = "one" },
-                new NeoComposeGeneratedFile { path = "Generated/Enums/id-two.g.cs", content = "two" },
+                new NeoComposeGeneratedFile { id = "Generated/Classes/id-one.g.cs", path = "Generated/Classes/id-one.g.cs", content = "one" },
+                new NeoComposeGeneratedFile { id = "Generated/Enums/id-two.g.cs", path = "Generated/Enums/id-two.g.cs", content = "two" },
             };
             new NeoComposeGeneratedFiles(assets, "Assets/Scripts/Neo", "project-1", files).Apply();
             const string unchanged = "Assets/Scripts/Neo/ClassesExtended.cs";
@@ -2381,7 +2381,7 @@ namespace NeoCompose.Tests
             var assets = new FakeAssetService();
             const string oldPath = "Assets/Scripts/Neo/NeoGeneratedTypes.cs";
             assets.files[oldPath] = "// old generated";
-            var files = new[] { new NeoComposeGeneratedFile { path = "Generated/Project.g.cs", content = "new" } };
+            var files = new[] { new NeoComposeGeneratedFile { id = "Generated/Project.g.cs", path = "Generated/Project.g.cs", content = "new" } };
             new NeoComposeGeneratedFiles(assets, "Assets/Scripts/Neo", "project-1", files).Apply();
             Assert.IsFalse(assets.FileExists(oldPath));
             Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1"));
@@ -2403,7 +2403,7 @@ namespace NeoCompose.Tests
         {
             var assets = new FakeAssetService();
             Assert.Throws<System.InvalidOperationException>(() => new NeoComposeGeneratedFiles(assets,
-                "Assets/Scripts/Neo", "project-1", new[] { new NeoComposeGeneratedFile { path = path, content = "code" } }));
+                "Assets/Scripts/Neo", "project-1", new[] { new NeoComposeGeneratedFile { id = path, path = path, content = "code" } }));
             Assert.IsEmpty(assets.files);
         }
 
@@ -2412,8 +2412,8 @@ namespace NeoCompose.Tests
         {
             var assets = new FakeAssetService();
             var files = new[] {
-                new NeoComposeGeneratedFile { path = "Generated/A.g.cs", content = "old A" },
-                new NeoComposeGeneratedFile { path = "Generated/B.g.cs", content = "old B" },
+                new NeoComposeGeneratedFile { id = "Generated/A.g.cs", path = "Generated/A.g.cs", content = "old A" },
+                new NeoComposeGeneratedFile { id = "Generated/B.g.cs", path = "Generated/B.g.cs", content = "old B" },
             };
             Assert.Throws<System.InvalidOperationException>(() => new NeoComposeGeneratedFiles(assets,
                 "Assets/Scripts/Neo", "project-1", new[] { files[0], files[0] }));
@@ -2435,8 +2435,8 @@ namespace NeoCompose.Tests
             const string repaired = "Assets/Scripts/Neo/Generated/A.g.cs";
             assets.files[repaired + ".meta"] = "guid: original";
             var files = new[] {
-                new NeoComposeGeneratedFile { path = "Generated/A.g.cs", content = "A" },
-                new NeoComposeGeneratedFile { path = "Generated/B.g.cs", content = "B" },
+                new NeoComposeGeneratedFile { id = "Generated/A.g.cs", path = "Generated/A.g.cs", content = "A" },
+                new NeoComposeGeneratedFile { id = "Generated/B.g.cs", path = "Generated/B.g.cs", content = "B" },
             };
             assets.throwOnWriteText.Add("Assets/Scripts/Neo/Generated/B.g.cs");
             Assert.Throws<IOException>(() => new NeoComposeGeneratedFiles(assets,
@@ -2450,8 +2450,8 @@ namespace NeoCompose.Tests
         {
             var assets = new FakeAssetService();
             var oldFiles = new[] {
-                new NeoComposeGeneratedFile { path = "Generated/A.g.cs", content = "A" },
-                new NeoComposeGeneratedFile { path = "Generated/B.g.cs", content = "B" },
+                new NeoComposeGeneratedFile { id = "Generated/A.g.cs", path = "Generated/A.g.cs", content = "A" },
+                new NeoComposeGeneratedFile { id = "Generated/B.g.cs", path = "Generated/B.g.cs", content = "B" },
             };
             new NeoComposeGeneratedFiles(assets, "Assets/Scripts/Neo", "project-1", oldFiles).Apply();
             var original = new Dictionary<string, string>(assets.files);
@@ -2461,12 +2461,98 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEquivalent(original, assets.files);
         }
 
+        [TestCase("Character")]
+        [TestCase("ITEM")]
+        public void GeneratedFiles_RenamePreservesImportedUnityGuid(string name)
+        {
+            EnsureTempRoot();
+            try
+            {
+                var assets = new NeoComposeEditorAssetService();
+                var file = new NeoComposeGeneratedFile { id = "class:one", path = "Generated/Item.g.cs", content = "// generated test\n" };
+                new NeoComposeGeneratedFiles(assets, TempRoot, "project", new[] { file }).Apply();
+                var before = TempRoot + "/" + file.path;
+                AssetDatabase.ImportAsset(before, ImportAssetOptions.ForceSynchronousImport);
+                var guid = AssetDatabase.AssetPathToGUID(before);
+                Assert.IsNotEmpty(guid);
+                file.path = "Generated/" + name + ".g.cs";
+                var after = TempRoot + "/" + file.path;
+                CollectionAssert.AreEqual(new[] { after }, new NeoComposeGeneratedFiles(assets, TempRoot, "project", new[] { file }).Apply());
+                AssetDatabase.ImportAsset(after, ImportAssetOptions.ForceSynchronousImport);
+                Assert.AreEqual(guid, AssetDatabase.AssetPathToGUID(after));
+                var entries = Directory.GetFiles(TempRoot + "/Generated").Select(Path.GetFileName).ToArray();
+                CollectionAssert.DoesNotContain(entries, "Item.g.cs");
+                CollectionAssert.DoesNotContain(entries, "Item.g.cs.meta");
+                CollectionAssert.Contains(entries, name + ".g.cs");
+                CollectionAssert.Contains(entries, name + ".g.cs.meta");
+                Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, TempRoot, "project"));
+            }
+            finally { CleanupTempRoot(); }
+        }
+
+        [Test]
+        public void GeneratedFiles_NameSwapsPreserveOwnershipAndRollBackMetadata()
+        {
+            var assets = new FakeAssetService();
+            const string directory = "Assets/Scripts/Neo";
+            var files = new[] {
+                new NeoComposeGeneratedFile { id = "class:one", path = "Generated/A.g.cs", content = "one" },
+                new NeoComposeGeneratedFile { id = "class:two", path = "Generated/B.g.cs", content = "two" },
+            };
+            new NeoComposeGeneratedFiles(assets, directory, "project", files).Apply();
+            foreach (var file in files) assets.files[directory + "/" + file.path + ".meta"] = file.id;
+            var original = new Dictionary<string, string>(assets.files);
+            (files[0].path, files[1].path) = (files[1].path, files[0].path);
+            assets.throwOnWriteText.Add(directory + "/NeoGeneratedFiles.json");
+            Assert.Throws<IOException>(() => new NeoComposeGeneratedFiles(assets, directory, "project", files).Apply());
+            CollectionAssert.AreEquivalent(original, assets.files);
+            assets.throwOnWriteText.Clear();
+            new NeoComposeGeneratedFiles(assets, directory, "project", files).Apply();
+            foreach (var file in files)
+            {
+                Assert.AreEqual(file.content, assets.files[directory + "/" + file.path]);
+                Assert.AreEqual(file.id, assets.files[directory + "/" + file.path + ".meta"]);
+            }
+        }
+
+        [TestCase("Character")]
+        [TestCase("ITEM")]
+        public void GeneratedFiles_FailedRenameRestoresOriginalNamesAndGuids(string name)
+        {
+            var assets = new FakeAssetService();
+            const string directory = "Assets/Scripts/Neo";
+            var file = new NeoComposeGeneratedFile { id = "class:one", path = "Generated/Item.g.cs", content = "one" };
+            new NeoComposeGeneratedFiles(assets, directory, "project", new[] { file }).Apply();
+            assets.files[directory + "/" + file.path + ".meta"] = "guid: keep";
+            var original = new Dictionary<string, string>(assets.files);
+            file.path = "Generated/" + name + ".g.cs";
+            assets.throwOnWriteText.Add(directory + "/NeoGeneratedFiles.json");
+            Assert.Throws<IOException>(() => new NeoComposeGeneratedFiles(assets, directory, "project", new[] { file }).Apply());
+            CollectionAssert.AreEquivalent(original, assets.files);
+        }
+
+        [Test]
+        public void GeneratedFiles_RejectsUnownedRenameDestinationsAndDuplicateIdentities()
+        {
+            var assets = new FakeAssetService();
+            const string directory = "Assets/Scripts/Neo";
+            var file = new NeoComposeGeneratedFile { id = "class:one", path = "Generated/A.g.cs", content = "one" };
+            new NeoComposeGeneratedFiles(assets, directory, "project", new[] { file }).Apply();
+            assets.files[directory + "/Generated/Handwritten.g.cs"] = "handwritten";
+            var original = new Dictionary<string, string>(assets.files);
+            file.path = "Generated/Handwritten.g.cs";
+            Assert.Throws<System.InvalidOperationException>(() => new NeoComposeGeneratedFiles(assets, directory, "project", new[] { file }));
+            Assert.Throws<System.InvalidOperationException>(() => new NeoComposeGeneratedFiles(assets, directory, "project", new[] { file,
+                new NeoComposeGeneratedFile { id = file.id, path = "Generated/B.g.cs", content = "two" } }));
+            CollectionAssert.AreEquivalent(original, assets.files);
+        }
+
         private static void SeedGeneratedFiles(FakeAssetService assets, string projectId = "project-1")
         {
             const string path = "Assets/Scripts/Neo/Generated/Project.g.cs";
             if (!assets.files.TryGetValue(path, out var content)) return;
             new NeoComposeGeneratedFiles(assets, "Assets/Scripts/Neo", projectId,
-                new[] { new NeoComposeGeneratedFile { path = "Generated/Project.g.cs", content = content } }).Apply();
+                new[] { new NeoComposeGeneratedFile { id = "Generated/Project.g.cs", path = "Generated/Project.g.cs", content = content } }).Apply();
             assets.writtenPaths.Clear();
             assets.createdDirectories.Clear();
         }
@@ -2480,7 +2566,7 @@ namespace NeoCompose.Tests
                 projectName = "Project One",
                 projectJson = "{}",
                 generatedFiles = new List<NeoComposeGeneratedFile> {
-                    new() { path = "Generated/Project.g.cs", content = "// generated" },
+                    new() { id = "Generated/Project.g.cs", path = "Generated/Project.g.cs", content = "// generated" },
                 },
             };
             public readonly NeoComposeProjectEditResponse editResponse = new();

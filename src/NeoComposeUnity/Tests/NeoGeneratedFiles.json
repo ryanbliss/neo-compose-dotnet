@@ -3,267 +3,333 @@
   "projectId": "test-project",
   "files": [
     {
-      "path": "Generated/Classes/id-class-abstract-readonly-stats.g.cs",
+      "id": "class:class-abstract-readonly-stats",
+      "path": "Generated/Classes/AbstractReadonlyStats.g.cs",
       "hash": "b19b9ac63629cdf448884ec4aee33cd00202ab2fcf8b73c37935e4bde3b48dc3"
     },
     {
-      "path": "Generated/Classes/id-class-animated-sprite-child.g.cs",
-      "hash": "2bc7d6cd7459102596373f02b458ecbc2cb1ba9fd51c9ae6a954ee772cbf00d4"
-    },
-    {
-      "path": "Generated/Classes/id-class-animated-sprite.g.cs",
+      "id": "class:class-animated-sprite",
+      "path": "Generated/Classes/AnimatedSprite.g.cs",
       "hash": "42845e831485c57fc8b8a9202d159f6c848c7e93faad74b3114084d7d9d32203"
     },
     {
-      "path": "Generated/Classes/id-class-base.g.cs",
+      "id": "class:class-animated-sprite-child",
+      "path": "Generated/Classes/AnimatedSpriteChild.g.cs",
+      "hash": "2bc7d6cd7459102596373f02b458ecbc2cb1ba9fd51c9ae6a954ee772cbf00d4"
+    },
+    {
+      "id": "class:class-base",
+      "path": "Generated/Classes/Base.g.cs",
       "hash": "a0d23a01f1732565d1624eecd73825afa5b701052ef9fd15e6cc913422008537"
     },
     {
-      "path": "Generated/Classes/id-class-choice-log.g.cs",
-      "hash": "1c46c117111b43bbfc98f65c65380a866289a67d23a688719425c5e5e3bd66ed"
-    },
-    {
-      "path": "Generated/Classes/id-class-concrete-readonly-stats.g.cs",
+      "id": "class:class-concrete-readonly-stats",
+      "path": "Generated/Classes/ConcreteReadonlyStats.g.cs",
       "hash": "9606e6161b477a76f436040d6ff469b583c979ae74d115134b74f50fc64e137b"
     },
     {
-      "path": "Generated/Classes/id-class-contract-base.g.cs",
+      "id": "class:class-contract-base",
+      "path": "Generated/Classes/ContractBase.g.cs",
       "hash": "5cb700cdfeeff4e82a6c3eb4d5921282c57feace317a4bcd0e9b1fdf8a7fe800"
     },
     {
-      "path": "Generated/Classes/id-class-contract-child.g.cs",
+      "id": "class:class-contract-child",
+      "path": "Generated/Classes/ContractChild.g.cs",
       "hash": "5c841c5428f01e88683504b414e2a6ca14688951faf008cc235f55ed048a589f"
     },
     {
-      "path": "Generated/Classes/id-class-contract-deep-child.g.cs",
+      "id": "class:class-contract-deep-child",
+      "path": "Generated/Classes/ContractDeepChild.g.cs",
       "hash": "de67f620284561ddad838bdb8d61c8d137feecfc3e618beccb58655d443f9866"
     },
     {
-      "path": "Generated/Classes/id-class-contract-explicit-child.g.cs",
+      "id": "class:class-contract-explicit-child",
+      "path": "Generated/Classes/ContractExplicitChild.g.cs",
       "hash": "8810cb106f6e3db5f38c3ef865b4bdce0b03a7fd842a5f5b13ad708caa398323"
     },
     {
-      "path": "Generated/Classes/id-class-contract-middle.g.cs",
+      "id": "class:class-contract-middle",
+      "path": "Generated/Classes/ContractMiddle.g.cs",
       "hash": "079f9e616c482e4ec697145b58b5aab34467664df2f4fcbcf0cd605a5abb7764"
     },
     {
-      "path": "Generated/Classes/id-class-contract-null-child.g.cs",
+      "id": "class:class-contract-null-child",
+      "path": "Generated/Classes/ContractNullChild.g.cs",
       "hash": "3bae5520908fe004ff39de4c7a513b5154ba45041ffca4b972f6c2978e1bbc61"
     },
     {
-      "path": "Generated/Classes/id-class-contract-null-deep-child.g.cs",
+      "id": "class:class-contract-null-deep-child",
+      "path": "Generated/Classes/ContractNullDeepChild.g.cs",
       "hash": "8280e6855695f2392aaa5922b65ac230e40928901e439731abedf8c88802e97b"
     },
     {
-      "path": "Generated/Classes/id-class-derived.g.cs",
+      "id": "class:class-derived",
+      "path": "Generated/Classes/Derived.g.cs",
       "hash": "195ddd3ec314e686b80f63f36304f5ed9e1bfa7ad2c54f7c8528d9d1fc5a427f"
     },
     {
-      "path": "Generated/Classes/id-class-dialogue-memory.g.cs",
-      "hash": "570442c08442d1e0ef7020ebc4bb50cd8138ad043acb47e04b6418ed6810409d"
-    },
-    {
-      "path": "Generated/Classes/id-class-generic-contract.g.cs",
+      "id": "class:class-generic-contract",
+      "path": "Generated/Classes/GenericContract.g.cs",
       "hash": "77ceb8169697fb04060ff2a30ae5ead8e1e7fbd4f78aed542957d4be36b5e753"
     },
     {
-      "path": "Generated/Classes/id-class-generic-float-contract.g.cs",
+      "id": "class:class-generic-float-contract",
+      "path": "Generated/Classes/GenericFloatContract.g.cs",
       "hash": "1546864404263dd936ec3a723d7538406688be01649d87f770ce9b90f68d04f6"
     },
     {
-      "path": "Generated/Classes/id-class-generic-float-payload.g.cs",
+      "id": "class:class-generic-float-payload",
+      "path": "Generated/Classes/GenericFloatPayload.g.cs",
       "hash": "8431d61341e82bd1923315396c7071a24392c6653186e02a11a83b94f78b1e7e"
     },
     {
-      "path": "Generated/Classes/id-class-generic-function-box.g.cs",
+      "id": "class:class-generic-function-box",
+      "path": "Generated/Classes/GenericFunctionBox.g.cs",
       "hash": "a435dbc40fae9c67b285cb8834ee59cfa4f13f11018faddbfa6711242d52ee72"
     },
     {
-      "path": "Generated/Classes/id-class-generic-function-contract.g.cs",
+      "id": "class:class-generic-function-contract",
+      "path": "Generated/Classes/GenericFunctionContract.g.cs",
       "hash": "d5c68f996896393042b083939dedcd27173997323dc0259f049747ba77f5a5b8"
     },
     {
-      "path": "Generated/Classes/id-class-generic-function-hero-contract.g.cs",
+      "id": "class:class-generic-function-hero-contract",
+      "path": "Generated/Classes/GenericFunctionHeroContract.g.cs",
       "hash": "70271291103fca31cce68025510f4dd2be84b832a4136aedaec8a3451839f926"
     },
     {
-      "path": "Generated/Classes/id-class-generic-payload.g.cs",
+      "id": "class:class-generic-payload",
+      "path": "Generated/Classes/GenericPayload.g.cs",
       "hash": "eda7f97958e5f4113b3f4f5cb11040c0170666ab888830ed64d7980751a7cc2e"
     },
     {
-      "path": "Generated/Classes/id-class-generic-string-contract.g.cs",
+      "id": "class:class-generic-string-contract",
+      "path": "Generated/Classes/GenericStringContract.g.cs",
       "hash": "7394e59c5589fa3ca9d4f9f06904e4c499155d7a24eb99a6e55244d54980c927"
     },
     {
-      "path": "Generated/Classes/id-class-generic-string-payload.g.cs",
+      "id": "class:class-generic-string-payload",
+      "path": "Generated/Classes/GenericStringPayload.g.cs",
       "hash": "c7436053250d94a506959c5c10f5d87fa9c06aef5b4a9cbebfb685479d299789"
     },
     {
-      "path": "Generated/Classes/id-class-hero.g.cs",
+      "id": "class:class-hero",
+      "path": "Generated/Classes/Hero.g.cs",
       "hash": "0065f0b142860fa9856a5bab947237ff341fade03578cbbe62954d4ac00d4989"
     },
     {
-      "path": "Generated/Classes/id-class-neo-memory.g.cs",
-      "hash": "3630cb4b2628c87e452096dee9e6b0941791256435f26da8d512b5b07f6638a8"
-    },
-    {
-      "path": "Generated/Classes/id-class-override.g.cs",
-      "hash": "c187058a99ddf239e68b9e2953193938cd419636e84c30854bcec1e9f78760dc"
-    },
-    {
-      "path": "Generated/Classes/id-class-root.g.cs",
-      "hash": "2eae6c4401a6f2520a69e72c1b98a3d514613bc0755f606c363344fbbc4ffd1b"
-    },
-    {
-      "path": "Generated/Classes/id-class-sample-blocked-path.g.cs",
-      "hash": "db814ede759634e45230773b1d522d9cc79d5688846455bb7aedb7c412cd1643"
-    },
-    {
-      "path": "Generated/Classes/id-class-sample-layer-group-base.g.cs",
-      "hash": "f81c77f6ab7e4833cdc9f0bd29824549302f859546eb08aae888ad9541e74b9b"
-    },
-    {
-      "path": "Generated/Classes/id-class-sample-tile-instance.g.cs",
-      "hash": "f188d04c670650b3175d5c9a7529ff325a5a0172b549abade28aed786861619c"
-    },
-    {
-      "path": "Generated/Classes/id-class-sample-tile-layer-link.g.cs",
-      "hash": "6c40997bea08ab91611ca4d1dda30a639910492becbdedf5e8b9959aaba80ece"
-    },
-    {
-      "path": "Generated/Classes/id-class-storage-a.g.cs",
-      "hash": "1499d7ce2a0dc5e6f157290554a8ff337b1530abcdae74ca997957da68d7dfe3"
-    },
-    {
-      "path": "Generated/Classes/id-class-storage-b.g.cs",
-      "hash": "b1a26a8e31dbe4752dfe7a5f55b1a9950823b29aababa81eb486295613c9420d"
-    },
-    {
-      "path": "Generated/Classes/id-class-storage-c.g.cs",
-      "hash": "5eb555d083389901fa2a19188bfa7e37ec0b561484e62b66e36b8781de6bc2eb"
-    },
-    {
-      "path": "Generated/Classes/id-class-storage-d.g.cs",
-      "hash": "59d4c4f107405527a7db9011bb13edf7778b4eb4b7f394f783844c87bde8aa7e"
-    },
-    {
-      "path": "Generated/Classes/id-class-storage-e.g.cs",
-      "hash": "22633f8c4cb485c31f122828cb859a6e534183c5e48072a3e44539cd7b3a0594"
-    },
-    {
-      "path": "Generated/Classes/id-class-storage-f.g.cs",
-      "hash": "a3bfeb2efc34d577869e47bc405c99d9a667f8c0f616ab52ad476a2c6b4a4db8"
-    },
-    {
-      "path": "Generated/Classes/id-class-storage-g.g.cs",
-      "hash": "28e1fce65ec698afab81a190d3a84e219455f9ce9201aaad441c8cc1efa08ac5"
-    },
-    {
-      "path": "Generated/Classes/id-class-text-node-memory.g.cs",
-      "hash": "6c15bd76e8f241b4eefc165a76d8ab70bf67923c1d823b76db9d0ef32601443f"
-    },
-    {
-      "path": "Generated/Classes/id-system_24b70585-0798-49ad-b650-4c118bac1eb1.g.cs",
-      "hash": "8e41227b15c335956133240437ecf3e06e2e070815520b8adaca77f7cedd8e3d"
-    },
-    {
-      "path": "Generated/Classes/id-system_2866011d-30fe-410a-8a04-d2ff291b77cd.g.cs",
-      "hash": "f4dfd120ce3cfcec3ae93034b695b20bf8859c74c146a6dc813b9b960f56c149"
-    },
-    {
-      "path": "Generated/Classes/id-system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d.g.cs",
-      "hash": "ffc537f41d7544a2b047a81d6bb2c93c199409c3f94d595dc831fb9abdb3555c"
-    },
-    {
-      "path": "Generated/Classes/id-system_45755778-ecfe-4a6c-b65f-a08017a7fb56.g.cs",
-      "hash": "a4764e8493fc75a4a97211286b83cf444d5ac0e0ae54f604dd8ac65603143a1d"
-    },
-    {
-      "path": "Generated/Classes/id-system_61b30a92-90dc-4bf8-8503-ee4f6414effc.g.cs",
-      "hash": "8127de285fda6ffe39c9b382a15743c040060b15afe6e15efbc037f72564e592"
-    },
-    {
-      "path": "Generated/Classes/id-system_6529416a-f68b-49a3-b3d2-2af8fda60cb4.g.cs",
+      "id": "class:system_6529416a-f68b-49a3-b3d2-2af8fda60cb4",
+      "path": "Generated/Classes/NeoAnimationFrameBase.g.cs",
       "hash": "dc1e723ff1f18084428659329eba635729937e721aa78c3ed47c77181b74316c"
     },
     {
-      "path": "Generated/Classes/id-system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab.g.cs",
+      "id": "class:system_2866011d-30fe-410a-8a04-d2ff291b77cd",
+      "path": "Generated/Classes/NeoAnimationSegment.g.cs",
+      "hash": "f4dfd120ce3cfcec3ae93034b695b20bf8859c74c146a6dc813b9b960f56c149"
+    },
+    {
+      "id": "class:system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab",
+      "path": "Generated/Classes/NeoAnimationSegmentFrame.g.cs",
       "hash": "20cd81f8a74f251c38322b25f09a243034ec1923d3efe00695abb178e51f52c4"
     },
     {
-      "path": "Generated/Classes/id-system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9.g.cs",
-      "hash": "5902672f9f9bccd1822f2d828c83ef548f6fe4744e114169aa27f57801829628"
-    },
-    {
-      "path": "Generated/Classes/id-system_d48b66ab-4d59-47e7-a25a-591fe97062de.g.cs",
-      "hash": "8e14f39fddbb08b41e0be2083cc9a70e158bfa95e78f980cf01d0601aca3b343"
-    },
-    {
-      "path": "Generated/Classes/id-system_f671535d-0eb6-4139-9caf-5c5276febd31.g.cs",
-      "hash": "ba97e5649a3f68ab214c48d5e80d65651d9f6cc217262b96198dd934dc3c4b74"
-    },
-    {
-      "path": "Generated/Classes/id-system_fd551dd8-6e6b-4044-9f32-7445ab344200.g.cs",
+      "id": "class:system_fd551dd8-6e6b-4044-9f32-7445ab344200",
+      "path": "Generated/Classes/NeoAnimationSegmentTrack.g.cs",
       "hash": "c74b0f7ad22bf8726fd8eea77c291ae1439bc3352913e40720fed65f4de4e051"
     },
     {
-      "path": "Generated/Classes/id-system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3.g.cs",
+      "id": "class:system_45755778-ecfe-4a6c-b65f-a08017a7fb56",
+      "path": "Generated/Classes/NeoAnimationTrackBase.g.cs",
+      "hash": "a4764e8493fc75a4a97211286b83cf444d5ac0e0ae54f604dd8ac65603143a1d"
+    },
+    {
+      "id": "class:class-choice-log",
+      "path": "Generated/Classes/NeoChoiceLog.g.cs",
+      "hash": "1c46c117111b43bbfc98f65c65380a866289a67d23a688719425c5e5e3bd66ed"
+    },
+    {
+      "id": "class:system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d",
+      "path": "Generated/Classes/NeoCollider.g.cs",
+      "hash": "ffc537f41d7544a2b047a81d6bb2c93c199409c3f94d595dc831fb9abdb3555c"
+    },
+    {
+      "id": "class:class-dialogue-memory",
+      "path": "Generated/Classes/NeoDialogueMemory.g.cs",
+      "hash": "570442c08442d1e0ef7020ebc4bb50cd8138ad043acb47e04b6418ed6810409d"
+    },
+    {
+      "id": "class:class-neo-memory",
+      "path": "Generated/Classes/NeoMemory.g.cs",
+      "hash": "3630cb4b2628c87e452096dee9e6b0941791256435f26da8d512b5b07f6638a8"
+    },
+    {
+      "id": "class:system_f671535d-0eb6-4139-9caf-5c5276febd31",
+      "path": "Generated/Classes/NeoObject.g.cs",
+      "hash": "ba97e5649a3f68ab214c48d5e80d65651d9f6cc217262b96198dd934dc3c4b74"
+    },
+    {
+      "id": "class:system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+      "path": "Generated/Classes/NeoObjectBase.g.cs",
+      "hash": "8127de285fda6ffe39c9b382a15743c040060b15afe6e15efbc037f72564e592"
+    },
+    {
+      "id": "class:system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9",
+      "path": "Generated/Classes/NeoObjectPlacementTile.g.cs",
+      "hash": "5902672f9f9bccd1822f2d828c83ef548f6fe4744e114169aa27f57801829628"
+    },
+    {
+      "id": "class:system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3",
+      "path": "Generated/Classes/NeoSpriteAnimationSegment.g.cs",
       "hash": "5aa9d301246af0044226c344ec92ece549465d2cf232f54fe9ed69245c77cd7d"
     },
     {
-      "path": "Generated/Dialogues/Memory.g.cs",
+      "id": "class:system_24b70585-0798-49ad-b650-4c118bac1eb1",
+      "path": "Generated/Classes/NeoSpriteAnimationSegmentTrack.g.cs",
+      "hash": "8e41227b15c335956133240437ecf3e06e2e070815520b8adaca77f7cedd8e3d"
+    },
+    {
+      "id": "class:system_d48b66ab-4d59-47e7-a25a-591fe97062de",
+      "path": "Generated/Classes/NeoSpriteObject.g.cs",
+      "hash": "8e14f39fddbb08b41e0be2083cc9a70e158bfa95e78f980cf01d0601aca3b343"
+    },
+    {
+      "id": "class:class-text-node-memory",
+      "path": "Generated/Classes/NeoTextNodeMemory.g.cs",
+      "hash": "6c15bd76e8f241b4eefc165a76d8ab70bf67923c1d823b76db9d0ef32601443f"
+    },
+    {
+      "id": "class:class-override",
+      "path": "Generated/Classes/Override.g.cs",
+      "hash": "c187058a99ddf239e68b9e2953193938cd419636e84c30854bcec1e9f78760dc"
+    },
+    {
+      "id": "class:class-root",
+      "path": "Generated/Classes/Root.g.cs",
+      "hash": "2eae6c4401a6f2520a69e72c1b98a3d514613bc0755f606c363344fbbc4ffd1b"
+    },
+    {
+      "id": "class:class-sample-blocked-path",
+      "path": "Generated/Classes/SampleBlockedPath.g.cs",
+      "hash": "db814ede759634e45230773b1d522d9cc79d5688846455bb7aedb7c412cd1643"
+    },
+    {
+      "id": "class:class-sample-layer-group-base",
+      "path": "Generated/Classes/SampleLayerGroupBase.g.cs",
+      "hash": "f81c77f6ab7e4833cdc9f0bd29824549302f859546eb08aae888ad9541e74b9b"
+    },
+    {
+      "id": "class:class-sample-tile-instance",
+      "path": "Generated/Classes/SampleTileInstance.g.cs",
+      "hash": "f188d04c670650b3175d5c9a7529ff325a5a0172b549abade28aed786861619c"
+    },
+    {
+      "id": "class:class-sample-tile-layer-link",
+      "path": "Generated/Classes/SampleTileLayerLink.g.cs",
+      "hash": "6c40997bea08ab91611ca4d1dda30a639910492becbdedf5e8b9959aaba80ece"
+    },
+    {
+      "id": "class:class-storage-a",
+      "path": "Generated/Classes/StorageA.g.cs",
+      "hash": "1499d7ce2a0dc5e6f157290554a8ff337b1530abcdae74ca997957da68d7dfe3"
+    },
+    {
+      "id": "class:class-storage-b",
+      "path": "Generated/Classes/StorageB.g.cs",
+      "hash": "b1a26a8e31dbe4752dfe7a5f55b1a9950823b29aababa81eb486295613c9420d"
+    },
+    {
+      "id": "class:class-storage-c",
+      "path": "Generated/Classes/StorageC.g.cs",
+      "hash": "5eb555d083389901fa2a19188bfa7e37ec0b561484e62b66e36b8781de6bc2eb"
+    },
+    {
+      "id": "class:class-storage-d",
+      "path": "Generated/Classes/StorageD.g.cs",
+      "hash": "59d4c4f107405527a7db9011bb13edf7778b4eb4b7f394f783844c87bde8aa7e"
+    },
+    {
+      "id": "class:class-storage-e",
+      "path": "Generated/Classes/StorageE.g.cs",
+      "hash": "22633f8c4cb485c31f122828cb859a6e534183c5e48072a3e44539cd7b3a0594"
+    },
+    {
+      "id": "class:class-storage-f",
+      "path": "Generated/Classes/StorageF.g.cs",
+      "hash": "a3bfeb2efc34d577869e47bc405c99d9a667f8c0f616ab52ad476a2c6b4a4db8"
+    },
+    {
+      "id": "class:class-storage-g",
+      "path": "Generated/Classes/StorageG.g.cs",
+      "hash": "28e1fce65ec698afab81a190d3a84e219455f9ce9201aaad441c8cc1efa08ac5"
+    },
+    {
+      "id": "dialogues:memory",
+      "path": "Generated/Dialogues/DialogueMemory.g.cs",
       "hash": "fbd642cf43d29d25bd3397954898d640cdfe541516afef09bf0e360b8aa7ac71"
     },
     {
-      "path": "Generated/Dialogues/Root.g.cs",
+      "id": "dialogues:root",
+      "path": "Generated/Dialogues/NeoDialogues.g.cs",
       "hash": "35a6b7cec89b0021d6a517ade9020277951659764ff6059d66243b9df0153c38"
     },
     {
-      "path": "Generated/Dialogues/id-dialogue-group-standard.g.cs",
+      "id": "dialogue-group:dialogue-group-standard",
+      "path": "Generated/Dialogues/StandardDialogues.g.cs",
       "hash": "5cdec5af8f1956b4e2ef71ede749585e16a38dd30b5ffeb743be02aedc58d6d3"
     },
     {
-      "path": "Generated/Enums/id-enum-element.g.cs",
+      "id": "enum:enum-element",
+      "path": "Generated/Enums/Element.g.cs",
       "hash": "6aa4989db756f10246f99b60db3cbf351b7497f1414ec29cf1b4ccb8ac71aa51"
     },
     {
-      "path": "Generated/Enums/id-system_551025ad-e441-4d43-90b0-2821c6235786.g.cs",
-      "hash": "f2a9b36a0715e6d8d20e5c0387bbb01c98fb4a69f0c443229e37d614e2949c99"
-    },
-    {
-      "path": "Generated/Enums/id-system_6ff1b376-1b30-449d-8439-d822be95cec1.g.cs",
-      "hash": "f78f99ca3207f64c50191dd20baea26ca9b04aba8390a3cf27f2e77f1dbc2ec4"
-    },
-    {
-      "path": "Generated/Enums/id-system_ba63d042-51c1-4bce-be70-d9848e6bb240.g.cs",
-      "hash": "e40720f9c58774e37961d66ea01edc7935205d172e4989e83cd38000d128bf00"
-    },
-    {
-      "path": "Generated/Enums/id-system_d97f73bc-656f-489f-86de-6cb874ca8181.g.cs",
-      "hash": "607a62cbb6e228d170a87d837ddc9da056a7b138465d3f0477a9bc073ade69e0"
-    },
-    {
-      "path": "Generated/Enums/id-system_fb8a4243-fa52-4142-8097-765d9e86ff25.g.cs",
+      "id": "enum:system_fb8a4243-fa52-4142-8097-765d9e86ff25",
+      "path": "Generated/Enums/NeoSelectorRefreshKind.g.cs",
       "hash": "f1d8d0c847e4618fed4bcdced241c0b66387ed2984a03568e749d2857717bd60"
     },
     {
-      "path": "Generated/Interfaces/id-interface-contract.g.cs",
+      "id": "enum:system_6ff1b376-1b30-449d-8439-d822be95cec1",
+      "path": "Generated/Enums/NeoSmartTileCollider.g.cs",
+      "hash": "f78f99ca3207f64c50191dd20baea26ca9b04aba8390a3cf27f2e77f1dbc2ec4"
+    },
+    {
+      "id": "enum:system_ba63d042-51c1-4bce-be70-d9848e6bb240",
+      "path": "Generated/Enums/NeoSmartTileCondition.g.cs",
+      "hash": "e40720f9c58774e37961d66ea01edc7935205d172e4989e83cd38000d128bf00"
+    },
+    {
+      "id": "enum:system_551025ad-e441-4d43-90b0-2821c6235786",
+      "path": "Generated/Enums/NeoSmartTileOutput.g.cs",
+      "hash": "f2a9b36a0715e6d8d20e5c0387bbb01c98fb4a69f0c443229e37d614e2949c99"
+    },
+    {
+      "id": "enum:system_d97f73bc-656f-489f-86de-6cb874ca8181",
+      "path": "Generated/Enums/NeoSmartTileTransform.g.cs",
+      "hash": "607a62cbb6e228d170a87d837ddc9da056a7b138465d3f0477a9bc073ade69e0"
+    },
+    {
+      "id": "interface:interface-contract",
+      "path": "Generated/Interfaces/IContract.g.cs",
       "hash": "df58813e744c59f7374734fa1464bf3754b914ab38bbe6594d1e63d278a76538"
     },
     {
-      "path": "Generated/Interfaces/id-interface-hero-deferred-transform.g.cs",
+      "id": "interface:interface-hero-deferred-transform",
+      "path": "Generated/Interfaces/IHeroDeferredTransform.g.cs",
       "hash": "5b82715d4b4a2f3a5e4b4870b28cb7d80d9e1fdabf546d45506fa4b62117020b"
     },
     {
-      "path": "Generated/Project.Factories.g.cs",
+      "id": "project:factories",
+      "path": "Generated/TestProjectNeo.Factories.g.cs",
       "hash": "71742c2ed4e3a7506244348f216dca99238b462f5b8485141340a884dcb325f9"
     },
     {
-      "path": "Generated/Project.Functions.g.cs",
+      "id": "project:functions",
+      "path": "Generated/TestProjectNeo.Functions.g.cs",
       "hash": "382a4a0b58f55e0da445478f7ea5cccfe12b6775a6853bbecbfd5f1233c482ec"
     },
     {
-      "path": "Generated/Project.g.cs",
+      "id": "project:client",
+      "path": "Generated/TestProjectNeo.g.cs",
       "hash": "3211717cb106c1d5a15a5b7e7fbd24e6295acfdfd3364a3851727883e4ebe4fe"
     }
   ]

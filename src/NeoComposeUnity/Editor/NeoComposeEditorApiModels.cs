@@ -143,6 +143,7 @@ namespace NeoCompose.Unity.Editor
 
     public sealed class NeoComposeGeneratedFile
     {
+        public string id = "";
         public string path = "";
         public string content = "";
     }

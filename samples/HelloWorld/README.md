@@ -75,7 +75,7 @@ duplicated in `neo.json`. `neo.json` also sets `apiBaseUrl`, `convexUrl`,
 Synchronization writes committed artifacts into the Unity project:
 
 - `Assets/Resources/Neo/project.json` — the runtime project export.
-- `Assets/Scripts/Neo/Generated/` — the generated C# API, split by schema declaration. Do not edit
+- `Assets/Scripts/Neo/Generated/` — the generated C# API, named after their generated types. Do not edit
   by hand; extend it with hand-authored partials in
   `Assets/Scripts/Neo/NeoClassesExtended.cs`.
 - `Assets/Scripts/Neo/NeoGeneratedFiles.json` — the manifest used to preserve unchanged files and remove obsolete generated code.
