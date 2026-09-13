@@ -1578,6 +1578,51 @@ namespace NeoCompose.Tests
             Assert.IsFalse(client.RetainsReadOnlyValidationProjection);
         }
 
+        [TestCase(1000, false)]
+        [TestCase(10000, false)]
+        [TestCase(10000, true)]
+        [Explicit("Measures fresh client initialization; run serially in the performance lane.")]
+        public void Constructor_EmptySaveBenchmark(int rowCount, bool partitioned)
+        {
+            var elapsed = new List<double>();
+            for (int iteration = 0; iteration < 6; iteration++)
+            {
+                ProjectData data = BuildProjectData();
+                var rows = new Dictionary<string, MemberValue>();
+                for (int index = 0; index < rowCount; index++)
+                {
+                    string id = $"benchmark-weapon-{index}";
+                    rows[id] = RecordValue(id, "class-weapon", new Dictionary<string, string>());
+                }
+                if (partitioned)
+                {
+                    data.valuePartitions = new Dictionary<string, JToken>
+                    {
+                        ["test:benchmark"] = JObject.FromObject(rows),
+                    };
+                }
+                else
+                {
+                    foreach (var row in rows) data.values[row.Key] = row.Value;
+                }
+
+                var stopwatch = new System.Diagnostics.Stopwatch();
+                stopwatch.Start();
+                using NeoClient client = LoadClient(data);
+                stopwatch.Stop();
+                Assert.IsFalse(client.RetainsReadOnlyValidationProjection);
+                Assert.AreEqual(12, client.SaveRoot.Get<NeoMemberClassWritable>("Weapon")
+                    .Get<NeoMemberInt>("BaseDamage").value!.value);
+                if (iteration == 0) continue;
+                elapsed.Add(stopwatch.Elapsed.TotalMilliseconds);
+            }
+            elapsed.Sort();
+            UnityEngine.Debug.Log(
+                $"EMPTY_SAVE_BENCHMARK rows={rowCount} partitioned={partitioned} " +
+                $"median_ms={elapsed[2]:F3} " +
+                $"samples_ms={string.Join(",", elapsed)}");
+        }
+
         [Test]
         public void Constructor_ReleasesPartitionValidationProjection()
         {

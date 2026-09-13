@@ -669,6 +669,214 @@ namespace NeoCompose.Tests
                 .ToDictionary(row => row.Name, row => row.Value);
         }
 
+        [Test]
+        public async Task Synchronizer_MovesAndDeletesValuesAcrossPartitions()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            var original = JObject.Parse(@"{
+  ""metadata"": {},
+  ""values"": {
+    ""main-to-partition"": { ""id"": ""main-to-partition"", ""value"": 1 },
+    ""retained-main"": { ""id"": ""retained-main"", ""value"": 2 },
+    ""duplicate"": { ""id"": ""duplicate"", ""value"": 0 }
+  },
+  ""valuePartitions"": {
+    ""source"": {
+      ""partition-to-main"": { ""id"": ""partition-to-main"", ""mapKey"": ""source"", ""value"": 3 },
+      ""partition-to-partition"": { ""id"": ""partition-to-partition"", ""mapKey"": ""source"", ""value"": 4 },
+      ""duplicate"": { ""id"": ""duplicate"", ""mapKey"": ""source"", ""value"": 0 }
+    },
+    ""target"": { ""retained-partition"": { ""id"": ""retained-partition"", ""mapKey"": ""target"", ""value"": 5 } },
+    ""deleted"": { ""deleted-value"": { ""id"": ""deleted-value"", ""mapKey"": ""deleted"", ""value"": 6 } },
+    ""empty"": {}
+  }
+}");
+            var nextRows = new[]
+            {
+                JObject.Parse("{\"id\":\"main-to-partition\",\"mapKey\":\"new-partition\",\"value\":11}"),
+                JObject.Parse("{\"id\":\"partition-to-main\",\"mapKey\":null,\"value\":12}"),
+                JObject.Parse("{\"id\":\"partition-to-partition\",\"mapKey\":\"target\",\"value\":13}"),
+                JObject.Parse("{\"id\":\"duplicate\",\"mapKey\":\"target\",\"value\":14}"),
+            };
+            foreach (var row in nextRows)
+            {
+                var id = row["id"]!.Value<string>()!;
+                api.deltaResponse.records.Add(new NeoComposeUnityExportHeadDescriptor
+                {
+                    recordKind = "value", recordId = id, snapshotId = "snapshot:" + id,
+                });
+                api.snapshotResponse.snapshots.Add(new NeoComposeUnityExportCachedSnapshot
+                {
+                    id = "snapshot:" + id, recordKind = "value", recordId = id,
+                    contentHash = "hash:" + id, data = row,
+                });
+            }
+            api.deltaResponse.records.Add(new NeoComposeUnityExportHeadDescriptor
+            {
+                recordKind = "value", recordId = "deleted-value", deleted = true,
+            });
+            var assets = new FakeAssetService();
+            const string projectPath = "Assets/Resources/Neo/project.json";
+            assets.files[projectPath] = original.ToString(Formatting.None);
+            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing";
+            var cache = new FakeExportCache { state = new NeoComposeUnityExportSyncState() };
+            var synchronizer = new NeoComposeSynchronizer(
+                api, new FakeConfirmationService(true), assets, cache);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsTrue(result.success, result.message);
+            Assert.AreEqual(0, api.fullExportCalls);
+            var written = JObject.Parse(assets.files[projectPath]);
+            CollectionAssert.AreEquivalent(
+                new[] { "retained-main", "partition-to-main" },
+                ((JObject)written["values"]!).Properties().Select(row => row.Name));
+            CollectionAssert.AreEquivalent(
+                new[] { "target", "new-partition" },
+                ((JObject)written["valuePartitions"]!).Properties().Select(row => row.Name));
+            Assert.AreEqual(11, written["valuePartitions"]?["new-partition"]?["main-to-partition"]?["value"]?.Value<int>());
+            Assert.AreEqual(12, written["values"]?["partition-to-main"]?["value"]?.Value<int>());
+            Assert.AreEqual(13, written["valuePartitions"]?["target"]?["partition-to-partition"]?["value"]?.Value<int>());
+            Assert.AreEqual(5, written["valuePartitions"]?["target"]?["retained-partition"]?["value"]?.Value<int>());
+            Assert.AreEqual(14, written["valuePartitions"]?["target"]?["duplicate"]?["value"]?.Value<int>());
+            Assert.AreEqual(6, ExportedValueRows(written).Count);
+            Assert.AreEqual("target", nextRows[2]["mapKey"]?.Value<string>());
+            Assert.IsNull(nextRows[2].Parent, "Applying a snapshot must not reparent or mutate its cached payload.");
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Synchronizer_NestedFileReferenceRequiresFullExport(bool inOldValue)
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            var fileReference = JObject.Parse(
+                "{\"id\":\"value-1\",\"value\":[\"other\",{\"nested\":{\"fileId\":\"file-1\"}}]}");
+            var plainValue = JObject.Parse("{\"id\":\"value-1\",\"value\":1}");
+            var original = new JObject
+            {
+                ["metadata"] = new JObject(),
+                ["values"] = new JObject { ["value-1"] = inOldValue ? fileReference : plainValue },
+                ["files"] = new JObject { ["file-1"] = new JObject() },
+            };
+            api.deltaResponse.records.Add(new NeoComposeUnityExportHeadDescriptor
+            {
+                recordKind = "value", recordId = "value-1", snapshotId = "snapshot-1",
+            });
+            api.snapshotResponse.snapshots.Add(new NeoComposeUnityExportCachedSnapshot
+            {
+                id = "snapshot-1", recordKind = "value", recordId = "value-1",
+                contentHash = "hash-1", data = inOldValue ? plainValue : fileReference,
+            });
+            var assets = new FakeAssetService();
+            assets.files["Assets/Resources/Neo/project.json"] = original.ToString(Formatting.None);
+            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing";
+            var cache = new FakeExportCache { state = new NeoComposeUnityExportSyncState() };
+            var synchronizer = new NeoComposeSynchronizer(
+                api, new FakeConfirmationService(true), assets, cache);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsTrue(result.success, result.message);
+            Assert.AreEqual(1, api.fullExportCalls);
+        }
+
+        [TestCase(64)]
+        [TestCase(512)]
+        [TestCase(1024)]
+        [Explicit("Serial before/after benchmark for incremental synchronization.")]
+        public async Task Synchronizer_IncrementalPartitionBenchmark(int count)
+        {
+            var partitions = new JObject();
+            var files = new JObject();
+            var snapshots = new List<NeoComposeUnityExportCachedSnapshot>();
+            for (var index = 0; index < count; index++)
+            {
+                var id = "value-" + index;
+                var mapKey = "partition-" + index;
+                var row = new JObject
+                {
+                    ["id"] = id,
+                    ["projectId"] = "project-1",
+                    ["mapKey"] = mapKey,
+                    ["value"] = "before",
+                    ["createdAt"] = 100,
+                    ["updatedAt"] = 100,
+                };
+                partitions[mapKey] = new JObject { [id] = row };
+                var changed = (JObject)row.DeepClone();
+                changed["value"] = "after";
+                changed["updatedAt"] = 200;
+                snapshots.Add(new NeoComposeUnityExportCachedSnapshot
+                {
+                    id = "snapshot-" + index,
+                    recordKind = "value",
+                    recordId = id,
+                    contentHash = "hash-" + index,
+                    data = changed,
+                });
+                files["file-" + index] = new JObject
+                {
+                    ["id"] = "file-" + index,
+                    ["status"] = "pending",
+                };
+            }
+            var originalJson = new JObject
+            {
+                ["metadata"] = new JObject { ["schemaVersion"] = 31 },
+                ["project"] = new JObject { ["id"] = "project-1" },
+                ["variantFolders"] = new JObject(),
+                ["values"] = new JObject(),
+                ["valuePartitions"] = partitions,
+                ["files"] = files,
+            }.ToString(Formatting.None);
+            var measurements = new List<double>();
+            for (var iteration = 0; iteration < 6; iteration++)
+            {
+                var config = MakeConfig();
+                var api = new FakeApiClient();
+                api.deltaResponse.records = snapshots.Select(snapshot =>
+                    new NeoComposeUnityExportHeadDescriptor
+                    {
+                        recordKind = snapshot.recordKind,
+                        recordId = snapshot.recordId,
+                        snapshotId = snapshot.id,
+                    }).ToList();
+                api.snapshotResponse.snapshots = snapshots;
+                var assets = new FakeAssetService();
+                const string projectPath = "Assets/Resources/Neo/project.json";
+                assets.files[projectPath] = originalJson;
+                assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing";
+                var cache = new FakeExportCache { state = new NeoComposeUnityExportSyncState() };
+                var synchronizer = new NeoComposeSynchronizer(
+                    api, new FakeConfirmationService(true), assets, cache);
+                try
+                {
+                    var watch = System.Diagnostics.Stopwatch.StartNew();
+                    var result = await synchronizer.SynchronizeAsync(config);
+                    watch.Stop();
+                    Assert.IsTrue(result.success, result.message);
+                    Assert.AreEqual(0, api.fullExportCalls);
+                    var written = JObject.Parse(assets.files[projectPath]);
+                    Assert.AreEqual(count, ((JObject)written["valuePartitions"]!).Count);
+                    Assert.IsTrue(ExportedValueRows(written).Values.All(row =>
+                        row["value"]?.Value<string>() == "after"));
+                    if (iteration != 0) measurements.Add(watch.Elapsed.TotalMilliseconds);
+                }
+                finally
+                {
+                    Object.DestroyImmediate(config);
+                    Object.DestroyImmediate(assets.assetDatabase);
+                }
+            }
+            measurements.Sort();
+            Debug.Log(
+                $"Incremental sync, {count} partitions/changes/files: " +
+                $"median {measurements[measurements.Count / 2]:F3} ms; " +
+                $"samples {string.Join(", ", measurements.Select(value => value.ToString("F3")))} ms");
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public async Task Synchronizer_RestartsValueAssemblyBeforePublishingFilesOrCursor(bool cached)

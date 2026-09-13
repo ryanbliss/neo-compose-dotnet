@@ -2332,7 +2332,8 @@ namespace NeoCompose.Runtime
 
         private void RecoverReadOnlySaveInstanceKeys()
         {
-            if (!data.members.Values.Any(member => member.Mutability == NeoMemberMutabilityKind.ReadOnly)) return;
+            if (saveData.values.Count == 0
+                || !data.members.Values.Any(member => member.Mutability == NeoMemberMutabilityKind.ReadOnly)) return;
             var overlaidRows = new Dictionary<string, MemberValue>(readOnlyAuthoredRows);
             foreach (var pair in saveData.values) overlaidRows[pair.Key] = pair.Value;
             IReadOnlyDictionary<string, string> effectiveClassIds =
