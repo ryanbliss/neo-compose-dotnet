@@ -1255,6 +1255,44 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void LookupCollectionTarget_InheritsWithoutChangingSparseExport()
+        {
+            var root = new LookupMember { id = "root", collectionMemberId = "first" };
+            var inherited = (LookupMember)JsonConvert.DeserializeObject<Member>(@"{
+                'id':'inherited','kind':9,'extendsMemberId':'root'
+            }")!;
+            var overridden = (LookupMember)JsonConvert.DeserializeObject<Member>(@"{
+                'id':'overridden','kind':9,'extendsMemberId':'inherited',
+                'collectionMemberId':'explicit'
+            }")!;
+            var members = new Dictionary<string, Member>
+            {
+                [root.id] = root,
+                [inherited.id] = inherited,
+                [overridden.id] = overridden,
+            };
+
+            NeoMemberShapeResolution.ResolveAll(members);
+            Assert.AreEqual("first", inherited.collectionMemberId);
+            var wire = JObject.Parse(JsonConvert.SerializeObject(inherited));
+            Assert.IsFalse(wire.ContainsKey("collectionMemberId"));
+            var roundTripped = (LookupMember)wire.ToObject<Member>()!;
+            members[inherited.id] = roundTripped;
+
+            root.collectionMemberId = "second";
+            NeoMemberShapeResolution.ResolveAll(members);
+            Assert.AreEqual("second", roundTripped.collectionMemberId);
+            Assert.AreEqual("explicit", overridden.collectionMemberId);
+            root.collectionMemberId = "third";
+            NeoMemberShapeResolution.ResolveAll(members);
+            Assert.AreEqual("third", roundTripped.collectionMemberId);
+            Assert.IsFalse(JObject.Parse(JsonConvert.SerializeObject(roundTripped))
+                .ContainsKey("collectionMemberId"));
+            Assert.AreEqual("explicit", JObject.Parse(JsonConvert.SerializeObject(overridden))
+                .Value<string>("collectionMemberId"));
+        }
+
+        [Test]
         public void LookupCollectionValue_AbsentInheritsButNullClears()
         {
             var root = (LookupMember)JsonConvert.DeserializeObject<Member>(@"{

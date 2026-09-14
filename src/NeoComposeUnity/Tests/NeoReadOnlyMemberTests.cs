@@ -123,6 +123,40 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SparseLookupOverride_GetSelectedInheritsCollectionTarget()
+        {
+            ProjectData data = BuildProjectData();
+            AddReadOnlyCollectionMembers(data);
+            var inherited = (LookupMember)JsonConvert.DeserializeObject<Member>(@"{
+                'id':'member-favorite-override','projectId':'project-readonly',
+                'name':'Favorite','kind':9,'extendsMemberId':'member-readonly-favorite',
+                'defaultValue':{'value':['value-target-details']},
+                'createdAt':'x','updatedAt':'x'
+            }")!;
+            data.members[inherited.id] = inherited;
+            data.classes["class-derived-weapon"] = new NeoSchemaClass
+            {
+                id = "class-derived-weapon",
+                projectId = ProjectId,
+                name = "DerivedWeapon",
+                extendsClassId = "class-weapon",
+                schema = new Dictionary<string, string> { ["Favorite"] = inherited.id },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            ((ObjectMemberValue)data.values["value-weapon-asset"]).classId = "class-derived-weapon";
+            using NeoClient client = LoadClient(data);
+
+            var lookup = client.AssetsRoot.Get<NeoMemberClass>("Weapon")
+                .Get<NeoMemberLookup>("Favorite");
+            var selected = lookup.GetSelected();
+
+            Assert.AreEqual(1, selected.Count);
+            Assert.AreEqual("lookup target",
+                ((NeoMemberClass)selected[0]).Get<NeoMemberString>("Name").value!.value);
+        }
+
+        [Test]
         public void RegularOverrideWithoutDefault_InheritsBaseDefault()
         {
             ProjectData data = BuildProjectData();

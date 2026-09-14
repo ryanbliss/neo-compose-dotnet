@@ -238,6 +238,7 @@ namespace NeoCompose.Runtime.Json
         public bool ShouldSerializecolumnSettings() => ShouldSerializeChainResolvedField("columnSettings");
         public bool ShouldSerializeschemaKeyOrder() => ShouldSerializeChainResolvedField("schemaKeyOrder");
         public bool ShouldSerializeclassArguments() => ShouldSerializeChainResolvedField("classArguments");
+        public bool ShouldSerializecollectionMemberId() => ShouldSerializeChainResolvedField("collectionMemberId");
         public bool ShouldSerializecollectionValueId() => ShouldSerializeChainResolvedField("collectionValueId");
         public bool ShouldSerializedeclaredTypeInfo() => ShouldSerializeChainResolvedField("declaredTypeInfo");
         public bool ShouldSerializetargetTypeInfo() => ShouldSerializeChainResolvedField("targetTypeInfo");
