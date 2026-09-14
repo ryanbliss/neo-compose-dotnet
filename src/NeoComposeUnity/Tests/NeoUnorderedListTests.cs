@@ -322,9 +322,8 @@ namespace NeoCompose.Tests
         [Test]
         public void CloneValueReference_ClonesNestedUnorderedMembersAcrossAuthoredAndSaveLayers()
         {
-            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
-            var members =
-                (Dictionary<string, NeoCompose.Runtime.Json.Member>)client.members;
+            ProjectData data = BuildProjectData();
+            var members = data.members;
             members["nested-items-member"] = new ListMember
             {
                 id = "nested-items-member",
@@ -332,10 +331,6 @@ namespace NeoCompose.Tests
                 kind = MemberKind.List,
                 entryMemberId = "nested-entry-member",
                 ListKind = NeoListKind.Unordered,
-                defaultValue = new ArrayMemberValueBase
-                {
-                    init = new InitializerBody { code = "Nested" },
-                },
             };
             members["nested-entry-member"] = new StringMember
             {
@@ -343,7 +338,7 @@ namespace NeoCompose.Tests
                 name = "Nested entry",
                 kind = MemberKind.String,
             };
-            var classes = (Dictionary<string, NeoSchemaClass>)client.classes;
+            var classes = data.classes;
             classes[ItemClassId].schema!["Nested"] = "nested-items-member";
             const string nestedConstructorId = "nested-items-constructor";
             var nestedConstructor = new ConstructorRecord
@@ -366,12 +361,16 @@ namespace NeoCompose.Tests
                     },
                 },
             };
-            ((Dictionary<string, ConstructorRecord>)client.constructors)[
-                nestedConstructorId] = nestedConstructor;
             string nestedParameterId = NeoClient.ConstructorParameterId(
                 nestedConstructor,
                 0);
-            var authored = (Dictionary<string, MemberValue>)client.values;
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            ((ListMember)members["nested-items-member"]).defaultValue = new ArrayMemberValueBase
+            {
+                init = new InitializerBody { code = "Nested" },
+            };
+            data.constructors[nestedConstructorId] = nestedConstructor;
+            var authored = data.values;
             ((ObjectMemberValue)authored["item-a"]).value!["Nested"] = "nested-a";
             var itemB = (ObjectMemberValue)authored["item-b"];
             itemB.instanceConstructorId = nestedConstructorId;
@@ -475,9 +474,8 @@ namespace NeoCompose.Tests
         [Test]
         public void Reachability_DeepNestedUnorderedContainersTraversesEachIndexedLevel()
         {
-            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
-            var members =
-                (Dictionary<string, NeoCompose.Runtime.Json.Member>)client.members;
+            ProjectData data = BuildProjectData();
+            var members = data.members;
             members["deep-list-member"] = new ListMember
             {
                 id = "deep-list-member",
@@ -486,8 +484,9 @@ namespace NeoCompose.Tests
                 entryMemberId = "item-entry-member",
                 ListKind = NeoListKind.Unordered,
             };
-            ((Dictionary<string, NeoSchemaClass>)client.classes)[ItemClassId]
+            data.classes[ItemClassId]
                 .schema!["Nested"] = "deep-list-member";
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
             const int depth = 64;
             string parentContainerId = ItemsListValueId;
             for (int i = 0; i < depth; i++)
