@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.36.0] - 2026-09-12
+
+- Synchronize C# files named after their generated types from the matching web export. Track stable identities in the local manifest to preserve Unity GUIDs through renames and name swaps. Write and import only changed code, preserve Unity metadata, remove obsolete generated files, and repair missing or edited outputs using a local integrity manifest. Requires the server export that returns `generatedFiles`.
+- Keep generated types and handwritten partial extensions in their existing assembly.
+
 ## [0.35.3] - 2026-09-11
 
 - Reduce project JSON deserialization allocations and parse resource-backed project JSON off the main thread during play on supported platforms.

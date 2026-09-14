@@ -43,7 +43,9 @@ namespace NeoCompose.Unity.Editor
         void WriteAllBytes(string assetPath, byte[] content);
         void RefreshAsset(string assetPath);
         void SaveConfig(NeoComposeConfig config);
-        void SchedulePostSynchronize(NeoComposeConfig config, string projectJsonPath);
+        void SchedulePostSynchronize(NeoComposeConfig config, string projectJsonPath, IReadOnlyList<string> changedPaths);
+        void BeginAssetEditing();
+        void EndAssetEditing();
         NeoAssetDatabase LoadOrCreateAssetDatabase(string assetPath);
         void ApplyUnityImportSettings(string assetPath, ProjectFile file, ProjectData projectData);
         Sprite[] LoadSprites(string assetPath);
@@ -106,9 +108,6 @@ namespace NeoCompose.Unity.Editor
 
             try
             {
-                var generatedTypesPath = NeoComposePathUtility.CombineAssetPath(
-                    config.generatedTypesDirectory,
-                    NeoComposeEditorDefaults.GeneratedTypesFileName);
                 var projectJsonPath = NeoComposePathUtility.CombineAssetPath(
                     config.projectJsonDirectory,
                     NeoComposeEditorDefaults.ProjectJsonFileName);
@@ -116,7 +115,6 @@ namespace NeoCompose.Unity.Editor
                 var attempt = await BuildPublishedExportAsync(
                     config,
                     projectJsonPath,
-                    generatedTypesPath,
                     onProgress);
                 if (attempt.unchanged)
                 {
@@ -137,11 +135,8 @@ namespace NeoCompose.Unity.Editor
                     LogDiagnostics(exportResponse.diagnostics);
                 }
 
-                if (!isIncremental && string.IsNullOrWhiteSpace(exportResponse.generatedTypes))
-                {
-                    return NeoComposeSyncResult.Failure(
-                        "Synchronization stopped because the full export returned empty generated C#. Existing synchronized files were left unchanged.");
-                }
+                var generatedFiles = isIncremental ? null : new NeoComposeGeneratedFiles(
+                    assets, config.generatedTypesDirectory, config.projectId, exportResponse.generatedFiles);
 
                 if (diagnosticErrors.Length > 0)
                 {
@@ -160,9 +155,8 @@ namespace NeoCompose.Unity.Editor
                     config,
                     exportResponse.localizationFiles,
                     ReadLocalizationMainLocaleOrDefault(exportResponse.projectJson));
-                var replacementRoots = isIncremental
-                    ? new[] { projectJsonPath }
-                    : new[] { generatedTypesPath, projectJsonPath };
+                var replacementRoots = (generatedFiles?.ReplacedPaths ?? Array.Empty<string>())
+                    .Append(projectJsonPath);
                 var existingReplacementPaths = replacementRoots
                     .Concat(localizationPaths.Values)
                     .Where(assets.FileExists)
@@ -191,11 +185,12 @@ namespace NeoCompose.Unity.Editor
                 var assetSyncErrors = await SynchronizeFilesAsync(config, exportResponse.projectJson, onProgress);
 
                 onProgress?.Invoke("Writing generated files...");
-                if (!isIncremental)
+                var changedPaths = new List<string>(generatedFiles?.Apply() ?? Array.Empty<string>());
+                if (!assets.FileExists(projectJsonPath) || assets.ReadAllText(projectJsonPath) != exportResponse.projectJson)
                 {
-                    assets.WriteAllText(generatedTypesPath, exportResponse.generatedTypes);
+                    assets.WriteAllText(projectJsonPath, exportResponse.projectJson);
+                    changedPaths.Add(projectJsonPath);
                 }
-                assets.WriteAllText(projectJsonPath, exportResponse.projectJson);
                 if (exportResponse.version != null && !string.IsNullOrWhiteSpace(exportResponse.version.id))
                 {
                     config.versionId = exportResponse.version.id;
@@ -212,7 +207,7 @@ namespace NeoCompose.Unity.Editor
                     Debug.LogWarning(cloudSyncWarning);
                 }
                 assets.SaveConfig(config);
-                assets.SchedulePostSynchronize(config, projectJsonPath);
+                assets.SchedulePostSynchronize(config, projectJsonPath, changedPaths);
                 if (exportResponse.syncState != null)
                 {
                     exportCache.Save(
@@ -249,7 +244,6 @@ namespace NeoCompose.Unity.Editor
         private async Task<IncrementalExportAttempt> BuildPublishedExportAsync(
             NeoComposeConfig config,
             string projectJsonPath,
-            string generatedTypesPath,
             Action<string>? onProgress)
         {
             for (var attempt = 0; ; attempt++)
@@ -257,7 +251,7 @@ namespace NeoCompose.Unity.Editor
                 try
                 {
                     var result = await TryBuildIncrementalExportAsync(
-                        config, projectJsonPath, generatedTypesPath, onProgress)
+                        config, projectJsonPath, onProgress)
                         ?? new IncrementalExportAttempt
                         {
                             response = await apiClient.ExportProjectAsync(
@@ -298,7 +292,6 @@ namespace NeoCompose.Unity.Editor
         private async Task<IncrementalExportAttempt?> TryBuildIncrementalExportAsync(
             NeoComposeConfig config,
             string projectJsonPath,
-            string generatedTypesPath,
             Action<string>? onProgress)
         {
             var state = exportCache.Load(config.projectId, config.versionId);
@@ -312,8 +305,7 @@ namespace NeoCompose.Unity.Editor
                 snapshots = new List<NeoComposeUnityExportCachedSnapshot>(state.snapshots),
             };
             if (!assets.FileExists(projectJsonPath)) return null;
-            if (!assets.FileExists(generatedTypesPath)) return null;
-            if (string.IsNullOrWhiteSpace(assets.ReadAllText(generatedTypesPath))) return null;
+            if (!NeoComposeGeneratedFiles.IsCurrent(assets, config.generatedTypesDirectory, config.projectId)) return null;
 
             var delta = await apiClient.ExportProjectDeltaAsync(
                 config.apiBaseUrl,
@@ -454,7 +446,6 @@ namespace NeoCompose.Unity.Editor
                     projectId = config.projectId,
                     projectName = project?["name"]?.Value<string>() ?? "",
                     projectJson = root.ToString(Formatting.Indented),
-                    generatedTypes = "",
                     projectDocumentContentHash = contentHash,
                     codegenContractHash = metadata["codegenContractHash"]?.Value<string>(),
                     runtimeDataContractHash = metadata["runtimeDataContractHash"]?.Value<string>(),
@@ -1037,9 +1028,12 @@ namespace NeoCompose.Unity.Editor
             NeoComposeConfigProvider.Save(config);
         }
 
-        public void SchedulePostSynchronize(NeoComposeConfig config, string projectJsonPath)
+        public void BeginAssetEditing() => AssetDatabase.StartAssetEditing();
+        public void EndAssetEditing() => AssetDatabase.StopAssetEditing();
+
+        public void SchedulePostSynchronize(NeoComposeConfig config, string projectJsonPath, IReadOnlyList<string> changedPaths)
         {
-            NeoComposePostSynchronizeProcessor.Schedule(config, projectJsonPath);
+            NeoComposePostSynchronizeProcessor.Schedule(config, projectJsonPath, changedPaths);
         }
 
         public NeoAssetDatabase LoadOrCreateAssetDatabase(string assetPath)
@@ -1091,12 +1085,16 @@ namespace NeoCompose.Unity.Editor
         {
             if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath) != null)
             {
-                AssetDatabase.DeleteAsset(assetPath);
+                if (!AssetDatabase.DeleteAsset(assetPath))
+                    throw new IOException($"Unity could not delete asset: {assetPath}");
             }
-            else if (File.Exists(assetPath))
+            else
             {
-                File.Delete(assetPath);
+                if (File.Exists(assetPath)) File.Delete(assetPath);
+                if (File.Exists(assetPath + ".meta")) File.Delete(assetPath + ".meta");
             }
+            if (File.Exists(assetPath) || File.Exists(assetPath + ".meta"))
+                throw new IOException($"Asset deletion left files behind: {assetPath}");
         }
     }
 }

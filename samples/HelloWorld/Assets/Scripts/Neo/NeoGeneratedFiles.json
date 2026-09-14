@@ -1,0 +1,461 @@
+{
+  "schemaVersion": 1,
+  "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+  "files": [
+    {
+      "id": "class:11177bd5-0678-4bff-86b8-46718ff1827b",
+      "path": "Generated/Classes/AnimationInfo.g.cs",
+      "hash": "22821afb22dc9a5f4a1632794fc89cc3330220678361278523c2f13ffa43d7f3"
+    },
+    {
+      "id": "class:9a6019b6-680f-4300-8cea-bde6fce47fc1",
+      "path": "Generated/Classes/Art.g.cs",
+      "hash": "34ecb7e566e67395cd3c85f5d9b25867e5350a9b0e6dec87b3b5f5474f2ba30f"
+    },
+    {
+      "id": "class:dd0bbe5a-47ef-4164-9421-caea07f6f56f",
+      "path": "Generated/Classes/Assets.g.cs",
+      "hash": "b41354f672f2e9e7d726a1ca83872afdaa99705a99fb7299550d1f2d7cabca85"
+    },
+    {
+      "id": "class:44d6324f-6507-4420-a919-3496681c3b21",
+      "path": "Generated/Classes/Audio.g.cs",
+      "hash": "72742465219e3aa37621b32babd6b19bb03280450871633615c8b62246f68f28"
+    },
+    {
+      "id": "class:neo-tile-grid-record-relations-v1-class-9f889dbed89e6fdd2a883fb5a87fea19",
+      "path": "Generated/Classes/BackgroundTileLayer.g.cs",
+      "hash": "a76fdd1e3d17c65ed0abde7b06908f4a8c8c2ef7a44fffeca73d55b739221e27"
+    },
+    {
+      "id": "class:neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152",
+      "path": "Generated/Classes/BackgroundTileLayerLink.g.cs",
+      "hash": "5e9cdf3f1a327b73cb857ab4a591824222b9dedaa4ea8cf40734fc3db3c60eb5"
+    },
+    {
+      "id": "class:47a1f7dd-b16d-4f04-96f8-6c0199d18c7b",
+      "path": "Generated/Classes/BlockedPath.g.cs",
+      "hash": "dcd8ca90259440103d1c5ab92fe6d9640db15d8b3e9b96f497dcf7b4a7d15128"
+    },
+    {
+      "id": "class:07db44f3-8cc5-4164-aace-098ca68460f4",
+      "path": "Generated/Classes/BootGlyphTile.g.cs",
+      "hash": "6f1031992719b5c0a9261e90d8801873c0c3585273750391cca26fc2c34d8363"
+    },
+    {
+      "id": "class:neo-tile-grid-record-relations-v1-class-e06896b149a650d6ceb37fbdfdba9ffa",
+      "path": "Generated/Classes/CollisionTileLayer.g.cs",
+      "hash": "01172986e187fe9ace28b4b986657146ca8297cac2d8fd855ed8063c82ef36ba"
+    },
+    {
+      "id": "class:neo-tile-grid-record-relations-v1-class-c0ae01529031e2de38dc078687d59140",
+      "path": "Generated/Classes/CollisionsTileLayerLink.g.cs",
+      "hash": "4e3f857c54ebda9742845f68dfedceb1048436bd5a3a4944d299f3cf3d886405"
+    },
+    {
+      "id": "class:2ab1bc07-da0b-47fc-b77b-54cc511575bb",
+      "path": "Generated/Classes/ComputedText.g.cs",
+      "hash": "132a188f3231b188fa3e7944625276e1afcd757ee8fcf632ed7b63e878135fb4"
+    },
+    {
+      "id": "class:060620d4-9f8b-417a-ba43-d6f010fc6edc",
+      "path": "Generated/Classes/ConsoleObject.g.cs",
+      "hash": "866ec2b551f03c748cbfea634d01dad15b3e9cc61477c8da10022b6c84121a86"
+    },
+    {
+      "id": "class:b737f725-5a4a-4d33-8bc5-c6953dbeff77",
+      "path": "Generated/Classes/ConsoleObjectLayer.g.cs",
+      "hash": "1c74949d7f894a08c12fcf39ebed0a7972e35391eb332bb57f1fc990678e17bc"
+    },
+    {
+      "id": "class:1c859b34-ff59-40f8-a763-cd0f04dc96c0",
+      "path": "Generated/Classes/ConsoleTile.g.cs",
+      "hash": "df54f82fc8058299ff505ccb2240262b1b7eab0c97a009d1f3a8b7c9260aadfd"
+    },
+    {
+      "id": "class:fbbd7a13-2b2a-4d0c-bd8f-78b5474cd4ba",
+      "path": "Generated/Classes/ConsoleTileLayer.g.cs",
+      "hash": "2ea5fae9d1197d5fc13ab69cc40fb09be58a6380c1490785fcd44281969505eb"
+    },
+    {
+      "id": "class:neo-tile-grid-record-relations-v1-class-d1b21a408630eedaf664ccf5720d874f",
+      "path": "Generated/Classes/DefaultObjectLayer.g.cs",
+      "hash": "db48e76d0d8c6746e3bf5c97f7b5c4035198d6c437ba0b1f223edadf19198c2b"
+    },
+    {
+      "id": "class:5c65b156-e83a-41c5-bef0-ee375798bdc2",
+      "path": "Generated/Classes/ExitPromptObject.g.cs",
+      "hash": "cb241ae034d474042f785a600bf68c136f86942d6aba0a93b511fe73660de8a6"
+    },
+    {
+      "id": "class:neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d",
+      "path": "Generated/Classes/ExitPromptObject37f67d.g.cs",
+      "hash": "307da31b803143176c18c1d369eb8d3664be5914db830e9c32fc7539a3b74101"
+    },
+    {
+      "id": "class:neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403",
+      "path": "Generated/Classes/ExitPromptObject987403.g.cs",
+      "hash": "4a07bc345adb18bceecd53d5ab5f2b9d83ea7d66015eed1e0fdb43fff5ab57a4"
+    },
+    {
+      "id": "class:neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352",
+      "path": "Generated/Classes/ExitPromptObjecta26352.g.cs",
+      "hash": "ffb4ebd822b65e62bd38995c7219067640dd8349540d9a423359ae9e7c649446"
+    },
+    {
+      "id": "class:bda4cf72-c8da-4be0-8148-024d0fc2d826",
+      "path": "Generated/Classes/GlassFloorTile.g.cs",
+      "hash": "86c291e8b8a32454b4f378059a9ce34895f746e10c56a1c24a28b3961dec881a"
+    },
+    {
+      "id": "class:a8305a31-7f6c-4ff5-8a9f-5871ef451093",
+      "path": "Generated/Classes/HullPlatingTile.g.cs",
+      "hash": "170cb90434477bf771445a32afe977f2db93aa9963dd9ed13b4b6cc7717133bc"
+    },
+    {
+      "id": "class:60c25a92-cb01-46f7-b5cf-c9d950586116",
+      "path": "Generated/Classes/Item.g.cs",
+      "hash": "e1e4e3b3277df30a9fb29bdaa74baf0628501b873142b374b2da30023caf68d6"
+    },
+    {
+      "id": "class:a50efb7e-58f6-4342-906e-0b01f98b15af",
+      "path": "Generated/Classes/JupiterOutpost.g.cs",
+      "hash": "ff577ac05388f7ba50691c4d956144a7048b1521517a0ea6facbc8b5326ebdbb"
+    },
+    {
+      "id": "class:77558d64-4fcc-46ac-8351-893093ee0002",
+      "path": "Generated/Classes/LookupContainer.g.cs",
+      "hash": "cb4c94b5184d48eab39818370b55fc57dab8517d8d69339bf1fa418f52482c41"
+    },
+    {
+      "id": "class:9296e4be-bd27-44e3-9823-77fbeaa60665",
+      "path": "Generated/Classes/LookupEntry.g.cs",
+      "hash": "db45ecc92e73482e86e3b421fa7bbf92ccbf99bf4c45eebbdd566d6696b595b8"
+    },
+    {
+      "id": "class:system_6529416a-f68b-49a3-b3d2-2af8fda60cb4",
+      "path": "Generated/Classes/NeoAnimationFrameBase.g.cs",
+      "hash": "72a42cd89f861d49fa606dc824d6354426476dfa6fa5580c8142807b5e4cd876"
+    },
+    {
+      "id": "class:system_2866011d-30fe-410a-8a04-d2ff291b77cd",
+      "path": "Generated/Classes/NeoAnimationSegment.g.cs",
+      "hash": "d844cf252d752d39f41cdaceaeace8f76d615c0156d0f634f8e8a0627b67619e"
+    },
+    {
+      "id": "class:system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab",
+      "path": "Generated/Classes/NeoAnimationSegmentFrame.g.cs",
+      "hash": "3037a0719cc193d745f91b3370664e8a0ef3fe187e473320c5856fcd3df572e0"
+    },
+    {
+      "id": "class:system_fd551dd8-6e6b-4044-9f32-7445ab344200",
+      "path": "Generated/Classes/NeoAnimationSegmentTrack.g.cs",
+      "hash": "fcda2b851735dd89a7ed04d14fdd50948927a2ac5da86792f30b59dd806c4762"
+    },
+    {
+      "id": "class:system_45755778-ecfe-4a6c-b65f-a08017a7fb56",
+      "path": "Generated/Classes/NeoAnimationTrackBase.g.cs",
+      "hash": "665d3d7415ec212442b00fe6b384b4a607856b21719a4b218e20efbbb26bc15d"
+    },
+    {
+      "id": "class:system_8b540423-5920-4c83-a632-1415448e7fd7",
+      "path": "Generated/Classes/NeoChoiceLog.g.cs",
+      "hash": "b9005166541627eda5a08d07402938b433efd56dc66698afb12e08bb26c6433b"
+    },
+    {
+      "id": "class:system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d",
+      "path": "Generated/Classes/NeoCollider.g.cs",
+      "hash": "0e4e607e9756301788bd24ebe3d4a5c82d3d44af427b40dbd33a5d7075a98ca7"
+    },
+    {
+      "id": "class:system_98cebff1-0590-4c59-8ef0-618d2c14f905",
+      "path": "Generated/Classes/NeoDialogueMemory.g.cs",
+      "hash": "8144489321094d64917b9ee758e9cfab7e3d9411a7b1d46c24dc1c5319280bcb"
+    },
+    {
+      "id": "class:system_bf076e9b-c8da-47dc-bae3-7527d0c307a8",
+      "path": "Generated/Classes/NeoLayerGroupBase.g.cs",
+      "hash": "725aa2c570e86e1a5033c6fb4d15edacbc00add695ef340733c2777fcf328afd"
+    },
+    {
+      "id": "class:system_57342999-9cf1-4e01-b6d1-18d26ad554f5",
+      "path": "Generated/Classes/NeoMemory.g.cs",
+      "hash": "1686029d26acf9c8dfa20ff4fdbba639a010274fe1281b28d58a8d2dbc630bf0"
+    },
+    {
+      "id": "class:system_f671535d-0eb6-4139-9caf-5c5276febd31",
+      "path": "Generated/Classes/NeoObject.g.cs",
+      "hash": "babdfab83f4cc24ec213df29f7fdbb36f8d2848fa02f4c23beb06d93d6f201f8"
+    },
+    {
+      "id": "class:system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+      "path": "Generated/Classes/NeoObjectBase.g.cs",
+      "hash": "d46e64ad7b517689e7c4de1ba242920005022f164b5e69d1e7ac2a83a995a05c"
+    },
+    {
+      "id": "class:system_5c912ecc-a323-41c1-a3ee-1a143b72b3d3",
+      "path": "Generated/Classes/NeoObjectLayer.g.cs",
+      "hash": "996d0ff0ef748c780a12fb48353b0f38c61d99ad8810ddb4a174e7862c32f50b"
+    },
+    {
+      "id": "class:system_04ef83b0-3171-4299-9580-902708690750",
+      "path": "Generated/Classes/NeoObjectLayerLink.g.cs",
+      "hash": "0d0660c1124aae6bf296b3de3923bed22cabb717d50e376dff02f11728406f2b"
+    },
+    {
+      "id": "class:system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9",
+      "path": "Generated/Classes/NeoObjectPlacementTile.g.cs",
+      "hash": "1b5f11e2e7d79afed0eb6d63e40c541c2a52e0ed7a7bb045f658da8a5b856418"
+    },
+    {
+      "id": "class:system_9f34deed-2616-43c9-b614-d812da89ee51",
+      "path": "Generated/Classes/NeoSmartTile.g.cs",
+      "hash": "a7fcb2bf34c4275de798d60da8394c874a8869fe4c968c53c1d5d0db3a9442bf"
+    },
+    {
+      "id": "class:system_49803132-d83b-4e1e-8a10-6699dca5dc1c",
+      "path": "Generated/Classes/NeoSmartTileNeighbor.g.cs",
+      "hash": "0c220d4487be61b74906d809317627eadff7daee6a49dbbc575d6039c4e72480"
+    },
+    {
+      "id": "class:system_49f62a6e-7238-4bee-b5fd-66458a138903",
+      "path": "Generated/Classes/NeoSmartTileRule.g.cs",
+      "hash": "6d308d5ade88165db3ef17c84101d8c357a7c5b12c311aba1cc05dc15c80fd50"
+    },
+    {
+      "id": "class:system_69150540-b653-4bd0-a4fa-43a9f39da72b",
+      "path": "Generated/Classes/NeoSortingGroup.g.cs",
+      "hash": "a3a9b0aaa81c305a7bc526c13ecdfb8d9f9886a0c938726ba025e210e7cd616b"
+    },
+    {
+      "id": "class:system_b3a94a53-8cb8-4df1-95f4-597bca10dac2",
+      "path": "Generated/Classes/NeoSortingLayer.g.cs",
+      "hash": "f0910a421b94efa57b9f88761ecea2b489e1e5733c37fdd6f274f1033fb57844"
+    },
+    {
+      "id": "class:system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3",
+      "path": "Generated/Classes/NeoSpriteAnimationSegment.g.cs",
+      "hash": "d2ebb1586b1c08007ce296d3a2024ecab7485c8b7f6dc7a1f79c6d013ea95c52"
+    },
+    {
+      "id": "class:system_24b70585-0798-49ad-b650-4c118bac1eb1",
+      "path": "Generated/Classes/NeoSpriteAnimationSegmentTrack.g.cs",
+      "hash": "ccfe0644ba4e10eaa1df7b93831911ae848fcb2546f010607430e55ca85f8ee8"
+    },
+    {
+      "id": "class:system_d48b66ab-4d59-47e7-a25a-591fe97062de",
+      "path": "Generated/Classes/NeoSpriteObject.g.cs",
+      "hash": "846463bed5d44de96f7e3bb22aca3f3f9b83b262f72ebe88e505483b77705069"
+    },
+    {
+      "id": "class:system_663d4d74-035e-4412-871a-24bd114b4686",
+      "path": "Generated/Classes/NeoTextNodeMemory.g.cs",
+      "hash": "f993238ead34b3c4b43826389ddf8f84d59c2d9842aac5d3fe82b41eb2a8ab0a"
+    },
+    {
+      "id": "class:system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+      "path": "Generated/Classes/NeoTile.g.cs",
+      "hash": "048e15819503716154987c4a4fbf90ec576d745ca4816668712cd763bf72acb6"
+    },
+    {
+      "id": "class:system_b78f7f1d-f63c-4abb-ae65-852e69246534",
+      "path": "Generated/Classes/NeoTileGrid.g.cs",
+      "hash": "c103959cdb1cb128395d3bd0398cf01d4f3d640e2dedcfc78b6af12e9e7bc7fb"
+    },
+    {
+      "id": "class:system_4689bc94-de98-46cd-b220-efe118f4106c",
+      "path": "Generated/Classes/NeoTileInstance.g.cs",
+      "hash": "839254cb08dbb2ca0b37624de61721db24c85d2eb32d6407ea0672d7b55a97bc"
+    },
+    {
+      "id": "class:system_dae826cf-1e37-44d1-a734-207f59421b5c",
+      "path": "Generated/Classes/NeoTileLayer.g.cs",
+      "hash": "11f47a7f4acc51f587fe930a0bf89bcf84f190e4b94cf3b02413a0e627837d6f"
+    },
+    {
+      "id": "class:system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
+      "path": "Generated/Classes/NeoTileLayerLink.g.cs",
+      "hash": "6245808da8849cadb6ecdfca70cb919f311282226ebd84ba1c9e340b74ba2d83"
+    },
+    {
+      "id": "class:f1b08825-2ad0-4666-acf1-3df7ffbda64e",
+      "path": "Generated/Classes/ObjectLayerLink.g.cs",
+      "hash": "0ffa25ee791c341d2eef9b5825d8759ff922d5079bad1945af63a16fb71b0d4d"
+    },
+    {
+      "id": "class:b44d80a9-7760-4919-8844-0cb71d08b788",
+      "path": "Generated/Classes/OldConsoleLandingGrid.g.cs",
+      "hash": "83517d5578ec0b1eb4db9d2d54a47a7c76f350763bba12f1f31e25413b3225a0"
+    },
+    {
+      "id": "class:4c196697-4e08-4aeb-823f-322b353071ac",
+      "path": "Generated/Classes/Outpost.g.cs",
+      "hash": "3cf06a06e0e021763bc1cb95c6c2a382110620149df979be461714f4332c1ba2"
+    },
+    {
+      "id": "class:8ccfe860-309f-428b-b74c-76a873bdea8a",
+      "path": "Generated/Classes/OutpostSaveData.g.cs",
+      "hash": "532910a87ffcca0e104d731e31c99881a8e2c2a644f7906b5cf28f6af4d05005"
+    },
+    {
+      "id": "class:7755a905-f2a1-4e5d-8b60-78cbdd2b2042",
+      "path": "Generated/Classes/PlanetVisit.g.cs",
+      "hash": "b502f3e4e5a97ad33f368429129cca73e47cc9b0bc66514065b8d3cc0086386f"
+    },
+    {
+      "id": "class:7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f",
+      "path": "Generated/Classes/PlayerSpawnObject.g.cs",
+      "hash": "cc49fd4ba16c246e073bc161996a2583c5f61ed79ee4fe3652447c40bd063cc3"
+    },
+    {
+      "id": "class:daf72c99-ad09-47d6-a863-f1ab31acf750",
+      "path": "Generated/Classes/QuestState.g.cs",
+      "hash": "29f469430cc17f809e6f796b9f436f740e06ddae2957dc4b13ceafb538f6a20c"
+    },
+    {
+      "id": "class:27874300-3e78-4d1c-802b-caf34d25d1ab",
+      "path": "Generated/Classes/RecoveryCacheObject.g.cs",
+      "hash": "6425a6bb2a7041a9c0952ff9129fda3c2871d2eaf85a249b9958ef4e4fb55566"
+    },
+    {
+      "id": "class:d931c907-19cd-4f3d-b04a-e6f1945fb216",
+      "path": "Generated/Classes/RedNovaWarningTile.g.cs",
+      "hash": "68300702bd6e3842c1cfcc0e01c451f289a3d899425c6e0d5e7bb5afefd69c7c"
+    },
+    {
+      "id": "class:96818dab-90e5-4ab9-8f69-cce66e39e370",
+      "path": "Generated/Classes/SaturnOutpost.g.cs",
+      "hash": "6777b675731cc379e1e166116ef713fcd6a55abfca22a9f625da64c3e92154f9"
+    },
+    {
+      "id": "class:96e8284d-ae43-4e91-919d-86c25ce098e0",
+      "path": "Generated/Classes/Save.g.cs",
+      "hash": "2283957ee9e2574c0cfdc906e8c42abd2d4f5b4db645d5945629bd4f3913e015"
+    },
+    {
+      "id": "class:720c1361-de9e-4c12-b90e-bb6ac9e1ce8b",
+      "path": "Generated/Classes/SealBarrierTile.g.cs",
+      "hash": "4f530d60230d68560f0319383b5df8aac847dcf29958367dd6c70fe86eaa6a23"
+    },
+    {
+      "id": "class:63b261c9-46f2-4d37-84e9-06f16af04e58",
+      "path": "Generated/Classes/Session.g.cs",
+      "hash": "c00caac2dab47c1ea0ea5131133f7b7b07fe3d17f7bde16409e45044199d5de6"
+    },
+    {
+      "id": "class:cacf06dd-db1d-4f48-99c7-f3cea5a6961f",
+      "path": "Generated/Classes/VaultPlaqueObject.g.cs",
+      "hash": "1b92dedb40bf72d2f7bb1e6a69a552496c265754a52818abfd90df8a96a968af"
+    },
+    {
+      "id": "class:48bcbba5-57c0-40fd-8df8-35f4e7ce73f2",
+      "path": "Generated/Classes/VoidTile.g.cs",
+      "hash": "3e4930c284eb574966cdd5dcbc861642581fa5bf2cf37dba347d7c8bfe76eb33"
+    },
+    {
+      "id": "class:22a62498-61f8-4b6f-8d4c-bc05743a5c2e",
+      "path": "Generated/Classes/Worlds.g.cs",
+      "hash": "9894987f58694df605c16a27debe79feb58c01bda3bedc04cdd05ba1b59ea147"
+    },
+    {
+      "id": "dialogues:memory",
+      "path": "Generated/Dialogues/DialogueMemory.g.cs",
+      "hash": "64f6cf9e4f3c2d25b744da650baf0738ed7fba46c751c1cd030bbcab32b02e8c"
+    },
+    {
+      "id": "dialogue-group:9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
+      "path": "Generated/Dialogues/IntroductionsDialogues.g.cs",
+      "hash": "40b60be88b169d78cecc67c2d94c2859c682e63e169ac6e3d494e3f02cccb4de"
+    },
+    {
+      "id": "dialogues:root",
+      "path": "Generated/Dialogues/NeoDialogues.g.cs",
+      "hash": "b16563fa125d652b51f5a73cbaf86b4bb658cbef87d5ecb520427843e1d4a956"
+    },
+    {
+      "id": "dialogue-group:9acf9982-4b14-4cc1-bc26-5aba3dfa3f9a",
+      "path": "Generated/Dialogues/OutpostsDialogues.g.cs",
+      "hash": "2b16ae1d8c690e0650f42e951a0cf938bc9f46692fe9d41f030db27049e60bdb"
+    },
+    {
+      "id": "dialogue-group:c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
+      "path": "Generated/Dialogues/VisitsDialogues.g.cs",
+      "hash": "5a62429b58e413282f4d186dc97ef3c32e47696a45aa33654044e3bebad39167"
+    },
+    {
+      "id": "enum:a2d44a04-35a6-4529-8fd2-f54a55cf518b",
+      "path": "Generated/Enums/JupiterMoon.g.cs",
+      "hash": "0084c0d49c3a09967d96db73c55bce697aba265b37e92abcfc8713a26e1dfa34"
+    },
+    {
+      "id": "enum:system_fb8a4243-fa52-4142-8097-765d9e86ff25",
+      "path": "Generated/Enums/NeoSelectorRefreshKind.g.cs",
+      "hash": "88e0a8effb1c7ba9e8df6b6009703ab8a4548cf80ae954b951cf7b1544d24878"
+    },
+    {
+      "id": "enum:system_6ff1b376-1b30-449d-8439-d822be95cec1",
+      "path": "Generated/Enums/NeoSmartTileCollider.g.cs",
+      "hash": "a99a8710d629e5db25b46cf2b41b743bb2e26f8e851ceeb11b37a12884b90557"
+    },
+    {
+      "id": "enum:system_ba63d042-51c1-4bce-be70-d9848e6bb240",
+      "path": "Generated/Enums/NeoSmartTileCondition.g.cs",
+      "hash": "e9cee0cd9c8373362a5a42e29099f24484e28db5164a0924c9bb4e23590955ec"
+    },
+    {
+      "id": "enum:system_551025ad-e441-4d43-90b0-2821c6235786",
+      "path": "Generated/Enums/NeoSmartTileOutput.g.cs",
+      "hash": "500a29a8e0537c55d8d9bf82a0213442e049b0509426ac868240a0fa4d80da47"
+    },
+    {
+      "id": "enum:system_d97f73bc-656f-489f-86de-6cb874ca8181",
+      "path": "Generated/Enums/NeoSmartTileTransform.g.cs",
+      "hash": "f5969961979207d1f6312b1b2681a3670d3b528c8d70b7f42b64e6a0ef2bc57c"
+    },
+    {
+      "id": "enum:576de38f-6c77-440d-91b3-95a19aad5e23",
+      "path": "Generated/Enums/Planet.g.cs",
+      "hash": "2e4cea46e2c0bfcbf51fc05bff01da2431dca06b1654b1d5d788b677cfbd6018"
+    },
+    {
+      "id": "enum:a5c2a3f4-f91a-4878-bec0-a38b432ad762",
+      "path": "Generated/Enums/QuestStage.g.cs",
+      "hash": "c4124fc4db20a3486a1f3a44bc364f54dc6ecbf109a05a115dda79424c1d6028"
+    },
+    {
+      "id": "enum:9d3ef3f4-0823-412b-a2b6-97874739072d",
+      "path": "Generated/Enums/SaturnMoon.g.cs",
+      "hash": "8f1100db460695ea1ba22c8aa18a44361823f734b3369d7076effb38477cb49d"
+    },
+    {
+      "id": "enum:d0b44688-28ab-44ba-b2a1-5cdad0f51e50",
+      "path": "Generated/Enums/WorldEnding.g.cs",
+      "hash": "3583fda6d75d380565630daeca51f231c5996931fde48a80f3fd0791ca059649"
+    },
+    {
+      "id": "grid:b44d80a9-7760-4919-8844-0cb71d08b788",
+      "path": "Generated/Grids/OldConsoleLandingGridContent.g.cs",
+      "hash": "312127b2edc4651520570c4edeea7a51b1f26cb901a9b439dc04b614cc928761"
+    },
+    {
+      "id": "project:factories",
+      "path": "Generated/HelloWorldNeo.Factories.g.cs",
+      "hash": "0cad940fe614628440fbcc10844193b5f329239552d65e6129e12e2319b64198"
+    },
+    {
+      "id": "project:functions",
+      "path": "Generated/HelloWorldNeo.Functions.g.cs",
+      "hash": "c7d00448f6bcba3065e0b29fa6602f290d4a20070b2433030996c09023ba40d2"
+    },
+    {
+      "id": "project:client",
+      "path": "Generated/HelloWorldNeo.g.cs",
+      "hash": "281643f8f371cdfa4ebacf939780bf83f96f6470a38743a8aead1827b9b6d249"
+    },
+    {
+      "id": "interface:27d59731-311d-4d80-833a-916760c7ed30",
+      "path": "Generated/Interfaces/IHasName.g.cs",
+      "hash": "d850ec71dee6f4303342880b379baba93a4e4c28e81aeeb5571092e03df83371"
+    }
+  ]
+}

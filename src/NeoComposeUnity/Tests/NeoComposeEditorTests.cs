@@ -53,15 +53,14 @@ namespace NeoCompose.Tests
             var imported = new List<string>();
 
             NeoComposePostSynchronizeAssetImporter.ImportChangedOutputs(
-                "Assets/Resources/Neo/project.json",
-                "Assets/Scripts/Neo/NeoGeneratedTypes.cs",
+                new[] { "Assets/Resources/Neo/project.json", "Assets/Scripts/Neo/Generated/Project.g.cs" },
                 imported.Add);
 
             CollectionAssert.AreEqual(
                 new[]
                 {
                     "Assets/Resources/Neo/project.json",
-                    "Assets/Scripts/Neo/NeoGeneratedTypes.cs",
+                    "Assets/Scripts/Neo/Generated/Project.g.cs",
                 },
                 imported);
         }
@@ -397,18 +396,19 @@ namespace NeoCompose.Tests
         {
             var config = MakeConfig();
             var api = new FakeApiClient();
-            api.exportResponse.generatedTypes = "// generated";
+            api.exportResponse.generatedFiles[0].content = "// generated";
             api.exportResponse.projectJson = "{ \"project\": true }";
             var assets = new FakeAssetService();
             var confirmations = new FakeConfirmationService(true);
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(api, confirmations, assets);
 
             var result = await synchronizer.SynchronizeAsync(config);
 
             Assert.IsTrue(result.success, result.message);
-            Assert.AreEqual("// generated", assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
+            Assert.AreEqual("// generated", assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"]);
             Assert.AreEqual("{ \"project\": true }", assets.files["Assets/Resources/Neo/project.json"]);
-            Assert.Contains("Assets/Scripts/Neo", assets.createdDirectories);
+            Assert.Contains("Assets/Scripts/Neo/Generated", assets.createdDirectories);
             Assert.Contains("Assets/Resources/Neo", assets.createdDirectories);
             Assert.IsTrue(assets.savedConfig);
             Assert.AreEqual("version-1", api.lastExportVersionId);
@@ -449,7 +449,7 @@ namespace NeoCompose.Tests
                     "{ \"id\": \"value-1\", \"projectId\": \"project-1\", \"value\": 2, \"updatedAt\": 200 }"),
             });
             var assets = new FakeAssetService();
-            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing generated";
+            assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing generated";
             assets.files["Assets/Resources/Neo/project.json"] = @"{
   ""metadata"": {
     ""schemaVersion"": 31,
@@ -517,6 +517,7 @@ namespace NeoCompose.Tests
                     },
                 },
             };
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(
                 api,
                 new FakeConfirmationService(true),
@@ -531,7 +532,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(2, api.snapshotExportCalls);
             Assert.AreEqual(
                 "// existing generated",
-                assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
+                assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"]);
             var written = JObject.Parse(assets.files["Assets/Resources/Neo/project.json"]);
             Assert.AreEqual(2, written["values"]?["value-1"]?["value"]?.Value<int>());
             Assert.AreEqual(200, written["values"]?["value-1"]?["updatedAt"]?.Value<int>());
@@ -615,8 +616,9 @@ namespace NeoCompose.Tests
                 api.downloads[downloadUrl] = new byte[] { 0 };
             }
             var assets = new FakeAssetService();
-            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing generated";
+            assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing generated";
             assets.files["Assets/Resources/Neo/project.json"] = before.ToString(Formatting.None);
+            SeedGeneratedFiles(assets, config.projectId);
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets, cache);
 
             var result = await synchronizer.SynchronizeAsync(config);
@@ -640,7 +642,7 @@ namespace NeoCompose.Tests
             Assert.IsFalse(((JObject)written["valuePartitions"]!).ContainsKey("sdk-boulder-delete"));
             if (!includeFileManifest)
             {
-                Assert.AreEqual("// existing generated", assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
+                Assert.AreEqual("// existing generated", assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"]);
                 Assert.AreEqual("boulder-delete", cache.state!.cursor.transactionIds.Single());
                 Assert.IsFalse(cache.state.heads.Any(head => deletedIds.Contains(head.recordId)));
                 Assert.IsTrue(api.requestedSnapshotIds.All(ids => ids.Length == 0),
@@ -719,8 +721,9 @@ namespace NeoCompose.Tests
             var assets = new FakeAssetService();
             const string projectPath = "Assets/Resources/Neo/project.json";
             assets.files[projectPath] = original.ToString(Formatting.None);
-            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing";
+            assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing";
             var cache = new FakeExportCache { state = new NeoComposeUnityExportSyncState() };
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(
                 api, new FakeConfirmationService(true), assets, cache);
 
@@ -771,8 +774,9 @@ namespace NeoCompose.Tests
             });
             var assets = new FakeAssetService();
             assets.files["Assets/Resources/Neo/project.json"] = original.ToString(Formatting.None);
-            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing";
+            assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing";
             var cache = new FakeExportCache { state = new NeoComposeUnityExportSyncState() };
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(
                 api, new FakeConfirmationService(true), assets, cache);
 
@@ -847,9 +851,10 @@ namespace NeoCompose.Tests
                 var assets = new FakeAssetService();
                 const string projectPath = "Assets/Resources/Neo/project.json";
                 assets.files[projectPath] = originalJson;
-                assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing";
+                assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing";
                 var cache = new FakeExportCache { state = new NeoComposeUnityExportSyncState() };
-                var synchronizer = new NeoComposeSynchronizer(
+                SeedGeneratedFiles(assets);
+            var synchronizer = new NeoComposeSynchronizer(
                     api, new FakeConfirmationService(true), assets, cache);
                 try
                 {
@@ -887,7 +892,7 @@ namespace NeoCompose.Tests
             const string projectPath = "Assets/Resources/Neo/project.json";
             const string originalJson = "{\"variantFolders\":{},\"metadata\":{\"schemaVersion\":31,\"projectId\":\"project-1\",\"versionId\":\"version-1\"},\"project\":{\"id\":\"project-1\"},\"values\":{\"v\":{\"id\":\"v\",\"value\":1}},\"files\":{},\"textureTemplates\":{},\"audioClipTemplates\":{}}";
             assets.files[projectPath] = originalJson;
-            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing";
+            assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing";
             NeoComposeUnityExportCachedSnapshot Snapshot(int value) => new()
             {
                 id = "snapshot-" + value, recordKind = "value", recordId = "v", contentHash = "hash-" + value,
@@ -921,6 +926,7 @@ namespace NeoCompose.Tests
                     snapshots = ids.Length == 0 ? new() : new() { Snapshot(readBase.logicalRevisionId == "tx-2" ? 2 : 3) },
                 };
             };
+            SeedGeneratedFiles(assets);
             var result = await new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets, cache)
                 .SynchronizeAsync(config);
             Assert.IsTrue(result.success, result.message);
@@ -941,7 +947,7 @@ namespace NeoCompose.Tests
             var api = new FakeApiClient();
             var assets = new FakeAssetService();
             assets.files["Assets/Resources/Neo/project.json"] = "{}";
-            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing";
+            assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing";
             var initial = new NeoComposeUnityExportSyncState { cursor = new NeoComposeUnityExportCursor { createdAt = 1 } };
             var cache = new FakeExportCache { state = initial };
             api.deltaResponse.cursor = new NeoComposeUnityExportCursor { createdAt = 2 };
@@ -956,6 +962,7 @@ namespace NeoCompose.Tests
             if (failedAttempts == 3)
                 UnityEngine.TestTools.LogAssert.Expect(LogType.Error,
                     new System.Text.RegularExpressions.Regex("NeoComposeProjectReadRestartException"));
+            SeedGeneratedFiles(assets);
             var result = await new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets, cache)
                 .SynchronizeAsync(MakeConfig());
             Assert.AreEqual(failedAttempts < 3, result.success, result.message);
@@ -1002,9 +1009,12 @@ namespace NeoCompose.Tests
             var api = new FakeApiClient();
             var assets = new FakeAssetService();
             assets.files["Assets/Resources/Neo/project.json"] = "{}";
+            assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// valid";
+            SeedGeneratedFiles(assets);
+            assets.files.Remove("Assets/Scripts/Neo/Generated/Project.g.cs");
             if (existingGeneratedTypes != null)
             {
-                assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = existingGeneratedTypes;
+                assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = existingGeneratedTypes;
             }
             var cache = new FakeExportCache
             {
@@ -1031,7 +1041,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, api.fullExportCalls);
             Assert.AreEqual(
                 "// generated",
-                assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
+                assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"]);
         }
 
         [Test]
@@ -1138,7 +1148,7 @@ namespace NeoCompose.Tests
                 },
             };
             var assets = new FakeAssetService();
-            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing generated";
+            assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing generated";
             assets.files["Assets/Resources/Neo/project.json"] = "{}";
             var cache = new FakeExportCache
             {
@@ -1152,6 +1162,7 @@ namespace NeoCompose.Tests
                     },
                 },
             };
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(
                 api,
                 new FakeConfirmationService(true),
@@ -1186,6 +1197,7 @@ namespace NeoCompose.Tests
             });
             var assets = new FakeAssetService();
             assets.files["Assets/Resources/Neo/Localization/fr-FR.json"] = "{}";
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(
                 api,
                 new FakeConfirmationService(true),
@@ -1224,6 +1236,7 @@ namespace NeoCompose.Tests
                 content = "{ \"locale\": \"es-MX\" }",
             });
             var assets = new FakeAssetService();
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(
                 api,
                 new FakeConfirmationService(true),
@@ -1247,7 +1260,7 @@ namespace NeoCompose.Tests
         {
             var config = MakeConfig();
             var api = new FakeApiClient();
-            api.exportResponse.generatedTypes = "// generated";
+            api.exportResponse.generatedFiles[0].content = "// generated";
             api.exportResponse.projectJson = ProjectJsonWithLocalization("en-US");
             api.exportResponse.localizationFiles.Add(new NeoComposeUnityLocalizationFile
             {
@@ -1257,6 +1270,7 @@ namespace NeoCompose.Tests
             });
             var assets = new FakeAssetService();
             assets.throwOnWriteText.Add("Assets/Resources/Neo/Localization/en-US.json");
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(
                 api,
                 new FakeConfirmationService(true),
@@ -1266,7 +1280,7 @@ namespace NeoCompose.Tests
 
             Assert.IsFalse(result.success);
             Assert.IsTrue(result.message.Contains("en-US"));
-            Assert.AreEqual("// generated", assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
+            Assert.AreEqual("// generated", assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"]);
             Assert.AreEqual(ProjectJsonWithLocalization("en-US"), assets.files["Assets/Resources/Neo/project.json"]);
         }
 
@@ -1410,6 +1424,7 @@ namespace NeoCompose.Tests
             var expectedPath = "Assets/Resources/Neo/Files/Sprites/file-1-hero.png";
             var expectedSprite = Sprite.Create(new Texture2D(1, 1), new Rect(0, 0, 1, 1), Vector2.zero);
             assets.loadedSprites[expectedPath] = new[] { expectedSprite };
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
             var progress = new List<string>();
 
@@ -1496,6 +1511,7 @@ namespace NeoCompose.Tests
             // template-less file must still count as current afterwards.
             assets.assetDatabase.TryGetEntry("file-1")!.TemplateId = "";
             assets.binaryFiles[expectedPath] = new byte[] { 1, 2, 3 };
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
             var progress = new List<string>();
 
@@ -1549,6 +1565,7 @@ namespace NeoCompose.Tests
                 "",
                 "2026-05-13.2");
             assets.binaryFiles[expectedPath] = new byte[] { 1, 2, 3 };
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
 
             var result = await synchronizer.SynchronizeAsync(config);
@@ -1637,6 +1654,7 @@ namespace NeoCompose.Tests
                 "hash-of-previous-template-record",
                 "2026-05-13.2");
             assets.binaryFiles[expectedPath] = new byte[] { 1, 2, 3 };
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
 
             var result = await synchronizer.SynchronizeAsync(config);
@@ -1691,6 +1709,7 @@ namespace NeoCompose.Tests
                 null,
                 "",
                 "2026-05-13.2");
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
 
             var result = await synchronizer.SynchronizeAsync(config);
@@ -1718,6 +1737,7 @@ namespace NeoCompose.Tests
                 null,
                 "",
                 "2026-05-13.2");
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
 
             var result = await synchronizer.SynchronizeAsync(config);
@@ -1745,6 +1765,7 @@ namespace NeoCompose.Tests
                 null,
                 "",
                 "2026-05-13.2");
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(false), assets);
 
             var result = await synchronizer.SynchronizeAsync(config);
@@ -2000,6 +2021,7 @@ namespace NeoCompose.Tests
             api.exportResponse.projectJson =
                 "{ \"project\": { \"exportSettings\": { \"unity\": { \"namespaceForGeneratedTypes\": \"HelloWorld.Assets.Scripts.Neo\", \"singleton\": false } } } }";
             var assets = new FakeAssetService();
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
 
             var result = await synchronizer.SynchronizeAsync(config);
@@ -2015,16 +2037,17 @@ namespace NeoCompose.Tests
         {
             var config = MakeConfig();
             var api = new FakeApiClient();
-            api.exportResponse.generatedTypes = "new";
+            api.exportResponse.generatedFiles[0].content = "new";
             var assets = new FakeAssetService();
-            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "existing";
+            assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "existing";
             var confirmations = new FakeConfirmationService(false);
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(api, confirmations, assets);
 
             var result = await synchronizer.SynchronizeAsync(config);
 
             Assert.IsFalse(result.success);
-            Assert.AreEqual("existing", assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
+            Assert.AreEqual("existing", assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"]);
             Assert.AreEqual(1, confirmations.calls.Count);
             Assert.IsTrue(confirmations.calls[0].Contains("Replace"));
         }
@@ -2042,6 +2065,7 @@ namespace NeoCompose.Tests
             });
             var assets = new FakeAssetService();
             var confirmations = new FakeConfirmationService(false);
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(api, confirmations, assets);
 
             var result = await synchronizer.SynchronizeAsync(config);
@@ -2057,7 +2081,7 @@ namespace NeoCompose.Tests
         {
             var config = MakeConfig();
             var api = new FakeApiClient();
-            api.exportResponse.generatedTypes = "";
+            api.exportResponse.generatedFiles[0].content = "";
             api.exportResponse.projectJson = "{ \"project\": \"new\" }";
             api.exportResponse.diagnostics.Add(new NeoComposeCodegenDiagnostic
             {
@@ -2066,18 +2090,21 @@ namespace NeoCompose.Tests
                 message = "Generation failed.",
             });
             var assets = new FakeAssetService();
-            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing generated";
+            assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing generated";
             assets.files["Assets/Resources/Neo/project.json"] = "{ \"project\": \"existing\" }";
             var confirmations = new FakeConfirmationService(true);
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(api, confirmations, assets);
 
+            UnityEngine.TestTools.LogAssert.Expect(LogType.Error,
+                new System.Text.RegularExpressions.Regex("empty generated C#"));
             var result = await synchronizer.SynchronizeAsync(config);
 
             Assert.IsFalse(result.success);
             StringAssert.Contains("empty generated C#", result.message);
             Assert.AreEqual(
                 "// existing generated",
-                assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
+                assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"]);
             Assert.AreEqual(
                 "{ \"project\": \"existing\" }",
                 assets.files["Assets/Resources/Neo/project.json"]);
@@ -2091,7 +2118,7 @@ namespace NeoCompose.Tests
         {
             var config = MakeConfig();
             var api = new FakeApiClient();
-            api.exportResponse.generatedTypes = "// generated";
+            api.exportResponse.generatedFiles[0].content = "// generated";
             api.exportResponse.projectJson = "{ \"project\": true }";
             api.exportResponse.diagnostics.Add(new NeoComposeCodegenDiagnostic
             {
@@ -2101,12 +2128,13 @@ namespace NeoCompose.Tests
             });
             var assets = new FakeAssetService();
             var confirmations = new FakeConfirmationService(true);
+            SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(api, confirmations, assets);
 
             var result = await synchronizer.SynchronizeAsync(config);
 
             Assert.IsTrue(result.success, result.message);
-            Assert.AreEqual("// generated", assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
+            Assert.AreEqual("// generated", assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"]);
             Assert.AreEqual("{ \"project\": true }", assets.files["Assets/Resources/Neo/project.json"]);
             Assert.AreEqual(1, confirmations.calls.Count);
             Assert.IsTrue(confirmations.calls[0].Contains("generated C#"));
@@ -2308,6 +2336,227 @@ namespace NeoCompose.Tests
             logicalRevisionId = revision,
         };
 
+        [Test]
+        public async Task Synchronizer_IdenticalFullExportDoesNotWriteOrImportCode()
+        {
+            var assets = new FakeAssetService();
+            var api = new FakeApiClient();
+            var config = MakeConfig();
+            var sync = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets, new FakeExportCache());
+            Assert.IsTrue((await sync.SynchronizeAsync(config)).success);
+            assets.writtenPaths.Clear();
+            assets.importedPaths.Clear();
+            Assert.IsTrue((await sync.SynchronizeAsync(config)).success);
+            Assert.IsEmpty(assets.writtenPaths);
+            Assert.IsEmpty(assets.importedPaths);
+        }
+
+        [Test]
+        public void GeneratedFiles_ChangesOnlyAffectedFilesAndPreservesMetadata()
+        {
+            var assets = new FakeAssetService();
+            var files = new[] {
+                new NeoComposeGeneratedFile { id = "Generated/Classes/id-one.g.cs", path = "Generated/Classes/id-one.g.cs", content = "one" },
+                new NeoComposeGeneratedFile { id = "Generated/Enums/id-two.g.cs", path = "Generated/Enums/id-two.g.cs", content = "two" },
+            };
+            new NeoComposeGeneratedFiles(assets, "Assets/Scripts/Neo", "project-1", files).Apply();
+            const string unchanged = "Assets/Scripts/Neo/ClassesExtended.cs";
+            assets.files[unchanged] = "handwritten";
+            assets.files["Assets/Scripts/Neo/Generated/Classes/id-one.g.cs.meta"] = "guid: keep";
+            assets.writtenPaths.Clear();
+            files[1].content = "changed";
+            var changed = new NeoComposeGeneratedFiles(assets, "Assets/Scripts/Neo", "project-1", files).Apply();
+            CollectionAssert.AreEqual(new[] { "Assets/Scripts/Neo/Generated/Enums/id-two.g.cs" }, changed);
+            Assert.AreEqual("guid: keep", assets.files["Assets/Scripts/Neo/Generated/Classes/id-one.g.cs.meta"]);
+            Assert.IsFalse(assets.writtenPaths.Contains("Assets/Scripts/Neo/Generated/Classes/id-one.g.cs"));
+            new NeoComposeGeneratedFiles(assets, "Assets/Scripts/Neo", "project-1", new[] { files[0] }).Apply();
+            Assert.IsFalse(assets.FileExists("Assets/Scripts/Neo/Generated/Enums/id-two.g.cs"));
+            Assert.AreEqual("handwritten", assets.files[unchanged]);
+            Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1"));
+        }
+
+        [Test]
+        public void GeneratedFiles_RemovesMonolithAndDetectsMissingOrEditedFiles()
+        {
+            var assets = new FakeAssetService();
+            const string oldPath = "Assets/Scripts/Neo/NeoGeneratedTypes.cs";
+            assets.files[oldPath] = "// old generated";
+            var files = new[] { new NeoComposeGeneratedFile { id = "Generated/Project.g.cs", path = "Generated/Project.g.cs", content = "new" } };
+            new NeoComposeGeneratedFiles(assets, "Assets/Scripts/Neo", "project-1", files).Apply();
+            Assert.IsFalse(assets.FileExists(oldPath));
+            Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1"));
+            Assert.IsFalse(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "another-project"));
+            assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "edited";
+            Assert.IsFalse(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1"));
+            assets.files.Remove("Assets/Scripts/Neo/Generated/Project.g.cs");
+            Assert.IsFalse(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1"));
+            new NeoComposeGeneratedFiles(assets, "Assets/Scripts/Neo", "project-1", files).Apply();
+            Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1"));
+        }
+
+        [TestCase("../Other.cs")]
+        [TestCase("Generated/../Other.g.cs")]
+        [TestCase("Generated/../../Other.g.cs")]
+        [TestCase("Generated/Bad:Name.g.cs")]
+        [TestCase("/Generated/File.g.cs")]
+        public void GeneratedFiles_RejectsUnsafePathsBeforeWriting(string path)
+        {
+            var assets = new FakeAssetService();
+            Assert.Throws<System.InvalidOperationException>(() => new NeoComposeGeneratedFiles(assets,
+                "Assets/Scripts/Neo", "project-1", new[] { new NeoComposeGeneratedFile { id = path, path = path, content = "code" } }));
+            Assert.IsEmpty(assets.files);
+        }
+
+        [Test]
+        public void GeneratedFiles_RejectsDuplicatePathsAndRollsBackFailedWrites()
+        {
+            var assets = new FakeAssetService();
+            var files = new[] {
+                new NeoComposeGeneratedFile { id = "Generated/A.g.cs", path = "Generated/A.g.cs", content = "old A" },
+                new NeoComposeGeneratedFile { id = "Generated/B.g.cs", path = "Generated/B.g.cs", content = "old B" },
+            };
+            Assert.Throws<System.InvalidOperationException>(() => new NeoComposeGeneratedFiles(assets,
+                "Assets/Scripts/Neo", "project-1", new[] { files[0], files[0] }));
+            new NeoComposeGeneratedFiles(assets, "Assets/Scripts/Neo", "project-1", files).Apply();
+            var original = new Dictionary<string, string>(assets.files);
+            files[0].content = "new A";
+            files[1].content = "new B";
+            assets.throwOnWriteText.Add("Assets/Scripts/Neo/Generated/B.g.cs");
+            Assert.Throws<IOException>(() => new NeoComposeGeneratedFiles(assets,
+                "Assets/Scripts/Neo", "project-1", files).Apply());
+            CollectionAssert.AreEquivalent(original, assets.files);
+            Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1"));
+        }
+
+        [Test]
+        public void GeneratedFiles_FailedRepairPreservesAnExistingGuid()
+        {
+            var assets = new FakeAssetService();
+            const string repaired = "Assets/Scripts/Neo/Generated/A.g.cs";
+            assets.files[repaired + ".meta"] = "guid: original";
+            var files = new[] {
+                new NeoComposeGeneratedFile { id = "Generated/A.g.cs", path = "Generated/A.g.cs", content = "A" },
+                new NeoComposeGeneratedFile { id = "Generated/B.g.cs", path = "Generated/B.g.cs", content = "B" },
+            };
+            assets.throwOnWriteText.Add("Assets/Scripts/Neo/Generated/B.g.cs");
+            Assert.Throws<IOException>(() => new NeoComposeGeneratedFiles(assets,
+                "Assets/Scripts/Neo", "project-1", files).Apply());
+            Assert.IsFalse(assets.FileExists(repaired));
+            Assert.AreEqual("guid: original", assets.files[repaired + ".meta"]);
+        }
+
+        [Test]
+        public void GeneratedFiles_RefusedDeletionDoesNotCommitTheManifest()
+        {
+            var assets = new FakeAssetService();
+            var oldFiles = new[] {
+                new NeoComposeGeneratedFile { id = "Generated/A.g.cs", path = "Generated/A.g.cs", content = "A" },
+                new NeoComposeGeneratedFile { id = "Generated/B.g.cs", path = "Generated/B.g.cs", content = "B" },
+            };
+            new NeoComposeGeneratedFiles(assets, "Assets/Scripts/Neo", "project-1", oldFiles).Apply();
+            var original = new Dictionary<string, string>(assets.files);
+            assets.ignoreDeletes = true;
+            Assert.Throws<IOException>(() => new NeoComposeGeneratedFiles(assets,
+                "Assets/Scripts/Neo", "project-1", new[] { oldFiles[0] }).Apply());
+            CollectionAssert.AreEquivalent(original, assets.files);
+        }
+
+        [TestCase("Character")]
+        [TestCase("ITEM")]
+        public void GeneratedFiles_RenamePreservesImportedUnityGuid(string name)
+        {
+            EnsureTempRoot();
+            try
+            {
+                var assets = new NeoComposeEditorAssetService();
+                var file = new NeoComposeGeneratedFile { id = "class:one", path = "Generated/Item.g.cs", content = "// generated test\n" };
+                new NeoComposeGeneratedFiles(assets, TempRoot, "project", new[] { file }).Apply();
+                var before = TempRoot + "/" + file.path;
+                AssetDatabase.ImportAsset(before, ImportAssetOptions.ForceSynchronousImport);
+                var guid = AssetDatabase.AssetPathToGUID(before);
+                Assert.IsNotEmpty(guid);
+                file.path = "Generated/" + name + ".g.cs";
+                var after = TempRoot + "/" + file.path;
+                CollectionAssert.AreEqual(new[] { after }, new NeoComposeGeneratedFiles(assets, TempRoot, "project", new[] { file }).Apply());
+                AssetDatabase.ImportAsset(after, ImportAssetOptions.ForceSynchronousImport);
+                Assert.AreEqual(guid, AssetDatabase.AssetPathToGUID(after));
+                var entries = Directory.GetFiles(TempRoot + "/Generated").Select(Path.GetFileName).ToArray();
+                CollectionAssert.DoesNotContain(entries, "Item.g.cs");
+                CollectionAssert.DoesNotContain(entries, "Item.g.cs.meta");
+                CollectionAssert.Contains(entries, name + ".g.cs");
+                CollectionAssert.Contains(entries, name + ".g.cs.meta");
+                Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, TempRoot, "project"));
+            }
+            finally { CleanupTempRoot(); }
+        }
+
+        [Test]
+        public void GeneratedFiles_NameSwapsPreserveOwnershipAndRollBackMetadata()
+        {
+            var assets = new FakeAssetService();
+            const string directory = "Assets/Scripts/Neo";
+            var files = new[] {
+                new NeoComposeGeneratedFile { id = "class:one", path = "Generated/A.g.cs", content = "one" },
+                new NeoComposeGeneratedFile { id = "class:two", path = "Generated/B.g.cs", content = "two" },
+            };
+            new NeoComposeGeneratedFiles(assets, directory, "project", files).Apply();
+            foreach (var file in files) assets.files[directory + "/" + file.path + ".meta"] = file.id;
+            var original = new Dictionary<string, string>(assets.files);
+            (files[0].path, files[1].path) = (files[1].path, files[0].path);
+            assets.throwOnWriteText.Add(directory + "/NeoGeneratedFiles.json");
+            Assert.Throws<IOException>(() => new NeoComposeGeneratedFiles(assets, directory, "project", files).Apply());
+            CollectionAssert.AreEquivalent(original, assets.files);
+            assets.throwOnWriteText.Clear();
+            new NeoComposeGeneratedFiles(assets, directory, "project", files).Apply();
+            foreach (var file in files)
+            {
+                Assert.AreEqual(file.content, assets.files[directory + "/" + file.path]);
+                Assert.AreEqual(file.id, assets.files[directory + "/" + file.path + ".meta"]);
+            }
+        }
+
+        [TestCase("Character")]
+        [TestCase("ITEM")]
+        public void GeneratedFiles_FailedRenameRestoresOriginalNamesAndGuids(string name)
+        {
+            var assets = new FakeAssetService();
+            const string directory = "Assets/Scripts/Neo";
+            var file = new NeoComposeGeneratedFile { id = "class:one", path = "Generated/Item.g.cs", content = "one" };
+            new NeoComposeGeneratedFiles(assets, directory, "project", new[] { file }).Apply();
+            assets.files[directory + "/" + file.path + ".meta"] = "guid: keep";
+            var original = new Dictionary<string, string>(assets.files);
+            file.path = "Generated/" + name + ".g.cs";
+            assets.throwOnWriteText.Add(directory + "/NeoGeneratedFiles.json");
+            Assert.Throws<IOException>(() => new NeoComposeGeneratedFiles(assets, directory, "project", new[] { file }).Apply());
+            CollectionAssert.AreEquivalent(original, assets.files);
+        }
+
+        [Test]
+        public void GeneratedFiles_RejectsUnownedRenameDestinationsAndDuplicateIdentities()
+        {
+            var assets = new FakeAssetService();
+            const string directory = "Assets/Scripts/Neo";
+            var file = new NeoComposeGeneratedFile { id = "class:one", path = "Generated/A.g.cs", content = "one" };
+            new NeoComposeGeneratedFiles(assets, directory, "project", new[] { file }).Apply();
+            assets.files[directory + "/Generated/Handwritten.g.cs"] = "handwritten";
+            var original = new Dictionary<string, string>(assets.files);
+            file.path = "Generated/Handwritten.g.cs";
+            Assert.Throws<System.InvalidOperationException>(() => new NeoComposeGeneratedFiles(assets, directory, "project", new[] { file }));
+            Assert.Throws<System.InvalidOperationException>(() => new NeoComposeGeneratedFiles(assets, directory, "project", new[] { file,
+                new NeoComposeGeneratedFile { id = file.id, path = "Generated/B.g.cs", content = "two" } }));
+            CollectionAssert.AreEquivalent(original, assets.files);
+        }
+
+        private static void SeedGeneratedFiles(FakeAssetService assets, string projectId = "project-1")
+        {
+            const string path = "Assets/Scripts/Neo/Generated/Project.g.cs";
+            if (!assets.files.TryGetValue(path, out var content)) return;
+            new NeoComposeGeneratedFiles(assets, "Assets/Scripts/Neo", projectId,
+                new[] { new NeoComposeGeneratedFile { id = "Generated/Project.g.cs", path = "Generated/Project.g.cs", content = content } }).Apply();
+            assets.writtenPaths.Clear();
+            assets.createdDirectories.Clear();
+        }
+
         private sealed class FakeApiClient : INeoComposeEditorApiClient
         {
             public readonly NeoComposeUnityExportResponse exportResponse = new()
@@ -2316,7 +2565,9 @@ namespace NeoCompose.Tests
                 projectId = "project-1",
                 projectName = "Project One",
                 projectJson = "{}",
-                generatedTypes = "// generated",
+                generatedFiles = new List<NeoComposeGeneratedFile> {
+                    new() { id = "Generated/Project.g.cs", path = "Generated/Project.g.cs", content = "// generated" },
+                },
             };
             public readonly NeoComposeProjectEditResponse editResponse = new();
             public string? lastEditApiBaseUrl;
@@ -2514,6 +2765,8 @@ namespace NeoCompose.Tests
         private sealed class FakeAssetService : INeoComposeEditorAssetService
         {
             public readonly Dictionary<string, string> files = new();
+            public readonly List<string> writtenPaths = new();
+            public readonly List<string> importedPaths = new();
             public readonly Dictionary<string, byte[]> binaryFiles = new();
             public readonly Dictionary<string, Sprite[]> loadedSprites = new();
             public readonly Dictionary<string, AudioClip> loadedAudioClips = new();
@@ -2521,6 +2774,7 @@ namespace NeoCompose.Tests
             public readonly List<string> deletedAssets = new();
             public readonly List<string> appliedImportSettings = new();
             public readonly HashSet<string> throwOnWriteText = new();
+            public bool ignoreDeletes;
             public NeoAssetDatabase assetDatabase = ScriptableObject.CreateInstance<NeoAssetDatabase>();
             public bool savedConfig;
             public bool savedAsset;
@@ -2556,6 +2810,7 @@ namespace NeoCompose.Tests
                 {
                     throw new IOException("Injected write failure.");
                 }
+                writtenPaths.Add(assetPath);
                 files[assetPath] = content;
             }
 
@@ -2573,9 +2828,13 @@ namespace NeoCompose.Tests
                 savedConfig = true;
             }
 
-            public void SchedulePostSynchronize(NeoComposeConfig config, string projectJsonPath)
+            public void BeginAssetEditing() { }
+            public void EndAssetEditing() { }
+
+            public void SchedulePostSynchronize(NeoComposeConfig config, string projectJsonPath, IReadOnlyList<string> changedPaths)
             {
                 postSynchronizeProjectJsonPath = projectJsonPath;
+                importedPaths.AddRange(changedPaths);
             }
 
             public NeoAssetDatabase LoadOrCreateAssetDatabase(string assetPath)
@@ -2609,6 +2868,8 @@ namespace NeoCompose.Tests
 
             public void DeleteAsset(string assetPath)
             {
+                if (ignoreDeletes) return;
+                files.Remove(assetPath + ".meta");
                 deletedAssets.Add(assetPath);
                 files.Remove(assetPath);
                 binaryFiles.Remove(assetPath);

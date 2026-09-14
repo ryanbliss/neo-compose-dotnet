@@ -141,6 +141,13 @@ namespace NeoCompose.Unity.Editor
             : base("The published project changed during export. Synchronize again.") { }
     }
 
+    public sealed class NeoComposeGeneratedFile
+    {
+        public string id = "";
+        public string path = "";
+        public string content = "";
+    }
+
     public sealed class NeoComposeUnityExportResponse
     {
         public string mode = "full";
@@ -148,7 +155,7 @@ namespace NeoCompose.Unity.Editor
         public string projectId = "";
         public string projectName = "";
         public string projectJson = "";
-        public string generatedTypes = "";
+        public List<NeoComposeGeneratedFile> generatedFiles = new();
         public List<NeoComposeUnityLocalizationFile> localizationFiles = new();
         public List<NeoComposeCodegenDiagnostic> diagnostics = new();
         public NeoComposeProjectVersion? version;
