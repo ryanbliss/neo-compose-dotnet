@@ -234,9 +234,9 @@ namespace NeoCompose.Runtime.Json
     /// <summary>
     /// Central projection for the TS-side
     /// <c>CHAIN_RESOLVED_OPTIONAL_MEMBER_FIELDS</c> contract. The first 18
-    /// entries intentionally mirror that list exactly. The final three are
-    /// server-compiled companions whose inheritance is coupled to authored
-    /// code/body clears by <c>resolveMember</c>.
+    /// entries intentionally mirror that list exactly. Resolution also includes
+    /// server-compiled companions coupled to authored code/body clears and the
+    /// lookup collection target inherited by sparse overrides.
     /// </summary>
     internal static class MemberChainResolvedFields
     {
@@ -285,6 +285,7 @@ namespace NeoCompose.Runtime.Json
             "getter",
             "setter",
             "action",
+            "collectionMemberId",
         };
 
         private static readonly Dictionary<string, int> indexes = BuildIndexes();

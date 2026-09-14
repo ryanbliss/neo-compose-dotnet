@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.36.3] - 2026-09-14
+
+- Resolve inherited collection targets on sparse lookup overrides so generated getters can read selections such as tile-layer sorting layers. Preserve omitted target fields when exporting overrides.
+
 ## [0.36.2] - 2026-09-14
 
 - Preserve multi-select lookup arrays with one selected item during NeoScript reads, including inherited selection metadata. Single-select lookups still resolve their selected value.
