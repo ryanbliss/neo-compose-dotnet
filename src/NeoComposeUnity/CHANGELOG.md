@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.5] - 2026-09-14
+
+- Fix constructor replay failing on exported null fields in class defaults,
+  such as Neowyn's animation track OffsetEndIndex. Infer the null row's
+  carrier from its declared member type before cloning. Required fields and
+  non-nullable actions still reject null.
+
 ## [0.36.4] - 2026-09-14
 
 - Fetch a full export when project.json no longer matches the cached sync

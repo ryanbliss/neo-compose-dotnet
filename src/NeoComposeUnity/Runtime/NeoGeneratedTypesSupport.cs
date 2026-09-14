@@ -6642,6 +6642,24 @@ namespace NeoCompose.Runtime
             string path,
             Dictionary<string, string> clonedIdsBySourceId)
         {
+            // Exported nulls have no payload shape from which the JSON reader can
+            // infer a carrier. Resolve it from the member before cloning.
+            if (source is NullMemberValue && member is
+                BoolMember or IntMember or FloatMember or StringMember or DecimalMember
+                or Vector2Member or Vector2IntMember or Vector3Member or Vector3IntMember
+                or ColorMember or EnumMember or LookupMember or DialogueLookupMember
+                or SpriteMember or AudioMember or DelegateMember or VariantMember
+                or ClassMember or ListMember or DictionaryMember)
+            {
+                if (member.Requirement == NeoMemberRequirementKind.Required)
+                    throw new InvalidOperationException($"Class default '{path}' has a null required value.");
+                var typedSource = MemberValueFactory.Create(
+                    member, new NeoValuePayload(null, source.classId),
+                    source.id, source.createdAt, source.updatedAt);
+                typedSource.genericBindings = source.genericBindings;
+                source = typedSource;
+            }
+
             switch (member)
             {
                 case NullMember:

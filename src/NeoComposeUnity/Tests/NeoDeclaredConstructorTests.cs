@@ -29,6 +29,99 @@ namespace NeoCompose.Tests
     {
         private const string ProjectId = "ctor-project";
 
+        [TestCase(MemberKind.Int, false)]
+        [TestCase(MemberKind.Float, false)]
+        [TestCase(MemberKind.Bool, false)]
+        [TestCase(MemberKind.String, false)]
+        [TestCase(MemberKind.Decimal, false)]
+        [TestCase(MemberKind.Vector2, false)]
+        [TestCase(MemberKind.Vector3, false)]
+        [TestCase(MemberKind.Color, false)]
+        [TestCase(MemberKind.Sprite, false)]
+        [TestCase(MemberKind.Audio, false)]
+        [TestCase(MemberKind.Int, true)]
+        [TestCase(MemberKind.NSAction, false)]
+        [TestCase(MemberKind.List, false)]
+        [TestCase(MemberKind.Dictionary, false)]
+        [TestCase(MemberKind.List, true)]
+        [TestCase(MemberKind.Dictionary, true)]
+        [TestCase(MemberKind.Int, false, true)]
+        [TestCase(MemberKind.List, false, true)]
+        [TestCase(MemberKind.Dictionary, false, true)]
+        public void Constructor_ClonesExportedNullInClassListDefault(
+            MemberKind kind, bool required, bool typedSource = false)
+        {
+            var data = BuildProjectData();
+            var member = new JObject
+            {
+                ["id"] = "track-end", ["projectId"] = ProjectId,
+                ["name"] = "OffsetEndIndex", ["kind"] = (int)kind,
+                ["entryMemberId"] = "track-entry",
+                ["argumentTypes"] = new JArray(),
+                ["requirement"] = (int)(required ? NeoMemberRequirementKind.Required : NeoMemberRequirementKind.Optional),
+            }.ToObject<JsonMember>()!;
+            // A stored explicit null must not fall back to a non-null declaration default.
+            if (member is IntMember number) number.defaultValue = new NumberMemberValueBase { value = 99 };
+            data.members[member.id] = member;
+            data.classes["null-track"] = new NeoSchemaClass
+            {
+                id = "null-track", projectId = ProjectId, name = "Track",
+                schema = new Dictionary<string, string> { ["OffsetEndIndex"] = member.id },
+            };
+            data.members["track-entry"] = new ClassMember
+            {
+                id = "track-entry", projectId = ProjectId, name = "Track", kind = MemberKind.Class,
+                classId = "null-track",
+            };
+            data.members["tracks-default"] = new ListMember
+            {
+                id = "tracks-default", projectId = ProjectId, name = "Tracks", kind = MemberKind.List,
+                entryMemberId = "track-entry",
+                defaultValue = new ArrayMemberValueBase { value = new[] { "stored-track" } },
+            };
+            data.classes["null-host"] = new NeoSchemaClass
+            {
+                id = "null-host", projectId = ProjectId, name = "Host",
+                schema = new Dictionary<string, string> { ["Tracks"] = "tracks-default" },
+            };
+            data.values["stored-track"] = ObjectValue("stored-track", "null-track");
+            ((ObjectMemberValue)data.values["stored-track"]).value!["OffsetEndIndex"] = "stored-null";
+            // Exercise shape-based export deserialization, which produces NullMemberValue.
+            var source = JObject.Parse("{'id':'stored-null','value':null}").ToObject<MemberValue>()!;
+            Assert.IsInstanceOf<NullMemberValue>(source);
+            if (typedSource)
+                source = MemberValueFactory.Create<object?>(member, null, source.id, "", "");
+            data.values[source.id] = source;
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable Construct() => NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                client, "null-host", null, Array.Empty<NeoDeclaredConstructorArgument>());
+            if (required)
+            {
+                StringAssert.Contains("null required value", Assert.Throws<InvalidOperationException>(() => Construct())!.Message);
+                return;
+            }
+            if (kind == MemberKind.NSAction)
+            {
+                StringAssert.Contains("cannot supply member", Assert.Throws<InvalidOperationException>(() => Construct())!.Message);
+                return;
+            }
+
+            using var result = Construct();
+
+            Assert.IsTrue(client.TryGetValue(result.value!.value!["Tracks"], out ArrayMemberValue? tracks));
+            Assert.IsTrue(client.TryGetValue(tracks!.value![0], out ObjectMemberValue? track));
+            Assert.IsTrue(client.TryGetValue(track!.value!["OffsetEndIndex"], out MemberValue? cloned));
+            Assert.AreNotEqual(source.id, cloned!.id);
+            Assert.AreNotEqual(typeof(NullMemberValue), cloned.GetType(), "The clone must use the member's typed carrier.");
+            var payload = JObject.FromObject(cloned)["value"]!;
+            if (kind is MemberKind.List or MemberKind.Dictionary)
+                Assert.IsEmpty((JContainer)payload, "Collections retain their existing typed-null-to-empty behavior.");
+            else
+                Assert.AreEqual(JTokenType.Null, payload.Type);
+            Assert.AreSame(source, data.values[source.id], "Cloning must not replace the authored row.");
+            Assert.AreEqual(JTokenType.Null, JObject.FromObject(source)["value"]!.Type);
+        }
+
         // -------------------------------------------------------------------
         // Construction order.
         // -------------------------------------------------------------------
