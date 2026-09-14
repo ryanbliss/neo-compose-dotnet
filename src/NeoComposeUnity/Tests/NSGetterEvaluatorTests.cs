@@ -992,6 +992,27 @@ namespace NeoCompose.Tests
                 new TestGeneratedValue(client, writableNode));
         }
 
+        [TestCase(NeoMemberSelectionKind.Single, false)]
+        [TestCase(NeoMemberSelectionKind.Single, true)]
+        [TestCase(NeoMemberSelectionKind.Multi, false)]
+        [TestCase(NeoMemberSelectionKind.Multi, true)]
+        public void Evaluate_SingletonLookupPreservesResolvedSelection(
+            NeoMemberSelectionKind selection, bool inherited)
+        {
+            var client = LoadGeneratedValueSurfaceClient(
+                out ClassMember testMember, out ObjectMemberValue row, out _,
+                selection, inherited, singletonLookup: true);
+            var node = (NeoMemberClass)NeoMember.Create(client, testMember, row.id);
+            var generated = new TestReadOnlyGeneratedValue(client, node);
+
+            object? result = EvaluateThisMember(client, generated, "LookupSet");
+
+            if (selection == NeoMemberSelectionKind.Multi)
+                Assert.That(result, Is.EqualTo(new object?[] { "v-list-1" }));
+            else
+                Assert.That(result, Is.EqualTo("first"));
+        }
+
         [Test]
         public void Evaluate_GeneratedClassThis_LocalizesStringDereference()
         {
@@ -1546,7 +1567,10 @@ namespace NeoCompose.Tests
         private static NeoClient LoadGeneratedValueSurfaceClient(
             out ClassMember testMember,
             out ObjectMemberValue readOnlyRow,
-            out ObjectMemberValue savedRow)
+            out ObjectMemberValue savedRow,
+            NeoMemberSelectionKind lookupSelection = NeoMemberSelectionKind.Multi,
+            bool inheritLookupSelection = false,
+            bool singletonLookup = false)
         {
             var childTextMember = StringMember("member-child-text", "ChildText");
             var childClass = NeoSchemaClass("class-child", "Child", new Dictionary<string, string>
@@ -1585,6 +1609,22 @@ namespace NeoCompose.Tests
                 "LookupSet",
                 listMember.id,
                 "v-list");
+            lookupMember.Selection = lookupSelection;
+            var baseLookupMember = lookupMember;
+            if (inheritLookupSelection)
+            {
+                lookupMember = new LookupMember
+                {
+                    id = "member-lookup-override",
+                    projectId = lookupMember.projectId,
+                    name = lookupMember.name,
+                    kind = MemberKind.Lookup,
+                    extendsMemberId = baseLookupMember.id,
+                    collectionMemberId = listMember.id,
+                    createdAt = "x",
+                    updatedAt = "x",
+                };
+            }
             var getterMember = NSPropertyMember("member-getter", "Getter");
 
             testMember = ClassMember("member-test", "Test", "class-test");
@@ -1634,7 +1674,9 @@ namespace NeoCompose.Tests
                         ["Text"] = "v-child-text",
                     }),
                 ["v-enum"] = ArrayValue("v-enum", "red"),
-                ["v-lookup"] = ArrayValue("v-lookup", "v-list-1", "v-list-2"),
+                ["v-lookup"] = singletonLookup
+                    ? ArrayValue("v-lookup", "v-list-1")
+                    : ArrayValue("v-lookup", "v-list-1", "v-list-2"),
             };
             readOnlyRow = ObjectValue(
                 "v-readonly-test",
@@ -1709,6 +1751,7 @@ namespace NeoCompose.Tests
                     },
                 },
             };
+            data.members[baseLookupMember.id] = baseLookupMember;
             var client = NeoTestSaveStack.ClientFromSchema(data);
             client.Localization.TryAddLoadedLocale(new ProjectLocalizationLocaleFile
             {

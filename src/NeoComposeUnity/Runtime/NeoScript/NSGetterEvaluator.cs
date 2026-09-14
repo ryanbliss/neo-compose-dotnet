@@ -4942,7 +4942,8 @@ namespace NeoCompose.Runtime.NeoScript
             var ownership = preferredOwnership ?? ResolveOwnershipForValueId(ctx, id);
             if (!ctx.client.TryGetValue(ownership, id, out MemberValue? row)) return at;
             var v = UnwrapCached(row, ctx, ownership, member);
-            if (member is LookupMember
+            if (member is LookupMember lookup
+                && lookup.Selection != NeoMemberSelectionKind.Multi
                 && v is object?[] arr
                 && arr.Length == 1
                 && arr[0] is string singleId)
