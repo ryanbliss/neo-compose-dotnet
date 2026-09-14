@@ -722,6 +722,184 @@ namespace NeoCompose.Tests
             Assert.AreEqual("thing-instance", recorded.Value<string>());
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        [TestCase(false, true)]
+        [TestCase(false, false, MemberKind.List)]
+        [TestCase(false, false, MemberKind.Dictionary)]
+        public void SavingConstructorOnlyArgumentsPreservesSharedDependencies(
+            bool clone, bool trackedPatch = false, MemberKind argumentKind = MemberKind.Class)
+        {
+            var data = BuildProjectData();
+            data.classes["thing-class"].allowedStorage = NeoMemberStorage.Inherit;
+            data.members["transient-count"] = new IntMember
+            {
+                id = "transient-count", name = "Transient", kind = MemberKind.Int,
+                Storage = NeoMemberStorage.Session,
+                defaultValue = new NumberMemberValueBase { value = 0 },
+            };
+            data.classes["thing-class"].schema["Transient"] = "transient-count";
+            data.members["config-item"] = new StringMember { id = "config-item", name = "Item", kind = MemberKind.String };
+            data.members["config-items"] = new ListMember
+            {
+                id = "config-items", name = "Items", kind = MemberKind.List, ListKind = NeoListKind.Unordered,
+                entryMemberId = "config-item", defaultValue = new ArrayMemberValueBase { value = Array.Empty<string>() },
+            };
+            data.classes["thing-class"].schema["Items"] = "config-items";
+            var holderClass = new NeoSchemaClass
+            {
+                id = "recipe-holder", name = "RecipeHolder", projectId = "p75-project",
+                schema = new Dictionary<string, string>(), constructorIds = new[] { "recipe-ctor" },
+            };
+            data.classes[holderClass.id] = holderClass;
+            var argument = new FunctionArgumentTypeInfo
+            {
+                name = "config", type = argumentKind, classId = "thing-class", required = true,
+                entryTypeInfo = argumentKind == MemberKind.Class ? null : ClassType("thing-class"),
+            };
+            var literal = new FunctionArgumentTypeInfo { name = "text", type = MemberKind.String, required = true };
+            data.constructors["recipe-ctor"] = new ConstructorRecord
+            {
+                id = "recipe-ctor", projectId = "p75-project", classId = holderClass.id,
+                argumentTypes = new[] { argument, literal },
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        ConstructorVariable("__this__", ClassType(holderClass.id)),
+                        ConstructorVariable("__root__", ClassType("save-root-class")),
+                        ConstructorVariable("__arg_0__", argument),
+                        ConstructorVariable("__arg_1__", literal),
+                    },
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = Array.Empty<Instruction>(),
+                },
+            };
+            foreach (var key in new[] { "First", "Second" })
+            {
+                data.members[key] = new ClassMember { id = key, kind = MemberKind.Class, classId = holderClass.id, name = key };
+                data.classes["save-root-class"].schema[key] = key;
+            }
+            string saved, configId, argumentId;
+            data.metadata = new ProjectExportMetadata
+            {
+                schemaVersion = NeoProjectExportContract.CurrentSchemaVersion,
+                projectId = data.project.id, versionId = "unit-test-version",
+            };
+            data.internalRecordRelations = new Dictionary<string, InternalRecordRelation>();
+            data.variantFolders = new Dictionary<string, VariantFolderRecord>();
+            var stack = trackedPatch ? NeoTestSaveStack.Create(JObject.FromObject(data).ToString()) : null;
+            using (var client = stack?.Load() ?? NeoTestSaveStack.ClientFromSchema(data))
+            {
+                var baseline = (JObject)JObject.Parse(client.SerializeSaveData())["values"]!;
+                using var config = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client, "thing-class", null, Array.Empty<NeoDeclaredConstructorArgument>());
+                configId = config.value!.id;
+                argumentId = argumentKind == MemberKind.Class ? configId : "config-collection";
+                config.Get<NeoMemberIntWritable>("Count").Set(42);
+                config.Get<NeoMemberIntWritable>("Transient").Set(9);
+                client.SetWritableValue(NeoValueOwnership.Session, new StringMemberValue
+                {
+                    id = "retained-list-entry", value = "unordered input",
+                    containerId = config.Get<NeoMemberListWritable>("Items").value!.id,
+                });
+                using var reference = new HeldThingValue(client, config);
+                if (argumentKind == MemberKind.List)
+                    client.SetWritableValue(NeoValueOwnership.Session,
+                        new ArrayMemberValue { id = argumentId, value = new[] { configId } });
+                else if (argumentKind == MemberKind.Dictionary)
+                    client.SetWritableValue(NeoValueOwnership.Session,
+                        new ObjectMemberValue { id = argumentId, value = new Dictionary<string, string> { ["entry"] = configId } });
+                client.SetWritableValue(NeoValueOwnership.Session, new StringMemberValue { id = "literal-row", value = "not a dependency" });
+                var root = ObjectValue("value-save", "save-root-class", new Dictionary<string, string> { ["Thing"] = "thing-instance" });
+                foreach (var key in new[] { "First", "Second" })
+                {
+                    using var holder = argumentKind == MemberKind.Class
+                        ? NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(client, holderClass.id, "recipe-ctor",
+                            new[] { new NeoDeclaredConstructorArgument("config", reference), new NeoDeclaredConstructorArgument("text", "literal-row") })
+                        : null;
+                    string holderId = holder?.value!.id ?? key + "-holder";
+                    if (holder is null)
+                    {
+                        var recipe = ObjectValue(holderId, holderClass.id, new Dictionary<string, string>());
+                        recipe.instanceConstructorId = "recipe-ctor";
+                        recipe.constructorArgs = new Dictionary<string, JToken?>
+                        {
+                            ["__arg_0__"] = argumentId, ["__arg_1__"] = "literal-row",
+                        };
+                        client.SetWritableValue(NeoValueOwnership.Session, recipe);
+                    }
+                    string id = clone
+                        ? client.CloneOwnedValueReferenceForNewParent(NeoValueOwnership.Save, NeoValueOwnership.Session, holderId, data.members[key])
+                        : client.ImportValueReference(NeoValueOwnership.Save, holderId, out _);
+                    root.value![key] = id;
+                    Assert.AreEqual(argumentId, client.saveValues[id].constructorArgs!["__arg_0__"]!.Value<string>());
+                }
+                client.SetSaveValue(root);
+                client.RunGarbageCollector();
+                Assert.IsTrue(client.saveValues.ContainsKey(configId), "Constructor-only inputs must survive without an owning field.");
+                Assert.IsTrue(client.saveValues.ContainsKey("retained-list-entry"), "Unordered inputs need their container memberships retained.");
+                Assert.IsFalse(client.saveValues.ContainsKey("literal-row"), "String arguments remain literals.");
+                saved = client.SerializeSaveData();
+                Assert.IsNull(JObject.Parse(saved)["values"]![configId]!["value"]!["Transient"]);
+                Assert.AreEqual(9, config.Get<NeoMemberIntWritable>("Transient").value!.value,
+                    "Serialization must not reset live Session state.");
+                if (stack is not null)
+                {
+                    var build = typeof(NeoSaveSynchronizer).GetMethod("BuildPendingPatch",
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+                    var patch = (NeoSavePatch)build.Invoke(stack.Synchronizer, new object?[]
+                    {
+                        baseline, JObject.Parse(saved)["values"], null,
+                        new Dictionary<string, string?>(), new Dictionary<string, string?>(), true,
+                    })!;
+                    Assert.IsTrue(patch.changes.OfType<GameSaveValueReplaceChange>().Any(change => change.valueId == configId),
+                        "Tracked live patches must include retained constructor inputs.");
+                    string countId = ((ObjectMemberValue)client.saveValues[configId]).value!["Count"];
+                    Assert.IsTrue(patch.changes.OfType<GameSaveValueReplaceChange>().Any(change => change.valueId == countId));
+                }
+                root.value!.Remove("First");
+                client.SetSaveValue(root);
+                client.RunGarbageCollector();
+                Assert.IsTrue(client.saveValues.ContainsKey(configId), "Removing one recipe must not delete another recipe's shared input.");
+            }
+            using var reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            foreach (var key in new[] { "First", "Second" })
+                Assert.AreEqual(argumentId, reopened.save.Get<NeoMemberClassWritable>(key).value!.constructorArgs!["__arg_0__"]!.Value<string>());
+            Assert.IsTrue(reopened.TryGetValue(configId, out ObjectMemberValue? storedConfig));
+            Assert.IsTrue(reopened.TryGetValue(storedConfig!.value!["Count"], out NumberMemberValue? count));
+            Assert.AreEqual(42, count!.value);
+            using var restored = new NeoMemberClassWritable(reopened,
+                new ClassMember { id = "restored-config", kind = MemberKind.Class, classId = "thing-class" }, configId, NeoValueOwnership.Save);
+            Assert.AreEqual(0, restored.Get<NeoMemberIntWritable>("Transient").value!.value);
+            Assert.IsTrue(reopened.TryGetValue("retained-list-entry", out StringMemberValue? listEntry));
+            Assert.AreEqual("unordered input", listEntry!.value);
+        }
+
+        [Test]
+        public void SavingGenericConstructorArgumentRetainsItsResolvedClassInput()
+        {
+            var data = BuildGenericConstructorProjectData();
+            string saved;
+            using (var client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                client.SetWritableValue(NeoValueOwnership.Session, new StringMemberValue { id = "runtime-name", value = "retained" });
+                client.SetWritableValue(NeoValueOwnership.Session,
+                    ObjectValue("runtime-payload", "payload-class", new Dictionary<string, string> { ["Name"] = "runtime-name" }));
+                var root = (ObjectMemberValue)client.CloneRowForWrite(data.values["thing-instance"]);
+                root.constructorArgs!["__arg_0__"] = "runtime-payload";
+                client.SetSaveValue(root);
+                client.RunGarbageCollector();
+                saved = client.SerializeSaveData();
+            }
+            using var reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.AreEqual("runtime-payload", reopened.save.Get<NeoMemberClassWritable>("Thing")
+                .value!.constructorArgs!["__arg_0__"]!.Value<string>());
+            Assert.IsTrue(reopened.TryGetValue("runtime-name", out StringMemberValue? name));
+            Assert.AreEqual("retained", name!.value);
+        }
+
         private sealed class HeldThingValue : NeoGeneratedClassValue
         {
             internal HeldThingValue(NeoClient client, NeoMemberClassWritable node)

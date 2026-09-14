@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.36.6] - 2026-09-14
+
+- Render sprite objects with missing or destroyed images without crashing.
+  Keep their renderer available for later sprite assignments, including writes
+  during spawn hooks. Refresh scale and sprite-bounds colliders when sprites
+  change, mirror collider offsets when flipped, and disable bounds colliders
+  while no image is present.
+- Preserve shared constructor inputs when saving runtime-created objects,
+  including live-save patches and garbage collection. Saving no longer keeps
+  stale links to session-only fields; those fields rebuild from their defaults
+  on reload without resetting the running game's state.
+
 ## [0.36.5] - 2026-09-14
 
 - Fix constructor replay failing on exported null fields in class defaults,

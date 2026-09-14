@@ -5375,7 +5375,8 @@ namespace NeoCompose.Tests
               INeoWorldObjectValue,
               INeoObjectCompositionSource,
               INeoColliderSource,
-              INeoSortingGroupSource
+              INeoSortingGroupSource,
+              INeoObjectSpawnHooks
         {
             public TestComposedObject(
                 NeoClient client,
@@ -5395,6 +5396,9 @@ namespace NeoCompose.Tests
                 new List<INeoWorldObjectValue>();
             public INeoCollider? Collider { get; set; }
             public INeoSortingGroup? SortingGroup { get; set; }
+            public Action? Spawned { get; set; }
+            public void OnObjectSpawned(NeoObjectBehaviour behaviour) => Spawned?.Invoke();
+            public void OnObjectDespawned(NeoObjectBehaviour behaviour) { }
         }
 
         /// <summary>
@@ -5509,6 +5513,140 @@ namespace NeoCompose.Tests
         private sealed class TestColliderSource : INeoColliderSource
         {
             public INeoCollider? Collider { get; set; }
+        }
+
+        [TestCase(false, false)]
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        [TestCase(true, true)]
+        public void Render_EmptySpriteKeepsRenderer(bool nested, bool colliders)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            NeoGeneratedClassValue obj;
+            if (nested)
+            {
+                var composed = ResolveComposedTestObject(client);
+                composed.Children = new INeoWorldObjectValue[] { new TestSpriteChild() };
+                obj = composed;
+            }
+            else
+            {
+                obj = (NeoGeneratedClassValue)NeoGeneratedTypesSupport.ResolveClassValue(client, "shop-object",
+                    new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+                    {
+                        [ObjectClassId] = (c, node) => new TestSpriteObject(c, node),
+                    }, new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
+            }
+            var go = new GameObject("Empty sprite test");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.AddSpriteBoundsColliders = colliders;
+                renderer.Render(NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) });
+                var sprites = go.GetComponentsInChildren<SpriteRenderer>(true);
+                Assert.AreEqual(1, sprites.Length);
+                Assert.IsNull(sprites[0].sprite);
+                Assert.AreEqual(Vector3.one, sprites[0].transform.localScale);
+                Assert.IsFalse(sprites[0].TryGetComponent<BoxCollider2D>(out var collider)
+                    && collider.enabled);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        [Test]
+        public void Render_SpriteChangesRefreshGeometryAndKeepEmptyBinding()
+        {
+            var data = BuildPlacementAnimationProjectData();
+            data.members["sprite-notification"] = new BoolMember
+            {
+                id = "sprite-notification", kind = MemberKind.Bool, name = "FlipX",
+                defaultValue = new BoolMemberValueBase { value = false },
+            };
+            data.classes[ObjectClassId].schema["FlipX"] = "sprite-notification";
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var obj = (TestComposedObject)SpawnAnimationTestObject(client).Info;
+            var child = new TestSpriteChild { Size = new NeoReadOnlyVector3(2f, 3f, 0f) };
+            obj.Children = new INeoWorldObjectValue[] { child };
+            var go = new GameObject("Sprite lifecycle test");
+            var texture = new Texture2D(2, 4);
+            var sprite = Sprite.Create(texture, new Rect(0, 0, 2, 4), Vector2.zero);
+            var other = CreateTestSprite("replacement");
+            bool notification = false;
+            void Notify()
+            {
+                notification = !notification;
+                NeoGeneratedTypesSupport.SetValue(NeoGeneratedTypesSupport.AsWritable(obj.BackingNode),
+                    "FlipX", NeoValueWritePayload.FromValue(notification));
+            }
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.AddSpriteBoundsColliders = true;
+                renderer.Render(NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) });
+                var drawn = go.GetComponentInChildren<SpriteRenderer>();
+                Assert.IsNotNull(drawn);
+                foreach (var art in new[] { sprite, other, null, sprite })
+                {
+                    child.Sprite = art!;
+                    Notify();
+                    Assert.AreSame(art, drawn.sprite);
+                    var collider = drawn.GetComponent<BoxCollider2D>();
+                    Assert.AreEqual(art != null, collider.enabled);
+                    if (art == null) continue;
+                    Assert.That(drawn.transform.localScale.x, Is.EqualTo(2f / art.bounds.size.x).Within(.001f));
+                    Assert.That(drawn.transform.localScale.y, Is.EqualTo(3f / art.bounds.size.y).Within(.001f));
+                    Assert.AreEqual((Vector2)art.bounds.size, collider.size);
+                }
+                child.FlipX = child.FlipY = true;
+                Notify();
+                Assert.AreEqual(-(Vector2)sprite.bounds.center, drawn.GetComponent<BoxCollider2D>().offset);
+                UnityEngine.Object.DestroyImmediate(sprite);
+                Notify();
+                Assert.IsFalse(drawn.GetComponent<BoxCollider2D>().enabled);
+                Assert.AreEqual(Vector3.one, drawn.transform.localScale);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(sprite);
+                UnityEngine.Object.DestroyImmediate(texture);
+                DestroyTestSprite(other);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Render_SpawnHookSpriteAssignmentReachesRenderer()
+        {
+            yield return new EnterPlayMode();
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var obj = ResolveComposedTestObject(client);
+            var child = new TestSpriteChild();
+            obj.Children = new INeoWorldObjectValue[] { child };
+            var sprite = CreateTestSprite("spawned");
+            obj.Spawned = () => child.Sprite = sprite;
+            var go = new GameObject("Spawn sprite test");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.AddSpriteBoundsColliders = true;
+                renderer.Render(NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) });
+                var drawn = go.GetComponentInChildren<SpriteRenderer>();
+                Assert.AreSame(sprite, drawn.sprite);
+                Assert.IsTrue(drawn.GetComponent<BoxCollider2D>().enabled);
+                Assert.That(drawn.transform.localScale.x, Is.EqualTo(1f / sprite.bounds.size.x).Within(.001f));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(sprite);
+            }
+            yield return new ExitPlayMode();
         }
 
         private static Sprite CreateTestSprite(string name)
