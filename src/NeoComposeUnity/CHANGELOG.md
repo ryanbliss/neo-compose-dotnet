@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.36.2] - 2026-09-14
+
+- Preserve multi-select lookup arrays with one selected item during NeoScript reads, including inherited selection metadata. Single-select lookups still resolve their selected value.
+
 ## [0.36.1] - 2026-09-14
 
 - Resolve omitted fields on stored classes from their literal declaration defaults, including NeoScript reads. Explicit overrides, null values, and partial classes retain their existing behavior. Default projection reuses the indexed load pass and virtual graph without inventing constructor provenance.
