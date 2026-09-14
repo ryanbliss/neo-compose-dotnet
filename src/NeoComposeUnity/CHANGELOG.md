@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.36.1] - 2026-09-14
+
+- Resolve omitted fields on stored classes from their literal declaration defaults, including NeoScript reads. Explicit overrides, null values, and partial classes retain their existing behavior. Default projection reuses the indexed load pass and virtual graph without inventing constructor provenance.
+
 ## [0.36.0] - 2026-09-12
 
 - Synchronize C# files named after their generated types from the matching web export. Track stable identities in the local manifest to preserve Unity GUIDs through renames and name swaps. Write and import only changed code, preserve Unity metadata, remove obsolete generated files, and repair missing or edited outputs using a local integrity manifest. Requires the server export that returns `generatedFiles`.

@@ -2117,7 +2117,8 @@ namespace NeoCompose.Runtime
             NeoConstructionScope scope,
             bool requireCompleteRoot = true,
             bool trustedRuntimeRows = false,
-            RuntimeClassPlan? trustedRootPlan = null)
+            RuntimeClassPlan? trustedRootPlan = null,
+            (ObjectMemberValue row, bool usesOwnBindings)? declarationRoot = null)
         {
             if (!trustedRuntimeRows)
             {
@@ -2139,7 +2140,8 @@ namespace NeoCompose.Runtime
                 // way, so every ownership key recorded below lands on the key
                 // the preflight later looks up.
                 classId,
-                classPlan: trustedRootPlan);
+                classPlan: trustedRootPlan,
+                declarationRoot: declarationRoot);
             rows.Add(parentRow);
 
             PrepareConstructedGraph(
@@ -4558,6 +4560,16 @@ namespace NeoCompose.Runtime
             ClassMember placementMember,
             ObjectMemberValue storedRoot)
         {
+            RuntimeConstructedClassValue constructed = MaterializeStoredClassMemberDefault(client, placementMember, storedRoot);
+            return new NeoMemberClassWritable(client, constructed.member, constructed.value.id, NeoValueOwnership.Session);
+        }
+
+        internal static RuntimeConstructedClassValue MaterializeStoredClassMemberDefault(
+            NeoClient client,
+            ClassMember placementMember,
+            ObjectMemberValue storedRoot,
+            bool declarationOnly = false)
+        {
             if (placementMember.defaultValue?.value is null)
             {
                 throw new InvalidOperationException(
@@ -4595,19 +4607,16 @@ namespace NeoCompose.Runtime
                     provided,
                     rows,
                     scope,
-                    requireCompleteRoot: true,
+                    requireCompleteRoot: !declarationOnly,
                     trustedRuntimeRows: true,
-                    trustedRootPlan: classPlan);
+                    trustedRootPlan: classPlan,
+                    declarationRoot: declarationOnly ? (storedRoot, storedRoot.id == placementMember.valueId) : null);
             constructed.value.genericBindings = storedRoot.genericBindings is null
                 ? null
                 : new Dictionary<string, string>(
                     storedRoot.genericBindings,
                     StringComparer.Ordinal);
-            return new NeoMemberClassWritable(
-                client,
-                constructed.member,
-                constructed.value.id,
-                NeoValueOwnership.Session);
+            return constructed;
         }
 
         /// <summary>
@@ -5878,7 +5887,8 @@ namespace NeoCompose.Runtime
             string path,
             IReadOnlyDictionary<string, GenericBinding>? classArguments = null,
             RuntimeClassPlan? classPlan = null,
-            bool requireCompleteDefault = false)
+            bool requireCompleteDefault = false,
+            (ObjectMemberValue row, bool usesOwnBindings)? declarationRoot = null)
         {
             if (!scope.classStack.Add(classId))
             {
@@ -5910,6 +5920,7 @@ namespace NeoCompose.Runtime
                 foreach (var entry in mergedSchema)
                 {
                     if (value.ContainsKey(entry.schemaKey)) continue;
+                    if (declarationRoot?.row.value?.ContainsKey(entry.schemaKey) == true) continue;
                     Member? member = resolvedClassPlan is null
                         ? null
                         : resolvedClassPlan.membersBySchemaKey[entry.schemaKey];
@@ -5929,6 +5940,8 @@ namespace NeoCompose.Runtime
                             env);
                     }
                     if (!IsStoredConstructorMember(member)) continue;
+                    // A declaration's own root keeps direct authored bindings.
+                    if (declarationRoot?.usesOwnBindings == true && member.valueId is not null) continue;
 
                     // P43 §1 / §8 — an init-backed default is EVALUATED here
                     // rather than read, so a runtime-constructed instance gets
@@ -5938,6 +5951,7 @@ namespace NeoCompose.Runtime
                     // that this member has a value, which is exactly the
                     // signal also carried by an explicit literal default.
                     InitializerBody? init = InitializerOf(member);
+                    if (declarationRoot is not null && init is not null) continue;
                     if (init is not null)
                     {
                         string? initValueId = MaterializeInitializedValue(

@@ -119,7 +119,7 @@ namespace NeoCompose.Runtime
             // from the moment replay published a temporary graph.
             || ((!virtualInstanceReplayReady || isReplayingVirtualInstance)
                 && (awaitingVirtualInstanceChildDepth > 0
-                    || (row is not null && IsVirtualInstanceRoot(row))));
+                    || (row is not null && IsStoredClassDefaultRoot(row))));
 
         internal VirtualInstanceChildConstructionScope EnterVirtualInstanceChildConstruction(
             ObjectMemberValue? row)
@@ -377,7 +377,7 @@ namespace NeoCompose.Runtime
             ObjectMemberValue[] roots = allRows
                 .OfType<ObjectMemberValue>()
                 .Where(row => row.classId is not null)
-                .Where(IsVirtualInstanceRoot)
+                .Where(IsStoredClassDefaultRoot)
                 // A containing replay may index the nested root using its
                 // outer-root virtual scope. Replaying shallow-to-deep lets the
                 // nested root's own durable recipe overwrite that provisional
@@ -455,6 +455,9 @@ namespace NeoCompose.Runtime
                     && member is ClassMember);
         }
 
+        private static bool IsStoredClassDefaultRoot(ObjectMemberValue root) =>
+            IsVirtualInstanceRoot(root) || (root.classId is not null && root.constructorArgs is null && root.value is not null);
+
         /// <summary>
         /// Expands one root, scoping any failure to that root. A malformed
         /// root must not gut the whole index: the live path keeps every other
@@ -467,6 +470,16 @@ namespace NeoCompose.Runtime
         {
             try
             {
+                if (!IsVirtualInstanceRoot(root))
+                {
+                    if (!virtualFootprintByRoot.ContainsKey(root.id)
+                        && ResolveStoredInstanceSchema(root.classId!).All(entry => root.value!.ContainsKey(entry.schemaKey))) return;
+                    if ((virtualClassChildren.ContainsKey(root.id)
+                            && virtualRootByFootprintId.TryGetValue(root.id, out string? owner) && owner != root.id)
+                        || !TryInferMemberForValueId(root.id, out Member? inferred)
+                        || inferred is not ClassMember placement
+                        || placement.Payload == NeoMemberPayloadKind.Partial) return;
+                }
                 if (!sessionData.values.ContainsKey(root.id))
                     AssertPersistedVirtualInstanceRootIsClassPlacement(root);
                 ExpandVirtualInstanceRoot(root);
@@ -504,7 +517,7 @@ namespace NeoCompose.Runtime
                 MemberValue? current = ResolveValueRow(valueId);
                 if (current is ObjectMemberValue currentRoot
                     && currentRoot.classId is not null
-                    && IsVirtualInstanceRoot(currentRoot))
+                    && IsStoredClassDefaultRoot(currentRoot))
                 {
                     affectedRootIds.Add(valueId);
                 }
@@ -898,7 +911,7 @@ namespace NeoCompose.Runtime
             foreach (ObjectMemberValue root in rows
                 .OfType<ObjectMemberValue>()
                 .Where(row => row.classId is not null)
-                .Where(IsVirtualInstanceRoot)
+                .Where(IsStoredClassDefaultRoot)
                 .OrderBy(row => VariantGraphs.ContainsKey(row.id) ? 0 : 1)
                 .ThenBy(row => AuthoredContainmentDepth(row.id, parentByValueId))
                 .ThenBy(row => row.id, StringComparer.Ordinal))
@@ -916,7 +929,7 @@ namespace NeoCompose.Runtime
             {
                 if (!data.values.TryGetValue(rootId, out MemberValue? row)
                     || row is not ObjectMemberValue root
-                    || !IsVirtualInstanceRoot(root))
+                    || !IsStoredClassDefaultRoot(root))
                 {
                     continue;
                 }
@@ -965,7 +978,7 @@ namespace NeoCompose.Runtime
                 || valueId == replayingVirtualInstanceRootId) return;
             if ((data.values.ContainsKey(valueId) || saveData.values.ContainsKey(valueId))
                 && ResolveValueRow(valueId) is ObjectMemberValue root
-                && IsVirtualInstanceRoot(root)
+                && IsStoredClassDefaultRoot(root)
                 && !virtualValueIdsByRoot.ContainsKey(root.id)
                 && CanReplayVirtualInstanceRoot(root))
                 ExpandVirtualInstanceRootOrReport(root, failClosed: true);
@@ -1006,7 +1019,7 @@ namespace NeoCompose.Runtime
                 NeoGenericResolution.CloseClassArgumentsFromStamp(
                     instanceRoot.genericBindings,
                     placementMember?.classArguments);
-            NeoMemberClassWritable constructed;
+            NeoGeneratedTypesSupport.RuntimeConstructedClassValue constructed;
             bool wasReplaying = isReplayingVirtualInstance;
             string? previousReplayingRootId = replayingVirtualInstanceRootId;
             string? previousReplayingClassId = replayingVirtualInstanceClassId;
@@ -1030,15 +1043,25 @@ namespace NeoCompose.Runtime
                 replayingVirtualInstancePreexistingSessionValueIds = before;
             try
             {
-                constructed = ReplayVirtualInstance(
-                    instanceRoot,
-                    placementMember,
-                    replayClassArguments);
+                if (!IsVirtualInstanceRoot(instanceRoot))
+                {
+                    var declaration = (ClassMember)placementMember!.ShallowClone();
+                    declaration.classId = instanceRoot.classId!;
+                    if (!DerivesContentFromPlacementDefault(instanceRoot, declaration))
+                        declaration.defaultValue = new ObjectMemberValueBase { value = new Dictionary<string, string>() };
+                    constructed = NeoGeneratedTypesSupport.MaterializeStoredClassMemberDefault(
+                        this, declaration, instanceRoot, declarationOnly: true);
+                }
+                else
+                {
+                    NeoMemberClassWritable replayed = ReplayVirtualInstance(instanceRoot, placementMember, replayClassArguments);
+                    constructed = new NeoGeneratedTypesSupport.RuntimeConstructedClassValue(replayed.value!, replayed.member);
+                }
             }
             catch (Exception error)
             {
                 throw new InvalidOperationException(
-                    $"P75 could not replay sparse instance '{instanceRoot.id}' of class '{instanceRoot.classId}'.",
+                    $"P75 could not replay sparse instance '{instanceRoot.id}' of class '{instanceRoot.classId}'. {error.Message}",
                     error);
             }
             finally
