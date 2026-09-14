@@ -2729,6 +2729,7 @@ namespace NeoCompose.Runtime
             TMemberValue value,
             string? changedField = null) where TMemberValue : MemberValue
         {
+            if (ownership == NeoValueOwnership.Save) RetainConstructorDependencies(value);
             StampMapKeyForWrite(ownership, value);
             GetWritableStore(ownership).values[value.id] = value;
             IndexStoreWrite(ownership, value);
@@ -2745,6 +2746,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             TMemberValue value) where TMemberValue : MemberValue
         {
+            if (ownership == NeoValueOwnership.Save) RetainConstructorDependencies(value);
             StampMapKeyForWrite(ownership, value);
             GetWritableStore(ownership).values[value.id] = value;
             IndexStoreWrite(ownership, value);
@@ -3443,6 +3445,7 @@ namespace NeoCompose.Runtime
             var targetStore = GetWritableStore(targetOwnership);
             if (!sourceStore.values.TryGetValue(valueId, out MemberValue? row)) return;
 
+            if (targetOwnership == NeoValueOwnership.Save) RetainConstructorDependencies(row);
             targetStore.values[valueId] = row;
             IndexStoreWrite(targetOwnership, row);
             foreach (var child in EnumerateOwnedChildLinks(row, sourceMember))
@@ -3962,12 +3965,17 @@ namespace NeoCompose.Runtime
                                 && !NeedsOwnedMemberContext(settled)) { member = settled; return true; }
                             if (TryResolveConstructorSettledAggregateMember(obj, valueId, ParentMember(), out settled))
                             { member = settled; return true; }
+                            if (TryResolveConstructorReferenceMember(obj, valueId, out var referenced))
+                            { member = referenced; return true; }
                         }
                     }
                     else if (parent.Value is ArrayMemberValue
                         && TryResolveCollectionEntryMember(ParentMember(), parent.Value) is Member entry)
                     { member = entry; return true; }
                 }
+                if (containedValue is ObjectMemberValue { classId: not null }
+                    && TryResolveConstructorCollectionEntry(valueId, out var constructorEntry))
+                { member = constructorEntry; return true; }
                 member = null;
                 return false;
             }
@@ -7038,7 +7046,23 @@ namespace NeoCompose.Runtime
 
         public string SerializeSaveData()
         {
-            return JsonConvert.SerializeObject(saveData);
+            var snapshot = JObject.FromObject(saveData);
+            if (snapshot["values"] is JObject values)
+                foreach (var pair in saveData.values)
+                    RemoveSessionFieldLinks(pair.Value, values[pair.Key]);
+            return snapshot.ToString(Formatting.None);
+        }
+
+        private void RemoveSessionFieldLinks(MemberValue value, JToken? snapshot)
+        {
+            if (value is not ObjectMemberValue row || row.classId is null
+                || row.value is null || snapshot?["value"] is not JObject fields) return;
+            foreach (var key in row.value.Keys)
+            {
+                var member = TryResolveOwnedChildMember(row, null, key);
+                if (member is not null && DeclaredOwnership(member) == NeoValueOwnership.Session)
+                    fields.Remove(key);
+            }
         }
 
         private bool SaveHasSemanticChanges()
@@ -7079,6 +7103,7 @@ namespace NeoCompose.Runtime
             {
                 if (!baselineValues.TryGetValue(pair.Key, out var baselineRow)) continue;
                 var currentRow = JToken.FromObject(pair.Value);
+                RemoveSessionFieldLinks(pair.Value, currentRow);
                 if (!NeoSemanticJson.ProjectRecordsEqual(currentRow, baselineRow)) continue;
                 pair.Value.createdAt = ReadTimestamp(
                     baselineRow["createdAt"],
@@ -7538,6 +7563,8 @@ namespace NeoCompose.Runtime
                         pending.Enqueue((child.valueId, child.member));
                     }
                 }
+                foreach (var dependency in EnumerateConstructorDependencyLinks(val, ownership))
+                    pending.Enqueue((dependency.id, dependency.member));
             }
         }
 
