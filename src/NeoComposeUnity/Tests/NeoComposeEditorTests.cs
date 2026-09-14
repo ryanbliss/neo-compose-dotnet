@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
@@ -19,7 +21,7 @@ using UnityEngine;
 
 namespace NeoCompose.Tests
 {
-    public class NeoComposeEditorTests
+    public partial class NeoComposeEditorTests
     {
         private const string TempRoot = "Assets/NeoComposeEditorTestsTemp";
 
@@ -517,6 +519,7 @@ namespace NeoCompose.Tests
                     },
                 },
             };
+            StampCachedExport(assets, cache.state!);
             SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(
                 api,
@@ -618,6 +621,7 @@ namespace NeoCompose.Tests
             var assets = new FakeAssetService();
             assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing generated";
             assets.files["Assets/Resources/Neo/project.json"] = before.ToString(Formatting.None);
+            StampCachedExport(assets, cache.state!);
             SeedGeneratedFiles(assets, config.projectId);
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets, cache);
 
@@ -661,6 +665,29 @@ namespace NeoCompose.Tests
                 Assert.IsFalse(loadedIds.Contains(id), id);
             using var client = NeoTestSaveStack.LoadClient(writtenJson);
             Assert.IsNotNull(client);
+        }
+
+        private static void StampCachedExport(
+            FakeAssetService assets, NeoComposeUnityExportSyncState state)
+        {
+            const string projectPath = "Assets/Resources/Neo/project.json";
+            var export = JObject.Parse(assets.files[projectPath]);
+            var metadata = export["metadata"] as JObject;
+            if (metadata == null) export["metadata"] = metadata = new JObject();
+            var heads = new JArray(state.heads
+                .Where(head => !head.deleted && head.contentHash != null)
+                .OrderBy(head => head.recordKind + ":" + head.recordId, System.StringComparer.Ordinal)
+                .Select(head => new JObject
+                {
+                    ["contentHash"] = head.contentHash,
+                    ["deleted"] = false,
+                    ["recordId"] = head.recordId,
+                    ["recordKind"] = head.recordKind,
+                }));
+            using var sha = SHA256.Create();
+            var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(heads.ToString(Formatting.None)));
+            metadata["projectDocumentContentHash"] = string.Concat(hash.Select(value => value.ToString("x2")));
+            assets.files[projectPath] = export.ToString(Formatting.None);
         }
 
         private static Dictionary<string, JToken> ExportedValueRows(JObject export)
@@ -723,6 +750,7 @@ namespace NeoCompose.Tests
             assets.files[projectPath] = original.ToString(Formatting.None);
             assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing";
             var cache = new FakeExportCache { state = new NeoComposeUnityExportSyncState() };
+            StampCachedExport(assets, cache.state!);
             SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(
                 api, new FakeConfirmationService(true), assets, cache);
@@ -776,6 +804,7 @@ namespace NeoCompose.Tests
             assets.files["Assets/Resources/Neo/project.json"] = original.ToString(Formatting.None);
             assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing";
             var cache = new FakeExportCache { state = new NeoComposeUnityExportSyncState() };
+            StampCachedExport(assets, cache.state!);
             SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(
                 api, new FakeConfirmationService(true), assets, cache);
@@ -853,6 +882,7 @@ namespace NeoCompose.Tests
                 assets.files[projectPath] = originalJson;
                 assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing";
                 var cache = new FakeExportCache { state = new NeoComposeUnityExportSyncState() };
+                StampCachedExport(assets, cache.state!);
                 SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(
                     api, new FakeConfirmationService(true), assets, cache);
@@ -890,7 +920,7 @@ namespace NeoCompose.Tests
             var api = new FakeApiClient();
             var assets = new FakeAssetService();
             const string projectPath = "Assets/Resources/Neo/project.json";
-            const string originalJson = "{\"variantFolders\":{},\"metadata\":{\"schemaVersion\":31,\"projectId\":\"project-1\",\"versionId\":\"version-1\"},\"project\":{\"id\":\"project-1\"},\"values\":{\"v\":{\"id\":\"v\",\"value\":1}},\"files\":{},\"textureTemplates\":{},\"audioClipTemplates\":{}}";
+            var originalJson = "{\"variantFolders\":{},\"metadata\":{\"schemaVersion\":31,\"projectId\":\"project-1\",\"versionId\":\"version-1\"},\"project\":{\"id\":\"project-1\"},\"values\":{\"v\":{\"id\":\"v\",\"value\":1}},\"files\":{},\"textureTemplates\":{},\"audioClipTemplates\":{}}";
             assets.files[projectPath] = originalJson;
             assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing";
             NeoComposeUnityExportCachedSnapshot Snapshot(int value) => new()
@@ -904,6 +934,8 @@ namespace NeoCompose.Tests
                 snapshots = cached ? new List<NeoComposeUnityExportCachedSnapshot> { Snapshot(2) } : new(),
             };
             var cache = new FakeExportCache { state = initial };
+            StampCachedExport(assets, initial);
+            originalJson = assets.files[projectPath];
             api.deltaResponseForCall = call => new NeoComposeUnityExportDeltaManifestResponse
             {
                 readBase = PublishedReadBase("tx-" + (call + 1)),
@@ -962,6 +994,7 @@ namespace NeoCompose.Tests
             if (failedAttempts == 3)
                 UnityEngine.TestTools.LogAssert.Expect(LogType.Error,
                     new System.Text.RegularExpressions.Regex("NeoComposeProjectReadRestartException"));
+            StampCachedExport(assets, cache.state!);
             SeedGeneratedFiles(assets);
             var result = await new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets, cache)
                 .SynchronizeAsync(MakeConfig());
@@ -1028,6 +1061,7 @@ namespace NeoCompose.Tests
                     },
                 },
             };
+            StampCachedExport(assets, cache.state!);
             var synchronizer = new NeoComposeSynchronizer(
                 api,
                 new FakeConfirmationService(true),
@@ -1162,6 +1196,7 @@ namespace NeoCompose.Tests
                     },
                 },
             };
+            StampCachedExport(assets, cache.state!);
             SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(
                 api,

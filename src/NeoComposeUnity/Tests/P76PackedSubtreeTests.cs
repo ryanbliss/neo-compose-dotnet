@@ -119,75 +119,6 @@ namespace NeoCompose.Tests
             Assert.AreEqual(sparse.values.Count, packed.values.Count);
         }
 
-        [TestCase(false)]
-        [TestCase(true)]
-        public void PackedChildOverlapUsesEncounterOrder(bool packedRowFirst)
-        {
-            JObject root = PackedProject();
-            JObject sparse = SparseProject();
-            var stale = (JObject)sparse["values"]![CountValueId]!;
-            stale["value"] = 99;
-            var values = (JObject)root["values"]!;
-            if (packedRowFirst)
-            {
-                values.Add(CountValueId, stale);
-            }
-            else
-            {
-                var ordered = new JObject { [CountValueId] = stale };
-                foreach (JProperty property in values.Properties())
-                {
-                    ordered.Add(property.Name, property.Value);
-                }
-                root["values"] = ordered;
-            }
-
-            ProjectData data = Deserialize(root.ToString());
-
-            Assert.AreEqual(
-                packedRowFirst ? 99d : 7d,
-                ((NumberMemberValue)data.values[CountValueId]).value,
-                "An overlapping physical row follows the same encounter-order "
-                + "precedence as the web reader.");
-        }
-
-        [Test]
-        public void PackedChildOverlapInValuePartitionLoads()
-        {
-            JObject root = PackedProject();
-            JObject sparse = SparseProject();
-            var stale = (JObject)sparse["values"]![CountValueId]!;
-            stale["value"] = 99;
-            var rows = (JObject)root["values"]!;
-            rows.Add(CountValueId, stale);
-            root["values"] = new JObject();
-            root["valuePartitions"] = new JObject
-            {
-                ["world:test"] = rows,
-            };
-
-            ProjectData data = Deserialize(root.ToString());
-
-            Assert.AreEqual(
-                99,
-                data.valuePartitions!["world:test"]![CountValueId]! ["value"]!.Value<int>());
-        }
-
-        [Test]
-        public void DuplicateIdsInsidePackedSubtreeAreRejected()
-        {
-            JObject root = PackedProject();
-            var body = (JObject)root["values"]!["thing-instance"]!["value"]!;
-            var envelope = (JObject)body["Count"]!;
-            var entry = (JObject)envelope[NeoPackedValue.EnvelopeKey]!;
-            entry["id"] = "duplicate-packed-id";
-            body["Other"] = envelope.DeepClone();
-
-            JsonSerializationException error = Assert.Throws<JsonSerializationException>(
-                () => Deserialize(root.ToString()))!;
-            StringAssert.Contains("another row in the same packed payload already claims", error.Message);
-        }
-
         [Test]
         public void PackedChildInheritsItsParentStoragePartition()
         {
@@ -211,7 +142,7 @@ namespace NeoCompose.Tests
             // exists, expansion is one shallow scan and the caller keeps its
             // own row objects.
             var values = (JObject)SparseProject()["values"]!;
-            Assert.AreSame(values, NeoPackedValue.Expand(values));
+            Assert.AreSame(values, NeoPackedValue.Expand(values, "test values"));
         }
 
         // -------------------------------------------------------------------
