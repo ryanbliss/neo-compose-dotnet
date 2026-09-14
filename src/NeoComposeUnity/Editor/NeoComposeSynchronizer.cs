@@ -307,6 +307,23 @@ namespace NeoCompose.Unity.Editor
             if (!assets.FileExists(projectJsonPath)) return null;
             if (!NeoComposeGeneratedFiles.IsCurrent(assets, config.generatedTypesDirectory, config.projectId)) return null;
 
+            JObject root;
+            try
+            {
+                root = JObject.Parse(assets.ReadAllText(projectJsonPath));
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+            // Assets can be reverted independently of the cursor in Library.
+            // A delta is valid only for the file revision those cached heads describe.
+            if (root["metadata"] is not JObject baseMetadata
+                || !string.Equals(
+                    baseMetadata["projectDocumentContentHash"]?.Value<string>(),
+                    ComputeProjectDocumentContentHash(state.heads),
+                    StringComparison.Ordinal)) return null;
+
             var delta = await apiClient.ExportProjectDeltaAsync(
                 config.apiBaseUrl,
                 config.projectId,
@@ -364,15 +381,6 @@ namespace NeoCompose.Unity.Editor
                 }
             }
 
-            JObject root;
-            try
-            {
-                root = JObject.Parse(assets.ReadAllText(projectJsonPath));
-            }
-            catch (JsonException)
-            {
-                return null;
-            }
             var headsByKey = state.heads.ToDictionary(HeadKey);
             var valueIndex = new ExportedValueDeltaIndex(
                 root, delta.records.Select(record => record.recordId));
