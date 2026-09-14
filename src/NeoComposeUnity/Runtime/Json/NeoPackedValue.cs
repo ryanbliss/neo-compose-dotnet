@@ -146,10 +146,8 @@ namespace NeoCompose.Runtime.Json
         /// packed, so the boundary costs one shallow scan until a packed member
         /// exists.</para>
         ///
-        /// <para><paramref name="context"/> names the row set (the export's
-        /// <c>values</c>, or a storage partition) for collision errors.</para>
         /// </summary>
-        internal static JObject Expand(JObject values, string context)
+        internal static JObject Expand(JObject values)
         {
             bool carriesPacked = false;
             foreach (JProperty property in values.Properties())
@@ -167,15 +165,15 @@ namespace NeoCompose.Runtime.Json
                 if (property.Value is not JObject row
                     || !RowCarriesPackedContent(row))
                 {
-                    AddRow(expanded, property.Name, property.Value, context);
+                    AddRow(expanded, property.Name, property.Value);
                     continue;
                 }
                 var children = new List<JObject>();
                 JObject physical = DecodeRow(row, children);
-                AddRow(expanded, property.Name, physical, context);
+                AddRow(expanded, property.Name, physical);
                 foreach (JObject child in children)
                 {
-                    AddRow(expanded, child.Value<string>("id")!, child, context);
+                    AddRow(expanded, child.Value<string>("id")!, child);
                 }
             }
             return expanded;
@@ -184,17 +182,14 @@ namespace NeoCompose.Runtime.Json
         private static void AddRow(
             JObject expanded,
             string id,
-            JToken row,
-            string context)
+            JToken row)
         {
-            if (expanded.Property(id) is not null)
-            {
-                throw new JsonSerializationException(
-                    $"Value id \"{id}\" appears twice in {context} after packed "
-                    + "expansion: a packed child cannot share its logical id with "
-                    + "another stored row.");
-            }
-            expanded.Add(id, row);
+            // Older exports can contain both a packed child and its former
+            // sparse row. The web reader materializes rows in encounter order,
+            // so the later representation wins; retaining that rule here keeps
+            // Unity and the CLI interoperable while still validating each
+            // packed subtree during DecodeRow.
+            expanded[id] = row;
         }
 
         /// <summary>

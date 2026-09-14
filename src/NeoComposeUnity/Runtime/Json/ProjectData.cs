@@ -487,9 +487,7 @@ namespace NeoCompose.Runtime.Json
         {
             if (root["values"] is JObject values)
             {
-                JObject expanded = NeoPackedValue.Expand(
-                    values,
-                    "the export's values");
+                JObject expanded = NeoPackedValue.Expand(values);
                 // Expansion returns its argument when nothing is packed, and
                 // reassigning a token to itself is not a no-op in Newtonsoft.
                 if (!ReferenceEquals(expanded, values)) root["values"] = expanded;
@@ -498,9 +496,7 @@ namespace NeoCompose.Runtime.Json
             foreach (JProperty partition in partitions.Properties())
             {
                 if (partition.Value is not JObject rows) continue;
-                JObject expanded = NeoPackedValue.Expand(
-                    rows,
-                    $"value partition '{partition.Name}'");
+                JObject expanded = NeoPackedValue.Expand(rows);
                 if (!ReferenceEquals(expanded, rows)) partition.Value = expanded;
             }
         }
