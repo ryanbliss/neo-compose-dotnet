@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.36.6] - 2026-09-14
+
+- Render sprite objects with missing or destroyed images without crashing.
+  Keep their renderer available for later sprite assignments, including writes
+  during spawn hooks. Refresh scale and sprite-bounds colliders when sprites
+  change, mirror collider offsets when flipped, and disable bounds colliders
+  while no image is present.
+- Preserve shared constructor inputs when saving runtime-created objects,
+  including live-save patches and garbage collection. Saving no longer keeps
+  stale links to session-only fields; those fields rebuild from their defaults
+  on reload without resetting the running game's state.
+
+## [0.36.5] - 2026-09-14
+
+- Fix constructor replay failing on exported null fields in class defaults,
+  such as Neowyn's animation track OffsetEndIndex. Infer the null row's
+  carrier from its declared member type before cloning. Required fields and
+  non-nullable actions still reject null.
+
+## [0.36.4] - 2026-09-14
+
+- Fetch a full export when project.json no longer matches the cached sync
+  revision, such as after a Git revert. This prevents incremental updates from
+  retaining obsolete sparse rows beside packed children. Duplicate value IDs
+  remain an error. Rebuild the local sync cache once to repair files already
+  affected by this bug.
+
 ## [0.36.3] - 2026-09-14
 
 - Resolve inherited collection targets on sparse lookup overrides so generated getters can read selections such as tile-layer sorting layers. Preserve omitted target fields when exporting overrides.

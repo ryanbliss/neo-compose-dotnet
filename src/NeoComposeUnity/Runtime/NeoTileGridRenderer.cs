@@ -202,14 +202,20 @@ namespace NeoCompose.Runtime
         {
             public RenderedObjectSprite(
                 INeoSpriteObjectValue value,
-                SpriteRenderer renderer)
+                SpriteRenderer renderer,
+                Vector3 cellSpan,
+                BoxCollider2D? boundsCollider)
             {
                 Value = value;
                 Renderer = renderer;
+                CellSpan = cellSpan;
+                BoundsCollider = boundsCollider;
             }
 
             public INeoSpriteObjectValue Value { get; }
             public SpriteRenderer Renderer { get; }
+            public Vector3 CellSpan { get; }
+            public BoxCollider2D? BoundsCollider { get; }
         }
 
         private sealed class TileLayerTargetRegistration
@@ -1178,6 +1184,12 @@ namespace NeoCompose.Runtime
                 var renderer = binding.Renderer;
                 if (renderer == null) continue;
                 var sprite = binding.Value.Sprite;
+                // Unity's destroyed assets compare equal to null.
+                if (sprite == null) sprite = null;
+                bool geometryChanged = !ReferenceEquals(renderer.sprite, sprite)
+                    || renderer.flipX != binding.Value.FlipX
+                    || renderer.flipY != binding.Value.FlipY
+                    || (sprite == null && binding.BoundsCollider != null && binding.BoundsCollider.enabled);
                 // Assigning an unchanged sprite is a native round-trip per
                 // renderer per frame; a rig with six layers plays at 8 FPS.
                 if (!ReferenceEquals(renderer.sprite, sprite))
@@ -1185,6 +1197,8 @@ namespace NeoCompose.Runtime
                     renderer.sprite = sprite;
                 }
                 ApplySpriteState(renderer, binding.Value);
+                if (geometryChanged)
+                    ApplySpriteGeometry(renderer, binding.CellSpan, binding.BoundsCollider);
             }
         }
 
@@ -1703,6 +1717,9 @@ namespace NeoCompose.Runtime
             // e.g. an added Rigidbody2D composes with the BoxCollider2D.
             var behaviour = go.AddComponent<NeoObjectBehaviour>();
             behaviour.Initialize(this, layer, instance);
+            // Spawn hooks can assign a sprite before the root is registered
+            // for change notifications. Reconcile those writes now.
+            SyncObjectSprites(instance.InstanceId);
             // Applied only after Initialize, so the spawn hook sees an active,
             // fully-built *subtree* as its contract promises — a disabled
             // composition child is built and left active through composition
@@ -1971,27 +1988,28 @@ namespace NeoCompose.Runtime
             IReadOnlyNeoObjectLayerRuntime layer,
             string name,
             INeoSpriteObjectValue? spriteObject,
-            Sprite sprite,
+            Sprite? sprite,
             Vector3 localPosition,
             Vector3 cellSpan,
             int sortingOrder,
             List<RenderedObjectSprite>? sprites)
         {
             var go = new GameObject(
-                string.IsNullOrWhiteSpace(name) ? sprite.name : name);
+                string.IsNullOrWhiteSpace(name) ? (sprite != null ? sprite.name : "Sprite") : name);
             go.transform.SetParent(parent, false);
             go.transform.localPosition = localPosition + CellSpanCenterOffset(cellSpan);
-            ScaleSpriteToCellSpan(go.transform, sprite, cellSpan);
             var renderer = go.AddComponent<SpriteRenderer>();
-            renderer.sprite = sprite;
+            renderer.sprite = sprite != null ? sprite : null;
             ApplySpriteState(renderer, spriteObject);
+            var boundsCollider = addSpriteBoundsColliders ? go.AddComponent<BoxCollider2D>() : null;
+            ApplySpriteGeometry(renderer, cellSpan, boundsCollider);
             // Recorded so a later Sprite / FlipX / FlipY write on the same
             // value reaches this renderer (SyncObjectSprites). Tile-layer-link
             // tiles pass a null list: they carry no sprite-object value, so
             // there is nothing to re-read them from.
             if (spriteObject != null)
             {
-                sprites?.Add(new RenderedObjectSprite(spriteObject, renderer));
+                sprites?.Add(new RenderedObjectSprite(spriteObject, renderer, cellSpan, boundsCollider));
             }
             // The authored order is an offset on the order derived from the
             // object's layer group, so an object layer's sorting order still
@@ -2000,14 +2018,6 @@ namespace NeoCompose.Runtime
                 renderer,
                 layer.SortingLayerName,
                 sortingOrder + (spriteObject?.SortingOrder ?? 0));
-
-            if (addSpriteBoundsColliders)
-            {
-                ApplyBoxCollider(go, new NeoBoxColliderSpec(
-                    sprite.bounds.size,
-                    sprite.bounds.center,
-                    isTrigger: false));
-            }
 
             return go;
         }
@@ -2083,16 +2093,31 @@ namespace NeoCompose.Runtime
                 PositiveOrFallback(cellSpan.y, 1f) * cellSize * 0.5f,
                 0f);
 
-        private void ScaleSpriteToCellSpan(Transform transform, Sprite sprite, Vector3 cellSpan)
+        private void ApplySpriteGeometry(SpriteRenderer renderer, Vector3 cellSpan, BoxCollider2D? boundsCollider)
         {
+            var sprite = renderer.sprite;
+            if (boundsCollider != null) boundsCollider.enabled = sprite != null;
+            if (sprite == null)
+            {
+                renderer.transform.localScale = Vector3.one;
+                return;
+            }
+            var bounds = sprite.bounds;
             var targetWidth = PositiveOrFallback(cellSpan.x, 1f) * cellSize;
             var targetHeight = PositiveOrFallback(cellSpan.y, 1f) * cellSize;
-            var spriteWidth = PositiveOrFallback(sprite.bounds.size.x, 1f);
-            var spriteHeight = PositiveOrFallback(sprite.bounds.size.y, 1f);
-            transform.localScale = new Vector3(
+            var spriteWidth = PositiveOrFallback(bounds.size.x, 1f);
+            var spriteHeight = PositiveOrFallback(bounds.size.y, 1f);
+            renderer.transform.localScale = new Vector3(
                 targetWidth / spriteWidth,
                 targetHeight / spriteHeight,
                 1f);
+            if (boundsCollider != null)
+            {
+                boundsCollider.size = bounds.size;
+                boundsCollider.offset = new Vector2(
+                    renderer.flipX ? -bounds.center.x : bounds.center.x,
+                    renderer.flipY ? -bounds.center.y : bounds.center.y);
+            }
         }
 
         private static float PositiveOrFallback(float value, float fallback) =>

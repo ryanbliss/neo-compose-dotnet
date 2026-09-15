@@ -83,6 +83,9 @@ namespace NeoCompose.Unity.Editor
                 "Library",
                 "NeoCompose",
                 "ExportCache",
+                // Old cursors may describe files corrupted by applying a delta
+                // to the wrong revision. Rebuild once even if their hashes match.
+                "v2",
                 StableFileName(projectId + "\n" + versionId) + ".json");
         }
 

@@ -4930,8 +4930,9 @@ namespace NeoCompose.Runtime
                         ? NeoScript.NSGetterEvaluator.UnwrapRow(row, ctx, storage)
                         : NeoScript.NSGetterEvaluator.UnwrapRow(row, ctx, storage, sourceMember);
                 }
-                if ((expectedType.type == MemberKind.List && sourceMember is not ListMember)
-                    || (expectedType.type == MemberKind.Dictionary && sourceMember is not DictionaryMember))
+                if (sourceMember is not null
+                    && ((expectedType.type == MemberKind.List && sourceMember is not ListMember)
+                        || (expectedType.type == MemberKind.Dictionary && sourceMember is not DictionaryMember)))
                     throw new InvalidOperationException(
                         $"Stored {subject} value '{valueId}' has no matching {expectedType.type} member.");
                 TypeInfo? entryType = expectedType switch
@@ -4947,25 +4948,33 @@ namespace NeoCompose.Runtime
                         $"Stored {subject} contains a cyclic collection reference at value '{valueId}'.");
                 try
                 {
-                    if (!TryResolveCollectionEntryMember(client, sourceMember, out Member? entryMember))
+                    Member? entryMember = null;
+                    if (sourceMember is not null
+                        && !TryResolveCollectionEntryMember(client, sourceMember, out entryMember))
                         throw new InvalidOperationException(
                             $"Stored {subject} value '{valueId}' has no declared collection entry member.");
-                    entryMember = NeoGenericResolution.SubstituteMember(
-                        client, entryMember, NeoGenericResolution.EnvFromStamp(row.genericBindings));
-                    NeoValueOwnership entryStorage = client.DeclaredOwnership(entryMember) ?? storage;
+                    if (entryMember is not null)
+                        entryMember = NeoGenericResolution.SubstituteMember(
+                            client, entryMember, NeoGenericResolution.EnvFromStamp(row.genericBindings));
+                    NeoValueOwnership entryStorage = entryMember is null ? storage
+                        : client.DeclaredOwnership(entryMember) ?? storage;
 
-                    switch (sourceMember)
+                    // Constructor-only collections use their declared argument
+                    // type; they need not also occupy a schema member.
+                    switch (expectedType.type)
                     {
-                        case ListMember list when row is ArrayMemberValue listRow:
+                        case MemberKind.List when row is ArrayMemberValue listRow:
                             if (listRow.value is null) return null;
-                            IEnumerable<string> ids = client.IsUnorderedList(list)
+                            IEnumerable<string> ids = sourceMember is ListMember list && client.IsUnorderedList(list)
                                 ? client.GetUnorderedListEntryIds(valueId)
                                 : listRow.value;
+                            if (sourceMember is null && listRow.value.Length == 0)
+                                ids = client.GetUnorderedListEntryIds(valueId);
                             var values = new List<object?>();
                             foreach (string id in ids)
                                 values.Add(Read(id, entryMember, entryStorage, entryType));
                             return values.ToArray();
-                        case DictionaryMember when row is ObjectMemberValue dictionaryRow:
+                        case MemberKind.Dictionary when row is ObjectMemberValue dictionaryRow:
                             if (dictionaryRow.value is null) return null;
                             var valuesByKey = new Dictionary<string, object?>(
                                 dictionaryRow.value.Count, StringComparer.Ordinal);
@@ -6642,6 +6651,24 @@ namespace NeoCompose.Runtime
             string path,
             Dictionary<string, string> clonedIdsBySourceId)
         {
+            // Exported nulls have no payload shape from which the JSON reader can
+            // infer a carrier. Resolve it from the member before cloning.
+            if (source is NullMemberValue && member is
+                BoolMember or IntMember or FloatMember or StringMember or DecimalMember
+                or Vector2Member or Vector2IntMember or Vector3Member or Vector3IntMember
+                or ColorMember or EnumMember or LookupMember or DialogueLookupMember
+                or SpriteMember or AudioMember or DelegateMember or VariantMember
+                or ClassMember or ListMember or DictionaryMember)
+            {
+                if (member.Requirement == NeoMemberRequirementKind.Required)
+                    throw new InvalidOperationException($"Class default '{path}' has a null required value.");
+                var typedSource = MemberValueFactory.Create(
+                    member, new NeoValuePayload(null, source.classId),
+                    source.id, source.createdAt, source.updatedAt);
+                typedSource.genericBindings = source.genericBindings;
+                source = typedSource;
+            }
+
             switch (member)
             {
                 case NullMember:
