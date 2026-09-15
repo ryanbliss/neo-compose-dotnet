@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.36.7] - 2026-09-14
+
+- Bind NeoScript instance method delegates to their character or object when created, matching the web evaluator. Animation selectors such as `SelectAttackItem` and `this.SelectAttackItem` retain their receiver when stored and invoked later.
+
 ## [0.36.6] - 2026-09-14
 
 - Render sprite objects with missing or destroyed images without crashing.
