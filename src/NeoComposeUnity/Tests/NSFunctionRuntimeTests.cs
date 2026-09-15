@@ -211,6 +211,54 @@ namespace NeoCompose.Tests
             public override NeoDelegate<object> Selector => ChildSelector;
         }
 
+        [TestCase(false, false)]
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        public void DelegateMemberLiteral_BindsInstanceAtCreation(bool isStatic, bool explicitlyBound)
+        {
+            var receiverType = new ClassTypeInfo
+            {
+                type = MemberKind.Class, required = true, classId = "receiver-class",
+            };
+            TypeInfo returnType = isStatic ? IntType() : receiverType;
+            var function = ScriptFunction("select-self", "SelectSelf", false, returnType,
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                Action(returnType, Array.Empty<FunctionArgumentTypeInfo>(),
+                    Return(isStatic ? Literal(IntType(), new JValue(17)) : Variable("__this__"))));
+            if (isStatic) function.Modifier = NeoMemberModifierKind.Static;
+            using NeoClient client = BuildClient(new JsonMember[] { function },
+                ReceiverClass(("SelectSelf", function.id)), additionalValues: new MemberValue[]
+                {
+                    ObjectValue("other-receiver", "receiver-class"),
+                });
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            Assert.True(client.TryGetValue(NeoValueOwnership.Asset, "receiver-value", out MemberValue? row));
+            object receiver = NSGetterEvaluator.UnwrapRow(row!, ctx, NeoValueOwnership.Asset)!;
+            Assert.True(client.TryGetValue(NeoValueOwnership.Asset, "other-receiver", out MemberValue? otherRow));
+            object other = NSGetterEvaluator.UnwrapRow(otherRow!, ctx, NeoValueOwnership.Asset)!;
+            var type = new DelegateTypeInfo
+            {
+                type = MemberKind.NSDelegate, required = true, returnTypeInfo = returnType,
+                argumentTypes = Array.Empty<TypeInfo>(),
+            };
+            var literal = Literal(type, new JObject
+            {
+                ["memberId"] = function.id,
+                ["valueId"] = explicitlyBound ? new JValue("other-receiver") : JValue.CreateNull(),
+            });
+            object? bound = NSGetterEvaluator.EvaluatePointer(literal,
+                new Dictionary<string, object?>(), ctx.WithThis(receiver));
+            // Persisting the selector must retain the receiver, independently of lexical context.
+            var persisted = JsonConvert.DeserializeObject<NeoDelegateValue>(JsonConvert.SerializeObject(bound))!;
+            Assert.AreEqual(isStatic ? null : explicitlyBound ? "other-receiver" : "receiver-value", persisted.valueId);
+            object? result = NSGetterEvaluator.InvokeDelegate(persisted, Array.Empty<object?>(), ctx.WithThis(other));
+            if (isStatic) Assert.AreEqual(17L, Convert.ToInt64(result));
+            else Assert.AreEqual(explicitlyBound ? "other-receiver" : "receiver-value",
+                NSGetterEvaluator.FindRowIdByReference(result, ctx));
+            Assert.AreEqual(explicitlyBound ? "other-receiver" : null,
+                literal.value.value!["valueId"]?.Value<string>(), "The compiled literal must remain reusable.");
+        }
+
         [Test]
         public void DelegateClosure_CapturesLexicalThisAndBindsArguments()
         {

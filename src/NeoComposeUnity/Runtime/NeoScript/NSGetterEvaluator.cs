@@ -1069,17 +1069,22 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 case ValuePointer vp:
                 {
-                    // Deliberately delegate-scoped: only a closure needs its
-                    // lexical environment captured at the literal site. An
-                    // NSAction holds no closures and is statement-only, so an
-                    // action value literal never reaches expression position
-                    // and no NeoActionValueConverter sniff belongs here
-                    // (P62 §2, §3.1).
                     if (NeoDelegateValueConverter.LooksLikeValue(vp.value.value))
                     {
-                        NeoDelegateValue closure = vp.value.value!
+                        NeoDelegateValue value = vp.value.value!
                             .ToObject<NeoDelegateValue>()!;
-                        return closure.Capture(ctx.thisValue, ctx.rootValue);
+                        if (value.IsClosure)
+                            return value.Capture(ctx.thisValue, ctx.rootValue);
+
+                        // Bind implicit and explicit this.Member literals at creation,
+                        // as the web evaluator does. Invocation may have a different this.
+                        if (value.valueId is null
+                            && ctx.client.TryGetMember(value.memberId!, out JsonMember? member)
+                            && member.Modifier != NeoMemberModifierKind.Static)
+                        {
+                            value.valueId = FindRowIdByReference(ctx.thisValue, ctx);
+                        }
+                        return value;
                     }
                     return UnwrapJToken(vp.value.value);
                 }
