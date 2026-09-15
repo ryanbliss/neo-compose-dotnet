@@ -149,11 +149,7 @@ namespace NeoCompose.Runtime
             // `__this__` need to participate in the cache so dispatch
             // on `root.Assets.X` and `this.foo` rounds-trips through
             // reference equality.
-            var ctx = new NSGetterEvaluator.Context(
-                client,
-                thisValue: null,
-                rootValue: null,
-                valueOwnership: ownership);
+            var ctx = client.CreateGetterContext(ownership);
             object? rootValue = ResolveRootValue(ctx);
             ctx = ctx.WithRoot(rootValue);
 

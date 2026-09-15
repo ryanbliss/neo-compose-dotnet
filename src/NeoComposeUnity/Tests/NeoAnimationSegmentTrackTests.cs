@@ -196,10 +196,12 @@ namespace NeoCompose.Tests
         [Test]
         public void PerFrameChildClipCycle_ThrowsInsteadOfRecursing()
         {
+            using NeoClient client = BuildEquipClient();
             var active = new HashSet<string>(StringComparer.Ordinal);
             NeoAnimationDefinition? parent = null;
             NeoAnimationDefinition? child = null;
             parent = new NeoAnimationDefinition(
+                client,
                 8,
                 1,
                 new Dictionary<int, NeoAnimationCompiledWrite[]>(),
@@ -214,6 +216,7 @@ namespace NeoCompose.Tests
                 "parent",
                 "clip 'Clip' on value 'parent'");
             child = new NeoAnimationDefinition(
+                client,
                 8,
                 1,
                 new Dictionary<int, NeoAnimationCompiledWrite[]>(),
@@ -232,6 +235,9 @@ namespace NeoCompose.Tests
                 () => parent.ApplyFrame(0, useResolvedState: false));
             StringAssert.Contains("Animation child-track cycle reaches", error!.Message);
             StringAssert.Contains("clip 'Clip'", error.Message);
+            bool rendered = false;
+            client.RefreshAnimationRendering(() => rendered = true);
+            Assert.IsTrue(rendered, "A failed frame must unwind its rendering scope.");
             parent.Dispose();
             child.Dispose();
         }
@@ -700,6 +706,69 @@ namespace NeoCompose.Tests
                 "a0",
                 ReadLabel(client, "c-sprite"),
                 "nothing equipped resolves nothing, and not-writing is how holding works");
+        }
+
+        [Test]
+        public void NestedAnimationFramesRefreshRenderingOnceBeforeReturning()
+        {
+            using NeoClient client = BuildEquipClient();
+            int updates = 0;
+            Action refresh = () => updates++;
+            client.BeginAnimationFrame();
+            client.RefreshAnimationRendering(refresh);
+            client.BeginAnimationFrame();
+            client.RefreshAnimationRendering(refresh);
+            client.EndAnimationFrame();
+            Assert.AreEqual(0, updates, "Nested tracks must finish their writes first.");
+            client.EndAnimationFrame();
+            Assert.AreEqual(1, updates, "The completed frame must already be rendered.");
+            client.RefreshAnimationRendering(refresh);
+            Assert.AreEqual(2, updates, "Ordinary writes must render synchronously.");
+        }
+
+        [Test]
+        public void ScalarAnimationWriteDoesNotRebuildTheContainingClassMembers()
+        {
+            using NeoClient client = BuildEquipClient();
+            using var node = new NeoMemberClassWritable(client, "child-entry-member", "c-value", NeoValueOwnership.Asset);
+            using var members = node.GetEnumerator();
+            Assert.IsTrue(members.MoveNext());
+            NeoGeneratedTypesSupport.SetValue(node, "Sprite",
+                NeoValueWritePayload.FromValue(new SpriteValue { fileId = "updated" }));
+            Assert.DoesNotThrow(() => { while (members.MoveNext()) { } },
+                "Writing a leaf must not rebuild its unchanged containing class.");
+            Assert.AreEqual("updated", ReadLabel(client, "c-sprite"));
+        }
+
+        [Test]
+        public void SegmentPlaybackReusesItsWritableTargetNodes()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildEquipProjectData());
+            using var target = OpenRig(client);
+            using var definition = NeoAnimationCompiler.Compile(target, "Clip");
+            definition.PreparePlayback();
+            definition.ApplyFrame(0, false);
+            Assert.IsTrue(client.TryGetNode("child-entry-member", "c-value", NeoValueOwnership.Asset, out var first));
+            definition.ApplyFrame(1, false);
+            Assert.IsTrue(client.TryGetNode("child-entry-member", "c-value", NeoValueOwnership.Asset, out var second));
+            Assert.AreSame(first, second, "Playback must not allocate another subscribed writable view every frame.");
+        }
+
+        [Test]
+        public void UnrelatedWritesDoNotResolveSegmentContentAgain()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildEquipProjectData());
+            using var track = new NeoMemberClass(client,
+                new ClassMember { id = "probe-track", kind = MemberKind.Class, classId = LookupSegmentTrackClassId }, "track-0");
+            using var source = new NeoAnimationSegmentSource(client, track, "Segment", "probe");
+            Assert.IsTrue(source.TryReadContent(0, out _));
+            client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = "unrelated-position", value = 1 });
+            var reads = new HashSet<string>();
+            using (client.CaptureValueReads(reads)) Assert.IsTrue(source.TryReadContent(1, out _));
+            Assert.IsEmpty(reads, "Position and animation output writes must not rebuild unrelated segment content.");
+            Equip(client, "seg-b");
+            Assert.IsTrue(source.TryReadContent(0, out var equipped));
+            Assert.AreEqual("b0", ((SpriteMemberValue)equipped!).value!.fileId);
         }
 
         /// <summary>

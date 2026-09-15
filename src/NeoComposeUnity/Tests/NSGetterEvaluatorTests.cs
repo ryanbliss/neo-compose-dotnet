@@ -898,6 +898,25 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void AnimationFrameGetterCacheObservesWritesAndEndsWithTheFrame()
+        {
+            using var client = LoadClient();
+            client.BeginAnimationFrame();
+            var first = client.CreateGetterContext(NeoValueOwnership.Save);
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "v-str", out MemberValue? row));
+            Assert.AreEqual("hello", NSGetterEvaluator.UnwrapRow(row!, first, NeoValueOwnership.Save));
+            client.SetSaveValue(new StringMemberValue { id = "v-str", value = "changed" });
+            var second = client.CreateGetterContext(NeoValueOwnership.Save);
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "v-str", out row));
+            Assert.AreEqual("changed", NSGetterEvaluator.UnwrapRow(row!, second, NeoValueOwnership.Save));
+            client.EndAnimationFrame();
+            client.SetSaveValue(new StringMemberValue { id = "v-str", value = "next frame" });
+            var next = client.CreateGetterContext(NeoValueOwnership.Save);
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "v-str", out row));
+            Assert.AreEqual("next frame", NSGetterEvaluator.UnwrapRow(row!, next, NeoValueOwnership.Save));
+        }
+
+        [Test]
         public void Evaluate_GeneratedClassThis_AllowsSchemaMemberAccess()
         {
             var client = LoadClient();

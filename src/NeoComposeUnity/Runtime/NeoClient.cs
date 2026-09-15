@@ -865,8 +865,82 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        internal Dictionary<string, SchemaPlacement?> ScriptSchemaPlacements { get; } = new();
+
+        internal SchemaPlacement? FindSchemaPlacement(string memberId)
+        {
+            if (!ScriptSchemaPlacements.TryGetValue(memberId, out var placement))
+            {
+                placement = NeoSchemaClassInheritance.FindSchemaPlacement(memberId, data.classes.Values);
+                ScriptSchemaPlacements[memberId] = placement;
+            }
+            return placement;
+        }
+
+        private int animationFrameDepth;
+        private readonly HashSet<System.Action> pendingAnimationRenderUpdates = new();
+
+        private NeoScript.NSGetterEvaluator.Context? animationEvaluationContext;
+
+        internal NeoScript.NSGetterEvaluator.Context CreateGetterContext(NeoValueOwnership ownership)
+        {
+            if (animationFrameDepth > 0 && animationEvaluationContext is null)
+            {
+                animationEvaluationContext = new NeoScript.NSGetterEvaluator.Context(this, null, null);
+                OnWritableValueChanged += RefreshAnimationEvaluationRow;
+            }
+            var shared = animationEvaluationContext;
+            return new NeoScript.NSGetterEvaluator.Context(this, null, null,
+                valueOwnership: ownership,
+                rowUnwrapCache: shared?.rowUnwrapCache,
+                rowReverseIndex: shared?.rowReverseIndex,
+                rowCacheKeysByRow: shared?.rowCacheKeysByRow);
+        }
+
+        private void RefreshAnimationEvaluationRow(NeoValueOwnership ownership, string valueId)
+        {
+            if (animationEvaluationContext is null) return;
+            if (TryGetValue(ownership, valueId, out MemberValue? row))
+                NeoScript.NSGetterEvaluator.RefreshCachedRowAfterWrite(row, animationEvaluationContext, ownership);
+            else
+                NeoScript.NSGetterEvaluator.EvictCachedRows(animationEvaluationContext, ownership, new[] { valueId });
+        }
+
+        internal void BeginAnimationFrame() => animationFrameDepth++;
+
+        internal void EndAnimationFrame()
+        {
+            if (--animationFrameDepth != 0) return;
+            OnWritableValueChanged -= RefreshAnimationEvaluationRow;
+            animationEvaluationContext = null;
+            if (pendingAnimationRenderUpdates.Count == 0) return;
+            var pending = pendingAnimationRenderUpdates.ToArray();
+            pendingAnimationRenderUpdates.Clear();
+            foreach (System.Action update in pending) update();
+        }
+
+        internal void RefreshAnimationRendering(System.Action update)
+        {
+            if (animationFrameDepth == 0) update();
+            else pendingAnimationRenderUpdates.Add(update);
+        }
+
+        private HashSet<string>? capturedValueReads;
+
+        internal System.IDisposable CaptureValueReads(HashSet<string> reads)
+        {
+            var previous = capturedValueReads;
+            capturedValueReads = reads;
+            return new NeoDisposableAction(() =>
+            {
+                capturedValueReads = previous;
+                previous?.UnionWith(reads);
+            });
+        }
+
         internal bool TryGetValue<TValue>(string id, [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
+            capturedValueReads?.Add(id);
             if (sessionData.values.TryGetValue(id, out MemberValue sessionIdMatch))
             {
                 if (sessionIdMatch is TValue match)
@@ -906,6 +980,7 @@ namespace NeoCompose.Runtime
             string id,
             [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
+            capturedValueReads?.Add(id);
             value = null;
             switch (ownership)
             {
@@ -1140,9 +1215,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Member '{member.id}' is not a static Class member.");
             }
-            SchemaPlacement? placement = NeoSchemaClassInheritance.FindSchemaPlacement(
-                member.id,
-                data.classes.Values);
+            SchemaPlacement? placement = FindSchemaPlacement(member.id);
             if (placement is null)
             {
                 throw new System.InvalidOperationException(
@@ -1191,9 +1264,7 @@ namespace NeoCompose.Runtime
                 return declared;
             }
 
-            SchemaPlacement? placement = NeoSchemaClassInheritance.FindSchemaPlacement(
-                member.id,
-                data.classes.Values);
+            SchemaPlacement? placement = FindSchemaPlacement(member.id);
             if (placement is null)
             {
                 throw new System.InvalidOperationException(
@@ -1534,6 +1605,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void InvalidateSchemaResolutionCaches()
         {
+            ScriptSchemaPlacements.Clear();
             classInheritanceChains.Clear();
             instanceSurfaceSchemas.Clear();
             storedInstanceSchemas.Clear();
@@ -2516,6 +2588,7 @@ namespace NeoCompose.Runtime
             string id,
             [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
+            capturedValueReads?.Add(id);
             value = null;
             if (ownership != NeoValueOwnership.Asset)
             {
@@ -2551,6 +2624,7 @@ namespace NeoCompose.Runtime
             string id,
             [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
+            capturedValueReads?.Add(id);
             value = null;
             if (ownership != NeoValueOwnership.Asset)
             {
@@ -4591,6 +4665,7 @@ namespace NeoCompose.Runtime
             string id,
             [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
+            capturedValueReads?.Add(id);
             value = null;
             if (ownership == NeoValueOwnership.Asset) return false;
             if (!GetWritableStore(ownership).values.TryGetValue(id, out MemberValue row))
@@ -5071,6 +5146,7 @@ namespace NeoCompose.Runtime
         /// can distinguish "explicitly removed" from "absent".</summary>
         internal MemberValue? ResolveValueRow(string valueId)
         {
+            capturedValueReads?.Add(valueId);
             if (sessionData.values.TryGetValue(valueId, out MemberValue sessionRow)) return sessionRow;
             if (saveData.values.TryGetValue(valueId, out MemberValue saveRow)) return saveRow;
             if (data.values.TryGetValue(valueId, out MemberValue authoredRow)) return authoredRow;

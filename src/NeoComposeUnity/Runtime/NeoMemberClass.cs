@@ -860,7 +860,12 @@ namespace NeoCompose.Runtime
                     childMember is ClassMember or ListMember or DictionaryMember
                         ? null
                         : "value");
-                ReinitializeChildren();
+                // A scalar replacement keeps the same field binding and its
+                // node receives the value change directly. Rebuild only for a
+                // missing node or a potentially changed container shape.
+                if (existingChild is null || existingChild.isDisposed
+                    || childMember is ClassMember or ListMember or DictionaryMember)
+                    ReinitializeChildren();
                 if (!childWillSelfNotify)
                 {
                     NotifyChildChanged(key);
