@@ -5575,6 +5575,51 @@ namespace NeoCompose.Tests
             finally { UnityEngine.Object.DestroyImmediate(go); }
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Render_SortingOrderWritesUpdateExistingSprite(bool nested)
+        {
+            var data = BuildPlacementAnimationProjectData();
+            data.members["sort-notification"] = new IntMember
+            {
+                id = "sort-notification", kind = MemberKind.Int, name = "SortingOrder",
+                defaultValue = new NumberMemberValueBase { value = 0 },
+            };
+            data.classes[ObjectClassId].schema["SortingOrder"] = "sort-notification";
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var obj = (TestComposedObject)SpawnAnimationTestObject(client).Info;
+            var child = new TestSpriteChild { SortingOrder = 5 };
+            TestSpriteObject? placed = null;
+            NeoGeneratedClassValue root = obj;
+            if (nested) obj.Children = new INeoWorldObjectValue[] { child };
+            else
+            {
+                placed = new TestSpriteObject(client, obj.BackingNode) { SortingOrder = 5 };
+                root = placed;
+            }
+            var go = new GameObject("Live sprite sorting test");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(root, "Default", 12) });
+                var drawn = go.GetComponentInChildren<SpriteRenderer>();
+                Assert.That(drawn.sortingOrder, Is.EqualTo(18));
+                int notification = 0;
+                foreach (int? offset in new int?[] { -4, null, 30, 5 })
+                {
+                    child.SortingOrder = offset;
+                    if (placed != null) placed.SortingOrder = offset;
+                    NeoGeneratedTypesSupport.SetValue(NeoGeneratedTypesSupport.AsWritable(obj.BackingNode),
+                        "SortingOrder", NeoValueWritePayload.FromValue(++notification));
+                    Assert.That(drawn.sortingOrder, Is.EqualTo(13 + (offset ?? 0)));
+                    Assert.That(go.GetComponentInChildren<SpriteRenderer>(), Is.SameAs(drawn));
+                }
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
         [Test]
         public void Render_SpriteChangesRefreshGeometryAndKeepEmptyBinding()
         {
