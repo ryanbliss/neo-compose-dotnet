@@ -1148,6 +1148,115 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Evaluate_EnumSetWhereSelectIdentityReturnsCanonicalEnumList()
+        {
+            var enumType = new EnumTypeInfo
+            {
+                type = MemberKind.Enum,
+                required = true,
+                enumId = "enum-color",
+            };
+            var setType = new LookupTypeInfo
+            {
+                type = MemberKind.Lookup,
+                required = true,
+                entryTypeInfo = enumType,
+            };
+            VariablePointer EntryPointer() => new VariablePointer
+            {
+                type = PointerKind.Variable,
+                variableId = "entry",
+            };
+            FunctionWithReturnType Callback(TypeInfo resultType, Pointer result) =>
+                new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        new Variable
+                        {
+                            id = "entry",
+                            typeInfo = enumType,
+                            pointer = EntryPointer(),
+                        },
+                    },
+                    typeInfo = resultType,
+                    instructions = new Instruction[]
+                    {
+                        new ReturnInstruction
+                        {
+                            type = InstructionKind.Return,
+                            pointer = result,
+                        },
+                    },
+                };
+            var where = new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new WhereFunction
+                {
+                    type = FunctionKind.Where,
+                    info = new FunctionCollectionBoolInfo
+                    {
+                        collectionPointer = new ValuePointer
+                        {
+                            type = PointerKind.Value,
+                            value = new Value
+                            {
+                                typeInfo = setType,
+                                value = new JArray("red", "blue"),
+                            },
+                        },
+                        function = Callback(
+                            new PrimitiveTypeInfo
+                            {
+                                type = MemberKind.Bool,
+                                required = true,
+                            },
+                            new ValuePointer
+                            {
+                                type = PointerKind.Value,
+                                value = new Value
+                                {
+                                    typeInfo = new PrimitiveTypeInfo
+                                    {
+                                        type = MemberKind.Bool,
+                                        required = true,
+                                    },
+                                    value = JToken.FromObject(true),
+                                },
+                            }),
+                    },
+                },
+            };
+            var select = new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new SelectFunction
+                {
+                    type = FunctionKind.Select,
+                    info = new FunctionCollectionSelectInfo
+                    {
+                        collectionPointer = where,
+                        function = Callback(enumType, EntryPointer()),
+                    },
+                },
+            };
+
+            using NeoClient client = LoadClient();
+            object? result = NSGetterEvaluator.EvaluatePointer(
+                select,
+                new Dictionary<string, object?>(),
+                new NSGetterEvaluator.Context(client, null, null));
+
+            Assert.IsInstanceOf<object?[]>(result);
+            var values = (object?[])result!;
+            Assert.AreEqual(2, values.Length);
+            CollectionAssert.AreEqual(new[] { "red" }, (object?[])values[0]!);
+            CollectionAssert.AreEqual(new[] { "blue" }, (object?[])values[1]!);
+        }
+
+        [Test]
         public void Evaluate_StringInterpolation_DescribesNestedSets()
         {
             var setType = new LookupTypeInfo
