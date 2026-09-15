@@ -19,6 +19,21 @@ namespace NeoCompose.Tests
     public class NSFunctionRuntimeTests
     {
         [Test]
+        public void GetterWithoutAllocationsDoesNotTraverseReturnGraphForEscapeTracking()
+        {
+            using NeoClient client = BuildClient(System.Array.Empty<JsonMember>(), ReceiverClass());
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            int enumerations = 0;
+            System.Collections.Generic.IEnumerable<object> ReturnedValues()
+            {
+                enumerations++;
+                yield return new object();
+            }
+            ctx.allocationTracker.MarkEscaped(ReturnedValues(), ctx);
+            Assert.AreEqual(0, enumerations, "No temporary allocations means no escape graph needs scanning.");
+        }
+
+        [Test]
         public void StaticFunction_UsesTheCompilerThisAndRootEnvelope()
         {
             var argument = new FunctionArgumentTypeInfo { name = "amount", type = MemberKind.Int, required = true };
@@ -209,6 +224,34 @@ namespace NeoCompose.Tests
             private static readonly NeoDelegate<string> ChildSelector = () => "child";
 
             public override NeoDelegate<object> Selector => ChildSelector;
+        }
+
+        [TestCase(NeoValueOwnership.Session)]
+        [TestCase(NeoValueOwnership.Save)]
+        public void LookupSelectionKeepsCollectionOwnershipForSparseEntry(NeoValueOwnership ownership)
+        {
+            var count = new IntMember { id = "count", name = "Count", kind = MemberKind.Int };
+            var entry = new ClassMember { id = "config-entry", kind = MemberKind.Class, classId = "receiver-class" };
+            var collection = new ListMember { id = "configs", kind = MemberKind.List, entryMemberId = entry.id, valueId = "configs-value" };
+            var lookup = new LookupMember { id = "config", kind = MemberKind.Lookup, collectionMemberId = collection.id };
+            var config = ObjectValue("selected-config", "receiver-class");
+            config.value!["Count"] = "count-value";
+            using NeoClient client = BuildClient(new JsonMember[] { count, entry, collection, lookup }, ReceiverClass(("Count", count.id)),
+                additionalValues: new MemberValue[] { config,
+                    new NumberMemberValue { id = "count-value", value = 1 },
+                    new ArrayMemberValue { id = "config-lookup", value = new[] { config.id } } });
+            client.SetWritableValue(ownership, new ArrayMemberValue { id = collection.valueId!, value = new[] { config.id } });
+            client.SetWritableValue(ownership, new NumberMemberValue { id = "count-value", value = 9 });
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var selected = NSGetterEvaluator.ResolveValueIfId("config-lookup", ctx, NeoValueOwnership.Asset, lookup);
+            var selectedOwnership = NSGetterEvaluator.FindRowOwnershipByReference(selected, ctx);
+            Assert.AreEqual(ownership, selectedOwnership);
+            Assert.AreEqual(9d, NSGetterEvaluator.EvaluatePointer(new KeyOfPointer
+            {
+                type = PointerKind.KeyOf,
+                keyOf = new KeyOf { pointer = Variable("selected"), key = Text("Count") },
+                memberId = count.id,
+            }, new Dictionary<string, object?> { ["selected"] = selected }, ctx));
         }
 
         [TestCase(NeoValueOwnership.Session, NeoMemberStorage.Session)]

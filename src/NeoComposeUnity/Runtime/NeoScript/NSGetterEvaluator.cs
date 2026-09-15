@@ -241,6 +241,9 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         internal void MarkEscaped(object? value, NSGetterEvaluator.Context ctx)
         {
+            // Most getters return existing rows. With no temporary roots,
+            // there is nothing to retain and no owned-parent graph to scan.
+            if (allocatedRootIds.Count == 0) return;
             MarkEscaped(value, ctx, new HashSet<object>());
         }
 
@@ -660,8 +663,10 @@ namespace NeoCompose.Runtime.NeoScript
                     ?? new Dictionary<string, HashSet<string>>();
                 this.valueOwnership = valueOwnership;
                 this.functionCallStack = functionCallStack ?? System.Array.Empty<string>();
+                // Placements depend on the exported schema, not the receiver or
+                // invocation. Share them across getters and clear with schema caches.
                 this.schemaPlacementCache = schemaPlacementCache
-                    ?? new Dictionary<string, SchemaPlacement?>();
+                    ?? client.ScriptSchemaPlacements;
                 this.callableDispatchCache = callableDispatchCache
                     ?? new Dictionary<string, string?>();
                 this.genericEnvironmentCache = genericEnvironmentCache
@@ -2313,9 +2318,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return cached;
             }
-            SchemaPlacement? placement = NeoSchemaClassInheritance.FindSchemaPlacement(
-                memberId,
-                EnumerateClasses(ctx.client));
+            SchemaPlacement? placement = ctx.client.FindSchemaPlacement(memberId);
             ctx.schemaPlacementCache[memberId] = placement;
             return placement;
         }
@@ -2608,7 +2611,8 @@ namespace NeoCompose.Runtime.NeoScript
                 && selections.Length == 1
                 && selections[0] is string selectedId)
             {
-                return DispatchResult.Ok(ResolveValueIfId(selectedId, ctx));
+                return DispatchResult.Ok(ResolveValueIfId(selectedId, ctx,
+                    ResolveLookupSelectionOwnership(ctx, lookup, selectedId)));
             }
             return DispatchResult.Ok(unwrapped);
         }
@@ -4954,7 +4958,7 @@ namespace NeoCompose.Runtime.NeoScript
                 && arr.Length == 1
                 && arr[0] is string singleId)
             {
-                var singleOwnership = ResolveOwnershipForValueId(ctx, singleId);
+                var singleOwnership = ResolveLookupSelectionOwnership(ctx, lookup, singleId);
                 if (ctx.client.TryGetValue(singleOwnership, singleId, out MemberValue? next))
                 {
                     return UnwrapCached(next, ctx, singleOwnership);
@@ -4963,16 +4967,39 @@ namespace NeoCompose.Runtime.NeoScript
             return v;
         }
 
+        private static NeoValueOwnership ResolveLookupSelectionOwnership(
+            Context ctx, LookupMember lookup, string selectedId)
+        {
+            // A sparse selected object can still be an authored row while its
+            // fields are overridden in the lookup collection's Save/Session store.
+            if (ctx.client.TryResolveLookupCollectionValueId(
+                    lookup.collectionMemberId, lookup.CollectionValueId, out string? collectionId)
+                && ctx.client.TryGetValueOwnership(collectionId!, out NeoValueOwnership ownership))
+                return ownership;
+            return ResolveOwnershipForValueId(ctx, selectedId);
+        }
+
         private static object? UnwrapGeneratedValue(object? value, Context ctx)
         {
             if (value is INeoValueReference reference
                 && !string.IsNullOrEmpty(reference.valueId))
             {
-                var ownership = ResolveOwnershipForValueId(ctx, reference.valueId!);
-                if (ctx.client.TryGetValue(
-                        ownership,
-                        reference.valueId!,
-                        out MemberValue? row))
+                var ownership = value is NeoGeneratedClassValue generated
+                    ? generated.ValueOwnership
+                    : value is NeoObjectRecord record
+                        ? record.valueOwnership
+                        : FindRowOwnershipByReference(value, ctx)
+                            ?? ResolveOwnershipForValueId(ctx, reference.valueId!);
+                // Older generated callers may wrap a row id without carrying
+                // its store. Retain that fallback only when the supplied view
+                // cannot resolve the row; a valid sparse view keeps its ownership.
+                if (!ctx.client.TryGetValue(ownership, reference.valueId!, out MemberValue? row)
+                    && value is NeoGeneratedClassValue)
+                {
+                    ownership = ResolveOwnershipForValueId(ctx, reference.valueId!);
+                    ctx.client.TryGetValue(ownership, reference.valueId!, out row);
+                }
+                if (row is not null)
                 {
                     return UnwrapCached(row, ctx, ownership);
                 }
@@ -5432,16 +5459,24 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
+        private static string OwnershipName(NeoValueOwnership ownership) => ownership switch
+        {
+            NeoValueOwnership.Asset => "Asset",
+            NeoValueOwnership.Save => "Save",
+            NeoValueOwnership.Session => "Session",
+            _ => ownership.ToString(),
+        };
+
         private static string RowCacheRowKey(
             NeoValueOwnership ownership,
             string rowId) =>
-            ownership.ToString() + ":" + rowId;
+            OwnershipName(ownership) + ":" + rowId;
 
         private static string RowCacheKey(
             NeoValueOwnership ownership,
             string rowId,
             JsonMember? member = null) =>
-            ownership.ToString() + ":" + rowId + ":" + (member?.id ?? "");
+            OwnershipName(ownership) + ":" + rowId + ":" + (member?.id ?? "");
 
         private static string? ResolveStringValue(
             StringMemberValue value,

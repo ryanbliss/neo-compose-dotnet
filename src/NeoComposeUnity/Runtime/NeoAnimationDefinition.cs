@@ -12,6 +12,7 @@ namespace NeoCompose.Runtime
 {
     internal sealed class NeoAnimationDefinition : IDisposable
     {
+        private readonly NeoClient client;
         private readonly IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> sparseWrites;
         private IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> resolvedWrites;
         private readonly IReadOnlyDictionary<int, Action[]> actions;
@@ -23,6 +24,7 @@ namespace NeoCompose.Runtime
         private bool disposed;
 
         internal NeoAnimationDefinition(
+            NeoClient client,
             int fps,
             int duration,
             IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> sparseWrites,
@@ -34,6 +36,7 @@ namespace NeoCompose.Runtime
             string playbackKey,
             string playbackCycleLabel)
         {
+            this.client = client;
             FPS = fps;
             Duration = duration;
             this.sparseWrites = sparseWrites;
@@ -82,6 +85,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Animation child-track cycle reaches {playbackCycleLabel}.");
             }
+            client.BeginAnimationFrame();
             try
             {
                 IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> source =
@@ -98,6 +102,7 @@ namespace NeoCompose.Runtime
             finally
             {
                 activePlaybackStack.Remove(playbackKey);
+                client.EndAnimationFrame();
             }
         }
 
@@ -1119,21 +1124,10 @@ namespace NeoCompose.Runtime
     /// compiled definition holds the track <b>row</b>, not expanded values, and
     /// re-reads the resolved segment whenever a write may have moved it.
     ///
-    /// <para>P48 §3.1's contract is that the resolved segment is a function of
-    /// the instance's current state, evaluated per applied frame — "an equip
-    /// mid-animation must change the sprite on the next frame". Memoization is
-    /// legal only when invisible, so the dirty flag here is deliberately
-    /// <b>conservative</b>: any writable value change anywhere marks the source
-    /// dirty and the next applied frame re-resolves. A narrower key would have
-    /// to be the getter's read set, which the .NET evaluator does not report
-    /// (unlike the compiler that derives dialogue linked values), and a
-    /// narrower key that is wrong silently breaks the one property the whole
-    /// design leans on.</para>
-    ///
-    /// <para>What the flag still buys: a clip whose frame wrote nothing pays
-    /// nothing, and a re-resolution whose segment row is unchanged reuses the
-    /// node tree rather than rebuilding it — so an equip costs a rebuild and a
-    /// steady frame costs two member reads.</para>
+    /// <para>Capture the value rows read while resolving both the getter and
+    /// its segment content. A write to any dependency invalidates the source
+    /// for the next applied frame, so an equip or turn updates immediately
+    /// without re-evaluating getters after unrelated animation writes.</para>
     /// </summary>
     internal sealed class NeoAnimationSegmentSource : IDisposable
     {
@@ -1146,6 +1140,7 @@ namespace NeoCompose.Runtime
 
         private MemberValue?[] contentRows = Array.Empty<MemberValue?>();
         private bool[] contentAuthored = Array.Empty<bool>();
+        private readonly HashSet<string> dependencies = new();
         private bool dirty = true;
         private bool disposed;
 
@@ -1214,7 +1209,7 @@ namespace NeoCompose.Runtime
             string valueId)
         {
             if (disposed) return;
-            dirty = true;
+            if (dependencies.Contains(valueId)) dirty = true;
         }
 
         private void EnsureResolved()
@@ -1223,9 +1218,13 @@ namespace NeoCompose.Runtime
             dirty = false;
             contentRows = Array.Empty<MemberValue?>();
             contentAuthored = Array.Empty<bool>();
-            string? rowId = ResolveSegmentRowId();
-            if (rowId is null) return;
-            ReadContent(rowId);
+            dependencies.Clear();
+            using (client.CaptureValueReads(dependencies))
+            {
+                string? rowId = ResolveSegmentRowId();
+                if (rowId is null) return;
+                ReadContent(rowId);
+            }
         }
 
         /// <summary>
@@ -2216,6 +2215,7 @@ namespace NeoCompose.Runtime
                     duration,
                     sparse);
                 return new NeoAnimationDefinition(
+                    target.Client,
                     fps,
                     duration,
                     sparse,
@@ -2860,7 +2860,7 @@ namespace NeoCompose.Runtime
                     return existing;
                 }
                 NeoGeneratedClassValue? childTarget =
-                    target.Client.ResolveRegisteredGeneratedClassValue(childValueId);
+                    target.Client.ResolveRegisteredGeneratedClassValue(childValueId, placedChild.ownership);
                 if (childTarget is null)
                 {
                     throw new InvalidOperationException(
@@ -2934,6 +2934,13 @@ namespace NeoCompose.Runtime
                 selector.Resolve();
             }
 
+            var targets = new Dictionary<NeoMemberClass, (NeoMemberClassWritable Node, string Key)>();
+            disposables.Add(new NeoDisposableAction(() =>
+            {
+                foreach (var target in targets)
+                    if (!ReferenceEquals(target.Key, target.Value.Node)) target.Value.Node.Dispose();
+                targets.Clear();
+            }));
             for (int parentFrame = startFrame; parentFrame < parentDuration; parentFrame++)
             {
                 int capturedFrame = parentFrame;
@@ -2943,14 +2950,14 @@ namespace NeoCompose.Runtime
                     () =>
                     {
                         NeoMemberClass placedChild = selector.Resolve();
-                        NeoMemberClassWritable childWritable =
-                            placedChild.AsWritableView();
-                        if (childWritable.value is null) return;
-                        string targetSchemaKey = ResolveSegmentTrackTargetKey(
-                            client,
-                            track,
-                            placedChild,
-                            label);
+                        if (placedChild.value is null) return;
+                        if (!targets.TryGetValue(placedChild, out var writeTarget))
+                        {
+                            string key = ResolveSegmentTrackTargetKey(client, track, placedChild, label);
+                            NeoMemberClassWritable writable = placedChild.AsWritableView();
+                            writeTarget = (writable, key);
+                            targets.Add(placedChild, writeTarget);
+                        }
                         if (!NeoAnimationPlayback.TryCropWindow(
                                 source.BaseDuration,
                                 offsetStart,
@@ -2974,8 +2981,8 @@ namespace NeoCompose.Runtime
                         // different row and still writes — P42 §6's null leaf.
                         if (row is null) return;
                         NeoGeneratedTypesSupport.SetValue(
-                            childWritable,
-                            targetSchemaKey,
+                            writeTarget.Node,
+                            writeTarget.Key,
                             Payload(row));
                     });
             }

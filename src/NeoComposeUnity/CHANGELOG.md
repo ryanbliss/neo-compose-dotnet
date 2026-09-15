@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.9] - 2026-09-14
+
+- Cache animation segment content until a value it read changes. Unrelated position and animation-output writes no longer re-evaluate every segment getter.
+- Refresh composed animation rendering once per completed frame, synchronously before returning.
+- Reuse animation target views, evaluator records within a frame, and schema placements. Skip unchanged class-member rebuilds after scalar writes and escape-graph scans when a getter creates no temporary objects.
+- Resolve NeoScript lookup selections in their target collection storage so sparse config updates, including character facing, reach animation getters.
+
 ## [0.36.8] - 2026-09-14
 
 - Bind stored method-group defaults to their enclosing instance during construction, including separately initialized animation tracks. Preserve those receivers when replaying sparse saved constructors.

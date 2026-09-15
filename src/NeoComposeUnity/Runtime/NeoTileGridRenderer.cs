@@ -1100,35 +1100,27 @@ namespace NeoCompose.Runtime
         {
             var instanceId = instance.InstanceId;
             var value = instance.Object;
+            // Coalesce the many leaf writes of a composed animation frame.
+            // Flush before ApplyFrame returns, never on a later Unity frame.
+            bool positionDirty = false, visibilityDirty = false, spritesDirty = false;
+            void RefreshRendering()
+            {
+                if (!objectRootsByInstanceId.TryGetValue(instanceId, out var root) || root == null) return;
+                if (positionDirty && value is INeoWorldObjectValue worldObject)
+                    root.transform.localPosition = CellOffsetToLocalPosition(worldObject.Position);
+                if (visibilityDirty) SyncObjectVisibility(instanceId);
+                if (spritesDirty) SyncObjectSprites(instanceId);
+                positionDirty = visibilityDirty = spritesDirty = false;
+            }
+            Action refresh = RefreshRendering;
             DisposeObjectPositionSubscription(instanceId);
             objectPositionSubscriptionsByInstanceId[instanceId] = value.WatchAnyChange(
                 (changedValue, changedMember, _) =>
                 {
-                    if (!objectRootsByInstanceId.TryGetValue(instanceId, out var root) ||
-                        root == null)
-                    {
-                        return;
-                    }
-
-                    if (changedValue is not INeoWorldObjectValue worldObject) return;
-                    root.transform.localPosition =
-                        CellOffsetToLocalPosition(worldObject.Position);
-                    // Descendant writes bubble to this one root subscription, so
-                    // a nested part's Enabled arrives here too — but so does
-                    // every clip frame's Position or Sprite write, and those
-                    // must not cost a visibility reconcile.
-                    if (ChangeCanCarryEnabled(changedValue, changedMember))
-                    {
-                        SyncObjectVisibility(instanceId);
-                    }
-                    // A Sprite write is the one thing this subscription used to
-                    // deliberately drop. P48 makes it load-bearing: an equip is
-                    // a Session lookup write, a segment track re-resolves it on
-                    // the next applied frame and writes the child's Sprite, and
-                    // before this the SpriteRenderer kept whatever it was given
-                    // at spawn.
-                    if (!ChangeCanCarrySpriteState(changedValue, changedMember)) return;
-                    SyncObjectSprites(instanceId);
+                    positionDirty = true;
+                    visibilityDirty |= ChangeCanCarryEnabled(changedValue, changedMember);
+                    spritesDirty |= ChangeCanCarrySpriteState(changedValue, changedMember);
+                    value.Client.RefreshAnimationRendering(refresh);
                 });
         }
 
