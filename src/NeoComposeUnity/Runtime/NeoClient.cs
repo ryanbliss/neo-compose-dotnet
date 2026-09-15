@@ -3604,7 +3604,7 @@ namespace NeoCompose.Runtime
             return clone.id;
         }
 
-        private IEnumerable<(string valueId, Member? member)> EnumerateOwnedChildLinks(
+        internal IEnumerable<(string valueId, Member? member)> EnumerateOwnedChildLinks(
             MemberValue row,
             Member? sourceMember)
         {
@@ -5392,7 +5392,7 @@ namespace NeoCompose.Runtime
         }
 
         internal NeoGeneratedClassValue? ResolveRegisteredGeneratedClassValue(
-            string valueId)
+            string valueId, NeoValueOwnership? ownership = null)
         {
             if (string.IsNullOrWhiteSpace(valueId)) return null;
             EnsureGeneratedClassFactoriesRegistered();
@@ -5400,13 +5400,15 @@ namespace NeoCompose.Runtime
                     this,
                     valueId,
                     generatedReadOnlyClassFactories!,
-                    generatedWritableClassFactories!)
+                    generatedWritableClassFactories!,
+                    ownership)
                 as NeoGeneratedClassValue;
         }
 
         internal NeoGeneratedClassValue? ResolveRegisteredGeneratedAsset(
             string assetClassId,
-            string? assetValueId)
+            string? assetValueId,
+            NeoValueOwnership? ownership = null)
         {
             if (string.IsNullOrWhiteSpace(assetClassId)) return null;
             EnsureGeneratedClassFactoriesRegistered();
@@ -5415,7 +5417,7 @@ namespace NeoCompose.Runtime
                     this,
                     assetClassId,
                     generatedReadOnlyClassFactories!)
-                : ResolveRegisteredGeneratedClassValue(assetValueId!);
+                : ResolveRegisteredGeneratedClassValue(assetValueId!, ownership);
             if (generated is null) return null;
             return ClassExtendsClass(generated.classId, assetClassId) ? generated : null;
         }

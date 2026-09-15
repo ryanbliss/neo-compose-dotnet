@@ -361,6 +361,7 @@ namespace NeoCompose.Runtime
                 isTileLink: false);
             var origin = ReadRowOrigin(client!, linkRow!);
             var order = 0;
+            var ownership = ((NeoGeneratedClassValue)link).BackingNode.Get<NeoMemberList>("Objects").ownership;
 
             foreach (var objectValueId in ReadRowListIds(client!, linkRow!, "Objects"))
             {
@@ -376,8 +377,7 @@ namespace NeoCompose.Runtime
                     "assetClassId") ?? objectRow.classId;
                 if (string.IsNullOrWhiteSpace(assetClassId)) continue;
                 var generatedObject = client.ResolveRegisteredGeneratedAsset(
-                    assetClassId!,
-                    objectValueId);
+                    assetClassId!, objectValueId, ownership == NeoValueOwnership.Asset ? null : ownership);
                 if (generatedObject is null) continue;
                 var localPosition = ReadRowPosition(client, objectRow);
                 var cell = origin + new Vector2Int(

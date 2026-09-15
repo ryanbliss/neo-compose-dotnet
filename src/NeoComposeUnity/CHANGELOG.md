@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.36.8] - 2026-09-14
+
+- Bind stored method-group defaults to their enclosing instance during construction, including separately initialized animation tracks. Preserve those receivers when replaying sparse saved constructors.
+- Honor declared Save/Session storage in NeoScript member reads and object-layer rendering so character config and position updates reach the same runtime instance.
+
 ## [0.36.7] - 2026-09-14
 
 - Bind NeoScript instance method delegates to their character or object when created, matching the web evaluator. Animation selectors such as `SelectAttackItem` and `this.SelectAttackItem` retain their receiver when stored and invoked later.
