@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.36.10
+
+- Apply live sprite `SortingOrder` writes without respawning, preserving the layer and composition base when offsets change or reset to null.
+
 ## [0.36.9] - 2026-09-14
 
 - Cache animation segment content until a value it read changes. Unrelated position and animation-output writes no longer re-evaluate every segment getter.

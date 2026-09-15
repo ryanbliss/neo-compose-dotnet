@@ -204,18 +204,21 @@ namespace NeoCompose.Runtime
                 INeoSpriteObjectValue value,
                 SpriteRenderer renderer,
                 Vector3 cellSpan,
-                BoxCollider2D? boundsCollider)
+                BoxCollider2D? boundsCollider,
+                int baseSortingOrder)
             {
                 Value = value;
                 Renderer = renderer;
                 CellSpan = cellSpan;
                 BoundsCollider = boundsCollider;
+                BaseSortingOrder = baseSortingOrder;
             }
 
             public INeoSpriteObjectValue Value { get; }
             public SpriteRenderer Renderer { get; }
             public Vector3 CellSpan { get; }
             public BoxCollider2D? BoundsCollider { get; }
+            public int BaseSortingOrder { get; }
         }
 
         private sealed class TileLayerTargetRegistration
@@ -1149,7 +1152,7 @@ namespace NeoCompose.Runtime
             }
 
             return schemaKey is SpriteMemberKey or FlipXMemberKey or FlipYMemberKey
-                or MaskInteractionMemberKey;
+                or MaskInteractionMemberKey or "SortingOrder";
         }
 
         /// <summary>
@@ -1157,13 +1160,8 @@ namespace NeoCompose.Runtime
         /// interaction from the value that governs it. The value model is the
         /// single source of truth for what is drawn, the same way it already is
         /// for position and visibility.
-        /// <para>
-        /// Sorting order is deliberately not re-derived: the rendered order is
-        /// the object layer's computed base plus the authored offset, and the
-        /// base is spawn-time layout state this walk does not have. A runtime
-        /// SortingOrder write therefore still takes a respawn — a real gap, but
-        /// a different one from P48's.
-        /// </para>
+        /// Sorting uses the retained composition base plus the current authored
+        /// offset, so repeated writes never accumulate the previous offset.
         /// </summary>
         private void SyncObjectSprites(NeoObjectInstanceId instanceId)
         {
@@ -1189,6 +1187,8 @@ namespace NeoCompose.Runtime
                     renderer.sprite = sprite;
                 }
                 ApplySpriteState(renderer, binding.Value);
+                int sortingOrder = binding.BaseSortingOrder + (binding.Value.SortingOrder ?? 0);
+                if (renderer.sortingOrder != sortingOrder) renderer.sortingOrder = sortingOrder;
                 if (geometryChanged)
                     ApplySpriteGeometry(renderer, binding.CellSpan, binding.BoundsCollider);
             }
@@ -2001,7 +2001,7 @@ namespace NeoCompose.Runtime
             // there is nothing to re-read them from.
             if (spriteObject != null)
             {
-                sprites?.Add(new RenderedObjectSprite(spriteObject, renderer, cellSpan, boundsCollider));
+                sprites?.Add(new RenderedObjectSprite(spriteObject, renderer, cellSpan, boundsCollider, sortingOrder));
             }
             // The authored order is an offset on the order derived from the
             // object's layer group, so an object layer's sorting order still
