@@ -121,7 +121,7 @@ namespace NeoCompose.Tests
                     .Replace("-", string.Empty)
                     .ToLowerInvariant();
                 Assert.AreEqual(
-                    "c0f4653f95cd0d264930365e8e1f36072afcfba996f418cdf1436dcbee3efa00",
+                    "4cb093ca5302892fdd52a6bdee67eb7c074057690c7e545e2cb330e595dd39a5",
                     actual,
                     "The vendored fixture bytes drifted from the reviewed web source.");
             }
@@ -155,6 +155,25 @@ namespace NeoCompose.Tests
                 expected,
                 result is null ? JValue.CreateNull() : JToken.FromObject(result),
                 caseName);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ForEachAcceptsUnboundSetButRejectsOrphanedCollectionValue(bool orphanedValue)
+        {
+            const string name = "foreach consumes ordered values through the Lookup collection contract";
+            JObject testCase = RequireCase(name);
+            JObject collectionType = (JObject)testCase.SelectToken("getter.instructions[1].collectionTypeInfo")!;
+            collectionType.Remove("collectionMemberId");
+            if (orphanedValue)
+            {
+                collectionType["collectionValueId"] = "orphaned-value";
+                Assert.Throws<JsonSerializationException>(() => Getter(testCase, name));
+                return;
+            }
+            var ctx = new NSGetterEvaluator.Context(LoadClient(), null, null);
+            object? result = NSGetterEvaluator.Evaluate(Getter(testCase, name), ctx);
+            AssertTokenMatches(testCase["expected"]!, JToken.FromObject(result!), name);
         }
 
         [Test]
@@ -207,7 +226,7 @@ namespace NeoCompose.Tests
         public void P54BoundsEvaluatorCreatedCollectionEntries()
         {
             const string json = @"{
-              ""compilerRevision"": 13,
+              ""compilerRevision"": 14,
               ""parameters"": [],
               ""instructions"": [{
                 ""type"": ""return"",
@@ -369,7 +388,7 @@ namespace NeoCompose.Tests
         private static FunctionWithReturnType SimpleIntGetter()
         {
             const string json = @"{
-              ""compilerRevision"": 13,
+              ""compilerRevision"": 14,
               ""parameters"": [],
               ""instructions"": [{
                 ""type"": ""return"",

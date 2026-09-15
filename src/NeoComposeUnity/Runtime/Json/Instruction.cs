@@ -375,7 +375,16 @@ namespace NeoCompose.Runtime.Json
                 return false;
             }
             if (kind == MemberKind.Lookup
+                && collectionType["collectionMemberId"] is not null
                 && !IsNonEmptyString(collectionType["collectionMemberId"]))
+            {
+                return false;
+            }
+            if (kind == MemberKind.Lookup
+                && collectionType["collectionValueId"] is JToken collectionValueId
+                && collectionValueId.Type != JTokenType.Null
+                && (!IsNonEmptyString(collectionValueId)
+                    || !IsNonEmptyString(collectionType["collectionMemberId"])))
             {
                 return false;
             }

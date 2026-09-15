@@ -77,7 +77,7 @@ namespace NeoCompose.Tests
         public void ActionValue_RejectsAClosureListener()
         {
             const string json =
-                @"{'listeners':[{'code':'() => 1','action':{'compilerRevision':13}}]}";
+                @"{'listeners':[{'code':'() => 1','action':{'compilerRevision':14}}]}";
 
             var error = Assert.Throws<JsonSerializationException>(
                 () => JsonConvert.DeserializeObject<NeoActionValue>(json));

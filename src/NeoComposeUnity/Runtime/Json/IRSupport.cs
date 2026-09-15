@@ -409,7 +409,7 @@ namespace NeoCompose.Runtime.Json
         /// <c>Equals</c> fallback dispatch; revision 13 adds the list
         /// <c>indexOf</c> intrinsic and predicate-bearing <c>count</c> shape.
         /// </summary>
-        public const int CurrentCompilerRevision = 13;
+        public const int CurrentCompilerRevision = 14;
 
         /// <summary>
         /// Required on every body this runtime executes: it must equal

@@ -4853,7 +4853,8 @@ namespace NeoCompose.Runtime.NeoScript
         /// Runtime tag-check for <c>is</c>. Mirrors TS-side
         /// <c>runtimeTypeCheck</c>.
         /// </summary>
-        private static bool RuntimeTypeCheck(object? value, TypeInfo checkType, Context ctx)
+        private static bool RuntimeTypeCheck(object? value, TypeInfo checkType, Context ctx,
+            HashSet<object>? seenCollections = null)
         {
             if (checkType.type == MemberKind.Null) return value is null;
             if (value is null) return false;
@@ -4891,6 +4892,27 @@ namespace NeoCompose.Runtime.NeoScript
                     return value is string decimalText
                         && NeoDecimalValues.GetViolation(decimalText) == NeoDecimalValues.Violation.None;
                 case MemberKind.List: return value is object?[];
+                case MemberKind.Lookup:
+                {
+                    if (value is not object?[] entries || checkType is not LookupTypeInfo lookup) return false;
+                    if (seenCollections?.Contains(value) == true) return false;
+                    var seen = seenCollections is null
+                        ? new HashSet<object>(ReferenceEqualityComparer.Instance)
+                        : new HashSet<object>(seenCollections, ReferenceEqualityComparer.Instance);
+                    seen.Add(value);
+                    foreach (object? entry in entries)
+                    {
+                        TypeInfo entryType = lookup.entryTypeInfo;
+                        if (entry is null && !entryType.required) continue;
+                        if (entry is string && (entryType.type == MemberKind.Enum
+                            || entryType.type == MemberKind.DialogueLookup)) continue;
+                        if (RuntimeTypeCheck(entry, entryType, ctx, seen)) continue;
+                        object? resolved = ResolveValueIfId(entry, ctx);
+                        if (ReferenceEquals(resolved, entry)
+                            || !RuntimeTypeCheck(resolved, entryType, ctx, seen)) return false;
+                    }
+                    return true;
+                }
                 case MemberKind.Dictionary:
                     return value is IDictionary<string, object?>;
                 case MemberKind.Enum:
@@ -5922,6 +5944,10 @@ namespace NeoCompose.Runtime.NeoScript
         private static string FormatForInterp(object? value, TypeInfo sourceType, Context ctx)
         {
             if (value is null) return "";
+            if (sourceType is LookupTypeInfo { entryTypeInfo: EnumTypeInfo enumType })
+            {
+                sourceType = enumType;
+            }
             switch (sourceType.type)
             {
                 case MemberKind.Enum:
@@ -5977,6 +6003,13 @@ namespace NeoCompose.Runtime.NeoScript
                     string rowId = FindRowIdByReference(value, ctx) ?? "<unknown>";
                     return $"(Dictionary<{entryName}>, Value<{rowId}>)";
                 }
+                case MemberKind.Lookup:
+                {
+                    var entryType = (sourceType as LookupTypeInfo)?.entryTypeInfo;
+                    string entryName = entryType is null ? "unknown" : DescribeRuntimeType(entryType, ctx);
+                    string rowId = FindRowIdByReference(value, ctx) ?? "<unknown>";
+                    return $"(Set<{entryName}>, Value<{rowId}>)";
+                }
                 default:
                     return value.ToString() ?? "";
             }
@@ -6019,6 +6052,11 @@ namespace NeoCompose.Runtime.NeoScript
                     return inner is null
                         ? "Dictionary<unknown>"
                         : $"Dictionary<{DescribeRuntimeType(inner, ctx)}>";
+                }
+                case MemberKind.Lookup:
+                {
+                    var inner = (t as LookupTypeInfo)?.entryTypeInfo;
+                    return inner is null ? "Set<unknown>" : $"Set<{DescribeRuntimeType(inner, ctx)}>";
                 }
                 default: return "unknown";
             }

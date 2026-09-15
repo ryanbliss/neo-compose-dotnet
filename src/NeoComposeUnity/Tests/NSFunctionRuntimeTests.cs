@@ -116,7 +116,7 @@ namespace NeoCompose.Tests
                 'returnTypeInfo':{'type':21,'required':true,'ownerClassId':'track','genericParamId':'child'},
                 'argumentTypes':[{'name':'amount','type':2,'required':true}],
                 'defaultValue':{'value':{'code':'amount => amount','action':{
-                    'compilerRevision':13,
+                    'compilerRevision':14,
                     'parameters':[
                         {'id':'__this__','typeInfo':{'type':7,'required':true,'classId':'receiver-class'},'pointer':{'type':'variable','variableId':'__this__'}},
                         {'id':'__root__','typeInfo':{'type':7,'required':true,'classId':'root-class'},'pointer':{'type':'variable','variableId':'__root__'}},
@@ -132,7 +132,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(25, (int)member.kind);
             Assert.IsInstanceOf<GenericTypeInfo>(member.returnTypeInfo);
             Assert.AreEqual("amount", member.argumentTypes[0].name);
-            Assert.AreEqual(13, member.defaultValue!.value!.action!.compilerRevision);
+            Assert.AreEqual(14, member.defaultValue!.value!.action!.compilerRevision);
 
             const string callJson = @"{
                 'type':'functionCall','call':{
@@ -1292,6 +1292,164 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Invoke_SetSelectionsRoundTripAsFlatIds(
+            [Values(false, true)] bool dialogue,
+            [Values(false, true)] bool wrappers,
+            [Values(false, true)] bool empty)
+        {
+            TypeInfo entryType = dialogue
+                ? new PrimitiveTypeInfo { type = MemberKind.DialogueLookup, required = true }
+                : new EnumTypeInfo { type = MemberKind.Enum, required = true, enumId = "levels" };
+            var setType = new LookupTypeInfo
+            {
+                type = MemberKind.Lookup,
+                required = true,
+                entryTypeInfo = entryType,
+            };
+            FunctionArgumentTypeInfo argument = Argument("Selections", MemberKind.Lookup);
+            argument.entryTypeInfo = entryType;
+            NSFunctionMember function = ScriptFunction(
+                "fn-set-identity", "SetIdentity", false, setType, new[] { argument },
+                Action(setType, new[] { argument }, Return(Variable("__arg_0__"))));
+            using NeoClient client = BuildClient(
+                new JsonMember[] { function }, ReceiverClass((function.name, function.id)));
+            string[] ids = empty ? Array.Empty<string>() : new[] { "selection-1", "selection-2" };
+            object input = ids;
+            if (wrappers)
+            {
+                var selections = new object[ids.Length];
+                for (int i = 0; i < ids.Length; i++)
+                    selections[i] = dialogue
+                        ? new NeoDialogueReference(ids[i])
+                        : new TestEnumOption(ids[i]);
+                input = selections;
+            }
+
+            var node = new NeoMemberNSFunction(client, function, null);
+            object? result = node.Invoke("receiver-value", new object?[] { input });
+
+            Assert.IsInstanceOf<object?[]>(result);
+            CollectionAssert.AreEqual(ids, (object?[])result!);
+            CollectionAssert.AreEqual(ids,
+                (object?[])node.Invoke("receiver-value", new[] { result })!);
+        }
+
+        [Test]
+        public void Invoke_RowBackedSetSelectionsKeepCollectionIdentity(
+            [Values(false, true)] bool dialogue)
+        {
+            TypeInfo entryType = dialogue
+                ? new PrimitiveTypeInfo { type = MemberKind.DialogueLookup, required = true }
+                : new EnumTypeInfo { type = MemberKind.Enum, required = true, enumId = "levels" };
+            var setType = new LookupTypeInfo
+            {
+                type = MemberKind.Lookup,
+                required = true,
+                entryTypeInfo = entryType,
+            };
+            FunctionArgumentTypeInfo argument = Argument("Selections", MemberKind.Lookup);
+            argument.entryTypeInfo = entryType;
+            NSFunctionMember function = ScriptFunction(
+                "fn-set-identity", "SetIdentity", false, setType, new[] { argument },
+                Action(setType, new[] { argument }, Return(Variable("__arg_0__"))));
+            function.Modifier = NeoMemberModifierKind.Static;
+            var row = new ArrayMemberValue
+            {
+                id = "selections",
+                value = new[] { "selection-1", "selection-2" },
+            };
+            using NeoClient client = BuildClient(
+                new JsonMember[] { function }, ReceiverClass((function.name, function.id)),
+                additionalValues: new MemberValue[]
+                {
+                    row,
+                    new NumberMemberValue { id = "selection-1", value = 42 },
+                });
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            object selections = NSGetterEvaluator.UnwrapRow(row, ctx, NeoValueOwnership.Asset)!;
+
+            Assert.AreSame(selections,
+                NeoNSFunctionRuntime.InvokeImmediate(client, function.id, null, new[] { selections }, ctx));
+        }
+
+        [Test]
+        public void Invoke_LocalSelectionSetDeduplicatesAddAndRemovesById(
+            [Values(false, true)] bool dialogue,
+            [Values(false, true)] bool remove)
+        {
+            TypeInfo entryType = dialogue
+                ? new PrimitiveTypeInfo { type = MemberKind.DialogueLookup, required = true }
+                : new EnumTypeInfo { type = MemberKind.Enum, required = true, enumId = "levels" };
+            var setType = new LookupTypeInfo
+            {
+                type = MemberKind.Lookup,
+                required = true,
+                entryTypeInfo = entryType,
+            };
+            FunctionArgumentTypeInfo selections = Argument("Selections", MemberKind.Lookup);
+            selections.entryTypeInfo = entryType;
+            FunctionArgumentTypeInfo selected = Argument("Selected", entryType.type);
+            if (!dialogue) selected.enumId = "levels";
+            var arguments = new[] { selections, selected };
+            CollectionCallInstruction Mutate(string mutation) => new()
+            {
+                type = InstructionKind.CollectionCall,
+                target = new WriteTarget
+                {
+                    pointer = Variable("__arg_0__"),
+                    typeInfo = setType,
+                    writability = WritabilityKind.Local,
+                },
+                mutation = mutation,
+                args = new[] { Variable("__arg_1__") },
+            };
+            var instructions = new List<Instruction>
+            {
+                Mutate(CollectionMutationKind.Add),
+                Mutate(CollectionMutationKind.Add),
+            };
+            if (remove) instructions.Add(Mutate(CollectionMutationKind.Remove));
+            instructions.Add(Return(Variable("__arg_0__")));
+            NSFunctionMember function = ScriptFunction(
+                "fn-local-set", "LocalSet", false, setType, arguments,
+                Action(setType, arguments, instructions.ToArray()));
+            using NeoClient client = BuildClient(
+                new JsonMember[] { function }, ReceiverClass((function.name, function.id)));
+            object selection = dialogue
+                ? new NeoDialogueReference("selected-id")
+                : new TestEnumOption("selected-id");
+
+            object? result = new NeoMemberNSFunction(client, function, null).Invoke(
+                "receiver-value", new object?[] { new[] { "keep-id" }, selection });
+
+            CollectionAssert.AreEqual(
+                remove ? new[] { "keep-id" } : new[] { "keep-id", "selected-id" },
+                (object?[])result!);
+        }
+
+        [Test]
+        public void ResolvedSetSelectionsRejectInvalidIds([Values(false, true)] bool dialogue)
+        {
+            using NeoClient client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var setType = new LookupTypeInfo
+            {
+                type = MemberKind.Lookup,
+                required = true,
+                entryTypeInfo = dialogue
+                    ? new PrimitiveTypeInfo { type = MemberKind.DialogueLookup, required = true }
+                    : new EnumTypeInfo { type = MemberKind.Enum, required = true, enumId = "levels" },
+            };
+            foreach (object? invalidId in new object?[] { null, "", 42, new[] { "nested-id" } })
+            {
+                var error = Assert.Throws<InvalidOperationException>(() =>
+                    NeoScriptValueMarshaller.ValidateResolvedRuntimeValue(
+                        client, new[] { invalidId }, setType, ctx, "selections"));
+                StringAssert.Contains("nonempty selection id", error!.Message);
+            }
+        }
+
+        [Test]
         public void Invoke_MarshalsReceiverGenericDecimalReturn()
         {
             const string genericClassId = "generic-decimal-receiver-class";
@@ -1676,6 +1834,24 @@ namespace NeoCompose.Tests
             var nestedClass = (ClassTypeInfo)nested.entryTypeInfo;
             var nestedEnum = (EnumTypeInfo)nestedClass.typeArguments![boxParamId];
             Assert.AreEqual(enumId, nestedEnum.enumId);
+
+            var set = (LookupTypeInfo)NeoNSFunctionRuntime.ResolveInvocationTypeInfo(
+                client,
+                new LookupTypeInfo
+                {
+                    type = MemberKind.Lookup,
+                    required = true,
+                    entryTypeInfo = new GenericTypeInfo
+                    {
+                        type = MemberKind.Generic,
+                        required = true,
+                        genericParamId = forwardedParamId,
+                    },
+                },
+                env);
+            Assert.IsNull(set.collectionMemberId);
+            Assert.IsNull(set.collectionValueId);
+            Assert.AreEqual(enumId, ((EnumTypeInfo)set.entryTypeInfo).enumId);
         }
 
         [Test]

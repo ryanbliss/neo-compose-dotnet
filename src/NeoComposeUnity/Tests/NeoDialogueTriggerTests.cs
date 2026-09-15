@@ -960,6 +960,59 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(new[] { "asset-item-value-b" }, lookup!.value);
         }
 
+        [TestCase(MemberKind.Enum)]
+        [TestCase(MemberKind.DialogueLookup)]
+        public void ActionsNode_UnboundSelectionSetAddRemovePreservesFlatIds(MemberKind entryKind)
+        {
+            const string selectedId = "dialogue-action-list-add";
+            var entryType = entryKind == MemberKind.Enum
+                ? (TypeInfo)new EnumTypeInfo { type = entryKind, enumId = "choices", required = true }
+                : new PrimitiveTypeInfo { type = entryKind, required = true };
+            var setType = new LookupTypeInfo
+            {
+                type = MemberKind.Lookup,
+                required = true,
+                entryTypeInfo = entryType,
+            };
+            var selection = new ValuePointer
+            {
+                type = PointerKind.Value,
+                value = new Value { typeInfo = entryType, value = new JArray(selectedId) },
+            };
+            var client = CreateClient(data =>
+            {
+                data.enums ??= new Dictionary<string, NeoCompose.Runtime.Json.Enum>();
+                data.enums["choices"] = new NeoCompose.Runtime.Json.Enum
+                {
+                    id = "choices", projectId = ProjectId, name = "Choices",
+                    options = new Dictionary<string, EnumOption> { [selectedId] = new EnumOption { text = "Choice" } },
+                    optionKeyOrder = new List<string> { selectedId },
+                };
+                data.members["member-inventory"] = entryKind == MemberKind.Enum
+                    ? new EnumMember { id = "member-inventory", kind = entryKind, enumId = "choices", Selection = NeoMemberSelectionKind.Multi }
+                    : new DialogueLookupMember { id = "member-inventory", kind = entryKind, Selection = NeoMemberSelectionKind.Multi };
+                data.dialogues["set-add"] = ActionDialogue("set-add", CollectionAction(
+                    RootKeyPointer("Save", "Inventory"), setType, CollectionMutationKind.Add, selection));
+                data.dialogues["set-remove"] = ActionDialogue("set-remove", CollectionAction(
+                    RootKeyPointer("Save", "Inventory"), setType, CollectionMutationKind.Remove, selection));
+            });
+            client.SetSaveValue(new ArrayMemberValue
+            {
+                id = "default-inventory-value", createdAt = Now, updatedAt = Now, value = Array.Empty<string>(),
+            });
+            var root = new TestDialogues(client);
+            foreach (string id in new[] { "set-add", "set-add", "set-remove" })
+            {
+                Assert.IsTrue(root.TryTrigger(id, out NeoDialogue dialogue));
+                Exception? error = null;
+                dialogue.OnError += ex => error = ex;
+                dialogue.Start();
+                Assert.IsNull(error, error?.Message);
+                Assert.IsTrue(client.TryGetValue("default-inventory-value", out ArrayMemberValue? row));
+                CollectionAssert.AreEqual(id == "set-add" ? new[] { selectedId } : Array.Empty<string>(), row!.value);
+            }
+        }
+
         [Test]
         public void ActionsNode_CollectionCall_LookupAdd_AppendsWhenLookupAlreadyHasEntry()
         {
@@ -1946,7 +1999,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(NeoDialogueState.Disposed, dialogue.State);
         }
 
-        private static NeoClient CreateClient()
+        private static NeoClient CreateClient(Action<ProjectData>? configure = null)
         {
             var data = new ProjectData
             {
@@ -2727,6 +2780,7 @@ namespace NeoCompose.Tests
                 },
             };
 
+            configure?.Invoke(data);
             return NeoTestSaveStack.ClientFromSchema(data);
         }
 

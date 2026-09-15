@@ -878,7 +878,7 @@ namespace NeoCompose.Runtime
                 {
                     type = MemberKind.Lookup,
                     required = typeInfo.required,
-                    collectionMemberId = collectionMemberId ?? "",
+                    collectionMemberId = collectionMemberId,
                     collectionValueId = collectionValueId,
                     entryTypeInfo = ResolveInvocationTypeInfo(
                         client,
@@ -1553,13 +1553,21 @@ namespace NeoCompose.Runtime
                     int index = 0;
                     foreach (object? entry in (System.Collections.IEnumerable)value)
                     {
+                        string entrySubject = $"entry {index++} of {subject}";
+                        if (IsSelectionIdSet(typeInfo, entryType))
+                        {
+                            if (entry is not string selectionId || string.IsNullOrEmpty(selectionId))
+                                throw new InvalidOperationException(
+                                    $"{entrySubject} must be a nonempty selection id.");
+                            continue;
+                        }
                         ValidateResolvedRuntimeValue(
                             client,
                             rowOwnership is null ? entry
                                 : NSGetterEvaluator.ResolveValueIfId(entry, ctx, rowOwnership),
                             entryType,
                             ctx,
-                            $"entry {index++} of {subject}");
+                            entrySubject);
                     }
                     return;
                 }
@@ -1657,9 +1665,20 @@ namespace NeoCompose.Runtime
                 LookupTypeInfo lookup => lookup.entryTypeInfo,
                 _ => null,
             };
+            NeoValueOwnership? rowOwnership = NSGetterEvaluator.FindRowOwnershipByReference(value, ctx);
+            // Enum and dialogue sets carry selection ids directly, rather
+            // than the one-element arrays used by their scalar members.
+            if (IsSelectionIdSet(typeInfo, entryType))
+            {
+                object?[] selections = entryType!.type == MemberKind.Enum
+                    ? NormalizeEnumOptions(value, subject)
+                    : NormalizeDialogueLookup(value, subject, allowMultiple: true);
+                return rowOwnership is not null && value is object?[] selectionRows
+                    ? selectionRows
+                    : selections;
+            }
             // Row-backed collections contain child ids. Validate their values,
             // then preserve the collection identity for indexing and writes.
-            NeoValueOwnership? rowOwnership = NSGetterEvaluator.FindRowOwnershipByReference(value, ctx);
             if (rowOwnership is not null && value is object?[] rows)
             {
                 if (entryType is not null)
@@ -1685,9 +1704,16 @@ namespace NeoCompose.Runtime
             return result.ToArray();
         }
 
+        private static bool IsSelectionIdSet(TypeInfo typeInfo, TypeInfo? entryType)
+        {
+            return typeInfo.type == MemberKind.Lookup
+                && entryType?.type is MemberKind.Enum or MemberKind.DialogueLookup;
+        }
+
         private static object?[] NormalizeDialogueLookup(
             object value,
-            string subject)
+            string subject,
+            bool allowMultiple = false)
         {
             if (value is string || value is not IEnumerable enumerable)
             {
@@ -1710,7 +1736,7 @@ namespace NeoCompose.Runtime
                 }
                 result.Add(dialogueId);
             }
-            if (result.Count != 1)
+            if (!allowMultiple && result.Count != 1)
             {
                 throw new InvalidOperationException(
                     $"{subject} must contain exactly one dialogue reference.");

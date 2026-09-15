@@ -121,12 +121,12 @@ namespace NeoCompose.Runtime.Json
 
     /// <summary>
     /// Multiselect Lookup type info. Carries the recursive entry type
-    /// and the collection member the lookup selects from.
+    /// and an optional collection binding. Plain Set annotations are unbound.
     /// </summary>
     public class LookupTypeInfo : TypeInfo
     {
         public TypeInfo entryTypeInfo = null!;
-        public string collectionMemberId = null!;
+        public string? collectionMemberId;
         public string? collectionValueId;
     }
 
