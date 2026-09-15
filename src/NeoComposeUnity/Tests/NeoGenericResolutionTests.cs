@@ -1253,8 +1253,16 @@ namespace NeoCompose.Tests
                 _ => throw new System.InvalidOperationException(),
             };
             Assert.AreEqual(source.GetType(), cloned.GetType());
-            Assert.AreEqual(JsonConvert.SerializeObject(Body(source)),
-                JsonConvert.SerializeObject(Body(cloned)));
+            if (kind == MemberKind.NSDelegate)
+            {
+                Assert.IsNull(((DelegateMemberValue)source).value!.valueId);
+                Assert.AreEqual(target.value.id, ((DelegateMemberValue)cloned).value!.valueId);
+            }
+            else
+            {
+                Assert.AreEqual(JsonConvert.SerializeObject(Body(source)),
+                    JsonConvert.SerializeObject(Body(cloned)));
+            }
             Assert.AreNotSame(Body(source), Body(cloned));
         }
 

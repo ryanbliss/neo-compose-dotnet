@@ -211,6 +211,19 @@ namespace NeoCompose.Tests
             public override NeoDelegate<object> Selector => ChildSelector;
         }
 
+        [TestCase(NeoValueOwnership.Session, NeoMemberStorage.Session)]
+        [TestCase(NeoValueOwnership.Save, NeoMemberStorage.Save)]
+        public void MemberReadHonorsItsDeclaredStorage(NeoValueOwnership ownership, NeoMemberStorage storage)
+        {
+            var member = new IntMember { id = "cross-storage", name = "Count", kind = MemberKind.Int, Storage = storage };
+            using NeoClient client = BuildClient(new JsonMember[] { member }, ReceiverClass(("Count", member.id)));
+            var row = new NumberMemberValue { id = "cross-storage-value", value = 23 };
+            client.SetWritableValue(ownership, row);
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            Assert.AreEqual(23d, NSGetterEvaluator.ResolveValueIfId(row.id, ctx,
+                ownership == NeoValueOwnership.Session ? NeoValueOwnership.Save : NeoValueOwnership.Session, member));
+        }
+
         [TestCase(false, false)]
         [TestCase(false, true)]
         [TestCase(true, false)]

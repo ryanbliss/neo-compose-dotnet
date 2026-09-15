@@ -620,6 +620,26 @@ namespace NeoCompose.Tests
             Assert.IsNull(resolved.Info.valueId);
         }
 
+        [TestCase(NeoMemberStorage.Save, NeoValueOwnership.Save)]
+        [TestCase(NeoMemberStorage.Session, NeoValueOwnership.Session)]
+        public void AuthoredObjectsInWritableListUseThePlacementStorage(NeoMemberStorage storage, NeoValueOwnership ownership)
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.members["object-layer-link-objects-member"].Storage = storage;
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            client.RegisterGeneratedClassFactories(factories, writableFactories);
+            var link = (TestObjectLayerLink)NeoGeneratedTypesSupport.ResolveClassValue(
+                client, "objects-link", factories, writableFactories)!;
+            var placed = link.GetObjects()[0];
+            Assert.AreEqual("shop-1", placed.Info.valueId);
+            Assert.AreEqual(ownership, ((NeoGeneratedClassValue)placed.Info).ValueOwnership);
+            var primitive = NeoTileGridPrimitive.ResolveForSave(client, "town-grid", factories, writableFactories);
+            var layer = primitive.BindWritableObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId });
+            Assert.AreEqual(ownership, ((NeoGeneratedClassValue)layer.GetObject(new Vector2Int(10, 20))!.Info).ValueOwnership);
+        }
+
         [Test]
         public void SchemaNineObjectPlacementWritesClassReferenceInSaveAndSession()
         {

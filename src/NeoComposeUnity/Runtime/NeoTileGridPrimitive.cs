@@ -800,7 +800,8 @@ namespace NeoCompose.Runtime
             IReadOnlyList<Vector2Int> footprint,
             int order,
             string assetClassId,
-            string? assetValueId)
+            string? assetValueId,
+            NeoValueOwnership? ownership)
         {
             InstanceId = instanceId;
             Cell = cell;
@@ -808,6 +809,7 @@ namespace NeoCompose.Runtime
             Order = order;
             AssetClassId = assetClassId;
             AssetValueId = assetValueId;
+            Ownership = ownership;
         }
 
         public string InstanceId { get; }
@@ -816,6 +818,7 @@ namespace NeoCompose.Runtime
         public int Order { get; }
         public string AssetClassId { get; }
         public string? AssetValueId { get; }
+        public NeoValueOwnership? Ownership { get; }
     }
 
     /// <summary>One grid-child layer link (TileLayerLink or ObjectLayerLink).</summary>
@@ -1602,7 +1605,8 @@ namespace NeoCompose.Runtime
                 client,
                 record.InstanceId,
                 readOnlyFactories,
-                writableFactories);
+                writableFactories,
+                record.Ownership);
             if (resolved is not NeoGeneratedClassValue generated
                 || !ClassExtendsClass(
                     generated.classId ?? record.AssetClassId,
@@ -2158,6 +2162,12 @@ namespace NeoCompose.Runtime
             foreach (var link in ResolveGridLinks(dependencyIds))
             {
                 if (link.IsTileLink || link.LayerId != layerId) continue;
+                NeoValueOwnership? ownership = client.TryInferMemberForValueId(link.ListValueId, out Member? listMember)
+                    ? client.DeclaredOwnership(listMember) : null;
+                if (ownership is null
+                    && client.TryGetValueOwnership(link.ListValueId, out var inherited)
+                    && inherited != NeoValueOwnership.Asset)
+                    ownership = inherited;
                 foreach (var objectValueId in ResolveListEntryIds(link.ListValueId, dependencyIds))
                 {
                     dependencyIds?.Add(objectValueId);
@@ -2179,7 +2189,8 @@ namespace NeoCompose.Runtime
                         footprint,
                         order,
                         assetClassId,
-                        assetValueId));
+                        assetValueId,
+                        ownership));
                     order += 1;
                 }
             }

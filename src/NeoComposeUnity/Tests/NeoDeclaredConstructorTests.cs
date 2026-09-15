@@ -29,6 +29,114 @@ namespace NeoCompose.Tests
     {
         private const string ProjectId = "ctor-project";
 
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        public void Constructor_BindsStoredSelectorInsideDefaultTrackList(bool initializedTrack, bool replay)
+        {
+            var data = BuildProjectData();
+            data.members["select-self"] = new NSFunctionMember
+            {
+                id = "select-self", projectId = ProjectId, name = "SelectSelf", kind = MemberKind.NSFunction, code = "return this;",
+                returnTypeInfo = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "selector-host" },
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    typeInfo = ClassType("selector-host"),
+                    parameters = new[]
+                    {
+                        new Variable { id = "__this__", typeInfo = ClassType("selector-host") },
+                        new Variable { id = "__root__", typeInfo = ClassType("root-class") },
+                    },
+                    instructions = new Instruction[] { new ReturnInstruction { type = InstructionKind.Return, pointer = ThisPointer() } },
+                },
+            };
+            data.members["selector"] = new DelegateMember
+            {
+                id = "selector", projectId = ProjectId, name = "Selector", kind = MemberKind.NSDelegate,
+                returnTypeInfo = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "selector-host" },
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+            };
+            data.classes["selector-track"] = new NeoSchemaClass
+            {
+                id = "selector-track", projectId = ProjectId, name = "Track",
+                schema = new Dictionary<string, string> { ["Selector"] = "selector" },
+            };
+            data.members["selector-track-entry"] = new ClassMember
+            {
+                id = "selector-track-entry", projectId = ProjectId, name = "Track", kind = MemberKind.Class,
+                classId = "selector-track",
+            };
+            data.members["selector-tracks"] = new ListMember
+            {
+                id = "selector-tracks", projectId = ProjectId, name = "Tracks", kind = MemberKind.List,
+                entryMemberId = "selector-track-entry",
+                defaultValue = new ArrayMemberValueBase { value = new[] { "stored-selector-track" } },
+            };
+            data.classes["selector-host"] = new NeoSchemaClass
+            {
+                id = "selector-host", projectId = ProjectId, name = "Host",
+                schema = new Dictionary<string, string> { ["Tracks"] = "selector-tracks", ["SelectSelf"] = "select-self" },
+            };
+            data.values["stored-selector-track"] = ObjectValue("stored-selector-track", "selector-track");
+            ((ObjectMemberValue)data.values["stored-selector-track"]).value!["Selector"] = "stored-selector";
+            data.values["stored-selector"] = new DelegateMemberValue
+            {
+                id = "stored-selector", value = new NeoDelegateValue { memberId = "select-self", valueId = null },
+            };
+            if (initializedTrack)
+            {
+                ((DelegateMember)data.members["selector"]).defaultValue = new DelegateMemberValueBase
+                {
+                    value = new NeoDelegateValue { memberId = "select-self", valueId = null },
+                };
+                data.values["stored-selector-track"] = new ObjectMemberValue
+                {
+                    id = "stored-selector-track",
+                    init = new InitializerBody
+                    {
+                        code = "new Track()",
+                        compiled = InitializerGetter(ClassType("selector-track"),
+                            new ReturnInstruction { type = InstructionKind.Return, pointer = DeclaredConstructorPointer(
+                                ClassType("selector-track"), null, Array.Empty<DeclaredConstructorArgument>(), Array.Empty<FunctionClassConstructorField>()) }),
+                    },
+                };
+            }
+            if (replay)
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    string key = "Host" + i;
+                    data.members[key] = new ClassMember
+                    {
+                        id = key, projectId = ProjectId, name = key, kind = MemberKind.Class, classId = "selector-host",
+                    };
+                    data.classes["root-class"].schema[key] = key;
+                    var host = ObjectValue("host-" + i, "selector-host");
+                    host.instanceConstructorId = null;
+                    host.constructorArgs = new Dictionary<string, JToken?>();
+                    data.values[host.id] = host;
+                    ((ObjectMemberValue)data.values["value-save"]).value![key] = host.id;
+                }
+            }
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            for (int i = 0; i < 2; i++)
+            {
+                using var instance = replay ? client.save.Get<NeoMemberClassWritable>("Host" + i)
+                    : NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                        client, "selector-host", null, Array.Empty<NeoDeclaredConstructorArgument>());
+                var track = (NeoMemberClass)instance.Get<NeoMemberList>("Tracks")[0];
+                DelegateMemberValue selector = track.Get<NeoMemberDelegate>("Selector").value!;
+                Assert.AreEqual(instance.value.id, selector!.value!.valueId);
+                var ctx = new NSGetterEvaluator.Context(client, null, null);
+                object? selected = NSGetterEvaluator.InvokeDelegate(selector.value, Array.Empty<object?>(), ctx);
+                Assert.AreEqual(instance.value.id, NSGetterEvaluator.FindRowIdByReference(selected, ctx));
+            }
+            Assert.IsNull(((DelegateMemberValue)data.values["stored-selector"]).value!.valueId);
+        }
+
         [TestCase(MemberKind.Int, false)]
         [TestCase(MemberKind.Float, false)]
         [TestCase(MemberKind.Bool, false)]

@@ -4944,7 +4944,8 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? member = null)
         {
             if (at is not string id) return at;
-            var ownership = preferredOwnership ?? ResolveOwnershipForValueId(ctx, id);
+            var ownership = (member is null ? null : ctx.client.DeclaredOwnership(member))
+                ?? preferredOwnership ?? ResolveOwnershipForValueId(ctx, id);
             if (!ctx.client.TryGetValue(ownership, id, out MemberValue? row)) return at;
             var v = UnwrapCached(row, ctx, ownership, member);
             if (member is LookupMember lookup

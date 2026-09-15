@@ -1381,8 +1381,19 @@ namespace NeoCompose.Runtime
             string valueId,
             IReadOnlyDictionary<string, ReadOnlyClassFactory> readOnlyFactories,
             IReadOnlyDictionary<string, WritableClassFactory> savedFactories)
+            => ResolveClassValue(client, valueId, readOnlyFactories, savedFactories, null);
+
+        internal static object? ResolveClassValue(
+            NeoClient client,
+            string valueId,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory> readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory> savedFactories,
+            NeoValueOwnership? placementOwnership)
         {
-            if (!client.TryGetValue(valueId, out ObjectMemberValue? value))
+            NeoValueOwnership ownership = placementOwnership
+                ?? (client.TryGetValueOwnership(valueId, out NeoValueOwnership existing)
+                    ? existing : NeoValueOwnership.Asset);
+            if (!client.TryGetValue(ownership, valueId, out ObjectMemberValue? value))
             {
                 return null;
             }
@@ -1412,8 +1423,7 @@ namespace NeoCompose.Runtime
                 };
             }
 
-            if (client.TryGetValueOwnership(valueId, out NeoValueOwnership ownership)
-                && (ownership == NeoValueOwnership.Save || ownership == NeoValueOwnership.Session)
+            if ((ownership == NeoValueOwnership.Save || ownership == NeoValueOwnership.Session)
                 && savedFactories.TryGetValue(classId, out var savedFactory))
             {
                 return savedFactory(
@@ -2470,6 +2480,7 @@ namespace NeoCompose.Runtime
             }
 
             var newlyImportedRoots = new List<string>();
+            var attachedRoots = new List<(string valueId, Member member)>();
             try
             {
                 foreach (PendingConstructorReference reference in pending)
@@ -2504,6 +2515,7 @@ namespace NeoCompose.Runtime
                                 reference.member);
                     parentByChildId.Remove(reference.sourceValueId);
                     parentByChildId[importedValueId] = reference.parentValueId;
+                    attachedRoots.Add((importedValueId, reference.member));
                     reference.replaceValueId(importedValueId);
                     if ((reference.sourceOwnership != NeoValueOwnership.Session
                             || !existedInSession)
@@ -2537,6 +2549,7 @@ namespace NeoCompose.Runtime
                             expectedContainerId: reference.expectedContainerId);
                     }
                 }
+                BindConstructedDelegateTargets(client, attachedRoots, stagedById, parentByChildId);
                 if (scope.ExistingEvaluationContext is { } evaluationContext)
                 {
                     evaluationContext.allocationTracker
@@ -2552,6 +2565,60 @@ namespace NeoCompose.Runtime
                         importedValueId);
                 }
                 throw;
+            }
+        }
+
+        private static void BindConstructedDelegateTargets(
+            NeoClient client,
+            IReadOnlyList<(string valueId, Member member)> attachedRoots,
+            Dictionary<string, MemberValue> stagedById,
+            Dictionary<string, string> parentByChildId)
+        {
+            // Initializers may construct a track separately before attaching it.
+            // Include those already-published owned rows in the enclosing graph.
+            var pending = new Stack<(string valueId, Member? member)>();
+            foreach (var root in attachedRoots) pending.Push(root);
+            while (pending.Count > 0)
+            {
+                var next = pending.Pop();
+                if (stagedById.ContainsKey(next.valueId)
+                    || !client.TryGetValue(NeoValueOwnership.Session, next.valueId, out MemberValue? attached))
+                    continue;
+                stagedById.Add(next.valueId, attached);
+                foreach (var child in client.EnumerateOwnedChildLinks(attached, next.member))
+                {
+                    parentByChildId[child.valueId] = attached.id;
+                    pending.Push(child);
+                }
+            }
+            foreach (MemberValue row in stagedById.Values)
+            {
+                if (row is not DelegateMemberValue { value: { IsMemberTarget: true, valueId: null } target }
+                    || !client.TryGetMember(target.memberId!, out Member? method)
+                    || method.Modifier == NeoMemberModifierKind.Static)
+                    continue;
+
+                // Declaration defaults contain unbound method groups. The validated
+                // ownership graph gives each row one parent; choose its nearest
+                // enclosing instance that owns the method, matching web construction.
+                string current = row.id;
+                while (parentByChildId.TryGetValue(current, out string? parentId))
+                {
+                    current = parentId;
+                    if (!stagedById.TryGetValue(parentId, out MemberValue? parent)
+                        || parent is not ObjectMemberValue { classId: { } classId })
+                        continue;
+                    bool bound = false;
+                    foreach (NeoSchemaClass owner in NeoSchemaClassInheritance.ResolveChain(
+                        classId, id => client.TryGetClass(id, out NeoSchemaClass? match) ? match : null))
+                    {
+                        if (!owner.schema.ContainsValue(target.memberId!)) continue;
+                        target.valueId = parentId;
+                        bound = true;
+                        break;
+                    }
+                    if (bound) break;
+                }
             }
         }
 

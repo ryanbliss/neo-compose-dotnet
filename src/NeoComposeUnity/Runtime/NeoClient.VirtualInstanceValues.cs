@@ -168,6 +168,7 @@ namespace NeoCompose.Runtime
             internal Member member = null!;
             internal string path = null!;
             internal string virtualId = null!;
+            internal string? effectiveId;
             internal VirtualExpansionNode? parent;
             internal readonly Dictionary<string, VirtualExpansionNode> classChildren = new();
             internal readonly List<VirtualExpansionNode> listChildren = new();
@@ -1103,6 +1104,7 @@ namespace NeoCompose.Runtime
                     instanceRoot.id,
                     ownership,
                     instanceRoot);
+                RemapVirtualDelegateReceivers(graph);
                 IndexConstructorArgumentRows(instanceRoot);
                 // The sweep above only covers ids that were ALREADY virtual.
                 // A member the previous pass found materialized contributed no
@@ -1449,6 +1451,34 @@ namespace NeoCompose.Runtime
             return node;
         }
 
+        private void RemapVirtualDelegateReceivers(VirtualExpansionNode root)
+        {
+            var identities = new Dictionary<string, string>();
+            var selectors = new List<DelegateMemberValue>();
+            var pending = new Stack<VirtualExpansionNode>();
+            pending.Push(root);
+            while (pending.Count > 0)
+            {
+                VirtualExpansionNode node = pending.Pop();
+                if (node.effectiveId is null) continue;
+                identities[node.row.id] = node.effectiveId;
+                if (virtualValues.TryGetValue(node.effectiveId, out MemberValue? row)
+                    && row is DelegateMemberValue selector)
+                    selectors.Add(selector);
+                foreach (var child in node.classChildren.Values) pending.Push(child);
+                foreach (var child in node.listChildren) pending.Push(child);
+                foreach (var child in node.dictionaryChildren.Values) pending.Push(child);
+            }
+            // Replay's temporary rows are removed next. Preserve bindings to the
+            // effective stored/virtual instance, including forward sibling targets.
+            foreach (DelegateMemberValue selector in selectors)
+            {
+                if (selector.value?.valueId is { } receiver
+                    && identities.TryGetValue(receiver, out string? effective))
+                    selector.value.valueId = effective;
+            }
+        }
+
         private MemberValue RewriteVirtualRow(
             VirtualExpansionNode node,
             ObjectMemberValue instanceRoot)
@@ -1534,6 +1564,7 @@ namespace NeoCompose.Runtime
                 IndexVirtualSubtree(node, instanceRoot, ownership);
                 return;
             }
+            node.effectiveId = materialized.id;
             if (materialized.id != instanceRoot.id
                 && materialized is ObjectMemberValue nestedRoot
                 && IsVirtualInstanceRoot(nestedRoot))
@@ -1681,6 +1712,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             string? unorderedContainerId = null)
         {
+            node.effectiveId = node.virtualId;
             TrackVirtualFootprint(instanceRoot.id, node.virtualId);
             MemberValue virtualRow = RewriteVirtualRow(node, instanceRoot);
             if (unorderedContainerId is not null)
