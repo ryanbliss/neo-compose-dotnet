@@ -46,6 +46,71 @@ namespace NeoCompose.Tests
         private const string BackgroundLayerClassId = "background-layer-class";
         private const string ObjectsLayerClassId = "objects-layer-class";
 
+        [Test]
+        public void NeoScriptGridQuery_ResolvesAuthoredPlacementWithoutPriorContentAccessAndTracksMisses()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            int created = 0;
+            client.ScriptGridQueries.RegisterFactories(new Dictionary<string, Func<NeoClient, string, INeoTileGridContent>>
+            {
+                [GridClassId] = (c, id) =>
+                {
+                    created++;
+                    var primitive = NeoReadOnlyTileGridPrimitive.Resolve(c, id,
+                        BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+                    return new TestTileGridContent(primitive, Array.Empty<IReadOnlyNeoTileLayerRuntime>(),
+                        new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) });
+                },
+            });
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
+            Assert.IsTrue(client.TryGetValue("shop-1", out ObjectMemberValue? row));
+            object? receiver = NSGetterEvaluator.UnwrapRow(row!, ctx, NeoValueOwnership.Asset);
+            Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_df1c2d06-eeec-5340-addc-740f3668c9e4", receiver,
+                Array.Empty<object?>(), ctx, out object? cell));
+            Assert.AreEqual(new Vector2Int(10, 20), NeoGeneratedTypesSupport.ReadVector2IntValue(cell));
+            Assert.AreEqual(1, created);
+            int invalidations = 0;
+            using var reads = new NeoScriptGridReads(() => invalidations++);
+            ctx.gridReads = reads;
+            Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
+                new object?[] { new NeoCellPattern(new Vector2Int(50, 50)) }, ctx, out object? result));
+            Assert.IsEmpty((object?[])result!);
+            void Change(Vector2Int changed) => client.ScriptGridQueries.NotifyChanged(new NeoTileGridChangedArgs("town-grid",
+                objectLayers: new[] { new NeoObjectLayerChangedArgs(ObjectsLayerClassId, Array.Empty<NeoObjectInstanceId>(),
+                    Array.Empty<NeoObjectInstanceId>(), new[] { changed }, NeoTileGridChangeSourceKind.Direct, null) }));
+            Change(new Vector2Int(99, 99));
+            Assert.AreEqual(0, invalidations);
+            Change(new Vector2Int(60, 70));
+            Assert.AreEqual(1, invalidations);
+            Assert.AreEqual(1, created);
+            reads.Dispose();
+            using var directReads = new NeoScriptGridReads(() => invalidations++);
+            ctx.gridReads = directReads;
+            client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
+                new object?[] { new NeoCellPattern(new Vector2Int(50, 50)) }, ctx, out _);
+            client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue
+            {
+                id = "shop-1-position", value = new NeoVector3Value { x = 11, y = 20, z = 0 },
+            });
+            Assert.AreEqual(2, invalidations, "Direct Position writes must invalidate cached placement queries.");
+            directReads.Dispose();
+            using var insertionReads = new NeoScriptGridReads(() => invalidations++);
+            ctx.gridReads = insertionReads;
+            client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
+                new object?[] { new NeoCellPattern(new Vector2Int(50, 50)) }, ctx, out _);
+            client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue
+            {
+                id = "new-shop-position", value = new NeoVector3Value { x = 61, y = 70, z = 0 },
+            });
+            client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
+            {
+                id = "new-shop", classId = ObjectClassId, containerId = "objects-link-objects",
+                value = new Dictionary<string, string> { ["Position"] = "new-shop-position" },
+            });
+            Assert.AreEqual(3, invalidations, "New containment membership must invalidate a prior empty-cell query.");
+
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void LayerSettingsUseDeclarationDefaultsBeneathExplicitOverrides(bool writable)
@@ -5370,11 +5435,12 @@ namespace NeoCompose.Tests
         {
             public TestTileGridContent(
                 NeoReadOnlyTileGridPrimitive primitive,
-                IReadOnlyList<IReadOnlyNeoTileLayerRuntime> tileLayers)
+                IReadOnlyList<IReadOnlyNeoTileLayerRuntime> tileLayers,
+                IReadOnlyList<IReadOnlyNeoObjectLayerRuntime>? objectLayers = null)
             {
                 Primitive = primitive;
                 TileLayersInOrder = tileLayers;
-                ObjectLayersInOrder = Array.Empty<IReadOnlyNeoObjectLayerRuntime>();
+                ObjectLayersInOrder = objectLayers ?? Array.Empty<IReadOnlyNeoObjectLayerRuntime>();
             }
 
             public NeoReadOnlyTileGridPrimitive Primitive { get; }

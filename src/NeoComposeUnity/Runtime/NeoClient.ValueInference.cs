@@ -47,6 +47,29 @@ namespace NeoCompose.Runtime
                 foreach (var pair in parents) yield return pair;
         }
 
+        internal IEnumerable<string> GridQueryParents(string childId)
+        {
+            if (TryGetValue(childId, out MemberValue? child) && !string.IsNullOrEmpty(child.containerId))
+            {
+                yield return child.containerId!;
+                yield break;
+            }
+            if (TryGetValueOwnership(childId, out NeoValueOwnership ownership)
+                && ownership != NeoValueOwnership.Asset
+                && TryFindOwnedParent(ownership, childId, out string? writableParent))
+            {
+                yield return writableParent;
+                yield break;
+            }
+            if (!ValueInferenceIndex.Parents.TryGetValue(childId, out var parents)) yield break;
+            foreach (var pair in parents)
+            {
+                Member? member = TryInferMemberForValueId(pair.Key, out Member? inferred) ? inferred : null;
+                foreach (var link in EnumerateOwnedChildLinks(pair.Value, member))
+                    if (link.valueId == childId) { yield return pair.Key; break; }
+            }
+        }
+
         private sealed class AuthoredValueInferenceIndex
         {
             internal readonly Dictionary<string, Member> Members = new(StringComparer.Ordinal);

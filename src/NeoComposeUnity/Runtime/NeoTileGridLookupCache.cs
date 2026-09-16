@@ -66,6 +66,9 @@ namespace NeoCompose.Runtime
         public IReadOnlyList<NeoObjectPlacementRecord> ObjectRecords(string layerId) =>
             GetObjectLayerIndex(layerId).Records;
 
+        public NeoObjectPlacementRecord? ObjectRecord(string layerId, string instanceId) =>
+            GetObjectLayerIndex(layerId).ById.TryGetValue(instanceId, out var record) ? record : null;
+
         public IReadOnlyList<NeoObjectPlacementRecord> ObjectCandidatesAt(
             string layerId,
             Vector2Int cell)
@@ -118,8 +121,8 @@ namespace NeoCompose.Runtime
 
         private void HandleWritableValueChanged(NeoValueOwnership ownership, string valueId)
         {
-            InvalidateDependents(tileLayers, valueId);
-            InvalidateDependents(objectLayers, valueId);
+            InvalidateDependents(tileLayers, valueId, true);
+            InvalidateDependents(objectLayers, valueId, false);
         }
 
         /// <summary>Storage-partition load/unload rewrites a chunk of the
@@ -131,9 +134,10 @@ namespace NeoCompose.Runtime
             objectLayers.Clear();
         }
 
-        private static void InvalidateDependents<TIndex>(
+        private void InvalidateDependents<TIndex>(
             Dictionary<string, TIndex> indexes,
-            string valueId)
+            string valueId,
+            bool tile)
             where TIndex : class, ILayerIndex
         {
             List<string>? stale = null;
@@ -147,6 +151,7 @@ namespace NeoCompose.Runtime
             foreach (var layerId in stale)
             {
                 indexes.Remove(layerId);
+                primitive.Client.ScriptGridQueries.NotifyLayerInvalidated(primitive.GridValueId, layerId, tile);
             }
         }
 
@@ -245,10 +250,13 @@ namespace NeoCompose.Runtime
                 HashSet<string> dependencyIds)
             {
                 Records = records;
+                ById = new Dictionary<string, NeoObjectPlacementRecord>(records.Count);
+                foreach (var record in records) ById.Add(record.InstanceId, record);
                 CandidatesByCell = candidatesByCell;
                 DependencyIds = dependencyIds;
             }
 
+            public Dictionary<string, NeoObjectPlacementRecord> ById { get; }
             public List<NeoObjectPlacementRecord> Records { get; }
             public Dictionary<Vector2Int, List<NeoObjectPlacementRecord>> CandidatesByCell { get; }
             public HashSet<string> DependencyIds { get; }

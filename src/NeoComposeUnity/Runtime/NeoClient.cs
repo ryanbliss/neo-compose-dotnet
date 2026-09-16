@@ -739,6 +739,9 @@ namespace NeoCompose.Runtime
             activeClients.Add(this);
         }
 
+        private NeoScriptGridQueries? scriptGridQueries;
+        public NeoScriptGridQueries ScriptGridQueries => scriptGridQueries ??= new NeoScriptGridQueries(this);
+
         public void Dispose()
         {
             if (isDisposed) return;
@@ -3967,7 +3970,8 @@ namespace NeoCompose.Runtime
 
         internal MemberValue? ResolveClassChildRow(
             ObjectMemberValue row,
-            string schemaKey)
+            string schemaKey,
+            NeoValueOwnership? ownership = null)
         {
             string? childId = null;
             row.value?.TryGetValue(schemaKey, out childId);
@@ -3979,9 +3983,10 @@ namespace NeoCompose.Runtime
             {
                 TryGetVirtualClassChildValueId(row.id, schemaKey, out childId);
             }
-            return string.IsNullOrWhiteSpace(childId)
-                ? null
-                : ResolveValueRow(childId!);
+            if (string.IsNullOrWhiteSpace(childId)) return null;
+            if (ownership is NeoValueOwnership scope)
+                return TryGetValue(scope, childId!, out MemberValue? child) ? child : null;
+            return ResolveValueRow(childId!);
         }
 
         internal bool TryInferMemberForValueId(
