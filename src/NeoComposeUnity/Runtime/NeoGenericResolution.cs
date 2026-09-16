@@ -776,10 +776,10 @@ namespace NeoCompose.Runtime
             if (member is VariantMember variantMember
                 && variantMember.targetTypeInfo is not null)
             {
-                TypeInfo targetTypeInfo = SubstituteNestedTypeInfo(
-                    client,
-                    variantMember.targetTypeInfo,
-                    env);
+                TypeInfo targetTypeInfo = variantMember.targetTypeInfo is GenericTypeInfo genericTarget
+                    ? GenericBindingTypeInfo(client, genericTarget.genericParamId, env, "variant target")
+                        ?? variantMember.targetTypeInfo
+                    : SubstituteNestedTypeInfo(client, variantMember.targetTypeInfo, env);
                 if (ReferenceEquals(targetTypeInfo, variantMember.targetTypeInfo))
                 {
                     return member;
@@ -827,9 +827,10 @@ namespace NeoCompose.Runtime
                     argument.genericParamId,
                     env,
                     "callable type");
-                return signature is null
-                    ? argument
-                    : FunctionArgumentFromSignature(argument.name, signature);
+                if (signature is null) return argument;
+                FunctionArgumentTypeInfo resolved = FunctionArgumentFromSignature(argument.name, signature);
+                resolved.required &= argument.required;
+                return resolved;
             }
             if (argument.type == MemberKind.List
                 || argument.type == MemberKind.Dictionary
@@ -915,12 +916,14 @@ namespace NeoCompose.Runtime
             }
             if (typeInfo is GenericTypeInfo generic)
             {
-                return GenericBindingTypeInfo(
-                        client,
-                        generic.genericParamId,
-                        env,
-                        "callable type")
-                    ?? typeInfo;
+                TypeInfo? resolved = GenericBindingTypeInfo(
+                    client,
+                    generic.genericParamId,
+                    env,
+                    "callable type");
+                if (resolved is null) return typeInfo;
+                resolved.required &= generic.required;
+                return resolved;
             }
             if (typeInfo is CollectionTypeInfo collection)
             {

@@ -198,6 +198,8 @@ namespace NeoCompose.Runtime.Json
     {
         public string memberId = null!;
         public CallReceiver receiver = null!;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? dispatch;
         /// <summary>
         /// `true` when the source used `?.` chaining. TS field is
         /// <c>optional?: boolean</c> — absent on the wire when not
@@ -261,6 +263,8 @@ namespace NeoCompose.Runtime.Json
         public string? memberId;
         public string? memberKey;
         public CallReceiver receiver = null!;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? dispatch;
         public Pointer[] args = null!;
         public bool? optional;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -402,6 +406,7 @@ namespace NeoCompose.Runtime.Json
             if (concrete == typeof(CallGetterPointer))
             {
                 ValidateReceiver(obj);
+                ValidateDispatch(obj);
                 return;
             }
             if (concrete == typeof(CallDelegatePointer))
@@ -464,6 +469,7 @@ namespace NeoCompose.Runtime.Json
                     "CallFunctionPointer must contain a non-empty 'callSiteId'.");
             }
             ValidateReceiver(obj);
+            ValidateDispatch(obj);
             if (obj["args"]?.Type != JTokenType.Array)
             {
                 throw new JsonSerializationException(
@@ -496,6 +502,19 @@ namespace NeoCompose.Runtime.Json
                         "CallFunctionPointer value-equality fallback requires exactly one argument.");
                 }
             }
+        }
+
+        private static void ValidateDispatch(JObject obj)
+        {
+            if (obj.Property("dispatch") is null) return;
+            if (obj["dispatch"]?.Type != JTokenType.String || obj["dispatch"]!.Value<string>() != "base")
+                throw new JsonSerializationException("Callable pointer 'dispatch' must be 'base' when present.");
+            if (obj["receiver"]?["kind"]?.Value<string>() != CallReceiverKind.Instance)
+                throw new JsonSerializationException("Base dispatch requires an instance receiver.");
+            if (!HasNonEmptyString(obj, "memberId"))
+                throw new JsonSerializationException("Base dispatch requires an explicit memberId.");
+            if (obj.Property("memberKey") is not null)
+                throw new JsonSerializationException("Base dispatch cannot contain memberKey.");
         }
 
         private static void ValidateReceiver(JObject obj)

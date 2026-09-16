@@ -709,11 +709,13 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError(
                         $"Generic NSFunction type '{genericParamId}' references missing binding member '{binding.memberId}'.");
                 }
-                return TypeInfoFromBindingMember(
+                TypeInfo resolved = TypeInfoFromBindingMember(
                     client,
                     bindingMember,
                     genericEnv,
                     visitingMembers);
+                resolved.required &= typeInfo.required;
+                return resolved;
             }
 
             if (typeInfo.type == MemberKind.Class)

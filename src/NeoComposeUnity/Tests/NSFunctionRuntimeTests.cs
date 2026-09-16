@@ -1530,6 +1530,58 @@ namespace NeoCompose.Tests
             Assert.AreEqual("7", result);
         }
 
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        public void BaseDispatch_PreservesGenericNullability(bool useRequired, bool bindingRequired)
+        {
+            const string genericClassId = "nullable-base-class";
+            const string genericParamId = "nullable-base-param";
+            var genericType = new GenericTypeInfo
+            {
+                type = MemberKind.Generic, required = useRequired,
+                ownerClassId = genericClassId, genericParamId = genericParamId,
+            };
+            var argument = new FunctionArgumentTypeInfo
+            {
+                name = "value", type = MemberKind.Generic, required = useRequired,
+                ownerClassId = genericClassId, genericParamId = genericParamId,
+            };
+            var baseFunction = ScriptFunction("nullable-base", "Echo", false, genericType,
+                new[] { argument }, Action(genericType, new[] { argument }, Return(Variable("__arg_0__"))));
+            var baseCall = Call(baseFunction.id, "nullable-base-call");
+            baseCall.dispatch = "base";
+            baseCall.args = new Pointer[] { Variable("__arg_0__") };
+            var derivedFunction = ScriptFunction("nullable-derived", "Echo", false, genericType,
+                new[] { argument }, Action(genericType, new[] { argument }, Return(baseCall)));
+            derivedFunction.extendsMemberId = baseFunction.id;
+            derivedFunction.returnTypeInfo = null!;
+            derivedFunction.argumentTypes = null!;
+            derivedFunction.DeclaredDispatch = null;
+            var binding = new IntMember
+            {
+                id = "nullable-int-binding", projectId = ProjectId, name = "Int Binding",
+                kind = MemberKind.Int,
+                Requirement = bindingRequired ? NeoMemberRequirementKind.Required : NeoMemberRequirementKind.Optional,
+                createdAt = "x", updatedAt = "x",
+            };
+            var baseClass = ReceiverClass(("Echo", baseFunction.id));
+            baseClass.id = genericClassId;
+            baseClass.genericParams = new List<GenericParamDeclaration>
+            {
+                new() { id = genericParamId, name = "T" },
+            };
+            var derivedClass = ReceiverClass(("Echo", derivedFunction.id));
+            derivedClass.extendsClassId = baseClass.id;
+            derivedClass.extendsGenericBindings = new Dictionary<string, GenericBinding>
+            {
+                [genericParamId] = new() { kind = NeoGenericBindingKind.Member, memberId = binding.id },
+            };
+            using NeoClient client = BuildClient(new JsonMember[] { baseFunction, derivedFunction, binding },
+                derivedClass, new[] { baseClass });
+            Assert.IsNull(new NeoMemberNSFunction(client, baseFunction, null)
+                .Invoke("receiver-value", new object?[] { null }));
+        }
+
         [Test]
         public void Invoke_RejectsWrongNominalClassAndNestedListReturnValues()
         {
@@ -2169,6 +2221,114 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(2L, Convert.ToInt64(
                 node.Invoke(derivedValue.id, Array.Empty<object?>())));
+        }
+
+        [TestCase(false, false)]
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        [TestCase(true, true)]
+        public void BaseDispatch_PreservesReceiverArgumentsAndInheritedGetter(bool deferred, bool explicitArgument)
+        {
+            var argument = Argument("amount", MemberKind.Int);
+            argument.defaultValue = new ParameterDefaultValue { value = 3 };
+            var native = NativeFunction("base-offset", "Offset", false);
+            var nativeOverride = NativeFunction("derived-offset", "Offset", false);
+            nativeOverride.extendsMemberId = native.id;
+            nativeOverride.returnTypeInfo = null!;
+            nativeOverride.argumentTypes = null!;
+            nativeOverride.DeclaredDispatch = null;
+            var nativeCall = Call(native.id, "base-native");
+            nativeCall.dispatch = "base";
+            var baseGetter = new NSPropertyMember
+            {
+                id = "base-property", projectId = ProjectId, name = "Score",
+                kind = MemberKind.NSProperty, code = "return Offset();",
+                returnTypeInfo = IntType(),
+                getter = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(nativeCall)),
+                createdAt = "x", updatedAt = "x",
+            };
+            var baseGetterCall = new CallGetterPointer
+            {
+                type = PointerKind.CallGetter, memberId = baseGetter.id,
+                receiver = CallReceiver.Instance(Variable("__this__")), dispatch = "base",
+            };
+            var derivedGetter = new NSPropertyMember
+            {
+                id = "derived-property", projectId = ProjectId, name = "Score",
+                kind = MemberKind.NSProperty, extendsMemberId = baseGetter.id,
+                code = "return base.Score + 1;", returnTypeInfo = null!,
+                getter = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Add(baseGetterCall, Number(1)))),
+                createdAt = "x", updatedAt = "x",
+            };
+            var virtualGetterCall = new CallGetterPointer
+            {
+                type = PointerKind.CallGetter, memberId = baseGetter.id,
+                receiver = CallReceiver.Instance(Variable("__this__")),
+            };
+            var baseFunction = ScriptFunction("base-compute", "Compute", deferred, IntType(), new[] { argument },
+                Action(IntType(), new[] { argument }, Return(Add(Variable("__arg_0__"), virtualGetterCall))));
+            var baseCall = Call(baseFunction.id, "base-compute-call");
+            baseCall.dispatch = "base";
+            if (explicitArgument) baseCall.args = new Pointer[] { Number(5) };
+            var derivedFunction = ScriptFunction("derived-compute", "Compute", deferred, IntType(), new[] { argument },
+                Action(IntType(), new[] { argument }, Return(Add(baseCall, Number(1)))));
+            derivedFunction.extendsMemberId = baseFunction.id;
+            derivedFunction.returnTypeInfo = null!;
+            derivedFunction.argumentTypes = null!;
+            derivedFunction.DeclaredDispatch = null;
+            var baseClass = ReceiverClass(("Compute", baseFunction.id), ("Score", baseGetter.id), ("Offset", native.id));
+            var derivedClass = ReceiverClass(("Compute", derivedFunction.id), ("Score", derivedGetter.id), ("Offset", nativeOverride.id));
+            derivedClass.id = "derived-receiver-class";
+            derivedClass.name = "DerivedReceiver";
+            derivedClass.extendsClassId = baseClass.id;
+            var derivedValue = ObjectValue("derived-receiver-value", derivedClass.id);
+            using NeoClient client = BuildClient(
+                new JsonMember[] { baseFunction, derivedFunction, baseGetter, derivedGetter, native, nativeOverride },
+                baseClass, new[] { derivedClass }, new MemberValue[] { derivedValue });
+            int nativeCalls = 0;
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                [native.id] = (_, receiver, args) =>
+                {
+                    nativeCalls++;
+                    Assert.IsNotNull(receiver);
+                    Assert.AreEqual(0, args.Length);
+                    return 7;
+                },
+                [nativeOverride.id] = (_, _, _) => throw new Exception("Base native call dispatched to the override."),
+            });
+            var node = new NeoMemberNSFunction(client, baseFunction, null);
+            object? result = deferred
+                ? node.InvokeAsync(derivedValue.id, Array.Empty<object?>()).GetAwaiter().GetResult()
+                : node.Invoke(derivedValue.id, Array.Empty<object?>());
+            Assert.AreEqual(explicitArgument ? 14L : 12L, Convert.ToInt64(result));
+            Assert.AreEqual(1, nativeCalls);
+        }
+
+        [TestCase(PointerKind.CallGetter)]
+        [TestCase(PointerKind.CallFunction)]
+        public void BaseDispatch_ValidatesWireReceiverAndMember(string kind)
+        {
+            var call = JObject.FromObject(new CallFunctionPointer
+            {
+                type = kind, memberId = "base-member", dispatch = "base",
+                receiver = CallReceiver.Instance(Variable("__this__")),
+                args = Array.Empty<Pointer>(), callSiteId = "base-call",
+            });
+            call.Remove("memberKey");
+            Assert.DoesNotThrow(() => call.ToObject<Pointer>());
+            foreach (string invalid in new[] { "static", "memberKey", "dispatch" })
+            {
+                var malformed = (JObject)call.DeepClone();
+                if (invalid == "static") malformed["receiver"] = JObject.FromObject(CallReceiver.Static("base-member"));
+                else if (invalid == "memberKey")
+                {
+                    malformed.Remove("memberId");
+                    malformed["memberKey"] = "Compute";
+                }
+                else malformed["dispatch"] = "virtual";
+                Assert.Throws<JsonSerializationException>(() => malformed.ToObject<Pointer>(), invalid);
+            }
         }
 
         [Test]
