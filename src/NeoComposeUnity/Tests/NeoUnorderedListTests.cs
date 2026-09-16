@@ -198,6 +198,51 @@ namespace NeoCompose.Tests
                 },
             });
             Assert.AreEqual(primitive ? "item-b" : Eval(Entry("item-b")), first);
+            void Assign(object?[] replacement)
+            {
+                scope["replacement"] = replacement;
+                NeoScriptExecutor.Execute(client, Body(new AssignInstruction
+                {
+                    type = InstructionKind.Assign,
+                    target = new WriteTarget
+                    {
+                        pointer = new KeyOfPointer
+                        {
+                            type = PointerKind.KeyOf,
+                            keyOf = new KeyOf
+                            {
+                                pointer = Entry("bag-value"),
+                                key = new ValuePointer
+                                {
+                                    type = PointerKind.Value,
+                                    value = new Value
+                                    {
+                                        typeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true },
+                                        value = Newtonsoft.Json.Linq.JToken.FromObject("Items"),
+                                    },
+                                },
+                            },
+                        },
+                        typeInfo = listType,
+                        writability = sessionInline ? WritabilityKind.Session : WritabilityKind.Save,
+                    },
+                    pointer = new VariablePointer { type = PointerKind.Variable, variableId = "replacement" },
+                }), scope, ctx);
+            }
+            Assign(System.Array.Empty<object?>());
+            CheckCount(0);
+            CollectionAssert.IsEmpty(client.GetUnorderedListEntryIds(ItemsListValueId));
+            client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
+            {
+                id = "replacement-item", classId = ItemClassId, value = new Dictionary<string, string>(),
+            });
+            Assign(new[] { primitive ? "replacement" : Eval(Entry("replacement-item")) });
+            CheckCount(1);
+            if (!sessionInline)
+            {
+                using var replaced = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: client.SerializeSaveData());
+                Assert.AreEqual(1, ResolveItems(replaced).Count);
+            }
             Mutate(CollectionMutationKind.Clear);
             CheckCount(0);
             CollectionAssert.IsEmpty(client.GetUnorderedListEntryIds(ItemsListValueId));
@@ -207,6 +252,31 @@ namespace NeoCompose.Tests
                 using var cleared = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: client.SerializeSaveData());
                 Assert.AreEqual(0, ResolveItems(cleared).Count);
             }
+        }
+
+        [Test]
+        public void Evaluator_DoesNotRetainInvalidatedListViews()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var oldView = ReadAndInvalidateListView(ctx);
+            System.GC.Collect();
+            System.GC.WaitForPendingFinalizers();
+            System.GC.Collect();
+            Assert.IsFalse(oldView.IsAlive, "reverse provenance must not retain unused array views");
+            System.GC.KeepAlive(ctx);
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static System.WeakReference ReadAndInvalidateListView(NSGetterEvaluator.Context ctx)
+        {
+            var view = NSGetterEvaluator.EvaluatePointer(new ReferencePointer
+            {
+                type = PointerKind.Reference, valueId = ItemsListValueId,
+            }, new Dictionary<string, object?>(), ctx);
+            var weak = new System.WeakReference(view);
+            NSGetterEvaluator.InvalidateCachedCollection(ItemsListValueId, NeoValueOwnership.Save, ctx);
+            return weak;
         }
 
         // ------------------------------------------------------------------

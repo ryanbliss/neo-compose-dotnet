@@ -8,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
@@ -550,7 +551,7 @@ namespace NeoCompose.Runtime.NeoScript
             /// reference equality on boxed primitives would
             /// false-positive.
             /// </summary>
-            internal Dictionary<object, RowReference> rowReverseIndex { get; }
+            internal ConditionalWeakTable<object, RowReference> rowReverseIndex { get; }
             internal Dictionary<string, HashSet<string>> rowCacheKeysByRow { get; }
             internal LinkedFunctionCallHandler? linkedFunctionCallHandler { get; private set; }
             internal Dictionary<string, SchemaPlacement?> schemaPlacementCache { get; }
@@ -589,7 +590,7 @@ namespace NeoCompose.Runtime.NeoScript
                 INeoDialogueMemoryStore? memoryStore = null,
                 IReadOnlyCollection<string>? getterCallStack = null,
                 Dictionary<string, object?>? rowUnwrapCache = null,
-                Dictionary<object, RowReference>? rowReverseIndex = null,
+                ConditionalWeakTable<object, RowReference>? rowReverseIndex = null,
                 NeoValueOwnership valueOwnership = NeoValueOwnership.Save,
                 IReadOnlyCollection<string>? setterCallStack = null,
                 IReadOnlyList<string>? functionCallStack = null,
@@ -634,7 +635,7 @@ namespace NeoCompose.Runtime.NeoScript
                 INeoDialogueMemoryStore? memoryStore,
                 IReadOnlyCollection<string>? getterCallStack,
                 Dictionary<string, object?>? rowUnwrapCache,
-                Dictionary<object, RowReference>? rowReverseIndex,
+                ConditionalWeakTable<object, RowReference>? rowReverseIndex,
                 NeoValueOwnership valueOwnership,
                 IReadOnlyCollection<string>? setterCallStack,
                 IReadOnlyList<string>? functionCallStack,
@@ -659,7 +660,7 @@ namespace NeoCompose.Runtime.NeoScript
                 this.setterCallStack = setterCallStack ?? System.Array.Empty<string>();
                 this.rowUnwrapCache = rowUnwrapCache ?? new Dictionary<string, object?>();
                 this.rowReverseIndex = rowReverseIndex
-                    ?? new Dictionary<object, RowReference>(ReferenceEqualityComparer.Instance);
+                    ?? new ConditionalWeakTable<object, RowReference>();
                 this.rowCacheKeysByRow = rowCacheKeysByRow
                     ?? new Dictionary<string, HashSet<string>>();
                 this.valueOwnership = valueOwnership;
@@ -928,9 +929,8 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// Reference-only equality comparer for the
-        /// <see cref="Context.rowReverseIndex"/>. .NET 5+ has this in
-        /// the BCL; we polyfill for netstandard2.1.
+        /// Reference equality for visited collections and patched aliases
+        /// on netstandard2.1.
         /// </summary>
         private sealed class ReferenceEqualityComparer : IEqualityComparer<object>
         {
@@ -940,7 +940,7 @@ namespace NeoCompose.Runtime.NeoScript
                 System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
         }
 
-        public readonly struct RowReference
+        public sealed class RowReference
         {
             public string valueId { get; }
             public NeoValueOwnership ownership { get; }
@@ -5236,11 +5236,12 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 string? effectiveClassId = row.classId
                     ?? (member as ClassMember)?.classId;
-                ctx.rowReverseIndex[unwrapped!] = new RowReference(
+                ctx.rowReverseIndex.Remove(unwrapped!);
+                ctx.rowReverseIndex.Add(unwrapped!, new RowReference(
                     row.id,
                     ownership,
                     effectiveClassId,
-                    member);
+                    member));
             }
             return unwrapped;
         }
@@ -5434,11 +5435,12 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     continue;
                 }
-                ctx.rowReverseIndex[pair.Key] = new RowReference(
+                ctx.rowReverseIndex.Remove(pair.Key);
+                ctx.rowReverseIndex.Add(pair.Key, new RowReference(
                     row.valueId,
                     targetOwnership,
                     row.classId,
-                    row.member);
+                    row.member));
                 movedRowIds.Add(row.valueId);
             }
 
@@ -6143,7 +6145,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return true;
             }
-            rowRef = default;
+            rowRef = null!;
             return false;
         }
 

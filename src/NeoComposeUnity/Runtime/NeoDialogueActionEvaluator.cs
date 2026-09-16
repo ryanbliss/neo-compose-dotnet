@@ -3616,9 +3616,23 @@ namespace NeoCompose.Runtime
                             ownership, existingId, member);
                         return;
                     }
-                    var next = CreateValueRow(client, ownership, member, value, existingId, existing.createdAt, now);
-                    next.classId = existing.classId;
-                    StoreWritableRow(client, ownership, next, ctx);
+                    if (member is ListMember listMember && client.IsUnorderedList(listMember))
+                    {
+                        object? payload = value is INeoValuePayloadProvider provider
+                            ? provider.ToNeoValuePayload() : value;
+                        client.SetWritablePayloadRows(ownership, payload);
+                        var list = (NeoMemberListWritable)NeoMember.CreateWritable(
+                            client, listMember, existingId, ownership);
+                        list.AssignSerialized(NeoValueWritePayload.FromValue(
+                            payload is NeoValuePayload wrapped ? wrapped.value : payload));
+                        NSGetterEvaluator.InvalidateCachedCollection(existingId, ownership, ctx);
+                    }
+                    else
+                    {
+                        var next = CreateValueRow(client, ownership, member, value, existingId, existing.createdAt, now);
+                        next.classId = existing.classId;
+                        StoreWritableRow(client, ownership, next, ctx);
+                    }
                 }
                 else
                 {
