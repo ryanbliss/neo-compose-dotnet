@@ -56,7 +56,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                     "a8305a31-7f6c-4ff5-8a9f-5871ef451093" => new HullPlatingTile(client, node, true, NeoValueOwnership.Asset),
                     "bda4cf72-c8da-4be0-8148-024d0fc2d826" => new GlassFloorTile(client, node, true, NeoValueOwnership.Asset),
                     "d931c907-19cd-4f3d-b04a-e6f1945fb216" => new RedNovaWarningTile(client, node, true, NeoValueOwnership.Asset),
-                    "system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9" => new NeoPlacementTile(client, node, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTile' without a concrete client type id."),
                 };
             });
@@ -75,7 +74,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                     "a8305a31-7f6c-4ff5-8a9f-5871ef451093" => new HullPlatingTile(client, node, false, node.ownership),
                     "bda4cf72-c8da-4be0-8148-024d0fc2d826" => new GlassFloorTile(client, node, false, node.ownership),
                     "d931c907-19cd-4f3d-b04a-e6f1945fb216" => new RedNovaWarningTile(client, node, false, node.ownership),
-                    "system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9" => new NeoPlacementTile(client, node, false, node.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTile' without a concrete client type id."),
                 };
             });

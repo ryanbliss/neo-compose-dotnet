@@ -52,7 +52,7 @@ class ExitPromptObject987403 : ExitPromptObject {
 
   @id("neo-tile-grid-record-relations-v1-member-8b86fa92f77a420dc3e61fca997644f5")
   @system(kind: .WorldAuthoring)
-  public override List<NeoTile> PlacementTiles = [
+  public override List<NeoPlacementTile> PlacementTiles = [
     @id("67dfd2a6-d845-4311-9f72-433501e54347")
     new NeoPlacementTile {
       Cell = new(0, 0)

@@ -103,6 +103,11 @@ namespace NeoCompose.Runtime
                 yield return writableParent;
                 yield break;
             }
+            if (TryResolveVirtualPlacement(childId, out var placement))
+            {
+                yield return placement.parentValueId;
+                yield break;
+            }
             if (!ValueInferenceIndex.Parents.TryGetValue(childId, out var parents)) yield break;
             foreach (var pair in parents)
             {

@@ -9,17 +9,14 @@
   ]
 )
 class GlassFloorTile : ConsoleTile {
-  @id("neo-tile-grid-record-relations-v1-member-17f945091605acd5df2df0b9bafc73ae")
-  @storage(allowed: .Immutable)
+  @storage(allowed: .Immutable) @id("neo-tile-grid-record-relations-v1-member-17f945091605acd5df2df0b9bafc73ae")
   @settings(format: .Plain)
   public override readonly string Name = "Glass Floor";
 
-  @id("neo-tile-grid-record-relations-v1-member-f6d6fd3678ac2f76de89f885dd9d22d6")
-  @storage(allowed: .Immutable)
+  @storage(allowed: .Immutable) @id("neo-tile-grid-record-relations-v1-member-f6d6fd3678ac2f76de89f885dd9d22d6")
   public override readonly SpriteInfo Sprite = Images.GlassFloorTile.Slice(0);
 
-  @id("neo-tile-grid-record-relations-v1-member-49e10224390d0b64abdf608051b2fcd5")
-  @storage(allowed: .Immutable)
+  @storage(allowed: .Immutable) @id("neo-tile-grid-record-relations-v1-member-49e10224390d0b64abdf608051b2fcd5")
   @system(kind: .WorldAuthoring)
   public override readonly NeoSmartTile? SmartTile = new() {
     DefaultCollider = .Sprite,

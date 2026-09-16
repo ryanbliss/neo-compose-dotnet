@@ -69,8 +69,12 @@ var spawned = saveContent.Objects.TrySpawn(cell, marker);
 fields. A successful `TrySpawn` adopts the supplied object's identity. Clone
 an existing owned object explicitly before placing another copy.
 
-Object `PlacementTiles` contains `NeoTile` values too. `NeoPlacementTile`
-represents an occupancy-only cell with no sprite and inherits `NeoTile.Cell`.
+Object `PlacementTiles` contains only `NeoPlacementTile` values. This standalone
+footprint type retains its own `Cell` member. It does not inherit rendering
+properties or tile conversion from `NeoTile`.
+
+The SDK wires the system native grid methods automatically. Generated clients
+can call `Cell`, `GetObjects`, and `GetTile` without registering native handlers.
 
 Layer-link lists are the placement data. SDK and NeoScript list edits pass
 through placement validation, and the renderer observes the data changes.

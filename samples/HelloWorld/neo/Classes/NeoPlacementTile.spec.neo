@@ -1,6 +1,6 @@
 describe("Raw tile placements", () => {
-  test("gives occupancy-only cells an explicit tile class", () => {
-    NeoTile tile = new NeoPlacementTile();
+  test("gives footprint cells their standalone placement type", () => {
+    NeoPlacementTile tile = new NeoPlacementTile();
 
     expect(tile is NeoPlacementTile).toBe(true);
     expect(tile.Cell.x).toBe(0);

@@ -11,21 +11,23 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public interface IReadOnlyNeoPlacementTile : IReadOnlyNeoTile
+    public interface IReadOnlyNeoPlacementTile : INeoValueReference
     {
-        new bool IsReadOnly { get; }
+        bool IsReadOnly { get; }
 
-        new IReadOnlyNeoPlacementTile Clone();
+        IReadOnlyNeoPlacementTile Clone();
 
-        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoPlacementTile writable);
+
+        NeoReadOnlyVector2Int Cell { get; }
     }
 
-    public partial class NeoPlacementTile : NeoTile, IReadOnlyNeoPlacementTile
+    public partial class NeoPlacementTile : NeoGeneratedClassValue, IReadOnlyNeoPlacementTile
     {
         internal NeoPlacementTile(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -40,11 +42,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cell", "system_f4be2707-74f5-4833-9784-e81bb2474330", Cell)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cell", "system_b0b3c45c-a87d-4218-b056-7418ef46aac5", Cell)
             );
         }
 
-        internal new static NeoPlacementTile Create(NeoClient client, NeoMemberClass node)
+        internal static NeoPlacementTile Create(NeoClient client, NeoMemberClass node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoPlacementTile>(client, node, () =>
             {
@@ -56,7 +58,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
-        internal new static NeoPlacementTile CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        internal static NeoPlacementTile CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoPlacementTile>(client, node, () =>
             {
@@ -68,7 +70,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
-        public new NeoPlacementTile Clone()
+        public NeoPlacementTile Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
@@ -88,15 +90,28 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoPlacementTile>(out writable);
         }
 
-        NeoReadOnlyVector2Int IReadOnlyNeoTile.Cell
+        public virtual NeoVector2Int Cell
         {
             get
             {
-                return (NeoReadOnlyVector2Int)(object)((NeoTile)this).Cell!;
+                return new NeoVector2Int(writableNode.Get<NeoMemberVector2IntWritable>("Cell"), this);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoPlacementTile.Cell");
+                NeoGeneratedTypesSupport.SetVector2Int(writableNode, "Cell", value);
             }
         }
 
-        public new sealed class Fields
+        NeoReadOnlyVector2Int IReadOnlyNeoPlacementTile.Cell
+        {
+            get
+            {
+                return new NeoReadOnlyVector2Int(node.Get<NeoMemberVector2Int>("Cell"));
+            }
+        }
+
+        public sealed class Fields
         {
             private Fields() {}
 
@@ -111,7 +126,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -129,7 +144,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

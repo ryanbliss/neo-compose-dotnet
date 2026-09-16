@@ -336,6 +336,69 @@ namespace NeoCompose.Tests
             Assert.IsFalse(held.isDisposed);
         }
 
+        [Test]
+        public void ObjectFootprintsRejectRenderedTilesAtomically()
+        {
+            using var client = LoadClient(footprint: true);
+            string before = client.SerializeSaveData();
+            int publications = 0;
+            client.OnWritableValuesPublished += (_, __) => publications++;
+            var error = Assert.Throws<NeoPlacementValidationException>(() =>
+            {
+                client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]
+                {
+                    new ObjectMemberValue { id = "rendered-footprint", classId = "test-tile-a", containerId = "footprint-list",
+                        value = new() { ["Cell"] = "rendered-cell" } },
+                    new Vector2MemberValue { id = "rendered-cell", value = new NeoVector2Value { x = 1, y = 0 } },
+                });
+            });
+            Assert.AreEqual("object-footprint-class-invalid", error!.ErrorCode);
+            Assert.AreEqual(before, client.SerializeSaveData());
+            Assert.AreEqual(0, publications);
+        }
+
+        [Test]
+        public void ObjectFootprintsAcceptStandalonePlacementTilesAndRejectTileConversion()
+        {
+            using var client = LoadClient(footprint: true);
+            client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]
+            {
+                new ObjectMemberValue { id = "added-footprint", classId = "test-placement-derived", containerId = "footprint-list",
+                    value = new() { ["Cell"] = "added-cell" } },
+                new Vector2MemberValue { id = "added-cell", value = new NeoVector2Value { x = 1, y = 0 } },
+            });
+            Assert.Throws<InvalidOperationException>(() => client.ConvertTile(NeoValueOwnership.Save, "footprint-tile", "test-tile-a"));
+            Assert.IsFalse(client.saveValues.ContainsKey("footprint-tile"));
+            Assert.AreEqual("test-placement-derived", client.saveValues["added-footprint"].classId);
+        }
+
+        private static void AddFootprint(JObject document)
+        {
+            void Member(Member member) => document["members"]![member.id] = JObject.FromObject(member);
+            void Row(MemberValue row) => document["values"]![row.id] = JObject.FromObject(row);
+            document["classes"]!["test-placement"] = JObject.FromObject(new NeoSchemaClass
+            {
+                id = "test-placement", name = "PlacementTile", schema = new() { ["Cell"] = "test-tile-cell" },
+            });
+            document["classes"]!["test-placement-derived"] = JObject.FromObject(new NeoSchemaClass
+            {
+                id = "test-placement-derived", name = "DerivedPlacementTile", extendsClassId = "test-placement", schema = new(),
+            });
+            document["classes"]!["test-object"] = JObject.FromObject(new NeoSchemaClass
+            {
+                id = "test-object", name = "Object", schema = new() { ["PlacementTiles"] = "footprint-member" },
+                system = new JObject { ["kind"] = "world", ["worldKind"] = "object" },
+            });
+            Member(new ClassMember { id = "footprint-entry", name = "Footprint", kind = MemberKind.Class, classId = "test-placement" });
+            Member(new ListMember { id = "footprint-member", name = "PlacementTiles", kind = MemberKind.List,
+                entryMemberId = "footprint-entry", ListKind = NeoListKind.Unordered });
+            Row(new ObjectMemberValue { id = "footprint-owner", classId = "test-object", value = new() { ["PlacementTiles"] = "footprint-list" } });
+            Row(new ArrayMemberValue { id = "footprint-list", value = Array.Empty<string>() });
+            Row(new ObjectMemberValue { id = "footprint-tile", classId = "test-placement", containerId = "footprint-list",
+                value = new() { ["Cell"] = "footprint-cell" } });
+            Row(new Vector2MemberValue { id = "footprint-cell", value = new NeoVector2Value { x = 0, y = 0 } });
+        }
+
         private static void AddGrid(JObject document)
         {
             void Member(Member member) => document["members"]![member.id] = JObject.FromObject(member);
@@ -391,7 +454,7 @@ namespace NeoCompose.Tests
             }
         }
 
-        private static NeoClient LoadClient(bool grid = false)
+        private static NeoClient LoadClient(bool grid = false, bool footprint = false)
         {
             var document = JObject.Parse(File.ReadAllText(
                 "Packages/com.ryanbliss.neocompose/Tests/synth-example.json"));
@@ -420,6 +483,7 @@ namespace NeoCompose.Tests
                 });
             }
             if (grid) AddGrid(document);
+            if (footprint) AddFootprint(document);
             return NeoTestSaveStack.LoadClient(document.ToString());
         }
     }

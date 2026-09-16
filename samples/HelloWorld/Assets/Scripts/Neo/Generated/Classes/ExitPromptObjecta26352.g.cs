@@ -31,12 +31,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public ExitPromptObjecta26352(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoTile>? PlacementTiles = null, bool? Enabled = null, NeoVector3? Position = null, NeoCollider? Collider = null)
+        public ExitPromptObjecta26352(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoPlacementTile>? PlacementTiles = null, bool? Enabled = null, NeoVector3? Position = null, NeoCollider? Collider = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, ExitPromptRelay, ExitPromptQuiet, Children, Size, PlacementTiles, Enabled, Position, Collider), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoTile>? PlacementTiles = null, bool? Enabled = null, NeoVector3? Position = null, NeoCollider? Collider = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoPlacementTile>? PlacementTiles = null, bool? Enabled = null, NeoVector3? Position = null, NeoCollider? Collider = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -132,11 +132,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoTile> IReadOnlyExitPromptObject.PlacementTiles
+        NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyExitPromptObject.PlacementTiles
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoTile>)(object)((ExitPromptObject)this).PlacementTiles!;
+                return (NeoReadOnlyList<IReadOnlyNeoPlacementTile>)(object)((ExitPromptObject)this).PlacementTiles!;
             }
         }
 
@@ -164,11 +164,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoTile> IReadOnlyNeoObject.PlacementTiles
+        NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyNeoObject.PlacementTiles
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoTile>)(object)((NeoObject)this).PlacementTiles!;
+                return (NeoReadOnlyList<IReadOnlyNeoPlacementTile>)(object)((NeoObject)this).PlacementTiles!;
             }
         }
 
@@ -186,7 +186,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
-            public static readonly NeoField<NeoList<NeoTile>> PlacementTiles = new("PlacementTiles");
+            public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
 
             public static readonly NeoField<bool> Enabled = new("Enabled");
 

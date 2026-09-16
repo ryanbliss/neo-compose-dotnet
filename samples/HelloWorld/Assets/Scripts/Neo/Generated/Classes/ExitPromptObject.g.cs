@@ -29,7 +29,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new string Name { get; }
 
-        new NeoReadOnlyList<IReadOnlyNeoTile> PlacementTiles { get; }
+        new NeoReadOnlyList<IReadOnlyNeoPlacementTile> PlacementTiles { get; }
 
         new NeoReadOnlyVector3 Size { get; }
     }
@@ -159,19 +159,19 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public override NeoList<NeoTile> PlacementTiles
+        public override NeoList<NeoPlacementTile> PlacementTiles
         {
             get
             {
-                return new NeoList<NeoTile>(client, writableNode.Get<NeoMemberListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("ExitPromptObject.PlacementTiles"), () => IsReadOnly);
+                return new NeoList<NeoPlacementTile>(client, writableNode.Get<NeoMemberListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("ExitPromptObject.PlacementTiles"), () => IsReadOnly);
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoTile> IReadOnlyExitPromptObject.PlacementTiles
+        NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyExitPromptObject.PlacementTiles
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoTile>(client, node.Get<NeoMemberList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoMemberClass)child));
+                return new NeoReadOnlyList<IReadOnlyNeoPlacementTile>(client, node.Get<NeoMemberList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.Create(client, (NeoMemberClass)child));
             }
         }
 
@@ -212,11 +212,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoTile> IReadOnlyNeoObject.PlacementTiles
+        NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyNeoObject.PlacementTiles
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoTile>)(object)((NeoObject)this).PlacementTiles!;
+                return (NeoReadOnlyList<IReadOnlyNeoPlacementTile>)(object)((NeoObject)this).PlacementTiles!;
             }
         }
 
@@ -234,7 +234,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
-            public static readonly NeoField<NeoList<NeoTile>> PlacementTiles = new("PlacementTiles");
+            public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
 
             public static readonly NeoField<bool> Enabled = new("Enabled");
 

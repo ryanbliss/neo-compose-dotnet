@@ -9,12 +9,10 @@
   ]
 )
 class RedNovaWarningTile : ConsoleTile {
-  @id("neo-tile-grid-record-relations-v1-member-a66bf1dee22709e5f2c1554b0cd68958")
-  @storage(allowed: .Immutable)
+  @storage(allowed: .Immutable) @id("neo-tile-grid-record-relations-v1-member-a66bf1dee22709e5f2c1554b0cd68958")
   @settings(format: .Plain)
   public override readonly string Name = "Red Nova Warning";
 
-  @id("neo-tile-grid-record-relations-v1-member-799d3d5310a3b19d7395302039f97847")
-  @storage(allowed: .Immutable)
+  @storage(allowed: .Immutable) @id("neo-tile-grid-record-relations-v1-member-799d3d5310a3b19d7395302039f97847")
   public override readonly SpriteInfo Sprite = Images.RedNovaWarningTile.Slice(0);
 }

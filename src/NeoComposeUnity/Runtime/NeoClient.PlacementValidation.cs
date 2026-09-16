@@ -102,6 +102,7 @@ namespace NeoCompose.Runtime
             var visited = new HashSet<string>();
             var grids = new HashSet<string>();
             var tiles = new HashSet<string>();
+            var objects = new HashSet<string>();
             while (pending.Count > 0)
             {
                 string id = pending.Dequeue();
@@ -110,6 +111,7 @@ namespace NeoCompose.Runtime
                 TryGetCommittedValue(id, out MemberValue? previous);
                 if (HasWorldKind(candidate?.classId ?? previous?.classId, "tileGrid")) grids.Add(id);
                 if (HasWorldKind(candidate?.classId, "tile")) tiles.Add(id);
+                if (HasWorldKind(candidate?.classId, "object")) objects.Add(id);
                 if (!string.IsNullOrEmpty(candidate?.containerId)) pending.Enqueue(candidate!.containerId!);
                 if (!string.IsNullOrEmpty(previous?.containerId)) pending.Enqueue(previous!.containerId!);
                 foreach (string parent in PlacementParents(id))
@@ -138,6 +140,8 @@ namespace NeoCompose.Runtime
             using (ReadCandidate(plan))
             {
                 var compatibleLayers = new Dictionary<(bool tile, string classId), HashSet<string>>();
+                foreach (string objectId in objects)
+                    if (ResolveValueRow(objectId) is ObjectMemberValue obj && !obj.IsRemoved) ValidateObjectFootprint(obj);
                 if (TryValidateDirectTileConversions(plan, primitives, compatibleLayers)) return;
                 foreach (string tileId in tiles) ValidateTileRow(tileId);
                 foreach (string gridId in grids) ValidateGridPlacements(plan, gridId, primitives[gridId], compatibleLayers);
@@ -161,6 +165,12 @@ namespace NeoCompose.Runtime
                 foreach (string key in tile.value.Keys)
                     if (key != "Cell")
                         throw PlacementError("tile-instance-member", $"Tile '{tileId}' cannot store instance member '{key}'; only Cell is writable.");
+            ValidatePlacementCell(tile);
+        }
+
+        private void ValidatePlacementCell(ObjectMemberValue tile)
+        {
+            string tileId = tile.id;
             MemberValue? cell = ResolveClassChildRow(tile, "Cell");
             NeoVector2Value? point = (cell as Vector2MemberValue)?.value;
             if (cell is null && tile.value?.ContainsKey("Cell") != true)
@@ -205,12 +215,7 @@ namespace NeoCompose.Runtime
                             && (position is not Vector3MemberValue { value: not null } vector
                                 || !Finite(vector.value.x) || !Finite(vector.value.y) || !Finite(vector.value.z)))
                             throw PlacementError("object-position-invalid", $"Object '{entryId}' requires a finite Position.");
-                        if (ResolveClassChildRow(entry, "PlacementTiles") is ArrayMemberValue footprint)
-                            foreach (string tileId in PlacementListEntries(footprint.id))
-                            {
-                                RequirePlacementClass(tileId, "tile");
-                                ValidateTileRow(tileId);
-                            }
+                        ValidateObjectFootprint(entry);
                     }
                 }
             }
@@ -251,6 +256,29 @@ namespace NeoCompose.Runtime
                         occupied[cell] = obj.InstanceId;
                     }
                 }
+            }
+        }
+
+        private void ValidateObjectFootprint(ObjectMemberValue owner)
+        {
+            if (ValidatePlacementCollectionField(owner, "PlacementTiles") is not ArrayMemberValue footprint) return;
+            string? entryClassId = null;
+            foreach (var field in ResolveStoredInstanceSchema(owner.classId!))
+                if (field.schemaKey == "PlacementTiles"
+                    && TryGetMember(field.memberId, out Member? member) && member is ListMember list
+                    && TryGetMember(list.entryMemberId, out Member? entry) && entry is ClassMember classEntry)
+                {
+                    entryClassId = classEntry.classId;
+                    break;
+                }
+            if (string.IsNullOrEmpty(entryClassId))
+                throw PlacementError("placement-list-invalid", $"Object '{owner.id}' PlacementTiles requires a declared class entry type.");
+            foreach (string tileId in PlacementListEntries(footprint.id))
+            {
+                ObjectMemberValue tile = RequirePlacementClass(tileId, null);
+                if (!ResolveClassInheritanceChain(tile.classId!).Any(type => type.id == entryClassId))
+                    throw PlacementError("object-footprint-class-invalid", $"Object '{owner.id}' footprint '{tileId}' must inherit '{entryClassId}'.");
+                ValidatePlacementCell(tile);
             }
         }
 

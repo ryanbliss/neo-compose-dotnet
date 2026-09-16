@@ -4,6 +4,8 @@
 
 - Read raw tile placements with `Cell` and execute compiler revision 15, including `NeoTile.TryConvert<T>()` and dynamic target conversion.
 - Preserve tile row identity during conversion and reuse one Unity tile asset per class.
+- Keep object footprints in `List<NeoPlacementTile>`, with an independent class and their original `Cell`. Reject rendered tiles in footprint lists.
+- Resolve native grid queries from constructor-created virtual objects before grid content is first accessed, using their existing placement ownership.
 - Validate placement writes through the shared data layer and notify rendering after completed batches, including list mutations and remote changes.
 - Spawn constructed objects with `TrySpawn(cell, obj)`, preserving their identity and ownership. Remove class/value spawn overloads and the object class-swap APIs; use real `ToVariant` methods for variants.
 - Return generated values from flattened grid queries. Remove the public `NeoResolvedTileInstance` and `NeoResolvedObjectInstance` snapshots.

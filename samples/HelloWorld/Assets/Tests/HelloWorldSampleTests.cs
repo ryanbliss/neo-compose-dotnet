@@ -6,6 +6,7 @@ using System.Linq;
 using System.Collections.Generic;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
@@ -159,6 +160,21 @@ namespace HelloWorld.Assets.Tests
             Assert.AreEqual("Hello", client.Assets.Computed.baseText);
 
             Assert.AreEqual("Hello Earth!", client.Assets.Computed.fullText);
+        }
+
+        [Test]
+        public void PlacementTilesRemainStandaloneAndKeepTheirOriginalCellIdentity()
+        {
+            Assert.IsFalse(typeof(NeoTile).IsAssignableFrom(typeof(NeoPlacementTile)));
+            Assert.AreEqual(typeof(NeoList<NeoPlacementTile>), typeof(NeoObject).GetProperty("PlacementTiles")!.PropertyType);
+            Assert.IsNull(typeof(NeoPlacementTile).GetProperty("Sprite"));
+            Assert.IsFalse(typeof(NeoPlacementTile).GetMethods().Any(method => method.Name == "TryConvert"));
+            var project = JObject.Parse(SampleProjectJson);
+            var placement = project["classes"]!["system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9"]!;
+            Assert.IsNull(placement["extendsClassId"]?.Value<string>());
+            Assert.AreEqual("system_b0b3c45c-a87d-4218-b056-7418ef46aac5", placement["schema"]!["Cell"]!.Value<string>());
+            Assert.AreEqual("system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9",
+                project["members"]!["system_96c7650a-1805-5b27-ae99-d1e49d3cb207"]!["classId"]!.Value<string>());
         }
 
         [Test]
@@ -979,6 +995,56 @@ namespace HelloWorld.Assets.Tests
 
             Assert.IsNull(content.Collisions.GetTile(blockerCell));
             Assert.IsNull(blocked.GetTile(content, blockerCell));
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task BuiltInGridAndTileCallsExecuteWithoutDeveloperNativeRegistration()
+        {
+            var sample = await LoadSampleClient(EnglishLocalizationOptions());
+            var client = sample.Client;
+            var player = sample.Assets.Worlds.OldConsoleLanding.Children.OfType<NeoObjectLayerLink>()
+                .SelectMany(link => link.Objects).OfType<PlayerSpawnObject>().Single();
+            var context = new NSGetterEvaluator.Context(client, player, null, new NeoCellPattern(Vector2Int.zero));
+            // Use the same compiled call instructions as NeoScript. Loading the
+            // ordinary generated client above is the only registration step.
+            object Evaluate(Pointer pointer, MemberKind resultKind) => NSGetterEvaluator.Evaluate(new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                instructions = new Instruction[] { new ReturnInstruction { type = "return", pointer = pointer } },
+                typeInfo = new PrimitiveTypeInfo { type = resultKind, required = true },
+            }, context)!;
+            var receiverPointer = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" };
+            object Call(string memberId, bool withPattern, MemberKind resultKind) => Evaluate(new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction, memberId = memberId, callSiteId = "sample-native-" + memberId, receiver = CallReceiver.Instance(receiverPointer),
+                args = withPattern ? new Pointer[] { new VariablePointer { type = PointerKind.Variable, variableId = "__context__" } }
+                    : System.Array.Empty<Pointer>(),
+            }, resultKind);
+            var cell = (NeoVector2Value)Call("system_df1c2d06-eeec-5340-addc-740f3668c9e4", false, MemberKind.Vector2Int);
+            Assert.AreEqual(Mathf.RoundToInt(player.Position.x), cell.x);
+            Assert.AreEqual(Mathf.RoundToInt(player.Position.y), cell.y);
+            Assert.IsNotEmpty((object[])Call("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", true, MemberKind.List));
+            object tile = Call("system_593e6208-e2ca-505e-9933-04b17102b6d2", true, MemberKind.Class);
+            Assert.IsNotNull(tile);
+            var cellForConversion = new Vector2Int(20, 20);
+            var content = OldConsoleLandingGridContent.ResolveForSave(client, sample.Assets.Worlds.OldConsoleLanding.valueId!);
+            AssertPlacementOk(content.Background.TrySetTile<GlassFloorTile>(cellForConversion));
+            AssertPlacementOk(content.Objects.TrySpawn(cellForConversion, new VaultPlaqueObject()));
+            var placed = content.Objects.GetObject<NeoObject>(cellForConversion)!;
+            context = new NSGetterEvaluator.Context(client, placed, null, new NeoCellPattern(Vector2Int.zero));
+            string targetClassId = new RedNovaWarningTile().classId!;
+            Assert.AreEqual(true, Evaluate(new TileConvertPointer
+            {
+                type = PointerKind.TileConvert, callSiteId = "sample-native-conversion",
+                receiverPointer = new CallFunctionPointer
+                {
+                    type = PointerKind.CallFunction, memberId = "system_593e6208-e2ca-505e-9933-04b17102b6d2", callSiteId = "sample-native-get-conversion-tile",
+                    receiver = CallReceiver.Instance(receiverPointer),
+                    args = new Pointer[] { new VariablePointer { type = PointerKind.Variable, variableId = "__context__" } },
+                },
+                targetClassId = targetClassId,
+            }, MemberKind.Bool));
+            Assert.IsInstanceOf<RedNovaWarningTile>(content.Background.GetTile(cellForConversion));
         }
 
         [Test]

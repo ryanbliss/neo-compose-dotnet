@@ -51,7 +51,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// </summary>
         IReadOnlyNeoTile? GetTile(NeoCompose.Runtime.NeoCellPattern pattern);
 
-        NeoReadOnlyList<IReadOnlyNeoTile> PlacementTiles { get; }
+        NeoReadOnlyList<IReadOnlyNeoPlacementTile> PlacementTiles { get; }
     }
 
     public abstract partial class NeoObject : NeoObjectBase, IReadOnlyNeoObject, INeoObjectCompositionSource, INeoColliderSource, INeoObjectSpawnHooks
@@ -243,19 +243,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
 
-        public virtual NeoList<NeoTile> PlacementTiles
+        public virtual NeoList<NeoPlacementTile> PlacementTiles
         {
             get
             {
-                return new NeoList<NeoTile>(client, writableNode.Get<NeoMemberListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoObject.PlacementTiles"), () => IsReadOnly);
+                return new NeoList<NeoPlacementTile>(client, writableNode.Get<NeoMemberListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoObject.PlacementTiles"), () => IsReadOnly);
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoTile> IReadOnlyNeoObject.PlacementTiles
+        NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyNeoObject.PlacementTiles
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoTile>(client, node.Get<NeoMemberList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoMemberClass)child));
+                return new NeoReadOnlyList<IReadOnlyNeoPlacementTile>(client, node.Get<NeoMemberList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.Create(client, (NeoMemberClass)child));
             }
         }
 
@@ -302,7 +302,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
-            public static readonly NeoField<NeoList<NeoTile>> PlacementTiles = new("PlacementTiles");
+            public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()

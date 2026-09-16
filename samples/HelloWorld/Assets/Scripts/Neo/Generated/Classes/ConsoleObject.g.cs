@@ -127,11 +127,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoTile> IReadOnlyNeoObject.PlacementTiles
+        NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyNeoObject.PlacementTiles
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoTile>)(object)((NeoObject)this).PlacementTiles!;
+                return (NeoReadOnlyList<IReadOnlyNeoPlacementTile>)(object)((NeoObject)this).PlacementTiles!;
             }
         }
 
@@ -153,7 +153,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
-            public static readonly NeoField<NeoList<NeoTile>> PlacementTiles = new("PlacementTiles");
+            public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()

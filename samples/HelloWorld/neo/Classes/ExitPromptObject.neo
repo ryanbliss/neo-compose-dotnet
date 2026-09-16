@@ -45,7 +45,7 @@ abstract class ExitPromptObject : ConsoleObject {
 
   @id("571a0e0b-b36c-45f3-ae9a-5fde39045c11")
   @system(kind: .WorldAuthoring)
-  public override List<NeoTile> PlacementTiles = [
+  public override List<NeoPlacementTile> PlacementTiles = [
     @id("96cad433-4aed-4a9c-be34-fee3ebca8402")
     new NeoPlacementTile {
       Cell = new(0, 0)

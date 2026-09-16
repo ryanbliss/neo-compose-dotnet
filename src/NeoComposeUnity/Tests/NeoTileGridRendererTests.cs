@@ -110,6 +110,66 @@ namespace NeoCompose.Tests
 
         }
 
+        [Test]
+        public void NeoScriptGridQuery_ResolvesVirtualAuthoredPlacementBeforeContentAccess()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            using (var schemaClient = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                var constructor = ConfigureSparseListConstructor(schemaClient, "virtual-objects-constructor",
+                    ObjectLayerLinkClassId, "object-layer-link-objects-member", "Objects", ObjectClassId);
+                constructor.action!.typeInfo.required = true;
+                var objectsMember = (ListMember)schemaClient.members[schemaClient.classes[ObjectLayerLinkClassId].schema["Objects"]];
+                objectsMember.defaultValue!.init!.code = "[new Shop()]";
+                var body = objectsMember.defaultValue.init.compiled!;
+                ((ReturnInstruction)body.instructions[0]).pointer = new ListLiteralPointer
+                {
+                    type = PointerKind.ListLiteral,
+                    typeInfo = (CollectionTypeInfo)body.typeInfo,
+                    entries = new Pointer[] { new FunctionPointer
+                    {
+                        type = PointerKind.Function,
+                        function = new ClassConstructorFunction
+                        {
+                            type = FunctionKind.ClassConstructor,
+                            info = new FunctionClassConstructorInfo
+                            {
+                                schemaClassInfo = new ClassTypeInfo { type = MemberKind.Class, classId = ObjectClassId, required = true },
+                                fields = Array.Empty<FunctionClassConstructorField>(),
+                            },
+                        },
+                    } },
+                };
+                var link = (ObjectMemberValue)data.values["objects-link"];
+                link.value!.Remove("Objects");
+                link.instanceConstructorId = constructor.id;
+                link.constructorArgs = new() { [NeoClient.ConstructorParameterId(constructor, 0)] = "objects-link-objects" };
+            }
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var owner = (ObjectMemberValue)client.values["objects-link"];
+            var objects = (ArrayMemberValue)client.ResolveClassChildRow(owner, "Objects")!;
+            string objectId = client.GetUnorderedListEntryIds(objects.id).Single();
+            Assert.IsFalse(client.values.ContainsKey(objectId), "The receiver must be a virtual constructor-derived placement.");
+            Assert.IsTrue(client.TryGetValueOwnership(objectId, out var ownership));
+            Assert.AreEqual(NeoValueOwnership.Asset, ownership);
+            client.ScriptGridQueries.RegisterFactories(new Dictionary<string, Func<NeoClient, string, INeoTileGridContent>>
+            {
+                [GridClassId] = (c, id) =>
+                {
+                    var primitive = NeoReadOnlyTileGridPrimitive.Resolve(c, id,
+                        BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+                    return new TestTileGridContent(primitive, Array.Empty<IReadOnlyNeoTileLayerRuntime>(),
+                        new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) });
+                },
+            });
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
+            Assert.IsTrue(client.TryGetValue(objectId, out ObjectMemberValue? row));
+            object? receiver = NSGetterEvaluator.UnwrapRow(row!, ctx, NeoValueOwnership.Asset);
+            Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_df1c2d06-eeec-5340-addc-740f3668c9e4", receiver,
+                Array.Empty<object?>(), ctx, out object? cell));
+            Assert.AreEqual(Vector2Int.zero, NeoGeneratedTypesSupport.ReadVector2IntValue(cell));
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void LayerSettingsUseDeclarationDefaultsBeneathExplicitOverrides(bool writable)
@@ -7027,9 +7087,12 @@ namespace NeoCompose.Tests
                 id = PlacementTileClassId,
                 projectId = "project-a",
                 name = "Placement Tile",
-                extendsClassId = BaseTileClassId,
-                schema = new Dictionary<string, string>(),
+                schema = new Dictionary<string, string> { ["Cell"] = "object-placement-cell-member" },
                 system = JObject.FromObject(new { worldKind = "placementTile" }),
+            };
+            data.members["object-placement-cell-member"] = new Vector2IntMember
+            {
+                id = "object-placement-cell-member", name = "Cell", kind = MemberKind.Vector2Int,
             };
             data.members["object-size-member"] = new Vector3Member
             {
@@ -7052,7 +7115,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "PlacementTile",
                 kind = MemberKind.Class,
-                classId = BaseTileClassId,
+                classId = PlacementTileClassId,
             };
 
             var shop = (ObjectMemberValue)data.values[objectValueId];
