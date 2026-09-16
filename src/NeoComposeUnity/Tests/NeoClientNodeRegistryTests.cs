@@ -259,6 +259,31 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ClientDisposesDetachedCachedListAndHeldChildExactlyOnce()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildDefaultBackedProjectData());
+            var member = RequireMember<ListMember>(client, "member-children");
+            var list = (NeoMemberListWritable)NeoMember.CreateWritable(
+                client, member, null, NeoValueOwnership.Save);
+            var child = list[0];
+            Assert.IsNull(list.parent);
+            Assert.AreSame(list, NeoMember.CreateWritable(
+                client, member, null, NeoValueOwnership.Save));
+            int listDisposals = 0;
+            int childDisposals = 0;
+            list.OnDisposed += _ => listDisposals++;
+            child.OnDisposed += _ => childDisposals++;
+
+            client.Dispose();
+            client.Dispose();
+            Assert.IsTrue(list.isDisposed);
+            Assert.IsTrue(child.isDisposed);
+            Assert.AreEqual(1, listDisposals);
+            Assert.AreEqual(1, childDisposals);
+            Assert.IsEmpty(client.nodes);
+        }
+
+        [Test]
         public void List_ReadsDefaultEntryIds_WhenListHasNoStoredValueRow()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildDefaultBackedProjectData());

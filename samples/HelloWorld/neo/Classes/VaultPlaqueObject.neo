@@ -36,9 +36,9 @@ class VaultPlaqueObject : ConsoleObject {
 
   @id("430fca56-b45a-4896-9ab2-795a3faf57f6")
   @system(kind: .WorldAuthoring)
-  public override List<NeoObjectPlacementTile> PlacementTiles = [
+  public override List<NeoTile> PlacementTiles = [
     @id("293652f8-54d6-4168-89be-7ac75207dcd0")
-    new NeoObjectPlacementTile {
+    new NeoPlacementTile {
       Cell = new(0, 0)
     }
   ];

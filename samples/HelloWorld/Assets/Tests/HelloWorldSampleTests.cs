@@ -1038,13 +1038,13 @@ namespace HelloWorld.Assets.Tests
                 client.Assets.Worlds.OldConsoleLanding.valueId!);
 
             Assert.IsNull(client.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject(cell));
-            AssertPlacementOk(saveContent.Objects.TrySpawn(cell, new PlayerSpawnObject()));
+            AssertPlacementOk(saveContent.Objects.TrySpawn(cell, new VaultPlaqueObject()));
 
             var placed = client.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject<NeoObject>(cell)!;
-            Assert.IsInstanceOf<PlayerSpawnObject>(placed);
+            Assert.IsInstanceOf<VaultPlaqueObject>(placed);
             Assert.IsNotNull(placed.valueId);
 
-            var duplicate = saveContent.Objects.TrySpawn(cell, new VaultPlaqueObject());
+            var duplicate = saveContent.Objects.TrySpawn(cell, new PlayerSpawnObject());
             Assert.IsFalse(duplicate.Ok);
             Assert.AreEqual("tile-grid-object-cell-occupied", duplicate.ErrorCode);
 
@@ -1053,7 +1053,7 @@ namespace HelloWorld.Assets.Tests
             var reopened = await ReopenSampleClient(store, EnglishLocalizationOptions());
             var reopenedInstance = reopened.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject<NeoObject>(cell)!;
             Assert.AreEqual(placed.valueId, reopenedInstance.valueId);
-            Assert.IsInstanceOf<PlayerSpawnObject>(reopenedInstance);
+            Assert.IsInstanceOf<VaultPlaqueObject>(reopenedInstance);
 
             var reopenedSaveContent = OldConsoleLandingGridContent.ResolveForSave(
                 reopened.Client,
@@ -1065,6 +1065,31 @@ namespace HelloWorld.Assets.Tests
             var persistedAfterDespawn = await ReopenSampleClient(store, EnglishLocalizationOptions());
             Assert.IsNull(
                 persistedAfterDespawn.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject(cell));
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task SpawnedPlayerPositionResetsWithSessionWhileIdentityAndFootprintPersist()
+        {
+            var (store, client) = await LoadSampleStack(EnglishLocalizationOptions());
+            var cell = new Vector2Int(21, 20);
+            var content = OldConsoleLandingGridContent.ResolveForSave(
+                client.Client, client.Assets.Worlds.OldConsoleLanding.valueId!);
+            var player = new PlayerSpawnObject();
+            AssertPlacementOk(content.Objects.TrySpawn(cell, player));
+            string id = player.valueId!;
+            Assert.AreEqual(new Vector3(cell.x, cell.y, 0), player.Position.Value);
+            Assert.IsInstanceOf<NeoPlacementTile>(player.PlacementTiles.Single());
+
+            // PlayerSpawnObject explicitly declares Session Position. Its Save
+            // membership and footprint survive, while that coordinate resets.
+            client.CommitAsync().GetAwaiter().GetResult();
+            var reopened = await ReopenSampleClient(store, EnglishLocalizationOptions());
+            var restored = reopened.Assets.Worlds.OldConsoleLanding.Content.Objects
+                .GetObjects<PlayerSpawnObject>().Single(value => value.valueId == id);
+            Assert.AreEqual(Vector3.zero, restored.Position.Value);
+            Assert.IsInstanceOf<NeoPlacementTile>(restored.PlacementTiles.Single());
+            Assert.AreEqual(Vector2Int.zero, restored.PlacementTiles.Single().Cell.Value);
+            Assert.IsNull(reopened.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject(cell));
         }
 
         // Builds the generated sample client over the Phase 9 save stack (project

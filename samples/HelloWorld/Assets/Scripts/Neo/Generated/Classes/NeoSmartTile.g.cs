@@ -103,22 +103,9 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("DefaultCollider"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'DefaultCollider' has no selected option.") : NeoSmartTileCollider.FromOptionId(selected);
             }
-            set
-            {
-                ThrowIfReadOnly("NeoSmartTile.DefaultCollider");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "DefaultCollider", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
-            }
         }
 
-        public virtual NeoList<NeoSmartTileRule> Rules
-        {
-            get
-            {
-                return new NeoList<NeoSmartTileRule>(client, writableNode.Get<NeoMemberListWritable>("Rules"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Rules"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoSmartTile.Rules"), () => IsReadOnly);
-            }
-        }
-
-        NeoReadOnlyList<IReadOnlyNeoSmartTileRule> IReadOnlyNeoSmartTile.Rules
+        public virtual NeoReadOnlyList<IReadOnlyNeoSmartTileRule> Rules
         {
             get
             {

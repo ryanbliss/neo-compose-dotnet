@@ -791,6 +791,10 @@ namespace NeoCompose.Runtime
             assets.Dispose();
             save.Dispose();
             session.Dispose();
+            // Direct value/collection views can be registered without a root
+            // parent. They share cached children and belong to this client too.
+            foreach (var node in new List<NeoMember>(nodesInternal.Values))
+                node.Dispose();
         }
 
         internal bool TryGetMember<TMember>(string id, [NotNullWhen(true)] out TMember? member) where TMember : Member

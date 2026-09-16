@@ -30,9 +30,9 @@ class PlayerSpawnObject : ConsoleObject {
 
   @id("47c21aa5-e852-41d2-882c-b4f555aee9dd")
   @system(kind: .WorldAuthoring)
-  public override List<NeoObjectPlacementTile> PlacementTiles = [
+  public override List<NeoTile> PlacementTiles = [
     @id("6de63821-b102-4b62-aac6-c99c8aabecc9")
-    new NeoObjectPlacementTile {
+    new NeoPlacementTile {
       Cell = new(0, 0)
     }
   ];

@@ -35,20 +35,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public HullPlatingTile(string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null, NeoVector2Int? Cell = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Sprite, SmartTile, Cell), false, NeoValueOwnership.Session)
+        public HullPlatingTile(NeoVector2Int? Cell = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Cell), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null, NeoVector2Int? Cell = null)
+        private static NeoMemberClassWritable CreateFactoryNode(NeoVector2Int? Cell = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "a8305a31-7f6c-4ff5-8a9f-5871ef451093",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "neo-tile-grid-record-relations-v1-member-9a08564ac837f8674e2e13c1f9937ccd", Name),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "neo-tile-grid-record-relations-v1-member-ff2fa3d156f0a3df6b066f1599049c70", Sprite),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SmartTile", "neo-tile-grid-record-relations-v1-member-636b8784cd42599650e36ab6b0999e6c", SmartTile),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cell", "system_f4be2707-74f5-4833-9784-e81bb2474330", Cell)
             );
         }
@@ -105,41 +102,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
             }
-            set
-            {
-                ThrowIfReadOnly("HullPlatingTile.Name");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
-            }
         }
 
-        public override NeoSmartTile? SmartTile
-        {
-            get
-            {
-                if (IsReadOnly)
-                {
-                    var child = node.Get<NeoMemberClass>("SmartTile");
-                    return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.Create(client, child);
-                }
-                else
-                {
-                    var child = writableNode.Get<NeoMemberClassWritable>("SmartTile");
-                    return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.CreateWritable(client, child);
-                }
-            }
-            set
-            {
-                ThrowIfReadOnly("HullPlatingTile.SmartTile");
-                if (value is null)
-                {
-                    writableNode.Unset("SmartTile");
-                    return;
-                }
-                NeoGeneratedTypesSupport.SetValue(writableNode, "SmartTile", NeoGeneratedTypesSupport.ValueReference(value));
-            }
-        }
-
-        IReadOnlyNeoSmartTile? IReadOnlyHullPlatingTile.SmartTile
+        public override IReadOnlyNeoSmartTile? SmartTile
         {
             get
             {
@@ -148,20 +113,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public override NeoSprite Sprite
-        {
-            get
-            {
-                return new NeoSprite(writableNode.Get<NeoMemberSpriteWritable>("Sprite"), this);
-            }
-            set
-            {
-                ThrowIfReadOnly("HullPlatingTile.Sprite");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
-            }
-        }
-
-        NeoReadOnlySprite IReadOnlyHullPlatingTile.Sprite
+        public override NeoReadOnlySprite Sprite
         {
             get
             {
@@ -177,31 +129,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        IReadOnlyNeoSmartTile? IReadOnlyNeoTile.SmartTile
-        {
-            get
-            {
-                return (IReadOnlyNeoSmartTile?)(object)((NeoTile)this).SmartTile!;
-            }
-        }
-
-        NeoReadOnlySprite IReadOnlyNeoTile.Sprite
-        {
-            get
-            {
-                return (NeoReadOnlySprite)(object)((NeoTile)this).Sprite!;
-            }
-        }
-
         public new sealed class Fields
         {
             private Fields() {}
-
-            public static readonly NeoField<string> Name = new("Name");
-
-            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
-
-            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
 
             public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
         }
@@ -210,9 +140,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Name] = () => null,
-                [Fields.Sprite] = () => null,
-                [Fields.SmartTile] = () => null,
                 [Fields.Cell] = () => null,
             };
         }
@@ -231,9 +158,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Name] = () => Name,
-                [Fields.Sprite] = () => Sprite,
-                [Fields.SmartTile] = () => SmartTile,
                 [Fields.Cell] = () => Cell,
             };
         }

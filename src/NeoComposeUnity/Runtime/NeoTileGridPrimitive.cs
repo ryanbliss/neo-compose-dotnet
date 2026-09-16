@@ -2725,7 +2725,9 @@ namespace NeoCompose.Runtime
             objectRow.value["Position"] = positionRow.id;
             plan.Set(sourceOwnership, positionRow);
             plan.Set(sourceOwnership, objectRow);
-            using var objects = new NeoMemberListWritable(
+            // Adoption shares the collection's cached child with the caller's
+            // constructed object. Keep that node alive with the client graph.
+            var objects = (NeoMemberListWritable)NeoMember.CreateWritable(
                 client, objectsMember, targetLink.ListValueId, writeOwnership);
             objects.PrepareAddSerialized(plan, NeoValueWritePayload.FromValueReference(instanceId, generatedObject));
             plan.Commit();

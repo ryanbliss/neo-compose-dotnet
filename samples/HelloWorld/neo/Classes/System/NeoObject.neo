@@ -1,6 +1,11 @@
 @id("system_f671535d-0eb6-4139-9caf-5c5276febd31")
 @system(kind: .WorldAuthoring, worldKind: .Object)
 abstract class NeoObject : NeoObjectBase {
+  /// The origin cell of this object's current placement. Detached objects have no cell.
+  @id("system_c609fed3-53e4-5147-b493-e4aa23031d79")
+  @system(kind: .WorldAuthoring)
+  public virtual Vector2Int Cell => this.GetCell();
+
   @id("system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071")
   @system(kind: .WorldAuthoring)
   public virtual List<NeoObjectBase> Children = [];
@@ -9,7 +14,21 @@ abstract class NeoObject : NeoObjectBase {
   @system(kind: .WorldAuthoring)
   public virtual NeoCollider? Collider = null;
 
+  @id("system_df1c2d06-eeec-5340-addc-740f3668c9e4")
+  @system(kind: .WorldAuthoring)
+  native private Vector2Int GetCell();
+
+  /// Objects at the cells around this placement, in pattern order. Use GetObjects<T>(pattern) to filter by class. A repeated footprint can appear more than once.
+  @id("system_f5ca386c-990c-54a1-8473-2d49d2cd887d")
+  @system(kind: .WorldAuthoring)
+  native public virtual List<NeoObject> GetObjects(NeoCellPattern pattern);
+
+  /// The first tile found in pattern order around this placement, or null. Each cell uses the grid layer precedence.
+  @id("system_593e6208-e2ca-505e-9933-04b17102b6d2")
+  @system(kind: .WorldAuthoring)
+  native public virtual NeoTile? GetTile(NeoCellPattern pattern);
+
   @id("system_5a9ca1f5-a21b-4d4e-8c55-00341af594b4")
   @system(kind: .WorldAuthoring)
-  public virtual List<NeoObjectPlacementTile> PlacementTiles = [];
+  public virtual List<NeoTile> PlacementTiles = [];
 }

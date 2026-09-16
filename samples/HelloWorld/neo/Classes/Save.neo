@@ -10,7 +10,7 @@ class Save {
 
   @id("bf4a75b5-acf9-4ff8-8511-57f871749db3")
   @settings(collection: Assets.Items, selection: .Multi)
-  public virtual List<Item> Inventory = [];
+  public virtual Set<Item> Inventory = [];
 
   @id("82a12a52-95ac-453a-9353-24c11a63c530")
   @settings(collection: Assets.Outposts)

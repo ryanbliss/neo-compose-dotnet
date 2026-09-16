@@ -93,11 +93,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
             }
-            set
-            {
-                ThrowIfReadOnly("ConsoleTile.Name");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
-            }
         }
 
         NeoReadOnlyVector2Int IReadOnlyNeoTile.Cell
@@ -108,33 +103,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        IReadOnlyNeoSmartTile? IReadOnlyNeoTile.SmartTile
-        {
-            get
-            {
-                return (IReadOnlyNeoSmartTile?)(object)((NeoTile)this).SmartTile!;
-            }
-        }
-
-        NeoReadOnlySprite IReadOnlyNeoTile.Sprite
-        {
-            get
-            {
-                return (NeoReadOnlySprite)(object)((NeoTile)this).Sprite!;
-            }
-        }
-
         public new sealed class Fields
         {
             private Fields() {}
 
             public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
-
-            public static readonly NeoField<string> Name = new("Name");
-
-            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
-
-            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -142,9 +115,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Cell] = () => null,
-                [Fields.Name] = () => null,
-                [Fields.SmartTile] = () => null,
-                [Fields.Sprite] = () => null,
             };
         }
 
@@ -163,9 +133,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Cell] = () => Cell,
-                [Fields.Name] = () => Name,
-                [Fields.SmartTile] = () => SmartTile,
-                [Fields.Sprite] = () => Sprite,
             };
         }
 
