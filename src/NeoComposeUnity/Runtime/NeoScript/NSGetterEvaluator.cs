@@ -1241,6 +1241,8 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 case CallGetterPointer cgp:
                 {
+                    if (cgp.dispatch == "base" && cgp.receiver.IsStatic)
+                        throw new NSGetterRuntimeError("Base dispatch requires an instance receiver.");
                     if (cgp.receiver.IsStatic)
                     {
                         ValidateStaticCallableReceiver(
@@ -1255,6 +1257,8 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                     var innerThis = EvalCallReceiver(cgp.receiver, scope, ctx);
                     if (cgp.optional == true && innerThis is null) return null;
+                    if (cgp.dispatch == "base")
+                        return DispatchNSGetterById(cgp.memberId, innerThis, ctx);
                     // Try runtime dispatch via the receiver's classId merged
                     // schema first — same trick the TS evaluator uses to
                     // honor runtime overrides regardless of the static
@@ -2078,6 +2082,16 @@ namespace NeoCompose.Runtime.NeoScript
             object? receiver,
             Context ctx)
         {
+            if (pointer.dispatch == "base")
+            {
+                if (pointer.receiver.IsStatic)
+                    throw new NSGetterRuntimeError("Base dispatch requires an instance receiver.");
+                if (string.IsNullOrEmpty(pointer.memberId))
+                    throw new NSGetterRuntimeError("Base dispatch requires an explicit memberId.");
+                if (pointer.memberKey is not null)
+                    throw new NSGetterRuntimeError("Base dispatch cannot contain memberKey.");
+                return pointer.memberId;
+            }
             if (pointer.receiver.IsStatic)
             {
                 string targetMemberId = pointer.memberId

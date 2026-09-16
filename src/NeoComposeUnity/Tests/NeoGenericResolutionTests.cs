@@ -711,8 +711,9 @@ namespace NeoCompose.Tests
                 substituted.classArguments[NeoGenericTestFixture.ParamT].kind);
         }
 
-        [Test]
-        public void SubstituteMember_ConcretizesDelegateAndActionTypePositions()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SubstituteMember_ConcretizesDelegateAndActionTypePositions(bool useRequired)
         {
             using NeoClient client = LoadClient();
             var env = new Dictionary<string, NeoGenericEnvEntry>
@@ -731,6 +732,7 @@ namespace NeoCompose.Tests
                 returnTypeInfo = new GenericTypeInfo
                 {
                     type = MemberKind.Generic,
+                    required = useRequired,
                     ownerClassId = "class-middle",
                     genericParamId = NeoGenericTestFixture.ParamT,
                 },
@@ -743,6 +745,7 @@ namespace NeoCompose.Tests
                         entryTypeInfo = new GenericTypeInfo
                         {
                             type = MemberKind.Generic,
+                            required = useRequired,
                             ownerClassId = "class-middle",
                             genericParamId = NeoGenericTestFixture.ParamU,
                         },
@@ -761,6 +764,7 @@ namespace NeoCompose.Tests
                     {
                         name = "value",
                         type = MemberKind.Generic,
+                        required = useRequired,
                         ownerClassId = "class-middle",
                         genericParamId = NeoGenericTestFixture.ParamT,
                     },
@@ -773,7 +777,7 @@ namespace NeoCompose.Tests
                 NeoGenericResolution.SubstituteMember(client, action, env);
 
             Assert.AreEqual(MemberKind.Float, substitutedDelegate.returnTypeInfo.type);
-            Assert.IsTrue(substitutedDelegate.returnTypeInfo.required);
+            Assert.AreEqual(useRequired, substitutedDelegate.returnTypeInfo.required);
             Assert.AreEqual("values", substitutedDelegate.argumentTypes[0].name);
             Assert.AreEqual(MemberKind.String,
                 substitutedDelegate.argumentTypes[0].entryTypeInfo!.type);
@@ -782,7 +786,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual("value", substitutedAction.argumentTypes[0].name);
             Assert.AreEqual(MemberKind.Float,
                 substitutedAction.argumentTypes[0].type);
-            Assert.IsTrue(substitutedAction.argumentTypes[0].required);
+            Assert.AreEqual(useRequired, substitutedAction.argumentTypes[0].required);
             Assert.AreEqual(MemberKind.Generic, callable.returnTypeInfo.type,
                 "substitution must not mutate the declared open signature");
         }

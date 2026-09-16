@@ -1,7 +1,9 @@
 # Changelog
 
-## [0.36.11] - 2026-09-15
+## [0.37.0] - 2026-09-15
 
+- Execute NeoScript base function and getter calls on their selected ancestor with the original receiver, including deferred and native calls.
+- Preserve nullable generic function arguments and returns through runtime binding.
 - Read compiler revision 14 and unbound `Set<T>` type information, including foreach and localized enum-set interpolation.
 
 ## [0.36.10] - 2026-09-15
