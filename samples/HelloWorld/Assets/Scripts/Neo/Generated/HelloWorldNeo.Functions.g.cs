@@ -25,7 +25,12 @@ namespace HelloWorld.Assets.Scripts.Neo
                     DialogueWritableValueFactories,
                     "ClearPath",
                     "0fa12fa0-9e74-4e85-9ce3-df0efe78d2dd");
-                return target.ClearPath();
+                if (target.FunctionHandler is null)
+                {
+                    throw new NeoFunctionHandlerMissingException(
+                        "Cannot invoke Function 'ClearPath' because FunctionHandler is not set.");
+                }
+                return target.FunctionHandler.ClearPath();
                 },
                 ["e549555b-9276-48d8-be33-156972520d31"] = (client, receiver, args) =>
                 {
@@ -37,7 +42,12 @@ namespace HelloWorld.Assets.Scripts.Neo
                     "DebugLog",
                     "e549555b-9276-48d8-be33-156972520d31");
                 var text = (string)args[0]!;
-                return target.DebugLog(text);
+                if (target.FunctionHandler is null)
+                {
+                    throw new NeoFunctionHandlerMissingException(
+                        "Cannot invoke Function 'DebugLog' because FunctionHandler is not set.");
+                }
+                return target.FunctionHandler.DebugLog(text);
                 },
                 ["736ca2ec-5f56-4f93-8cc5-c8b2ae8f76a1"] = (client, receiver, args) =>
                 {
@@ -48,7 +58,12 @@ namespace HelloWorld.Assets.Scripts.Neo
                     DialogueWritableValueFactories,
                     "ShowRelic",
                     "736ca2ec-5f56-4f93-8cc5-c8b2ae8f76a1");
-                return target.ShowRelic();
+                if (target.FunctionHandler is null)
+                {
+                    throw new NeoFunctionHandlerMissingException(
+                        "Cannot invoke Function 'ShowRelic' because FunctionHandler is not set.");
+                }
+                return target.FunctionHandler.ShowRelic();
                 },
             };
 
@@ -67,7 +82,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 if (target.FunctionHandler is null)
                 {
                     throw new NeoFunctionHandlerMissingException(
-                        "Cannot invoke deferred Function 'PlayAnimation' because FunctionHandler is not set.");
+                        "Cannot invoke Function 'PlayAnimation' because FunctionHandler is not set.");
                 }
                 var typedDeferred = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<bool>>(deferred, "PlayAnimation");
                 target.FunctionHandler.PlayAnimation(typedDeferred);

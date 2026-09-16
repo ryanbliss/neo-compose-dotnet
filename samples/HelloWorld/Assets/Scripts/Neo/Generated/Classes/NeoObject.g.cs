@@ -29,11 +29,29 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         IReadOnlyList<TChild> GetChildren<TChild>() where TChild : NeoGeneratedClassValue;
 
+
+        /// <summary>
+        /// The origin cell of this object's current placement. Detached objects have no cell.
+        /// </summary>
+        Vector2Int Cell { get; }
+
         new NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
 
         new IReadOnlyNeoCollider? Collider { get; }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
+
+        /// <summary>
+        /// Objects at the cells around this placement, in pattern order. Use GetObjects&lt;T&gt;(pattern) to filter by class. A repeated footprint can appear more than once.
+        /// </summary>
+        IReadOnlyList<object?> GetObjects(NeoCompose.Runtime.NeoCellPattern pattern);
+
+
+        /// <summary>
+        /// The first tile found in pattern order around this placement, or null. Each cell uses the grid layer precedence.
+        /// </summary>
+        IReadOnlyNeoTile? GetTile(NeoCompose.Runtime.NeoCellPattern pattern);
+
+        NeoReadOnlyList<IReadOnlyNeoTile> PlacementTiles { get; }
     }
 
     public abstract partial class NeoObject : NeoObjectBase, IReadOnlyNeoObject, INeoObjectCompositionSource, INeoColliderSource, INeoObjectSpawnHooks
@@ -156,6 +174,20 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        /// <summary>
+        /// The origin cell of this object's current placement. Detached objects have no cell.
+        /// </summary>
+        public virtual Vector2Int Cell
+        {
+            get
+            {
+                var result = writableNode.Get<NeoMemberNSProperty>("Cell").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result.value);
+                return resolvedVector ?? throw new InvalidOperationException("NSProperty returned null for a required Vector2Int value.");
+            }
+        }
+
         public virtual NeoList<NeoObjectBase> Children
         {
             get
@@ -208,20 +240,48 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public virtual NeoList<NeoObjectPlacementTile> PlacementTiles
+
+
+
+        public virtual NeoList<NeoTile> PlacementTiles
         {
             get
             {
-                return new NeoList<NeoObjectPlacementTile>(client, writableNode.Get<NeoMemberListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoObject.PlacementTiles"), () => IsReadOnly);
+                return new NeoList<NeoTile>(client, writableNode.Get<NeoMemberListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoObject.PlacementTiles"), () => IsReadOnly);
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyNeoObject.PlacementTiles
+        NeoReadOnlyList<IReadOnlyNeoTile> IReadOnlyNeoObject.PlacementTiles
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>(client, node.Get<NeoMemberList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoMemberClass)child));
+                return new NeoReadOnlyList<IReadOnlyNeoTile>(client, node.Get<NeoMemberList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoMemberClass)child));
             }
+        }
+
+        private Vector2Int GetCell()
+        {
+            var result = client.ScriptGridQueries.Invoke("system_df1c2d06-eeec-5340-addc-740f3668c9e4", this, new object?[] { });
+            var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result);
+            return resolvedVector ?? throw new InvalidOperationException("NSProperty returned null for a required Vector2Int value.");
+        }
+
+        /// <summary>
+        /// Objects at the cells around this placement, in pattern order. Use GetObjects&lt;T&gt;(pattern) to filter by class. A repeated footprint can appear more than once.
+        /// </summary>
+        public virtual IReadOnlyList<object?> GetObjects(NeoCompose.Runtime.NeoCellPattern pattern)
+        {
+            var result = client.ScriptGridQueries.Invoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", this, new object?[] { pattern });
+            return (IReadOnlyList<object?>)result!;
+        }
+
+        /// <summary>
+        /// The first tile found in pattern order around this placement, or null. Each cell uses the grid layer precedence.
+        /// </summary>
+        public virtual IReadOnlyNeoTile? GetTile(NeoCompose.Runtime.NeoCellPattern pattern)
+        {
+            var result = client.ScriptGridQueries.Invoke("system_593e6208-e2ca-505e-9933-04b17102b6d2", this, new object?[] { pattern });
+            return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, result, false, true, null, NeoTile.CreateWritable);
         }
 
         public new sealed class Fields
@@ -236,11 +296,13 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
+            public static readonly NeoField<Vector2Int> Cell = new("Cell");
+
             public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
-            public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+            public static readonly NeoField<NeoList<NeoTile>> PlacementTiles = new("PlacementTiles");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -251,6 +313,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
+                [Fields.Cell] = () => null,
                 [Fields.Children] = () => null,
                 [Fields.Collider] = () => null,
                 [Fields.PlacementTiles] = () => null,
@@ -275,6 +338,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
+                [Fields.Cell] = () => Cell,
                 [Fields.Children] = () => Children,
                 [Fields.Collider] = () => Collider,
                 [Fields.PlacementTiles] = () => PlacementTiles,

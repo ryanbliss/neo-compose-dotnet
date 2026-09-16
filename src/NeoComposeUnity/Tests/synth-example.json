@@ -450,7 +450,7 @@
         "required": true
       },
       "getter": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [
           {
             "id": "__this__",
@@ -673,7 +673,7 @@
                                   ]
                                 },
                                 "function": {
-                                  "compilerRevision": 14,
+                                  "compilerRevision": 15,
                                   "parameters": [
                                     {
                                       "id": "n",
@@ -774,7 +774,7 @@
         "required": true
       },
       "getter": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [],
         "typeInfo": {
           "type": 3,
@@ -847,7 +847,7 @@
         "required": true
       },
       "getter": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [],
         "typeInfo": {
           "type": 1,
@@ -875,7 +875,7 @@
         ]
       },
       "setter": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [],
         "typeInfo": {
           "type": 0,
@@ -957,7 +957,7 @@
       },
       "argumentTypes": [],
       "action": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [
           {
             "id": "__this__",
@@ -2211,7 +2211,7 @@
         "init": {
           "code": "value",
           "compiled": {
-            "compilerRevision": 14,
+            "compilerRevision": 15,
             "parameters": [
               {
                 "id": "__this__",
@@ -2368,7 +2368,7 @@
         "init": {
           "code": "selector",
           "compiled": {
-            "compilerRevision": 14,
+            "compilerRevision": 15,
             "parameters": [
               {
                 "id": "__this__",
@@ -2522,7 +2522,7 @@
         "init": {
           "code": "overrides",
           "compiled": {
-            "compilerRevision": 14,
+            "compilerRevision": 15,
             "parameters": [
               {
                 "id": "__this__",
@@ -2649,7 +2649,7 @@
         "init": {
           "code": "selector",
           "compiled": {
-            "compilerRevision": 14,
+            "compilerRevision": 15,
             "parameters": [
               {
                 "id": "__this__",
@@ -2861,7 +2861,7 @@
         "init": {
           "code": "clipKey",
           "compiled": {
-            "compilerRevision": 14,
+            "compilerRevision": 15,
             "parameters": [
               {
                 "id": "__this__",
@@ -2981,7 +2981,7 @@
         "init": {
           "code": "selector",
           "compiled": {
-            "compilerRevision": 14,
+            "compilerRevision": 15,
             "parameters": [
               {
                 "id": "__this__",
@@ -4403,7 +4403,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "action": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [
           {
             "id": "__this__",
@@ -4501,7 +4501,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "action": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [
           {
             "id": "__this__",
@@ -4622,7 +4622,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "action": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [
           {
             "id": "__this__",
@@ -4731,7 +4731,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "action": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [
           {
             "id": "__this__",
@@ -4826,7 +4826,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 14,
+          "compilerRevision": 15,
           "parameters": [
             {
               "id": "__this__",
@@ -4961,7 +4961,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "action": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [
           {
             "id": "__this__",
@@ -5041,7 +5041,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 14,
+          "compilerRevision": 15,
           "parameters": [
             {
               "id": "__this__",
@@ -5161,7 +5161,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "action": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [
           {
             "id": "__this__",
@@ -5241,7 +5241,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 14,
+          "compilerRevision": 15,
           "parameters": [
             {
               "id": "__this__",
@@ -5339,6 +5339,20 @@
   "variantFolders": {},
   "internalRecordRelations": {},
   "values": {
+    "v-name": {
+      "id": "v-name",
+      "projectId": "p-1",
+      "value": "Hero",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-level": {
+      "id": "v-level",
+      "projectId": "p-1",
+      "value": 100,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
     "v-num": {
       "id": "v-num",
       "projectId": "p-1",
@@ -5898,7 +5912,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score += 3;",
                 "action": {
-                  "compilerRevision": 14,
+                  "compilerRevision": 15,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -6118,7 +6132,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score -= 3;",
                 "action": {
-                  "compilerRevision": 14,
+                  "compilerRevision": 15,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -6338,7 +6352,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score *= 3;",
                 "action": {
-                  "compilerRevision": 14,
+                  "compilerRevision": 15,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -6558,7 +6572,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score /= 3;",
                 "action": {
-                  "compilerRevision": 14,
+                  "compilerRevision": 15,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -6778,7 +6792,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score %= 3;",
                 "action": {
-                  "compilerRevision": 14,
+                  "compilerRevision": 15,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -6998,7 +7012,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score++;",
                 "action": {
-                  "compilerRevision": 14,
+                  "compilerRevision": 15,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -7218,7 +7232,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score--;",
                 "action": {
-                  "compilerRevision": 14,
+                  "compilerRevision": 15,
                   "parameters": [
                     {
                       "id": "__this__",

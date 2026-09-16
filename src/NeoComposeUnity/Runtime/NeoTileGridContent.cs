@@ -25,36 +25,36 @@ namespace NeoCompose.Runtime
 
     public static class NeoTileGridContentLookupExtensions
     {
-        public static NeoResolvedTileInstance<TTile>? GetTile<TTile>(
+        public static TTile? GetTile<TTile>(
             this IReadOnlyNeoTileLayerRuntime layer,
             Vector2Int cell)
             where TTile : class, INeoValueReference
         {
             if (layer is null) throw new ArgumentNullException(nameof(layer));
-            return layer.GetTile(cell)?.As<TTile>();
+            return layer.GetTile(cell) as TTile;
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
+        public static IReadOnlyList<TTile> GetTiles<TTile>(
             this IReadOnlyNeoTileLayerRuntime layer,
             Vector2Int cell)
             where TTile : class, INeoValueReference
         {
             if (layer is null) throw new ArgumentNullException(nameof(layer));
-            var tile = layer.GetTile(cell)?.As<TTile>();
+            var tile = layer.GetTile(cell) as TTile;
             return tile is null
-                ? Array.Empty<NeoResolvedTileInstance<TTile>>()
+                ? Array.Empty<TTile>()
                 : new[] { tile };
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
+        public static IReadOnlyList<TTile> GetTiles<TTile>(
             this IReadOnlyNeoTileLayerRuntime layer)
             where TTile : class, INeoValueReference
         {
             if (layer is null) throw new ArgumentNullException(nameof(layer));
-            var typedTiles = new List<NeoResolvedTileInstance<TTile>>();
+            var typedTiles = new List<TTile>();
             foreach (var tile in layer.GetTiles())
             {
-                var typed = tile.As<TTile>();
+                var typed = tile as TTile;
                 if (typed is not null)
                 {
                     typedTiles.Add(typed);
@@ -63,25 +63,25 @@ namespace NeoCompose.Runtime
             return typedTiles;
         }
 
-        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+        public static TObject? GetObject<TObject>(
             this IReadOnlyNeoObjectLayerRuntime layer,
             Vector2Int cell)
             where TObject : class, INeoValueReference
         {
             if (layer is null) throw new ArgumentNullException(nameof(layer));
-            return layer.GetObject(cell)?.As<TObject>();
+            return layer.GetObject(cell) as TObject;
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+        public static IReadOnlyList<TObject> GetObjects<TObject>(
             this IReadOnlyNeoObjectLayerRuntime layer,
             Vector2Int cell)
             where TObject : class, INeoValueReference
         {
             if (layer is null) throw new ArgumentNullException(nameof(layer));
-            var typedObjects = new List<NeoResolvedObjectInstance<TObject>>();
+            var typedObjects = new List<TObject>();
             foreach (var obj in layer.GetObjects(cell))
             {
-                var typed = obj.As<TObject>();
+                var typed = obj as TObject;
                 if (typed is not null)
                 {
                     typedObjects.Add(typed);
@@ -90,15 +90,15 @@ namespace NeoCompose.Runtime
             return typedObjects;
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+        public static IReadOnlyList<TObject> GetObjects<TObject>(
             this IReadOnlyNeoObjectLayerRuntime layer)
             where TObject : class, INeoValueReference
         {
             if (layer is null) throw new ArgumentNullException(nameof(layer));
-            var typedObjects = new List<NeoResolvedObjectInstance<TObject>>();
+            var typedObjects = new List<TObject>();
             foreach (var obj in layer.GetObjects())
             {
-                var typed = obj.As<TObject>();
+                var typed = obj as TObject;
                 if (typed is not null)
                 {
                     typedObjects.Add(typed);
@@ -113,14 +113,14 @@ namespace NeoCompose.Runtime
         /// placed — the layer-scoped entry point for singleton-style objects,
         /// e.g. <c>content.Objects.GetObject&lt;PlayerSpawnObject&gt;()</c>.
         /// </summary>
-        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+        public static TObject? GetObject<TObject>(
             this IReadOnlyNeoObjectLayerRuntime layer)
             where TObject : class, INeoValueReference
         {
             if (layer is null) throw new ArgumentNullException(nameof(layer));
             foreach (var obj in layer.GetObjects())
             {
-                var typed = obj.As<TObject>();
+                var typed = obj as TObject;
                 if (typed is not null)
                 {
                     return typed;
@@ -136,7 +136,7 @@ namespace NeoCompose.Runtime
         /// singleton-style objects, e.g.
         /// <c>content.GetObject&lt;PlayerSpawnObject&gt;()</c>.
         /// </summary>
-        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+        public static TObject? GetObject<TObject>(
             this INeoTileGridContent content)
             where TObject : class, INeoValueReference
         {
@@ -145,7 +145,7 @@ namespace NeoCompose.Runtime
             {
                 foreach (var obj in layer.GetObjects())
                 {
-                    var typed = obj.As<TObject>();
+                    var typed = obj as TObject;
                     if (typed is not null)
                     {
                         return typed;
@@ -159,12 +159,12 @@ namespace NeoCompose.Runtime
         /// Every placed object across every object layer (layer order, then
         /// placement order) whose generated info is <typeparamref name="TObject"/>.
         /// </summary>
-        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+        public static IReadOnlyList<TObject> GetObjects<TObject>(
             this INeoTileGridContent content)
             where TObject : class, INeoValueReference
         {
             if (content is null) throw new ArgumentNullException(nameof(content));
-            var typedObjects = new List<NeoResolvedObjectInstance<TObject>>();
+            var typedObjects = new List<TObject>();
             foreach (var layer in content.ObjectLayersInOrder)
             {
                 typedObjects.AddRange(layer.GetObjects<TObject>());
@@ -172,7 +172,7 @@ namespace NeoCompose.Runtime
             return typedObjects;
         }
 
-        public static NeoResolvedTileInstance? GetTile(
+        public static NeoGeneratedClassValue? GetTile(
             this INeoTileGridContent content,
             Vector2Int cell)
         {
@@ -180,12 +180,12 @@ namespace NeoCompose.Runtime
             return tiles.Count == 0 ? null : tiles[tiles.Count - 1];
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance> GetTiles(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetTiles(
             this INeoTileGridContent content,
             Vector2Int cell)
         {
             if (content is null) throw new ArgumentNullException(nameof(content));
-            var tiles = new List<NeoResolvedTileInstance>();
+            var tiles = new List<NeoGeneratedClassValue>();
             foreach (var layer in content.TileLayersInOrder)
             {
                 var tile = layer.GetTile(cell);
@@ -197,7 +197,7 @@ namespace NeoCompose.Runtime
             return tiles;
         }
 
-        public static NeoResolvedTileInstance<TTile>? GetTile<TTile>(
+        public static TTile? GetTile<TTile>(
             this INeoTileGridContent content,
             Vector2Int cell)
             where TTile : class, INeoValueReference
@@ -206,15 +206,15 @@ namespace NeoCompose.Runtime
             return tiles.Count == 0 ? null : tiles[tiles.Count - 1];
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
+        public static IReadOnlyList<TTile> GetTiles<TTile>(
             this INeoTileGridContent content,
             Vector2Int cell)
             where TTile : class, INeoValueReference
         {
-            var typedTiles = new List<NeoResolvedTileInstance<TTile>>();
+            var typedTiles = new List<TTile>();
             foreach (var tile in content.GetTiles(cell))
             {
-                var typed = tile.As<TTile>();
+                var typed = tile as TTile;
                 if (typed is not null)
                 {
                     typedTiles.Add(typed);
@@ -223,7 +223,7 @@ namespace NeoCompose.Runtime
             return typedTiles;
         }
 
-        public static NeoResolvedTileInstance? GetTile(
+        public static NeoGeneratedClassValue? GetTile(
             this INeoTileGridContent content,
             INeoValueReference source,
             Vector2Int cell)
@@ -232,7 +232,7 @@ namespace NeoCompose.Runtime
             return tiles.Count == 0 ? null : tiles[tiles.Count - 1];
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance> GetTiles(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetTiles(
             this INeoTileGridContent content,
             INeoValueReference source,
             Vector2Int cell)
@@ -241,20 +241,21 @@ namespace NeoCompose.Runtime
             string? sourceValueId = source.valueId;
             if (string.IsNullOrEmpty(sourceValueId))
             {
-                return Array.Empty<NeoResolvedTileInstance>();
+                return Array.Empty<NeoGeneratedClassValue>();
             }
 
-            var tiles = new List<NeoResolvedTileInstance>();
-            foreach (var tile in content.GetTiles(cell))
+            var tiles = new List<NeoGeneratedClassValue>();
+            foreach (var layer in content.TileLayersInOrder)
             {
-                if (tile.SourceKind != NeoTileOutputSourceKind.TileLayerLink) continue;
+                var tile = NeoWorldLayerRuntimeSupport.GetTile(layer, cell);
+                if (tile is null || tile.SourceKind != NeoTileOutputSourceKind.TileLayerLink) continue;
                 if (!string.Equals(tile.SourceTileLayerLinkId, sourceValueId, StringComparison.Ordinal)) continue;
-                tiles.Add(tile);
+                tiles.Add(tile.Tile);
             }
             return tiles;
         }
 
-        public static NeoResolvedTileInstance<TTile>? GetTile<TTile>(
+        public static TTile? GetTile<TTile>(
             this INeoTileGridContent content,
             INeoValueReference source,
             Vector2Int cell)
@@ -264,16 +265,16 @@ namespace NeoCompose.Runtime
             return tiles.Count == 0 ? null : tiles[tiles.Count - 1];
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
+        public static IReadOnlyList<TTile> GetTiles<TTile>(
             this INeoTileGridContent content,
             INeoValueReference source,
             Vector2Int cell)
             where TTile : class, INeoValueReference
         {
-            var typedTiles = new List<NeoResolvedTileInstance<TTile>>();
+            var typedTiles = new List<TTile>();
             foreach (var tile in content.GetTiles(source, cell))
             {
-                var typed = tile.As<TTile>();
+                var typed = tile as TTile;
                 if (typed is not null)
                 {
                     typedTiles.Add(typed);
@@ -282,7 +283,7 @@ namespace NeoCompose.Runtime
             return typedTiles;
         }
 
-        public static NeoResolvedTileInstance? GetTile(
+        public static NeoGeneratedClassValue? GetTile(
             this INeoValueReference source,
             INeoTileGridContent content,
             Vector2Int cell)
@@ -290,7 +291,7 @@ namespace NeoCompose.Runtime
             return content.GetTile(source, cell);
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance> GetTiles(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetTiles(
             this INeoValueReference source,
             INeoTileGridContent content,
             Vector2Int cell)
@@ -298,7 +299,7 @@ namespace NeoCompose.Runtime
             return content.GetTiles(source, cell);
         }
 
-        public static NeoResolvedTileInstance<TTile>? GetTile<TTile>(
+        public static TTile? GetTile<TTile>(
             this INeoValueReference source,
             INeoTileGridContent content,
             Vector2Int cell)
@@ -307,7 +308,7 @@ namespace NeoCompose.Runtime
             return content.GetTile<TTile>(source, cell);
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
+        public static IReadOnlyList<TTile> GetTiles<TTile>(
             this INeoValueReference source,
             INeoTileGridContent content,
             Vector2Int cell)
@@ -316,7 +317,7 @@ namespace NeoCompose.Runtime
             return content.GetTiles<TTile>(source, cell);
         }
 
-        public static NeoResolvedObjectInstance? GetObject(
+        public static NeoGeneratedClassValue? GetObject(
             this INeoTileGridContent content,
             Vector2Int cell)
         {
@@ -324,12 +325,12 @@ namespace NeoCompose.Runtime
             return objects.Count == 0 ? null : objects[objects.Count - 1];
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetObjects(
             this INeoTileGridContent content,
             Vector2Int cell)
         {
             if (content is null) throw new ArgumentNullException(nameof(content));
-            var objects = new List<NeoResolvedObjectInstance>();
+            var objects = new List<NeoGeneratedClassValue>();
             foreach (var layer in content.ObjectLayersInOrder)
             {
                 objects.AddRange(layer.GetObjects(cell));
@@ -337,7 +338,7 @@ namespace NeoCompose.Runtime
             return objects;
         }
 
-        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+        public static TObject? GetObject<TObject>(
             this INeoTileGridContent content,
             Vector2Int cell)
             where TObject : class, INeoValueReference
@@ -346,15 +347,15 @@ namespace NeoCompose.Runtime
             return objects.Count == 0 ? null : objects[objects.Count - 1];
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+        public static IReadOnlyList<TObject> GetObjects<TObject>(
             this INeoTileGridContent content,
             Vector2Int cell)
             where TObject : class, INeoValueReference
         {
-            var typedObjects = new List<NeoResolvedObjectInstance<TObject>>();
+            var typedObjects = new List<TObject>();
             foreach (var obj in content.GetObjects(cell))
             {
-                var typed = obj.As<TObject>();
+                var typed = obj as TObject;
                 if (typed is not null)
                 {
                     typedObjects.Add(typed);
@@ -363,7 +364,7 @@ namespace NeoCompose.Runtime
             return typedObjects;
         }
 
-        public static NeoResolvedObjectInstance? GetObject(
+        public static NeoGeneratedClassValue? GetObject(
             this INeoTileGridContent content,
             INeoValueReference source,
             Vector2Int cell)
@@ -372,7 +373,7 @@ namespace NeoCompose.Runtime
             return objects.Count == 0 ? null : objects[objects.Count - 1];
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetObjects(
             this INeoTileGridContent content,
             INeoValueReference source,
             Vector2Int cell)
@@ -381,19 +382,19 @@ namespace NeoCompose.Runtime
             string? sourceValueId = source.valueId;
             if (string.IsNullOrEmpty(sourceValueId))
             {
-                return Array.Empty<NeoResolvedObjectInstance>();
+                return Array.Empty<NeoGeneratedClassValue>();
             }
 
-            var objects = new List<NeoResolvedObjectInstance>();
+            var objects = new List<NeoGeneratedClassValue>();
             foreach (var obj in content.GetObjects(cell))
             {
-                if (!string.Equals(obj.Info.valueId, sourceValueId, StringComparison.Ordinal)) continue;
+                if (!string.Equals(obj.valueId, sourceValueId, StringComparison.Ordinal)) continue;
                 objects.Add(obj);
             }
             return objects;
         }
 
-        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+        public static TObject? GetObject<TObject>(
             this INeoTileGridContent content,
             INeoValueReference source,
             Vector2Int cell)
@@ -403,16 +404,16 @@ namespace NeoCompose.Runtime
             return objects.Count == 0 ? null : objects[objects.Count - 1];
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+        public static IReadOnlyList<TObject> GetObjects<TObject>(
             this INeoTileGridContent content,
             INeoValueReference source,
             Vector2Int cell)
             where TObject : class, INeoValueReference
         {
-            var typedObjects = new List<NeoResolvedObjectInstance<TObject>>();
+            var typedObjects = new List<TObject>();
             foreach (var obj in content.GetObjects(source, cell))
             {
-                var typed = obj.As<TObject>();
+                var typed = obj as TObject;
                 if (typed is not null)
                 {
                     typedObjects.Add(typed);
@@ -421,7 +422,7 @@ namespace NeoCompose.Runtime
             return typedObjects;
         }
 
-        public static NeoResolvedObjectInstance? GetObject(
+        public static NeoGeneratedClassValue? GetObject(
             this INeoValueReference source,
             INeoTileGridContent content,
             Vector2Int cell)
@@ -429,7 +430,7 @@ namespace NeoCompose.Runtime
             return content.GetObject(source, cell);
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetObjects(
             this INeoValueReference source,
             INeoTileGridContent content,
             Vector2Int cell)
@@ -437,7 +438,7 @@ namespace NeoCompose.Runtime
             return content.GetObjects(source, cell);
         }
 
-        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+        public static TObject? GetObject<TObject>(
             this INeoValueReference source,
             INeoTileGridContent content,
             Vector2Int cell)
@@ -446,7 +447,7 @@ namespace NeoCompose.Runtime
             return content.GetObject<TObject>(source, cell);
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+        public static IReadOnlyList<TObject> GetObjects<TObject>(
             this INeoValueReference source,
             INeoTileGridContent content,
             Vector2Int cell)
@@ -460,7 +461,7 @@ namespace NeoCompose.Runtime
         // center-out patterns mean "the nearest match". Multi-result pattern queries
         // concatenate per-cell results in pattern order.
 
-        public static NeoResolvedTileInstance? GetTile(
+        public static NeoGeneratedClassValue? GetTile(
             this IReadOnlyNeoTileLayerRuntime layer,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -475,14 +476,14 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance> GetTiles(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetTiles(
             this IReadOnlyNeoTileLayerRuntime layer,
             Vector2Int origin,
             NeoCellPattern pattern)
         {
             if (layer is null) throw new ArgumentNullException(nameof(layer));
             if (pattern is null) throw new ArgumentNullException(nameof(pattern));
-            var tiles = new List<NeoResolvedTileInstance>();
+            var tiles = new List<NeoGeneratedClassValue>();
             foreach (var cell in pattern.GetCells(origin))
             {
                 var tile = layer.GetTile(cell);
@@ -494,7 +495,7 @@ namespace NeoCompose.Runtime
             return tiles;
         }
 
-        public static NeoResolvedTileInstance<TTile>? GetTile<TTile>(
+        public static TTile? GetTile<TTile>(
             this IReadOnlyNeoTileLayerRuntime layer,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -510,7 +511,7 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
+        public static IReadOnlyList<TTile> GetTiles<TTile>(
             this IReadOnlyNeoTileLayerRuntime layer,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -518,7 +519,7 @@ namespace NeoCompose.Runtime
         {
             if (layer is null) throw new ArgumentNullException(nameof(layer));
             if (pattern is null) throw new ArgumentNullException(nameof(pattern));
-            var tiles = new List<NeoResolvedTileInstance<TTile>>();
+            var tiles = new List<TTile>();
             foreach (var cell in pattern.GetCells(origin))
             {
                 var tile = layer.GetTile<TTile>(cell);
@@ -530,7 +531,7 @@ namespace NeoCompose.Runtime
             return tiles;
         }
 
-        public static NeoResolvedObjectInstance? GetObject(
+        public static NeoGeneratedClassValue? GetObject(
             this IReadOnlyNeoObjectLayerRuntime layer,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -545,14 +546,14 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetObjects(
             this IReadOnlyNeoObjectLayerRuntime layer,
             Vector2Int origin,
             NeoCellPattern pattern)
         {
             if (layer is null) throw new ArgumentNullException(nameof(layer));
             if (pattern is null) throw new ArgumentNullException(nameof(pattern));
-            var objects = new List<NeoResolvedObjectInstance>();
+            var objects = new List<NeoGeneratedClassValue>();
             foreach (var cell in pattern.GetCells(origin))
             {
                 objects.AddRange(layer.GetObjects(cell));
@@ -560,7 +561,7 @@ namespace NeoCompose.Runtime
             return objects;
         }
 
-        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+        public static TObject? GetObject<TObject>(
             this IReadOnlyNeoObjectLayerRuntime layer,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -576,7 +577,7 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+        public static IReadOnlyList<TObject> GetObjects<TObject>(
             this IReadOnlyNeoObjectLayerRuntime layer,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -584,7 +585,7 @@ namespace NeoCompose.Runtime
         {
             if (layer is null) throw new ArgumentNullException(nameof(layer));
             if (pattern is null) throw new ArgumentNullException(nameof(pattern));
-            var typedObjects = new List<NeoResolvedObjectInstance<TObject>>();
+            var typedObjects = new List<TObject>();
             foreach (var cell in pattern.GetCells(origin))
             {
                 typedObjects.AddRange(layer.GetObjects<TObject>(cell));
@@ -592,7 +593,7 @@ namespace NeoCompose.Runtime
             return typedObjects;
         }
 
-        public static NeoResolvedTileInstance? GetTile(
+        public static NeoGeneratedClassValue? GetTile(
             this INeoTileGridContent content,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -607,14 +608,14 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance> GetTiles(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetTiles(
             this INeoTileGridContent content,
             Vector2Int origin,
             NeoCellPattern pattern)
         {
             if (content is null) throw new ArgumentNullException(nameof(content));
             if (pattern is null) throw new ArgumentNullException(nameof(pattern));
-            var tiles = new List<NeoResolvedTileInstance>();
+            var tiles = new List<NeoGeneratedClassValue>();
             foreach (var cell in pattern.GetCells(origin))
             {
                 tiles.AddRange(content.GetTiles(cell));
@@ -622,7 +623,7 @@ namespace NeoCompose.Runtime
             return tiles;
         }
 
-        public static NeoResolvedTileInstance<TTile>? GetTile<TTile>(
+        public static TTile? GetTile<TTile>(
             this INeoTileGridContent content,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -638,7 +639,7 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
+        public static IReadOnlyList<TTile> GetTiles<TTile>(
             this INeoTileGridContent content,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -646,7 +647,7 @@ namespace NeoCompose.Runtime
         {
             if (content is null) throw new ArgumentNullException(nameof(content));
             if (pattern is null) throw new ArgumentNullException(nameof(pattern));
-            var tiles = new List<NeoResolvedTileInstance<TTile>>();
+            var tiles = new List<TTile>();
             foreach (var cell in pattern.GetCells(origin))
             {
                 tiles.AddRange(content.GetTiles<TTile>(cell));
@@ -654,7 +655,7 @@ namespace NeoCompose.Runtime
             return tiles;
         }
 
-        public static NeoResolvedObjectInstance? GetObject(
+        public static NeoGeneratedClassValue? GetObject(
             this INeoTileGridContent content,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -669,14 +670,14 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetObjects(
             this INeoTileGridContent content,
             Vector2Int origin,
             NeoCellPattern pattern)
         {
             if (content is null) throw new ArgumentNullException(nameof(content));
             if (pattern is null) throw new ArgumentNullException(nameof(pattern));
-            var objects = new List<NeoResolvedObjectInstance>();
+            var objects = new List<NeoGeneratedClassValue>();
             foreach (var cell in pattern.GetCells(origin))
             {
                 objects.AddRange(content.GetObjects(cell));
@@ -684,7 +685,7 @@ namespace NeoCompose.Runtime
             return objects;
         }
 
-        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+        public static TObject? GetObject<TObject>(
             this INeoTileGridContent content,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -700,7 +701,7 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+        public static IReadOnlyList<TObject> GetObjects<TObject>(
             this INeoTileGridContent content,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -708,7 +709,7 @@ namespace NeoCompose.Runtime
         {
             if (content is null) throw new ArgumentNullException(nameof(content));
             if (pattern is null) throw new ArgumentNullException(nameof(pattern));
-            var typedObjects = new List<NeoResolvedObjectInstance<TObject>>();
+            var typedObjects = new List<TObject>();
             foreach (var cell in pattern.GetCells(origin))
             {
                 typedObjects.AddRange(content.GetObjects<TObject>(cell));
@@ -716,7 +717,7 @@ namespace NeoCompose.Runtime
             return typedObjects;
         }
 
-        public static NeoResolvedTileInstance? GetTile(
+        public static NeoGeneratedClassValue? GetTile(
             this INeoTileGridContent content,
             INeoValueReference source,
             Vector2Int origin,
@@ -732,7 +733,7 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance> GetTiles(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetTiles(
             this INeoTileGridContent content,
             INeoValueReference source,
             Vector2Int origin,
@@ -740,7 +741,7 @@ namespace NeoCompose.Runtime
         {
             if (content is null) throw new ArgumentNullException(nameof(content));
             if (pattern is null) throw new ArgumentNullException(nameof(pattern));
-            var tiles = new List<NeoResolvedTileInstance>();
+            var tiles = new List<NeoGeneratedClassValue>();
             foreach (var cell in pattern.GetCells(origin))
             {
                 tiles.AddRange(content.GetTiles(source, cell));
@@ -748,7 +749,7 @@ namespace NeoCompose.Runtime
             return tiles;
         }
 
-        public static NeoResolvedTileInstance<TTile>? GetTile<TTile>(
+        public static TTile? GetTile<TTile>(
             this INeoTileGridContent content,
             INeoValueReference source,
             Vector2Int origin,
@@ -765,7 +766,7 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
+        public static IReadOnlyList<TTile> GetTiles<TTile>(
             this INeoTileGridContent content,
             INeoValueReference source,
             Vector2Int origin,
@@ -774,7 +775,7 @@ namespace NeoCompose.Runtime
         {
             if (content is null) throw new ArgumentNullException(nameof(content));
             if (pattern is null) throw new ArgumentNullException(nameof(pattern));
-            var tiles = new List<NeoResolvedTileInstance<TTile>>();
+            var tiles = new List<TTile>();
             foreach (var cell in pattern.GetCells(origin))
             {
                 tiles.AddRange(content.GetTiles<TTile>(source, cell));
@@ -782,7 +783,7 @@ namespace NeoCompose.Runtime
             return tiles;
         }
 
-        public static NeoResolvedObjectInstance? GetObject(
+        public static NeoGeneratedClassValue? GetObject(
             this INeoTileGridContent content,
             INeoValueReference source,
             Vector2Int origin,
@@ -798,7 +799,7 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetObjects(
             this INeoTileGridContent content,
             INeoValueReference source,
             Vector2Int origin,
@@ -806,7 +807,7 @@ namespace NeoCompose.Runtime
         {
             if (content is null) throw new ArgumentNullException(nameof(content));
             if (pattern is null) throw new ArgumentNullException(nameof(pattern));
-            var objects = new List<NeoResolvedObjectInstance>();
+            var objects = new List<NeoGeneratedClassValue>();
             foreach (var cell in pattern.GetCells(origin))
             {
                 objects.AddRange(content.GetObjects(source, cell));
@@ -814,7 +815,7 @@ namespace NeoCompose.Runtime
             return objects;
         }
 
-        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+        public static TObject? GetObject<TObject>(
             this INeoTileGridContent content,
             INeoValueReference source,
             Vector2Int origin,
@@ -831,7 +832,7 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+        public static IReadOnlyList<TObject> GetObjects<TObject>(
             this INeoTileGridContent content,
             INeoValueReference source,
             Vector2Int origin,
@@ -840,7 +841,7 @@ namespace NeoCompose.Runtime
         {
             if (content is null) throw new ArgumentNullException(nameof(content));
             if (pattern is null) throw new ArgumentNullException(nameof(pattern));
-            var typedObjects = new List<NeoResolvedObjectInstance<TObject>>();
+            var typedObjects = new List<TObject>();
             foreach (var cell in pattern.GetCells(origin))
             {
                 typedObjects.AddRange(content.GetObjects<TObject>(source, cell));
@@ -848,7 +849,7 @@ namespace NeoCompose.Runtime
             return typedObjects;
         }
 
-        public static NeoResolvedTileInstance? GetTile(
+        public static NeoGeneratedClassValue? GetTile(
             this INeoValueReference source,
             INeoTileGridContent content,
             Vector2Int origin,
@@ -857,7 +858,7 @@ namespace NeoCompose.Runtime
             return content.GetTile(source, origin, pattern);
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance> GetTiles(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetTiles(
             this INeoValueReference source,
             INeoTileGridContent content,
             Vector2Int origin,
@@ -866,7 +867,7 @@ namespace NeoCompose.Runtime
             return content.GetTiles(source, origin, pattern);
         }
 
-        public static NeoResolvedTileInstance<TTile>? GetTile<TTile>(
+        public static TTile? GetTile<TTile>(
             this INeoValueReference source,
             INeoTileGridContent content,
             Vector2Int origin,
@@ -876,7 +877,7 @@ namespace NeoCompose.Runtime
             return content.GetTile<TTile>(source, origin, pattern);
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
+        public static IReadOnlyList<TTile> GetTiles<TTile>(
             this INeoValueReference source,
             INeoTileGridContent content,
             Vector2Int origin,
@@ -886,7 +887,7 @@ namespace NeoCompose.Runtime
             return content.GetTiles<TTile>(source, origin, pattern);
         }
 
-        public static NeoResolvedObjectInstance? GetObject(
+        public static NeoGeneratedClassValue? GetObject(
             this INeoValueReference source,
             INeoTileGridContent content,
             Vector2Int origin,
@@ -895,7 +896,7 @@ namespace NeoCompose.Runtime
             return content.GetObject(source, origin, pattern);
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetObjects(
             this INeoValueReference source,
             INeoTileGridContent content,
             Vector2Int origin,
@@ -904,7 +905,7 @@ namespace NeoCompose.Runtime
             return content.GetObjects(source, origin, pattern);
         }
 
-        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+        public static TObject? GetObject<TObject>(
             this INeoValueReference source,
             INeoTileGridContent content,
             Vector2Int origin,
@@ -914,7 +915,7 @@ namespace NeoCompose.Runtime
             return content.GetObject<TObject>(source, origin, pattern);
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+        public static IReadOnlyList<TObject> GetObjects<TObject>(
             this INeoValueReference source,
             INeoTileGridContent content,
             Vector2Int origin,
@@ -955,7 +956,7 @@ namespace NeoCompose.Runtime
 
             foreach (var layer in content.TileLayersInOrder)
             {
-                foreach (var tile in layer.GetTiles())
+                foreach (var tile in NeoWorldLayerRuntimeSupport.GetRenderSnapshot(layer).Winners)
                 {
                     Include(tile.Cell);
                 }
@@ -963,7 +964,7 @@ namespace NeoCompose.Runtime
 
             foreach (var layer in content.ObjectLayersInOrder)
             {
-                foreach (var obj in layer.GetObjects())
+                foreach (var obj in NeoWorldLayerRuntimeSupport.GetObjects(layer))
                 {
                     if (obj.Footprint.Count == 0)
                     {
@@ -1082,57 +1083,25 @@ namespace NeoCompose.Runtime
         public string? SourceId { get; }
     }
 
-    internal readonly struct NeoTileLayerLinkDependency
-    {
-        public NeoTileLayerLinkDependency(string sourceValueId, string targetTileLayerId)
-        {
-            SourceValueId = sourceValueId ?? throw new ArgumentNullException(nameof(sourceValueId));
-            TargetTileLayerId = targetTileLayerId ?? throw new ArgumentNullException(nameof(targetTileLayerId));
-        }
-
-        public string SourceValueId { get; }
-        public string TargetTileLayerId { get; }
-    }
-
     internal static class NeoTileGridChangedArgsSupport
     {
         public static IReadOnlyList<Vector2Int> UnionCells(
             IReadOnlyList<Vector2Int> first,
-            IReadOnlyList<Vector2Int> second)
-        {
-            var cells = new List<Vector2Int>(first.Count + second.Count);
-            AddUnique(cells, first);
-            AddUnique(cells, second);
-            return cells;
-        }
-
-        private static void AddUnique(
-            List<Vector2Int> target,
-            IReadOnlyList<Vector2Int> source)
-        {
-            foreach (var cell in source)
-            {
-                if (target.Contains(cell)) continue;
-                target.Add(cell);
-            }
-        }
+            IReadOnlyList<Vector2Int> second) => Union(first, second);
 
         public static IReadOnlyList<NeoObjectInstanceId> UnionInstances(
             IReadOnlyList<NeoObjectInstanceId> first,
-            IReadOnlyList<NeoObjectInstanceId> second)
+            IReadOnlyList<NeoObjectInstanceId> second) => Union(first, second);
+
+        private static IReadOnlyList<T> Union<T>(IReadOnlyList<T> first, IReadOnlyList<T> second)
         {
-            var ids = new List<NeoObjectInstanceId>(first.Count + second.Count);
-            foreach (var id in first)
-            {
-                if (ids.Contains(id)) continue;
-                ids.Add(id);
-            }
-            foreach (var id in second)
-            {
-                if (ids.Contains(id)) continue;
-                ids.Add(id);
-            }
-            return ids;
+            var result = new List<T>(first.Count + second.Count);
+            var seen = new HashSet<T>();
+            foreach (var item in first)
+                if (seen.Add(item)) result.Add(item);
+            foreach (var item in second)
+                if (seen.Add(item)) result.Add(item);
+            return result;
         }
     }
 }

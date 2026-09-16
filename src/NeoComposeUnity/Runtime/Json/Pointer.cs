@@ -252,6 +252,18 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo sourceType = null!;
     }
 
+    /// <summary>Changes a placed tile's class without constructing a target.</summary>
+    [JsonConverter(typeof(PointerConverter))]
+    public class TileConvertPointer : Pointer
+    {
+        public Pointer receiverPointer = null!;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? targetClassId;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Pointer? targetPointer;
+        public override string? callSiteId { get; set; }
+    }
+
     /// <summary>
     /// General native-or-NeoScript callable pointer introduced by export
     /// the current callable contract. Exactly one of <see cref="memberId"/> and
@@ -327,6 +339,7 @@ namespace NeoCompose.Runtime.Json
                 case PointerKind.ToBool: return typeof(ToBoolPointer);
                 case PointerKind.Stringify: return typeof(StringifyPointer);
                 case PointerKind.CallFunction: return typeof(CallFunctionPointer);
+                case PointerKind.TileConvert: return typeof(TileConvertPointer);
                 case PointerKind.CallDelegate: return typeof(CallDelegatePointer);
                 case PointerKind.CallAction: return typeof(CallActionPointer);
                 case PointerKind.FunctionErrorCheck: return typeof(FunctionErrorCheckPointer);
@@ -338,6 +351,21 @@ namespace NeoCompose.Runtime.Json
 
         protected override void ValidateObject(JObject obj, Type concrete)
         {
+            if (concrete == typeof(TileConvertPointer))
+            {
+                bool hasClass = obj["targetClassId"]?.Type == JTokenType.String
+                    && !string.IsNullOrWhiteSpace(obj["targetClassId"]!.Value<string>());
+                bool hasTarget = obj["targetPointer"]?.Type == JTokenType.Object;
+                if (obj["receiverPointer"]?.Type != JTokenType.Object
+                    || obj["callSiteId"]?.Type != JTokenType.String
+                    || string.IsNullOrWhiteSpace(obj["callSiteId"]!.Value<string>())
+                    || hasClass == hasTarget
+                    || (hasClass && obj["targetPointer"] is not null)
+                    || (hasTarget && obj["targetClassId"] is not null))
+                    throw new JsonSerializationException(
+                        "TileConvertPointer requires receiverPointer, callSiteId and exactly one targetClassId or targetPointer.");
+                return;
+            }
             if (concrete == typeof(ConditionalPointer))
             {
                 foreach (string field in new[] { "condition", "whenTrue", "whenFalse" })

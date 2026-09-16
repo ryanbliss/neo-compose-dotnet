@@ -29,12 +29,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public BackgroundTileLayerLink(bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
+        public BackgroundTileLayerLink(bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTile>? Tiles = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Enabled, Name, Position, Size, Tiles), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
+        private static NeoMemberClassWritable CreateFactoryNode(bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTile>? Tiles = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -92,11 +92,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<BackgroundTileLayerLink>(out writable);
         }
 
-        NeoReadOnlyList<IReadOnlyNeoTileInstance> IReadOnlyNeoTileLayerLink.Tiles
+        NeoReadOnlyList<IReadOnlyNeoTile> IReadOnlyNeoTileLayerLink.Tiles
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoTileInstance>)(object)((NeoTileLayerLink)this).Tiles!;
+                return (NeoReadOnlyList<IReadOnlyNeoTile>)(object)((NeoTileLayerLink)this).Tiles!;
             }
         }
 
@@ -112,7 +112,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
-            public static readonly NeoField<NeoList<NeoTileInstance>> Tiles = new("Tiles");
+            public static readonly NeoField<NeoList<NeoTile>> Tiles = new("Tiles");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()

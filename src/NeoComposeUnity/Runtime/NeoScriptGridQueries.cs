@@ -123,7 +123,7 @@ namespace NeoCompose.Runtime
         internal void RegisterContent(INeoTileGridContent content, string gridId) => contentByGrid[gridId] = content;
         internal void Bind(string receiverId, string gridId, string layerId, string instanceId) => placements[receiverId] = (gridId, layerId, instanceId);
 
-        private (INeoTileGridContent content, NeoResolvedObjectInstance placement) Resolve(string receiverId)
+        private (INeoTileGridContent content, NeoObjectProjection placement) Resolve(string receiverId)
         {
             if (placements.TryGetValue(receiverId, out var binding)
                 && contentByGrid.TryGetValue(binding.grid, out var content))
@@ -199,13 +199,13 @@ namespace NeoCompose.Runtime
                 {
                     var tile = content.GetTile(cell);
                     if (tile is null) continue;
-                    result = RuntimeValue(tile.Info, ctx);
+                    result = RuntimeValue(tile, ctx);
                     return true;
                 }
                 foreach (var item in content.GetObjects(cell))
                 {
                     ctx.allocationTracker.ConsumeProducedCollectionEntry();
-                    objects!.Add(RuntimeValue(item.Info, ctx));
+                    objects!.Add(RuntimeValue(item, ctx));
                 }
             }
             result = getObjects ? objects!.ToArray() : null;

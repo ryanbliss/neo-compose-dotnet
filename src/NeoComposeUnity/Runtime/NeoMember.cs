@@ -29,6 +29,7 @@ namespace NeoCompose.Runtime
     /// </summary>
     public abstract class NeoMember : NeoNode, System.IDisposable
     {
+        internal virtual void RefreshCommittedValue() { }
         public Member member { get; }
         public NeoValueOwnership ownership { get; }
         /// <summary>
@@ -100,6 +101,13 @@ namespace NeoCompose.Runtime
         /// further updates.
         /// </summary>
         public bool isDisposed { get; private set; }
+        private bool isDisposingChildren;
+        protected bool BeginDisposeChildren()
+        {
+            if (isDisposed || isDisposingChildren) return false;
+            isDisposingChildren = true;
+            return true;
+        }
         private int declarationReferenceCount;
 
         protected NeoMember(
@@ -186,7 +194,14 @@ namespace NeoCompose.Runtime
         /// entries don't bind children this way (list entries always carry
         /// an id at construction).
         /// </summary>
-        internal virtual void BindChildValueId(NeoMember child, string childValueId)
+        internal void BindChildValueId(NeoMember child, string childValueId)
+        {
+            var plan = new NeoWritePlan(client);
+            BindChildValueId(plan, child, childValueId);
+            plan.Commit();
+        }
+
+        internal virtual void BindChildValueId(NeoWritePlan plan, NeoMember child, string childValueId)
         {
             throw new System.InvalidOperationException(
                 $"Member '{member.id}' ({GetType().Name}) cannot bind a child value id; "
@@ -527,6 +542,7 @@ namespace NeoCompose.Runtime
                 // here or their membership and derived indexes stay stale.
                 if (client.CurrentChangeSource != NeoChangeSource.External)
                 {
+                    RefreshValueIdChain();
                     return;
                 }
             }
@@ -565,13 +581,16 @@ namespace NeoCompose.Runtime
         /// </summary>
         protected virtual void OnValueIdChainChanged()
         {
-            // valueData reads through the resolution chain; if nothing
-            // is bound any more, we end up with `value = null` —
-            // matching the user-visible "valueId becomes null → value
-            // becomes null" semantic.
+            RefreshValueIdChain();
+            NotifyChanged();
+        }
+
+        internal override void RefreshCommittedValue() => RefreshValueIdChain();
+
+        protected virtual void RefreshValueIdChain()
+        {
             value = valueData;
             RefreshPartialLeafValue(value is null);
-            NotifyChanged();
         }
 
         /// <summary>
@@ -654,34 +673,22 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Returns this node's value row guaranteed to be writable — i.e.
-        /// present in the node's own Save/Session store — so a mutator can
-        /// change it in place and persist. When the resolved value is the
-        /// shared authored asset row (sparse overlay; nothing shadowed
-        /// yet) a clone is registered at the <b>same</b> id and
-        /// <see cref="value"/> is retargeted to it. Value ids are stable
-        /// instance identities: the parent already references this id, so
-        /// shadowing needs no relink and no path materialization. A write
-        /// also clears any removal tombstone (resurrecting the slot).
-        /// Returns null only when nothing is bound — callers handle that by
-        /// minting + binding a fresh row via <see cref="BindNewValue"/>.
+        /// Returns a detached write candidate at this node's stable row id.
+        /// The store and live node remain unchanged until SetWritableValue
+        /// publishes the candidate. Missing bindings are minted
+        /// by the caller through BindNewValue.
         /// </summary>
         protected TValue? EnsureWritableValue()
         {
             if (ownership == NeoValueOwnership.Asset) return value;
             string? id = valueId;
             if (id is null) return null;
-            if (client.TryGetWritableValue(ownership, id, out TValue? owned))
-            {
-                owned.mark = null;
-                value = owned;
-                return owned;
-            }
-            if (!client.TryGetOverlaidValue(ownership, id, out TValue? authored)) return null;
-            var clone = (TValue)client.CloneRowForWrite(authored);
-            client.SetWritableValueSilently(ownership, clone);
-            value = clone;
-            return clone;
+            TValue? source;
+            if (!client.TryGetWritableValue(ownership, id, out source)
+                && !client.TryGetOverlaidValue(ownership, id, out source)) return null;
+            var candidate = (TValue)client.CloneRowForWrite(source!);
+            candidate.mark = null;
+            return candidate;
         }
 
         /// <summary>
@@ -695,24 +702,34 @@ namespace NeoCompose.Runtime
         /// (a value-less root — which shouldn't occur for valid projects,
         /// whose roots carry an authored <c>valueId</c>).
         /// </summary>
+        private protected TValue? WritableCandidate(NeoWritePlan plan)
+        {
+            string? id = plan.NodeBindings.TryGetValue(this, out string? plannedId) ? plannedId : valueId;
+            if (id is not null && plan.Resolve(ownership, id) is TValue candidate)
+                return (TValue)client.CloneRowForWrite(candidate);
+            return EnsureWritableValue();
+        }
+
         protected void BindNewValue(TValue newRow)
         {
+            var plan = new NeoWritePlan(client);
+            BindNewValue(plan, newRow);
+            plan.Commit();
+        }
+
+        private protected void BindNewValue(NeoWritePlan plan, TValue newRow)
+        {
             if (ownership == NeoValueOwnership.Asset)
-            {
-                throw new System.InvalidOperationException(
-                    $"Cannot bind a new value on an asset-owned member '{member.id}'.");
-            }
+                throw new System.InvalidOperationException($"Cannot bind a new value on an asset-owned member '{member.id}'.");
             parent?.AssertContainingClassesCanBeConstructed();
-            client.SetWritableValue(ownership, newRow);
-            value = newRow;
-            boundValueId = newRow.id;
-            if (parent is not null)
+            plan.Set(ownership, newRow);
+            plan.NodeBindings[this] = newRow.id;
+            plan.AfterCommit(() =>
             {
-                parent.BindChildValueId(this, newRow.id);
-                return;
-            }
-            // Parentless root with no authored default — remember the minted
-            // id on the node so its own resolution chain finds it.
+                value = newRow;
+                boundValueId = newRow.id;
+            });
+            parent?.BindChildValueId(plan, this, newRow.id);
         }
 
         /// <summary>

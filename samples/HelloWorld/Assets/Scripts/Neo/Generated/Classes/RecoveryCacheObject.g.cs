@@ -27,7 +27,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new string Name { get; }
 
-        new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
+        new NeoReadOnlyList<IReadOnlyNeoTile> PlacementTiles { get; }
 
         NeoDialogueReference RecoveryCache { get; }
     }
@@ -39,12 +39,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public RecoveryCacheObject(IEnumerable<NeoObjectBase>? Children = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        public RecoveryCacheObject(IEnumerable<NeoObjectBase>? Children = null, string? Name = null, IEnumerable<NeoTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Children, Name, PlacementTiles, RecoveryCache, Collider, Enabled, Position, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<NeoObjectBase>? Children = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<NeoObjectBase>? Children = null, string? Name = null, IEnumerable<NeoTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, bool? Enabled = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -183,19 +183,19 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public override NeoList<NeoObjectPlacementTile> PlacementTiles
+        public override NeoList<NeoTile> PlacementTiles
         {
             get
             {
-                return new NeoList<NeoObjectPlacementTile>(client, writableNode.Get<NeoMemberListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("RecoveryCacheObject.PlacementTiles"), () => IsReadOnly);
+                return new NeoList<NeoTile>(client, writableNode.Get<NeoMemberListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("RecoveryCacheObject.PlacementTiles"), () => IsReadOnly);
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyRecoveryCacheObject.PlacementTiles
+        NeoReadOnlyList<IReadOnlyNeoTile> IReadOnlyRecoveryCacheObject.PlacementTiles
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>(client, node.Get<NeoMemberList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoMemberClass)child));
+                return new NeoReadOnlyList<IReadOnlyNeoTile>(client, node.Get<NeoMemberList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoMemberClass)child));
             }
         }
 
@@ -229,11 +229,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyNeoObject.PlacementTiles
+        NeoReadOnlyList<IReadOnlyNeoTile> IReadOnlyNeoObject.PlacementTiles
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>)(object)((NeoObject)this).PlacementTiles!;
+                return (NeoReadOnlyList<IReadOnlyNeoTile>)(object)((NeoObject)this).PlacementTiles!;
             }
         }
 
@@ -245,7 +245,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<string> Name = new("Name");
 
-            public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+            public static readonly NeoField<NeoList<NeoTile>> PlacementTiles = new("PlacementTiles");
 
             public static readonly NeoField<NeoDialogueReference> RecoveryCache = new("RecoveryCache");
 
@@ -256,6 +256,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
+
+            public static readonly NeoField<Vector2Int> Cell = new("Cell");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -270,6 +272,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Enabled] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
+                [Fields.Cell] = () => null,
             };
         }
 
@@ -295,6 +298,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Enabled] = () => Enabled,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
+                [Fields.Cell] = () => Cell,
             };
         }
 

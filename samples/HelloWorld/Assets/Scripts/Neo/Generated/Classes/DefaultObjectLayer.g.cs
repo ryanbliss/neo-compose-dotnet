@@ -103,29 +103,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<DefaultObjectLayer>(out writable);
         }
 
-        public NeoPlacementResult TrySpawn<TAsset>(Vector2Int cell) where TAsset : class, IDefaultObjectLayerCompatibleObject
-        {
-            return TrySpawnClass<TAsset>(cell);
-        }
-
-        public NeoPlacementResult TrySpawn<TAsset>(Vector2Int cell, NeoClassRef<TAsset> obj) where TAsset : class, IDefaultObjectLayerCompatibleObject
-        {
-            return TrySpawnClass(cell, obj);
-        }
-
         public NeoPlacementResult TrySpawn(Vector2Int cell, IDefaultObjectLayerCompatibleObject obj)
         {
-            return TrySpawnValue(cell, obj);
-        }
-
-        public NeoPlacementResult TrySwapVariant<TAsset>(NeoObjectInstanceId instanceId) where TAsset : class, IDefaultObjectLayerCompatibleObject
-        {
-            return TrySwapVariantClass<TAsset>(instanceId);
-        }
-
-        public NeoPlacementResult TrySwapVariant(NeoObjectInstanceId instanceId, IDefaultObjectLayerCompatibleObject variant)
-        {
-            return TrySwapVariantValue(instanceId, variant);
+            return TrySpawnConstructedObject(cell, obj);
         }
 
         public NeoPlacementResult TryDespawn(NeoObjectInstanceId instanceId)

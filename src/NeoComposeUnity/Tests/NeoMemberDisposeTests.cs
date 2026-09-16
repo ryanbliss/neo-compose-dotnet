@@ -272,7 +272,9 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(nameChild.isDisposed);
             Assert.IsFalse(client.nodes.ContainsKey($"session:member-name_{nameValueId}"));
-            Assert.IsFalse(client.TryGetValue<StringMemberValue>(nameValueId, out _));
+            Assert.IsFalse(client.sessionValues.ContainsKey(nameValueId));
+            Assert.IsTrue(client.TryGetValue<StringMemberValue>(nameValueId, out var authoredName));
+            Assert.AreEqual("Hero", authoredName!.value, "removing a shadow preserves its authored default");
         }
 
         [Test]

@@ -33,12 +33,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public SealBarrierTile(string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Sprite, SmartTile), false, NeoValueOwnership.Session)
+        public SealBarrierTile(string? Name = null, Sprite? Sprite = null, NeoVector2Int? Cell = null, NeoSmartTile? SmartTile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Sprite, Cell, SmartTile), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, Sprite? Sprite = null, NeoVector2Int? Cell = null, NeoSmartTile? SmartTile = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -46,6 +46,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b",
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "neo-tile-grid-record-relations-v1-member-4392efaf0b72696ac7f7145b13f4c808", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "neo-tile-grid-record-relations-v1-member-22d2189b7b892371aa4bd2142e7a8832", Sprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cell", "system_f4be2707-74f5-4833-9784-e81bb2474330", Cell),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SmartTile", "system_96cda8f5-3100-45b5-adcb-0552d21504dd", SmartTile)
             );
         }
@@ -130,6 +131,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        NeoReadOnlyVector2Int IReadOnlyNeoTile.Cell
+        {
+            get
+            {
+                return (NeoReadOnlyVector2Int)(object)((NeoTile)this).Cell!;
+            }
+        }
+
         IReadOnlyNeoSmartTile? IReadOnlyNeoTile.SmartTile
         {
             get
@@ -154,6 +163,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
 
+            public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
+
             public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
 
@@ -163,6 +174,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.Name] = () => null,
                 [Fields.Sprite] = () => null,
+                [Fields.Cell] = () => null,
                 [Fields.SmartTile] = () => null,
             };
         }
@@ -183,6 +195,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.Name] = () => Name,
                 [Fields.Sprite] = () => Sprite,
+                [Fields.Cell] = () => Cell,
                 [Fields.SmartTile] = () => SmartTile,
             };
         }

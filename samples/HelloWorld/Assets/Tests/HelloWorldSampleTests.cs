@@ -573,8 +573,8 @@ namespace HelloWorld.Assets.Tests
                 content.Objects.GetObject<PlayerSpawnObject>(new Vector2Int(9, 0), reach));
 
             // Nearest-first: standing on the barrier, the center cell wins.
-            var nearest = content.GetTile(blocked, new Vector2Int(0, 1), reach);
-            Assert.AreEqual(new Vector2Int(0, 1), nearest!.Cell);
+            var nearest = content.GetTile<NeoTile>(blocked, new Vector2Int(0, 1), reach);
+            Assert.AreEqual(new Vector2Int(0, 1), nearest!.Cell.Value);
         }
 
         [Test]
@@ -584,21 +584,18 @@ namespace HelloWorld.Assets.Tests
             var content = client.Assets.Worlds.OldConsoleLanding.Content;
             var blocked = client.Assets.Worlds.OldConsoleLanding.GetRequiredChild<BlockedPath>();
 
-            var tiles = blocked.GetTiles();
+            var tiles = blocked.GetTiles<NeoTile>();
             Assert.AreEqual(blocked.Tiles.Count, tiles.Count);
             foreach (var tile in tiles)
             {
-                Assert.AreEqual(NeoTileOutputSourceKind.TileLayerLink, tile.SourceKind);
-                Assert.AreEqual(blocked.valueId, tile.SourceTileLayerLinkId);
-                Assert.AreEqual(content.Collisions.LayerId, tile.LayerId);
                 // The link's grid-space cells line up with the Collisions layer.
                 Assert.AreEqual(
-                    blocked.valueId,
-                    content.Collisions.GetTile(tile.Cell)?.SourceTileLayerLinkId);
+                    tile.valueId,
+                    content.Collisions.GetTile(tile.Cell)?.valueId);
             }
 
             var barrier = tiles.First();
-            Assert.IsInstanceOf<SealBarrierTile>(barrier.Info);
+            Assert.IsInstanceOf<SealBarrierTile>(barrier);
             Assert.IsNotNull(blocked.GetTile(barrier.Cell));
             Assert.IsNotNull(blocked.GetTile<SealBarrierTile>(barrier.Cell));
 
@@ -628,7 +625,7 @@ namespace HelloWorld.Assets.Tests
                 using var subscription = content.Collisions.OnChanged(_ =>
                 {
                     notifications++;
-                    projectionDuringCallback = blocked.GetTiles().Count;
+                    projectionDuringCallback = blocked.GetTiles<NeoTile>().Count;
                 });
 
                 blocked.Tiles.Clear();
@@ -638,7 +635,7 @@ namespace HelloWorld.Assets.Tests
                     0,
                     "The collision layer subscription should hear the link clear.");
                 Assert.AreEqual(0, projectionDuringCallback);
-                Assert.AreEqual(0, blocked.GetTiles().Count);
+                Assert.AreEqual(0, blocked.GetTiles<NeoTile>().Count);
             }
             finally
             {
@@ -690,23 +687,23 @@ namespace HelloWorld.Assets.Tests
             var content = client.Assets.Worlds.OldConsoleLanding.Content;
 
             Assert.IsInstanceOf<VoidTile>(
-                content.Background.GetTile(new Vector2Int(-6, 5))?.Info);
+                content.Background.GetTile(new Vector2Int(-6, 5)));
             Assert.IsInstanceOf<BootGlyphTile>(
-                content.Background.GetTile(new Vector2Int(-7, -6))?.Info);
-            NeoResolvedTileInstance<BootGlyphTile> typedBootGlyph =
+                content.Background.GetTile(new Vector2Int(-7, -6)));
+            BootGlyphTile typedBootGlyph =
                 content.Background.GetTile<BootGlyphTile>(new Vector2Int(-7, -6));
             Assert.IsNotNull(typedBootGlyph);
             Assert.IsInstanceOf<RedNovaWarningTile>(
-                content.Background.GetTile(new Vector2Int(1, 1))?.Info);
+                content.Background.GetTile(new Vector2Int(1, 1)));
             Assert.IsInstanceOf<GlassFloorTile>(
-                content.Background.GetTile(new Vector2Int(9, 0))?.Info);
+                content.Background.GetTile(new Vector2Int(9, 0)));
             Assert.IsInstanceOf<SealBarrierTile>(
-                content.Collisions.GetTile(new Vector2Int(0, 1))?.Info);
+                content.Collisions.GetTile(new Vector2Int(0, 1)));
             Assert.IsNull(content.Collisions.GetTile(new Vector2Int(1, 1)));
             Assert.IsNull(content.Collisions.GetTile(new Vector2Int(2, 1)));
             Assert.IsInstanceOf<PlayerSpawnObject>(
-                content.Objects.GetObject(new Vector2Int(-7, 2))?.Info);
-            NeoResolvedObjectInstance<PlayerSpawnObject> typedPlayerSpawn =
+                content.Objects.GetObject(new Vector2Int(-7, 2)));
+            PlayerSpawnObject typedPlayerSpawn =
                 content.Objects.GetObject<PlayerSpawnObject>(new Vector2Int(-7, 2));
             Assert.IsNotNull(typedPlayerSpawn);
 
@@ -770,7 +767,7 @@ namespace HelloWorld.Assets.Tests
                     $"No object instance is placed at cell {cell} in the OldConsoleLanding grid.");
             }
 
-            return instance.InstanceId.Value;
+            return instance.valueId;
         }
 
         /// <summary>
@@ -783,7 +780,7 @@ namespace HelloWorld.Assets.Tests
             ReadOnlyOldConsoleLandingGridContent content,
             Vector2Int cell)
         {
-            return content.Objects.GetObject(cell)?.Info is NeoObject obj
+            return content.Objects.GetObject(cell) is NeoObject obj
                 && obj.Collider is not null;
         }
 
@@ -854,43 +851,45 @@ namespace HelloWorld.Assets.Tests
                 client.Client,
                 client.Assets.Worlds.OldConsoleLanding.valueId!);
 
-            var blocker = client.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTiles()
+            var blocker = client.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTiles<NeoTile>()
                 .Single(tile => tile.Cell == blockerCell);
-            Assert.AreEqual(NeoTileOutputSourceKind.TileLayerLink, blocker.SourceKind);
-            Assert.AreEqual(BlockedPathValueId, blocker.SourceTileLayerLinkId);
-            Assert.IsInstanceOf<SealBarrierTile>(blocker.Info);
+            Assert.AreEqual(blocker.valueId,
+                client.Assets.Worlds.OldConsoleLanding.GetRequiredChild<BlockedPath>().GetTile(blockerCell)?.valueId);
+            Assert.IsInstanceOf<SealBarrierTile>(blocker);
 
-            AssertPlacementOk(saveContent.Collisions.TryRemoveTile(blocker.InstanceId));
+            AssertPlacementOk(saveContent.Collisions.TryRemoveTile(blocker.valueId));
             Assert.IsNull(client.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(blockerCell));
             client.CommitAsync().GetAwaiter().GetResult();
 
             var reopened = await ReopenSampleClient(store, EnglishLocalizationOptions());
             Assert.IsNull(reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(blockerCell));
             Assert.IsInstanceOf<SealBarrierTile>(
-                reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(new Vector2Int(0, 2))?.Info);
+                reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(new Vector2Int(0, 2)));
             Assert.IsNull(reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(new Vector2Int(1, 1)));
         }
 
         [Test]
         public async System.Threading.Tasks.Task GeneratedBlockedPathClearPath_RemovesLinkedCollisionTiles()
         {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
             var (store, client) = await LoadSampleStack(EnglishLocalizationOptions());
+            TestContext.WriteLine($"CLEAR_PATH_LOAD elapsedMs={clock.Elapsed.TotalMilliseconds:F3}");
             var blocked = client.Assets.Worlds.OldConsoleLanding.Children
                 .First(check => check.Name == "Blocked Path") as BlockedPath;
             Assert.IsNotNull(blocked);
 
-            var blockerCells = client.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTiles()
-                .Where(tile => tile.SourceTileLayerLinkId == BlockedPathValueId)
-                .Select(tile => tile.Cell)
+            var blockerCells = blocked!.GetTiles<NeoTile>()
+                .Select(tile => tile.Cell.Value)
                 .ToArray();
             Assert.Greater(blockerCells.Length, 0);
 
+            clock.Restart();
             Assert.IsTrue(blocked!.ClearPath());
+            TestContext.WriteLine($"CLEAR_PATH_WRITE elapsedMs={clock.Elapsed.TotalMilliseconds:F3}");
 
             CollectionAssert.IsEmpty(
-                client.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTiles()
-                    .Where(tile => tile.SourceTileLayerLinkId == BlockedPathValueId)
-                    .Select(tile => tile.Cell)
+                blocked!.GetTiles<NeoTile>()
+                    .Select(tile => tile.Cell.Value)
                     .ToArray());
             foreach (var cell in blockerCells)
             {
@@ -915,9 +914,8 @@ namespace HelloWorld.Assets.Tests
             var blocked = client.Assets.Worlds.OldConsoleLanding.Children
                 .First(check => check.Name == "Blocked Path") as BlockedPath;
             Assert.IsNotNull(blocked);
-            var blockerCells = content.Collisions.GetTiles()
-                .Where(tile => tile.SourceTileLayerLinkId == BlockedPathValueId)
-                .Select(tile => tile.Cell)
+            var blockerCells = blocked!.GetTiles<NeoTile>()
+                .Select(tile => tile.Cell.Value)
                 .ToArray();
             Assert.Greater(blockerCells.Length, 0);
 
@@ -942,8 +940,9 @@ namespace HelloWorld.Assets.Tests
                 blocked!.Tiles.Clear();
 
                 Assert.IsNotNull(observedLayerChange);
-                Assert.AreEqual(NeoTileGridChangeSourceKind.TileLayerLink, observedLayerChange!.SourceKind);
-                Assert.AreEqual(BlockedPathValueId, observedLayerChange.SourceId);
+                // Published data changes describe the final layer delta across all links.
+                Assert.AreEqual(NeoTileGridChangeSourceKind.Direct, observedLayerChange!.SourceKind);
+                Assert.IsNull(observedLayerChange.SourceId);
                 CollectionAssert.AreEquivalent(blockerCells, observedLayerChange.CellsToClear);
                 Assert.AreEqual(0, observedLayerChange.CellsToSetOrRefresh.Count);
                 foreach (var cell in blockerCells)
@@ -966,16 +965,15 @@ namespace HelloWorld.Assets.Tests
                 .First(check => check.Name == "Blocked Path") as BlockedPath;
             Assert.IsNotNull(blocked);
 
-            var blocker = content.Collisions.GetTiles()
-                .First(tile => tile.SourceTileLayerLinkId == BlockedPathValueId);
+            var blocker = blocked!.GetTiles<NeoTile>().First();
             var blockerCell = blocker.Cell;
-            var playerSpawn = content.Objects.GetObjects()
-                .Single(instance => instance.Info is PlayerSpawnObject);
+            var playerSpawn = content.Objects.GetObjects<NeoObject>()
+                .Single(instance => instance is PlayerSpawnObject);
 
-            Assert.IsInstanceOf<SealBarrierTile>(content.Collisions.GetTile(blockerCell)?.Info);
-            Assert.AreEqual(BlockedPathValueId, content.GetTile(blockerCell)?.SourceTileLayerLinkId);
-            Assert.AreEqual(BlockedPathValueId, blocked!.GetTile(content, blockerCell)?.SourceTileLayerLinkId);
-            Assert.IsInstanceOf<PlayerSpawnObject>(content.GetObject(playerSpawn.Cell)?.Info);
+            Assert.IsInstanceOf<SealBarrierTile>(content.Collisions.GetTile(blockerCell));
+            Assert.AreEqual(blocker.valueId, content.GetTile(blockerCell)?.valueId);
+            Assert.AreEqual(blocker.valueId, blocked!.GetTile(content, blockerCell)?.valueId);
+            Assert.IsInstanceOf<PlayerSpawnObject>(content.GetObject(new Vector2Int(Mathf.RoundToInt(playerSpawn.Position.x), Mathf.RoundToInt(playerSpawn.Position.y))));
 
             blocked.Tiles.Clear();
 
@@ -984,7 +982,7 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public async System.Threading.Tasks.Task TileGridSaveAndSessionMutation_UsesClassDefaultTiles()
+        public async System.Threading.Tasks.Task TileGridSaveAndSessionMutation_PreservesRawTileIdentity()
         {
             var (store, client) = await LoadSampleStack(EnglishLocalizationOptions());
             var cell = new Vector2Int(20, 20);
@@ -996,39 +994,38 @@ namespace HelloWorld.Assets.Tests
             AssertPlacementOk(
                 saveContent.Background.TrySetTile<GlassFloorTile>(cell),
                 "set GlassFloorTile class default");
-            var placed = client.Assets.Worlds.OldConsoleLanding.Content.Background.GetTiles()
+            var placed = saveContent.Background.GetTiles<NeoTile>()
                 .Single(tile => tile.Cell == cell);
-            Assert.IsInstanceOf<GlassFloorTile>(placed.Info);
-            Assert.IsNull(placed.Info.valueId);
+            Assert.IsInstanceOf<GlassFloorTile>(placed);
+            Assert.IsNotNull(placed.valueId);
 
-            AssertPlacementOk(
-                saveContent.Background.TryConvertTile<RedNovaWarningTile>(placed.InstanceId),
-                "convert to RedNovaWarningTile class default in Save");
+            Assert.IsTrue(placed.TryConvert<RedNovaWarningTile>(),
+                "convert the placed tile to RedNovaWarningTile in Save");
             Assert.IsInstanceOf<RedNovaWarningTile>(
-                client.Assets.Worlds.OldConsoleLanding.Content.Background.GetTile(cell)?.Info);
+                client.Assets.Worlds.OldConsoleLanding.Content.Background.GetTile(cell));
             client.CommitAsync().GetAwaiter().GetResult();
 
             var reopened = await ReopenSampleClient(store, EnglishLocalizationOptions());
-            var reopenedTile = reopened.Assets.Worlds.OldConsoleLanding.Content.Background.GetTiles()
+            var reopenedTile = reopened.Assets.Worlds.OldConsoleLanding.Content.Background.GetTiles<NeoTile>()
                 .Single(tile => tile.Cell == cell);
-            Assert.AreEqual(placed.InstanceId, reopenedTile.InstanceId);
-            Assert.IsInstanceOf<RedNovaWarningTile>(reopenedTile.Info);
+            Assert.AreEqual(placed.valueId, reopenedTile.valueId);
+            Assert.IsInstanceOf<RedNovaWarningTile>(reopenedTile);
 
             var sessionContent = OldConsoleLandingGridContent.ResolveForSession(
                 reopened.Client,
                 reopened.Assets.Worlds.OldConsoleLanding.valueId!);
             AssertPlacementOk(
-                sessionContent.Background.TryConvertTile<BootGlyphTile>(placed.InstanceId),
+                sessionContent.Background.TryConvertTile<BootGlyphTile>(placed.valueId),
                 "convert persisted placement to BootGlyphTile class default in Session");
 
             Assert.IsInstanceOf<BootGlyphTile>(
-                reopened.Assets.Worlds.OldConsoleLanding.Content.Background.GetTile(cell)?.Info);
+                reopened.Assets.Worlds.OldConsoleLanding.Content.Background.GetTile(cell));
 
             var persistedAfterSession = await ReopenSampleClient(store, EnglishLocalizationOptions());
-            var persistedTile = persistedAfterSession.Assets.Worlds.OldConsoleLanding.Content.Background.GetTiles()
+            var persistedTile = persistedAfterSession.Assets.Worlds.OldConsoleLanding.Content.Background.GetTiles<NeoTile>()
                 .Single(tile => tile.Cell == cell);
-            Assert.AreEqual(placed.InstanceId, persistedTile.InstanceId);
-            Assert.IsInstanceOf<RedNovaWarningTile>(persistedTile.Info);
+            Assert.AreEqual(placed.valueId, persistedTile.valueId);
+            Assert.IsInstanceOf<RedNovaWarningTile>(persistedTile);
         }
 
         [Test]
@@ -1041,34 +1038,27 @@ namespace HelloWorld.Assets.Tests
                 client.Assets.Worlds.OldConsoleLanding.valueId!);
 
             Assert.IsNull(client.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject(cell));
-            AssertPlacementOk(saveContent.Objects.TrySpawn<PlayerSpawnObject>(cell));
+            AssertPlacementOk(saveContent.Objects.TrySpawn(cell, new PlayerSpawnObject()));
 
-            var placed = client.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObjects()
-                .Single(obj => obj.Cell == cell);
-            Assert.IsInstanceOf<PlayerSpawnObject>(placed.Info);
-            Assert.AreEqual(placed.InstanceId.Value, placed.Info.valueId);
+            var placed = client.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject<NeoObject>(cell)!;
+            Assert.IsInstanceOf<PlayerSpawnObject>(placed);
+            Assert.IsNotNull(placed.valueId);
 
-            var duplicate = saveContent.Objects.TrySpawn<VaultPlaqueObject>(cell);
+            var duplicate = saveContent.Objects.TrySpawn(cell, new VaultPlaqueObject());
             Assert.IsFalse(duplicate.Ok);
             Assert.AreEqual("tile-grid-object-cell-occupied", duplicate.ErrorCode);
 
-            AssertPlacementOk(saveContent.Objects.TrySwapVariant<VaultPlaqueObject>(placed.InstanceId));
-            var swapped = client.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObjects()
-                .Single(obj => obj.Cell == cell);
-            Assert.AreEqual(placed.InstanceId, swapped.InstanceId);
-            Assert.IsInstanceOf<VaultPlaqueObject>(swapped.Info);
             client.CommitAsync().GetAwaiter().GetResult();
 
             var reopened = await ReopenSampleClient(store, EnglishLocalizationOptions());
-            var reopenedInstance = reopened.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObjects()
-                .Single(obj => obj.Cell == cell);
-            Assert.AreEqual(placed.InstanceId, reopenedInstance.InstanceId);
-            Assert.IsInstanceOf<VaultPlaqueObject>(reopenedInstance.Info);
+            var reopenedInstance = reopened.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject<NeoObject>(cell)!;
+            Assert.AreEqual(placed.valueId, reopenedInstance.valueId);
+            Assert.IsInstanceOf<PlayerSpawnObject>(reopenedInstance);
 
             var reopenedSaveContent = OldConsoleLandingGridContent.ResolveForSave(
                 reopened.Client,
                 reopened.Assets.Worlds.OldConsoleLanding.valueId!);
-            AssertPlacementOk(reopenedSaveContent.Objects.TryDespawn(reopenedInstance.InstanceId));
+            AssertPlacementOk(reopenedSaveContent.Objects.TryDespawn(reopenedInstance.valueId));
             Assert.IsNull(reopened.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject(cell));
             reopened.CommitAsync().GetAwaiter().GetResult();
 

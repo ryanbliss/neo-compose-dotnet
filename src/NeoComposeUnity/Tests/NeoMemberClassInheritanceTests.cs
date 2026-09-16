@@ -60,6 +60,41 @@ namespace NeoCompose.Tests
         // -----------------------------------------------------------------
 
         [Test]
+        public void StableRowClassChange_RefreshesSchemaAndChildren()
+        {
+            var client = LoadClient();
+            var member = new ClassMember
+            {
+                id = "conversion-slot",
+                name = "Converted",
+                kind = MemberKind.Class,
+                classId = "class-base",
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            var row = new ObjectMemberValue
+            {
+                id = "conversion-row",
+                classId = "class-base",
+                value = new Dictionary<string, string>(),
+            };
+            client.SetSaveValue(row);
+            using var node = new NeoMemberClass(
+                client, member, row.id, NeoValueOwnership.Save);
+            Assert.AreEqual("member-name", node.mergedSchema[0].memberId);
+
+            string? notifiedMemberId = null;
+            node.OnChanged += _ => notifiedMemberId = node["Name"].member.id;
+            var converted = (ObjectMemberValue)client.CloneRowForWrite(row);
+            converted.classId = "class-override";
+            client.SetSaveValue(converted);
+
+            Assert.AreEqual(row.id, node.value?.id);
+            Assert.AreEqual("class-override", node.inheritanceChain[0].id);
+            Assert.AreEqual("member-altname", node.mergedSchema[0].memberId);
+            Assert.AreEqual("member-altname", notifiedMemberId);
+        }
+
+        [Test]
         public void MergedSchema_NoInheritance_MatchesClassSchema()
         {
             var client = LoadClient();

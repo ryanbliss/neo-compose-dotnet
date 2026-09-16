@@ -1345,6 +1345,7 @@ namespace NeoCompose.Tests
             };
             values[frames.id] = frames;
             values[root.id] = root;
+            client.InvalidateSchemaResolutionCaches();
 
             Assert.AreSame(frames, client.ResolveClassChildRow(root, "Parts"));
             Assert.IsTrue(client.TryInferMemberForValueId(

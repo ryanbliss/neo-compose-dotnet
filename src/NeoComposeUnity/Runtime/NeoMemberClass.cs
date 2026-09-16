@@ -263,9 +263,11 @@ namespace NeoCompose.Runtime
             // isn't set yet on the first base-ctor pass.
         }
 
-        protected override void OnValueIdChainChanged()
+        protected override void RefreshValueIdChain()
         {
-            base.OnValueIdChainChanged();
+            base.RefreshValueIdChain();
+            schemaClass = ResolveSchemaClass();
+            ResolveClassContext();
             // The new value's record may carry a different keyset —
             // re-walk so disposed-orphans get released and any new
             // schema-keys get nodes.
@@ -274,7 +276,7 @@ namespace NeoCompose.Runtime
 
         public override void Dispose()
         {
-            if (isDisposed) return;
+            if (!BeginDisposeChildren()) return;
             foreach (var child in childMembers.Values)
             {
                 child.OnChanged -= HandleChildChanged;
@@ -778,6 +780,7 @@ namespace NeoCompose.Runtime
                     $"Cannot write '{key}' on Class '{member.id}': its effective storage is immutable.");
             }
             bool recordWritable = ownership != NeoValueOwnership.Asset;
+            var plan = new NeoWritePlan(client);
 
             // Unordered lists never store membership in the array: a
             // whole-list assignment translates to Clear + Add-each, and
@@ -786,7 +789,7 @@ namespace NeoCompose.Runtime
             if (childMember is ListMember childListMember
                 && client.IsUnorderedList(childListMember))
             {
-                SetSerializedUnorderedList(key, childListMember, setValue, childOwnership, recordWritable, nowIso);
+                SetSerializedUnorderedList(plan, key, setValue, recordWritable);
                 return;
             }
 
@@ -815,26 +818,26 @@ namespace NeoCompose.Runtime
                             $"Cannot rebind '{key}' on static Class '{member.id}': a static record's value map is authored data. Only the stamped leaf's own value may be written.");
                     }
                     string importedValueId = client.ImportValueReference(
+                        plan,
                         childOwnership,
                         setValue.valueId!,
                         out bool sourceMoved,
                         existingValueId);
+                    if (sourceMoved)
+                        plan.AfterCommit(() => setValue.RetargetMovedReference(client, childMember, importedValueId, childOwnership));
                     if (importedValueId == existingValueId)
                     {
+                        plan.Commit();
                         return;
                     }
-                    ObjectMemberValue record = EnsureWritableObject(nowIso);
+                    ObjectMemberValue record = EnsureWritableObject(plan, nowIso);
                     record.value![key] = importedValueId;
                     record.updatedAt = nowIso;
-                    client.SetWritableValue(ownership, record);
+                    plan.Set(ownership, record);
+                    client.StageUnlinkedRemovals(plan, childOwnership, new[] { existingValueId }, childMember);
+                    plan.Commit();
                     value = record;
-                    client.RemoveWritableValueAndDescendantsIfUnlinked(
-                        childOwnership, existingValueId, childMember);
                     ReinitializeChildren();
-                    if (sourceMoved)
-                    {
-                        setValue.RetargetMovedReference(client, childMember, importedValueId, childOwnership);
-                    }
                     NotifyChildChanged(key);
                     return;
                 }
@@ -853,13 +856,14 @@ namespace NeoCompose.Runtime
                 // recomputes the identical value from this record's env.
                 next.genericBindings = existing.genericBindings;
                 NeoGenericResolution.StampGenericBindings(client, childMember, next, GenericEnv);
-                client.SetWritablePayloadRows(childOwnership, setValue?.value);
-                client.SetWritableValue(
+                client.StageWritablePayloadRows(plan, childOwnership, setValue?.value);
+                plan.Set(
                     childOwnership,
                     next,
                     childMember is ClassMember or ListMember or DictionaryMember
                         ? null
                         : "value");
+                plan.Commit();
                 // A scalar replacement keeps the same field binding and its
                 // node receives the value change directly. Rebuild only for a
                 // missing node or a potentially changed container shape.
@@ -885,12 +889,13 @@ namespace NeoCompose.Runtime
             if (setValue?.isValueReference == true)
             {
                 newValueId = client.ImportValueReference(
+                        plan,
                     childOwnership,
                     setValue.valueId!,
                     out bool sourceMoved);
                 if (sourceMoved)
                 {
-                    setValue.RetargetMovedReference(client, childMember, newValueId, childOwnership);
+                    plan.AfterCommit(() => setValue.RetargetMovedReference(client, childMember, newValueId, childOwnership));
                 }
             }
             else
@@ -906,14 +911,15 @@ namespace NeoCompose.Runtime
                 // computed from this record's env (the SDK walks top-down
                 // with the document in memory).
                 NeoGenericResolution.StampGenericBindings(client, childMember, newValueRow, GenericEnv);
-                client.SetWritablePayloadRows(childOwnership, setValue?.value);
-                client.SetWritableValue(childOwnership, newValueRow);
+                client.StageWritablePayloadRows(plan, childOwnership, setValue?.value);
+                plan.Set(childOwnership, newValueRow);
             }
 
-            ObjectMemberValue keyedRecord = EnsureWritableObject(nowIso);
+            ObjectMemberValue keyedRecord = EnsureWritableObject(plan, nowIso);
             keyedRecord.value![key] = newValueId;
             keyedRecord.updatedAt = nowIso;
-            client.SetWritableValue(ownership, keyedRecord);
+            plan.Set(ownership, keyedRecord);
+            plan.Commit();
             value = keyedRecord;
 
             ReinitializeChildren();
@@ -921,71 +927,19 @@ namespace NeoCompose.Runtime
         }
 
         private void SetSerializedUnorderedList(
-            string key,
-            ListMember childListMember,
-            NeoValueWritePayload? setValue,
-            NeoValueOwnership childOwnership,
-            bool recordWritable,
-            string nowIso)
+            NeoWritePlan plan, string key, NeoValueWritePayload? setValue, bool recordWritable)
         {
-            string? existingListValueId = null;
-            if (value?.value is not null)
-            {
-                value.value.TryGetValue(key, out existingListValueId);
-            }
-            // An unordered list the construction left untouched is omitted from
-            // a P75 sparse body and lives at its deterministic virtual id.
-            // Without this the whole-list assignment below mints a fresh random
-            // id and links it into the root — forking the same logical write to
-            // a different id than the web's, and materializing a spine the root
-            // deliberately omits. This is the unordered twin of the lookup
-            // `SetSerializedValue` already performs for every other kind.
-            if (existingListValueId is null
-                && valueId is string parentValueId
-                && client.TryGetVirtualClassChildValueId(
-                    parentValueId,
-                    key,
-                    out string? virtualListValueId))
-            {
-                existingListValueId = virtualListValueId;
-            }
-            bool hasBoundRow = existingListValueId is not null
-                && client.TryGetValue(childOwnership, existingListValueId, out MemberValue? _);
-            if (!hasBoundRow)
-            {
-                if (!recordWritable)
-                {
-                    throw new System.InvalidOperationException(
-                        $"Cannot write '{key}' on static Class '{member.id}': the unordered list has no authored value to shadow, and a static record cannot gain new keys at runtime. Author a value for '{key}' in the web editor.");
-                }
-                // Mint the discriminator row (present, empty) and link it.
-                var listRow = new ArrayMemberValue
-                {
-                    id = System.Guid.NewGuid().ToString(),
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = System.Array.Empty<string>(),
-                };
-                NeoGenericResolution.StampGenericBindings(client, childListMember, listRow, GenericEnv);
-                client.SetWritableValue(childOwnership, listRow);
-                ObjectMemberValue record = EnsureWritableObject(nowIso);
-                record.value![key] = listRow.id;
-                record.updatedAt = nowIso;
-                client.SetWritableValue(ownership, record);
-                value = record;
-                ReinitializeChildren();
-            }
-
             if (Get<NeoMember>(key) is not NeoMemberListWritable listNode)
-            {
-                throw new System.InvalidOperationException(
-                    $"Unordered list '{key}' on Class '{member.id}' did not resolve a writable list node; the record's ownership does not permit list writes.");
-            }
-            listNode.AssignSerialized(setValue);
+                throw new System.InvalidOperationException($"Unordered list '{key}' does not permit writes.");
+            if (!recordWritable && listNode.value is null)
+                throw new System.InvalidOperationException($"Cannot bind an unordered list on immutable Class '{member.id}'.");
+            listNode.PrepareAssignSerialized(plan, setValue);
+            plan.Commit();
+            ReinitializeChildren();
             NotifyChildChanged(key);
         }
 
-        internal override void BindChildValueId(NeoMember child, string childValueId)
+        internal override void BindChildValueId(NeoWritePlan plan, NeoMember child, string childValueId)
         {
             if (!TryGetSchemaKeyForChild(child, out string? key))
             {
@@ -999,13 +953,15 @@ namespace NeoCompose.Runtime
                 RejectReadOnlyInstanceMutation(key, SubstituteChildMember(rawMember));
             }
             string nowIso = System.DateTime.UtcNow.ToString("o");
-            ObjectMemberValue record = EnsureWritableObject(nowIso);
+            ObjectMemberValue record = EnsureWritableObject(plan, nowIso);
             record.value![key] = childValueId;
             record.updatedAt = nowIso;
-            client.SetWritableValue(ownership, record);
-            value = record;
-            ReinitializeChildren();
-            NotifyChildChanged(key);
+            plan.Set(ownership, record);
+            plan.AfterCommit(() =>
+            {
+                value = record;
+                ReinitializeChildren();
+            });
         }
 
         internal void AssertUnboundObjectCanBeConstructed()
@@ -1033,8 +989,16 @@ namespace NeoCompose.Runtime
         /// </summary>
         private ObjectMemberValue EnsureWritableObject(string nowIso)
         {
+            var plan = new NeoWritePlan(client);
+            var row = EnsureWritableObject(plan, nowIso);
+            if (plan.Rows.Count > 0) plan.Commit();
+            return row;
+        }
+
+        private ObjectMemberValue EnsureWritableObject(NeoWritePlan plan, string nowIso)
+        {
             AssertContainingClassesCanBeConstructed();
-            var writable = EnsureWritableValue();
+            var writable = WritableCandidate(plan);
             if (writable is not null)
             {
                 writable.value ??= new Dictionary<string, string>();
@@ -1055,7 +1019,7 @@ namespace NeoCompose.Runtime
                     ? new Dictionary<string, string>()
                     : new Dictionary<string, string>(value.value),
             };
-            BindNewValue(record);
+            BindNewValue(plan, record);
             return record;
         }
 
@@ -1086,11 +1050,16 @@ namespace NeoCompose.Runtime
 
             // Clone-on-write the record (shadowing the authored default at
             // its stable id) and drop the key.
-            ObjectMemberValue record = EnsureWritableObject(nowIso);
+            var plan = new NeoWritePlan(client);
+            ObjectMemberValue record = EnsureWritableObject(plan, nowIso);
             string removedValueId = record.value![key];
             record.value.Remove(key);
             record.updatedAt = nowIso;
-            client.SetWritableValue(ownership, record);
+            plan.Set(ownership, record);
+            NeoValueOwnership removedOwnership =
+                (removedMember is null ? null : client.DeclaredOwnership(removedMember)) ?? ownership;
+            client.StageUnlinkedRemovals(plan, removedOwnership, new[] { removedValueId }, removedMember);
+            plan.Commit();
             value = record;
 
             if (childMembers.TryGetValue(key, out NeoMember? child))
@@ -1100,11 +1069,6 @@ namespace NeoCompose.Runtime
                 childMembers.Remove(key);
             }
 
-            NeoValueOwnership removedOwnership =
-                (removedMember is null ? null : client.DeclaredOwnership(removedMember))
-                ?? ownership;
-            client.RemoveWritableValueAndDescendantsIfUnlinked(
-                removedOwnership, removedValueId, removedMember);
             NotifyChanged();
         }
 

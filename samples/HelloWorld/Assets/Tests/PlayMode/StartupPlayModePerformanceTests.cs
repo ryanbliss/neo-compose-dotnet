@@ -81,7 +81,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
             await store.LoadAsync();
             using var client = await HelloWorldNeo.Load(store.CreateNew());
             INeoTileGridContent content = client.Assets.Worlds.OldConsoleLanding.Content;
-            var sourceObjects = content.ObjectLayersInOrder[0].GetObjects();
+            var sourceObjects = NeoWorldLayerRuntimeSupport.GetObjects(content.ObjectLayersInOrder[0]);
             Assert.That(sourceObjects.Count, Is.GreaterThan(0));
             var layers = new IReadOnlyNeoObjectLayerRuntime[]
             {
@@ -126,16 +126,16 @@ namespace HelloWorld.Assets.Tests.PlayMode
 
         private sealed class SingleObjectLayer : ReadOnlyNeoObjectLayerRuntime
         {
-            private readonly NeoResolvedObjectInstance[] objects;
+            private readonly NeoObjectProjection[] objects;
 
-            internal SingleObjectLayer(string id, NeoResolvedObjectInstance template)
+            internal SingleObjectLayer(string id, NeoObjectProjection template)
                 : base(id, id, template.Object.classId)
             {
-                objects = new[] { new NeoResolvedObjectInstance(id + "-object", id,
+                objects = new[] { new NeoObjectProjection(id + "-object", id,
                     template.Cell, template.Footprint, template.Object, template.Order) };
             }
 
-            public override IReadOnlyList<NeoResolvedObjectInstance> GetObjects() => objects;
+            internal override IReadOnlyList<NeoObjectProjection> GetObjectProjections() => objects;
         }
 
         private sealed class BudgetLifecycle : NeoTileGridLifecycle

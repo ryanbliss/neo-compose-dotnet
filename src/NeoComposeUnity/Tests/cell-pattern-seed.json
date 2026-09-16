@@ -56,7 +56,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "action": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [
           {
             "id": "__this__",
@@ -168,7 +168,7 @@
                     "variableId": "__arg_0__"
                   },
                   "function": {
-                    "compilerRevision": 14,
+                    "compilerRevision": 15,
                     "parameters": [
                       {
                         "id": "offset",
@@ -304,7 +304,7 @@
       },
       "code": "return this._offsets.Count;",
       "getter": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [
           {
             "id": "__this__",
@@ -412,7 +412,7 @@
       },
       "code": "return new NeoCellPattern(offsets: [new(0, 0)]);",
       "getter": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [
           {
             "id": "__this__",
@@ -557,7 +557,7 @@
       },
       "code": "return NeoCellPattern.Cross(1, null, .Center);",
       "getter": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [
           {
             "id": "__this__",
@@ -683,7 +683,7 @@
       },
       "code": "return NeoCellPattern.Box(1, null, .Center);",
       "getter": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [
           {
             "id": "__this__",
@@ -809,7 +809,7 @@
       },
       "code": "return new NeoCellPattern(offsets: []);",
       "getter": {
-        "compilerRevision": 14,
+        "compilerRevision": 15,
         "parameters": [
           {
             "id": "__this__",

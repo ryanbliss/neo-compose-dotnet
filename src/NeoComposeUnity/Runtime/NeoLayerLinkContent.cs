@@ -38,46 +38,49 @@ namespace NeoCompose.Runtime
     /// </summary>
     public static class NeoLayerLinkLookupExtensions
     {
-        public static IReadOnlyList<NeoResolvedTileInstance> GetTiles(
+        internal static IReadOnlyList<NeoTileProjection> GetTileProjections(
+            this INeoTileLayerLinkValue link) => ProjectTiles(link).Winners;
+
+        public static IReadOnlyList<NeoGeneratedClassValue> GetTiles(
             this INeoTileLayerLinkValue link)
         {
-            return ProjectTiles(link).Winners;
+            return NeoWorldLayerRuntimeSupport.TileValues(ProjectTiles(link).Winners);
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
+        public static IReadOnlyList<TTile> GetTiles<TTile>(
             this INeoTileLayerLinkValue link)
             where TTile : class, INeoValueReference
         {
-            return TypedTiles<TTile>(ProjectTiles(link).Winners);
+            return TypedTiles<TTile>(link.GetTiles());
         }
 
-        public static NeoResolvedTileInstance? GetTile(
+        public static NeoGeneratedClassValue? GetTile(
             this INeoTileLayerLinkValue link,
             Vector2Int cell)
         {
             ProjectTiles(link).ByCell.TryGetValue(cell, out var tile);
-            return tile;
+            return tile?.Tile;
         }
 
-        public static NeoResolvedTileInstance<TTile>? GetTile<TTile>(
+        public static TTile? GetTile<TTile>(
             this INeoTileLayerLinkValue link,
             Vector2Int cell)
             where TTile : class, INeoValueReference
         {
-            return link.GetTile(cell)?.As<TTile>();
+            return link.GetTile(cell) as TTile;
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance> GetTiles(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetTiles(
             this INeoTileLayerLinkValue link,
             Vector2Int cell)
         {
             var tile = link.GetTile(cell);
             return tile is null
-                ? Array.Empty<NeoResolvedTileInstance>()
+                ? Array.Empty<NeoGeneratedClassValue>()
                 : new[] { tile };
         }
 
-        public static NeoResolvedTileInstance? GetTile(
+        public static NeoGeneratedClassValue? GetTile(
             this INeoTileLayerLinkValue link,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -88,13 +91,13 @@ namespace NeoCompose.Runtime
             {
                 if (projection.ByCell.TryGetValue(cell, out var tile))
                 {
-                    return tile;
+                    return tile?.Tile;
                 }
             }
             return null;
         }
 
-        public static NeoResolvedTileInstance<TTile>? GetTile<TTile>(
+        public static TTile? GetTile<TTile>(
             this INeoTileLayerLinkValue link,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -113,25 +116,25 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance> GetTiles(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetTiles(
             this INeoTileLayerLinkValue link,
             Vector2Int origin,
             NeoCellPattern pattern)
         {
             if (pattern is null) throw new ArgumentNullException(nameof(pattern));
             var projection = ProjectTiles(link);
-            var tiles = new List<NeoResolvedTileInstance>();
+            var tiles = new List<NeoGeneratedClassValue>();
             foreach (var cell in pattern.GetCells(origin))
             {
                 if (projection.ByCell.TryGetValue(cell, out var tile))
                 {
-                    tiles.Add(tile);
+                    tiles.Add(tile.Tile);
                 }
             }
             return tiles;
         }
 
-        public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
+        public static IReadOnlyList<TTile> GetTiles<TTile>(
             this INeoTileLayerLinkValue link,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -140,31 +143,31 @@ namespace NeoCompose.Runtime
             return TypedTiles<TTile>(link.GetTiles(origin, pattern));
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetObjects(
             this INeoObjectLayerLinkValue link)
         {
-            return ProjectObjects(link);
+            return NeoWorldLayerRuntimeSupport.ObjectValues(ProjectObjects(link));
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+        public static IReadOnlyList<TObject> GetObjects<TObject>(
             this INeoObjectLayerLinkValue link)
             where TObject : class, INeoValueReference
         {
-            return TypedObjects<TObject>(ProjectObjects(link));
+            return TypedObjects<TObject>(link.GetObjects());
         }
 
-        public static NeoResolvedObjectInstance? GetObject(
+        public static NeoGeneratedClassValue? GetObject(
             this INeoObjectLayerLinkValue link,
             Vector2Int cell)
         {
             foreach (var obj in ProjectObjects(link))
             {
-                if (obj.Cell == cell) return obj;
+                if (obj.Cell == cell) return obj.Object;
             }
             return null;
         }
 
-        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+        public static TObject? GetObject<TObject>(
             this INeoObjectLayerLinkValue link,
             Vector2Int cell)
             where TObject : class, INeoValueReference
@@ -178,22 +181,22 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetObjects(
             this INeoObjectLayerLinkValue link,
             Vector2Int cell)
         {
-            var objects = new List<NeoResolvedObjectInstance>();
+            var objects = new List<NeoGeneratedClassValue>();
             foreach (var obj in ProjectObjects(link))
             {
                 if (obj.Cell == cell)
                 {
-                    objects.Add(obj);
+                    objects.Add(obj.Object);
                 }
             }
             return objects;
         }
 
-        public static NeoResolvedObjectInstance? GetObject(
+        public static NeoGeneratedClassValue? GetObject(
             this INeoObjectLayerLinkValue link,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -204,13 +207,13 @@ namespace NeoCompose.Runtime
             {
                 foreach (var obj in projection)
                 {
-                    if (obj.Cell == cell) return obj;
+                    if (obj.Cell == cell) return obj.Object;
                 }
             }
             return null;
         }
 
-        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+        public static TObject? GetObject<TObject>(
             this INeoObjectLayerLinkValue link,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -230,28 +233,28 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
+        public static IReadOnlyList<NeoGeneratedClassValue> GetObjects(
             this INeoObjectLayerLinkValue link,
             Vector2Int origin,
             NeoCellPattern pattern)
         {
             if (pattern is null) throw new ArgumentNullException(nameof(pattern));
             var projection = ProjectObjects(link);
-            var objects = new List<NeoResolvedObjectInstance>();
+            var objects = new List<NeoGeneratedClassValue>();
             foreach (var cell in pattern.GetCells(origin))
             {
                 foreach (var obj in projection)
                 {
                     if (obj.Cell == cell)
                     {
-                        objects.Add(obj);
+                        objects.Add(obj.Object);
                     }
                 }
             }
             return objects;
         }
 
-        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+        public static IReadOnlyList<TObject> GetObjects<TObject>(
             this INeoObjectLayerLinkValue link,
             Vector2Int origin,
             NeoCellPattern pattern)
@@ -263,15 +266,15 @@ namespace NeoCompose.Runtime
         private readonly struct TileProjection
         {
             public TileProjection(
-                IReadOnlyList<NeoResolvedTileInstance> winners,
-                IReadOnlyDictionary<Vector2Int, NeoResolvedTileInstance> byCell)
+                IReadOnlyList<NeoTileProjection> winners,
+                IReadOnlyDictionary<Vector2Int, NeoTileProjection> byCell)
             {
                 Winners = winners;
                 ByCell = byCell;
             }
 
-            public IReadOnlyList<NeoResolvedTileInstance> Winners { get; }
-            public IReadOnlyDictionary<Vector2Int, NeoResolvedTileInstance> ByCell { get; }
+            public IReadOnlyList<NeoTileProjection> Winners { get; }
+            public IReadOnlyDictionary<Vector2Int, NeoTileProjection> ByCell { get; }
         }
 
         /// <summary>
@@ -286,12 +289,12 @@ namespace NeoCompose.Runtime
         {
             if (link is null) throw new ArgumentNullException(nameof(link));
 
-            var byCell = new Dictionary<Vector2Int, NeoResolvedTileInstance>();
+            var byCell = new Dictionary<Vector2Int, NeoTileProjection>();
             string sourceId = link.valueId ?? string.Empty;
             if (!TryGetValueRow(link, out var client, out ObjectMemberValue? linkRow))
             {
                 return new TileProjection(
-                    Array.Empty<NeoResolvedTileInstance>(),
+                    Array.Empty<NeoTileProjection>(),
                     byCell);
             }
             string layerId = ReadTargetLayerClassId(
@@ -300,6 +303,7 @@ namespace NeoCompose.Runtime
                 isTileLink: true);
             var order = 0;
             var origin = ReadRowOrigin(client!, linkRow!);
+            var ownership = ((NeoGeneratedClassValue)link).BackingNode.Get<NeoMemberList>("Tiles").ownership;
             foreach (var instanceValueId in ReadRowListIds(client!, linkRow!, "Tiles"))
             {
                 if (!client!.TryGetValue(
@@ -309,21 +313,17 @@ namespace NeoCompose.Runtime
                 {
                     continue;
                 }
-                string? assetClassId = ReadDirectReference(
-                    placement.value,
-                    "assetClassId");
+                string? assetClassId = placement.classId;
                 if (assetClassId is null) continue;
-                string? assetValueId = ReadDirectReference(
-                    placement.value,
-                    "assetValueId");
                 var tileValue = client.ResolveRegisteredGeneratedAsset(
                     assetClassId,
-                    assetValueId);
+                    instanceValueId,
+                    ownership == NeoValueOwnership.Asset ? null : ownership);
                 if (tileValue is null) continue;
                 var cell = ReadRowCell(client, instanceValueId);
                 if (cell is null) continue;
                 var projectedCell = origin + cell.Value;
-                byCell[projectedCell] = new NeoResolvedTileInstance(
+                byCell[projectedCell] = new NeoTileProjection(
                     instanceValueId,
                     layerId,
                     projectedCell,
@@ -334,7 +334,7 @@ namespace NeoCompose.Runtime
                     sourceId);
             }
 
-            var winners = new List<NeoResolvedTileInstance>(byCell.Values);
+            var winners = new List<NeoTileProjection>(byCell.Values);
             winners.Sort((left, right) => left.Order.CompareTo(right.Order));
             return new TileProjection(winners, byCell);
         }
@@ -345,12 +345,12 @@ namespace NeoCompose.Runtime
         /// comes from the client's value rows when available, for the same
         /// notification-ordering reason as <see cref="ProjectTiles"/>.
         /// </summary>
-        private static IReadOnlyList<NeoResolvedObjectInstance> ProjectObjects(
+        private static IReadOnlyList<NeoObjectProjection> ProjectObjects(
             INeoObjectLayerLinkValue link)
         {
             if (link is null) throw new ArgumentNullException(nameof(link));
 
-            var objects = new List<NeoResolvedObjectInstance>();
+            var objects = new List<NeoObjectProjection>();
             if (!TryGetValueRow(link, out var client, out ObjectMemberValue? linkRow))
             {
                 return objects;
@@ -383,7 +383,7 @@ namespace NeoCompose.Runtime
                 var cell = origin + new Vector2Int(
                     Mathf.RoundToInt(localPosition.x),
                     Mathf.RoundToInt(localPosition.y));
-                objects.Add(new NeoResolvedObjectInstance(
+                objects.Add(new NeoObjectProjection(
                     objectValueId,
                     layerId,
                     cell,
@@ -395,14 +395,14 @@ namespace NeoCompose.Runtime
             return objects;
         }
 
-        private static IReadOnlyList<NeoResolvedTileInstance<TTile>> TypedTiles<TTile>(
-            IReadOnlyList<NeoResolvedTileInstance> tiles)
+        private static IReadOnlyList<TTile> TypedTiles<TTile>(
+            IReadOnlyList<NeoGeneratedClassValue> tiles)
             where TTile : class, INeoValueReference
         {
-            var typedTiles = new List<NeoResolvedTileInstance<TTile>>();
+            var typedTiles = new List<TTile>();
             foreach (var tile in tiles)
             {
-                var typed = tile.As<TTile>();
+                var typed = tile as TTile;
                 if (typed is not null)
                 {
                     typedTiles.Add(typed);
@@ -411,14 +411,14 @@ namespace NeoCompose.Runtime
             return typedTiles;
         }
 
-        private static IReadOnlyList<NeoResolvedObjectInstance<TObject>> TypedObjects<TObject>(
-            IReadOnlyList<NeoResolvedObjectInstance> objects)
+        private static IReadOnlyList<TObject> TypedObjects<TObject>(
+            IReadOnlyList<NeoGeneratedClassValue> objects)
             where TObject : class, INeoValueReference
         {
-            var typedObjects = new List<NeoResolvedObjectInstance<TObject>>();
+            var typedObjects = new List<TObject>();
             foreach (var obj in objects)
             {
-                var typed = obj.As<TObject>();
+                var typed = obj as TObject;
                 if (typed is not null)
                 {
                     typedObjects.Add(typed);

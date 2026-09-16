@@ -29,7 +29,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new string Name { get; }
 
-        new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
+        new NeoReadOnlyList<IReadOnlyNeoTile> PlacementTiles { get; }
 
         new NeoReadOnlyVector3 Size { get; }
     }
@@ -159,19 +159,19 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public override NeoList<NeoObjectPlacementTile> PlacementTiles
+        public override NeoList<NeoTile> PlacementTiles
         {
             get
             {
-                return new NeoList<NeoObjectPlacementTile>(client, writableNode.Get<NeoMemberListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("ExitPromptObject.PlacementTiles"), () => IsReadOnly);
+                return new NeoList<NeoTile>(client, writableNode.Get<NeoMemberListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("ExitPromptObject.PlacementTiles"), () => IsReadOnly);
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyExitPromptObject.PlacementTiles
+        NeoReadOnlyList<IReadOnlyNeoTile> IReadOnlyExitPromptObject.PlacementTiles
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>(client, node.Get<NeoMemberList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoMemberClass)child));
+                return new NeoReadOnlyList<IReadOnlyNeoTile>(client, node.Get<NeoMemberList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoMemberClass)child));
             }
         }
 
@@ -212,11 +212,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyNeoObject.PlacementTiles
+        NeoReadOnlyList<IReadOnlyNeoTile> IReadOnlyNeoObject.PlacementTiles
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>)(object)((NeoObject)this).PlacementTiles!;
+                return (NeoReadOnlyList<IReadOnlyNeoTile>)(object)((NeoObject)this).PlacementTiles!;
             }
         }
 
@@ -234,11 +234,13 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
-            public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+            public static readonly NeoField<NeoList<NeoTile>> PlacementTiles = new("PlacementTiles");
 
             public static readonly NeoField<bool> Enabled = new("Enabled");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<Vector2Int> Cell = new("Cell");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
         }
@@ -255,6 +257,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.PlacementTiles] = () => null,
                 [Fields.Enabled] = () => null,
                 [Fields.Position] = () => null,
+                [Fields.Cell] = () => null,
                 [Fields.Collider] = () => null,
             };
         }
@@ -281,6 +284,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.Enabled] = () => Enabled,
                 [Fields.Position] = () => Position,
+                [Fields.Cell] = () => Cell,
                 [Fields.Collider] = () => Collider,
             };
         }

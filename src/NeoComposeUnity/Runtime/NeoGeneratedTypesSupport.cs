@@ -1435,7 +1435,7 @@ namespace NeoCompose.Runtime
             {
                 return readOnlyFactory(
                     client,
-                    new NeoMemberClass(client, member, valueId));
+                    new NeoMemberClass(client, member, valueId, ownership));
             }
 
             return null;
@@ -4841,7 +4841,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal static object? MaterializeCollectionAssignment(
             NeoClient client, Member member, object? value, NeoValueOwnership ownership,
-            NeoScript.NSGetterEvaluator.Context ctx)
+            NeoScript.NSGetterEvaluator.Context ctx, NeoWritePlan? plan = null)
         {
             if (value is null || value is NeoValuePayload || value is INeoValuePayloadProvider
                 || value is string[] || value is IDictionary<string, string>
@@ -4855,8 +4855,10 @@ namespace NeoCompose.Runtime
                 {
                     var reference = NeoScript.NSGetterEvaluator.ConstructorReferenceOf(item, ctx);
                     if (reference is null) return null;
-                    return new NeoConstructorValueReference(NeoScriptExecutor.ImportClassValueReference(
-                        client, ownership, reference.Value.valueId, ctx), ownership);
+                    string imported = plan is null
+                        ? NeoScriptExecutor.ImportClassValueReference(client, ownership, reference.Value.valueId, ctx)
+                        : NeoScriptExecutor.ImportClassValueReference(plan, client, ownership, reference.Value.valueId, ctx);
+                    return new NeoConstructorValueReference(imported, ownership);
                 }, env, member.name, new Dictionary<string, NeoValueOwnership>());
             ctx.allocationTracker.ConsumeCreatedSessionRows(rows);
             return CallSiteWritePayload(payload, rows);
@@ -4994,6 +4996,19 @@ namespace NeoCompose.Runtime
                 $"argument '{argument.name}' of constructor '{record.id}'");
         }
 
+        // Value collections are copied during construction, unlike Class
+        // references. Retain only their origin for scalar entry provenance;
+        // registering them as evaluator row references would change ownership.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object,
+            NeoScript.NSGetterEvaluator.RowReference> ConstructorCollectionOrigins = new();
+
+        internal static void PreserveConstructorCollectionOrigin(object source, object destination)
+        {
+            if (!ReferenceEquals(source, destination)
+                && ConstructorCollectionOrigins.TryGetValue(source, out var origin))
+                ConstructorCollectionOrigins.Add(destination, origin);
+        }
+
         private static object? UnwrapStoredConstructorArgument(
             NeoClient client,
             NeoConstructorValueReference reference,
@@ -5064,7 +5079,10 @@ namespace NeoCompose.Runtime
                             var values = new List<object?>();
                             foreach (string id in ids)
                                 values.Add(Read(id, entryMember, entryStorage, entryType));
-                            return values.ToArray();
+                            object?[] result = values.ToArray();
+                            ConstructorCollectionOrigins.Add(result, new NeoScript.NSGetterEvaluator.RowReference(
+                                valueId, storage, member: sourceMember));
+                            return result;
                         case MemberKind.Dictionary when row is ObjectMemberValue dictionaryRow:
                             if (dictionaryRow.value is null) return null;
                             var valuesByKey = new Dictionary<string, object?>(
@@ -5563,6 +5581,14 @@ namespace NeoCompose.Runtime
                     entryMember,
                     genericEnv);
                 var ids = new List<string>();
+                string[]? sourceIds = null;
+                NeoConstructorValueReference? collectionSource = ConstructorCollectionOrigins.TryGetValue(suppliedValue, out var origin)
+                    ? new NeoConstructorValueReference(origin.valueId, origin.ownership)
+                    : valueReference(suppliedValue);
+                if (client.IsUnorderedList(listMember)
+                    && collectionSource is { } source && source.ownership is NeoValueOwnership sourceOwnership
+                    && client.TryGetValue(sourceOwnership, source.valueId, out ArrayMemberValue? _))
+                    sourceIds = new List<string>(client.GetUnorderedListEntryIds(source.valueId)).ToArray();
                 if (suppliedValue is System.Collections.IEnumerable enumerable
                     && suppliedValue is not string)
                 {
@@ -5584,6 +5610,15 @@ namespace NeoCompose.Runtime
                             throw new InvalidOperationException(
                                 $"List constructor field '{member.name}' failed to materialize an entry.");
                         }
+                        // Replaying a row-backed collection copies scalar
+                        // entries too. Keep their source identity so unordered
+                        // overlays match the materialized entry instead of
+                        // adding a second virtual copy of the same value.
+                        if (sourceIds is not null && ids.Count < sourceIds.Length
+                            && rows.Count > 0 && rows[rows.Count - 1].id == id
+                            && client.TryGetValue(collectionSource!.Value.ownership!.Value,
+                                sourceIds[ids.Count], out MemberValue? original))
+                            rows[rows.Count - 1].sourceValueId = original.sourceValueId ?? original.id;
                         ids.Add(id);
                     }
                 }

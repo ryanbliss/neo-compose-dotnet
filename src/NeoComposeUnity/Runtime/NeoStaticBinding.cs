@@ -216,6 +216,14 @@ namespace NeoCompose.Runtime
 
         private void WritePayload(object? payload)
         {
+            var plan = new NeoWritePlan(client);
+            PreparePayload(plan, payload);
+            plan.Commit();
+        }
+
+        internal string PreparePayload(NeoWritePlan plan, object? payload)
+        {
+            EnsureWritable();
             string nowIso = System.DateTime.UtcNow.ToString("o");
             string valueId;
             string createdAt = nowIso;
@@ -239,7 +247,7 @@ namespace NeoCompose.Runtime
                 valueId = System.Guid.NewGuid().ToString();
             }
 
-            client.SetWritablePayloadRows(Ownership, payload);
+            client.StageWritablePayloadRows(plan, Ownership, payload);
             MemberValue row = MemberValueFactory.Create(
                 member,
                 payload,
@@ -265,11 +273,10 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Static member '{member.name}' resolves to storage partition '{declaredMapKey ?? "main"}', but its existing value '{valueId}' is stamped '{row.mapKey ?? "main"}'.");
             }
-            client.SetWritableValue(Ownership, row);
+            plan.Set(Ownership, row);
             if (currentValueId is null)
-            {
-                client.SetStaticBinding(member.id, Ownership, valueId);
-            }
+                plan.Bind(Ownership, member.id, true, valueId);
+            return valueId;
         }
 
         private void BindValueReference(NeoValueWritePayload payload)
@@ -294,6 +301,7 @@ namespace NeoCompose.Runtime
                     $"Cannot bind static member '{member.name}' ({classMember.classId}) to incompatible runtime class '{actualClassId}'.");
             }
 
+            var plan = new NeoWritePlan(client);
             string importedValueId = sourceValueId;
             bool sourceMoved = false;
             if (client.TryGetValueOwnership(
@@ -303,13 +311,13 @@ namespace NeoCompose.Runtime
                 && sourceOwnership != Ownership)
             {
                 importedValueId = client.ImportValueReference(
-                    Ownership,
+                    plan, Ownership,
                     sourceValueId,
                     out sourceMoved,
                     ValueId);
             }
             string? expectedMapKey = client.ResolveStaticMapKey(member);
-            if (!client.TryGetValue(
+            if (!plan.TryGet(
                     Ownership,
                     importedValueId,
                     out MemberValue? importedRow))
@@ -327,17 +335,15 @@ namespace NeoCompose.Runtime
             {
                 MemberValue stamped = client.CloneRowForWrite(importedRow);
                 stamped.mapKey = expectedMapKey;
-                client.SetWritableValue(Ownership, stamped);
+                plan.Set(Ownership, stamped);
             }
-            client.SetStaticBinding(member.id, Ownership, importedValueId);
+            plan.Bind(Ownership, member.id, true, importedValueId);
             if (sourceMoved)
             {
-                payload.RetargetMovedReference(
-                    client,
-                    member,
-                    importedValueId,
-                    Ownership);
+                plan.AfterCommit(() => payload.RetargetMovedReference(
+                    client, member, importedValueId, Ownership));
             }
+            plan.Commit();
         }
 
         private bool IsAssignableNeoSchemaClass(string actualClassId, string expectedClassId)

@@ -291,6 +291,63 @@ namespace NeoCompose.Tests
                 .Get<NeoMemberClassWritable>("Payload").Get<NeoMemberStringWritable>("Name").value!.value);
             Assert.AreEqual("default", client.save.Get<NeoMemberClassWritable>("ZPayload")
                 .Get<NeoMemberStringWritable>("Name").value!.value);
+            client.save.Get<NeoMemberClassWritable>("ZPayload")
+                .Get<NeoMemberStringWritable>("Name").Set("updated argument");
+            Assert.AreEqual("updated argument", client.save.Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberClassWritable>("Payload").Get<NeoMemberStringWritable>("Name").value!.value,
+                "A virtual argument descendant must invalidate constructors that read it.");
+        }
+
+        [Test]
+        public void VirtualTileDefaultsStayReadableWhileOnlyCellCanBeWritten()
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["thing-class"].system = new JObject { ["worldKind"] = "tile" };
+            data.classes["thing-class"].schema["Cell"] = "tile-cell";
+            data.members["tile-cell"] = new Vector2IntMember
+            {
+                id = "tile-cell", name = "Cell", kind = MemberKind.Vector2Int,
+                defaultValue = new Vector2MemberValueBase { value = new NeoVector2Value { x = 0, y = 0 } },
+            };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var tile = client.save.Get<NeoMemberClassWritable>("Thing");
+            var cell = tile.Get<NeoMemberVector2IntWritable>("Cell");
+            cell.Set(new UnityEngine.Vector2Int(2, 3));
+            Assert.AreEqual(2, cell.value!.value!.x);
+            var count = tile.Get<NeoMemberIntWritable>("Count");
+            string before = client.SerializeSaveData();
+            Assert.Throws<NeoPlacementValidationException>(() => count.Set(9));
+            Assert.AreEqual(before, client.SerializeSaveData());
+            Assert.AreEqual(5, count.value!.value);
+        }
+
+        [Test]
+        public void ResettingVirtualTileShadowRestoresItsClassDefaults()
+        {
+            ProjectData data = BuildNestedProjectData();
+            data.classes["nested-class"].system = new JObject { ["worldKind"] = "tile" };
+            data.classes["nested-class"].schema["Cell"] = "tile-cell";
+            data.members["tile-cell"] = new Vector2IntMember
+            {
+                id = "tile-cell", name = "Cell", kind = MemberKind.Vector2Int,
+                defaultValue = new Vector2MemberValueBase { value = new NeoVector2Value { x = 0, y = 0 } },
+            };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var tile = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberClassWritable>("Nested");
+            string id = tile.value!.id;
+            string cellId = tile.Get<NeoMemberVector2IntWritable>("Cell").value!.id;
+            Assert.IsFalse(client.values.ContainsKey(id));
+            client.SetSaveValue(new ObjectMemberValue
+            {
+                id = id, classId = "nested-class", value = new Dictionary<string, string> { ["Cell"] = cellId },
+            });
+            Assert.IsTrue(client.saveValues.ContainsKey(id));
+            var reset = new NeoWritePlan(client);
+            reset.Remove(NeoValueOwnership.Save, id);
+            Assert.DoesNotThrow(() => reset.Commit());
+            Assert.IsFalse(client.saveValues.ContainsKey(id));
+            tile = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberClassWritable>("Nested");
+            Assert.AreEqual(5, tile.Get<NeoMemberClassWritable>("Deep").Get<NeoMemberIntWritable>("Count").value!.value);
         }
 
         [Test]
@@ -1355,6 +1412,7 @@ namespace NeoCompose.Tests
             AddLookup("lookup-after", "lookup-after-values", "list-before");
             AddArray("list-before-values", "list-first-child");
             AddArray("lookup-after-values", "list-first-child");
+            client.InvalidateSchemaResolutionCaches();
 
             stopwatch.Restart();
             parents = (Dictionary<string, string>)build.Invoke(
@@ -2512,8 +2570,49 @@ namespace NeoCompose.Tests
                 ((StringMemberValue)client.saveValues[entryId]).value);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void LocalSparseWriteDoesNotNotifyUnchangedVirtualSiblings(bool includeUnchangedParent)
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["thing-class"].schema["Sibling"] = "thing-sibling";
+            data.members["thing-sibling"] = new IntMember
+            {
+                id = "thing-sibling", projectId = "p75-project", name = "Sibling",
+                kind = MemberKind.Int, Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new NumberMemberValueBase { value = 8 },
+            };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            var count = thing.Get<NeoMemberIntWritable>("Count");
+            var sibling = thing.Get<NeoMemberIntWritable>("Sibling");
+            string siblingId = sibling.value!.id;
+            Assert.IsTrue(client.TryGetValue<NumberMemberValue>(siblingId, out var cachedSibling));
+            var notified = new HashSet<string>();
+            client.OnWritableValueChanged += (_, id) => notified.Add(id);
+
+            if (includeUnchangedParent)
+            {
+                var parent = JObject.FromObject(thing.value!).ToObject<ObjectMemberValue>()!;
+                client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]
+                {
+                    parent,
+                    new NumberMemberValue { id = count.value!.id, value = 42 },
+                });
+            }
+            else count.Set(42);
+
+            Assert.AreEqual(42, count.value!.value);
+            Assert.AreEqual(8, sibling.value!.value);
+            Assert.IsFalse(sibling.isDisposed);
+            Assert.IsTrue(client.TryGetValue<NumberMemberValue>(siblingId, out var retainedSibling));
+            Assert.AreSame(cachedSibling, retainedSibling, "An ordinary overlay must reuse the cached sibling default.");
+            Assert.That(notified, Does.Contain(count.value.id));
+            Assert.That(notified, Does.Not.Contain(siblingId));
+        }
+
         [Test]
-        public void LiveApplyScopesAMalformedRootAndKeepsTheOthers()
+        public void LiveApplyRejectsMalformedReplayBeforeChangingRowsOrHeldWrappers()
         {
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(
                 BuildTwoRootProjectData());
@@ -2524,10 +2623,17 @@ namespace NeoCompose.Tests
                     .Get<NeoMemberIntWritable>("Count")
                     .value!.value);
 
-            JObject incoming = JObject.Parse(client.SerializeSaveData());
+            NeoMemberIntWritable heldCount = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberIntWritable>("Count");
+            string beforeSave = client.SerializeSaveData();
+            string beforeSession = Newtonsoft.Json.JsonConvert.SerializeObject(client.sessionValues);
+            int changed = 0;
+            client.OnWritableValueChanged += (_, __) => changed++;
+            JObject incoming = JObject.Parse(beforeSave);
             var values = (JObject)incoming["values"]!;
-            // A root whose recipe cannot resolve. Before scoping, this
-            // exception escaped the whole apply and left the index gutted.
+            values[heldCount.value!.id] = JObject.FromObject(new NumberMemberValue
+            { id = heldCount.value.id, value = 42 });
+            // The first root has a valid edit; the second recipe is invalid.
+            // Neither root may change when the complete batch is rejected.
             values["other-instance"] = JObject.Parse(@"{
   'id':'other-instance',
   'classId':'thing-class',
@@ -2538,11 +2644,12 @@ namespace NeoCompose.Tests
   'updatedAt':'2026-08-22T00:00:00.000Z'
 }".Replace('\'', '"'));
 
-            UnityEngine.TestTools.LogAssert.Expect(
-                UnityEngine.LogType.Warning,
-                new System.Text.RegularExpressions.Regex(
-                    "could not replay instance root 'other-instance'"));
-            client.ApplyExternalSaveContent(incoming.ToString());
+            Assert.Throws<InvalidOperationException>(() => client.ApplyExternalSaveContent(incoming.ToString()));
+            Assert.AreEqual(beforeSave, client.SerializeSaveData());
+            Assert.AreEqual(beforeSession, Newtonsoft.Json.JsonConvert.SerializeObject(client.sessionValues));
+            Assert.AreEqual(0, changed);
+            Assert.IsFalse(heldCount.isDisposed);
+            Assert.AreEqual(5d, heldCount.value!.value);
 
             Assert.AreEqual(
                 5d,
@@ -2703,10 +2810,6 @@ namespace NeoCompose.Tests
 
             client.ApplyExternalSaveContent(incoming.ToString());
 
-            // Replaying the touched root retires its wrappers; every other
-            // root keeps both its index entries and its live wrappers, which
-            // is the observable difference between a scoped invalidation and
-            // a full project re-expansion.
             Assert.IsTrue(thingCount.isDisposed);
             Assert.IsFalse(
                 otherCount.isDisposed,
@@ -2772,9 +2875,7 @@ namespace NeoCompose.Tests
             Assert.IsFalse(
                 heldThingPayload.isDisposed,
                 "Retargeting a root must remove its old constructor-argument edge.");
-            Assert.IsTrue(
-                heldOtherPayload.isDisposed,
-                "Every root sharing the changed argument must be replayed.");
+            Assert.IsTrue(heldOtherPayload.isDisposed);
             Assert.AreEqual("alternate", PayloadName(thing));
             Assert.AreEqual("updated-original", PayloadName(other));
 
@@ -2783,9 +2884,7 @@ namespace NeoCompose.Tests
             ReplacePayload(incoming, "alternate-payload", "updated-alternate");
             client.ApplyExternalSaveContent(incoming.ToString());
 
-            Assert.IsTrue(
-                heldThingPayload.isDisposed,
-                "A root must follow the constructor-argument edge added by retargeting.");
+            Assert.IsTrue(heldThingPayload.isDisposed);
             Assert.AreEqual("updated-alternate", PayloadName(thing));
 
             incoming = JObject.Parse(client.SerializeSaveData());

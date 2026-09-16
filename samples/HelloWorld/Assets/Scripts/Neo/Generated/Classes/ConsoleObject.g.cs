@@ -127,11 +127,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyNeoObject.PlacementTiles
+        NeoReadOnlyList<IReadOnlyNeoTile> IReadOnlyNeoObject.PlacementTiles
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>)(object)((NeoObject)this).PlacementTiles!;
+                return (NeoReadOnlyList<IReadOnlyNeoTile>)(object)((NeoObject)this).PlacementTiles!;
             }
         }
 
@@ -147,11 +147,13 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
+            public static readonly NeoField<Vector2Int> Cell = new("Cell");
+
             public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
-            public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+            public static readonly NeoField<NeoList<NeoTile>> PlacementTiles = new("PlacementTiles");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -162,6 +164,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
+                [Fields.Cell] = () => null,
                 [Fields.Children] = () => null,
                 [Fields.Collider] = () => null,
                 [Fields.PlacementTiles] = () => null,
@@ -186,6 +189,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
+                [Fields.Cell] = () => Cell,
                 [Fields.Children] = () => Children,
                 [Fields.Collider] = () => Collider,
                 [Fields.PlacementTiles] = () => PlacementTiles,

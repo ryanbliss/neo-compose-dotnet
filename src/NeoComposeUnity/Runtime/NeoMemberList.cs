@@ -6,6 +6,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Diagnostics.CodeAnalysis;
 using NeoCompose.Runtime.Json;
 using Member = NeoCompose.Runtime.Json.Member;
@@ -102,21 +103,26 @@ namespace NeoCompose.Runtime
             // ReinitializeChildren runs after the derived ctor wires it.
         }
 
-        protected override void OnValueIdChainChanged()
+        protected override void RefreshValueIdChain()
         {
-            value = valueData;
+            base.RefreshValueIdChain();
             // The newly-bound row may carry a genericBindings stamp the
             // construction-time row lacked (or vice versa) — re-substitute
             // the entry member before re-walking children.
             entryMember = ResolveEntryMember();
             ReinitializeChildren();
             InvalidateAllIndexes();
+        }
+
+        protected override void OnValueIdChainChanged()
+        {
+            RefreshValueIdChain();
             NotifyListChanged(NeoListChangedArgs.Unknown, applyToIndexes: false);
         }
 
         public override void Dispose()
         {
-            if (isDisposed) return;
+            if (!BeginDisposeChildren()) return;
             client.OnValuePartitionChanged -= HandleValuePartitionChanged;
             foreach (var child in childMembers)
             {
@@ -283,29 +289,27 @@ namespace NeoCompose.Runtime
                 }
                 return;
             }
-            for (int i = 0; i < entryValueIds.Count; i++)
+            // Match by identity so removing an earlier entry keeps later
+            // wrappers alive even when their ordinal changes.
+            var previousById = new Dictionary<string, NeoMember>(StringComparer.Ordinal);
+            foreach (NeoMember child in previousChildren)
+                previousById[EntryValueId(child)] = child;
+            var retained = new HashSet<NeoMember>();
+            foreach (string entryValueId in entryValueIds)
             {
-                string entryValueId = entryValueIds[i];
-                if (i < previousChildren.Count)
+                if (previousById.TryGetValue(entryValueId, out NeoMember existing)
+                    && existing.member.id == entryMember.id)
                 {
-                    var existing = previousChildren[i];
-                    if (existing.member.id == entryMember.id
-                        && (existing.overrideValueId == entryValueId
-                            || existing.value?.id == entryValueId))
-                    {
-                        childMembers.Add(existing);
-                        previousChildren[i] = null!;
-                        continue;
-                    }
+                    childMembers.Add(existing);
+                    retained.Add(existing);
+                    continue;
                 }
                 NeoMember child = CreateChild(client, entryMember, entryValueId);
                 child.OnChanged += HandleChildChanged;
                 childMembers.Add(child);
-                // Reconciliation may recreate a retained child at a new
-                // ordinal (notably unordered id-sorted membership). Keep an
-                // already-materialized identity map pointing at the live node;
-                // genuinely-added ids are inserted from the subsequent
-                // NeoListChangedArgs so duplicate detection remains central.
+                // A changed member declaration can replace the wrapper at
+                // an existing id. New ids enter the index through the change
+                // event so duplicate detection stays in one place.
                 if (childrenByValueId is not null
                     && childrenByValueId.ContainsKey(entryValueId))
                 {
@@ -314,7 +318,7 @@ namespace NeoCompose.Runtime
             }
             foreach (var child in previousChildren)
             {
-                if (child is not null)
+                if (!retained.Contains(child))
                 {
                     child.OnChanged -= HandleChildChanged;
                     child.Dispose();
@@ -500,6 +504,22 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void AddSerialized(NeoValueWritePayload? entryValue)
         {
+            var plan = new NeoWritePlan(client);
+            PrepareAddSerialized(plan, entryValue);
+            plan.Commit();
+        }
+
+        internal string PrepareAddSerialized(NeoWritePlan plan, NeoValueWritePayload? entryValue)
+        {
+            string id = PrepareAddSerializedCore(plan, entryValue);
+            plan.AfterCommit(RefreshCommittedValue);
+            plan.AfterNotifications(() => NotifyListChanged(new NeoListChangedArgs(
+                NeoListChangeKind.Add, addedValueIds: new[] { id })));
+            return id;
+        }
+
+        private string PrepareAddSerializedCore(NeoWritePlan plan, NeoValueWritePayload? entryValue)
+        {
             if (entryMember.Requirement == NeoMemberRequirementKind.Required && (entryValue is null || entryValue.isNull))
             {
                 throw new System.ArgumentNullException(
@@ -508,24 +528,24 @@ namespace NeoCompose.Runtime
             }
             if (IsUnordered)
             {
-                AddSerializedUnordered(entryValue);
-                return;
+                return PrepareAddSerializedUnordered(plan, entryValue);
             }
             string nowIso = System.DateTime.UtcNow.ToString("o");
             NeoValueOwnership entryOwnership =
                 client.DeclaredOwnership(entryMember) ?? ownership;
-            ArrayMemberValue parentRow = EnsureWritableArray(nowIso);
+            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso);
 
             string newValueId;
             if (entryValue?.isValueReference == true)
             {
                 newValueId = client.ImportValueReference(
+                    plan,
                     entryOwnership,
                     entryValue.valueId!,
                     out bool sourceMoved);
                 if (sourceMoved)
                 {
-                    entryValue.RetargetMovedReference(client, entryMember, newValueId, entryOwnership);
+                    plan.AfterCommit(() => entryValue.RetargetMovedReference(client, entryMember, newValueId, entryOwnership));
                 }
             }
             else
@@ -544,8 +564,8 @@ namespace NeoCompose.Runtime
                     entryMember,
                     newValueRow,
                     NeoGenericResolution.EnvFromStamp(parentRow.genericBindings));
-                client.SetWritablePayloadRows(entryOwnership, entryValue?.value);
-                client.SetWritableValue(entryOwnership, newValueRow);
+                client.StageWritablePayloadRows(plan, entryOwnership, entryValue?.value);
+                plan.Set(entryOwnership, newValueRow);
             }
 
             string[] currentArr = parentRow.value ?? System.Array.Empty<string>();
@@ -554,15 +574,8 @@ namespace NeoCompose.Runtime
             nextArr[currentArr.Length] = newValueId;
             parentRow.value = nextArr;
             parentRow.updatedAt = nowIso;
-            client.SetWritableValue(ownership, parentRow);
-            // List/Dictionary nodes don't refresh their cached value on a write
-            // event, so retarget explicitly to the just-shadowed row.
-            value = parentRow;
-
-            ReinitializeChildren();
-            NotifyListChanged(new NeoListChangedArgs(
-                NeoListChangeKind.Add,
-                addedValueIds: new[] { newValueId }));
+            plan.Set(ownership, parentRow);
+            return newValueId;
         }
 
         /// <summary>
@@ -588,6 +601,7 @@ namespace NeoCompose.Runtime
             {
                 throw new System.ArgumentOutOfRangeException(nameof(index));
             }
+            var plan = new NeoWritePlan(client);
             string nowIso = System.DateTime.UtcNow.ToString("o");
             string entryValueId = value.value[index];
             NeoValueOwnership entryOwnership =
@@ -596,21 +610,25 @@ namespace NeoCompose.Runtime
             if (entryValue?.isValueReference == true)
             {
                 string importedValueId = client.ImportValueReference(
+                    plan,
                     entryOwnership,
                     entryValue.valueId!,
                     out bool sourceMoved,
                     entryValueId);
+                if (sourceMoved)
+                    plan.AfterCommit(() => entryValue.RetargetMovedReference(client, entryMember, importedValueId, entryOwnership));
                 if (importedValueId == entryValueId)
                 {
+                    plan.Commit();
                     return;
                 }
-                ArrayMemberValue parentRow = EnsureWritableArray(nowIso);
+                ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso);
                 parentRow.value![index] = importedValueId;
                 parentRow.updatedAt = nowIso;
-                client.SetWritableValue(ownership, parentRow);
+                plan.Set(ownership, parentRow);
+                client.StageUnlinkedRemovals(plan, entryOwnership, new[] { entryValueId }, entryMember);
+                plan.Commit();
                 value = parentRow;
-                client.RemoveWritableValueAndDescendantsIfUnlinked(
-                    entryOwnership, entryValueId, entryMember);
                 NeoMember previousChild = childMembers[index];
                 previousChild.OnChanged -= HandleChildChanged;
                 previousChild.Dispose();
@@ -618,10 +636,6 @@ namespace NeoCompose.Runtime
                     client, entryMember, importedValueId);
                 replacementChild.OnChanged += HandleChildChanged;
                 childMembers[index] = replacementChild;
-                if (sourceMoved)
-                {
-                    entryValue.RetargetMovedReference(client, entryMember, importedValueId, entryOwnership);
-                }
                 NotifyListChanged(new NeoListChangedArgs(
                     NeoListChangeKind.Replace,
                     removedValueIds: new[] { entryValueId },
@@ -649,8 +663,9 @@ namespace NeoCompose.Runtime
                 entryMember,
                 next,
                 NeoGenericResolution.EnvFromStamp(value?.genericBindings));
-            client.SetWritablePayloadRows(entryOwnership, entryValue?.value);
-            client.SetWritableValue(entryOwnership, next);
+            client.StageWritablePayloadRows(plan, entryOwnership, entryValue?.value);
+            plan.Set(entryOwnership, next);
+            plan.Commit();
             NeoMember replacedChild = childMembers[index];
             replacedChild.OnChanged -= HandleChildChanged;
             replacedChild.Dispose();
@@ -685,8 +700,9 @@ namespace NeoCompose.Runtime
             {
                 throw new System.ArgumentOutOfRangeException(nameof(index));
             }
+            var plan = new NeoWritePlan(client);
             string nowIso = System.DateTime.UtcNow.ToString("o");
-            ArrayMemberValue parentRow = EnsureWritableArray(nowIso);
+            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso);
             string[] currentArr = parentRow.value!;
             string removedValueId = currentArr[index];
 
@@ -698,22 +714,14 @@ namespace NeoCompose.Runtime
             }
             parentRow.value = nextArr;
             parentRow.updatedAt = nowIso;
-            client.SetWritableValue(ownership, parentRow);
+            plan.Set(ownership, parentRow);
+            NeoValueOwnership entryOwnership = client.DeclaredOwnership(entryMember) ?? ownership;
+            client.StageUnlinkedRemovals(plan, entryOwnership, new[] { removedValueId }, entryMember);
+            plan.Commit();
             value = parentRow;
 
-            // Dispose the child node + drop our reference. Its own
-            // Dispose recursively disposes any descendants the entry
-            // owned in the wrapper tree.
-            NeoMember removedChild = childMembers[index];
-            removedChild.OnChanged -= HandleChildChanged;
-            removedChild.Dispose();
-            childMembers.RemoveAt(index);
+            RefreshCommittedValue();
 
-            // GC the orphaned value graph from the writable store.
-            NeoValueOwnership entryOwnership =
-                client.DeclaredOwnership(entryMember) ?? ownership;
-            client.RemoveWritableValueAndDescendantsIfUnlinked(
-                entryOwnership, removedValueId, entryMember);
             NotifyListChanged(new NeoListChangedArgs(
                 NeoListChangeKind.Remove,
                 removedValueIds: new[] { removedValueId }));
@@ -731,8 +739,9 @@ namespace NeoCompose.Runtime
                 return;
             }
 
+            var plan = new NeoWritePlan(client);
             string nowIso = System.DateTime.UtcNow.ToString("o");
-            ArrayMemberValue parentRow = EnsureWritableArray(nowIso);
+            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso);
             string[] removedValueIds = parentRow.value ?? System.Array.Empty<string>();
             if (removedValueIds.Length == 0)
             {
@@ -741,7 +750,9 @@ namespace NeoCompose.Runtime
 
             parentRow.value = System.Array.Empty<string>();
             parentRow.updatedAt = nowIso;
-            client.SetWritableValue(ownership, parentRow);
+            plan.Set(ownership, parentRow);
+            client.StageUnlinkedRemovals(plan, client.DeclaredOwnership(entryMember) ?? ownership, removedValueIds, entryMember);
+            plan.Commit();
             value = parentRow;
 
             foreach (var child in childMembers)
@@ -750,16 +761,6 @@ namespace NeoCompose.Runtime
                 child.Dispose();
             }
             childMembers.Clear();
-
-            NeoValueOwnership entryOwnership =
-                client.DeclaredOwnership(entryMember) ?? ownership;
-            foreach (var removedValueId in removedValueIds)
-            {
-                client.RemoveWritableValueAndDescendantsIfUnlinked(
-                    entryOwnership,
-                    removedValueId,
-                    entryMember);
-            }
 
             NotifyListChanged(new NeoListChangedArgs(
                 NeoListChangeKind.Clear,
@@ -829,12 +830,12 @@ namespace NeoCompose.Runtime
                 removedValueIds: new[] { entryValueId }));
         }
 
-        private void AddSerializedUnordered(NeoValueWritePayload? entryValue)
+        private string PrepareAddSerializedUnordered(NeoWritePlan plan, NeoValueWritePayload? entryValue)
         {
             string nowIso = System.DateTime.UtcNow.ToString("o");
             NeoValueOwnership entryOwnership =
                 client.DeclaredOwnership(entryMember) ?? ownership;
-            ArrayMemberValue containerRow = ResolveUnorderedContainerForAdd(nowIso);
+            ArrayMemberValue containerRow = ResolveUnorderedContainerForAdd(plan, nowIso);
             string containerValueId = containerRow.id;
             // Storage partitions (spec §6): created member rows live in their
             // container's partition. The member row itself would inherit
@@ -856,13 +857,14 @@ namespace NeoCompose.Runtime
             if (entryValue?.isValueReference == true)
             {
                 newValueId = client.ImportValueReference(
+                    plan,
                     entryOwnership,
                     entryValue.valueId!,
                     out bool sourceMoved);
-                StampContainerId(entryOwnership, newValueId, containerValueId);
+                StampContainerId(plan, entryOwnership, newValueId, containerValueId);
                 if (sourceMoved)
                 {
-                    entryValue.RetargetMovedReference(client, entryMember, newValueId, entryOwnership);
+                    plan.AfterCommit(() => entryValue.RetargetMovedReference(client, entryMember, newValueId, entryOwnership));
                 }
             }
             else
@@ -878,57 +880,24 @@ namespace NeoCompose.Runtime
                     entryMember,
                     newValueRow,
                     NeoGenericResolution.EnvFromStamp(containerRow.genericBindings));
-                client.SetWritablePayloadRows(entryOwnership, entryValue?.value);
-                client.SetWritableValue(entryOwnership, newValueRow);
+                client.StageWritablePayloadRows(plan, entryOwnership, entryValue?.value);
+                plan.Set(entryOwnership, newValueRow);
             }
 
-            // Membership lives on the entry row; the container value is only
-            // the null-vs-present discriminator and is NOT rewritten.
-            ReinitializeChildren();
-            NotifyListChanged(new NeoListChangedArgs(
-                NeoListChangeKind.Add,
-                addedValueIds: new[] { newValueId }));
+            return newValueId;
         }
 
         private void ClearSerializedUnordered()
         {
-            var entryIds = ResolveEntryValueIds();
-            if (entryIds.Count == 0) return;
-            string nowIso = System.DateTime.UtcNow.ToString("o");
-            NeoValueOwnership entryOwnership =
-                client.DeclaredOwnership(entryMember) ?? ownership;
-
-            var removedValueIds = new List<string>(entryIds);
-            using (client.SuspendContainerNotifications())
-            {
-                foreach (var entryValueId in removedValueIds)
-                {
-                    RemoveUnorderedEntry(entryOwnership, entryValueId);
-                }
-            }
-
-            // Legacy inline ids (factory-minted rows referenced from the
-            // array itself) also blank the array so the unordered invariant
-            // — the stored array is always empty when present — holds.
-            if (value?.value is not null && value.value.Length > 0)
-            {
-                ArrayMemberValue containerRow = EnsureWritableArray(nowIso);
-                containerRow.value = System.Array.Empty<string>();
-                containerRow.updatedAt = nowIso;
-                client.SetWritableValue(ownership, containerRow);
-                value = containerRow;
-            }
-
-            foreach (var child in childMembers)
-            {
-                child.OnChanged -= HandleChildChanged;
-                child.Dispose();
-            }
-            childMembers.Clear();
+            var removedValueIds = new List<string>(ResolveEntryValueIds());
+            if (removedValueIds.Count == 0) return;
+            var plan = new NeoWritePlan(client);
+            foreach (string id in removedValueIds) PrepareRemoveUnorderedEntry(plan, id);
+            plan.Commit();
+            value = valueData;
             ReinitializeChildren();
             NotifyListChanged(new NeoListChangedArgs(
-                NeoListChangeKind.Clear,
-                removedValueIds: removedValueIds));
+                NeoListChangeKind.Clear, removedValueIds: removedValueIds));
         }
 
         /// <summary>
@@ -939,54 +908,51 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void AssignSerialized(NeoValueWritePayload? setValue)
         {
+            var plan = new NeoWritePlan(client);
+            PrepareAssignSerialized(plan, setValue);
+            plan.Commit();
+        }
+
+        internal void PrepareAssignSerialized(NeoWritePlan plan, NeoValueWritePayload? setValue)
+        {
             if (!IsUnordered)
+                throw new System.InvalidOperationException($"List '{member.id}' is ordered.");
+            bool isNull = setValue is null || setValue.isNull;
+            if (!isNull && setValue!.value is not null && setValue.value is not string[])
+                throw new System.InvalidOperationException($"Unordered list '{member.id}' assignment expects entry value ids.");
+            string[] requested = isNull ? System.Array.Empty<string>() : setValue!.value as string[] ?? System.Array.Empty<string>();
+            var nextIds = new HashSet<string>();
+            foreach (string id in requested)
+                if (!nextIds.Add(id)) throw new System.InvalidOperationException($"List '{member.id}' contains duplicate value '{id}'.");
+            var previousIds = new HashSet<string>(ResolveEntryValueIds());
+            foreach (string id in previousIds)
+                if (!nextIds.Contains(id)) PrepareRemoveUnorderedEntry(plan, id);
+            string now = System.DateTime.UtcNow.ToString("o");
+            ArrayMemberValue container = EnsureWritableArray(plan, now);
+            container.value = isNull ? null : System.Array.Empty<string>();
+            container.updatedAt = now;
+            plan.Set(ownership, container);
+            foreach (string id in requested)
             {
-                throw new System.InvalidOperationException(
-                    $"AssignSerialized is the unordered whole-list path; ordered list member '{member.id}' assigns through SetSerialized/AddSerialized.");
+                if (previousIds.Contains(id))
+                {
+                    MemberValue? retained = plan.Resolve(id);
+                    if (retained is not null && retained.containerId != container.id)
+                    {
+                        MemberValue adopted = client.CloneRowForWrite(retained);
+                        adopted.containerId = container.id;
+                        plan.Set(client.DeclaredOwnership(entryMember) ?? ownership, adopted);
+                    }
+                    continue;
+                }
+                PrepareAddSerializedCore(plan, NeoValueWritePayload.FromValueReference(id, null));
             }
-            ClearSerializedUnordered();
-            string nowIso = System.DateTime.UtcNow.ToString("o");
-
-            if (setValue is null || setValue.isNull)
+            plan.AfterCommit(() =>
             {
-                // Setting an unordered list to null destroys the instance; the
-                // members were tombstoned above, in the same write.
-                ArrayMemberValue containerRow = EnsureWritableArray(nowIso);
-                containerRow.value = null;
-                containerRow.updatedAt = nowIso;
-                client.SetWritableValue(ownership, containerRow);
-                value = containerRow;
+                value = valueData;
                 ReinitializeChildren();
-                NotifyListChanged(new NeoListChangedArgs(NeoListChangeKind.Replace));
-                return;
-            }
-
-            // Present: null → [] is a fresh, empty instance.
-            ArrayMemberValue presentRow = EnsureWritableArray(nowIso);
-            if (presentRow.value is null || presentRow.value.Length > 0)
-            {
-                presentRow.value = System.Array.Empty<string>();
-                presentRow.updatedAt = nowIso;
-                client.SetWritableValue(ownership, presentRow);
-                value = presentRow;
-            }
-
-            if (setValue.value is null)
-            {
-                ReinitializeChildren();
-                NotifyListChanged(new NeoListChangedArgs(NeoListChangeKind.Replace));
-                return;
-            }
-            if (setValue.value is not string[] entryValueIds)
-            {
-                throw new System.InvalidOperationException(
-                    $"Unordered list member '{member.id}' whole-list assignment expects entry value ids (string[]), got '{setValue.value.GetType().Name}'.");
-            }
-            foreach (var entryValueId in entryValueIds)
-            {
-                AddSerializedUnordered(NeoValueWritePayload.FromValueReference(entryValueId, null));
-            }
-            NotifyListChanged(new NeoListChangedArgs(NeoListChangeKind.Replace));
+            });
+            plan.AfterNotifications(() => NotifyListChanged(new NeoListChangedArgs(NeoListChangeKind.Replace)));
         }
 
         /// <summary>
@@ -997,59 +963,39 @@ namespace NeoCompose.Runtime
         /// inline ids (referenced from the array rather than joined) fall
         /// back to array removal + garbage collection.
         /// </summary>
-        private void RemoveUnorderedEntry(
-            NeoValueOwnership entryOwnership,
-            string entryValueId)
+        private void RemoveUnorderedEntry(NeoValueOwnership entryOwnership, string entryValueId)
         {
-            var effectiveRow = client.ResolveValueRow(entryValueId);
-            bool isJoinedMember = effectiveRow?.containerId == value?.id
-                || (client.TryResolveContainerIdForValueId(entryValueId, out string? containerId)
-                    && containerId == value?.id);
-            if (!isJoinedMember)
-            {
-                // Legacy inline entry: drop it from the array shadow and GC.
-                string nowIso = System.DateTime.UtcNow.ToString("o");
-                ArrayMemberValue containerRow = EnsureWritableArray(nowIso);
-                if (containerRow.value is not null)
-                {
-                    var next = new List<string>(containerRow.value.Length);
-                    foreach (var id in containerRow.value)
-                    {
-                        if (id == entryValueId) continue;
-                        next.Add(id);
-                    }
-                    containerRow.value = next.ToArray();
-                    containerRow.updatedAt = nowIso;
-                    client.SetWritableValue(ownership, containerRow);
-                    value = containerRow;
-                }
-                client.RemoveWritableValueAndDescendantsIfUnlinked(
-                    entryOwnership, entryValueId, entryMember);
-                return;
-            }
+            var plan = new NeoWritePlan(client);
+            PrepareRemoveUnorderedEntry(plan, entryValueId);
+            plan.Commit();
+            value = valueData;
+        }
 
-            if (client.values.ContainsKey(entryValueId))
+        private void PrepareRemoveUnorderedEntry(NeoWritePlan plan, string entryValueId)
+        {
+            NeoValueOwnership entryOwnership = client.DeclaredOwnership(entryMember) ?? ownership;
+            MemberValue? row = plan.Resolve(entryValueId);
+            string? listId = valueId;
+            bool joined = row?.containerId == listId
+                || (client.TryResolveContainerIdForValueId(entryValueId, out string? containerId) && containerId == listId);
+            if (!joined)
             {
-                client.WriteRemovalTombstone(entryOwnership, entryValueId);
-                return;
+                var container = EnsureWritableArray(plan, System.DateTime.UtcNow.ToString("o"));
+                container.value = (container.value ?? System.Array.Empty<string>()).Where(id => id != entryValueId).ToArray();
+                plan.Set(ownership, container);
             }
-            if (client.TryGetWritableValue(entryOwnership, entryValueId, out MemberValue? _))
-            {
-                client.RemoveWritableValueAndDescendants(
-                    entryOwnership, entryValueId, entryMember);
-                return;
-            }
-            // The member lives in a lower overlay (e.g. session removal of a
-            // save-created member): shadow it with a tombstone.
-            client.WriteRemovalTombstone(entryOwnership, entryValueId);
+            bool tombstone = client.values.ContainsKey(entryValueId)
+                || !plan.TryGetWritable(entryOwnership, entryValueId, out _);
+            client.StageOwnedRemoval(plan, entryOwnership, entryValueId, entryMember, tombstone);
         }
 
         private void StampContainerId(
+            NeoWritePlan plan,
             NeoValueOwnership entryOwnership,
             string entryValueId,
             string containerValueId)
         {
-            if (!client.TryGetWritableValue(entryOwnership, entryValueId, out MemberValue? row))
+            if (!plan.TryGetWritable(entryOwnership, entryValueId, out MemberValue? row))
             {
                 throw new System.InvalidOperationException(
                     $"Cannot stamp containerId on '{entryValueId}': the imported entry row is not present in the {entryOwnership} store.");
@@ -1066,7 +1012,7 @@ namespace NeoCompose.Runtime
                 {
                     // The authored membership stamp suffices — drop the
                     // tombstone shadow so the authored member resurfaces.
-                    client.RemoveWritableShadow(entryOwnership, entryValueId);
+                    plan.Remove(entryOwnership, entryValueId);
                     return;
                 }
                 var resurrected = client.CloneRowForWrite(authored);
@@ -1076,7 +1022,7 @@ namespace NeoCompose.Runtime
                         $"Value '{entryValueId}' already belongs to unordered list '{resurrected.containerId}'; containerId is immutable — remove and recreate to move it to '{containerValueId}'.");
                 }
                 resurrected.containerId = containerValueId;
-                client.SetWritableValue(entryOwnership, resurrected);
+                plan.Set(entryOwnership, resurrected);
                 return;
             }
             if (row.containerId == containerValueId) return;
@@ -1085,8 +1031,9 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Value '{entryValueId}' already belongs to unordered list '{row.containerId}'; containerId is immutable — remove and recreate to move it to '{containerValueId}'.");
             }
-            row.containerId = containerValueId;
-            client.SetWritableValue(entryOwnership, row);
+            var candidate = client.CloneRowForWrite(row);
+            candidate.containerId = containerValueId;
+            plan.Set(entryOwnership, candidate);
         }
 
         /// <summary>
@@ -1098,7 +1045,16 @@ namespace NeoCompose.Runtime
         /// </summary>
         private ArrayMemberValue ResolveUnorderedContainerForAdd(string nowIso)
         {
-            var resolved = value ?? valueData;
+            var plan = new NeoWritePlan(client);
+            var row = ResolveUnorderedContainerForAdd(plan, nowIso);
+            if (plan.Rows.Count > 0) plan.Commit();
+            return row;
+        }
+
+        private ArrayMemberValue ResolveUnorderedContainerForAdd(NeoWritePlan plan, string nowIso)
+        {
+            string? id = plan.NodeBindings.TryGetValue(this, out string? plannedId) ? plannedId : valueId;
+            var resolved = id is not null ? plan.Resolve(ownership, id) as ArrayMemberValue : value ?? valueData;
             if (resolved is not null)
             {
                 if (resolved.value is null)
@@ -1120,10 +1076,10 @@ namespace NeoCompose.Runtime
             // enclosing collection row's own stamp).
             NeoGenericResolution.StampGenericBindings(
                 client, member, minted, NeoGenericResolution.ResolveContextEnv(parent));
-            BindNewValue(minted);
+            BindNewValue(plan, minted);
             // The freshly-stamped row may close generic entry references
             // the construction-time (row-less) resolution left raw.
-            entryMember = ResolveEntryMember();
+            plan.AfterCommit(() => entryMember = ResolveEntryMember());
             return minted;
         }
 
@@ -1134,7 +1090,15 @@ namespace NeoCompose.Runtime
         /// </summary>
         private ArrayMemberValue EnsureWritableArray(string nowIso)
         {
-            var writable = EnsureWritableValue();
+            var plan = new NeoWritePlan(client);
+            var row = EnsureWritableArray(plan, nowIso);
+            if (plan.Rows.Count > 0) plan.Commit();
+            return row;
+        }
+
+        private ArrayMemberValue EnsureWritableArray(NeoWritePlan plan, string nowIso)
+        {
+            var writable = WritableCandidate(plan);
             if (writable is not null)
             {
                 writable.value ??= System.Array.Empty<string>();
@@ -1151,10 +1115,10 @@ namespace NeoCompose.Runtime
             // tree's enclosing context (spec §9).
             NeoGenericResolution.StampGenericBindings(
                 client, member, parentRow, NeoGenericResolution.ResolveContextEnv(parent));
-            BindNewValue(parentRow);
+            BindNewValue(plan, parentRow);
             // The freshly-stamped row may close generic entry references
             // the construction-time (row-less) resolution left raw.
-            entryMember = ResolveEntryMember();
+            plan.AfterCommit(() => entryMember = ResolveEntryMember());
             return parentRow;
         }
     }

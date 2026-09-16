@@ -121,7 +121,7 @@ namespace NeoCompose.Tests
                     .Replace("-", string.Empty)
                     .ToLowerInvariant();
                 Assert.AreEqual(
-                    "4cb093ca5302892fdd52a6bdee67eb7c074057690c7e545e2cb330e595dd39a5",
+                    "e51af4442f6cb967daeb9c09d0b2206fc823df3042459be6a41ff716fda002e8",
                     actual,
                     "The vendored fixture bytes drifted from the reviewed web source.");
             }
@@ -226,7 +226,7 @@ namespace NeoCompose.Tests
         public void P54BoundsEvaluatorCreatedCollectionEntries()
         {
             const string json = @"{
-              ""compilerRevision"": 14,
+              ""compilerRevision"": 15,
               ""parameters"": [],
               ""instructions"": [{
                 ""type"": ""return"",
@@ -388,7 +388,7 @@ namespace NeoCompose.Tests
         private static FunctionWithReturnType SimpleIntGetter()
         {
             const string json = @"{
-              ""compilerRevision"": 14,
+              ""compilerRevision"": 15,
               ""parameters"": [],
               ""instructions"": [{
                 ""type"": ""return"",

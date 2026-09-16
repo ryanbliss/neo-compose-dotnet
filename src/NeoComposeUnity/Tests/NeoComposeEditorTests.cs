@@ -1977,58 +1977,115 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void PostSynchronizeProcessor_IndexesClassBackedTileAssets()
+        public void PostSynchronizeProcessor_IndexesConcreteTileClassesIncludingUnplacedAndSparseDefinitions()
         {
             var projectData = new ProjectData
             {
                 values = new Dictionary<string, MemberValue>
                 {
-                    ["class-default-placement"] = ClassBackedPlacement(
-                        "tile-class",
-                        null,
-                        "Cell"),
-                    ["overridden-placement"] = ClassBackedPlacement(
-                        "tile-class",
-                        "tile-override-value",
-                        "Cell"),
-                    ["object-placement"] = ClassBackedPlacement(
-                        "object-class",
-                        null,
-                        "Position"),
+                    ["first"] = RawTilePlacement("first", "tile-class"),
+                    ["second"] = RawTilePlacement("second", "tile-class"),
+                    ["sparse"] = RawTilePlacement("sparse", "sparse-tile"),
+                    ["footprint"] = RawTilePlacement("footprint", "placement-tile"),
+                    ["object"] = RawTilePlacement("object", "object-class"),
+                    ["unknown"] = RawTilePlacement("unknown", "missing-class"),
+                    ["uncontained"] = new ObjectMemberValue { id = "uncontained", classId = "unused-tile" },
                 },
-                classes = new Dictionary<string, NeoSchemaClass>(),
+                classes = new Dictionary<string, NeoSchemaClass>
+                {
+                    ["tile-base"] = new NeoSchemaClass { id = "tile-base", Modifier = NeoClassModifierKind.Abstract, system = JObject.FromObject(new { worldKind = "tile" }) },
+                    ["tile-class"] = new NeoSchemaClass { id = "tile-class", extendsClassId = "tile-base" },
+                    ["sparse-tile"] = new NeoSchemaClass { id = "sparse-tile", extendsClassId = "tile-class" },
+                    ["placement-tile"] = new NeoSchemaClass { id = "placement-tile", extendsClassId = "tile-base", system = JObject.FromObject(new { worldKind = "placementTile" }) },
+                    ["unused-tile"] = new NeoSchemaClass { id = "unused-tile", extendsClassId = "tile-base" },
+                    ["generic-tile"] = new NeoSchemaClass { id = "generic-tile", extendsClassId = "tile-base", genericParams = new List<GenericParamDeclaration> { new() } },
+                    ["object-class"] = new NeoSchemaClass { id = "object-class", system = JObject.FromObject(new { worldKind = "object" }) },
+                },
             };
+            ((ObjectMemberValue)projectData.values["sparse"]).value = null;
 
-            CollectionAssert.AreEqual(
-                new[] { "tile-class" },
-                NeoComposePostSynchronizeProcessor
-                    .EnumerateReferencedTileClassIds(projectData)
-                    .ToArray());
-            CollectionAssert.AreEqual(
-                new[] { "tile-override-value" },
-                NeoComposePostSynchronizeProcessor
-                    .EnumerateReferencedTileAssetValueIds(projectData)
-                    .ToArray());
+            CollectionAssert.AreEquivalent(
+                new[] { "tile-class", "sparse-tile", "placement-tile", "unused-tile" },
+                NeoComposePostSynchronizeProcessor.EnumerateTileClassIds(projectData).ToArray());
         }
 
-        private static ObjectMemberValue ClassBackedPlacement(
-            string assetClassId,
-            string? assetValueId,
-            string positionKey)
+        private static ObjectMemberValue RawTilePlacement(string id, string classId) => new()
         {
-            var value = new Dictionary<string, string>
+            id = id,
+            classId = classId,
+            containerId = "layer-items",
+            value = new Dictionary<string, string> { ["Cell"] = "position-value" },
+        };
+
+        [Test]
+        public void PostSynchronizeProcessor_GeneratesOneAssetPerRawTileClassAndPreservesItsUnityReference()
+        {
+            const string classId = "post-sync-raw-tile-test";
+            const string tilePath = "Assets/Neo/Generated/Tiles/" + classId + ".asset";
+            const string legacyPath = "Assets/Neo/Generated/Tiles/post-sync-legacy-value-test.asset";
+            string databasePath = TempRoot + "/TileAssets.asset";
+            var data = JsonConvert.DeserializeObject<ProjectData>(File.ReadAllText(
+                "Packages/com.ryanbliss.neocompose/Tests/synth-example.json"))!;
+            data.classes[classId] = new NeoSchemaClass
             {
-                ["assetClassId"] = assetClassId,
-                [positionKey] = "position-value",
+                id = classId,
+                projectId = data.project.id,
+                name = "PostSyncTile",
+                schema = new Dictionary<string, string>(),
+                system = JObject.FromObject(new { worldKind = "tile" }),
             };
-            if (assetValueId != null) value["assetValueId"] = assetValueId;
-            return new ObjectMemberValue
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var texture = new Texture2D(1, 1);
+            var sprite = Sprite.Create(texture, new Rect(0, 0, 1, 1), Vector2.zero);
+            var database = ScriptableObject.CreateInstance<NeoAssetDatabase>();
+            bool hasSprite = true;
+            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
             {
-                id = $"placement-{assetClassId}-{assetValueId ?? "default"}",
-                classId = "placement-class",
-                containerId = "layer-items",
-                value = value,
+                [classId] = (owner, node) => new PostSyncTile(owner, node, classId, hasSprite ? sprite : null),
             };
+            try
+            {
+                if (!AssetDatabase.IsValidFolder(TempRoot))
+                    AssetDatabase.CreateFolder("Assets", "NeoComposeEditorTestsTemp");
+                AssetDatabase.CreateAsset(database, databasePath);
+                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories);
+                var original = database.TryGetTileBaseForClass(classId);
+                Assert.IsNotNull(original);
+                Assert.AreEqual(1, database.TileAssets.Count);
+                string guid = AssetDatabase.AssetPathToGUID(tilePath);
+
+                // A prior per-value entry can share the same class ID. Sync must
+                // discard that mapping/file while retaining the canonical asset.
+                var legacy = ScriptableObject.CreateInstance<UnityEngine.Tilemaps.Tile>();
+                AssetDatabase.CreateAsset(legacy, legacyPath);
+                database.SetTileClassAsset(classId, legacyPath, "legacy", legacy);
+                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories);
+                Assert.AreEqual(1, database.TileAssets.Count);
+                Assert.AreSame(original, database.TryGetTileBaseForClass(classId));
+                Assert.AreEqual(guid, AssetDatabase.AssetPathToGUID(tilePath));
+                Assert.IsNull(AssetDatabase.LoadAssetAtPath<UnityEngine.Tilemaps.TileBase>(legacyPath));
+
+                hasSprite = false;
+                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories);
+                Assert.AreEqual(0, database.TileAssets.Count);
+                Assert.IsNull(AssetDatabase.LoadAssetAtPath<UnityEngine.Tilemaps.TileBase>(tilePath));
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(tilePath);
+                AssetDatabase.DeleteAsset(legacyPath);
+                UnityEngine.Object.DestroyImmediate(sprite);
+                UnityEngine.Object.DestroyImmediate(texture);
+            }
+        }
+
+        private sealed class PostSyncTile : NeoGeneratedClassValue
+        {
+            public PostSyncTile(NeoClient client, NeoMemberClass node, string classId, Sprite? sprite) : base(client, node, classId)
+            {
+                Sprite = sprite;
+            }
+            public Sprite? Sprite { get; }
         }
 
         private sealed class TestPayloadProvider : INeoValuePayloadProvider

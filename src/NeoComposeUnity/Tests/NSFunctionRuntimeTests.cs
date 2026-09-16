@@ -116,7 +116,7 @@ namespace NeoCompose.Tests
                 'returnTypeInfo':{'type':21,'required':true,'ownerClassId':'track','genericParamId':'child'},
                 'argumentTypes':[{'name':'amount','type':2,'required':true}],
                 'defaultValue':{'value':{'code':'amount => amount','action':{
-                    'compilerRevision':14,
+                    'compilerRevision':15,
                     'parameters':[
                         {'id':'__this__','typeInfo':{'type':7,'required':true,'classId':'receiver-class'},'pointer':{'type':'variable','variableId':'__this__'}},
                         {'id':'__root__','typeInfo':{'type':7,'required':true,'classId':'root-class'},'pointer':{'type':'variable','variableId':'__root__'}},
@@ -132,7 +132,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(25, (int)member.kind);
             Assert.IsInstanceOf<GenericTypeInfo>(member.returnTypeInfo);
             Assert.AreEqual("amount", member.argumentTypes[0].name);
-            Assert.AreEqual(14, member.defaultValue!.value!.action!.compilerRevision);
+            Assert.AreEqual(15, member.defaultValue!.value!.action!.compilerRevision);
 
             const string callJson = @"{
                 'type':'functionCall','call':{

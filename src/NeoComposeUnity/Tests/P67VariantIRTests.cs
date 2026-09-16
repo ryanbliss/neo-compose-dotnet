@@ -138,6 +138,28 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void VariantApplyRejectsFailedReplayWithoutPublishingItsClosureWrites()
+        {
+            ProjectData data = BuildVariantProjectData();
+            data.values["value-up-initialize"] = Closure("value-up-initialize",
+                Return(ClassConstructorPointer("missing-variant-class")));
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            string targetId = NewSessionInstance(client);
+            string beforeSession = Newtonsoft.Json.JsonConvert.SerializeObject(client.sessionValues);
+            string beforeSave = client.SerializeSaveData();
+            int changes = 0;
+            client.OnWritableValueChanged += (_, __) => changes++;
+
+            Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantApplyPointer(Reference(targetId),
+                    VariantRef(WidgetClassId, "variant-up")))), Context(client)));
+
+            Assert.AreEqual(beforeSession, Newtonsoft.Json.JsonConvert.SerializeObject(client.sessionValues));
+            Assert.AreEqual(beforeSave, client.SerializeSaveData());
+            Assert.AreEqual(0, changes);
+        }
+
+        [Test]
         public void VariantApply_ResultsPinAndRepeatedSwapsDoNotGrowTheSession()
         {
             NeoClient client = LoadClient();
@@ -656,9 +678,9 @@ namespace NeoCompose.Tests
         // -------------------------------------------------------------------
 
         [Test]
-        public void CompilerRevision_CurrentIsFourteen()
+        public void CompilerRevision_CurrentIsFifteen()
         {
-            Assert.AreEqual(14, FunctionWithReturnType.CurrentCompilerRevision);
+            Assert.AreEqual(15, FunctionWithReturnType.CurrentCompilerRevision);
         }
 
         [Test]

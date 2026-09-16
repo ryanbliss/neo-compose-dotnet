@@ -49,6 +49,7 @@ namespace NeoCompose.Runtime
             if (valueReference is not NeoGeneratedClassValue generated) return;
             if (generated.IsReadOnly) return;
             if (member is not ClassMember classMember) return;
+            if (client.DeferVariantAliasRetarget(generated, classMember, valueId, ownership)) return;
             generated.RetargetWritableReference(classMember, valueId, ownership);
         }
     }

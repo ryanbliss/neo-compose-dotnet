@@ -231,15 +231,15 @@ namespace HelloWorld.Assets.Tests
 
                 // The link's own grid-space query matches what it projects
                 // onto the Collisions layer.
-                var blockerCells = blocked!.GetTiles()
-                    .Select(tile => tile.Cell)
+                var blockerCells = blocked!.GetTiles<NeoTile>()
+                    .Select(tile => (Vector2Int)tile.Cell)
                     .ToArray();
                 Assert.Greater(blockerCells.Length, 0);
                 foreach (var cell in blockerCells)
                 {
                     Assert.AreEqual(
-                        blocked.valueId,
-                        content.Collisions.GetTile(cell)?.SourceTileLayerLinkId);
+                        blocked.GetTile(cell)?.valueId,
+                        content.Collisions.GetTile(cell)?.valueId);
                 }
 
                 SetLandingPlayerCell(
@@ -295,8 +295,8 @@ namespace HelloWorld.Assets.Tests
                 yield return WaitForLandingSceneLoad(landing);
 
                 var content = neo.Assets.Worlds.OldConsoleLanding.Content;
-                var bootGlyphCell = content.Background.GetTiles()
-                    .First(tile => tile.Info is BootGlyphTile)
+                var bootGlyphCell = content.Background.GetTiles<NeoTile>()
+                    .First(tile => tile is BootGlyphTile)
                     .Cell;
                 SetLandingPlayerCell(landing, bootGlyphCell);
                 InvokeLandingUpdatePrompt(landing);
@@ -307,7 +307,7 @@ namespace HelloWorld.Assets.Tests
 
                 Assert.IsTrue(triggered);
                 Assert.IsInstanceOf<BootGlyphTile>(
-                    content.Background.GetTile(bootGlyphCell)?.Info);
+                    content.Background.GetTile(bootGlyphCell));
             }
             finally
             {
@@ -422,9 +422,9 @@ namespace HelloWorld.Assets.Tests
             IReadOnlyCollection<Vector2Int> targetCells)
         {
             var collisionCells = new HashSet<Vector2Int>(
-                content.Collisions.GetTiles().Select(tile => tile.Cell));
+                content.Collisions.GetTiles<NeoTile>().Select(tile => (Vector2Int)tile.Cell));
 
-            foreach (var cell in content.Background.GetTiles().Select(tile => tile.Cell))
+            foreach (var cell in content.Background.GetTiles<NeoTile>().Select(tile => (Vector2Int)tile.Cell))
             {
                 if (collisionCells.Contains(cell)) continue;
                 if (targetCells.Any(target => Mathf.Abs(target.x - cell.x) + Mathf.Abs(target.y - cell.y) <= 1))
@@ -462,12 +462,29 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
+        public async System.Threading.Tasks.Task FirstDialogueMemoryWritePreservesItsStoredIdentity()
+        {
+            var neo = await LoadedClient();
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            var memory = neo.Save.NeoMemory.GetOrCreateDialogueMemory("3e45ea6f-e8ad-4fcf-938d-808b36cf92ae");
+            TestContext.WriteLine($"FIRST_DIALOGUE_MEMORY_WRITE elapsedMs={clock.Elapsed.TotalMilliseconds:F3}");
+            Assert.AreEqual(0, memory.VisitCount);
+            memory.VisitCount = 1;
+            var retained = neo.Save.NeoMemory.GetOrCreateDialogueMemory("3e45ea6f-e8ad-4fcf-938d-808b36cf92ae");
+            Assert.AreEqual(1, retained.VisitCount);
+            Assert.AreEqual(((INeoValueReference)memory).valueId, ((INeoValueReference)retained).valueId);
+        }
+
+        [Test]
         public async System.Threading.Tasks.Task EveryIntroDialogue_PlaysEveryFirstPathWithoutActionErrors()
         {
             // Field repro harness: walk each outpost's intro start-to-finish,
             // always choosing the FIRST selectable option, and fail on any
             // dialogue action error (the class of crash dryrun can't see).
+            var clock = System.Diagnostics.Stopwatch.StartNew();
             var neo = (await LoadedClient());
+            TestContext.WriteLine($"INTRO_LOAD elapsedMs={clock.Elapsed.TotalMilliseconds:F3}");
+            clock.Restart();
             foreach (var outpost in neo.Assets.Outposts) outpost.Save.Unlocked = true;
             var triggeredCount = 0;
 
@@ -481,6 +498,7 @@ namespace HelloWorld.Assets.Tests
                 WalkDialogue(dialogue, outpost.Name, preferFirstOption: true);
             }
             Assert.Greater(triggeredCount, 0, "The sample should expose at least one intro dialogue.");
+            TestContext.WriteLine($"INTRO_INTERACTIONS elapsedMs={clock.Elapsed.TotalMilliseconds:F3}");
         }
 
         [Test]

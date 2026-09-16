@@ -1,0 +1,29 @@
+describe("Raw tile placements", () => {
+  test("gives occupancy-only cells an explicit tile class", () => {
+    NeoTile tile = new NeoPlacementTile();
+
+    expect(tile is NeoPlacementTile).toBe(true);
+    expect(tile.Cell.x).toBe(0);
+    expect(tile.Cell.y).toBe(0);
+  });
+
+  test("preserves migrated object footprint coordinates", () => {
+    var obj = new ExitPromptObject987403();
+    var tiles = obj.PlacementTiles;
+
+    expect(tiles.Count).toBe(2);
+    expect(tiles[0] is NeoPlacementTile).toBe(true);
+    expect(tiles[1] is NeoPlacementTile).toBe(true);
+    expect(tiles[0].Cell.x).toBe(0);
+    expect(tiles[1].Cell.x).toBe(1);
+  });
+
+  test("converts a tile while retaining its cell", () => {
+    NeoTile tile = new NeoPlacementTile { Cell = new(4, 5) };
+
+    expect(tile.TryConvert<GlassFloorTile>()).toBe(true);
+    expect(tile is GlassFloorTile).toBe(true);
+    expect(tile.Cell.x).toBe(4);
+    expect(tile.Cell.y).toBe(5);
+  });
+});

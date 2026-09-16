@@ -36,6 +36,7 @@ namespace NeoCompose.Runtime.Json
         public const string ToBool = "toBool";
         public const string Stringify = "stringify";
         public const string CallFunction = "callFunction";
+        public const string TileConvert = "tileConvert";
         public const string CallDelegate = "callDelegate";
         /// <summary>
         /// P62 §3.1 — fires every listener of an NSAction value in stored
@@ -407,9 +408,10 @@ namespace NeoCompose.Runtime.Json
         /// pointers; revision 12 adds the lazy <c>conditional</c> pointer and
         /// explicit captured <c>delegateClosure</c> values and dynamic generic
         /// <c>Equals</c> fallback dispatch; revision 13 adds the list
-        /// <c>indexOf</c> intrinsic and predicate-bearing <c>count</c> shape.
+        /// <c>indexOf</c> intrinsic and predicate-bearing <c>count</c> shape;
+        /// revision 15 adds the <c>tileConvert</c> pointer.
         /// </summary>
-        public const int CurrentCompilerRevision = 14;
+        public const int CurrentCompilerRevision = 15;
 
         /// <summary>
         /// Required on every body this runtime executes: it must equal

@@ -95,7 +95,7 @@ namespace NeoCompose.Runtime
         internal void Initialize(
             NeoTileGridRenderer renderer,
             IReadOnlyNeoObjectLayerRuntime layer,
-            NeoResolvedObjectInstance instance)
+            NeoObjectProjection instance)
         {
             if (isInitialized)
             {

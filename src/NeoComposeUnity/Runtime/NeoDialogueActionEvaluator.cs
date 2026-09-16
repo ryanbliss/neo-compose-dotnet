@@ -2108,6 +2108,23 @@ namespace NeoCompose.Runtime
                 return;
             }
 
+            if (instruction.target.pointer is StaticMemberPointer staticMember)
+            {
+                var binding = new NeoStaticBinding(client, staticMember.memberId,
+                    TargetOwnership(client, instruction.target, scope, ctx));
+                if (binding.ValueId is null)
+                {
+                    PrepareWrite(client, plan =>
+                    {
+                        object initialValue = instruction.target.typeInfo.type == MemberKind.Dictionary
+                            ? new Dictionary<string, string>() : Array.Empty<string>();
+                        binding.PreparePayload(plan, initialValue);
+                        ResolveCollectionTarget(client, instruction.target, scope, ctx, plan)
+                            .Mutate(client, instruction.mutation, args, ctx);
+                    });
+                    return;
+                }
+            }
             var target = ResolveCollectionTarget(client, instruction.target, scope, ctx);
             target.Mutate(client, instruction.mutation, args, ctx);
         }
@@ -2522,7 +2539,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             WriteTarget target,
             NeoScriptScope scope,
-            NSGetterEvaluator.Context ctx)
+            NSGetterEvaluator.Context ctx, NeoWritePlan? preparedPlan = null)
         {
             NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx);
             string? rowId;
@@ -2534,13 +2551,6 @@ namespace NeoCompose.Runtime
                     client,
                     staticMember.memberId,
                     ownership);
-                if (binding.ValueId is null)
-                {
-                    object initialValue = target.typeInfo.type == MemberKind.Dictionary
-                        ? new Dictionary<string, string>()
-                        : System.Array.Empty<string>();
-                    binding.SetValue(NeoValueWritePayload.FromValue(initialValue));
-                }
                 rowId = binding.ValueId;
             }
             else if (target.typeInfo is LookupTypeInfo && target.pointer is KeyOfPointer lookupKeyOf)
@@ -2627,7 +2637,7 @@ namespace NeoCompose.Runtime
                     || !client.TryGetValueOwnership(rowId, out NeoValueOwnership currentOwnership)
                     || currentOwnership != ownership)
                     throw new NSGetterRuntimeError($"Cannot mutate value '{rowId}' because it is not {ownership.ToString().ToLowerInvariant()}-owned.");
-                return new NeoUnorderedListWriteTarget(rowId, listMember, ownership);
+                return new NeoUnorderedListWriteTarget(rowId, listMember, ownership, preparedPlan);
             }
             rowId = EnsureWritableRow(client, rowId, ownership);
             if (!client.TryGetValue(ownership, rowId, out MemberValue? row))
@@ -2638,13 +2648,13 @@ namespace NeoCompose.Runtime
             {
                 if (target.typeInfo is LookupTypeInfo lookupTypeInfo)
                 {
-                    return new NeoLookupSetWriteTarget(rowId, lookupTypeInfo, ownership);
+                    return new NeoLookupSetWriteTarget(rowId, lookupTypeInfo, ownership, preparedPlan);
                 }
-                return new NeoListWriteTarget(rowId, EntryTypeInfo(target.typeInfo), ownership);
+                return new NeoListWriteTarget(rowId, EntryTypeInfo(target.typeInfo), ownership, preparedPlan);
             }
             if (row is ObjectMemberValue)
             {
-                return new NeoDictionaryWriteTarget(rowId, EntryTypeInfo(target.typeInfo), ownership);
+                return new NeoDictionaryWriteTarget(rowId, EntryTypeInfo(target.typeInfo), ownership, preparedPlan);
             }
             throw new NSGetterRuntimeError("Collection mutation target must be a list or dictionary.");
         }
@@ -2812,14 +2822,11 @@ namespace NeoCompose.Runtime
 
         private static string EnsureWritableRow(NeoClient client, string rowId, NeoValueOwnership ownership)
         {
-            // Stable-id clone-on-write: shadow the single row at its own id
-            // in the target store (no path walking — the parent already
-            // references this id). The row must be reachable from the target
-            // writable root; otherwise it isn't mutable in that store.
+            // Resolve targets without publishing a shadow. The write plan
+            // clones the row only when preparing the mutation.
             if (ownership == NeoValueOwnership.Asset
                 || !client.TryGetValueOwnership(rowId, out NeoValueOwnership currentOwnership)
-                || currentOwnership != ownership
-                || !client.EnsureWritableShadow(ownership, rowId))
+                || currentOwnership != ownership)
             {
                 throw new NSGetterRuntimeError(
                     $"Cannot mutate value '{rowId}' because it is not {ownership.ToString().ToLowerInvariant()}-owned.");
@@ -3059,6 +3066,7 @@ namespace NeoCompose.Runtime
         }
 
         private static MemberValue CreateValueRow(
+            NeoWritePlan plan,
             NeoClient client,
             NeoValueOwnership ownership,
             JsonMember member,
@@ -3070,7 +3078,7 @@ namespace NeoCompose.Runtime
             var payload = value is INeoValuePayloadProvider provider
                 ? provider.ToNeoValuePayload()
                 : value;
-            client.SetWritablePayloadRows(ownership, payload);
+            client.StageWritablePayloadRows(plan, ownership, payload);
             return MemberValueFactory.Create(
                 member,
                 payload,
@@ -3338,14 +3346,47 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx);
         }
 
-        private static void StoreWritableRow(
-            NeoClient client,
-            NeoValueOwnership ownership,
-            MemberValue row,
-            NSGetterEvaluator.Context ctx)
+        private static void PrepareWrite(NeoClient client, Action<NeoWritePlan> prepare, NeoWritePlan? preparedPlan = null)
         {
-            client.SetWritableValue(ownership, row);
-            NSGetterEvaluator.RefreshCachedRowAfterWrite(row, ctx, ownership);
+            var plan = preparedPlan ?? new NeoWritePlan(client);
+            using (client.ReadCandidate(plan)) prepare(plan);
+            if (preparedPlan is null && (plan.Rows.Count != 0 || plan.Bindings.Count != 0)) plan.Commit();
+        }
+
+        private static string PrepareWritableRow(NeoWritePlan plan, NeoClient client,
+            string rowId, NeoValueOwnership ownership)
+        {
+            EnsureWritableRow(client, rowId, ownership);
+            if (!plan.TryGet(ownership, rowId, out MemberValue? row))
+                throw new NSGetterRuntimeError($"Missing target row '{rowId}'.");
+            plan.Set(ownership, client.CloneRowForWrite(row), silent: true);
+            return rowId;
+        }
+
+        private static void StoreWritableRow(NeoWritePlan plan, NeoClient client,
+            NeoValueOwnership ownership, MemberValue row, NSGetterEvaluator.Context ctx)
+        {
+            plan.Set(ownership, row);
+            plan.AfterCommit(() => NSGetterEvaluator.RefreshCachedRowAfterWrite(row, ctx, ownership));
+        }
+
+        internal static string ImportClassValueReference(NeoWritePlan plan, NeoClient client,
+            NeoValueOwnership ownership, string sourceValueId, NSGetterEvaluator.Context ctx,
+            string? currentDestinationValueId = null)
+        {
+            try
+            {
+                bool hadSourceOwnership = plan.TryGetOwnership(sourceValueId, out NeoValueOwnership sourceOwnership);
+                string importedId = client.ImportValueReference(plan, ownership, sourceValueId,
+                    out bool moved, currentDestinationValueId);
+                if (moved && hadSourceOwnership)
+                    plan.AfterCommit(() => NSGetterEvaluator.RetargetCachedRowsAfterMove(ctx, sourceOwnership, ownership));
+                return importedId;
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new NSGetterRuntimeError(ex.Message);
+            }
         }
 
         private sealed class NeoRowWriteTarget : NeoResolvedWriteTarget
@@ -3378,21 +3419,24 @@ namespace NeoCompose.Runtime
                 object? value,
                 NSGetterEvaluator.Context ctx)
             {
-                string writableRowId = EnsureWritableRow(client, rowId, ownership);
-                if (!client.TryGetValue(ownership, writableRowId, out MemberValue? existing))
+                PrepareWrite(client, plan =>
                 {
-                    throw new NSGetterRuntimeError($"Missing target row '{writableRowId}'.");
-                }
-                var next = CreateValueRow(
-                    client,
-                    ownership,
-                    MemberFromTypeInfo(typeInfo),
-                    value,
-                    writableRowId,
-                    existing.createdAt,
-                    DateTime.UtcNow.ToString("o"));
-                next.classId = existing.classId;
-                StoreWritableRow(client, ownership, next, ctx);
+                    string writableRowId = PrepareWritableRow(plan, client, rowId, ownership);
+                    if (!client.TryGetValue(ownership, writableRowId, out MemberValue? existing))
+                    {
+                        throw new NSGetterRuntimeError($"Missing target row '{writableRowId}'.");
+                    }
+                    var next = CreateValueRow(
+                        plan, client,
+                        ownership,
+                        MemberFromTypeInfo(typeInfo),
+                        value,
+                        writableRowId,
+                        existing.createdAt,
+                        DateTime.UtcNow.ToString("o"));
+                    next.classId = existing.classId;
+                    StoreWritableRow(plan, client, ownership, next, ctx);
+                });
             }
         }
 
@@ -3569,98 +3613,100 @@ namespace NeoCompose.Runtime
                 object? value,
                 NSGetterEvaluator.Context ctx)
             {
-                string writableParentRowId = EnsureWritableRow(client, parentRowId, ownership);
-                if (!client.TryGetValue(ownership, writableParentRowId, out ObjectMemberValue? parent))
+                PrepareWrite(client, plan =>
                 {
-                    throw new NSGetterRuntimeError($"Missing parent row '{writableParentRowId}'.");
-                }
-                parent.value ??= new Dictionary<string, string>();
-                value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx);
-                var now = DateTime.UtcNow.ToString("o");
-                // Reusing the entry's stable id below clone-on-writes it
-                // (a fresh row at the same id shadows the authored default),
-                // so no path pre-materialization is needed. On a P75 sparse
-                // root that stable id is the deterministic virtual child id:
-                // writing there materializes the one member being changed and
-                // leaves the rest of the root omitted, which is exactly the
-                // "every value is its own instance, changing one materializes
-                // that one" contract the web already implements.
-                if (TryResolveBoundChild(
-                        client,
-                        writableParentRowId,
-                        parent,
-                        out string existingId,
-                        out MemberValue? existing)
-                    && existing is not null)
-                {
-                    if (TryGetClassValueReferenceId(
-                            value,
-                            MemberKindInfo(member),
-                            ctx,
-                            out string? referenceId))
+                    string writableParentRowId = PrepareWritableRow(plan, client, parentRowId, ownership);
+                    if (!client.TryGetValue(ownership, writableParentRowId, out ObjectMemberValue? parent))
                     {
-                        string importedId = ImportClassValueReference(
-                            client,
-                            ownership,
-                            referenceId!,
-                            ctx,
-                            existingId);
-                        if (importedId == existingId) return;
-                        parent.value[key] = importedId;
-                        ctx.allocationTracker.RegisterConstructedParent(
-                            importedId,
-                            writableParentRowId);
-                        parent.updatedAt = now;
-                        StoreWritableRow(client, ownership, parent, ctx);
-                        client.RemoveWritableValueAndDescendantsIfUnlinked(
-                            ownership, existingId, member);
-                        return;
+                        throw new NSGetterRuntimeError($"Missing parent row '{writableParentRowId}'.");
                     }
-                    if (member is ListMember listMember && client.IsUnorderedList(listMember))
+                    parent.value ??= new Dictionary<string, string>();
+                    value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan);
+                    var now = DateTime.UtcNow.ToString("o");
+                    // Reusing the entry's stable id below clone-on-writes it
+                    // (a fresh row at the same id shadows the authored default),
+                    // so no path pre-materialization is needed. On a P75 sparse
+                    // root that stable id is the deterministic virtual child id:
+                    // writing there materializes the one member being changed and
+                    // leaves the rest of the root omitted, which is exactly the
+                    // "every value is its own instance, changing one materializes
+                    // that one" contract the web already implements.
+                    if (TryResolveBoundChild(
+                            client,
+                            writableParentRowId,
+                            parent,
+                            out string existingId,
+                            out MemberValue? existing)
+                        && existing is not null)
                     {
-                        object? payload = value is INeoValuePayloadProvider provider
-                            ? provider.ToNeoValuePayload() : value;
-                        client.SetWritablePayloadRows(ownership, payload);
-                        var list = (NeoMemberListWritable)NeoMember.CreateWritable(
-                            client, listMember, existingId, ownership);
-                        list.AssignSerialized(NeoValueWritePayload.FromValue(
-                            payload is NeoValuePayload wrapped ? wrapped.value : payload));
-                        NSGetterEvaluator.InvalidateCachedCollection(existingId, ownership, ctx);
+                        if (TryGetClassValueReferenceId(
+                                value,
+                                MemberKindInfo(member),
+                                ctx,
+                                out string? referenceId))
+                        {
+                            string importedId = ImportClassValueReference(
+                                plan, client,
+                                ownership,
+                                referenceId!,
+                                ctx,
+                                existingId);
+                            if (importedId == existingId) return;
+                            parent.value[key] = importedId;
+                            plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
+                                importedId,
+                                writableParentRowId));
+                            parent.updatedAt = now;
+                            StoreWritableRow(plan, client, ownership, parent, ctx);
+                            client.StageUnlinkedRemovals(plan, ownership, new[] { existingId }, member);
+                            return;
+                        }
+                        if (member is ListMember listMember && client.IsUnorderedList(listMember))
+                        {
+                            object? payload = value is INeoValuePayloadProvider provider
+                                ? provider.ToNeoValuePayload() : value;
+                            client.StageWritablePayloadRows(plan, ownership, payload);
+                            var list = (NeoMemberListWritable)NeoMember.CreateWritable(
+                                client, listMember, existingId, ownership);
+                            list.PrepareAssignSerialized(plan, NeoValueWritePayload.FromValue(
+                                payload is NeoValuePayload wrapped ? wrapped.value : payload));
+                            plan.AfterCommit(() => NSGetterEvaluator.InvalidateCachedCollection(existingId, ownership, ctx));
+                        }
+                        else
+                        {
+                            var next = CreateValueRow(plan, client, ownership, member, value, existingId, existing.createdAt, now);
+                            next.classId = existing.classId;
+                            StoreWritableRow(plan, client, ownership, next, ctx);
+                        }
                     }
                     else
                     {
-                        var next = CreateValueRow(client, ownership, member, value, existingId, existing.createdAt, now);
-                        next.classId = existing.classId;
-                        StoreWritableRow(client, ownership, next, ctx);
+                        if (TryGetClassValueReferenceId(
+                                value,
+                                MemberKindInfo(member),
+                                ctx,
+                                out string? referenceId))
+                        {
+                            parent.value[key] = ImportClassValueReference(
+                                plan, client,
+                                ownership,
+                                referenceId!,
+                                ctx);
+                            plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
+                                parent.value[key],
+                                writableParentRowId));
+                            parent.updatedAt = now;
+                            StoreWritableRow(plan, client, ownership, parent, ctx);
+                            return;
+                        }
+                        var childId = Guid.NewGuid().ToString();
+                        var next = CreateValueRow(plan, client, ownership, member, value, childId, now, now);
+                        StoreWritableRow(plan, client, ownership, next, ctx);
+                        parent.value[key] = childId;
                     }
-                }
-                else
-                {
-                    if (TryGetClassValueReferenceId(
-                            value,
-                            MemberKindInfo(member),
-                            ctx,
-                            out string? referenceId))
-                    {
-                        parent.value[key] = ImportClassValueReference(
-                            client,
-                            ownership,
-                            referenceId!,
-                            ctx);
-                        ctx.allocationTracker.RegisterConstructedParent(
-                            parent.value[key],
-                            writableParentRowId);
-                        parent.updatedAt = now;
-                        StoreWritableRow(client, ownership, parent, ctx);
-                        return;
-                    }
-                    var childId = Guid.NewGuid().ToString();
-                    var next = CreateValueRow(client, ownership, member, value, childId, now, now);
-                    StoreWritableRow(client, ownership, next, ctx);
-                    parent.value[key] = childId;
-                }
-                parent.updatedAt = now;
-                StoreWritableRow(client, ownership, parent, ctx);
+                    parent.updatedAt = now;
+                    StoreWritableRow(plan, client, ownership, parent, ctx);
+                });
             }
         }
 
@@ -3730,14 +3776,17 @@ namespace NeoCompose.Runtime
                 object? value,
                 NSGetterEvaluator.Context ctx)
             {
-                string writableRowId = EnsureWritableRow(client, rowId, ownership);
-                if (!client.TryGetValue(ownership, writableRowId, out MemberValue? row))
+                PrepareWrite(client, plan =>
                 {
-                    throw new NSGetterRuntimeError($"Missing target row '{writableRowId}'.");
-                }
-                ApplyField(row, value);
-                row.updatedAt = DateTime.UtcNow.ToString("o");
-                StoreWritableRow(client, ownership, row, ctx);
+                    string writableRowId = PrepareWritableRow(plan, client, rowId, ownership);
+                    if (!client.TryGetValue(ownership, writableRowId, out MemberValue? row))
+                    {
+                        throw new NSGetterRuntimeError($"Missing target row '{writableRowId}'.");
+                    }
+                    ApplyField(row, value);
+                    row.updatedAt = DateTime.UtcNow.ToString("o");
+                    StoreWritableRow(plan, client, ownership, row, ctx);
+                });
             }
 
             private object? ReadField(MemberValue row)
@@ -4071,52 +4120,54 @@ namespace NeoCompose.Runtime
                 object? value,
                 NSGetterEvaluator.Context ctx)
             {
-                EnsureWritableRow(client, parentRowId, ownership);
-                if (!client.TryGetValue(parentRowId, out ArrayMemberValue? parent)
-                    || parent.value == null
-                    || index < 0
-                    || index >= parent.value.Length)
+                PrepareWrite(client, plan =>
                 {
-                    throw new NSGetterRuntimeError($"List index out of bounds: {index}");
-                }
-                var childId = parent.value[index];
-                if (TryGetClassValueReferenceId(
-                        value,
-                        typeInfo,
-                        ctx,
-                        out string? referenceId))
-                {
-                    string importedId = ImportClassValueReference(
-                        client,
+                    PrepareWritableRow(plan, client, parentRowId, ownership);
+                    if (!client.TryGetValue(parentRowId, out ArrayMemberValue? parent)
+                        || parent.value == null
+                        || index < 0
+                        || index >= parent.value.Length)
+                    {
+                        throw new NSGetterRuntimeError($"List index out of bounds: {index}");
+                    }
+                    var childId = parent.value[index];
+                    if (TryGetClassValueReferenceId(
+                            value,
+                            typeInfo,
+                            ctx,
+                            out string? referenceId))
+                    {
+                        string importedId = ImportClassValueReference(
+                            plan, client,
+                            ownership,
+                            referenceId!,
+                            ctx,
+                            childId);
+                        if (importedId == childId) return;
+                        parent.value[index] = importedId;
+                        plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
+                            importedId,
+                            parentRowId));
+                        parent.updatedAt = DateTime.UtcNow.ToString("o");
+                        StoreWritableRow(plan, client, ownership, parent, ctx);
+                        client.StageUnlinkedRemovals(plan, ownership, new[] { childId }, MemberFromTypeInfo(typeInfo));
+                        return;
+                    }
+                    if (!client.TryGetValue(childId, out MemberValue? existing))
+                    {
+                        throw new NSGetterRuntimeError($"Missing list child row '{childId}'.");
+                    }
+                    var next = CreateValueRow(
+                        plan, client,
                         ownership,
-                        referenceId!,
-                        ctx,
-                        childId);
-                    if (importedId == childId) return;
-                    parent.value[index] = importedId;
-                    ctx.allocationTracker.RegisterConstructedParent(
-                        importedId,
-                        parentRowId);
-                    parent.updatedAt = DateTime.UtcNow.ToString("o");
-                    StoreWritableRow(client, ownership, parent, ctx);
-                    client.RemoveWritableValueAndDescendantsIfUnlinked(
-                        ownership, childId, MemberFromTypeInfo(typeInfo));
-                    return;
-                }
-                if (!client.TryGetValue(childId, out MemberValue? existing))
-                {
-                    throw new NSGetterRuntimeError($"Missing list child row '{childId}'.");
-                }
-                var next = CreateValueRow(
-                    client,
-                    ownership,
-                    MemberFromTypeInfo(typeInfo),
-                    value,
-                    childId,
-                    existing.createdAt,
-                    DateTime.UtcNow.ToString("o"));
-                next.classId = existing.classId;
-                StoreWritableRow(client, ownership, next, ctx);
+                        MemberFromTypeInfo(typeInfo),
+                        value,
+                        childId,
+                        existing.createdAt,
+                        DateTime.UtcNow.ToString("o"));
+                    next.classId = existing.classId;
+                    StoreWritableRow(plan, client, ownership, next, ctx);
+                });
             }
         }
 
@@ -4131,12 +4182,14 @@ namespace NeoCompose.Runtime
 
         private sealed class NeoUnorderedListWriteTarget : NeoResolvedCollectionTarget
         {
+            private readonly NeoWritePlan? preparedPlan;
             private readonly string rowId;
             private readonly ListMember member;
             private readonly NeoValueOwnership ownership;
 
-            public NeoUnorderedListWriteTarget(string rowId, ListMember member, NeoValueOwnership ownership)
+            public NeoUnorderedListWriteTarget(string rowId, ListMember member, NeoValueOwnership ownership, NeoWritePlan? preparedPlan = null)
             {
+                this.preparedPlan = preparedPlan;
                 this.rowId = rowId;
                 this.member = member;
                 this.ownership = ownership;
@@ -4150,18 +4203,23 @@ namespace NeoCompose.Runtime
                 switch (mutation)
                 {
                     case CollectionMutationKind.Add:
-                        if (TryGetClassValueReferenceId(args[0], entryType, ctx, out string? referenceId))
+                        PrepareWrite(client, plan =>
                         {
-                            string importedId = ImportClassValueReference(client, ownership, referenceId!, ctx);
-                            list.AddSerialized(NeoValueWritePayload.FromValueReference(importedId, null));
-                            ctx.allocationTracker.RegisterConstructedParent(importedId, rowId);
-                        }
-                        else
-                        {
-                            object? payload = args[0] is INeoValuePayloadProvider provider
-                                ? provider.ToNeoValuePayload() : args[0];
-                            list.AddSerialized(NeoValueWritePayload.FromValue(payload));
-                        }
+                            NeoValueWritePayload payload;
+                            if (TryGetClassValueReferenceId(args[0], entryType, ctx, out string? referenceId))
+                            {
+                                string importedId = ImportClassValueReference(plan, client, ownership, referenceId!, ctx);
+                                payload = NeoValueWritePayload.FromValueReference(importedId, null);
+                            }
+                            else
+                            {
+                                object? value = args[0] is INeoValuePayloadProvider provider
+                                    ? provider.ToNeoValuePayload() : args[0];
+                                payload = NeoValueWritePayload.FromValue(value);
+                            }
+                            string addedId = list.PrepareAddSerialized(plan, payload);
+                            plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(addedId, rowId));
+                        }, preparedPlan);
                         break;
                     case CollectionMutationKind.Remove:
                         string? removeId = TryGetClassValueReferenceId(args[0], entryType, ctx, out string? id)
@@ -4185,18 +4243,23 @@ namespace NeoCompose.Runtime
                     default:
                         throw new NSGetterRuntimeError($"Unsupported unordered list mutation '{mutation}'.");
                 }
-                NSGetterEvaluator.InvalidateCachedCollection(rowId, ownership, ctx);
+                if (preparedPlan is null)
+                    NSGetterEvaluator.InvalidateCachedCollection(rowId, ownership, ctx);
+                else
+                    preparedPlan.AfterCommit(() => NSGetterEvaluator.InvalidateCachedCollection(rowId, ownership, ctx));
             }
         }
 
         private sealed class NeoListWriteTarget : NeoResolvedCollectionTarget
         {
+            private readonly NeoWritePlan? preparedPlan;
             private readonly string rowId;
             private readonly TypeInfo entryTypeInfo;
             private readonly NeoValueOwnership ownership;
 
-            public NeoListWriteTarget(string rowId, TypeInfo entryTypeInfo, NeoValueOwnership ownership)
+            public NeoListWriteTarget(string rowId, TypeInfo entryTypeInfo, NeoValueOwnership ownership, NeoWritePlan? preparedPlan = null)
             {
+                this.preparedPlan = preparedPlan;
                 this.rowId = rowId;
                 this.entryTypeInfo = entryTypeInfo;
                 this.ownership = ownership;
@@ -4208,112 +4271,112 @@ namespace NeoCompose.Runtime
                 object?[] args,
                 NSGetterEvaluator.Context ctx)
             {
-                EnsureWritableRow(client, rowId, ownership);
-                if (!client.TryGetValue(rowId, out ArrayMemberValue? row))
+                PrepareWrite(client, plan =>
                 {
-                    throw new NSGetterRuntimeError($"Missing list row '{rowId}'.");
-                }
-                row.value ??= Array.Empty<string>();
-                var now = DateTime.UtcNow.ToString("o");
-                switch (mutation)
-                {
-                    case CollectionMutationKind.Add:
+                    PrepareWritableRow(plan, client, rowId, ownership);
+                    if (!client.TryGetValue(rowId, out ArrayMemberValue? row))
                     {
-                        if (TryGetClassValueReferenceId(
+                        throw new NSGetterRuntimeError($"Missing list row '{rowId}'.");
+                    }
+                    row.value ??= Array.Empty<string>();
+                    var now = DateTime.UtcNow.ToString("o");
+                    switch (mutation)
+                    {
+                        case CollectionMutationKind.Add:
+                        {
+                            if (TryGetClassValueReferenceId(
+                                    args[0],
+                                    entryTypeInfo,
+                                    ctx,
+                                    out string? referenceId))
+                            {
+                                var referencedNext = new string[row.value.Length + 1];
+                                Array.Copy(row.value, referencedNext, row.value.Length);
+                                string importedId = ImportClassValueReference(
+                                    plan, client,
+                                    ownership,
+                                    referenceId!,
+                                    ctx);
+                                plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
+                                    importedId,
+                                    rowId));
+                                referencedNext[row.value.Length] = importedId;
+                                row.value = referencedNext;
+                                row.updatedAt = now;
+                                StoreWritableRow(plan, client, ownership, row, ctx);
+                                return;
+                            }
+                            var childId = Guid.NewGuid().ToString();
+                            var child = CreateValueRow(
+                                plan, client,
+                                ownership,
+                                MemberFromTypeInfo(entryTypeInfo),
+                                args[0],
+                                childId,
+                                now,
+                                now);
+                            StoreWritableRow(plan, client, ownership, child, ctx);
+                            var next = new string[row.value.Length + 1];
+                            Array.Copy(row.value, next, row.value.Length);
+                            next[row.value.Length] = childId;
+                            row.value = next;
+                            row.updatedAt = now;
+                            StoreWritableRow(plan, client, ownership, row, ctx);
+                            return;
+                        }
+                        case CollectionMutationKind.RemoveAt:
+                            RemoveAt(
+                                plan, client,
+                                ownership,
+                                row,
+                                ToInt(args[0], "RemoveAt index"),
+                                now,
+                                entryTypeInfo,
+                                ctx);
+                            return;
+                        case CollectionMutationKind.Remove:
+                        {
+                            string? referenceId = TryGetClassValueReferenceId(
                                 args[0],
                                 entryTypeInfo,
                                 ctx,
-                                out string? referenceId))
-                        {
-                            var referencedNext = new string[row.value.Length + 1];
-                            Array.Copy(row.value, referencedNext, row.value.Length);
-                            referencedNext[row.value.Length] = ImportClassValueReference(
-                                client,
-                                ownership,
-                                referenceId!,
-                                ctx);
-                            ctx.allocationTracker.RegisterConstructedParent(
-                                referencedNext[row.value.Length],
-                                rowId);
-                            row.value = referencedNext;
-                            row.updatedAt = now;
-                            StoreWritableRow(client, ownership, row, ctx);
-                            return;
-                        }
-                        var childId = Guid.NewGuid().ToString();
-                        var child = CreateValueRow(
-                            client,
-                            ownership,
-                            MemberFromTypeInfo(entryTypeInfo),
-                            args[0],
-                            childId,
-                            now,
-                            now);
-                        StoreWritableRow(client, ownership, child, ctx);
-                        var next = new string[row.value.Length + 1];
-                        Array.Copy(row.value, next, row.value.Length);
-                        next[row.value.Length] = childId;
-                        row.value = next;
-                        row.updatedAt = now;
-                        StoreWritableRow(client, ownership, row, ctx);
-                        return;
-                    }
-                    case CollectionMutationKind.RemoveAt:
-                        RemoveAt(
-                            client,
-                            ownership,
-                            row,
-                            ToInt(args[0], "RemoveAt index"),
-                            now,
-                            entryTypeInfo,
-                            ctx);
-                        return;
-                    case CollectionMutationKind.Remove:
-                    {
-                        string? referenceId = TryGetClassValueReferenceId(
-                            args[0],
-                            entryTypeInfo,
-                            ctx,
-                            out string? matchedReferenceId)
-                                ? matchedReferenceId
-                                : null;
-                        for (int i = 0; i < row.value.Length; i++)
-                        {
-                            ctx.allocationTracker.ConsumeCollectionVisit();
-                            if (referenceId != null && row.value[i] == referenceId)
+                                out string? matchedReferenceId)
+                                    ? matchedReferenceId
+                                    : null;
+                            for (int i = 0; i < row.value.Length; i++)
                             {
-                                RemoveAt(client, ownership, row, i, now, entryTypeInfo, ctx);
+                                ctx.allocationTracker.ConsumeCollectionVisit();
+                                if (referenceId != null && row.value[i] == referenceId)
+                                {
+                                    RemoveAt(plan, client, ownership, row, i, now, entryTypeInfo, ctx);
+                                    return;
+                                }
+                                if (!client.TryGetValue(row.value[i], out MemberValue? child)) continue;
+                                if (!JsEqual(ReadRowValue(child), args[0])) continue;
+                                RemoveAt(plan, client, ownership, row, i, now, entryTypeInfo, ctx);
                                 return;
                             }
-                            if (!client.TryGetValue(row.value[i], out MemberValue? child)) continue;
-                            if (!JsEqual(ReadRowValue(child), args[0])) continue;
-                            RemoveAt(client, ownership, row, i, now, entryTypeInfo, ctx);
                             return;
                         }
-                        return;
-                    }
-                    case CollectionMutationKind.Clear:
-                    {
-                        var removedIds = row.value;
-                        ctx.allocationTracker.ConsumeCollectionVisit(
-                            removedIds.Length);
-                        row.value = Array.Empty<string>();
-                        row.updatedAt = now;
-                        StoreWritableRow(client, ownership, row, ctx);
-                        foreach (var childId in removedIds)
+                        case CollectionMutationKind.Clear:
                         {
-                            client.RemoveWritableValueAndDescendantsIfUnlinked(
-                                ownership, childId, MemberFromTypeInfo(entryTypeInfo));
+                            var removedIds = row.value;
+                            ctx.allocationTracker.ConsumeCollectionVisit(
+                                removedIds.Length);
+                            row.value = Array.Empty<string>();
+                            row.updatedAt = now;
+                            StoreWritableRow(plan, client, ownership, row, ctx);
+                            client.StageUnlinkedRemovals(plan, ownership, removedIds, MemberFromTypeInfo(entryTypeInfo));
+                            return;
                         }
-                        return;
+                        default:
+                            throw new NSGetterRuntimeError($"Unsupported list mutation '{mutation}'.");
                     }
-                    default:
-                        throw new NSGetterRuntimeError($"Unsupported list mutation '{mutation}'.");
-                }
+                }, preparedPlan);
             }
 
             private static void RemoveAt(
-                NeoClient client,
+                NeoWritePlan plan, NeoClient client,
                 NeoValueOwnership ownership,
                 ArrayMemberValue row,
                 int index,
@@ -4334,20 +4397,21 @@ namespace NeoCompose.Runtime
                 }
                 row.value = next;
                 row.updatedAt = now;
-                StoreWritableRow(client, ownership, row, ctx);
-                client.RemoveWritableValueAndDescendantsIfUnlinked(
-                    ownership, removedId, MemberFromTypeInfo(entryTypeInfo));
+                StoreWritableRow(plan, client, ownership, row, ctx);
+                client.StageUnlinkedRemovals(plan, ownership, new[] { removedId }, MemberFromTypeInfo(entryTypeInfo));
             }
         }
 
         private sealed class NeoLookupSetWriteTarget : NeoResolvedCollectionTarget
         {
+            private readonly NeoWritePlan? preparedPlan;
             private readonly string rowId;
             private readonly LookupTypeInfo typeInfo;
             private readonly NeoValueOwnership ownership;
 
-            public NeoLookupSetWriteTarget(string rowId, LookupTypeInfo typeInfo, NeoValueOwnership ownership)
+            public NeoLookupSetWriteTarget(string rowId, LookupTypeInfo typeInfo, NeoValueOwnership ownership, NeoWritePlan? preparedPlan = null)
             {
+                this.preparedPlan = preparedPlan;
                 this.rowId = rowId;
                 this.typeInfo = typeInfo;
                 this.ownership = ownership;
@@ -4359,77 +4423,83 @@ namespace NeoCompose.Runtime
                 object?[] args,
                 NSGetterEvaluator.Context ctx)
             {
-                EnsureWritableRow(client, rowId, ownership);
-                if (!client.TryGetValue(rowId, out ArrayMemberValue? row))
+                PrepareWrite(client, plan =>
                 {
-                    throw new NSGetterRuntimeError($"Missing lookup row '{rowId}'.");
-                }
-                row.value ??= Array.Empty<string>();
-                var now = DateTime.UtcNow.ToString("o");
-                switch (mutation)
-                {
-                    case CollectionMutationKind.Add:
+                    EnsureWritableRow(client, rowId, ownership);
+                    if (!client.TryGetValue(rowId, out ArrayMemberValue? row))
                     {
-                        string selectionId = ResolveLookupSelectionId(client, typeInfo, args[0], ctx);
-                        foreach (string existingId in row.value)
-                        {
-                            ctx.allocationTracker.ConsumeCollectionVisit();
-                            if (existingId == selectionId) return;
-                        }
-                        var next = new string[row.value.Length + 1];
-                        Array.Copy(row.value, next, row.value.Length);
-                        next[row.value.Length] = selectionId;
-                        row.value = next;
-                        row.updatedAt = now;
-                        StoreWritableRow(client, ownership, row, ctx);
-                        return;
+                        throw new NSGetterRuntimeError($"Missing lookup row '{rowId}'.");
                     }
-                    case CollectionMutationKind.Remove:
+                    row = (ArrayMemberValue)client.CloneRowForWrite(row);
+                    row.value ??= Array.Empty<string>();
+                    var now = DateTime.UtcNow.ToString("o");
+                    switch (mutation)
                     {
-                        string selectionId = ResolveLookupSelectionId(client, typeInfo, args[0], ctx);
-                        int index = -1;
-                        for (int i = 0; i < row.value.Length; i++)
+                        case CollectionMutationKind.Add:
                         {
-                            ctx.allocationTracker.ConsumeCollectionVisit();
-                            if (row.value[i] == selectionId)
+                            string selectionId = ResolveLookupSelectionId(client, typeInfo, args[0], ctx);
+                            foreach (string existingId in row.value)
                             {
-                                index = i;
-                                break;
+                                ctx.allocationTracker.ConsumeCollectionVisit();
+                                if (existingId == selectionId) return;
                             }
+                            var next = new string[row.value.Length + 1];
+                            Array.Copy(row.value, next, row.value.Length);
+                            next[row.value.Length] = selectionId;
+                            row.value = next;
+                            row.updatedAt = now;
+                            StoreWritableRow(plan, client, ownership, row, ctx);
+                            return;
                         }
-                        if (index < 0) return;
-                        var next = new string[row.value.Length - 1];
-                        for (int i = 0, j = 0; i < row.value.Length; i++)
+                        case CollectionMutationKind.Remove:
                         {
-                            if (i == index) continue;
-                            next[j++] = row.value[i];
+                            string selectionId = ResolveLookupSelectionId(client, typeInfo, args[0], ctx);
+                            int index = -1;
+                            for (int i = 0; i < row.value.Length; i++)
+                            {
+                                ctx.allocationTracker.ConsumeCollectionVisit();
+                                if (row.value[i] == selectionId)
+                                {
+                                    index = i;
+                                    break;
+                                }
+                            }
+                            if (index < 0) return;
+                            var next = new string[row.value.Length - 1];
+                            for (int i = 0, j = 0; i < row.value.Length; i++)
+                            {
+                                if (i == index) continue;
+                                next[j++] = row.value[i];
+                            }
+                            row.value = next;
+                            row.updatedAt = now;
+                            StoreWritableRow(plan, client, ownership, row, ctx);
+                            return;
                         }
-                        row.value = next;
-                        row.updatedAt = now;
-                        StoreWritableRow(client, ownership, row, ctx);
-                        return;
+                        case CollectionMutationKind.Clear:
+                            ctx.allocationTracker.ConsumeCollectionVisit(
+                                row.value.Length);
+                            row.value = Array.Empty<string>();
+                            row.updatedAt = now;
+                            StoreWritableRow(plan, client, ownership, row, ctx);
+                            return;
+                        default:
+                            throw new NSGetterRuntimeError($"Unsupported lookup set mutation '{mutation}'.");
                     }
-                    case CollectionMutationKind.Clear:
-                        ctx.allocationTracker.ConsumeCollectionVisit(
-                            row.value.Length);
-                        row.value = Array.Empty<string>();
-                        row.updatedAt = now;
-                        StoreWritableRow(client, ownership, row, ctx);
-                        return;
-                    default:
-                        throw new NSGetterRuntimeError($"Unsupported lookup set mutation '{mutation}'.");
-                }
+                }, preparedPlan);
             }
         }
 
         private sealed class NeoDictionaryWriteTarget : NeoResolvedCollectionTarget
         {
+            private readonly NeoWritePlan? preparedPlan;
             private readonly string rowId;
             private readonly TypeInfo entryTypeInfo;
             private readonly NeoValueOwnership ownership;
 
-            public NeoDictionaryWriteTarget(string rowId, TypeInfo entryTypeInfo, NeoValueOwnership ownership)
+            public NeoDictionaryWriteTarget(string rowId, TypeInfo entryTypeInfo, NeoValueOwnership ownership, NeoWritePlan? preparedPlan = null)
             {
+                this.preparedPlan = preparedPlan;
                 this.rowId = rowId;
                 this.entryTypeInfo = entryTypeInfo;
                 this.ownership = ownership;
@@ -4470,84 +4540,86 @@ namespace NeoCompose.Runtime
                 object? value,
                 NSGetterEvaluator.Context ctx)
             {
-                EnsureWritableRow(client, rowId, ownership);
-                if (!client.TryGetValue(rowId, out ObjectMemberValue? row))
+                PrepareWrite(client, plan =>
                 {
-                    throw new NSGetterRuntimeError($"Missing dictionary row '{rowId}'.");
-                }
-                row.value ??= new Dictionary<string, string>();
-                var now = DateTime.UtcNow.ToString("o");
-                if (row.value.TryGetValue(key, out string existingId)
-                    && client.TryGetValue(existingId, out MemberValue? existing))
-                {
-                    if (TryGetClassValueReferenceId(
-                            value,
-                            entryTypeInfo,
-                            ctx,
-                            out string? referenceId))
+                    PrepareWritableRow(plan, client, rowId, ownership);
+                    if (!client.TryGetValue(rowId, out ObjectMemberValue? row))
                     {
-                        string importedId = ImportClassValueReference(
-                            client,
-                            ownership,
-                            referenceId!,
-                            ctx,
-                            existingId);
-                        if (importedId == existingId) return;
-                        row.value[key] = importedId;
-                        ctx.allocationTracker.RegisterConstructedParent(
-                            importedId,
-                            rowId);
-                        row.updatedAt = now;
-                        StoreWritableRow(client, ownership, row, ctx);
-                        client.RemoveWritableValueAndDescendantsIfUnlinked(
-                            ownership, existingId, MemberFromTypeInfo(entryTypeInfo));
-                        return;
+                        throw new NSGetterRuntimeError($"Missing dictionary row '{rowId}'.");
                     }
-                    var next = CreateValueRow(
-                        client,
-                        ownership,
-                        MemberFromTypeInfo(entryTypeInfo),
-                        value,
-                        existingId,
-                        existing.createdAt,
-                        now);
-                    next.classId = existing.classId;
-                    StoreWritableRow(client, ownership, next, ctx);
-                }
-                else
-                {
-                    if (TryGetClassValueReferenceId(
-                            value,
-                            entryTypeInfo,
-                            ctx,
-                            out string? referenceId))
+                    row.value ??= new Dictionary<string, string>();
+                    var now = DateTime.UtcNow.ToString("o");
+                    if (row.value.TryGetValue(key, out string existingId)
+                        && client.TryGetValue(existingId, out MemberValue? existing))
                     {
-                        row.value[key] = ImportClassValueReference(
-                            client,
+                        if (TryGetClassValueReferenceId(
+                                value,
+                                entryTypeInfo,
+                                ctx,
+                                out string? referenceId))
+                        {
+                            string importedId = ImportClassValueReference(
+                                plan, client,
+                                ownership,
+                                referenceId!,
+                                ctx,
+                                existingId);
+                            if (importedId == existingId) return;
+                            row.value[key] = importedId;
+                            plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
+                                importedId,
+                                rowId));
+                            row.updatedAt = now;
+                            StoreWritableRow(plan, client, ownership, row, ctx);
+                            client.StageUnlinkedRemovals(plan, ownership, new[] { existingId }, MemberFromTypeInfo(entryTypeInfo));
+                            return;
+                        }
+                        var next = CreateValueRow(
+                            plan, client,
                             ownership,
-                            referenceId!,
-                            ctx);
-                        ctx.allocationTracker.RegisterConstructedParent(
-                            row.value[key],
-                            rowId);
-                        row.updatedAt = now;
-                        StoreWritableRow(client, ownership, row, ctx);
-                        return;
+                            MemberFromTypeInfo(entryTypeInfo),
+                            value,
+                            existingId,
+                            existing.createdAt,
+                            now);
+                        next.classId = existing.classId;
+                        StoreWritableRow(plan, client, ownership, next, ctx);
                     }
-                    var childId = Guid.NewGuid().ToString();
-                    var next = CreateValueRow(
-                        client,
-                        ownership,
-                        MemberFromTypeInfo(entryTypeInfo),
-                        value,
-                        childId,
-                        now,
-                        now);
-                    StoreWritableRow(client, ownership, next, ctx);
-                    row.value[key] = childId;
-                }
-                row.updatedAt = now;
-                StoreWritableRow(client, ownership, row, ctx);
+                    else
+                    {
+                        if (TryGetClassValueReferenceId(
+                                value,
+                                entryTypeInfo,
+                                ctx,
+                                out string? referenceId))
+                        {
+                            row.value[key] = ImportClassValueReference(
+                                plan, client,
+                                ownership,
+                                referenceId!,
+                                ctx);
+                            plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
+                                row.value[key],
+                                rowId));
+                            row.updatedAt = now;
+                            StoreWritableRow(plan, client, ownership, row, ctx);
+                            return;
+                        }
+                        var childId = Guid.NewGuid().ToString();
+                        var next = CreateValueRow(
+                            plan, client,
+                            ownership,
+                            MemberFromTypeInfo(entryTypeInfo),
+                            value,
+                            childId,
+                            now,
+                            now);
+                        StoreWritableRow(plan, client, ownership, next, ctx);
+                        row.value[key] = childId;
+                    }
+                    row.updatedAt = now;
+                    StoreWritableRow(plan, client, ownership, row, ctx);
+                }, preparedPlan);
             }
 
             private void Remove(
@@ -4555,40 +4627,41 @@ namespace NeoCompose.Runtime
                 string key,
                 NSGetterEvaluator.Context ctx)
             {
-                EnsureWritableRow(client, rowId, ownership);
-                if (!client.TryGetValue(rowId, out ObjectMemberValue? row)
-                    || row.value == null
-                    || !row.value.TryGetValue(key, out string removedId))
+                PrepareWrite(client, plan =>
                 {
-                    return;
-                }
-                row.value.Remove(key);
-                row.updatedAt = DateTime.UtcNow.ToString("o");
-                StoreWritableRow(client, ownership, row, ctx);
-                client.RemoveWritableValueAndDescendantsIfUnlinked(
-                    ownership, removedId, MemberFromTypeInfo(entryTypeInfo));
+                    PrepareWritableRow(plan, client, rowId, ownership);
+                    if (!client.TryGetValue(rowId, out ObjectMemberValue? row)
+                        || row.value == null
+                        || !row.value.TryGetValue(key, out string removedId))
+                    {
+                        return;
+                    }
+                    row.value.Remove(key);
+                    row.updatedAt = DateTime.UtcNow.ToString("o");
+                    StoreWritableRow(plan, client, ownership, row, ctx);
+                    client.StageUnlinkedRemovals(plan, ownership, new[] { removedId }, MemberFromTypeInfo(entryTypeInfo));
+                }, preparedPlan);
             }
 
             private void Clear(
                 NeoClient client,
                 NSGetterEvaluator.Context ctx)
             {
-                EnsureWritableRow(client, rowId, ownership);
-                if (!client.TryGetValue(rowId, out ObjectMemberValue? row)
-                    || row.value == null)
+                PrepareWrite(client, plan =>
                 {
-                    return;
-                }
-                var removedIds = new List<string>(row.value.Values);
-                ctx.allocationTracker.ConsumeCollectionVisit(removedIds.Count);
-                row.value.Clear();
-                row.updatedAt = DateTime.UtcNow.ToString("o");
-                StoreWritableRow(client, ownership, row, ctx);
-                foreach (var childId in removedIds)
-                {
-                    client.RemoveWritableValueAndDescendantsIfUnlinked(
-                        ownership, childId, MemberFromTypeInfo(entryTypeInfo));
-                }
+                    PrepareWritableRow(plan, client, rowId, ownership);
+                    if (!client.TryGetValue(rowId, out ObjectMemberValue? row)
+                        || row.value == null)
+                    {
+                        return;
+                    }
+                    var removedIds = new List<string>(row.value.Values);
+                    ctx.allocationTracker.ConsumeCollectionVisit(removedIds.Count);
+                    row.value.Clear();
+                    row.updatedAt = DateTime.UtcNow.ToString("o");
+                    StoreWritableRow(plan, client, ownership, row, ctx);
+                    client.StageUnlinkedRemovals(plan, ownership, removedIds, MemberFromTypeInfo(entryTypeInfo));
+                }, preparedPlan);
             }
         }
 

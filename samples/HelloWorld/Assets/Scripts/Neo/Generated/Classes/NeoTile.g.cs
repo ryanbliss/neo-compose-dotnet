@@ -21,17 +21,25 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoTile writable);
 
+        NeoReadOnlyVector2Int Cell { get; }
+
         string Name { get; }
 
         new IReadOnlyNeoSmartTile? SmartTile { get; }
 
         NeoReadOnlySprite Sprite { get; }
+
+
+        /// <summary>
+        /// Converts this placement to the target's concrete tile class, preserving its identity and Cell. Use TryConvert&lt;T&gt;() when the target class is known statically.
+        /// </summary>
+        bool TryConvert(IReadOnlyNeoTile target);
     }
 
-    public abstract partial class NeoTile : NeoGeneratedClassValue, IReadOnlyNeoTile, INeoSmartTileSource
+    public abstract partial class NeoTile : NeoGeneratedTileValue, IReadOnlyNeoTile, INeoSmartTileSource
     {
         internal NeoTile(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0", isReadOnly, inheritedStorageOwnership, HelloWorldNeo.NeoClassIdsByType)
         {
         }
 
@@ -48,6 +56,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                     "a8305a31-7f6c-4ff5-8a9f-5871ef451093" => new HullPlatingTile(client, node, true, NeoValueOwnership.Asset),
                     "bda4cf72-c8da-4be0-8148-024d0fc2d826" => new GlassFloorTile(client, node, true, NeoValueOwnership.Asset),
                     "d931c907-19cd-4f3d-b04a-e6f1945fb216" => new RedNovaWarningTile(client, node, true, NeoValueOwnership.Asset),
+                    "system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9" => new NeoPlacementTile(client, node, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTile' without a concrete client type id."),
                 };
             });
@@ -66,6 +75,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                     "a8305a31-7f6c-4ff5-8a9f-5871ef451093" => new HullPlatingTile(client, node, false, node.ownership),
                     "bda4cf72-c8da-4be0-8148-024d0fc2d826" => new GlassFloorTile(client, node, false, node.ownership),
                     "d931c907-19cd-4f3d-b04a-e6f1945fb216" => new RedNovaWarningTile(client, node, false, node.ownership),
+                    "system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9" => new NeoPlacementTile(client, node, false, node.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTile' without a concrete client type id."),
                 };
             });
@@ -92,6 +102,27 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         INeoSmartTile? INeoSmartTileSource.SmartTile => SmartTile;
+
+        public virtual NeoVector2Int Cell
+        {
+            get
+            {
+                return new NeoVector2Int(writableNode.Get<NeoMemberVector2IntWritable>("Cell"), this);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoTile.Cell");
+                NeoGeneratedTypesSupport.SetVector2Int(writableNode, "Cell", value);
+            }
+        }
+
+        NeoReadOnlyVector2Int IReadOnlyNeoTile.Cell
+        {
+            get
+            {
+                return new NeoReadOnlyVector2Int(node.Get<NeoMemberVector2Int>("Cell"));
+            }
+        }
 
         public virtual string Name
         {
@@ -163,24 +194,36 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+
+        /// <summary>
+        /// Converts this placement to the target's concrete tile class, preserving its identity and Cell. Use TryConvert&lt;T&gt;() when the target class is known statically.
+        /// </summary>
+        public virtual bool TryConvert(IReadOnlyNeoTile target)
+        {
+            return base.TryConvert(target);
+        }
+
         public sealed class Fields
         {
             private Fields() {}
 
+            public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
+
             public static readonly NeoField<string> Name = new("Name");
 
-            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
-
             public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
+
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Cell] = () => null,
                 [Fields.Name] = () => null,
-                [Fields.Sprite] = () => null,
                 [Fields.SmartTile] = () => null,
+                [Fields.Sprite] = () => null,
             };
         }
 
@@ -198,9 +241,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Cell] = () => Cell,
                 [Fields.Name] = () => Name,
-                [Fields.Sprite] = () => Sprite,
                 [Fields.SmartTile] = () => SmartTile,
+                [Fields.Sprite] = () => Sprite,
             };
         }
 

@@ -7,7 +7,6 @@ using System;
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.Tilemaps;
 
 namespace NeoCompose.Runtime
@@ -40,8 +39,7 @@ namespace NeoCompose.Runtime
         public IReadOnlyList<NeoAssetDatabaseEntry> Files => files;
 
         /// <summary>
-        /// Read-only generated Tile/RuleTile assets keyed by either an optional
-        /// placed asset override id or a class-default tile class id.
+        /// Read-only generated Tile/RuleTile assets keyed by tile class id.
         /// </summary>
         public IReadOnlyList<NeoAssetDatabaseTileEntry> TileAssets => tileAssets;
 
@@ -81,18 +79,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Resolves an editor-generated Tile or RuleTile asset by placed asset
-        /// override id.
-        /// Runtime renderers use this before falling back to transient tile creation.
-        /// </summary>
-        public TileBase? TryGetTileBase(string assetValueId)
-        {
-            return TryGetTileEntry(assetValueId)?.TileBase;
-        }
-
-        /// <summary>
-        /// Resolves an editor-generated Tile or RuleTile for a class-backed
-        /// default placement.
+        /// Resolves an editor-generated Tile or RuleTile by tile class.
         /// </summary>
         public TileBase? TryGetTileBaseForClass(string tileClassId)
         {
@@ -172,28 +159,12 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        /// <summary>
-        /// Returns the generated Tile/RuleTile entry for <paramref name="assetValueId"/>,
-        /// or <c>null</c> when editor sync has not produced one yet.
-        /// </summary>
-        public NeoAssetDatabaseTileEntry? TryGetTileEntry(string assetValueId)
-        {
-            if (string.IsNullOrWhiteSpace(assetValueId)) return null;
-            foreach (var entry in tileAssets)
-            {
-                if (entry.AssetValueId == assetValueId) return entry;
-            }
-
-            return null;
-        }
-
         public NeoAssetDatabaseTileEntry? TryGetTileEntryForClass(string tileClassId)
         {
             if (string.IsNullOrWhiteSpace(tileClassId)) return null;
             foreach (var entry in tileAssets)
             {
-                if (entry.TileClassId == tileClassId
-                    && string.IsNullOrEmpty(entry.AssetValueId))
+                if (entry.TileClassId == tileClassId)
                 {
                     return entry;
                 }
@@ -248,46 +219,6 @@ namespace NeoCompose.Runtime
             entry.AudioClip = audioClip;
         }
 
-        /// <summary>
-        /// Upserts a generated Tile/RuleTile asset mapping after editor sync has
-        /// created or refreshed the deterministic Unity asset.
-        /// </summary>
-        public void SetTileAsset(
-            string assetValueId,
-            string? tileClassId,
-            string assetPath,
-            string contentHash,
-            TileBase tileBase)
-        {
-            if (string.IsNullOrWhiteSpace(assetValueId))
-            {
-                throw new ArgumentException("Asset value id cannot be empty.", nameof(assetValueId));
-            }
-
-            if (string.IsNullOrWhiteSpace(assetPath))
-            {
-                throw new ArgumentException("Asset path cannot be empty.", nameof(assetPath));
-            }
-
-            if (tileBase == null)
-            {
-                throw new ArgumentNullException(nameof(tileBase));
-            }
-
-            var entry = TryGetTileEntry(assetValueId);
-            if (entry == null)
-            {
-                entry = new NeoAssetDatabaseTileEntry();
-                tileAssets.Add(entry);
-            }
-
-            entry.AssetValueId = assetValueId;
-            entry.TileClassId = tileClassId ?? "";
-            entry.AssetPath = assetPath;
-            entry.ContentHash = contentHash;
-            entry.TileBase = tileBase;
-        }
-
         public void SetTileClassAsset(
             string tileClassId,
             string assetPath,
@@ -310,7 +241,6 @@ namespace NeoCompose.Runtime
                 entry = new NeoAssetDatabaseTileEntry();
                 tileAssets.Add(entry);
             }
-            entry.AssetValueId = "";
             entry.TileClassId = tileClassId;
             entry.AssetPath = assetPath;
             entry.ContentHash = contentHash;
@@ -332,28 +262,11 @@ namespace NeoCompose.Runtime
             return missing.ToArray();
         }
 
-        /// <summary>
-        /// Returns generated tile asset mappings whose instance override ids
-        /// are no longer referenced by the latest Neo Compose export.
-        /// </summary>
-        public NeoAssetDatabaseTileEntry[] FindMissingTileAssets(ISet<string> assetValueIds)
-        {
-            var missing = new List<NeoAssetDatabaseTileEntry>();
-            foreach (var entry in tileAssets)
-            {
-                if (string.IsNullOrEmpty(entry.AssetValueId)) continue;
-                if (!assetValueIds.Contains(entry.AssetValueId)) missing.Add(entry);
-            }
-
-            return missing.ToArray();
-        }
-
         public NeoAssetDatabaseTileEntry[] FindMissingTileClassAssets(ISet<string> tileClassIds)
         {
             var missing = new List<NeoAssetDatabaseTileEntry>();
             foreach (var entry in tileAssets)
             {
-                if (!string.IsNullOrEmpty(entry.AssetValueId)) continue;
                 if (!tileClassIds.Contains(entry.TileClassId)) missing.Add(entry);
             }
             return missing.ToArray();
@@ -367,19 +280,11 @@ namespace NeoCompose.Runtime
             files.RemoveAll(entry => entry.FileId == fileId);
         }
 
-        /// <summary>
-        /// Removes a generated Tile/RuleTile asset mapping.
-        /// </summary>
-        public void RemoveTileAsset(string assetValueId)
-        {
-            tileAssets.RemoveAll(entry => entry.AssetValueId == assetValueId);
-        }
+        internal void ReplaceTileAssets(List<NeoAssetDatabaseTileEntry> entries) => tileAssets = entries;
 
         public void RemoveTileClassAsset(string tileClassId)
         {
-            tileAssets.RemoveAll(entry =>
-                string.IsNullOrEmpty(entry.AssetValueId)
-                && entry.TileClassId == tileClassId);
+            tileAssets.RemoveAll(entry => entry.TileClassId == tileClassId);
         }
     }
 
@@ -505,9 +410,6 @@ namespace NeoCompose.Runtime
     public sealed class NeoAssetDatabaseTileEntry
     {
         [SerializeField]
-        [FormerlySerializedAs("tileValueId")]
-        private string assetValueId = "";
-        [SerializeField]
         private string tileClassId = "";
         [SerializeField]
         private string assetPath = "";
@@ -515,13 +417,6 @@ namespace NeoCompose.Runtime
         private string contentHash = "";
         [SerializeField]
         private TileBase? tileBase;
-
-        /// <summary>Optional Neo Compose placed asset override value id.</summary>
-        public string AssetValueId
-        {
-            get => assetValueId;
-            set => assetValueId = value;
-        }
 
         /// <summary>Neo Compose tile class id.</summary>
         public string TileClassId
