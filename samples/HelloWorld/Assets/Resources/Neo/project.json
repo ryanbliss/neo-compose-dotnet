@@ -408,7 +408,7 @@
             "code": "\t\treturn this.VisitCount > 0;",
             "createdAt": 1778182157702,
             "getter": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [
                     {
                         "pointer": {
@@ -816,7 +816,7 @@
             "createdAt": 1778735343252,
             "extendsMemberId": "514a79c5-dd23-4ede-9fc8-b07b3c866fe5",
             "getter": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [
                     {
                         "pointer": {
@@ -1039,7 +1039,7 @@
             "code": "\t\tint found = 0;\n\t\tif (this.EvidenceArchive) { found = found + 1; }\n\t\tif (this.EvidenceLedger) { found = found + 1; }\n\t\tif (this.EvidenceFaith) { found = found + 1; }\n\t\tstring urgency = \"\";\n\t\tif (this.FlareClock >= 6) { urgency = \"The storms are stacking — hurry. \"; }\n\t\tif (this.FlareClock >= 9) { urgency = \"THE SKY IS TEARING. Finish it. \"; }\n\t\tif (this.Stage == QuestStage.arrival) {\n\t\t\treturn $\"{urgency}Rumors ride the flare-wakes. Start with the greeter at Capitol OG.\";\n\t\t}\n\t\tif (this.Stage == QuestStage.followTheWakes) {\n\t\t\treturn $\"{urgency}Hear the prophecy at Mercurial, and ask the corn farmer on Iowan what the freighters saw.\";\n\t\t}\n\t\tif (this.Stage == QuestStage.threePaths) {\n\t\t\tif (found >= 2) {\n\t\t\t\treturn $\"{urgency}Go BACK to Capitol OG — the greeter's script is fraying. Two proofs are enough.\";\n\t\t\t}\n\t\t\tif (!this.EvidenceArchive) {\n\t\t\t\treturn $\"{urgency}Proof of the frozen sky: revisit Ursa Major's observatory, then offer Storm Corn at Etna Diadem. Outposts you've met have new things to say.\";\n\t\t\t}\n\t\t\tif (!this.EvidenceLedger) {\n\t\t\t\treturn $\"{urgency}Proof in old money: go back to the Pour Lords, then feed their manifest to the relay at Caelus.\";\n\t\t\t}\n\t\t\treturn $\"{urgency}Proof from the verses: sit with the Patriarch at Mercurial again, then buy the Oldest Pattern from the Venusians.\";\n\t\t}\n\t\tif (this.Stage == QuestStage.vaultOpen) {\n\t\t\treturn $\"{urgency}Descend beneath Capitol OG. Bring the Abyssal Lantern from Europapas.\";\n\t\t}\n\t\tif (this.Stage == QuestStage.endgame) {\n\t\t\treturn $\"{urgency}The Old Console at Capitol OG awaits your final output. The Regent's Signet may open one more door.\";\n\t\t}\n\t\treturn \"The run has ended. Thank you for playing.\";",
             "createdAt": 1781246186689,
             "getter": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [
                     {
                         "type": "variable",
@@ -2254,7 +2254,7 @@
             "createdAt": 1778735294772,
             "extendsMemberId": "514a79c5-dd23-4ede-9fc8-b07b3c866fe5",
             "getter": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [
                     {
                         "pointer": {
@@ -2505,7 +2505,7 @@
             "code": "\t\treturn $\"{this.Name}, {this.Planet}\";",
             "createdAt": 1778534706100,
             "getter": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [
                     {
                         "pointer": {
@@ -3096,7 +3096,7 @@
             "code": "\t\tPlanet planet = root.Save.World;\n\t\tstring suffix = this.optionalSuffix ?? \"\";\n\t\treturn $\"{this.baseText} {planet}{suffix}\";",
             "createdAt": 1777767024481,
             "getter": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [
                     {
                         "type": "variable",
@@ -3446,7 +3446,7 @@
             "code": "\t\treturn this.SaveUnsafe!;",
             "createdAt": 1778184221229,
             "getter": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [
                     {
                         "pointer": {
@@ -3810,7 +3810,7 @@
             "code": "\t\treturn root.Save.OutpostSaveMap.FirstOrDefault((key, value) => { return key == this.Id; });",
             "createdAt": 1778184192413,
             "getter": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [
                     {
                         "pointer": {
@@ -3853,7 +3853,7 @@
                                         "type": "keyOf"
                                     },
                                     "function": {
-                                        "compilerRevision": 13,
+                                        "compilerRevision": 14,
                                         "instructions": [
                                             {
                                                 "pointer": {
@@ -4769,7 +4769,7 @@
                 "init": {
                     "code": "overrides",
                     "compiled": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -5111,7 +5111,7 @@
                 "init": {
                     "code": "apply",
                     "compiled": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -5349,7 +5349,7 @@
                 "init": {
                     "code": "selector",
                     "compiled": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -5494,7 +5494,7 @@
                 "init": {
                     "code": "clipKey",
                     "compiled": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -5611,7 +5611,7 @@
             "code": "return this.VisitCount > 0;",
             "createdAt": 1778021394195,
             "getter": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [
                     {
                         "pointer": {
@@ -5825,7 +5825,7 @@
                 "init": {
                     "code": "apply",
                     "compiled": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -6094,7 +6094,7 @@
                 "init": {
                     "code": "childOverrides",
                     "compiled": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -6360,7 +6360,7 @@
                 "init": {
                     "code": "selector",
                     "compiled": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -6593,7 +6593,7 @@
                 "init": {
                     "code": "overrides",
                     "compiled": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -7029,7 +7029,7 @@
                 "init": {
                     "code": "overrides",
                     "compiled": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -7493,7 +7493,7 @@
                 "init": {
                     "code": "initialize",
                     "compiled": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -7711,7 +7711,7 @@
                 "init": {
                     "code": "childOverrides",
                     "compiled": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -8023,7 +8023,7 @@
                 "init": {
                     "code": "selector",
                     "compiled": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -8156,7 +8156,7 @@
                 "init": {
                     "code": "value",
                     "compiled": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -8391,7 +8391,7 @@
                 "init": {
                     "code": "path",
                     "compiled": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -8554,7 +8554,7 @@
                 "init": {
                     "code": "path",
                     "compiled": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -8704,7 +8704,7 @@
                 "init": {
                     "code": "initialize",
                     "compiled": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -8988,7 +8988,7 @@
             "code": "return this.VisitCount > 0;",
             "createdAt": 1778021393139,
             "getter": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [
                     {
                         "pointer": {
@@ -11180,7 +11180,7 @@
     "constructors": {
         "system_1e7f8826-5392-5b4c-8cc3-6052d20e5280": {
             "action": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [],
                 "parameters": [
                     {
@@ -11282,7 +11282,7 @@
             "code": null,
             "compiledBaseArguments": [
                 {
-                    "compilerRevision": 13,
+                    "compilerRevision": 14,
                     "instructions": [
                         {
                             "pointer": {
@@ -11380,7 +11380,7 @@
         },
         "system_2fefcc00-08ab-5a16-a76a-758beac24ef1": {
             "action": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [],
                 "parameters": [
                     {
@@ -11509,7 +11509,7 @@
         },
         "system_39bd1925-4502-5857-951b-d68ce3d81a71": {
             "action": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [],
                 "parameters": [
                     {
@@ -11763,7 +11763,7 @@
         },
         "system_498d073e-0018-5828-af2b-22b113c31380": {
             "action": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [],
                 "parameters": [
                     {
@@ -11849,7 +11849,7 @@
         },
         "system_6baa12a7-be86-5ae0-82da-2fed308320a0": {
             "action": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [],
                 "parameters": [
                     {
@@ -11970,7 +11970,7 @@
             "code": null,
             "compiledBaseArguments": [
                 {
-                    "compilerRevision": 13,
+                    "compilerRevision": 14,
                     "instructions": [
                         {
                             "pointer": {
@@ -12083,7 +12083,7 @@
         },
         "system_8980d09b-0a6d-5461-9615-2f524515b1af": {
             "action": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [],
                 "parameters": [
                     {
@@ -12181,7 +12181,7 @@
         },
         "system_9a3f52ca-872a-50a5-aad9-e9a040f40802": {
             "action": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [],
                 "parameters": [
                     {
@@ -12283,7 +12283,7 @@
             "code": null,
             "compiledBaseArguments": [
                 {
-                    "compilerRevision": 13,
+                    "compilerRevision": 14,
                     "instructions": [
                         {
                             "pointer": {
@@ -12382,7 +12382,7 @@
         },
         "system_b0239c15-91f3-5ddb-bd4e-43fd86e42e50": {
             "action": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [],
                 "parameters": [
                     {
@@ -12462,7 +12462,7 @@
         },
         "system_c313897b-ae90-5126-bbca-3ad07593464a": {
             "action": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [],
                 "parameters": [
                     {
@@ -12542,7 +12542,7 @@
         },
         "system_d29a7faa-7196-52ab-ac8f-0f4d6230cc0e": {
             "action": {
-                "compilerRevision": 13,
+                "compilerRevision": 14,
                 "instructions": [],
                 "parameters": [
                     {
@@ -37363,7 +37363,7 @@
                             "id": "5f5a90dc-2f86-4b5e-b6c4-154e65119c3b",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -37563,7 +37563,7 @@
                             "id": "b8af3b74-e7d3-43c3-a0d1-20f70b8d5b97",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "3ed7f33a-67fe-4671-8af9-c8339751894b",
@@ -37813,7 +37813,7 @@
                             "id": "9180d76c-fd46-4778-9dc7-a40cafd7a2e7",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "35ac06e1-119c-4d1f-81e9-f119610e3865",
@@ -38001,7 +38001,7 @@
                             "id": "955ed726-bf4e-494f-b3c7-1f72d7eedb55",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -38201,7 +38201,7 @@
                             "id": "10ccafed-a3aa-44c9-8ee1-ed94d0f172f2",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "214df1a1-abca-4141-987b-380a5417c70a",
@@ -38438,7 +38438,7 @@
                             "id": "971102a4-7180-450a-b84c-482f5fd74bed",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -38702,7 +38702,7 @@
                                         {
                                             "code": "return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"a840747f-9d6b-4d71-af3a-16b294ec436d\"; }));",
                                             "getter": {
-                                                "compilerRevision": 13,
+                                                "compilerRevision": 14,
                                                 "dependencies": {
                                                     "recordIds": [
                                                         "214df1a1-abca-4141-987b-380a5417c70a",
@@ -38800,7 +38800,7 @@
                                                                                     "type": "keyOf"
                                                                                 },
                                                                                 "function": {
-                                                                                    "compilerRevision": 13,
+                                                                                    "compilerRevision": 14,
                                                                                     "instructions": [
                                                                                         {
                                                                                             "pointer": {
@@ -38983,7 +38983,7 @@
                     {
                         "code": "return (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes) && !root.Save.Quest.EvidenceFaith && this.Save.Reputation >= 0;",
                         "getter": {
-                            "compilerRevision": 13,
+                            "compilerRevision": 14,
                             "dependencies": {
                                 "recordIds": [
                                     "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -39557,7 +39557,7 @@
                             "id": "01e3c472-26db-4f57-b606-b1fdf821044b",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "214df1a1-abca-4141-987b-380a5417c70a",
@@ -39861,7 +39861,7 @@
                             "id": "ad04c7d3-cde9-49a2-bb3a-2a6d4ea63b4b",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "0794a73f-60b2-4ce0-b191-83d0829fe7bb",
@@ -40049,7 +40049,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.threePaths && !root.Save.Quest.EvidenceLedger && root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"0c962c81-359a-4f8b-9263-7b6bb33b42b7\"; }));",
                         "getter": {
-                            "compilerRevision": 13,
+                            "compilerRevision": 14,
                             "dependencies": {
                                 "recordIds": [
                                     "0794a73f-60b2-4ce0-b191-83d0829fe7bb",
@@ -40338,7 +40338,7 @@
                                                                                         "type": "keyOf"
                                                                                     },
                                                                                     "function": {
-                                                                                        "compilerRevision": 13,
+                                                                                        "compilerRevision": 14,
                                                                                         "instructions": [
                                                                                             {
                                                                                                 "pointer": {
@@ -40663,7 +40663,7 @@
                             "id": "74756349-5b68-4eee-b324-f15cd9bbcc91",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "5a4d8d10-9fef-4197-a7a1-1dc1b112677b",
@@ -40830,7 +40830,7 @@
                             "id": "40f15f9c-6a11-4afc-ba2d-420aa8e1adf3",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "214df1a1-abca-4141-987b-380a5417c70a",
@@ -41332,7 +41332,7 @@
                             "id": "9387357d-21f5-4b29-87fe-9b28d081573d",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -41470,7 +41470,7 @@
                             "id": "c92be1f7-4d45-4a52-80f3-7ac16949ab7b",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "3ed7f33a-67fe-4671-8af9-c8339751894b",
@@ -41816,7 +41816,7 @@
                             "id": "c303f726-41d9-4ee8-9c65-0397c902b7a6",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -41983,7 +41983,7 @@
                             "id": "640bc771-6f2c-46b0-9b9f-4d8eababb6b2",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -42333,7 +42333,7 @@
                             "id": "82701398-39e0-4178-9315-ec1ee8f2d129",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -42689,7 +42689,7 @@
                                     "b3f0cc89-3530-4d6b-9eb4-8cc18d229d84": {
                                         "displayPath": "Outpost > Planet",
                                         "getter": {
-                                            "compilerRevision": 13,
+                                            "compilerRevision": 14,
                                             "dependencies": {
                                                 "recordIds": [
                                                     "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -42858,7 +42858,7 @@
                         "c3049b7f-c8a3-46fb-89ae-0be3372d8ee7": {
                             "displayPath": "Outpost > Planet",
                             "getter": {
-                                "compilerRevision": 13,
+                                "compilerRevision": 14,
                                 "dependencies": {
                                     "recordIds": [
                                         "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -43022,7 +43022,7 @@
                             "id": "feaa216b-31aa-4250-be85-4447ee79cde2",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "0c160a97-ff40-4433-ad66-6e649866bffd",
@@ -43288,7 +43288,7 @@
                             "id": "cc2ffd9e-c4e7-4cbe-b2cf-53ed2777510f",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "instructions": [
                                         {
                                             "operator": "++",
@@ -43408,7 +43408,7 @@
                         "3a36f845-8745-458a-8b19-3c9fbd2afee9": {
                             "displayPath": "Assets > Outposts > Mercurial > Planet",
                             "getter": {
-                                "compilerRevision": 13,
+                                "compilerRevision": 14,
                                 "dependencies": {
                                     "recordIds": [
                                         "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -43572,7 +43572,7 @@
                             "id": "bb43d0ca-ef12-4805-b0ea-f42b11adeadc",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -43742,7 +43742,7 @@
                             "id": "acf5e41c-755e-4dd6-9307-fbefd33f019e",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "instructions": [
                                         {
                                             "operator": "=",
@@ -43807,7 +43807,7 @@
                             "id": "0207d58c-639e-4634-932c-45e12dbe790e",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "instructions": [
                                         {
                                             "call": {
@@ -43926,7 +43926,7 @@
                         "e9fe0a2b-e192-4a75-b352-e26527e6b423": {
                             "displayPath": "Outpost > Planet",
                             "getter": {
-                                "compilerRevision": 13,
+                                "compilerRevision": 14,
                                 "dependencies": {
                                     "recordIds": [
                                         "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -44134,7 +44134,7 @@
                         "42b42e00-9b9c-4456-8100-38a8f3cd03f1": {
                             "displayPath": "Outpost > Planet",
                             "getter": {
-                                "compilerRevision": 13,
+                                "compilerRevision": 14,
                                 "dependencies": {
                                     "recordIds": [
                                         "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -44348,7 +44348,7 @@
                         "8c6427b4-9e59-4f38-8670-2090f21c4117": {
                             "displayPath": "Mercurial > Name",
                             "getter": {
-                                "compilerRevision": 13,
+                                "compilerRevision": 14,
                                 "dependencies": {
                                     "recordIds": [
                                         "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -44538,7 +44538,7 @@
                                     "6d620b86-cc1f-4ffc-961a-02bd52c81c76": {
                                         "displayPath": "Assets > Outposts > Mercurial > Name",
                                         "getter": {
-                                            "compilerRevision": 13,
+                                            "compilerRevision": 14,
                                             "dependencies": {
                                                 "recordIds": [
                                                     "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -44698,7 +44698,7 @@
                         "895da7f1-82ed-4eab-842d-f5dd4c25399a": {
                             "displayPath": "Assets > Outposts > Mercurial > Name",
                             "getter": {
-                                "compilerRevision": 13,
+                                "compilerRevision": 14,
                                 "dependencies": {
                                     "recordIds": [
                                         "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -44870,7 +44870,7 @@
                                 {
                                     "code": "\treturn root.Save.Bits >= this.Value;",
                                     "getter": {
-                                        "compilerRevision": 13,
+                                        "compilerRevision": 14,
                                         "dependencies": {
                                             "recordIds": [
                                                 "0c160a97-ff40-4433-ad66-6e649866bffd",
@@ -45049,7 +45049,7 @@
                             "id": "eec3e59e-8492-4fcc-aa7f-bc7c5df841a7",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -45277,7 +45277,7 @@
                         "23aec2a1-e952-4c13-86fb-e0cede15f33c": {
                             "displayPath": "Assets > Outposts > Mercurial > Planet",
                             "getter": {
-                                "compilerRevision": 13,
+                                "compilerRevision": 14,
                                 "dependencies": {
                                     "recordIds": [
                                         "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -45467,7 +45467,7 @@
                         "b8fb5589-1ca0-480a-a2eb-fc23e44e3ae9": {
                             "displayPath": "Assets > Items > Helium-3 Flask > Name",
                             "getter": {
-                                "compilerRevision": 13,
+                                "compilerRevision": 14,
                                 "dependencies": {
                                     "recordIds": [
                                         "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -45648,7 +45648,7 @@
                         "d922e051-7714-43df-814f-92f977494e03": {
                             "displayPath": "Mercurial > Name",
                             "getter": {
-                                "compilerRevision": 13,
+                                "compilerRevision": 14,
                                 "dependencies": {
                                     "recordIds": [
                                         "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -45839,7 +45839,7 @@
                                     "3e1d30e6-941b-450a-896d-b0512a29a678": {
                                         "displayPath": "Mercurial > Name",
                                         "getter": {
-                                            "compilerRevision": 13,
+                                            "compilerRevision": 14,
                                             "dependencies": {
                                                 "recordIds": [
                                                     "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -45999,7 +45999,7 @@
                         "49aba70d-30fc-4ae9-8b1c-c5fff5f14e4e": {
                             "displayPath": "Assets > Outposts > Mercurial > Name",
                             "getter": {
-                                "compilerRevision": 13,
+                                "compilerRevision": 14,
                                 "dependencies": {
                                     "recordIds": [
                                         "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -46182,7 +46182,7 @@
                                     "89ea16d4-6d4a-4e55-a3ea-3d973a1ffd02": {
                                         "displayPath": "Earth OG Souvenir Hat > Value",
                                         "getter": {
-                                            "compilerRevision": 13,
+                                            "compilerRevision": 14,
                                             "dependencies": {
                                                 "recordIds": [
                                                     "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -46349,7 +46349,7 @@
                         "1e6fc91e-ad08-446e-afff-812af0476e0d": {
                             "displayPath": "Earth OG Souvenir Hat > Name",
                             "getter": {
-                                "compilerRevision": 13,
+                                "compilerRevision": 14,
                                 "dependencies": {
                                     "recordIds": [
                                         "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -46560,7 +46560,7 @@
                             "id": "ff48b978-e50d-49e7-9b00-a001f63b9464",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -46827,7 +46827,7 @@
                             "id": "240474f0-0df8-4735-ac4d-774fa036b5bb",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -47027,7 +47027,7 @@
                             "id": "6c90b27b-f336-4860-98e5-d2f55d043a6e",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "214df1a1-abca-4141-987b-380a5417c70a",
@@ -47273,7 +47273,7 @@
                             "id": "8a69573c-5a18-4ec2-b6ac-cd57f2c53da2",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "3ed7f33a-67fe-4671-8af9-c8339751894b",
@@ -47523,7 +47523,7 @@
                             "id": "8055814e-6ac3-40a7-bce2-4894563ebdfd",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "42487172-af8c-49ff-b88a-2397894542fe",
@@ -47756,7 +47756,7 @@
                                         {
                                             "code": "return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"c8eb381b-9c3f-4120-b8c3-3872cdde5148\"; }));",
                                             "getter": {
-                                                "compilerRevision": 13,
+                                                "compilerRevision": 14,
                                                 "dependencies": {
                                                     "recordIds": [
                                                         "214df1a1-abca-4141-987b-380a5417c70a",
@@ -47854,7 +47854,7 @@
                                                                                     "type": "keyOf"
                                                                                 },
                                                                                 "function": {
-                                                                                    "compilerRevision": 13,
+                                                                                    "compilerRevision": 14,
                                                                                     "instructions": [
                                                                                         {
                                                                                             "pointer": {
@@ -48060,7 +48060,7 @@
                     {
                         "code": "return !root.Save.Quest.EvidenceArchive && (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes);",
                         "getter": {
-                            "compilerRevision": 13,
+                            "compilerRevision": 14,
                             "dependencies": {
                                 "recordIds": [
                                     "3ed7f33a-67fe-4671-8af9-c8339751894b",
@@ -48562,7 +48562,7 @@
                             "id": "199efa5f-5349-444f-b5a7-569560c694d1",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "35ac06e1-119c-4d1f-81e9-f119610e3865",
@@ -48774,7 +48774,7 @@
                             "id": "9f4f993d-c685-4620-9bc0-c9b57226887d",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1f76e191-faaf-4840-9bb0-29785a1c8ed6",
@@ -48992,7 +48992,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.threePaths && !root.Save.Quest.EvidenceFaith && root.Save.Bits >= 150;",
                         "getter": {
-                            "compilerRevision": 13,
+                            "compilerRevision": 14,
                             "dependencies": {
                                 "recordIds": [
                                     "1f76e191-faaf-4840-9bb0-29785a1c8ed6",
@@ -49452,7 +49452,7 @@
                             "id": "3ef76487-fd19-45ac-9ad3-346482e29dae",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -49652,7 +49652,7 @@
                             "id": "4edc6349-88f4-4c9b-9438-d00b5f078f3c",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -49967,7 +49967,7 @@
                             "id": "6736f285-f610-4b3c-b3dd-279235fa32c5",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -50238,7 +50238,7 @@
                             "id": "711ab375-5c19-4e01-b75c-4f9dc14d92e8",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "214df1a1-abca-4141-987b-380a5417c70a",
@@ -50506,7 +50506,7 @@
                             "id": "7eb438ef-4230-4e38-a4bb-109eb7612ea2",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -50706,7 +50706,7 @@
                             "id": "8a4202b1-dae7-4405-8421-1a28e212f7c6",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -51131,7 +51131,7 @@
                             "id": "277e6454-a07b-4855-914b-1960f0911643",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "214df1a1-abca-4141-987b-380a5417c70a",
@@ -51510,7 +51510,7 @@
                             "id": "04b429f5-a576-4f75-947e-bf1275dcad6c",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -51768,7 +51768,7 @@
                     {
                         "code": "return root.Save.Quest.FlareClock >= 6 && root.Save.Quest.Stage != QuestStage.ended;",
                         "getter": {
-                            "compilerRevision": 13,
+                            "compilerRevision": 14,
                             "dependencies": {
                                 "recordIds": [
                                     "26df3938-e800-4801-b897-602d50db7ec9",
@@ -52119,7 +52119,7 @@
                             "id": "6c4c9091-51dd-4587-a14f-858d23a3d0cd",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "214df1a1-abca-4141-987b-380a5417c70a",
@@ -52333,7 +52333,7 @@
                             "id": "a77da640-7669-4f9f-b453-95efa9a73fd7",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -52533,7 +52533,7 @@
                             "id": "8298ae34-02cf-4f7b-bbd9-ea33403ae250",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "3ed7f33a-67fe-4671-8af9-c8339751894b",
@@ -52783,7 +52783,7 @@
                             "id": "7bc9e7d2-22bd-4ba3-af81-4dc7b665dc88",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "0794a73f-60b2-4ce0-b191-83d0829fe7bb",
@@ -53039,7 +53039,7 @@
                                         {
                                             "code": "return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"18b9a621-ea41-4ac7-8a46-9cc443f2b480\"; }));",
                                             "getter": {
-                                                "compilerRevision": 13,
+                                                "compilerRevision": 14,
                                                 "dependencies": {
                                                     "recordIds": [
                                                         "214df1a1-abca-4141-987b-380a5417c70a",
@@ -53137,7 +53137,7 @@
                                                                                     "type": "keyOf"
                                                                                 },
                                                                                 "function": {
-                                                                                    "compilerRevision": 13,
+                                                                                    "compilerRevision": 14,
                                                                                     "instructions": [
                                                                                         {
                                                                                             "pointer": {
@@ -53320,7 +53320,7 @@
                     {
                         "code": "return (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes) && !root.Save.Quest.EvidenceLedger && this.Save.Reputation >= 1;",
                         "getter": {
-                            "compilerRevision": 13,
+                            "compilerRevision": 14,
                             "dependencies": {
                                 "recordIds": [
                                     "0794a73f-60b2-4ce0-b191-83d0829fe7bb",
@@ -53893,7 +53893,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.vaultOpen && !root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"fec825b2-2449-4ae2-a4bd-b29f8cf73e3c\"; }));",
                         "getter": {
-                            "compilerRevision": 13,
+                            "compilerRevision": 14,
                             "dependencies": {
                                 "recordIds": [
                                     "214df1a1-abca-4141-987b-380a5417c70a",
@@ -54090,7 +54090,7 @@
                                                                                         "type": "keyOf"
                                                                                     },
                                                                                     "function": {
-                                                                                        "compilerRevision": 13,
+                                                                                        "compilerRevision": 14,
                                                                                         "instructions": [
                                                                                             {
                                                                                                 "pointer": {
@@ -54436,7 +54436,7 @@
                             "id": "56cebd90-e85a-4740-a3a3-461d02f5753a",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "5a4d8d10-9fef-4197-a7a1-1dc1b112677b",
@@ -54603,7 +54603,7 @@
                             "id": "d8e4dfcf-4c19-4973-a020-06358c1bbac4",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "214df1a1-abca-4141-987b-380a5417c70a",
@@ -54782,7 +54782,7 @@
                             "id": "66eb4131-942d-4e35-8785-38be13173913",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "5a4d8d10-9fef-4197-a7a1-1dc1b112677b",
@@ -54920,7 +54920,7 @@
                             "id": "e47f29bd-a3fe-4163-9ab4-23053479fba1",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "3ed7f33a-67fe-4671-8af9-c8339751894b",
@@ -55293,7 +55293,7 @@
                             "id": "19781ef2-66b2-4851-8cb6-3cb1393a9915",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "5a4d8d10-9fef-4197-a7a1-1dc1b112677b",
@@ -55636,7 +55636,7 @@
                             "id": "58794a8d-62ca-42a2-a586-8db94642ab0b",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "4868ab84-027a-405d-bfca-d04d4d4917fa",
@@ -55806,7 +55806,7 @@
                             "id": "4d969ab7-e70e-4443-a0f3-8a8117c38666",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "3ed7f33a-67fe-4671-8af9-c8339751894b",
@@ -56000,7 +56000,7 @@
                             "id": "4b990519-0cc5-4bf0-b953-5f608a9b154c",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "4868ab84-027a-405d-bfca-d04d4d4917fa",
@@ -56170,7 +56170,7 @@
                             "id": "53df927f-7605-481e-a00c-82d35ccafa62",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "3ed7f33a-67fe-4671-8af9-c8339751894b",
@@ -56364,7 +56364,7 @@
                             "id": "7928414c-eb50-4cd1-a27f-4b8844505da0",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "4868ab84-027a-405d-bfca-d04d4d4917fa",
@@ -56534,7 +56534,7 @@
                             "id": "2be30a7a-35d0-472e-86e7-9b2a3e1dddee",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "3ed7f33a-67fe-4671-8af9-c8339751894b",
@@ -56728,7 +56728,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.endgame;",
                         "getter": {
-                            "compilerRevision": 13,
+                            "compilerRevision": 14,
                             "dependencies": {
                                 "recordIds": [
                                     "3ed7f33a-67fe-4671-8af9-c8339751894b",
@@ -57055,7 +57055,7 @@
                             "id": "c9369ac2-54cc-449a-af76-160933d4c375",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "5a4d8d10-9fef-4197-a7a1-1dc1b112677b",
@@ -57222,7 +57222,7 @@
                             "id": "efbc6f53-5351-4788-bc16-524e756d4a40",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "214df1a1-abca-4141-987b-380a5417c70a",
@@ -57570,7 +57570,7 @@
                             "id": "356bf10f-2709-44c6-b015-b7a58b4e828c",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1f76e191-faaf-4840-9bb0-29785a1c8ed6",
@@ -57879,7 +57879,7 @@
                     {
                         "code": "return root.Save.Quest.Ending == WorldEnding.secondSun;",
                         "getter": {
-                            "compilerRevision": 13,
+                            "compilerRevision": 14,
                             "dependencies": {
                                 "recordIds": [
                                     "4868ab84-027a-405d-bfca-d04d4d4917fa",
@@ -58127,7 +58127,7 @@
                             "id": "d2188e44-7be9-44ad-873f-c7dd7c901697",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1f76e191-faaf-4840-9bb0-29785a1c8ed6",
@@ -58345,7 +58345,7 @@
                             "id": "84c58cc0-446b-4e86-847c-2c486c869e92",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "214df1a1-abca-4141-987b-380a5417c70a",
@@ -58591,7 +58591,7 @@
                             "id": "0e6ddbee-d12a-4edf-b391-ba11f2741d49",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -58930,7 +58930,7 @@
                             "id": "282bb874-fa3b-4e07-a9b0-4ae2cd382d33",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "214df1a1-abca-4141-987b-380a5417c70a",
@@ -59109,7 +59109,7 @@
                             "id": "c6446a36-18f6-46ef-8f22-39766fac12a0",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -59236,7 +59236,7 @@
                             "id": "7417de5a-516c-4c42-85cc-0407364ee475",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "3ed7f33a-67fe-4671-8af9-c8339751894b",
@@ -59465,7 +59465,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.vaultOpen && root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"fec825b2-2449-4ae2-a4bd-b29f8cf73e3c\"; }));",
                         "getter": {
-                            "compilerRevision": 13,
+                            "compilerRevision": 14,
                             "dependencies": {
                                 "recordIds": [
                                     "214df1a1-abca-4141-987b-380a5417c70a",
@@ -59662,7 +59662,7 @@
                                                                                         "type": "keyOf"
                                                                                     },
                                                                                     "function": {
-                                                                                        "compilerRevision": 13,
+                                                                                        "compilerRevision": 14,
                                                                                         "instructions": [
                                                                                             {
                                                                                                 "pointer": {
@@ -59939,7 +59939,7 @@
                             "id": "7ac05c7d-4541-44ae-81ae-1efed5a5bc0e",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "3ed7f33a-67fe-4671-8af9-c8339751894b",
@@ -60133,7 +60133,7 @@
                             "id": "b6c76ad2-33d6-48f2-be4d-95332a8a6ed6",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -60391,7 +60391,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.threePaths && ((root.Save.Quest.EvidenceArchive && root.Save.Quest.EvidenceLedger) || (root.Save.Quest.EvidenceArchive && root.Save.Quest.EvidenceFaith) || (root.Save.Quest.EvidenceLedger && root.Save.Quest.EvidenceFaith));",
                         "getter": {
-                            "compilerRevision": 13,
+                            "compilerRevision": 14,
                             "dependencies": {
                                 "recordIds": [
                                     "0794a73f-60b2-4ce0-b191-83d0829fe7bb",
@@ -61193,7 +61193,7 @@
                             "id": "afd16a0e-16f3-4317-914b-eb83acdbcd44",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "214df1a1-abca-4141-987b-380a5417c70a",
@@ -61372,7 +61372,7 @@
                             "id": "05dbfa2e-e7f1-466f-9541-353970a844b1",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -61689,7 +61689,7 @@
                             "id": "b99b2701-e160-4d3a-b6aa-2e063dfa9594",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "214df1a1-abca-4141-987b-380a5417c70a",
@@ -62128,7 +62128,7 @@
                             "id": "dac725ea-a192-4c36-9593-4c5542dc6d3f",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "214df1a1-abca-4141-987b-380a5417c70a",
@@ -62331,7 +62331,7 @@
                             "id": "b9664f53-e3a6-4cff-b88b-d0dac313d46f",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "5a4d8d10-9fef-4197-a7a1-1dc1b112677b",
@@ -62554,7 +62554,7 @@
                             "id": "c9eb5167-5de6-438a-bd2c-f80f8adf29e1",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "42487172-af8c-49ff-b88a-2397894542fe",
@@ -62832,7 +62832,7 @@
                             "id": "f260b8ef-c819-4408-bf87-a716c9c33f45",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "214df1a1-abca-4141-987b-380a5417c70a",
@@ -63011,7 +63011,7 @@
                             "id": "1c5b294b-eff6-4baa-89ca-f55aa755c0aa",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -63289,7 +63289,7 @@
                             "id": "2b55ed52-fad7-4e0c-89cf-9cd602e8d6b7",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "1d1d14bc-987e-4079-a8f8-09998d5954fc",
@@ -63489,7 +63489,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.threePaths && !root.Save.Quest.EvidenceArchive && root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"0e9655ec-dc98-477c-b0ff-90d8f203040a\"; }));",
                         "getter": {
-                            "compilerRevision": 13,
+                            "compilerRevision": 14,
                             "dependencies": {
                                 "recordIds": [
                                     "214df1a1-abca-4141-987b-380a5417c70a",
@@ -63778,7 +63778,7 @@
                                                                                         "type": "keyOf"
                                                                                     },
                                                                                     "function": {
-                                                                                        "compilerRevision": 13,
+                                                                                        "compilerRevision": 14,
                                                                                         "instructions": [
                                                                                             {
                                                                                                 "pointer": {
@@ -64130,7 +64130,7 @@
                             "id": "7fc0dbae-47f9-40f8-9ae9-6424a759a3b8",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "0fa12fa0-9e74-4e85-9ce3-df0efe78d2dd",
@@ -64327,7 +64327,7 @@
                             "id": "553bd936-450b-494e-8119-d51bf53d6c7c",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "0fa12fa0-9e74-4e85-9ce3-df0efe78d2dd",
@@ -64664,7 +64664,7 @@
                             "id": "978e0a94-7e88-4beb-8117-fff4f82068cb",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "214df1a1-abca-4141-987b-380a5417c70a",
@@ -64843,7 +64843,7 @@
                             "id": "7b87b565-12ab-4f03-91eb-4d418ef623b1",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "4868ab84-027a-405d-bfca-d04d4d4917fa",
@@ -65013,7 +65013,7 @@
                             "id": "575b3f44-d0c9-415f-93b9-ce385ee0b3f7",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "3ed7f33a-67fe-4671-8af9-c8339751894b",
@@ -65250,7 +65250,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.endgame && root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"e812e95c-d4dc-4f5d-8f42-ce57e5501eab\"; })) && root.Save.Quest.EvidenceArchive && root.Save.Quest.EvidenceLedger && root.Save.Quest.EvidenceFaith;",
                         "getter": {
-                            "compilerRevision": 13,
+                            "compilerRevision": 14,
                             "dependencies": {
                                 "recordIds": [
                                     "0794a73f-60b2-4ce0-b191-83d0829fe7bb",
@@ -65462,7 +65462,7 @@
                                                                                                                                         "type": "keyOf"
                                                                                                                                     },
                                                                                                                                     "function": {
-                                                                                                                                        "compilerRevision": 13,
+                                                                                                                                        "compilerRevision": 14,
                                                                                                                                         "instructions": [
                                                                                                                                             {
                                                                                                                                                 "pointer": {
@@ -66047,7 +66047,7 @@
                             "id": "68eb6912-4f33-49d0-948e-3ddcb1702764",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 13,
+                                    "compilerRevision": 14,
                                     "dependencies": {
                                         "recordIds": [
                                             "5a4d8d10-9fef-4197-a7a1-1dc1b112677b",
@@ -66387,7 +66387,7 @@
                     {
                         "code": "return root.Save.Quest.Reruns >= 1;",
                         "getter": {
-                            "compilerRevision": 13,
+                            "compilerRevision": 14,
                             "dependencies": {
                                 "recordIds": [
                                     "4868ab84-027a-405d-bfca-d04d4d4917fa",
@@ -66708,7 +66708,7 @@
             "conditions": [
                 {
                     "getter": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {
@@ -66789,7 +66789,7 @@
             "conditions": [
                 {
                     "getter": {
-                        "compilerRevision": 13,
+                        "compilerRevision": 14,
                         "instructions": [
                             {
                                 "pointer": {

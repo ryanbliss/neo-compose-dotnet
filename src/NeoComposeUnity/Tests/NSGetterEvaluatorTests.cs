@@ -1055,7 +1055,34 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Evaluate_StringInterpolation_LocalizesEnumOptionText()
+        public void Evaluate_StaticStringMember_ReturnsLocalizedText()
+        {
+            var client = LoadGeneratedValueSurfaceClient(
+                out _,
+                out _,
+                out _);
+            StringMember member = RequireMember<StringMember>(client, "member-string");
+            member.DeclaredFormat = NeoStringFormatKind.Localized;
+            member.DeclaredModifier = NeoMemberModifierKind.Static;
+            member.DeclaredStorage = NeoMemberStorage.Immutable;
+            member.valueId = "v-string";
+            ((StringMemberValue)client.values["v-string"]).value = "text-string";
+
+            var pointer = new StaticMemberPointer
+            {
+                type = PointerKind.StaticMember,
+                memberId = member.id,
+            };
+            object? result = NSGetterEvaluator.Evaluate(
+                ReturnFunction(pointer, MemberKind.String),
+                new NSGetterEvaluator.Context(client, null, null));
+
+            Assert.AreEqual("Localized string", result);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Evaluate_StringInterpolation_LocalizesEnumOptionText(bool setType)
         {
             var client = LoadGeneratedValueSurfaceClient(
                 out ClassMember testMember,
@@ -1067,6 +1094,12 @@ namespace NeoCompose.Tests
                 testMember,
                 readOnlyRow.id);
 
+            var enumType = new EnumTypeInfo
+            {
+                type = MemberKind.Enum,
+                enumId = "enum-color",
+                required = true,
+            };
             var result = EvaluatePointer(
                 client,
                 new TestReadOnlyGeneratedValue(client, readOnlyNode),
@@ -1074,15 +1107,182 @@ namespace NeoCompose.Tests
                 {
                     type = PointerKind.Stringify,
                     pointer = KeyOf(ThisPointer(), "Enum"),
-                    sourceType = new EnumTypeInfo
+                    sourceType = setType ? new LookupTypeInfo
                     {
-                        type = MemberKind.Enum,
-                        enumId = "enum-color",
+                        type = MemberKind.Lookup,
+                        entryTypeInfo = enumType,
                         required = true,
-                    },
+                    } : enumType,
                 });
 
             Assert.AreEqual("Localized red", result);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Evaluate_IsSetChecksEntryTypes(bool validEntries)
+        {
+            var setType = new LookupTypeInfo
+            {
+                type = MemberKind.Lookup,
+                required = true,
+                entryTypeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+            };
+            var pointer = new IsCheckPointer
+            {
+                type = PointerKind.IsCheck,
+                checkType = setType,
+                pointer = new ValuePointer
+                {
+                    type = PointerKind.Value,
+                    value = new Value
+                    {
+                        typeInfo = setType,
+                        value = validEntries ? new JArray(1, 2) : new JArray(1, "wrong"),
+                    },
+                },
+            };
+            Assert.AreEqual(validEntries, NSGetterEvaluator.Evaluate(
+                ReturnFunction(pointer, MemberKind.Bool),
+                new NSGetterEvaluator.Context(LoadClient(), null, null)));
+        }
+
+        [Test]
+        public void Evaluate_EnumSetWhereSelectIdentityReturnsCanonicalEnumList()
+        {
+            var enumType = new EnumTypeInfo
+            {
+                type = MemberKind.Enum,
+                required = true,
+                enumId = "enum-color",
+            };
+            var setType = new LookupTypeInfo
+            {
+                type = MemberKind.Lookup,
+                required = true,
+                entryTypeInfo = enumType,
+            };
+            VariablePointer EntryPointer() => new VariablePointer
+            {
+                type = PointerKind.Variable,
+                variableId = "entry",
+            };
+            FunctionWithReturnType Callback(TypeInfo resultType, Pointer result) =>
+                new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        new Variable
+                        {
+                            id = "entry",
+                            typeInfo = enumType,
+                            pointer = EntryPointer(),
+                        },
+                    },
+                    typeInfo = resultType,
+                    instructions = new Instruction[]
+                    {
+                        new ReturnInstruction
+                        {
+                            type = InstructionKind.Return,
+                            pointer = result,
+                        },
+                    },
+                };
+            var where = new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new WhereFunction
+                {
+                    type = FunctionKind.Where,
+                    info = new FunctionCollectionBoolInfo
+                    {
+                        collectionPointer = new ValuePointer
+                        {
+                            type = PointerKind.Value,
+                            value = new Value
+                            {
+                                typeInfo = setType,
+                                value = new JArray("red", "blue"),
+                            },
+                        },
+                        function = Callback(
+                            new PrimitiveTypeInfo
+                            {
+                                type = MemberKind.Bool,
+                                required = true,
+                            },
+                            new ValuePointer
+                            {
+                                type = PointerKind.Value,
+                                value = new Value
+                                {
+                                    typeInfo = new PrimitiveTypeInfo
+                                    {
+                                        type = MemberKind.Bool,
+                                        required = true,
+                                    },
+                                    value = JToken.FromObject(true),
+                                },
+                            }),
+                    },
+                },
+            };
+            var select = new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new SelectFunction
+                {
+                    type = FunctionKind.Select,
+                    info = new FunctionCollectionSelectInfo
+                    {
+                        collectionPointer = where,
+                        function = Callback(enumType, EntryPointer()),
+                    },
+                },
+            };
+
+            using NeoClient client = LoadClient();
+            object? result = NSGetterEvaluator.EvaluatePointer(
+                select,
+                new Dictionary<string, object?>(),
+                new NSGetterEvaluator.Context(client, null, null));
+
+            Assert.IsInstanceOf<object?[]>(result);
+            var values = (object?[])result!;
+            Assert.AreEqual(2, values.Length);
+            CollectionAssert.AreEqual(new[] { "red" }, (object?[])values[0]!);
+            CollectionAssert.AreEqual(new[] { "blue" }, (object?[])values[1]!);
+        }
+
+        [Test]
+        public void Evaluate_StringInterpolation_DescribesNestedSets()
+        {
+            var setType = new LookupTypeInfo
+            {
+                type = MemberKind.Lookup,
+                required = true,
+                entryTypeInfo = new LookupTypeInfo
+                {
+                    type = MemberKind.Lookup,
+                    required = true,
+                    entryTypeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                },
+            };
+            var pointer = new StringifyPointer
+            {
+                type = PointerKind.Stringify,
+                sourceType = setType,
+                pointer = new ValuePointer
+                {
+                    type = PointerKind.Value,
+                    value = new Value { typeInfo = setType, value = new JArray() },
+                },
+            };
+            Assert.AreEqual("(Set<Set<int>>, Value<<unknown>>)", NSGetterEvaluator.Evaluate(
+                ReturnFunction(pointer, MemberKind.String),
+                new NSGetterEvaluator.Context(LoadClient(), null, null)));
         }
 
         [Test]

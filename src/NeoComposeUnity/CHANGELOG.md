@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.36.11] - 2026-09-15
+
+- Read compiler revision 14 and unbound `Set<T>` type information, including foreach and localized enum-set interpolation.
+
 ## [0.36.10] - 2026-09-15
 
 - Apply live sprite `SortingOrder` writes without respawning, preserving the layer and composition base when offsets change or reset to null.

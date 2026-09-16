@@ -2090,6 +2090,7 @@ namespace NeoCompose.Runtime
                 }
                 scope[variablePointer.variableId] = MutateLocalCollection(
                     local,
+                    instruction.target.typeInfo,
                     instruction.mutation,
                     args,
                     ctx);
@@ -3110,6 +3111,18 @@ namespace NeoCompose.Runtime
             object? value,
             NSGetterEvaluator.Context ctx)
         {
+            if (lookupTypeInfo.collectionMemberId is null
+                && (lookupTypeInfo.entryTypeInfo.type == MemberKind.Enum
+                    || lookupTypeInfo.entryTypeInfo.type == MemberKind.DialogueLookup))
+            {
+                if (value is object?[] { Length: 1 } selection) value = selection[0];
+                string? selectionId = NeoScriptValueMarshaller.EnumOptionId(value);
+                if (string.IsNullOrEmpty(selectionId))
+                {
+                    throw new NSGetterRuntimeError("Set mutation requires one enum option or dialogue id.");
+                }
+                return selectionId!;
+            }
             if (!client.TryGetMember(lookupTypeInfo.collectionMemberId, out JsonMember? collectionMember))
             {
                 throw new NSGetterRuntimeError(
@@ -3198,19 +3211,26 @@ namespace NeoCompose.Runtime
 
         private static object? MutateLocalCollection(
             object? local,
+            TypeInfo collectionType,
             string mutation,
             object?[] args,
             NSGetterEvaluator.Context ctx)
         {
+            if (collectionType is LookupTypeInfo lookup && args.Length > 0
+                && (lookup.entryTypeInfo.type == MemberKind.Enum
+                    || lookup.entryTypeInfo.type == MemberKind.DialogueLookup))
+            {
+                args[0] = ResolveLookupSelectionId(ctx.client, lookup, args[0], ctx);
+            }
             if (local is object?[] array)
             {
                 var arrayList = new List<object?>(array);
-                MutateLocalList(arrayList, mutation, args, ctx);
+                MutateLocalList(arrayList, collectionType.type, mutation, args, ctx);
                 return arrayList.ToArray();
             }
             if (local is List<object?> list)
             {
-                MutateLocalList(list, mutation, args, ctx);
+                MutateLocalList(list, collectionType.type, mutation, args, ctx);
                 return list;
             }
             if (local is IDictionary<string, object?> dict)
@@ -3223,6 +3243,7 @@ namespace NeoCompose.Runtime
 
         private static void MutateLocalList(
             List<object?> list,
+            MemberKind collectionKind,
             string mutation,
             object?[] args,
             NSGetterEvaluator.Context ctx)
@@ -3230,6 +3251,14 @@ namespace NeoCompose.Runtime
             switch (mutation)
             {
                 case CollectionMutationKind.Add:
+                    if (collectionKind == MemberKind.Lookup)
+                    {
+                        foreach (object? entry in list)
+                        {
+                            ctx.allocationTracker.ConsumeCollectionVisit();
+                            if (JsEqual(entry, args[0])) return;
+                        }
+                    }
                     list.Add(args[0]);
                     return;
                 case CollectionMutationKind.Remove:
