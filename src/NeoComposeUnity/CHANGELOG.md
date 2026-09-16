@@ -2,6 +2,10 @@
 
 ## [0.37.0] - 2026-09-15
 
+- Read and write authored `NeoCellPattern` system-class values through the existing SDK type, including List entries and generic fields. Keep its constructors, indexer, and enumeration APIs.
+- Execute NeoScript pattern factories and transforms, and bind placed-object grid queries to their owning grid with cell-based change tracking.
+- Generate Box, Rect, Cross, and Ring offsets directly in their existing order, with work proportional to the result size.
+- Replace `includeCenter` and `includeOrigin` with `NeoCellPatternExcluding`. `Line` now includes the origin by default; pass `excluding: NeoCellPatternExcluding.Center` to retain the prior default behavior.
 - Execute NeoScript base function and getter calls on their selected ancestor with the original receiver, including deferred and native calls.
 - Preserve nullable generic function arguments and returns through runtime binding.
 - Read compiler revision 14 and unbound `Set<T>` type information, including foreach and localized enum-set interpolation.

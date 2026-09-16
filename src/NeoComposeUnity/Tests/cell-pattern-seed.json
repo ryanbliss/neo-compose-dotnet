@@ -1,0 +1,1265 @@
+{
+  "classes": [
+    {
+      "id": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7",
+      "projectId": "project-id",
+      "name": "NeoCellPattern",
+      "docsText": "An immutable ordered pattern of cell offsets, relative to an origin.\nHand-built patterns preserve order and duplicates; factories order cells nearest first.",
+      "schema": {
+        "_offsets": "system_02a01003-41ff-531c-a63c-1e905ca88d7d",
+        "Count": "system_51d883c9-d451-5747-bcf0-e314e44bffa8",
+        "Center": "system_d90a6e51-0b1e-5354-b4e2-ad4155a833f1",
+        "FourNeighbors": "system_57290d57-16dd-54d6-ad1e-81a72bd7f457",
+        "EightNeighbors": "system_a8f2f798-7988-5df8-8294-decdd4316c7e",
+        "Empty": "system_98d035f6-9f7d-5d2b-ae01-70ce90621333",
+        "Box": "system_aaad2df6-e31e-5f5d-95b9-e265211faed5",
+        "Cross": "system_df8ebca6-a1d1-57c1-8762-227943fc51d8",
+        "Ring": "system_82222600-f67f-5127-bb2d-278381b4ef2f",
+        "Rect": "system_d803cfd5-ce53-57da-abc2-7cd69befeb01",
+        "Line": "system_ef0d4cbb-7182-5d93-9bb8-60a5a18f81a5",
+        "Contains": "system_65a16908-05a6-52f9-a467-4e37e95ba0be",
+        "Cells": "system_c72d9b09-fc4c-55db-b763-f1954a536069",
+        "WithCenter": "system_1da9303d-c362-541a-a77b-244fb0ffcbb6",
+        "WithoutCenter": "system_7dce7f78-2c8f-5a1f-aa80-89dc217dcdff",
+        "Translate": "system_efc67858-0c95-573f-a8a9-d7e07d0a1d55",
+        "Union": "system_77b14581-e34c-5eb1-a820-788618276e46"
+      },
+      "modifier": 2,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "cellPattern"
+      },
+      "constructorIds": [
+        "system_f68684d6-6ea0-5d57-9f96-d544b17bf369"
+      ],
+      "createdAt": 0,
+      "updatedAt": 0
+    }
+  ],
+  "constructors": [
+    {
+      "id": "system_f68684d6-6ea0-5d57-9f96-d544b17bf369",
+      "projectId": "project-id",
+      "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7",
+      "argumentTypes": [
+        {
+          "name": "offsets",
+          "type": 6,
+          "required": true,
+          "entryTypeInfo": {
+            "type": 15,
+            "required": true
+          }
+        }
+      ],
+      "code": "this._offsets = offsets.Select((offset) => { return Vector2Int(offset.x, offset.y); });",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "action": {
+        "compilerRevision": 14,
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 6,
+              "required": true,
+              "entryTypeInfo": {
+                "type": 15,
+                "required": true
+              }
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 6,
+                  "required": true,
+                  "entryTypeInfo": {
+                    "type": 15,
+                    "required": true
+                  }
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "assign",
+            "target": {
+              "pointer": {
+                "type": "keyOf",
+                "memberId": "system_02a01003-41ff-531c-a63c-1e905ca88d7d",
+                "keyOf": {
+                  "pointer": {
+                    "type": "variable",
+                    "variableId": "__this__"
+                  },
+                  "key": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "_offsets"
+                    }
+                  }
+                }
+              },
+              "typeInfo": {
+                "type": 6,
+                "required": true,
+                "entryTypeInfo": {
+                  "type": 15,
+                  "required": true
+                },
+                "listMemberId": "system_02a01003-41ff-531c-a63c-1e905ca88d7d"
+              },
+              "writability": "runtime"
+            },
+            "operator": "=",
+            "pointer": {
+              "type": "function",
+              "function": {
+                "type": "select",
+                "info": {
+                  "collectionPointer": {
+                    "type": "variable",
+                    "variableId": "__arg_0__"
+                  },
+                  "function": {
+                    "compilerRevision": 14,
+                    "parameters": [
+                      {
+                        "id": "offset",
+                        "typeInfo": {
+                          "type": 15,
+                          "required": true
+                        },
+                        "pointer": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 15,
+                              "required": true
+                            },
+                            "value": null
+                          }
+                        }
+                      }
+                    ],
+                    "instructions": [
+                      {
+                        "type": "return",
+                        "pointer": {
+                          "type": "function",
+                          "function": {
+                            "type": "vectorConstructor",
+                            "info": {
+                              "vectorType": 15,
+                              "componentPointers": [
+                                {
+                                  "type": "keyOf",
+                                  "keyOf": {
+                                    "pointer": {
+                                      "type": "variable",
+                                      "variableId": "offset"
+                                    },
+                                    "key": {
+                                      "type": "value",
+                                      "value": {
+                                        "typeInfo": {
+                                          "type": 3,
+                                          "required": true
+                                        },
+                                        "value": "x"
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "keyOf",
+                                  "keyOf": {
+                                    "pointer": {
+                                      "type": "variable",
+                                      "variableId": "offset"
+                                    },
+                                    "key": {
+                                      "type": "value",
+                                      "value": {
+                                        "typeInfo": {
+                                          "type": 3,
+                                          "required": true
+                                        },
+                                        "value": "y"
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ],
+                    "typeInfo": {
+                      "type": 15,
+                      "required": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_02a01003-41ff-531c-a63c-1e905ca88d7d",
+            "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+          ],
+          "typeNames": []
+        }
+      }
+    }
+  ],
+  "members": [
+    {
+      "id": "system_02a01003-41ff-531c-a63c-1e905ca88d7d",
+      "projectId": "project-id",
+      "name": "_offsets",
+      "kind": 6,
+      "requirement": 1,
+      "access": 2,
+      "modifier": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "entryMemberId": "system_1efcbead-df5b-5d09-b0ca-758039c06fca"
+    },
+    {
+      "id": "system_51d883c9-d451-5747-bcf0-e314e44bffa8",
+      "projectId": "project-id",
+      "name": "Count",
+      "kind": 10,
+      "requirement": 1,
+      "docsText": "Number of offsets, including any duplicates.",
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "returnTypeInfo": {
+        "type": 2,
+        "required": true
+      },
+      "code": "return this._offsets.Count;",
+      "getter": {
+        "compilerRevision": 14,
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "function",
+              "function": {
+                "type": "count",
+                "info": {
+                  "collectionPointer": {
+                    "type": "keyOf",
+                    "memberId": "system_02a01003-41ff-531c-a63c-1e905ca88d7d",
+                    "keyOf": {
+                      "pointer": {
+                        "type": "variable",
+                        "variableId": "__this__"
+                      },
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 3,
+                            "required": true
+                          },
+                          "value": "_offsets"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 2,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_02a01003-41ff-531c-a63c-1e905ca88d7d",
+            "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+          ],
+          "typeNames": []
+        }
+      }
+    },
+    {
+      "id": "system_d90a6e51-0b1e-5354-b4e2-ad4155a833f1",
+      "projectId": "project-id",
+      "name": "Center",
+      "kind": 10,
+      "requirement": 1,
+      "modifier": 3,
+      "docsText": "Only the origin cell.",
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+      },
+      "code": "return new NeoCellPattern(offsets: [new(0, 0)]);",
+      "getter": {
+        "compilerRevision": 14,
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "function",
+              "function": {
+                "type": "declaredConstructor",
+                "info": {
+                  "schemaClassInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+                  },
+                  "constructorId": "system_f68684d6-6ea0-5d57-9f96-d544b17bf369",
+                  "args": [
+                    {
+                      "name": "offsets",
+                      "valuePointer": {
+                        "type": "listLiteral",
+                        "typeInfo": {
+                          "type": 6,
+                          "required": true,
+                          "entryTypeInfo": {
+                            "type": 15,
+                            "required": true
+                          }
+                        },
+                        "entries": [
+                          {
+                            "type": "function",
+                            "function": {
+                              "type": "vectorConstructor",
+                              "info": {
+                                "vectorType": 15,
+                                "componentPointers": [
+                                  {
+                                    "type": "value",
+                                    "value": {
+                                      "typeInfo": {
+                                        "type": 2,
+                                        "required": true
+                                      },
+                                      "value": 0
+                                    }
+                                  },
+                                  {
+                                    "type": "value",
+                                    "value": {
+                                      "typeInfo": {
+                                        "type": 2,
+                                        "required": true
+                                      },
+                                      "value": 0
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "fields": []
+                }
+              }
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 7,
+          "required": true,
+          "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_f68684d6-6ea0-5d57-9f96-d544b17bf369",
+            "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+          ],
+          "typeNames": [
+            "NeoCellPattern"
+          ]
+        }
+      }
+    },
+    {
+      "id": "system_57290d57-16dd-54d6-ad1e-81a72bd7f457",
+      "projectId": "project-id",
+      "name": "FourNeighbors",
+      "kind": 10,
+      "requirement": 1,
+      "modifier": 3,
+      "docsText": "The four edge-adjacent cells, excluding the origin.",
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+      },
+      "code": "return NeoCellPattern.Cross(1, null, .Center);",
+      "getter": {
+        "compilerRevision": 14,
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "callFunction",
+              "memberId": "system_df8ebca6-a1d1-57c1-8762-227943fc51d8",
+              "receiver": {
+                "kind": "static",
+                "memberId": "system_df8ebca6-a1d1-57c1-8762-227943fc51d8"
+              },
+              "args": [
+                {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 2,
+                      "required": true
+                    },
+                    "value": 1
+                  }
+                },
+                {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 2,
+                      "required": false
+                    },
+                    "value": null
+                  }
+                },
+                {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 8,
+                      "required": true,
+                      "enumId": "system_072f749f-62fe-5917-9f7e-f9f29c3a7063"
+                    },
+                    "value": [
+                      "system_456431b5-aa5b-5ea0-9f72-0e16f7114e09"
+                    ]
+                  }
+                }
+              ],
+              "callSiteId": "1:28:0"
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 7,
+          "required": true,
+          "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_072f749f-62fe-5917-9f7e-f9f29c3a7063",
+            "system_df8ebca6-a1d1-57c1-8762-227943fc51d8",
+            "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+          ],
+          "typeNames": [
+            "NeoCellPattern"
+          ]
+        }
+      }
+    },
+    {
+      "id": "system_a8f2f798-7988-5df8-8294-decdd4316c7e",
+      "projectId": "project-id",
+      "name": "EightNeighbors",
+      "kind": 10,
+      "requirement": 1,
+      "modifier": 3,
+      "docsText": "The eight surrounding cells, excluding the origin.",
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+      },
+      "code": "return NeoCellPattern.Box(1, null, .Center);",
+      "getter": {
+        "compilerRevision": 14,
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "callFunction",
+              "memberId": "system_aaad2df6-e31e-5f5d-95b9-e265211faed5",
+              "receiver": {
+                "kind": "static",
+                "memberId": "system_aaad2df6-e31e-5f5d-95b9-e265211faed5"
+              },
+              "args": [
+                {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 2,
+                      "required": true
+                    },
+                    "value": 1
+                  }
+                },
+                {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 2,
+                      "required": false
+                    },
+                    "value": null
+                  }
+                },
+                {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 8,
+                      "required": true,
+                      "enumId": "system_072f749f-62fe-5917-9f7e-f9f29c3a7063"
+                    },
+                    "value": [
+                      "system_456431b5-aa5b-5ea0-9f72-0e16f7114e09"
+                    ]
+                  }
+                }
+              ],
+              "callSiteId": "1:26:0"
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 7,
+          "required": true,
+          "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_072f749f-62fe-5917-9f7e-f9f29c3a7063",
+            "system_aaad2df6-e31e-5f5d-95b9-e265211faed5",
+            "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+          ],
+          "typeNames": [
+            "NeoCellPattern"
+          ]
+        }
+      }
+    },
+    {
+      "id": "system_98d035f6-9f7d-5d2b-ae01-70ce90621333",
+      "projectId": "project-id",
+      "name": "Empty",
+      "kind": 10,
+      "requirement": 1,
+      "modifier": 3,
+      "docsText": "No cells.",
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+      },
+      "code": "return new NeoCellPattern(offsets: []);",
+      "getter": {
+        "compilerRevision": 14,
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "function",
+              "function": {
+                "type": "declaredConstructor",
+                "info": {
+                  "schemaClassInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+                  },
+                  "constructorId": "system_f68684d6-6ea0-5d57-9f96-d544b17bf369",
+                  "args": [
+                    {
+                      "name": "offsets",
+                      "valuePointer": {
+                        "type": "listLiteral",
+                        "typeInfo": {
+                          "type": 6,
+                          "required": true,
+                          "entryTypeInfo": {
+                            "type": 15,
+                            "required": true
+                          }
+                        },
+                        "entries": []
+                      }
+                    }
+                  ],
+                  "fields": []
+                }
+              }
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 7,
+          "required": true,
+          "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_f68684d6-6ea0-5d57-9f96-d544b17bf369",
+            "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+          ],
+          "typeNames": [
+            "NeoCellPattern"
+          ]
+        }
+      }
+    },
+    {
+      "id": "system_aaad2df6-e31e-5f5d-95b9-e265211faed5",
+      "projectId": "project-id",
+      "name": "Box",
+      "kind": 13,
+      "modifier": 3,
+      "docsText": "A filled rectangle of offsets. Omitting radiusY uses radiusX on both axes.",
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "dispatch": 0,
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+      },
+      "argumentTypes": [
+        {
+          "name": "radiusX",
+          "type": 2,
+          "required": true
+        },
+        {
+          "name": "radiusY",
+          "type": 2,
+          "required": false,
+          "defaultValue": {
+            "value": null
+          }
+        },
+        {
+          "name": "excluding",
+          "type": 8,
+          "required": true,
+          "enumId": "system_072f749f-62fe-5917-9f7e-f9f29c3a7063",
+          "defaultValue": {
+            "value": "system_5c30e23b-1767-5e15-b633-40ae182157a7"
+          }
+        }
+      ]
+    },
+    {
+      "id": "system_df8ebca6-a1d1-57c1-8762-227943fc51d8",
+      "projectId": "project-id",
+      "name": "Cross",
+      "kind": 13,
+      "modifier": 3,
+      "docsText": "Axis-aligned offsets. Omitting radiusY uses radiusX on both axes.",
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "dispatch": 0,
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+      },
+      "argumentTypes": [
+        {
+          "name": "radiusX",
+          "type": 2,
+          "required": true
+        },
+        {
+          "name": "radiusY",
+          "type": 2,
+          "required": false,
+          "defaultValue": {
+            "value": null
+          }
+        },
+        {
+          "name": "excluding",
+          "type": 8,
+          "required": true,
+          "enumId": "system_072f749f-62fe-5917-9f7e-f9f29c3a7063",
+          "defaultValue": {
+            "value": "system_5c30e23b-1767-5e15-b633-40ae182157a7"
+          }
+        }
+      ]
+    },
+    {
+      "id": "system_82222600-f67f-5127-bb2d-278381b4ef2f",
+      "projectId": "project-id",
+      "name": "Ring",
+      "kind": 13,
+      "modifier": 3,
+      "docsText": "The square ring at the given Chebyshev radius. Zero returns the center.",
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "dispatch": 0,
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+      },
+      "argumentTypes": [
+        {
+          "name": "radius",
+          "type": 2,
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "system_d803cfd5-ce53-57da-abc2-7cd69befeb01",
+      "projectId": "project-id",
+      "name": "Rect",
+      "kind": 13,
+      "modifier": 3,
+      "docsText": "Cells from the origin through size minus one. Both dimensions must be positive.",
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "dispatch": 0,
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+      },
+      "argumentTypes": [
+        {
+          "name": "size",
+          "type": 15,
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "system_ef0d4cbb-7182-5d93-9bb8-60a5a18f81a5",
+      "projectId": "project-id",
+      "name": "Line",
+      "kind": 13,
+      "modifier": 3,
+      "docsText": "Offsets from the origin through length steps in direction. Center excludes only the origin.",
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "dispatch": 0,
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+      },
+      "argumentTypes": [
+        {
+          "name": "direction",
+          "type": 15,
+          "required": true
+        },
+        {
+          "name": "length",
+          "type": 2,
+          "required": true
+        },
+        {
+          "name": "excluding",
+          "type": 8,
+          "required": true,
+          "enumId": "system_072f749f-62fe-5917-9f7e-f9f29c3a7063",
+          "defaultValue": {
+            "value": "system_5c30e23b-1767-5e15-b633-40ae182157a7"
+          }
+        }
+      ]
+    },
+    {
+      "id": "system_65a16908-05a6-52f9-a467-4e37e95ba0be",
+      "projectId": "project-id",
+      "name": "Contains",
+      "kind": 13,
+      "docsText": "Whether the pattern includes the offset.",
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "dispatch": 0,
+      "returnTypeInfo": {
+        "type": 1,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "offset",
+          "type": 15,
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "system_c72d9b09-fc4c-55db-b763-f1954a536069",
+      "projectId": "project-id",
+      "name": "Cells",
+      "kind": 13,
+      "docsText": "The ordered offsets translated to absolute cells around origin.",
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "dispatch": 0,
+      "returnTypeInfo": {
+        "type": 6,
+        "required": true,
+        "entryTypeInfo": {
+          "type": 15,
+          "required": true
+        }
+      },
+      "argumentTypes": [
+        {
+          "name": "origin",
+          "type": 15,
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "system_1da9303d-c362-541a-a77b-244fb0ffcbb6",
+      "projectId": "project-id",
+      "name": "WithCenter",
+      "kind": 13,
+      "docsText": "Prepend the origin when it is absent.",
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "dispatch": 0,
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+      },
+      "argumentTypes": []
+    },
+    {
+      "id": "system_7dce7f78-2c8f-5a1f-aa80-89dc217dcdff",
+      "projectId": "project-id",
+      "name": "WithoutCenter",
+      "kind": 13,
+      "docsText": "Remove every occurrence of the origin.",
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "dispatch": 0,
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+      },
+      "argumentTypes": []
+    },
+    {
+      "id": "system_efc67858-0c95-573f-a8a9-d7e07d0a1d55",
+      "projectId": "project-id",
+      "name": "Translate",
+      "kind": 13,
+      "docsText": "Shift every offset, preserving order and duplicates.",
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "dispatch": 0,
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+      },
+      "argumentTypes": [
+        {
+          "name": "offset",
+          "type": 15,
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "system_77b14581-e34c-5eb1-a820-788618276e46",
+      "projectId": "project-id",
+      "name": "Union",
+      "kind": 13,
+      "docsText": "Combine patterns, retaining each offset once in first-occurrence order.",
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "dispatch": 0,
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+      },
+      "argumentTypes": [
+        {
+          "name": "other",
+          "type": 7,
+          "required": true,
+          "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"
+        }
+      ]
+    },
+    {
+      "id": "system_1efcbead-df5b-5d09-b0ca-758039c06fca",
+      "projectId": "project-id",
+      "name": "__OffsetEntry",
+      "kind": 15,
+      "requirement": 1,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    }
+  ],
+  "enums": [
+    {
+      "id": "system_072f749f-62fe-5917-9f7e-f9f29c3a7063",
+      "projectId": "project-id",
+      "name": "NeoCellPatternExcluding",
+      "options": {
+        "system_5c30e23b-1767-5e15-b633-40ae182157a7": {
+          "id": "system_5c30e23b-1767-5e15-b633-40ae182157a7",
+          "name": "None",
+          "text": "None"
+        },
+        "system_456431b5-aa5b-5ea0-9f72-0e16f7114e09": {
+          "id": "system_456431b5-aa5b-5ea0-9f72-0e16f7114e09",
+          "name": "Center",
+          "text": "Center"
+        }
+      },
+      "optionKeyOrder": [
+        "system_5c30e23b-1767-5e15-b633-40ae182157a7",
+        "system_456431b5-aa5b-5ea0-9f72-0e16f7114e09"
+      ],
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    }
+  ]
+}

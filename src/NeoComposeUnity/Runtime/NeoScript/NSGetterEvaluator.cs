@@ -561,6 +561,7 @@ namespace NeoCompose.Runtime.NeoScript
                 genericEnvironmentCache { get; }
             internal NeoScriptAllocationTracker allocationTracker { get; private set; }
             internal ClassMember? initializerPlacement { get; set; }
+            internal NeoScriptGridReads? gridReads { get; set; }
 
             internal bool TryGetConstructionClassContext(
                 string classId,
@@ -684,6 +685,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 child.allocationTracker = allocationTracker;
                 child.initializerPlacement = initializerPlacement;
+                child.gridReads = gridReads;
                 child.linkedFunctionCallHandler = linkedFunctionCallHandler;
                 child.collectionCallbackPreparationMetrics =
                     collectionCallbackPreparationMetrics;
@@ -1410,6 +1412,19 @@ namespace NeoCompose.Runtime.NeoScript
             return "<dynamic>";
         }
 
+        internal static object? InvokeNativeFunction(string memberId, object? receiver, object?[] args, Context ctx)
+        {
+            if (NeoCellPatternRuntime.TryInvoke(memberId, receiver, args, ctx, out object? result)) return result;
+            if (ctx.client.ScriptGridQueries.TryInvoke(memberId, receiver, args, ctx, out result)) return result;
+            return NormalizeNativeResult(memberId, ctx.client.InvokeNativeFunction(memberId, receiver, args), ctx);
+        }
+
+        internal static object? NormalizeNativeResult(string memberId, object? value, Context ctx)
+        {
+            ctx.client.TryGetMember(memberId, out FunctionMember? member);
+            return NeoCellPatternStorage.NormalizeNativeResult(value, ctx, member?.returnTypeInfo);
+        }
+
         private static object? EvalFunctionCall(
             CallFunctionPointer pointer,
             NeoScriptScope scope,
@@ -1446,10 +1461,8 @@ namespace NeoCompose.Runtime.NeoScript
             if (member is FunctionMember)
             {
                 ctx.allocationTracker.ConsumeWorkUnit();
-                return ctx.client.InvokeNativeFunction(
-                    memberId,
-                    receiver,
-                    FillNativeCallSiteArguments(memberId, args, ctx));
+                return InvokeNativeFunction(memberId, receiver,
+                    FillNativeCallSiteArguments(memberId, args, ctx), ctx);
             }
             if (member is NSFunctionMember)
             {
@@ -1762,7 +1775,7 @@ namespace NeoCompose.Runtime.NeoScript
                         throw new NeoDeferredFunctionRuntimeError(
                             $"NeoDelegate target Function '{member.name}' is deferred; delegates require an immediate callable target.");
                     }
-                    return ctx.client.InvokeNativeFunction(memberId, receiver, args);
+                    return InvokeNativeFunction(memberId, receiver, args, ctx);
                 }
                 if (member is NSFunctionMember)
                 {
@@ -5171,6 +5184,7 @@ namespace NeoCompose.Runtime.NeoScript
             NeoValueOwnership ownership,
             JsonMember? member = null)
         {
+            ctx.gridReads?.RecordValue(ctx.client, ownership, row.id);
             string cacheKey = RowCacheKey(ownership, row.id, member);
             if (ctx.rowUnwrapCache.TryGetValue(cacheKey, out var cached)) return cached;
             var unwrapped = ExtractWireValue(row, ownership, member, ctx);

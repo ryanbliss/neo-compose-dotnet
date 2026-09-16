@@ -14,6 +14,42 @@ namespace NeoCompose.Tests
     public class NeoCellPatternTests
     {
         [Test]
+        public void Factories_PreserveStableLegacyOrderingAcrossRectangles()
+        {
+            for (int x = 0; x <= 12; x++)
+            for (int y = 0; y <= 12; y++)
+            {
+                var box = Enumerable.Range(-x, 2 * x + 1)
+                    .SelectMany(a => Enumerable.Range(-y, 2 * y + 1).Select(b => new Vector2Int(a, b)))
+                    .OrderBy(cell => Math.Max(Math.Abs(cell.x), Math.Abs(cell.y))).ToArray();
+                CollectionAssert.AreEqual(box, NeoCellPattern.Box(x, y), $"Box({x},{y})");
+                CollectionAssert.AreEqual(box.Where(cell => cell != Vector2Int.zero),
+                    NeoCellPattern.Box(x, y, NeoCellPatternExcluding.Center));
+                var rect = Enumerable.Range(0, x + 1)
+                    .SelectMany(a => Enumerable.Range(0, y + 1).Select(b => new Vector2Int(a, b)))
+                    .OrderBy(cell => Math.Max(cell.x, cell.y)).ToArray();
+                CollectionAssert.AreEqual(rect, NeoCellPattern.Rect(new Vector2Int(x + 1, y + 1)), $"Rect({x + 1},{y + 1})");
+            }
+            for (int radius = 0; radius <= 20; radius++)
+            {
+                var expected = Enumerable.Range(-radius, 2 * radius + 1)
+                    .SelectMany(x => Enumerable.Range(-radius, 2 * radius + 1).Select(y => new Vector2Int(x, y)))
+                    .Where(cell => Math.Max(Math.Abs(cell.x), Math.Abs(cell.y)) == radius);
+                CollectionAssert.AreEqual(expected, NeoCellPattern.Ring(radius));
+            }
+        }
+
+        [Test]
+        public void Factories_CheckOverflowBeforeAllocationAndLineIncludesOrigin()
+        {
+            Assert.Throws<OverflowException>(() => NeoCellPattern.Box(int.MaxValue));
+            Assert.Throws<OverflowException>(() => NeoCellPattern.Rect(new Vector2Int(int.MaxValue, 2)));
+            Assert.Throws<OverflowException>(() => NeoCellPattern.Ring(int.MaxValue));
+            Assert.Throws<OverflowException>(() => NeoCellPattern.Line(new Vector2Int(int.MaxValue, 1), 2));
+            CollectionAssert.AreEqual(new[] { Vector2Int.zero, Vector2Int.up }, NeoCellPattern.Line(Vector2Int.up, 1));
+        }
+
+        [Test]
         public void Box_ContainsEveryOffsetWithinRadiusSortedCenterOut()
         {
             var pattern = NeoCellPattern.Box(1);
@@ -22,7 +58,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(Vector2Int.zero, pattern[0]);
             AssertSortedCenterOut(pattern);
 
-            Assert.AreEqual(8, NeoCellPattern.Box(1, includeCenter: false).Count);
+            Assert.AreEqual(8, NeoCellPattern.Box(1, excluding: NeoCellPatternExcluding.Center).Count);
             Assert.AreEqual(15, NeoCellPattern.Box(2, 1).Count);
         }
 
@@ -36,7 +72,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(pattern.All(offset => offset.x == 0 || offset.y == 0));
             AssertSortedCenterOut(pattern);
 
-            var noCenter = NeoCellPattern.Cross(1, includeCenter: false);
+            var noCenter = NeoCellPattern.Cross(1, excluding: NeoCellPatternExcluding.Center);
             Assert.AreEqual(4, noCenter.Count);
             Assert.IsFalse(noCenter.Contains(Vector2Int.zero));
         }
@@ -69,13 +105,13 @@ namespace NeoCompose.Tests
         [Test]
         public void Line_StepsAlongTheDirectionNearestFirst()
         {
-            var pattern = NeoCellPattern.Line(Vector2Int.up, 2);
+            var pattern = NeoCellPattern.Line(Vector2Int.up, 2, NeoCellPatternExcluding.Center);
 
             CollectionAssert.AreEqual(
                 new[] { new Vector2Int(0, 1), new Vector2Int(0, 2) },
                 pattern.ToArray());
 
-            var withOrigin = NeoCellPattern.Line(new Vector2Int(1, 1), 1, includeOrigin: true);
+            var withOrigin = NeoCellPattern.Line(new Vector2Int(1, 1), 1, excluding: NeoCellPatternExcluding.None);
             CollectionAssert.AreEqual(
                 new[] { Vector2Int.zero, new Vector2Int(1, 1) },
                 withOrigin.ToArray());

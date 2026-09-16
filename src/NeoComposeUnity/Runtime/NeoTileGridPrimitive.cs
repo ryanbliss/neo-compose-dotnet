@@ -896,6 +896,8 @@ namespace NeoCompose.Runtime
             client.EnsureWorldPartitionLoaded(gridValueId);
         }
 
+        public void RegisterScriptContent(INeoTileGridContent content) => client.ScriptGridQueries.RegisterContent(content, GridValueId);
+
         public string GridValueId { get; }
         public NeoTileGridRenderer? Renderer { get; internal set; }
         internal NeoClient Client => client;
@@ -1009,6 +1011,7 @@ namespace NeoCompose.Runtime
         internal void NotifyChanged(NeoTileGridChangedArgs args)
         {
             lookupCache?.Apply(args);
+            client.ScriptGridQueries.NotifyChanged(args);
             Changed?.Invoke(args);
         }
 
@@ -1565,12 +1568,9 @@ namespace NeoCompose.Runtime
             NeoObjectInstanceId instanceId,
             string expectedObjectFamilyClassId = "")
         {
-            foreach (var record in LookupCache.ObjectRecords(layerId))
-            {
-                if (record.InstanceId != instanceId.Value) continue;
-                return ResolveObjectRecord(layerId, record, expectedObjectFamilyClassId);
-            }
-            return null;
+            return LookupCache.ObjectRecord(layerId, instanceId.Value) is NeoObjectPlacementRecord record
+                ? ResolveObjectRecord(layerId, record, expectedObjectFamilyClassId)
+                : null;
         }
 
         private NeoResolvedObjectInstance? ResolveObjectRecord(
@@ -1582,6 +1582,7 @@ namespace NeoCompose.Runtime
                 record,
                 expectedObjectFamilyClassId);
             if (obj is null) return null;
+            client.ScriptGridQueries.Bind(obj.valueId!, GridValueId, layerId, record.InstanceId);
             return new NeoResolvedObjectInstance(
                 record.InstanceId,
                 layerId,

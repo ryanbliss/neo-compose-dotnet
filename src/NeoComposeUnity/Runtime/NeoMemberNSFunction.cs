@@ -48,9 +48,10 @@ namespace NeoCompose.Runtime
         public bool resolvedDeferred =>
             NeoNSFunctionRuntime.TryResolve(client, member.id)?.Deferred ?? false;
 
-        public object? Invoke(string thisValueId, object?[] args)
+        public object? Invoke(string thisValueId, object?[] args, NeoScriptGridReads? gridReads = null)
         {
             Invocation invocation = PrepareInvocation(thisValueId, args);
+            invocation.Context.gridReads = gridReads;
             if (invocation.Function.Deferred)
             {
                 throw new InvalidOperationException(
@@ -74,11 +75,12 @@ namespace NeoCompose.Runtime
             return result.ReturnValue;
         }
 
-        public Task<object?> InvokeAsync(string thisValueId, object?[] args)
+        public Task<object?> InvokeAsync(string thisValueId, object?[] args, NeoScriptGridReads? gridReads = null)
         {
             try
             {
                 Invocation invocation = PrepareInvocation(thisValueId, args);
+                invocation.Context.gridReads = gridReads;
                 if (!invocation.Function.Deferred)
                 {
                     throw new InvalidOperationException(
@@ -1242,6 +1244,10 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             string subject)
         {
+            if (value is NeoCellPattern pattern && typeInfo.type == MemberKind.Class)
+                value = NeoCellPatternStorage.Materialize(pattern, ctx);
+            if (value is NeoCellPatternExcluding excluding && typeInfo.type == MemberKind.Enum)
+                value = NeoCellPatternStorage.ExcludingIds(excluding);
             if (value is NeoValueWritePayload payload)
             {
                 value = payload.isValueReference

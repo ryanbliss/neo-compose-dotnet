@@ -808,6 +808,28 @@ namespace NeoCompose.Runtime
         private static NeoGenericBinding<T> EnumCodec<T>(Member member)
         {
             bool multiSelect = member is EnumMember enumMember && enumMember.Selection == NeoMemberSelectionKind.Multi;
+            if (member is EnumMember canonical && canonical.enumId == NeoCellPatternStorage.ExcludingEnumId)
+            {
+                if (multiSelect && typeof(T) == typeof(IReadOnlyList<NeoCellPatternExcluding>))
+                    return Adapt<T, IReadOnlyList<NeoCellPatternExcluding>>(new NeoGenericBinding<IReadOnlyList<NeoCellPatternExcluding>>(
+                        MemberKind.Enum,
+                        node => NeoCellPatternStorage.ReadExcludingList(RequireNode<NeoMemberEnum>(node, member).Selected()),
+                        (node, value) => RequireWritable<NeoMemberEnumWritable>(node, member).Set(NeoCellPatternStorage.ExcludingListIds(value)),
+                        value => NeoValueWritePayload.FromValue(NeoCellPatternStorage.ExcludingListIds(value))));
+                if (!multiSelect && typeof(T) == typeof(NeoCellPatternExcluding))
+                    return Adapt<T, NeoCellPatternExcluding>(new NeoGenericBinding<NeoCellPatternExcluding>(
+                        MemberKind.Enum,
+                        node => NeoCellPatternStorage.ReadExcluding(RequireNode<NeoMemberEnum>(node, member).Selected()),
+                        (node, value) => RequireWritable<NeoMemberEnumWritable>(node, member).Set(NeoCellPatternStorage.ExcludingIds(value)),
+                        value => NeoValueWritePayload.FromValue(NeoCellPatternStorage.ExcludingIds(value))));
+                if (!multiSelect && typeof(T) == typeof(NeoCellPatternExcluding?))
+                    return Adapt<T, NeoCellPatternExcluding?>(new NeoGenericBinding<NeoCellPatternExcluding?>(
+                        MemberKind.Enum,
+                        node => NeoCellPatternStorage.ReadOptionalExcluding(RequireNode<NeoMemberEnum>(node, member).Selected()),
+                        (node, value) => RequireWritable<NeoMemberEnumWritable>(node, member).Set(NeoCellPatternStorage.OptionalExcludingIds(value)),
+                        value => NeoValueWritePayload.FromValue(NeoCellPatternStorage.OptionalExcludingIds(value))));
+            }
+
             if (multiSelect)
             {
                 if (typeof(T) == typeof(string[]))
@@ -946,6 +968,21 @@ namespace NeoCompose.Runtime
             {
                 throw new InvalidOperationException(
                     $"NeoGenericBindings: member '{member.name}' ({member.id}) reports kind Class but is a {member.GetType().Name} record — the export is corrupt.");
+            }
+            if (classMember.classId == NeoCellPatternStorage.ClassId && typeof(T) == typeof(NeoCellPattern))
+            {
+                NeoValueWritePayload? SerializePattern(T value) => NeoCellPatternStorage.Serialize(client, (NeoCellPattern?)(object?)value);
+                return new NeoGenericBinding<T>(MemberKind.Class,
+                    node => (T)(object)(NeoCellPatternStorage.Read(client, RequireNode<NeoMemberClass>(node, member))
+                        ?? (member.Requirement == NeoMemberRequirementKind.Required
+                            ? throw new InvalidOperationException("Required CellPattern is missing.") : null!)),
+                    (node, value) =>
+                    {
+                        if (node.parent is not NeoMemberClassWritable parent
+                            || !parent.TryGetSchemaKeyForChild(node, out string? key))
+                            throw new InvalidOperationException("CellPattern field has no writable parent.");
+                        parent.SetSerializedValue(key, SerializePattern(value));
+                    }, SerializePattern);
             }
             if (GeneratedFactoryOps<T>.Create is null
                 && GeneratedFactoryOps<T>.CreateWritable is null)

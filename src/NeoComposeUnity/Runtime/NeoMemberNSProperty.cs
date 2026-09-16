@@ -135,6 +135,14 @@ namespace NeoCompose.Runtime
             return SetInternal(value, null, row);
         }
 
+        private NeoScriptGridReads? gridReads;
+
+        public override void Dispose()
+        {
+            gridReads?.Dispose();
+            base.Dispose();
+        }
+
         private NSGetterResult ComputeInternal(object? thisValue, MemberValue? thisRow)
         {
             var getter = resolvedGetter;
@@ -150,6 +158,9 @@ namespace NeoCompose.Runtime
             // on `root.Assets.X` and `this.foo` rounds-trips through
             // reference equality.
             var ctx = client.CreateGetterContext(ownership);
+            gridReads?.Dispose();
+            gridReads = new NeoScriptGridReads(NotifyChanged);
+            ctx.gridReads = gridReads;
             object? rootValue = ResolveRootValue(ctx);
             ctx = ctx.WithRoot(rootValue);
 

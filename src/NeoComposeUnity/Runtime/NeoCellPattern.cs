@@ -10,6 +10,8 @@ using UnityEngine;
 
 namespace NeoCompose.Runtime
 {
+    public enum NeoCellPatternExcluding { None, Center }
+
     /// <summary>
     /// An immutable set of cell offsets relative to an origin — a reusable query
     /// shape for tile grid lookups (interaction reach, areas of effect, footprints).
@@ -17,7 +19,7 @@ namespace NeoCompose.Runtime
     /// to the pattern-aware lookup extensions on layers and grid content.
     /// </summary>
     /// <remarks>
-    /// Factory-built patterns (<see cref="Box(int,int,bool)"/>, <see cref="Cross(int,int,bool)"/>,
+    /// Factory-built patterns (<see cref="Box(int,int,NeoCellPatternExcluding)"/>, <see cref="Cross(int,int,NeoCellPatternExcluding)"/>,
     /// <see cref="Ring"/>, <see cref="Rect"/>, <see cref="Line"/>) order their offsets
     /// center-out (ascending Chebyshev distance, ties preserving row-major generation
     /// order), so "first match" queries mean "nearest match". Hand-built patterns
@@ -49,10 +51,10 @@ namespace NeoCompose.Runtime
         public static readonly NeoCellPattern Center = new(new[] { Vector2Int.zero }, true);
 
         /// <summary>The four edge-adjacent offsets (von Neumann neighborhood), center excluded.</summary>
-        public static readonly NeoCellPattern FourNeighbors = Cross(1, includeCenter: false);
+        public static readonly NeoCellPattern FourNeighbors = Cross(1, excluding: NeoCellPatternExcluding.Center);
 
         /// <summary>The eight surrounding offsets (Moore neighborhood), center excluded.</summary>
-        public static readonly NeoCellPattern EightNeighbors = Box(1, includeCenter: false);
+        public static readonly NeoCellPattern EightNeighbors = Box(1, excluding: NeoCellPatternExcluding.Center);
 
         /// <summary>A pattern with no cells — a meaningful "no area of influence" value.</summary>
         public static readonly NeoCellPattern Empty = new(Array.Empty<Vector2Int>(), true);
@@ -66,121 +68,132 @@ namespace NeoCompose.Runtime
         {
             foreach (var offset in offsets)
             {
-                yield return origin + offset;
+                yield return new Vector2Int(checked(origin.x + offset.x), checked(origin.y + offset.y));
             }
         }
 
-        /// <summary>A filled square of cells within <paramref name="radius"/> on both axes.</summary>
-        public static NeoCellPattern Box(int radius, bool includeCenter = true)
+        /// <summary>A filled square within the given radius.</summary>
+        public static NeoCellPattern Box(int radius, NeoCellPatternExcluding excluding = NeoCellPatternExcluding.None) =>
+            Box(radius, radius, excluding);
+
+        /// <summary>A filled rectangle within the given per-axis radii.</summary>
+        public static NeoCellPattern Box(int radiusX, int radiusY, NeoCellPatternExcluding excluding = NeoCellPatternExcluding.None)
         {
-            return Box(radius, radius, includeCenter);
+            ValidateRadii(radiusX, radiusY);
+            int omit = ExcludedCenter(excluding);
+            int count = checked((int)((2L * radiusX + 1) * (2L * radiusY + 1) - omit));
+            var cells = new Vector2Int[count];
+            int index = 0;
+            for (int distance = omit; distance <= Math.Max(radiusX, radiusY); distance++)
+                AppendShell(cells, ref index, -radiusX, radiusX, -radiusY, radiusY, distance);
+            return new NeoCellPattern(cells, true);
         }
 
-        /// <summary>A filled rectangle of cells within the given per-axis radii.</summary>
-        public static NeoCellPattern Box(int radiusX, int radiusY, bool includeCenter = true)
-        {
-            if (radiusX < 0) throw new ArgumentOutOfRangeException(nameof(radiusX), radiusX, "Box radiusX must be >= 0.");
-            if (radiusY < 0) throw new ArgumentOutOfRangeException(nameof(radiusY), radiusY, "Box radiusY must be >= 0.");
+        /// <summary>The axis-aligned cells within the given radius.</summary>
+        public static NeoCellPattern Cross(int radius, NeoCellPatternExcluding excluding = NeoCellPatternExcluding.None) =>
+            Cross(radius, radius, excluding);
 
-            var cells = new List<Vector2Int>();
-            for (int x = -radiusX; x <= radiusX; x++)
+        /// <summary>The axis-aligned cells within the given per-axis radii.</summary>
+        public static NeoCellPattern Cross(int radiusX, int radiusY, NeoCellPatternExcluding excluding = NeoCellPatternExcluding.None)
+        {
+            ValidateRadii(radiusX, radiusY);
+            int omit = ExcludedCenter(excluding);
+            var cells = new Vector2Int[checked((int)(2L * radiusX + 2L * radiusY + 1 - omit))];
+            int index = 0;
+            if (omit == 0) cells[index++] = Vector2Int.zero;
+            for (int distance = 1; distance <= Math.Max(radiusX, radiusY); distance++)
             {
-                for (int y = -radiusY; y <= radiusY; y++)
+                if (distance <= radiusX)
                 {
-                    if (x == 0 && y == 0 && !includeCenter) continue;
-                    cells.Add(new Vector2Int(x, y));
+                    cells[index++] = new Vector2Int(-distance, 0);
+                    cells[index++] = new Vector2Int(distance, 0);
+                }
+                if (distance <= radiusY)
+                {
+                    cells[index++] = new Vector2Int(0, -distance);
+                    cells[index++] = new Vector2Int(0, distance);
                 }
             }
-            return new NeoCellPattern(SortCenterOut(cells), true);
+            return new NeoCellPattern(cells, true);
         }
 
-        /// <summary>The axis-aligned cells within <paramref name="radius"/> (a plus shape).</summary>
-        public static NeoCellPattern Cross(int radius, bool includeCenter = true)
-        {
-            return Cross(radius, radius, includeCenter);
-        }
-
-        /// <summary>The axis-aligned cells within the given per-axis radii (a plus shape).</summary>
-        public static NeoCellPattern Cross(int radiusX, int radiusY, bool includeCenter = true)
-        {
-            if (radiusX < 0) throw new ArgumentOutOfRangeException(nameof(radiusX), radiusX, "Cross radiusX must be >= 0.");
-            if (radiusY < 0) throw new ArgumentOutOfRangeException(nameof(radiusY), radiusY, "Cross radiusY must be >= 0.");
-
-            var cells = new List<Vector2Int>();
-            if (includeCenter)
-            {
-                cells.Add(Vector2Int.zero);
-            }
-            for (int x = 1; x <= radiusX; x++)
-            {
-                cells.Add(new Vector2Int(-x, 0));
-                cells.Add(new Vector2Int(x, 0));
-            }
-            for (int y = 1; y <= radiusY; y++)
-            {
-                cells.Add(new Vector2Int(0, -y));
-                cells.Add(new Vector2Int(0, y));
-            }
-            return new NeoCellPattern(SortCenterOut(cells), true);
-        }
-
-        /// <summary>The hollow square shell of cells exactly <paramref name="radius"/> away (Chebyshev).</summary>
+        /// <summary>The hollow square shell at exactly the given Chebyshev distance.</summary>
         public static NeoCellPattern Ring(int radius)
         {
-            if (radius < 0) throw new ArgumentOutOfRangeException(nameof(radius), radius, "Ring radius must be >= 0.");
+            if (radius < 0) throw new ArgumentOutOfRangeException(nameof(radius));
             if (radius == 0) return Center;
-
-            var cells = new List<Vector2Int>();
-            for (int x = -radius; x <= radius; x++)
-            {
-                for (int y = -radius; y <= radius; y++)
-                {
-                    if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(y)) != radius) continue;
-                    cells.Add(new Vector2Int(x, y));
-                }
-            }
-            return new NeoCellPattern(cells.ToArray(), true);
+            var cells = new Vector2Int[checked(radius * 8)];
+            int index = 0;
+            AppendShell(cells, ref index, -radius, radius, -radius, radius, radius);
+            return new NeoCellPattern(cells, true);
         }
 
-        /// <summary>
-        /// A footprint spanning (0, 0) through (size - 1) up-right from the origin,
-        /// per Unity Tilemap convention. Use <see cref="Translate"/> to re-anchor.
-        /// </summary>
+        /// <summary>A footprint from (0, 0) through (size - 1), ordered center-out.</summary>
         public static NeoCellPattern Rect(Vector2Int size)
         {
-            if (size.x <= 0) throw new ArgumentOutOfRangeException(nameof(size), size, "Rect size.x must be > 0.");
-            if (size.y <= 0) throw new ArgumentOutOfRangeException(nameof(size), size, "Rect size.y must be > 0.");
-
-            var cells = new List<Vector2Int>(size.x * size.y);
-            for (int x = 0; x < size.x; x++)
-            {
-                for (int y = 0; y < size.y; y++)
-                {
-                    cells.Add(new Vector2Int(x, y));
-                }
-            }
-            return new NeoCellPattern(SortCenterOut(cells), true);
+            if (size.x <= 0 || size.y <= 0) throw new ArgumentOutOfRangeException(nameof(size));
+            var cells = new Vector2Int[checked(size.x * size.y)];
+            int index = 0;
+            for (int distance = 0; distance < Math.Max(size.x, size.y); distance++)
+                AppendShell(cells, ref index, 0, size.x - 1, 0, size.y - 1, distance);
+            return new NeoCellPattern(cells, true);
         }
 
-        /// <summary>Cells stepping <paramref name="direction"/> from the origin, nearest first.</summary>
-        public static NeoCellPattern Line(Vector2Int direction, int length, bool includeOrigin = false)
+        /// <summary>Origin and the specified number of steps along direction, nearest first.</summary>
+        public static NeoCellPattern Line(Vector2Int direction, int length, NeoCellPatternExcluding excluding = NeoCellPatternExcluding.None)
         {
-            if (direction == Vector2Int.zero)
-            {
-                throw new ArgumentOutOfRangeException(nameof(direction), direction, "Line direction must be non-zero.");
-            }
-            if (length < 0) throw new ArgumentOutOfRangeException(nameof(length), length, "Line length must be >= 0.");
+            if (direction == Vector2Int.zero) throw new ArgumentOutOfRangeException(nameof(direction));
+            if (length < 0) throw new ArgumentOutOfRangeException(nameof(length));
+            int omit = ExcludedCenter(excluding);
+            // Validate the furthest coordinate before allocating the result.
+            _ = checked(direction.x * length);
+            _ = checked(direction.y * length);
+            var cells = new Vector2Int[checked(length + 1 - omit)];
+            for (int index = 0; index < cells.Length; index++)
+                cells[index] = direction * (index + omit);
+            return new NeoCellPattern(cells, true);
+        }
 
-            var cells = new List<Vector2Int>(length + 1);
-            if (includeOrigin)
+        private static void ValidateRadii(int radiusX, int radiusY)
+        {
+            if (radiusX < 0) throw new ArgumentOutOfRangeException(nameof(radiusX));
+            if (radiusY < 0) throw new ArgumentOutOfRangeException(nameof(radiusY));
+        }
+
+        private static int ExcludedCenter(NeoCellPatternExcluding excluding) => excluding switch
+        {
+            NeoCellPatternExcluding.None => 0,
+            NeoCellPatternExcluding.Center => 1,
+            _ => throw new ArgumentOutOfRangeException(nameof(excluding)),
+        };
+
+        // Visit each clipped Chebyshev shell in the original x-outer/y-inner order.
+        // When both horizontal edges lie outside the rectangle, only its two
+        // vertical edges contribute; skipping interior columns keeps thin shapes linear.
+        private static void AppendShell(Vector2Int[] cells, ref int index, int minX, int maxX, int minY, int maxY, int distance)
+        {
+            int left = Math.Max(minX, -distance), right = Math.Min(maxX, distance);
+            int bottom = Math.Max(minY, -distance), top = Math.Min(maxY, distance);
+            if (distance > Math.Max(Math.Abs(minY), Math.Abs(maxY)))
             {
-                cells.Add(Vector2Int.zero);
+                if (left == -distance) AppendColumn(cells, ref index, left, bottom, top);
+                if (right == distance && right != left) AppendColumn(cells, ref index, right, bottom, top);
+                return;
             }
-            for (int step = 1; step <= length; step++)
+            for (int x = left; x <= right; x++)
             {
-                cells.Add(direction * step);
+                if (x == -distance || x == distance) AppendColumn(cells, ref index, x, bottom, top);
+                else
+                {
+                    if (bottom == -distance) cells[index++] = new Vector2Int(x, bottom);
+                    if (top == distance && top != bottom) cells[index++] = new Vector2Int(x, top);
+                }
             }
-            return new NeoCellPattern(cells.ToArray(), true);
+        }
+
+        private static void AppendColumn(Vector2Int[] cells, ref int index, int x, int bottom, int top)
+        {
+            for (int y = bottom; y <= top; y++) cells[index++] = new Vector2Int(x, y);
         }
 
         /// <summary>This pattern with the origin offset prepended (a no-op when already present).</summary>
@@ -213,7 +226,7 @@ namespace NeoCompose.Runtime
             var cells = new Vector2Int[offsets.Length];
             for (int index = 0; index < offsets.Length; index++)
             {
-                cells[index] = offsets[index] + offset;
+                cells[index] = new Vector2Int(checked(offsets[index].x + offset.x), checked(offsets[index].y + offset.y));
             }
             return new NeoCellPattern(cells, true);
         }
@@ -226,7 +239,7 @@ namespace NeoCompose.Runtime
         {
             if (other is null) throw new ArgumentNullException(nameof(other));
             var seen = new HashSet<Vector2Int>();
-            var cells = new List<Vector2Int>(offsets.Length + other.offsets.Length);
+            var cells = new List<Vector2Int>(checked(offsets.Length + other.offsets.Length));
             foreach (var offset in offsets)
             {
                 if (seen.Add(offset)) cells.Add(offset);
@@ -248,7 +261,7 @@ namespace NeoCompose.Runtime
             return GetEnumerator();
         }
 
-        private bool Contains(Vector2Int offset)
+        public bool Contains(Vector2Int offset)
         {
             foreach (var candidate in offsets)
             {
@@ -271,26 +284,5 @@ namespace NeoCompose.Runtime
             return cells;
         }
 
-        private static Vector2Int[] SortCenterOut(List<Vector2Int> cells)
-        {
-            var sorted = cells.ToArray();
-            var generationOrder = new Dictionary<Vector2Int, int>(sorted.Length);
-            for (int index = 0; index < sorted.Length; index++)
-            {
-                generationOrder[sorted[index]] = index;
-            }
-            Array.Sort(sorted, (left, right) =>
-            {
-                int byDistance = ChebyshevDistance(left).CompareTo(ChebyshevDistance(right));
-                if (byDistance != 0) return byDistance;
-                return generationOrder[left].CompareTo(generationOrder[right]);
-            });
-            return sorted;
-        }
-
-        private static int ChebyshevDistance(Vector2Int offset)
-        {
-            return Mathf.Max(Mathf.Abs(offset.x), Mathf.Abs(offset.y));
-        }
     }
 }

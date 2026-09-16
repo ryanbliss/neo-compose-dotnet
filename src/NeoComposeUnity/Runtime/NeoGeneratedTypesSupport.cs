@@ -2280,6 +2280,7 @@ namespace NeoCompose.Runtime
         private static NeoConstructorValueReference?
             GeneratedValueReference(NeoClient client, object? value)
         {
+            if (value is NeoCellPattern pattern) value = NeoCellPatternStorage.Serialize(client, pattern);
             if (value is INeoValueReference reference
                 && !string.IsNullOrEmpty(reference.valueId))
             {
@@ -4838,6 +4839,29 @@ namespace NeoCompose.Runtime
         /// target, so they are imported here — otherwise the entry row would be
         /// referenced by a second owner without ever being adopted.</para>
         /// </summary>
+        internal static object? MaterializeCollectionAssignment(
+            NeoClient client, Member member, object? value, NeoValueOwnership ownership,
+            NeoScript.NSGetterEvaluator.Context ctx)
+        {
+            if (value is null || value is NeoValuePayload || value is INeoValuePayloadProvider
+                || value is string[] || value is IDictionary<string, string>
+                || member is not (ListMember or DictionaryMember)) return value;
+            var rows = new List<MemberValue>();
+            var env = ctx.thisValue is null
+                ? new Dictionary<string, NeoGenericEnvEntry>()
+                : NeoNSFunctionRuntime.ResolveReceiverGenericEnv(client, ctx.thisValue, ctx, "Collection assignment");
+            object? payload = ComputeRuntimeConstructorPayload(client, member, value, rows,
+                DateTime.UtcNow.ToString("o"), item =>
+                {
+                    var reference = NeoScript.NSGetterEvaluator.ConstructorReferenceOf(item, ctx);
+                    if (reference is null) return null;
+                    return new NeoConstructorValueReference(NeoScriptExecutor.ImportClassValueReference(
+                        client, ownership, reference.Value.valueId, ctx), ownership);
+                }, env, member.name, new Dictionary<string, NeoValueOwnership>());
+            ctx.allocationTracker.ConsumeCreatedSessionRows(rows);
+            return CallSiteWritePayload(payload, rows);
+        }
+
         private static void MaterializeDeclaredConstructorFieldPayloads(
             NeoClient client,
             NeoResolvedDeclaredConstructor resolved,
@@ -5666,6 +5690,8 @@ namespace NeoCompose.Runtime
             object runtimeValue,
             EnumMember member)
         {
+            if (member.enumId == NeoCellPatternStorage.ExcludingEnumId && runtimeValue is NeoCellPatternExcluding excluding)
+                return NeoCellPatternStorage.ExcludingIds(excluding);
             if (runtimeValue is string optionId)
             {
                 return new[] { optionId };
@@ -5686,6 +5712,7 @@ namespace NeoCompose.Runtime
                 {
                     string text => text,
                     INeoEnumOption enumOption => enumOption.optionId,
+                    NeoCellPatternExcluding excludingValue when member.enumId == NeoCellPatternStorage.ExcludingEnumId => NeoCellPatternStorage.ExcludingIds(excludingValue)[0],
                     _ => null,
                 };
                 if (string.IsNullOrEmpty(id))

@@ -2211,13 +2211,9 @@ namespace NeoCompose.Runtime
                         // exact-arity check stands. Deferred functions reject
                         // defaulted parameters (§1.4), so the branch below
                         // stays unfilled.
-                        value = client.InvokeNativeFunction(
-                            memberId,
-                            receiver,
-                            NSGetterEvaluator.FillNativeCallSiteArguments(
-                                memberId,
-                                args,
-                                ctx));
+                        value = NSGetterEvaluator.InvokeNativeFunction(
+                            memberId, receiver,
+                            NSGetterEvaluator.FillNativeCallSiteArguments(memberId, args, ctx), ctx);
                     }
                     else
                     {
@@ -2237,7 +2233,7 @@ namespace NeoCompose.Runtime
                             memberId,
                             receiver,
                             args,
-                            suspension.Complete,
+                            result => suspension.Complete(NSGetterEvaluator.NormalizeNativeResult(memberId, result, ctx)),
                             suspension.Fail,
                             suspension.MarkInvokerReturned,
                             options?.CancelContinuationOnDeferredDisposal == true
@@ -3554,6 +3550,7 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError($"Missing parent row '{writableParentRowId}'.");
                 }
                 parent.value ??= new Dictionary<string, string>();
+                value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx);
                 var now = DateTime.UtcNow.ToString("o");
                 // Reusing the entry's stable id below clone-on-writes it
                 // (a fresh row at the same id shadows the authored default),
