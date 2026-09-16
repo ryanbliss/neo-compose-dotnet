@@ -243,10 +243,14 @@ namespace NeoCompose.Runtime
         /// then join the membership index (id-sorted), tolerating legacy
         /// inline ids (e.g. factory-minted session rows) ahead of the join.
         /// </summary>
-        protected IReadOnlyList<string> ResolveEntryValueIds()
+        protected internal IReadOnlyList<string> ResolveEntryValueIds() =>
+            ResolveEntryValueIds(client, value, IsUnordered);
+
+        internal static IReadOnlyList<string> ResolveEntryValueIds(
+            NeoClient client, ArrayMemberValue? value, bool isUnordered)
         {
             if (value?.value is null) return System.Array.Empty<string>();
-            if (!IsUnordered) return value.value;
+            if (!isUnordered) return value.value;
             var ids = new List<string>();
             var seen = new HashSet<string>();
             foreach (var entryId in value.value)

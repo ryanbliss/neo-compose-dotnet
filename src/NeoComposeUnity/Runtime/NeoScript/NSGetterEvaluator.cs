@@ -945,15 +945,18 @@ namespace NeoCompose.Runtime.NeoScript
             public string valueId { get; }
             public NeoValueOwnership ownership { get; }
             public string? classId { get; }
+            internal JsonMember? member { get; }
 
             public RowReference(
                 string valueId,
                 NeoValueOwnership ownership,
-                string? classId = null)
+                string? classId = null,
+                JsonMember? member = null)
             {
                 this.valueId = valueId;
                 this.ownership = ownership;
                 this.classId = classId;
+                this.member = member;
             }
         }
 
@@ -1101,6 +1104,13 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         throw new NSGetterRuntimeError(
                             $"Variable '{vrp.variableId}' is not in scope");
+                    }
+                    // Row-backed list aliases retain provenance even when a
+                    // mutation replaces their fixed-size CLR array.
+                    if (v is object?[] && ctx.rowReverseIndex.TryGetValue(v, out RowReference listRef)
+                        && ctx.client.TryGetValue(listRef.ownership, listRef.valueId, out ArrayMemberValue? listRow))
+                    {
+                        return UnwrapCached(listRow, ctx, listRef.ownership, listRef.member);
                     }
                     return v;
                 }
@@ -5119,7 +5129,9 @@ namespace NeoCompose.Runtime.NeoScript
                     : s.value,
                 ArrayMemberValue a => a.value is null
                     ? null
-                    : ToObjectArray(a.value),
+                    : member is ListMember list && ctx.client.IsUnorderedList(list)
+                        ? NeoMemberList.ResolveEntryValueIds(ctx.client, a, true).Cast<object?>().ToArray()
+                        : ToObjectArray(a.value),
                 ObjectMemberValue o => o.value is null
                     ? null
                     : ToObjectDict(row.id, ownership, o.value),
@@ -5187,6 +5199,8 @@ namespace NeoCompose.Runtime.NeoScript
             ctx.gridReads?.RecordValue(ctx.client, ownership, row.id);
             string cacheKey = RowCacheKey(ownership, row.id, member);
             if (ctx.rowUnwrapCache.TryGetValue(cacheKey, out var cached)) return cached;
+            if (member is null && row is ArrayMemberValue)
+                ctx.client.TryInferMemberForValueId(row.id, out member);
             var unwrapped = ExtractWireValue(row, ownership, member, ctx);
             ctx.rowUnwrapCache[cacheKey] = unwrapped;
             string rowCacheKey = RowCacheRowKey(ownership, row.id);
@@ -5225,9 +5239,21 @@ namespace NeoCompose.Runtime.NeoScript
                 ctx.rowReverseIndex[unwrapped!] = new RowReference(
                     row.id,
                     ownership,
-                    effectiveClassId);
+                    effectiveClassId,
+                    member);
             }
             return unwrapped;
+        }
+
+        internal static void InvalidateCachedCollection(
+            string rowId, NeoValueOwnership ownership, Context ctx)
+        {
+            string rowKey = RowCacheRowKey(ownership, rowId);
+            if (!ctx.rowCacheKeysByRow.TryGetValue(rowKey, out HashSet<string>? keys)) return;
+            foreach (string key in keys) ctx.rowUnwrapCache.Remove(key);
+            ctx.rowCacheKeysByRow.Remove(rowKey);
+            // Existing aliases keep their reverse provenance and resolve the
+            // current membership the next time a variable is evaluated.
         }
 
         /// <summary>
@@ -5411,7 +5437,8 @@ namespace NeoCompose.Runtime.NeoScript
                 ctx.rowReverseIndex[pair.Key] = new RowReference(
                     row.valueId,
                     targetOwnership,
-                    row.classId);
+                    row.classId,
+                    row.member);
                 movedRowIds.Add(row.valueId);
             }
 
@@ -6096,6 +6123,9 @@ namespace NeoCompose.Runtime.NeoScript
                 ? rowRef.valueId
                 : null;
         }
+
+        internal static JsonMember? FindRowMemberByReference(object? value, Context ctx) =>
+            TryFindRowReferenceByReference(value, ctx, out RowReference rowRef) ? rowRef.member : null;
 
         internal static NeoValueOwnership? FindRowOwnershipByReference(object? value, Context ctx)
         {
