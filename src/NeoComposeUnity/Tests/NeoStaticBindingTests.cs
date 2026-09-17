@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
@@ -2112,7 +2113,7 @@ namespace NeoCompose.Tests
                 client.sessionValues.Count,
                 "Remaining Session rows: " + DescribeSessionRows(client));
             Assert.AreEqual(0, ctx.rowUnwrapCache.Count);
-            Assert.AreEqual(0, ctx.rowReverseIndex.Count);
+            Assert.AreEqual(0, ctx.rowReverseIndex.Count());
             Assert.AreEqual(0, ctx.rowCacheKeysByRow.Count);
         }
 
@@ -2369,7 +2370,7 @@ namespace NeoCompose.Tests
                 client.sessionValues.Count,
                 "Remaining Session rows: " + DescribeSessionRows(client));
             Assert.AreEqual(0, ctx.rowUnwrapCache.Count);
-            Assert.AreEqual(0, ctx.rowReverseIndex.Count);
+            Assert.AreEqual(0, ctx.rowReverseIndex.Count());
             Assert.AreEqual(0, ctx.rowCacheKeysByRow.Count);
         }
 
@@ -3570,7 +3571,7 @@ namespace NeoCompose.Tests
             NSGetterEvaluator.Context ctx)
         {
             var roots = new HashSet<string>();
-            foreach (NSGetterEvaluator.RowReference row in ctx.rowReverseIndex.Values)
+            foreach (NSGetterEvaluator.RowReference row in ctx.rowReverseIndex.Select(pair => pair.Value))
             {
                 if (row.ownership == NeoValueOwnership.Session)
                 {

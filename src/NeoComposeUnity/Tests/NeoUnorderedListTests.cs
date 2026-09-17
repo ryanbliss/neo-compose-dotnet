@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript;
 using NUnit.Framework;
 
 namespace NeoCompose.Tests
@@ -23,6 +24,260 @@ namespace NeoCompose.Tests
         private const string ItemClassId = "item-class";
         private const string ItemsListValueId = "bag-items-list";
         private const string NullItemsListValueId = "bag-null-items-list";
+
+        [Test]
+        public void NeoScript_UnorderedReadsAndMutationsUseMembership(
+            [Values(false, true)] bool alias, [Values(false, true)] bool primitive,
+            [Values(false, true)] bool sessionInline)
+        {
+            ProjectData data = BuildProjectData();
+            TypeInfo entryType = new ClassTypeInfo
+            {
+                type = MemberKind.Class, required = true, classId = ItemClassId,
+            };
+            if (primitive)
+            {
+                entryType = new PrimitiveTypeInfo { type = MemberKind.String, required = true };
+                data.members["item-entry-member"] = new StringMember
+                {
+                    id = "item-entry-member", kind = MemberKind.String,
+                    Requirement = NeoMemberRequirementKind.Required,
+                };
+                foreach (string id in new[] { "item-a", "item-b" })
+                    data.values[id] = new StringMemberValue
+                    {
+                        id = id, containerId = ItemsListValueId, value = id,
+                    };
+            }
+            if (sessionInline)
+            {
+                ((ClassMember)data.members["root-session"]).classId = "save-root-class";
+                var sessionRoot = (ObjectMemberValue)data.values["root-session-value"];
+                sessionRoot.classId = "save-root-class";
+                sessionRoot.value = new Dictionary<string, string> { ["Bag"] = "bag-value" };
+                ((ObjectMemberValue)data.values["root-save-value"]).value!.Clear();
+                data.values["item-a"].containerId = null;
+                data.values["item-b"].containerId = null;
+                ((ArrayMemberValue)data.values[ItemsListValueId]).value = new[] { "item-a", "item-b" };
+            }
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            if (sessionInline)
+                client.SetWritableValue(NeoValueOwnership.Session, new ArrayMemberValue
+                {
+                    id = ItemsListValueId, value = new[] { "item-a", "item-b" },
+                });
+            NeoMemberListWritable Items() => sessionInline
+                ? (NeoMemberListWritable)NeoMember.CreateWritable(client, data.members["items-member"], ItemsListValueId, NeoValueOwnership.Session)
+                : ResolveItems(client);
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var reference = new ReferencePointer
+            {
+                type = PointerKind.Reference, valueId = ItemsListValueId,
+            };
+            var scope = new Dictionary<string, object?>();
+            object? Eval(Pointer value) => NSGetterEvaluator.EvaluatePointer(value, scope, ctx);
+            scope["items"] = Eval(reference);
+            Pointer pointer = alias
+                ? new VariablePointer { type = PointerKind.Variable, variableId = "items" }
+                : reference;
+            var listType = new CollectionTypeInfo
+            {
+                type = MemberKind.List, required = true, entryTypeInfo = entryType,
+            };
+            FunctionWithReturnType Body(params Instruction[] instructions) => new()
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = System.Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                instructions = instructions,
+            };
+            void CheckCount(int expected)
+            {
+                Assert.AreEqual(expected, Eval(new FunctionPointer
+                {
+                    type = PointerKind.Function,
+                    function = new CountFunction
+                    {
+                        type = FunctionKind.Count,
+                        info = new FunctionCollectionOptionalBoolInfo { collectionPointer = pointer },
+                    },
+                }));
+                Assert.AreEqual(expected, ((object?[])Eval(reference)!).Length);
+                Assert.AreEqual(expected, Items().Count);
+                scope["visited"] = 0;
+                NeoScriptExecutor.Execute(client, Body(new ForEachInstruction
+                {
+                    type = InstructionKind.ForEach,
+                    binding = new LoopBinding
+                    {
+                        id = "entry", typeInfo = entryType, isReadonly = true,
+                        writability = WritabilityKind.ReadOnly,
+                    },
+                    collectionPointer = pointer, collectionTypeInfo = listType,
+                    instructions = new Instruction[]
+                    {
+                        new AssignInstruction
+                        {
+                            type = InstructionKind.Assign, operatorValue = "+=",
+                            target = new WriteTarget
+                            {
+                                pointer = new VariablePointer { type = PointerKind.Variable, variableId = "visited" },
+                                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                                writability = WritabilityKind.Local,
+                            },
+                            pointer = new OperationPointer
+                            {
+                                type = PointerKind.Operation,
+                                operation = new ArithmeticOperation
+                                {
+                                    type = OperationKind.Arithmetic,
+                                    arithmetic = new ArithmeticOpInfo
+                                    {
+                                        type = ArithmeticOpKind.Addition,
+                                        pointers = new Pointer[]
+                                        {
+                                            new VariablePointer { type = PointerKind.Variable, variableId = "visited" },
+                                            new ValuePointer
+                                            {
+                                                type = PointerKind.Value,
+                                                value = new Value
+                                                {
+                                                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                                                    value = Newtonsoft.Json.Linq.JToken.FromObject(1),
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                }), scope, ctx);
+                Assert.AreEqual(expected, scope["visited"], "foreach must see current membership");
+            }
+            void Mutate(string mutation, params Pointer[] args) => NeoScriptExecutor.Execute(client,
+                Body(new CollectionCallInstruction
+                {
+                    type = InstructionKind.CollectionCall,
+                    target = new WriteTarget
+                    {
+                        pointer = pointer, typeInfo = listType,
+                        writability = alias ? WritabilityKind.Local
+                            : sessionInline ? WritabilityKind.Session : WritabilityKind.Save,
+                    },
+                    mutation = mutation, args = args,
+                }), scope, ctx);
+            Pointer Entry(string id) => new ReferencePointer { type = PointerKind.Reference, valueId = id };
+            CheckCount(2);
+            Mutate(CollectionMutationKind.Remove, Entry("item-a"));
+            CheckCount(1);
+            if (!sessionInline) Assert.IsTrue(client.saveValues["item-a"].IsRemoved);
+            client.SetWritableValue<MemberValue>(NeoValueOwnership.Session, primitive
+                ? new StringMemberValue { id = "new-item", value = "new" }
+                : new ObjectMemberValue
+                {
+                    id = "new-item", classId = ItemClassId, value = new Dictionary<string, string>(),
+                });
+            Mutate(CollectionMutationKind.Add, Entry("new-item"));
+            CheckCount(2);
+            Assert.IsFalse(client.saveValues.ContainsKey(ItemsListValueId), "membership writes leave the discriminator alone");
+            if (!sessionInline)
+            {
+                using var reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: client.SerializeSaveData());
+                Assert.AreEqual(2, ResolveItems(reloaded).Count);
+            }
+            Mutate(CollectionMutationKind.Remove, Entry("new-item"));
+            CheckCount(1);
+            var first = Eval(new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new FirstOrDefaultFunction
+                {
+                    type = FunctionKind.FirstOrDefault,
+                    info = new FunctionCollectionOptionalBoolInfo { collectionPointer = pointer },
+                },
+            });
+            Assert.AreEqual(primitive ? "item-b" : Eval(Entry("item-b")), first);
+            void Assign(object?[] replacement)
+            {
+                scope["replacement"] = replacement;
+                NeoScriptExecutor.Execute(client, Body(new AssignInstruction
+                {
+                    type = InstructionKind.Assign,
+                    target = new WriteTarget
+                    {
+                        pointer = new KeyOfPointer
+                        {
+                            type = PointerKind.KeyOf,
+                            keyOf = new KeyOf
+                            {
+                                pointer = Entry("bag-value"),
+                                key = new ValuePointer
+                                {
+                                    type = PointerKind.Value,
+                                    value = new Value
+                                    {
+                                        typeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true },
+                                        value = Newtonsoft.Json.Linq.JToken.FromObject("Items"),
+                                    },
+                                },
+                            },
+                        },
+                        typeInfo = listType,
+                        writability = sessionInline ? WritabilityKind.Session : WritabilityKind.Save,
+                    },
+                    pointer = new VariablePointer { type = PointerKind.Variable, variableId = "replacement" },
+                }), scope, ctx);
+            }
+            Assign(System.Array.Empty<object?>());
+            CheckCount(0);
+            CollectionAssert.IsEmpty(client.GetUnorderedListEntryIds(ItemsListValueId));
+            client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
+            {
+                id = "replacement-item", classId = ItemClassId, value = new Dictionary<string, string>(),
+            });
+            Assign(new[] { primitive ? "replacement" : Eval(Entry("replacement-item")) });
+            CheckCount(1);
+            if (!sessionInline)
+            {
+                using var replaced = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: client.SerializeSaveData());
+                Assert.AreEqual(1, ResolveItems(replaced).Count);
+            }
+            Mutate(CollectionMutationKind.Clear);
+            CheckCount(0);
+            CollectionAssert.IsEmpty(client.GetUnorderedListEntryIds(ItemsListValueId));
+            CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
+            if (!sessionInline)
+            {
+                using var cleared = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: client.SerializeSaveData());
+                Assert.AreEqual(0, ResolveItems(cleared).Count);
+            }
+        }
+
+        [Test]
+        public void Evaluator_DoesNotRetainInvalidatedListViews()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var oldView = ReadAndInvalidateListView(ctx);
+            System.GC.Collect();
+            System.GC.WaitForPendingFinalizers();
+            System.GC.Collect();
+            Assert.IsFalse(oldView.IsAlive, "reverse provenance must not retain unused array views");
+            System.GC.KeepAlive(ctx);
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static System.WeakReference ReadAndInvalidateListView(NSGetterEvaluator.Context ctx)
+        {
+            var view = NSGetterEvaluator.EvaluatePointer(new ReferencePointer
+            {
+                type = PointerKind.Reference, valueId = ItemsListValueId,
+            }, new Dictionary<string, object?>(), ctx);
+            var weak = new System.WeakReference(view);
+            NSGetterEvaluator.InvalidateCachedCollection(ItemsListValueId, NeoValueOwnership.Save, ctx);
+            return weak;
+        }
 
         // ------------------------------------------------------------------
         // Enumeration.

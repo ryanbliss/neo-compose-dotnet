@@ -2088,6 +2088,17 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError(
                         $"Variable '{variablePointer.variableId}' is not in scope");
                 }
+                if (local is object?[] && FindValueId(local, ctx) is not null)
+                {
+                    ResolveCollectionTarget(client, new WriteTarget
+                    {
+                        pointer = instruction.target.pointer,
+                        typeInfo = instruction.target.typeInfo,
+                        writability = null,
+                    }, scope, ctx)
+                        .Mutate(client, instruction.mutation, args, ctx);
+                    return;
+                }
                 scope[variablePointer.variableId] = MutateLocalCollection(
                     local,
                     instruction.target.typeInfo,
@@ -2515,8 +2526,10 @@ namespace NeoCompose.Runtime
         {
             NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx);
             string? rowId;
+            JsonMember? member = null;
             if (target.pointer is StaticMemberPointer staticMember)
             {
+                client.TryGetMember(staticMember.memberId, out member);
                 var binding = new NeoStaticBinding(
                     client,
                     staticMember.memberId,
@@ -2565,6 +2578,7 @@ namespace NeoCompose.Runtime
             else
             {
                 object? value = Eval(target.pointer, scope, ctx);
+                member = NSGetterEvaluator.FindRowMemberByReference(value, ctx);
                 rowId = FindValueId(value, ctx);
                 if (rowId is null && target.pointer is KeyOfPointer collectionKeyOf)
                 {
@@ -2603,6 +2617,17 @@ namespace NeoCompose.Runtime
             if (rowId == null)
             {
                 throw new NSGetterRuntimeError("Collection mutation target is not backed by a Neo value row.");
+            }
+            if (member is null && target.typeInfo.type == MemberKind.List)
+                client.TryInferMemberForValueId(rowId, out member);
+            if (target.typeInfo is not LookupTypeInfo
+                && member is ListMember listMember && client.IsUnorderedList(listMember))
+            {
+                if (ownership == NeoValueOwnership.Asset
+                    || !client.TryGetValueOwnership(rowId, out NeoValueOwnership currentOwnership)
+                    || currentOwnership != ownership)
+                    throw new NSGetterRuntimeError($"Cannot mutate value '{rowId}' because it is not {ownership.ToString().ToLowerInvariant()}-owned.");
+                return new NeoUnorderedListWriteTarget(rowId, listMember, ownership);
             }
             rowId = EnsureWritableRow(client, rowId, ownership);
             if (!client.TryGetValue(ownership, rowId, out MemberValue? row))
@@ -3591,9 +3616,23 @@ namespace NeoCompose.Runtime
                             ownership, existingId, member);
                         return;
                     }
-                    var next = CreateValueRow(client, ownership, member, value, existingId, existing.createdAt, now);
-                    next.classId = existing.classId;
-                    StoreWritableRow(client, ownership, next, ctx);
+                    if (member is ListMember listMember && client.IsUnorderedList(listMember))
+                    {
+                        object? payload = value is INeoValuePayloadProvider provider
+                            ? provider.ToNeoValuePayload() : value;
+                        client.SetWritablePayloadRows(ownership, payload);
+                        var list = (NeoMemberListWritable)NeoMember.CreateWritable(
+                            client, listMember, existingId, ownership);
+                        list.AssignSerialized(NeoValueWritePayload.FromValue(
+                            payload is NeoValuePayload wrapped ? wrapped.value : payload));
+                        NSGetterEvaluator.InvalidateCachedCollection(existingId, ownership, ctx);
+                    }
+                    else
+                    {
+                        var next = CreateValueRow(client, ownership, member, value, existingId, existing.createdAt, now);
+                        next.classId = existing.classId;
+                        StoreWritableRow(client, ownership, next, ctx);
+                    }
                 }
                 else
                 {
@@ -4088,6 +4127,66 @@ namespace NeoCompose.Runtime
                 string mutation,
                 object?[] args,
                 NSGetterEvaluator.Context ctx);
+        }
+
+        private sealed class NeoUnorderedListWriteTarget : NeoResolvedCollectionTarget
+        {
+            private readonly string rowId;
+            private readonly ListMember member;
+            private readonly NeoValueOwnership ownership;
+
+            public NeoUnorderedListWriteTarget(string rowId, ListMember member, NeoValueOwnership ownership)
+            {
+                this.rowId = rowId;
+                this.member = member;
+                this.ownership = ownership;
+            }
+
+            public override void Mutate(NeoClient client, string mutation, object?[] args,
+                NSGetterEvaluator.Context ctx)
+            {
+                NeoMemberListWritable list = (NeoMemberListWritable)NeoMember.CreateWritable(client, member, rowId, ownership);
+                TypeInfo entryType = MemberKindInfo(list.EntryMember);
+                switch (mutation)
+                {
+                    case CollectionMutationKind.Add:
+                        if (TryGetClassValueReferenceId(args[0], entryType, ctx, out string? referenceId))
+                        {
+                            string importedId = ImportClassValueReference(client, ownership, referenceId!, ctx);
+                            list.AddSerialized(NeoValueWritePayload.FromValueReference(importedId, null));
+                            ctx.allocationTracker.RegisterConstructedParent(importedId, rowId);
+                        }
+                        else
+                        {
+                            object? payload = args[0] is INeoValuePayloadProvider provider
+                                ? provider.ToNeoValuePayload() : args[0];
+                            list.AddSerialized(NeoValueWritePayload.FromValue(payload));
+                        }
+                        break;
+                    case CollectionMutationKind.Remove:
+                        string? removeId = TryGetClassValueReferenceId(args[0], entryType, ctx, out string? id)
+                            ? id : null;
+                        foreach (string entryId in list.ResolveEntryValueIds())
+                        {
+                            ctx.allocationTracker.ConsumeCollectionVisit();
+                            if (entryId == removeId || (removeId is null
+                                && client.TryGetValue(ownership, entryId, out MemberValue? entry)
+                                && JsEqual(ReadRowValue(entry), args[0])))
+                            {
+                                list.RemoveById(entryId);
+                                break;
+                            }
+                        }
+                        break;
+                    case CollectionMutationKind.Clear:
+                        ctx.allocationTracker.ConsumeCollectionVisit(list.Count);
+                        list.ClearSerialized();
+                        break;
+                    default:
+                        throw new NSGetterRuntimeError($"Unsupported unordered list mutation '{mutation}'.");
+                }
+                NSGetterEvaluator.InvalidateCachedCollection(rowId, ownership, ctx);
+            }
         }
 
         private sealed class NeoListWriteTarget : NeoResolvedCollectionTarget
