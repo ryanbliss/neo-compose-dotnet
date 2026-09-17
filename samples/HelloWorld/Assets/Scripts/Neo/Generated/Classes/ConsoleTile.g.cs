@@ -93,26 +93,13 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
             }
-            set
-            {
-                ThrowIfReadOnly("ConsoleTile.Name");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
-            }
         }
 
-        IReadOnlyNeoSmartTile? IReadOnlyNeoTile.SmartTile
+        NeoReadOnlyVector2Int IReadOnlyNeoTile.Cell
         {
             get
             {
-                return (IReadOnlyNeoSmartTile?)(object)((NeoTile)this).SmartTile!;
-            }
-        }
-
-        NeoReadOnlySprite IReadOnlyNeoTile.Sprite
-        {
-            get
-            {
-                return (NeoReadOnlySprite)(object)((NeoTile)this).Sprite!;
+                return (NeoReadOnlyVector2Int)(object)((NeoTile)this).Cell!;
             }
         }
 
@@ -120,20 +107,14 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<string> Name = new("Name");
-
-            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
-
-            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
+            public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Name] = () => null,
-                [Fields.Sprite] = () => null,
-                [Fields.SmartTile] = () => null,
+                [Fields.Cell] = () => null,
             };
         }
 
@@ -151,9 +132,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Name] = () => Name,
-                [Fields.Sprite] = () => Sprite,
-                [Fields.SmartTile] = () => SmartTile,
+                [Fields.Cell] = () => Cell,
             };
         }
 

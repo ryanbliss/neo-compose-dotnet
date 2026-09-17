@@ -27,7 +27,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new string Name { get; }
 
-        new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
+        new NeoReadOnlyList<IReadOnlyNeoPlacementTile> PlacementTiles { get; }
 
         new NeoVector3 Position { get; }
     }
@@ -39,12 +39,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public PlayerSpawnObject(string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, bool? Enabled = null, NeoVector3? Size = null)
+        public PlayerSpawnObject(string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, bool? Enabled = null, NeoVector3? Size = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Children, PlacementTiles, Collider, Position, Enabled, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, bool? Enabled = null, NeoVector3? Size = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, bool? Enabled = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -182,19 +182,19 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public override NeoList<NeoObjectPlacementTile> PlacementTiles
+        public override NeoList<NeoPlacementTile> PlacementTiles
         {
             get
             {
-                return new NeoList<NeoObjectPlacementTile>(client, writableNode.Get<NeoMemberListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("PlayerSpawnObject.PlacementTiles"), () => IsReadOnly);
+                return new NeoList<NeoPlacementTile>(client, writableNode.Get<NeoMemberListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("PlayerSpawnObject.PlacementTiles"), () => IsReadOnly);
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyPlayerSpawnObject.PlacementTiles
+        NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyPlayerSpawnObject.PlacementTiles
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>(client, node.Get<NeoMemberList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoMemberClass)child));
+                return new NeoReadOnlyList<IReadOnlyNeoPlacementTile>(client, node.Get<NeoMemberList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.Create(client, (NeoMemberClass)child));
             }
         }
 
@@ -226,11 +226,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyNeoObject.PlacementTiles
+        NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyNeoObject.PlacementTiles
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>)(object)((NeoObject)this).PlacementTiles!;
+                return (NeoReadOnlyList<IReadOnlyNeoPlacementTile>)(object)((NeoObject)this).PlacementTiles!;
             }
         }
 
@@ -242,7 +242,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
 
-            public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+            public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
@@ -251,6 +251,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<bool> Enabled = new("Enabled");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
+
+            public static readonly NeoField<Vector2Int> Cell = new("Cell");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -264,6 +266,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Position] = () => null,
                 [Fields.Enabled] = () => null,
                 [Fields.Size] = () => null,
+                [Fields.Cell] = () => null,
             };
         }
 
@@ -288,6 +291,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Position] = () => Position,
                 [Fields.Enabled] = () => Enabled,
                 [Fields.Size] = () => Size,
+                [Fields.Cell] = () => Cell,
             };
         }
 

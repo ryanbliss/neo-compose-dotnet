@@ -1222,15 +1222,18 @@ namespace NeoCompose.Runtime
             NeoClient client,
             NSGetterEvaluator.Context ctx)
         {
+            ObjectMemberValue? Resolve(NeoMemberClass node, NeoValueOwnership ownership) =>
+                node.value is ObjectMemberValue row && client.TryGetValue(ownership, row.id, out ObjectMemberValue? current)
+                    ? current : null;
             return new Dictionary<string, object?>(3)
             {
-                ["Assets"] = client.assets.value is ObjectMemberValue assets
+                ["Assets"] = Resolve(client.assets, NeoValueOwnership.Asset) is ObjectMemberValue assets
                     ? NSGetterEvaluator.UnwrapRow(assets, ctx, NeoValueOwnership.Asset)
                     : null,
-                ["Save"] = client.save.value is ObjectMemberValue save
+                ["Save"] = Resolve(client.save, NeoValueOwnership.Save) is ObjectMemberValue save
                     ? NSGetterEvaluator.UnwrapRow(save, ctx, NeoValueOwnership.Save)
                     : null,
-                ["Session"] = client.session.value is ObjectMemberValue session
+                ["Session"] = Resolve(client.session, NeoValueOwnership.Session) is ObjectMemberValue session
                     ? NSGetterEvaluator.UnwrapRow(session, ctx, NeoValueOwnership.Session)
                     : null,
             };
@@ -1709,7 +1712,9 @@ namespace NeoCompose.Runtime
                         ctx,
                         $"entry of {subject}"));
             }
-            return result.ToArray();
+            object?[] normalized = result.ToArray();
+            NeoGeneratedTypesSupport.PreserveConstructorCollectionOrigin(value, normalized);
+            return normalized;
         }
 
         private static bool IsSelectionIdSet(TypeInfo typeInfo, TypeInfo? entryType)

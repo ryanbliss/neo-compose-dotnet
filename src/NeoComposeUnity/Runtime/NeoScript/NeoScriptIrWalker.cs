@@ -156,6 +156,9 @@ namespace NeoCompose.Runtime.NeoScript
                     return AnyPointer(boolean.pointer, predicate);
                 case StringifyPointer stringify:
                     return AnyPointer(stringify.pointer, predicate);
+                case TileConvertPointer convert:
+                    return AnyPointer(convert.receiverPointer, predicate)
+                        || (convert.targetPointer is not null && AnyPointer(convert.targetPointer, predicate));
                 case CallFunctionPointer call:
                     return AnyPointer(call.receiver, predicate)
                         || AnyPointer(call.args, predicate);

@@ -398,6 +398,12 @@ namespace NeoCompose.Runtime
             string? lookupRowValueId = null,
             bool freshlyConstructed = false)
         {
+            if (!freshlyConstructed && !client.IsReplayingVirtualInstance && !client.IsPreparingVariant)
+            {
+                client.PrepareVariantApply(node, scoped => ApplyToNode(client, record, scoped,
+                    ownership, lookupRow, lookupRowValueId));
+                return;
+            }
             if (record is null)
             {
                 if (lookupRow is not null || lookupRowValueId is not null)

@@ -31,12 +31,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public ExitPromptObjecta26352(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, bool? Enabled = null, NeoVector3? Position = null, NeoCollider? Collider = null)
+        public ExitPromptObjecta26352(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoPlacementTile>? PlacementTiles = null, bool? Enabled = null, NeoVector3? Position = null, NeoCollider? Collider = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, ExitPromptRelay, ExitPromptQuiet, Children, Size, PlacementTiles, Enabled, Position, Collider), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, bool? Enabled = null, NeoVector3? Position = null, NeoCollider? Collider = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoPlacementTile>? PlacementTiles = null, bool? Enabled = null, NeoVector3? Position = null, NeoCollider? Collider = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -132,11 +132,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyExitPromptObject.PlacementTiles
+        NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyExitPromptObject.PlacementTiles
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>)(object)((ExitPromptObject)this).PlacementTiles!;
+                return (NeoReadOnlyList<IReadOnlyNeoPlacementTile>)(object)((ExitPromptObject)this).PlacementTiles!;
             }
         }
 
@@ -164,11 +164,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyNeoObject.PlacementTiles
+        NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyNeoObject.PlacementTiles
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>)(object)((NeoObject)this).PlacementTiles!;
+                return (NeoReadOnlyList<IReadOnlyNeoPlacementTile>)(object)((NeoObject)this).PlacementTiles!;
             }
         }
 
@@ -186,11 +186,13 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
-            public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+            public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
 
             public static readonly NeoField<bool> Enabled = new("Enabled");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<Vector2Int> Cell = new("Cell");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
         }
@@ -207,6 +209,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.PlacementTiles] = () => null,
                 [Fields.Enabled] = () => null,
                 [Fields.Position] = () => null,
+                [Fields.Cell] = () => null,
                 [Fields.Collider] = () => null,
             };
         }
@@ -233,6 +236,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.Enabled] = () => Enabled,
                 [Fields.Position] = () => Position,
+                [Fields.Cell] = () => Cell,
                 [Fields.Collider] = () => Collider,
             };
         }

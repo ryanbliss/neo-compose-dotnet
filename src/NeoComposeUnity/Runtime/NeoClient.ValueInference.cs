@@ -12,39 +12,81 @@ namespace NeoCompose.Runtime
 {
     public partial class NeoClient
     {
-        private int valueInferenceScopeDepth;
         private AuthoredValueInferenceIndex? authoredValueInferenceIndex;
 
-        // Constructor replay asks for the placement of every sparse instance.
-        // Index the immutable authored rows once for that operation. Writable
-        // overlays remain live scans because constructors can change them.
-        private IDisposable BeginValueInferenceScope()
-        {
-            valueInferenceScopeDepth++;
-            return new NeoDisposableAction(() =>
-            {
-                if (--valueInferenceScopeDepth == 0) authoredValueInferenceIndex = null;
-            });
-        }
-
+        // Authored rows are immutable between partition/schema changes.
+        // Writable parent edges are maintained by the shared write path.
         private AuthoredValueInferenceIndex ValueInferenceIndex =>
             authoredValueInferenceIndex ??= new AuthoredValueInferenceIndex(data);
 
         private IEnumerable<KeyValuePair<string, MemberValue>> InferMemberParents(string childId)
         {
-            if (valueInferenceScopeDepth == 0)
+            var candidates = new HashSet<string>(PlacementParents(childId));
+            if (candidateReadPlan is not null)
             {
-                foreach (var pair in EnumerateAllValueRows())
-                    if (MightReferenceChildValueId(pair.Value, childId)) yield return pair;
-                yield break;
+                candidates.UnionWith(candidateReadPlan.ParentCandidates(childId));
+                if (candidateReplay?.Parents.TryGetValue(childId, out var allocatedParents) == true)
+                    candidates.UnionWith(allocatedParents);
             }
-
-            foreach (var pair in sessionData.values)
-                if (MightReferenceChildValueId(pair.Value, childId)) yield return pair;
-            foreach (var pair in saveData.values)
-                if (MightReferenceChildValueId(pair.Value, childId)) yield return pair;
+            foreach (var pair in IndexedWritableParents(childId, NeoValueOwnership.Session, sessionData.values, candidates)) yield return pair;
+            foreach (var pair in IndexedWritableParents(childId, NeoValueOwnership.Save, saveData.values, candidates)) yield return pair;
             if (ValueInferenceIndex.Parents.TryGetValue(childId, out var parents))
                 foreach (var pair in parents) yield return pair;
+            if (candidateReadPlan is not null)
+                foreach (string id in candidates)
+                    if (!sessionData.values.ContainsKey(id) && !saveData.values.ContainsKey(id)
+                        && !data.values.ContainsKey(id)
+                        && !TryGetWritableValue(NeoValueOwnership.Session, id, out MemberValue? _)
+                        && !TryGetWritableValue(NeoValueOwnership.Save, id, out MemberValue? _)
+                        && ResolveValueRow(id) is MemberValue row && MightReferenceChildValueId(row, childId))
+                        yield return new KeyValuePair<string, MemberValue>(id, row);
+        }
+
+        private IEnumerable<KeyValuePair<string, MemberValue>> IndexedWritableParents(
+            string childId, NeoValueOwnership ownership,
+            IReadOnlyDictionary<string, MemberValue> rows, HashSet<string> candidates)
+        {
+            KeyValuePair<string, MemberValue>? first = null;
+            foreach (string id in candidates)
+            {
+                MemberValue? row;
+                bool found = candidateReadPlan is null
+                    ? rows.TryGetValue(id, out row)
+                    : TryGetWritableValue(ownership, id, out row);
+                if (!found || !MightReferenceChildValueId(row!, childId)) continue;
+                if (first is not null)
+                {
+                    // Replacements retain their store position; new staged rows
+                    // and private allocations follow existing rows. Only ambiguous
+                    // references need this ordered fallback.
+                    foreach (string orderedId in OrderedWritableParentIds(ownership, rows))
+                    {
+                        if (!candidates.Contains(orderedId)) continue;
+                        found = candidateReadPlan is null
+                            ? rows.TryGetValue(orderedId, out row)
+                            : TryGetWritableValue(ownership, orderedId, out row);
+                        if (found && MightReferenceChildValueId(row!, childId))
+                            yield return new KeyValuePair<string, MemberValue>(orderedId, row!);
+                    }
+                    yield break;
+                }
+                first = new KeyValuePair<string, MemberValue>(id, row!);
+            }
+            if (first is not null) yield return first.Value;
+        }
+
+        private IEnumerable<string> OrderedWritableParentIds(
+            NeoValueOwnership ownership, IReadOnlyDictionary<string, MemberValue> rows)
+        {
+            foreach (string id in rows.Keys) yield return id;
+            if (candidateReadPlan is null) yield break;
+            foreach (var pair in candidateReadPlan.Rows)
+                if (pair.Key.ownership == ownership && !rows.ContainsKey(pair.Key.id))
+                    yield return pair.Key.id;
+            if (ownership == NeoValueOwnership.Session && candidateReplay is not null)
+                foreach (string id in candidateReplay.Allocations.Keys)
+                    if (!rows.ContainsKey(id) && !candidateReadPlan.Rows.ContainsKey((ownership, id)))
+                        yield return id;
         }
 
         internal IEnumerable<string> GridQueryParents(string childId)
@@ -59,6 +101,11 @@ namespace NeoCompose.Runtime
                 && TryFindOwnedParent(ownership, childId, out string? writableParent))
             {
                 yield return writableParent;
+                yield break;
+            }
+            if (TryResolveVirtualPlacement(childId, out var placement))
+            {
+                yield return placement.parentValueId;
                 yield break;
             }
             if (!ValueInferenceIndex.Parents.TryGetValue(childId, out var parents)) yield break;

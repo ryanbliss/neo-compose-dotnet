@@ -11,27 +11,27 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public interface IReadOnlyNeoObjectPlacementTile : INeoValueReference
+    public interface IReadOnlyNeoPlacementTile : INeoValueReference
     {
         bool IsReadOnly { get; }
 
-        IReadOnlyNeoObjectPlacementTile Clone();
+        IReadOnlyNeoPlacementTile Clone();
 
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
-        bool TryWritable(out NeoObjectPlacementTile writable);
+        bool TryWritable(out NeoPlacementTile writable);
 
         NeoReadOnlyVector2Int Cell { get; }
     }
 
-    public partial class NeoObjectPlacementTile : NeoGeneratedClassValue, IReadOnlyNeoObjectPlacementTile
+    public partial class NeoPlacementTile : NeoGeneratedClassValue, IReadOnlyNeoPlacementTile
     {
-        internal NeoObjectPlacementTile(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal NeoPlacementTile(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, "system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        public NeoObjectPlacementTile(NeoVector2Int? Cell = null)
+        public NeoPlacementTile(NeoVector2Int? Cell = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Cell), false, NeoValueOwnership.Session)
         {
         }
@@ -46,36 +46,36 @@ namespace HelloWorld.Assets.Scripts.Neo
             );
         }
 
-        internal static NeoObjectPlacementTile Create(NeoClient client, NeoMemberClass node)
+        internal static NeoPlacementTile Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectPlacementTile>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoPlacementTile>(client, node, () =>
             {
                 var clientClassId = node.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new NeoObjectPlacementTile(client, node, true, NeoValueOwnership.Asset),
+                    _ => new NeoPlacementTile(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static NeoObjectPlacementTile CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        internal static NeoPlacementTile CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectPlacementTile>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoPlacementTile>(client, node, () =>
             {
                 var clientClassId = node.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new NeoObjectPlacementTile(client, node, false, node.ownership),
+                    _ => new NeoPlacementTile(client, node, false, node.ownership),
                 };
             });
         }
 
-        public NeoObjectPlacementTile Clone()
+        public NeoPlacementTile Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
-        IReadOnlyNeoObjectPlacementTile IReadOnlyNeoObjectPlacementTile.Clone()
+        IReadOnlyNeoPlacementTile IReadOnlyNeoPlacementTile.Clone()
         {
             return Clone();
         }
@@ -85,9 +85,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             return base.TryWritable(out writable);
         }
 
-        public bool TryWritable(out NeoObjectPlacementTile writable)
+        public bool TryWritable(out NeoPlacementTile writable)
         {
-            return TryWritable<NeoObjectPlacementTile>(out writable);
+            return TryWritable<NeoPlacementTile>(out writable);
         }
 
         public virtual NeoVector2Int Cell
@@ -98,12 +98,12 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                ThrowIfReadOnly("NeoObjectPlacementTile.Cell");
+                ThrowIfReadOnly("NeoPlacementTile.Cell");
                 NeoGeneratedTypesSupport.SetVector2Int(writableNode, "Cell", value);
             }
         }
 
-        NeoReadOnlyVector2Int IReadOnlyNeoObjectPlacementTile.Cell
+        NeoReadOnlyVector2Int IReadOnlyNeoPlacementTile.Cell
         {
             get
             {

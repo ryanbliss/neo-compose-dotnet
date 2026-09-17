@@ -46,3 +46,7 @@ Run the focused cases from the SDK checkout:
 ```sh
 unity test samples/HelloWorld --mode EditMode --filter NeoCompose.Tests.NeoComposeEditorTests.Synchronizer_DeletesCapturedBoulderAndPreservesSharedRows --output /tmp/issue-762-sdk-delete.xml
 ```
+
+For issue #907, the same 478 fixture bodies were re-stamped from revision 14
+to 15. Their instruction shapes are unchanged; no tile-conversion instruction
+occurs in this capture. This is fixture maintenance, not a fresh project export.

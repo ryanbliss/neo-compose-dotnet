@@ -123,11 +123,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Collider"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Collider' has no selected option.") : NeoSmartTileCollider.FromOptionId(selected);
             }
-            set
-            {
-                ThrowIfReadOnly("NeoSmartTileRule.Collider");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Collider", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
-            }
         }
 
         public virtual double MaxAnimationSpeed
@@ -135,11 +130,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 return node.Get<NeoMemberFloat>("MaxAnimationSpeed").value?.value ?? throw new InvalidOperationException("Required float 'MaxAnimationSpeed' has no value.");
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoSmartTileRule.MaxAnimationSpeed");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "MaxAnimationSpeed", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -149,22 +139,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 return node.Get<NeoMemberFloat>("MinAnimationSpeed").value?.value ?? throw new InvalidOperationException("Required float 'MinAnimationSpeed' has no value.");
             }
-            set
-            {
-                ThrowIfReadOnly("NeoSmartTileRule.MinAnimationSpeed");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "MinAnimationSpeed", NeoGeneratedTypesSupport.Value(value));
-            }
         }
 
-        public virtual NeoList<NeoSmartTileNeighbor> Neighbors
-        {
-            get
-            {
-                return new NeoList<NeoSmartTileNeighbor>(client, writableNode.Get<NeoMemberListWritable>("Neighbors"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Neighbors"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoSmartTileRule.Neighbors"), () => IsReadOnly);
-            }
-        }
-
-        NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor> IReadOnlyNeoSmartTileRule.Neighbors
+        public virtual NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor> Neighbors
         {
             get
             {
@@ -179,11 +156,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Output"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Output' has no selected option.") : NeoSmartTileOutput.FromOptionId(selected);
             }
-            set
-            {
-                ThrowIfReadOnly("NeoSmartTileRule.Output");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Output", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
-            }
         }
 
         public virtual NeoSmartTileTransform RuleTransform
@@ -193,22 +165,9 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("RuleTransform"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'RuleTransform' has no selected option.") : NeoSmartTileTransform.FromOptionId(selected);
             }
-            set
-            {
-                ThrowIfReadOnly("NeoSmartTileRule.RuleTransform");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "RuleTransform", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
-            }
         }
 
-        public virtual NeoList<Sprite> Sprites
-        {
-            get
-            {
-                return new NeoList<Sprite>(client, writableNode.Get<NeoMemberListWritable>("Sprites"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Sprites"), (client, child) => ((NeoMemberSprite)child).Resolve() ?? throw new InvalidOperationException("Required Sprite '__SpriteEntry' has no synchronized asset."), item => NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, item)), () => ThrowIfReadOnly("NeoSmartTileRule.Sprites"), () => IsReadOnly);
-            }
-        }
-
-        NeoReadOnlyList<Sprite> IReadOnlyNeoSmartTileRule.Sprites
+        public virtual NeoReadOnlyList<Sprite> Sprites
         {
             get
             {

@@ -89,9 +89,9 @@ namespace NeoCompose.Runtime
             // ReinitializeChildren runs after the derived ctor wires it.
         }
 
-        protected override void OnValueIdChainChanged()
+        protected override void RefreshValueIdChain()
         {
-            base.OnValueIdChainChanged();
+            base.RefreshValueIdChain();
             // The newly-bound row may carry a genericBindings stamp the
             // construction-time row lacked — re-substitute the entry
             // member before re-walking children.
@@ -104,7 +104,7 @@ namespace NeoCompose.Runtime
 
         public override void Dispose()
         {
-            if (isDisposed) return;
+            if (!BeginDisposeChildren()) return;
             foreach (var child in childMembers.Values) child.Dispose();
             childMembers.Clear();
             base.Dispose();
@@ -192,116 +192,40 @@ namespace NeoCompose.Runtime
         internal void SetSerialized(string key, NeoValueWritePayload? setValue)
         {
             if (entryMember.Requirement == NeoMemberRequirementKind.Required && (setValue is null || setValue.isNull))
-            {
-                throw new System.ArgumentNullException(
-                    nameof(setValue),
-                    $"Cannot be null when entry member is required");
-            }
+                throw new System.ArgumentNullException(nameof(setValue), "Cannot be null when entry member is required");
+            var plan = new NeoWritePlan(client);
             string nowIso = System.DateTime.UtcNow.ToString("o");
-            NeoValueOwnership entryOwnership =
-                client.DeclaredOwnership(entryMember) ?? ownership;
-
-            if (value?.value is not null
-                && value.value.TryGetValue(key, out string existingValueId)
-                && client.TryGetValue(entryOwnership, existingValueId, out MemberValue? existing))
-            {
-                if (setValue?.isValueReference == true)
-                {
-                    string importedValueId = client.ImportValueReference(
-                        entryOwnership,
-                        setValue.valueId!,
-                        out bool sourceMoved,
-                        existingValueId);
-                    if (importedValueId == existingValueId)
-                    {
-                        return;
-                    }
-                    ObjectMemberValue parentRow = EnsureWritableObject(nowIso);
-                    parentRow.value![key] = importedValueId;
-                    parentRow.updatedAt = nowIso;
-                    client.SetWritableValue(ownership, parentRow);
-                    value = parentRow;
-                    client.RemoveWritableValueAndDescendantsIfUnlinked(
-                        entryOwnership, existingValueId, entryMember);
-                    if (childMembers.TryGetValue(key, out NeoMember? linkedOldChild))
-                    {
-                        linkedOldChild.Dispose();
-                    }
-                    childMembers[key] = CreateChild(client, entryMember, importedValueId);
-                    if (sourceMoved)
-                    {
-                        setValue.RetargetMovedReference(client, entryMember, importedValueId, entryOwnership);
-                    }
-                    NotifyChanged();
-                    return;
-                }
-                // Reuse the entry's stable id: clone-on-write the entry row
-                // (shadowing the authored default) and overwrite its content.
-                MemberValue next = MemberValueFactory.Create(
-                    entryMember,
-                    setValue?.value,
-                    existingValueId,
-                    existing.createdAt,
-                    nowIso);
-                // A shadow of a stamped nested-collection entry keeps the
-                // immutable stamp (spec Decision 9/16).
-                next.genericBindings = existing.genericBindings;
-                NeoGenericResolution.StampGenericBindings(
-                    client,
-                    entryMember,
-                    next,
-                    NeoGenericResolution.EnvFromStamp(value?.genericBindings));
-                client.SetWritablePayloadRows(entryOwnership, setValue?.value);
-                client.SetWritableValue(entryOwnership, next);
-                if (childMembers.TryGetValue(key, out NeoMember? oldChild))
-                {
-                    oldChild.Dispose();
-                }
-                childMembers[key] = CreateChild(client, entryMember, existingValueId);
-                NotifyChanged();
-                return;
-            }
-
-            string newValueId;
+            NeoValueOwnership entryOwnership = client.DeclaredOwnership(entryMember) ?? ownership;
+            ObjectMemberValue parentRow = EnsureWritableObject(plan, nowIso);
+            parentRow.value!.TryGetValue(key, out string? previousId);
+            MemberValue? previous = previousId is null ? null : plan.Resolve(entryOwnership, previousId);
+            string nextId;
             if (setValue?.isValueReference == true)
             {
-                newValueId = client.ImportValueReference(
-                    entryOwnership,
-                    setValue.valueId!,
-                    out bool sourceMoved);
+                nextId = client.ImportValueReference(plan, entryOwnership, setValue.valueId!, out bool sourceMoved, previousId);
+                if (nextId == previousId) return;
                 if (sourceMoved)
-                {
-                    setValue.RetargetMovedReference(client, entryMember, newValueId, entryOwnership);
-                }
+                    plan.AfterCommit(() => setValue.RetargetMovedReference(client, entryMember, nextId, entryOwnership));
             }
             else
             {
-                newValueId = System.Guid.NewGuid().ToString();
-                MemberValue newValueRow = MemberValueFactory.Create(
-                    entryMember, setValue?.value, newValueId, nowIso, nowIso);
-                newValueRow.mapKey = client.ResolveCreatedValueMapKey(
-                    entryMember,
-                    value?.mapKey,
-                    value?.classId);
-                // A nested collection entry (e.g. Dictionary<string, List<T>>)
-                // carries its own Decision-9 stamp, resolved through this
-                // row's stamp.
-                NeoGenericResolution.StampGenericBindings(
-                    client,
-                    entryMember,
-                    newValueRow,
-                    NeoGenericResolution.EnvFromStamp(value?.genericBindings));
-                client.SetWritablePayloadRows(entryOwnership, setValue?.value);
-                client.SetWritableValue(entryOwnership, newValueRow);
+                nextId = previous?.id ?? System.Guid.NewGuid().ToString();
+                MemberValue next = MemberValueFactory.Create(entryMember, setValue?.value, nextId, previous?.createdAt ?? nowIso, nowIso);
+                next.genericBindings = previous?.genericBindings;
+                next.mapKey = previous?.mapKey ?? client.ResolveCreatedValueMapKey(entryMember, parentRow.mapKey, parentRow.classId);
+                NeoGenericResolution.StampGenericBindings(client, entryMember, next, NeoGenericResolution.EnvFromStamp(parentRow.genericBindings));
+                client.StageWritablePayloadRows(plan, entryOwnership, setValue?.value);
+                plan.Set(entryOwnership, next);
             }
-
-            ObjectMemberValue keyedRow = EnsureWritableObject(nowIso);
-            keyedRow.value![key] = newValueId;
-            keyedRow.updatedAt = nowIso;
-            client.SetWritableValue(ownership, keyedRow);
-            value = keyedRow;
-
-            childMembers[key] = CreateChild(client, entryMember, newValueId);
+            parentRow.value[key] = nextId;
+            parentRow.updatedAt = nowIso;
+            plan.Set(ownership, parentRow);
+            if (previousId is not null && previousId != nextId)
+                client.StageUnlinkedRemovals(plan, entryOwnership, new[] { previousId }, entryMember);
+            plan.Commit();
+            value = parentRow;
+            if (childMembers.TryGetValue(key, out NeoMember? previousChild)) previousChild.Dispose();
+            childMembers[key] = CreateChild(client, entryMember, nextId);
             NotifyChanged();
         }
 
@@ -313,11 +237,15 @@ namespace NeoCompose.Runtime
 
             // Clone-on-write the dict row (shadowing the authored default at
             // its stable id) and drop the key.
-            ObjectMemberValue parentRow = EnsureWritableObject(nowIso);
+            var plan = new NeoWritePlan(client);
+            ObjectMemberValue parentRow = EnsureWritableObject(plan, nowIso);
             string removedValueId = parentRow.value![key];
             parentRow.value.Remove(key);
             parentRow.updatedAt = nowIso;
-            client.SetWritableValue(ownership, parentRow);
+            plan.Set(ownership, parentRow);
+            NeoValueOwnership entryOwnership = client.DeclaredOwnership(entryMember) ?? ownership;
+            client.StageUnlinkedRemovals(plan, entryOwnership, new[] { removedValueId }, entryMember);
+            plan.Commit();
             value = parentRow;
 
             // Dispose the child node (recursive — its own Dispose
@@ -328,17 +256,10 @@ namespace NeoCompose.Runtime
                 childMembers.Remove(key);
             }
 
-            // GC the orphaned value graph from the writable store. The
-            // removed valueId may itself reference more child values
-            // (e.g., the entry was a Class record); the cascade walks them.
-            NeoValueOwnership entryOwnership =
-                client.DeclaredOwnership(entryMember) ?? ownership;
-            client.RemoveWritableValueAndDescendantsIfUnlinked(
-                entryOwnership, removedValueId, entryMember);
             NotifyChanged();
         }
 
-        internal override void BindChildValueId(NeoMember child, string childValueId)
+        internal override void BindChildValueId(NeoWritePlan plan, NeoMember child, string childValueId)
         {
             string? key = null;
             foreach (var pair in childMembers)
@@ -351,13 +272,15 @@ namespace NeoCompose.Runtime
                     $"Cannot bind a child value on Dictionary '{member.id}': child is not a registered entry.");
             }
             string nowIso = System.DateTime.UtcNow.ToString("o");
-            ObjectMemberValue parentRow = EnsureWritableObject(nowIso);
+            ObjectMemberValue parentRow = EnsureWritableObject(plan, nowIso);
             parentRow.value![key] = childValueId;
             parentRow.updatedAt = nowIso;
-            client.SetWritableValue(ownership, parentRow);
-            value = parentRow;
-            ReinitializeChildren();
-            NotifyChanged();
+            plan.Set(ownership, parentRow);
+            plan.AfterCommit(() =>
+            {
+                value = parentRow;
+                ReinitializeChildren();
+            });
         }
 
         /// <summary>
@@ -372,7 +295,15 @@ namespace NeoCompose.Runtime
         /// </summary>
         private ObjectMemberValue EnsureWritableObject(string nowIso)
         {
-            var writable = EnsureWritableValue();
+            var plan = new NeoWritePlan(client);
+            var row = EnsureWritableObject(plan, nowIso);
+            if (plan.Rows.Count > 0) plan.Commit();
+            return row;
+        }
+
+        private ObjectMemberValue EnsureWritableObject(NeoWritePlan plan, string nowIso)
+        {
+            var writable = WritableCandidate(plan);
             if (writable is not null)
             {
                 writable.value ??= new Dictionary<string, string>();
@@ -391,10 +322,10 @@ namespace NeoCompose.Runtime
             // tree's enclosing context (spec §9).
             NeoGenericResolution.StampGenericBindings(
                 client, member, parentRow, NeoGenericResolution.ResolveContextEnv(parent));
-            BindNewValue(parentRow);
+            BindNewValue(plan, parentRow);
             // The freshly-stamped row may close generic entry references
             // the construction-time (row-less) resolution left raw.
-            entryMember = ResolveEntryMember();
+            plan.AfterCommit(() => entryMember = ResolveEntryMember());
             return parentRow;
         }
     }

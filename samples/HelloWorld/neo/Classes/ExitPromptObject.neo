@@ -32,8 +32,7 @@ abstract class ExitPromptObject : ConsoleObject {
       Size = new(1, 1, 0),
       Tiles = [
         @id("fa6f6f5c-f432-41cc-aa5a-c92445b947fb")
-        @tile(RedNovaWarningTile)
-        new NeoTileInstance {
+        new RedNovaWarningTile {
           Cell = new(1, 0)
         }
       ]
@@ -46,14 +45,14 @@ abstract class ExitPromptObject : ConsoleObject {
 
   @id("571a0e0b-b36c-45f3-ae9a-5fde39045c11")
   @system(kind: .WorldAuthoring)
-  public override List<NeoObjectPlacementTile> PlacementTiles = [
+  public override List<NeoPlacementTile> PlacementTiles = [
     @id("96cad433-4aed-4a9c-be34-fee3ebca8402")
-    new NeoObjectPlacementTile {
+    new NeoPlacementTile {
       Cell = new(0, 0)
     },
 
     @id("8ba3f179-5171-4b77-99de-a8beec7bab25")
-    new NeoObjectPlacementTile {
+    new NeoPlacementTile {
       Cell = new(1, 0)
     }
   ];

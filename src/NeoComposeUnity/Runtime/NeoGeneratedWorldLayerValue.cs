@@ -19,9 +19,9 @@ namespace NeoCompose.Runtime
         string ExpectedClassId { get; }
         string? SortingLayerName { get; }
         int? SortingOrder { get; }
-        IReadOnlyList<NeoResolvedTileInstance> GetTiles();
-        NeoResolvedTileInstance? GetTile(Vector2Int cell);
-        NeoResolvedTileInstance? ResolveTile(Vector2Int cell);
+        IReadOnlyList<NeoGeneratedClassValue> GetTiles();
+        NeoGeneratedClassValue? GetTile(Vector2Int cell);
+        NeoGeneratedClassValue? ResolveTile(Vector2Int cell);
         IDisposable OnChanged(Action<NeoTileLayerChangedArgs> handler);
     }
 
@@ -34,13 +34,13 @@ namespace NeoCompose.Runtime
         string ExpectedClassId { get; }
         string? SortingLayerName { get; }
         int? SortingOrder { get; }
-        IReadOnlyList<NeoResolvedObjectInstance> GetObjects();
-        NeoResolvedObjectInstance? GetObject(NeoObjectInstanceId instanceId);
-        NeoResolvedObjectInstance? GetObject(Vector2Int cell);
-        IReadOnlyList<NeoResolvedObjectInstance> GetObjects(Vector2Int cell);
-        NeoResolvedObjectInstance? ResolveObject(NeoObjectInstanceId instanceId);
-        NeoResolvedObjectInstance? ResolveObject(Vector2Int cell);
-        IReadOnlyList<NeoResolvedObjectInstance> ResolveObjects(Vector2Int cell);
+        IReadOnlyList<NeoGeneratedClassValue> GetObjects();
+        NeoGeneratedClassValue? GetObject(NeoObjectInstanceId instanceId);
+        NeoGeneratedClassValue? GetObject(Vector2Int cell);
+        IReadOnlyList<NeoGeneratedClassValue> GetObjects(Vector2Int cell);
+        NeoGeneratedClassValue? ResolveObject(NeoObjectInstanceId instanceId);
+        NeoGeneratedClassValue? ResolveObject(Vector2Int cell);
+        IReadOnlyList<NeoGeneratedClassValue> ResolveObjects(Vector2Int cell);
         IDisposable OnChanged(Action<NeoObjectLayerChangedArgs> handler);
     }
 
@@ -130,13 +130,16 @@ namespace NeoCompose.Runtime
             NeoWorldLayerReflection.ReadSortingLayerName(this);
         public int? SortingOrder => NeoWorldLayerMembers.ReadSortingOrder(node);
 
-        public IReadOnlyList<NeoResolvedTileInstance> GetTiles() =>
-            Binding.Primitive.GetTiles(LayerClassId);
+        internal IReadOnlyList<NeoTileProjection> GetTileProjections() =>
+            Binding.Primitive.GetTileProjections(LayerClassId);
 
-        public NeoResolvedTileInstance? GetTile(Vector2Int cell) =>
+        public IReadOnlyList<NeoGeneratedClassValue> GetTiles() => Binding.Primitive.GetTileValues(LayerClassId);
+        public NeoGeneratedClassValue? GetTile(Vector2Int cell) => Binding.Primitive.GetTile<NeoGeneratedClassValue>(LayerClassId, cell, string.Empty);
+        public NeoGeneratedClassValue? ResolveTile(Vector2Int cell) => GetTile(cell);
+
+        internal NeoTileProjection? GetTileProjection(Vector2Int cell) =>
             Binding.Primitive.ResolveTileCached(LayerClassId, cell);
 
-        public NeoResolvedTileInstance? ResolveTile(Vector2Int cell) => GetTile(cell);
 
         public IDisposable OnChanged(Action<NeoTileLayerChangedArgs> handler) =>
             Binding.Primitive.OnTileLayerChanged(LayerClassId, handler);
@@ -146,7 +149,7 @@ namespace NeoCompose.Runtime
 
         protected NeoPlacementResult TrySetTileClass<TAsset>(Vector2Int cell)
             where TAsset : class =>
-            WritablePrimitive().TrySetTileClass(
+            WritablePrimitive().TrySetTile(
                 LayerClassId,
                 cell,
                 Binding.Primitive.ResolveGeneratedClassId(typeof(TAsset)),
@@ -156,20 +159,10 @@ namespace NeoCompose.Runtime
             Vector2Int cell,
             NeoClassRef<TAsset> tile)
             where TAsset : class =>
-            WritablePrimitive().TrySetTileClass(
-                LayerClassId,
-                cell,
-                tile.ClassId,
-                Binding.ImportedClassIds);
-
-        protected NeoPlacementResult TrySetTileValue(
-            Vector2Int cell,
-            INeoValueReference tile) =>
             WritablePrimitive().TrySetTile(
                 LayerClassId,
                 cell,
-                tile,
-                string.Empty,
+                tile.ClassId,
                 Binding.ImportedClassIds);
 
         protected NeoPlacementResult TryConvertTileClass<TAsset>(NeoTileInstanceId instanceId)
@@ -177,15 +170,6 @@ namespace NeoCompose.Runtime
             WritablePrimitive().TryConvertTileClass(
                 instanceId,
                 Binding.Primitive.ResolveGeneratedClassId(typeof(TAsset)),
-                Binding.ImportedClassIds);
-
-        protected NeoPlacementResult TryConvertTileValue(
-            NeoTileInstanceId instanceId,
-            INeoValueReference target) =>
-            WritablePrimitive().TryConvertTile(
-                instanceId,
-                target,
-                string.Empty,
                 Binding.ImportedClassIds);
 
         protected NeoPlacementResult TryResetBoundTile(NeoTileInstanceId instanceId) =>
@@ -245,72 +229,34 @@ namespace NeoCompose.Runtime
             NeoWorldLayerReflection.ReadSortingLayerName(this);
         public int? SortingOrder => NeoWorldLayerMembers.ReadSortingOrder(node);
 
-        public IReadOnlyList<NeoResolvedObjectInstance> GetObjects() =>
-            Binding.Primitive.GetObjects(LayerClassId);
+        internal IReadOnlyList<NeoObjectProjection> GetObjectProjections() => Binding.Primitive.GetObjectProjections(LayerClassId);
+        internal NeoObjectProjection? GetObjectProjection(NeoObjectInstanceId id) => Binding.Primitive.ResolveObjectInstance(LayerClassId, id);
+        internal NeoObjectProjection? GetObjectProjection(Vector2Int cell) => Binding.Primitive.ResolveObjectAtCellCached(LayerClassId, cell);
+        internal IReadOnlyList<NeoObjectProjection> GetObjectProjections(Vector2Int cell) => Binding.Primitive.ResolveObjectsAtCellCached(LayerClassId, cell);
 
-        public NeoResolvedObjectInstance? GetObject(NeoObjectInstanceId instanceId) =>
-            Binding.Primitive.ResolveObjectInstance(LayerClassId, instanceId);
-
-        public NeoResolvedObjectInstance? GetObject(Vector2Int cell) =>
-            Binding.Primitive.ResolveObjectAtCellCached(LayerClassId, cell);
-
-        public IReadOnlyList<NeoResolvedObjectInstance> GetObjects(Vector2Int cell) =>
-            Binding.Primitive.ResolveObjectsAtCellCached(LayerClassId, cell);
-
-        public NeoResolvedObjectInstance? ResolveObject(NeoObjectInstanceId instanceId) =>
-            GetObject(instanceId);
-
-        public NeoResolvedObjectInstance? ResolveObject(Vector2Int cell) => GetObject(cell);
-
-        public IReadOnlyList<NeoResolvedObjectInstance> ResolveObjects(Vector2Int cell) =>
-            GetObjects(cell);
+        public IReadOnlyList<NeoGeneratedClassValue> GetObjects() => Binding.Primitive.GetObjectValues(LayerClassId);
+        public NeoGeneratedClassValue? GetObject(NeoObjectInstanceId id) => Binding.Primitive.GetObjectValue(LayerClassId, id);
+        public NeoGeneratedClassValue? GetObject(Vector2Int cell) => Binding.Primitive.GetObject<NeoGeneratedClassValue>(LayerClassId, cell, string.Empty);
+        public IReadOnlyList<NeoGeneratedClassValue> GetObjects(Vector2Int cell) => Binding.Primitive.GetObjectValues(LayerClassId, cell);
+        public NeoGeneratedClassValue? ResolveObject(NeoObjectInstanceId id) => GetObject(id);
+        public NeoGeneratedClassValue? ResolveObject(Vector2Int cell) => GetObject(cell);
+        public IReadOnlyList<NeoGeneratedClassValue> ResolveObjects(Vector2Int cell) => GetObjects(cell);
 
         public IDisposable OnChanged(Action<NeoObjectLayerChangedArgs> handler) =>
             Binding.Primitive.OnObjectLayerChanged(LayerClassId, handler);
 
-        protected NeoPlacementResult TrySpawnClass<TAsset>(Vector2Int cell)
-            where TAsset : class =>
-            WritablePrimitive().TrySpawnObjectClass(
-                LayerClassId,
-                cell,
-                Binding.Primitive.ResolveGeneratedClassId(typeof(TAsset)),
-                Binding.ImportedClassIds);
-
-        protected NeoPlacementResult TrySpawnClass<TAsset>(
+        protected NeoPlacementResult TrySpawnConstructedObject(
             Vector2Int cell,
-            NeoClassRef<TAsset> obj)
-            where TAsset : class =>
-            WritablePrimitive().TrySpawnObjectClass(
-                LayerClassId,
-                cell,
-                obj.ClassId,
-                Binding.ImportedClassIds);
-
-        protected NeoPlacementResult TrySpawnValue(
-            Vector2Int cell,
-            INeoValueReference obj) =>
-            WritablePrimitive().TrySpawnObject(
-                LayerClassId,
-                cell,
-                obj,
-                string.Empty,
-                Binding.ImportedClassIds);
-
-        protected NeoPlacementResult TrySwapVariantClass<TAsset>(NeoObjectInstanceId instanceId)
-            where TAsset : class =>
-            WritablePrimitive().TrySwapVariantClass(
-                instanceId,
-                Binding.Primitive.ResolveGeneratedClassId(typeof(TAsset)),
-                Binding.ImportedClassIds);
-
-        protected NeoPlacementResult TrySwapVariantValue(
-            NeoObjectInstanceId instanceId,
-            INeoValueReference variant) =>
-            WritablePrimitive().TrySwapVariant(
-                instanceId,
-                variant,
-                string.Empty,
-                Binding.ImportedClassIds);
+            INeoValueReference obj)
+        {
+            if (obj is not NeoGeneratedClassValue generated)
+            {
+                throw new ArgumentException(
+                    "Cannot spawn an object that is not a generated class value.", nameof(obj));
+            }
+            return WritablePrimitive().TrySpawn(
+                LayerClassId, cell, generated, Binding.ImportedClassIds);
+        }
 
         protected NeoPlacementResult TryDespawnBoundObject(NeoObjectInstanceId instanceId) =>
             WritablePrimitive().TryDespawnObject(instanceId);
@@ -364,18 +310,41 @@ namespace NeoCompose.Runtime
 
     internal static class NeoWorldLayerRuntimeSupport
     {
-        internal static NeoTileLayerRenderSnapshot GetRenderSnapshot(
-            IReadOnlyNeoTileLayerRuntime layer)
+        internal static IReadOnlyList<NeoGeneratedClassValue> TileValues(IReadOnlyList<NeoTileProjection> tiles)
         {
-            return layer switch
-            {
-                NeoGeneratedTileLayerValue generated => generated.GetRenderSnapshot(),
-                ReadOnlyNeoTileLayerRuntime readOnlyRuntime => readOnlyRuntime.GetRenderSnapshot(),
-                _ => new NeoTileLayerRenderSnapshot(
-                    layer.GetTiles(),
-                    new Dictionary<string, IReadOnlyList<NeoResolvedTileInstance>>(),
-                    new Dictionary<Vector2Int, int>()),
-            };
+            var values = new NeoGeneratedClassValue[tiles.Count];
+            for (int i = 0; i < values.Length; i++) values[i] = tiles[i].Tile;
+            return values;
         }
+        internal static IReadOnlyList<NeoGeneratedClassValue> ObjectValues(IReadOnlyList<NeoObjectProjection> objects)
+        {
+            var values = new NeoGeneratedClassValue[objects.Count];
+            for (int i = 0; i < values.Length; i++) values[i] = objects[i].Object;
+            return values;
+        }
+        internal static NeoTileLayerRenderSnapshot GetRenderSnapshot(IReadOnlyNeoTileLayerRuntime layer) => layer switch
+        {
+            NeoGeneratedTileLayerValue generated => generated.GetRenderSnapshot(),
+            ReadOnlyNeoTileLayerRuntime runtime => runtime.GetRenderSnapshot(),
+            _ => throw new InvalidOperationException($"Tile layer '{layer.GetType().Name}' does not provide a render projection."),
+        };
+        internal static NeoTileProjection? GetTile(IReadOnlyNeoTileLayerRuntime layer, Vector2Int cell) => layer switch
+        {
+            NeoGeneratedTileLayerValue generated => generated.GetTileProjection(cell),
+            ReadOnlyNeoTileLayerRuntime runtime => runtime.GetTileProjection(cell),
+            _ => throw new InvalidOperationException($"Tile layer '{layer.GetType().Name}' does not provide a render projection."),
+        };
+        internal static IReadOnlyList<NeoObjectProjection> GetObjects(IReadOnlyNeoObjectLayerRuntime layer) => layer switch
+        {
+            NeoGeneratedObjectLayerValue generated => generated.GetObjectProjections(),
+            ReadOnlyNeoObjectLayerRuntime runtime => runtime.GetObjectProjections(),
+            _ => throw new InvalidOperationException($"Object layer '{layer.GetType().Name}' does not provide a render projection."),
+        };
+        internal static NeoObjectProjection? GetObject(IReadOnlyNeoObjectLayerRuntime layer, NeoObjectInstanceId id) => layer switch
+        {
+            NeoGeneratedObjectLayerValue generated => generated.GetObjectProjection(id),
+            ReadOnlyNeoObjectLayerRuntime runtime => runtime.GetObjectProjection(id),
+            _ => throw new InvalidOperationException($"Object layer '{layer.GetType().Name}' does not provide a render projection."),
+        };
     }
 }

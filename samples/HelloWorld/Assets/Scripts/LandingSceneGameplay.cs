@@ -168,16 +168,18 @@ namespace HelloWorld.Assets.Scripts
                 throw new InvalidOperationException(
                     "The landing grid has no PlayerSpawnObject placed on the Objects layer.");
             }
-            playerSpawn = spawn.Info;
-            PlayerCell = spawn.Cell;
+            playerSpawn = spawn;
+            PlayerCell = new Vector2Int(
+                Mathf.RoundToInt(spawn.Position.x),
+                Mathf.RoundToInt(spawn.Position.y));
             // Resolve the flag dialogues once (their owners aren't under the
             // player): the boot-glyph tile and the recovery cache carry their
             // DialogueLookup references as generated NeoDialogueReferences.
             bootGlyphAttunedId =
-                content.Background.GetTiles<BootGlyphTile>().FirstOrDefault()?.Info
+                content.Background.GetTiles<BootGlyphTile>().FirstOrDefault()
                     ?.BootGlyphAttuned.Id ?? "";
             recoveryCacheDialogueId =
-                content.Objects.GetObjects<RecoveryCacheObject>().FirstOrDefault()?.Info
+                content.Objects.GetObjects<RecoveryCacheObject>().FirstOrDefault()
                     ?.RecoveryCache.Id ?? "";
             UpdatePrompt();
             StatusText = "WASD moves. E talks to whatever the old console is whispering through.";
@@ -339,12 +341,12 @@ namespace HelloWorld.Assets.Scripts
             blockedPath.GetTile(PlayerCell, WithinReachPattern) is not null;
 
         private BootGlyphTile NearBootGlyph() =>
-            content.Background.GetTile<BootGlyphTile>(PlayerCell, WithinReachPattern)?.Info;
+            content.Background.GetTile<BootGlyphTile>(PlayerCell, WithinReachPattern);
 
         private T NearObject<T>()
             where T : class, INeoValueReference
         {
-            return content.Objects.GetObject<T>(PlayerCell, WithinReachPattern)?.Info;
+            return content.Objects.GetObject<T>(PlayerCell, WithinReachPattern);
         }
 
         private void UpdatePrompt()

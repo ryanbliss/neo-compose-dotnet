@@ -47,6 +47,46 @@ the partial client and throws `OperationCanceledException`.
 Keep the loading scene visible until world rendering completes, then dispose the client
 when its owning game session ends.
 
+## Tile and object placements
+
+A tile placement is a generated `NeoTile` value. Its `Cell` is writable;
+`Name`, `Sprite`, and `SmartTile` come from readonly NeoScript declarations.
+The renderer reuses one Unity tile asset per class.
+
+On a writable grid, use the generated classes directly:
+
+```csharp
+var tile = saveContent.Background.GetTile<NeoTile>(cell);
+bool converted = tile != null && tile.TryConvert<GlassFloorTile>();
+var placed = saveContent.Background.TrySetTile<GlassFloorTile>(cell);
+
+var marker = new PlayerSpawnObject();
+var spawned = saveContent.Objects.TrySpawn(cell, marker);
+```
+
+`TryConvert<T>()` preserves the placement row ID, its container, and `Cell`.
+`TryConvert(target)` selects the target's runtime class without copying its
+fields. A successful `TrySpawn` adopts the supplied object's identity. Clone
+an existing owned object explicitly before placing another copy.
+
+Object `PlacementTiles` contains only `NeoPlacementTile` values. This standalone
+footprint type retains its own `Cell` member. It does not inherit rendering
+properties or tile conversion from `NeoTile`.
+
+The SDK wires the system native grid methods automatically. Generated clients
+can call `Cell`, `GetObjects`, and `GetTile` without registering native handlers.
+
+Layer-link lists are the placement data. SDK and NeoScript list edits pass
+through placement validation, and the renderer observes the data changes.
+The flattened `Content` queries return generated tile and object values;
+the public `NeoResolvedTileInstance` and `NeoResolvedObjectInstance` snapshots
+are removed.
+
+Use generated `ToVariant` methods to apply real variants of an object's class.
+The old `TrySwapVariant` APIs and class/value spawn overloads are removed.
+Replacing an object with another class requires removing the old placement
+and spawning a new object. Tile conversion changes the existing row's class.
+
 ## Tests
 
 - **Compilation preflight** — before opening the sample, verify that its

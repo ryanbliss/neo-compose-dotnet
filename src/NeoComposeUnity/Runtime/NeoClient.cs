@@ -210,7 +210,7 @@ namespace NeoCompose.Runtime
         }
         internal IReadOnlyDictionary<string, PriorityGroup> priorityGroups => data.priorityGroups;
         internal IReadOnlyDictionary<string, MemberValue> saveValues => saveData.values;
-        internal IReadOnlyDictionary<string, MemberValue> sessionValues => sessionData.values;
+        internal IReadOnlyDictionary<string, MemberValue> sessionValues => candidateReplay?.SessionRows ?? sessionData.values;
         internal Project project => data.project;
         internal ProjectData ProjectDataForRuntime => data;
         internal bool IsDisposed => isDisposed;
@@ -747,6 +747,7 @@ namespace NeoCompose.Runtime
             if (isDisposed) return;
             isDisposed = true;
             activeClients.Remove(this);
+            DisposeGridLookupCaches();
             if (liveContentSource != null)
             {
                 liveContentSource.OnLiveContentChanged -= HandleLiveContentChanged;
@@ -782,12 +783,18 @@ namespace NeoCompose.Runtime
             DisposeAnimationDefinitions();
             reportedAnimationChildSkips.Clear();
             reportedAnimationApplySkips.Clear();
-            assets.Dispose();
-            save.Dispose();
-            session.Dispose();
+            // Release shared listeners before the nodes detach individually;
+            // repeated removal from a large multicast delegate is quadratic.
             OnSaveValueChanged = null;
             OnWritableValueChanged = null;
             OnStaticBindingChanged = null;
+            assets.Dispose();
+            save.Dispose();
+            session.Dispose();
+            // Direct value/collection views can be registered without a root
+            // parent. They share cached children and belong to this client too.
+            foreach (var node in new List<NeoMember>(nodesInternal.Values))
+                node.Dispose();
         }
 
         internal bool TryGetMember<TMember>(string id, [NotNullWhen(true)] out TMember? member) where TMember : Member
@@ -943,6 +950,17 @@ namespace NeoCompose.Runtime
 
         internal bool TryGetValue<TValue>(string id, [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
+            if (candidateReplay?.Allocations.TryGetValue(id, out MemberValue? allocated) == true)
+            { value = allocated as TValue; return value is not null; }
+
+            if (candidateReadPlan is null) return TryGetCommittedValue(id, out value);
+            capturedValueReads?.Add(id);
+            value = candidateReadPlan.Resolve(id) as TValue;
+            return value is not null;
+        }
+
+        internal bool TryGetCommittedValue<TValue>(string id, [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
+        {
             capturedValueReads?.Add(id);
             if (sessionData.values.TryGetValue(id, out MemberValue sessionIdMatch))
             {
@@ -968,7 +986,7 @@ namespace NeoCompose.Runtime
                     return true;
                 }
             }
-            if (virtualValues.TryGetValue(id, out MemberValue virtualMatch)
+            if (TryResolveVirtualValue(id, out MemberValue virtualMatch)
                 && virtualMatch is TValue typedVirtual)
             {
                 value = typedVirtual;
@@ -979,6 +997,19 @@ namespace NeoCompose.Runtime
         }
 
         internal bool TryGetValue<TValue>(
+            NeoValueOwnership ownership, string id,
+            [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
+        {
+            if (candidateReplay?.Allocations.TryGetValue(id, out MemberValue? allocated) == true)
+            { value = allocated as TValue; return value is not null; }
+
+            if (candidateReadPlan is null) return TryGetCommittedValue(ownership, id, out value);
+            capturedValueReads?.Add(id);
+            value = candidateReadPlan.Resolve(ownership, id) as TValue;
+            return value is not null;
+        }
+
+        internal bool TryGetCommittedValue<TValue>(
             NeoValueOwnership ownership,
             string id,
             [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
@@ -1028,8 +1059,8 @@ namespace NeoCompose.Runtime
             // What stays refused is the reverse — answering an Asset-scoped
             // read with a Save- or Session-owned row, which would leak a
             // writable graph into a caller that asked to stay in assets.
-            if (virtualValues.TryGetValue(id, out MemberValue virtualMatch)
-                && virtualValueOwnership.TryGetValue(
+            if (TryResolveVirtualValue(id, out MemberValue virtualMatch)
+                && TryResolveVirtualOwnership(
                     id,
                     out NeoValueOwnership virtualOwnership)
                 && (virtualOwnership == ownership
@@ -1311,12 +1342,18 @@ namespace NeoCompose.Runtime
                 return false;
             }
             ownership = ResolveStaticOwnership(member);
+            capturedValueReads?.Add($"static:{ownership}:{memberId}");
             if (ownership == NeoValueOwnership.Asset)
             {
                 valueId = member.valueId;
                 return valueId is not null;
             }
             Dictionary<string, string?> bindings = GetWritableStore(ownership).staticBindings;
+            if (candidateReadPlan is not null && candidateReadPlan.Bindings.TryGetValue((ownership, member.id), out var proposed))
+            {
+                valueId = proposed.present ? proposed.valueId : member.valueId;
+                return valueId is not null;
+            }
             if (bindings.TryGetValue(member.id, out string? overlaid))
             {
                 valueId = overlaid;
@@ -1356,22 +1393,18 @@ namespace NeoCompose.Runtime
             }
 
             ProjectSaveData store = GetWritableStore(ownership);
-            if (store.staticBindings.TryGetValue(memberId, out string? current)
-                && current == valueId)
+            bool hasCurrent;
+            string? current;
+            if (candidateReadPlan?.Bindings.TryGetValue((ownership, memberId), out var proposed) == true)
+            { hasCurrent = proposed.present; current = proposed.valueId; }
+            else hasCurrent = store.staticBindings.TryGetValue(memberId, out current);
+            if (hasCurrent && current == valueId)
             {
                 return;
             }
-            store.staticBindings[memberId] = valueId;
-            TouchWritableStoreUpdatedAt(ownership);
-            OnStaticBindingChanged?.Invoke(ownership, memberId);
-            if (ownership == NeoValueOwnership.Save)
-            {
-                if (loader is NeoSaveSynchronizer synchronizer)
-                {
-                    synchronizer.MarkDirtyStaticBinding(memberId);
-                }
-                ScheduleLiveAutoCommit();
-            }
+            var plan = new NeoWritePlan(this);
+            plan.Bind(ownership, memberId, true, valueId);
+            plan.Commit();
         }
 
         internal bool RestoreStaticBinding(
@@ -1395,17 +1428,12 @@ namespace NeoCompose.Runtime
                     $"Static member '{member.name}' belongs to {resolvedOwnership} storage, not {ownership}.");
             }
             ProjectSaveData store = GetWritableStore(ownership);
-            if (!store.staticBindings.Remove(memberId)) return false;
-            TouchWritableStoreUpdatedAt(ownership);
-            OnStaticBindingChanged?.Invoke(ownership, memberId);
-            if (ownership == NeoValueOwnership.Save)
-            {
-                if (loader is NeoSaveSynchronizer synchronizer)
-                {
-                    synchronizer.MarkDirtyStaticBinding(memberId);
-                }
-                ScheduleLiveAutoCommit();
-            }
+            bool present = candidateReadPlan?.Bindings.TryGetValue((ownership, memberId), out var proposed) == true
+                ? proposed.present : store.staticBindings.ContainsKey(memberId);
+            if (!present) return false;
+            var plan = new NeoWritePlan(this);
+            plan.Bind(ownership, memberId, false, null);
+            plan.Commit();
             return true;
         }
 
@@ -1608,6 +1636,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void InvalidateSchemaResolutionCaches()
         {
+            authoredValueInferenceIndex = null;
             ScriptSchemaPlacements.Clear();
             classInheritanceChains.Clear();
             instanceSurfaceSchemas.Clear();
@@ -2516,6 +2545,15 @@ namespace NeoCompose.Runtime
 
         internal bool TryGetValueOwnership(string id, out NeoValueOwnership ownership)
         {
+            if (candidateReadPlan is not null) return candidateReadPlan.TryGetOwnership(id, out ownership);
+            return TryGetCommittedOwnership(id, out ownership);
+        }
+
+        internal bool TryGetCommittedOwnership(string id, out NeoValueOwnership ownership)
+        {
+            if (candidateReplay?.Allocations.ContainsKey(id) == true)
+            { ownership = NeoValueOwnership.Session; return true; }
+
             if (sessionData.values.ContainsKey(id))
             {
                 ownership = NeoValueOwnership.Session;
@@ -2537,7 +2575,7 @@ namespace NeoCompose.Runtime
                 ownership = NeoValueOwnership.Asset;
                 return true;
             }
-            if (virtualValueOwnership.TryGetValue(id, out ownership))
+            if (TryResolveVirtualOwnership(id, out ownership))
             {
                 return true;
             }
@@ -2549,6 +2587,10 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             string valueId)
         {
+            if (ownership == NeoValueOwnership.Session && candidateReplay?.Allocations.ContainsKey(valueId) == true) return true;
+            if (candidateReadPlan?.Rows.TryGetValue((ownership, valueId), out MemberValue? proposed) == true)
+                return proposed is not null;
+
             if (ownership == NeoValueOwnership.Asset) return false;
             return GetWritableStore(ownership).values.ContainsKey(valueId);
         }
@@ -2587,6 +2629,19 @@ namespace NeoCompose.Runtime
         /// untouched values read through to the defaults by their stable id.
         /// </summary>
         internal bool TryGetOverlaidValue<TValue>(
+            NeoValueOwnership ownership, string id,
+            [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
+        {
+            if (ReplayAllocation(id) is MemberValue allocated)
+            { value = allocated as TValue; return value is not null; }
+
+            if (candidateReadPlan is null) return TryGetCommittedOverlaidValue(ownership, id, out value);
+            capturedValueReads?.Add(id);
+            value = candidateReadPlan.Resolve(ownership, id) as TValue;
+            return value is not null;
+        }
+
+        internal bool TryGetCommittedOverlaidValue<TValue>(
             NeoValueOwnership ownership,
             string id,
             [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
@@ -2608,7 +2663,7 @@ namespace NeoCompose.Runtime
                 value = assetRow as TValue;
                 return value is not null;
             }
-            if (virtualValues.TryGetValue(id, out MemberValue virtualRow))
+            if (TryResolveVirtualValue(id, out MemberValue virtualRow))
             {
                 value = virtualRow as TValue;
                 return value is not null;
@@ -2627,6 +2682,9 @@ namespace NeoCompose.Runtime
             string id,
             [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
+            if (candidateReplay?.Allocations.TryGetValue(id, out MemberValue? allocated) == true)
+            { value = allocated as TValue; return value is not null; }
+
             capturedValueReads?.Add(id);
             value = null;
             if (ownership != NeoValueOwnership.Asset)
@@ -2651,7 +2709,7 @@ namespace NeoCompose.Runtime
                 value = authoredRow as TValue;
                 return value is not null;
             }
-            if (virtualValues.TryGetValue(id, out MemberValue virtualRow))
+            if (TryResolveVirtualValue(id, out MemberValue virtualRow))
             {
                 value = virtualRow as TValue;
                 return value is not null;
@@ -2750,29 +2808,30 @@ namespace NeoCompose.Runtime
                     }
                 }
             }
-            WriteTombstone(ownership, id);
-            if (formerChildren.Count == 0) return;
-            // Build reachability after the tombstone replaces the value, so the
-            // former children are seen as orphaned (unless shared elsewhere).
+            var plan = new NeoWritePlan(this);
+            var now = NeoTimestamp.Now();
+            plan.Set(ownership, new NullMemberValue
+            { id = id, createdAt = now, updatedAt = now, mark = NeoValueMarks.Removed }, "mark");
             var reachableByOwnership = new Dictionary<NeoValueOwnership, HashSet<string>>();
-            foreach (var child in formerChildren)
+            var visitedByOwnership = new Dictionary<NeoValueOwnership, HashSet<string>>();
+            using (ReadCandidate(plan))
             {
-                NeoValueOwnership childOwnership =
-                    (child.member is null ? null : DeclaredOwnership(child.member)) ?? ownership;
-                if (childOwnership == NeoValueOwnership.Asset) continue;
-                if (!reachableByOwnership.TryGetValue(childOwnership, out var reachable))
+                foreach (var child in formerChildren)
                 {
-                    reachable = BuildReachableWritableValueIds(childOwnership);
-                    reachableByOwnership[childOwnership] = reachable;
+                    NeoValueOwnership childOwnership =
+                        (child.member is null ? null : DeclaredOwnership(child.member)) ?? ownership;
+                    if (childOwnership == NeoValueOwnership.Asset) continue;
+                    if (!reachableByOwnership.TryGetValue(childOwnership, out var reachable))
+                    {
+                        reachable = BuildReachableWritableValueIds(childOwnership);
+                        reachableByOwnership[childOwnership] = reachable;
+                        visitedByOwnership[childOwnership] = new HashSet<string>();
+                    }
+                    StageOwnedRemoval(plan, childOwnership, child.valueId, child.member, false,
+                        visitedByOwnership[childOwnership], reachable);
                 }
-                RemoveWritableValueAndDescendantsIfUnlinked(
-                    childOwnership,
-                    child.valueId,
-                    reachable,
-                    child.member,
-                    new HashSet<string>(),
-                    new HashSet<string>());
             }
+            plan.Commit();
         }
 
         /// <summary>
@@ -2783,21 +2842,10 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal bool RemoveWritableShadow(NeoValueOwnership ownership, string id)
         {
-            if (ownership == NeoValueOwnership.Asset) return false;
-            var store = GetWritableStore(ownership);
-            TryResolveContainerIdForValueId(id, out string? memberContainerId);
-            if (!store.values.Remove(id)) return false;
-            IndexStoreRemove(ownership, id);
-            TouchWritableStoreUpdatedAt(ownership);
-            OnWritableValueChanged?.Invoke(ownership, id);
-            if (memberContainerId is not null)
-            {
-                RaiseContainerChanged(ownership, memberContainerId);
-            }
-            if (ownership == NeoValueOwnership.Save)
-            {
-                RaiseSaveValueChanged(id);
-            }
+            if (ownership == NeoValueOwnership.Asset || !HasWritableValue(ownership, id)) return false;
+            var plan = new NeoWritePlan(this);
+            plan.Remove(ownership, id);
+            plan.Commit();
             return true;
         }
 
@@ -2806,27 +2854,39 @@ namespace NeoCompose.Runtime
             TMemberValue value,
             string? changedField = null) where TMemberValue : MemberValue
         {
-            if (ownership == NeoValueOwnership.Save) RetainConstructorDependencies(value);
-            StampMapKeyForWrite(ownership, value);
-            GetWritableStore(ownership).values[value.id] = value;
-            IndexStoreWrite(ownership, value);
-            TouchWritableStoreUpdatedAt(ownership);
-            OnWritableValueChanged?.Invoke(ownership, value.id);
-            NotifyContainerMembershipChanged(ownership, value.id);
-            if (ownership == NeoValueOwnership.Save)
-            {
-                RaiseSaveValueChanged(value.id, changedField);
-            }
+            var plan = new NeoWritePlan(this);
+            plan.Set(ownership, value, changedField);
+            plan.Commit();
+        }
+
+        internal void SetWritableValues(NeoValueOwnership ownership, IReadOnlyList<MemberValue> values)
+        {
+            var plan = new NeoWritePlan(this);
+            foreach (MemberValue value in values) plan.Set(ownership, value);
+            plan.Commit();
         }
 
         internal void SetWritableValueSilently<TMemberValue>(
             NeoValueOwnership ownership,
             TMemberValue value) where TMemberValue : MemberValue
         {
-            if (ownership == NeoValueOwnership.Save) RetainConstructorDependencies(value);
-            StampMapKeyForWrite(ownership, value);
+            var plan = new NeoWritePlan(this);
+            plan.Set(ownership, value, silent: true);
+            plan.Commit();
+        }
+
+        private void StoreWritableValue(NeoValueOwnership ownership, MemberValue value)
+        {
             GetWritableStore(ownership).values[value.id] = value;
             IndexStoreWrite(ownership, value);
+        }
+
+        private void NotifyWritableValueChanged(
+            NeoValueOwnership ownership, string valueId, string? changedField = null)
+        {
+            OnWritableValueChanged?.Invoke(ownership, valueId);
+            NotifyContainerMembershipChanged(ownership, valueId);
+            if (ownership == NeoValueOwnership.Save) RaiseSaveValueChanged(valueId, changedField);
         }
 
         /// <summary>
@@ -2840,9 +2900,20 @@ namespace NeoCompose.Runtime
         internal void PublishConstructedSessionRows(
             IReadOnlyList<MemberValue> values)
         {
+            if (candidateReplay is not null)
+            {
+                foreach (MemberValue row in values)
+                {
+                    if (candidateReplay.Allocations.ContainsKey(row.id)) throw new InvalidOperationException($"Duplicate constructor allocation '{row.id}'.");
+                    candidateReplay.SetAllocation(row.id, row);
+                }
+                return;
+            }
+
             foreach (MemberValue value in values)
             {
                 sessionData.values.Add(value.id, value);
+                IndexPlacementParent(NeoValueOwnership.Session, value);
                 if (!string.IsNullOrEmpty(value.containerId))
                 {
                     AddMembership(
@@ -2889,11 +2960,15 @@ namespace NeoCompose.Runtime
 
         internal void SetWritablePayloadRows(NeoValueOwnership ownership, object? payload)
         {
+            var plan = new NeoWritePlan(this);
+            StageWritablePayloadRows(plan, ownership, payload);
+            plan.Commit();
+        }
+
+        internal void StageWritablePayloadRows(NeoWritePlan plan, NeoValueOwnership ownership, object? payload)
+        {
             if (payload is not NeoValuePayload wrapped) return;
-            foreach (var row in wrapped.valueRows)
-            {
-                SetWritableValue(ownership, row);
-            }
+            foreach (MemberValue row in wrapped.valueRows) plan.Set(ownership, row);
         }
 
         internal string ImportValueReference(
@@ -2914,12 +2989,25 @@ namespace NeoCompose.Runtime
             out bool sourceMoved,
             string? currentDestinationValueId = null)
         {
+            var plan = new NeoWritePlan(this);
+            string result = ImportValueReference(plan, targetOwnership, sourceValueId, out sourceMoved, currentDestinationValueId);
+            plan.Commit();
+            return result;
+        }
+
+        internal string ImportValueReference(
+            NeoWritePlan plan,
+            NeoValueOwnership targetOwnership,
+            string sourceValueId,
+            out bool sourceMoved,
+            string? currentDestinationValueId = null)
+        {
             if (targetOwnership == NeoValueOwnership.Asset)
             {
                 throw new System.InvalidOperationException("Cannot import a writable value into asset ownership.");
             }
             sourceMoved = false;
-            if (!TryGetValueOwnership(sourceValueId, out NeoValueOwnership sourceOwnership))
+            if (!plan.TryGetOwnership(sourceValueId, out NeoValueOwnership sourceOwnership))
             {
                 return sourceValueId;
             }
@@ -2948,7 +3036,7 @@ namespace NeoCompose.Runtime
             if (currentDestinationValueId != sourceValueId
                 && TryFindOwnedParent(targetOwnership, sourceValueId, out _))
             {
-                return CloneOwnedValueGraphWithFreshIdsAtomic(
+                return PrepareFreshClone(plan,
                     targetOwnership,
                     sourceOwnership,
                     sourceValueId,
@@ -2976,7 +3064,7 @@ namespace NeoCompose.Runtime
                         sourceValueId,
                         out _))
                 {
-                    return CloneOwnedValueReferenceForNewParent(
+                    return PrepareFreshClone(plan,
                         targetOwnership,
                         sourceOwnership,
                         sourceValueId,
@@ -2994,13 +3082,14 @@ namespace NeoCompose.Runtime
                         sourceMember,
                         new HashSet<string>()))
                 {
-                    return CloneOwnedValueReferenceForNewParent(
+                    return PrepareFreshClone(plan,
                         targetOwnership,
                         sourceOwnership,
                         sourceValueId,
                         sourceMember);
                 }
                 PromoteValueGraph(
+                    plan,
                     NeoValueOwnership.Session,
                     NeoValueOwnership.Save,
                     sourceValueId,
@@ -3010,6 +3099,7 @@ namespace NeoCompose.Runtime
                 return sourceValueId;
             }
             return CloneValueGraphToOwnership(
+                plan,
                 targetOwnership,
                 sourceValueId,
                 new Dictionary<string, string>(),
@@ -3087,43 +3177,30 @@ namespace NeoCompose.Runtime
             string sourceValueId,
             Member? sourceMember)
         {
-            var createdValueIds = new HashSet<string>();
-            try
-            {
-                return CloneOwnedValueGraphWithFreshIds(
-                    targetOwnership,
-                    sourceOwnership,
-                    sourceValueId,
-                    sourceMember,
-                    new HashSet<string>(),
-                    clonedContainerId: null,
-                    createdValueIds);
-            }
-            catch
-            {
-                // Recursive fresh-id cloning publishes children before their
-                // parents. If a later descendant/cycle/event fails, reclaim
-                // every exact row created by this attempt; none can predate
-                // the transaction because all ids are fresh GUIDs.
-                foreach (string createdValueId in
-                         new List<string>(createdValueIds))
-                {
-                    RemoveTemporaryWritableValueGraph(
-                        targetOwnership,
-                        createdValueId);
-                }
-                throw;
-            }
+            EnsureVirtualReplayArgumentReady(sourceValueId);
+            var plan = new NeoWritePlan(this);
+            string result = PrepareFreshClone(plan, targetOwnership, sourceOwnership, sourceValueId, sourceMember);
+            plan.Commit();
+            return result;
         }
 
+        private string PrepareFreshClone(
+            NeoWritePlan plan,
+            NeoValueOwnership targetOwnership,
+            NeoValueOwnership sourceOwnership,
+            string sourceValueId,
+            Member? sourceMember) => CloneOwnedValueGraphWithFreshIds(
+                plan, targetOwnership, sourceOwnership, sourceValueId, sourceMember,
+                new HashSet<string>(), clonedContainerId: null);
+
         private string CloneOwnedValueGraphWithFreshIds(
+            NeoWritePlan plan,
             NeoValueOwnership targetOwnership,
             NeoValueOwnership sourceOwnership,
             string sourceValueId,
             Member? sourceMember,
             HashSet<string> path,
-            string? clonedContainerId,
-            HashSet<string> createdValueIds)
+            string? clonedContainerId)
         {
             if (!path.Add(sourceValueId))
             {
@@ -3132,7 +3209,7 @@ namespace NeoCompose.Runtime
             }
             try
             {
-                if (!TryGetValue(sourceOwnership, sourceValueId, out MemberValue? sourceRow))
+                if (!plan.TryGet(sourceOwnership, sourceValueId, out MemberValue? sourceRow))
                 {
                     throw new System.InvalidOperationException(
                         $"Cannot clone value graph: owned value row '{sourceValueId}' does not exist.");
@@ -3140,60 +3217,50 @@ namespace NeoCompose.Runtime
 
                 MemberValue clone = CloneValueRow(sourceRow);
                 clone.id = System.Guid.NewGuid().ToString();
+                clone.sourceValueId = sourceRow.sourceValueId ?? sourceRow.id;
                 clone.containerId = clonedContainerId;
 
                 switch (clone)
                 {
                     case ObjectMemberValue obj when obj.value is not null:
                     {
+                        var effectiveFields = new Dictionary<string, string>(obj.value);
+                        if (sourceRow is ObjectMemberValue sourceObject)
+                        {
+                            // A constructor can clone a sparse shared value
+                            // before its ordinary load-order replay has run.
+                            EnsureVirtualReplayArgumentReady(sourceObject.id);
+                            foreach (var link in EnumerateConstructorSettledAggregateLinks(sourceObject, sourceMember))
+                                effectiveFields[link.schemaKey] = link.valueId;
+                            if (TryResolveVirtualClassChildren(sourceObject.id, out var virtualChildren))
+                                foreach (var link in virtualChildren)
+                                    if (!effectiveFields.ContainsKey(link.Key)) effectiveFields[link.Key] = link.Value;
+                        }
                         var remapped = new Dictionary<string, string>();
-                        foreach (var pair in obj.value)
+                        foreach (var pair in effectiveFields)
                         {
                             Member? childMember =
                                 TryResolveOwnedChildMember(sourceRow, sourceMember, pair.Key);
                             remapped[pair.Key] = childMember is not null
-                                && TryGetValue(
+                                && plan.TryGet(
                                     DeclaredOwnership(childMember) ?? sourceOwnership,
                                     pair.Value,
                                     out MemberValue? _)
                                     ? CloneOwnedValueGraphWithFreshIds(
+                                        plan,
                                         targetOwnership,
                                         DeclaredOwnership(childMember) ?? sourceOwnership,
                                         pair.Value,
                                         childMember,
                                         path,
-                                        null,
-                                        createdValueIds)
+                                        null)
                                     : pair.Value;
                         }
                         obj.value = remapped;
-                        if (sourceRow is ObjectMemberValue sourceObject
-                            && obj.constructorArgs is not null)
-                        {
-                            foreach (var link in
-                                EnumerateConstructorSettledAggregateLinks(sourceObject, sourceMember))
-                            {
-                                NeoValueOwnership childOwnership =
-                                    DeclaredOwnership(link.member) ?? sourceOwnership;
-                                if (!TryGetValue(
-                                        childOwnership,
-                                        link.valueId,
-                                        out MemberValue? _))
-                                {
-                                    continue;
-                                }
-                                string clonedChildId = CloneOwnedValueGraphWithFreshIds(
-                                    targetOwnership,
-                                    childOwnership,
-                                    link.valueId,
-                                    link.member,
-                                    path,
-                                    null,
-                                    createdValueIds);
-                                obj.constructorArgs[link.parameterId] =
-                                    new JValue(clonedChildId);
-                            }
-                        }
+                        if (sourceRow is ObjectMemberValue constructedSource && obj.constructorArgs is not null)
+                            foreach (var link in EnumerateConstructorSettledAggregateLinks(constructedSource, sourceMember))
+                                if (remapped.TryGetValue(link.schemaKey, out string? clonedChildId))
+                                    obj.constructorArgs[link.parameterId] = new JValue(clonedChildId);
                         break;
                     }
                     case ArrayMemberValue arr when arr.value is not null:
@@ -3208,15 +3275,15 @@ namespace NeoCompose.Runtime
                         {
                             NeoValueOwnership entryOwnership =
                                 DeclaredOwnership(entryMember) ?? sourceOwnership;
-                            remapped[i] = TryGetValue(entryOwnership, arr.value[i], out MemberValue? _)
+                            remapped[i] = plan.TryGet(entryOwnership, arr.value[i], out MemberValue? _)
                                 ? CloneOwnedValueGraphWithFreshIds(
+                                    plan,
                                     targetOwnership,
                                     entryOwnership,
                                     arr.value[i],
                                     entryMember,
                                     path,
-                                    null,
-                                    createdValueIds)
+                                    null)
                                 : arr.value[i];
                         }
                         arr.value = remapped;
@@ -3224,8 +3291,7 @@ namespace NeoCompose.Runtime
                     }
                 }
 
-                createdValueIds.Add(clone.id);
-                SetWritableValue(targetOwnership, clone);
+                plan.Set(targetOwnership, clone);
 
                 // Unordered list membership is stored on the member rows,
                 // rather than as ids in the list's (empty) array payload.
@@ -3242,13 +3308,13 @@ namespace NeoCompose.Runtime
                             sourceValueId))
                         {
                             CloneOwnedValueGraphWithFreshIds(
+                                plan,
                                 targetOwnership,
                                 entryOwnership,
                                 memberId,
                                 entryMember,
                                 path,
-                                clone.id,
-                                createdValueIds);
+                                clone.id);
                         }
                     }
                 }
@@ -3326,7 +3392,7 @@ namespace NeoCompose.Runtime
                 parentValueId = child.containerId;
                 return true;
             }
-            if (virtualClassPlacementByChildId.TryGetValue(
+            if (TryResolveVirtualPlacement(
                     childValueId,
                     out VirtualClassPlacement? virtualPlacement)
                 && virtualPlacement.ownership == childOwnership)
@@ -3511,6 +3577,7 @@ namespace NeoCompose.Runtime
         }
 
         private void PromoteValueGraph(
+            NeoWritePlan plan,
             NeoValueOwnership sourceOwnership,
             NeoValueOwnership targetOwnership,
             string valueId,
@@ -3518,30 +3585,34 @@ namespace NeoCompose.Runtime
             Member? sourceMember = null)
         {
             if (!visited.Add(valueId)) return;
-            var sourceStore = GetWritableStore(sourceOwnership);
-            var targetStore = GetWritableStore(targetOwnership);
-            if (!sourceStore.values.TryGetValue(valueId, out MemberValue? row)) return;
+            if (!plan.TryGetWritable(sourceOwnership, valueId, out MemberValue? row)) return;
 
-            if (targetOwnership == NeoValueOwnership.Save) RetainConstructorDependencies(row);
-            targetStore.values[valueId] = row;
-            IndexStoreWrite(targetOwnership, row);
+            plan.Set(targetOwnership, CloneValueRow(row));
             foreach (var child in EnumerateOwnedChildLinks(row, sourceMember))
             {
-                NeoValueOwnership childOwnership =
-                    DeclaredOwnership(child.member!) ?? sourceOwnership;
-                if (childOwnership != sourceOwnership) continue;
+                // Inherited children follow the adopted root. Explicit Session
+                // members stay transient; explicit Save children created in the
+                // construction Session graph move into their declared store.
+                NeoValueOwnership childTarget = DeclaredOwnership(child.member!) ?? targetOwnership;
+                if (childTarget != targetOwnership) continue;
                 PromoteValueGraph(
+                    plan,
                     sourceOwnership,
                     targetOwnership,
                     child.valueId,
                     visited,
                     child.member);
             }
-            sourceStore.values.Remove(valueId);
-            IndexStoreRemove(sourceOwnership, valueId);
-            OnWritableValueChanged?.Invoke(sourceOwnership, valueId);
-            OnWritableValueChanged?.Invoke(targetOwnership, valueId);
-            if (targetOwnership == NeoValueOwnership.Save) RaiseSaveValueChanged(valueId);
+            if (sourceMember is ListMember list && IsUnorderedList(list)
+                && TryResolveCollectionEntryMember(list, row) is Member entry
+                && (DeclaredOwnership(entry) ?? targetOwnership) == targetOwnership)
+            {
+                var entries = new HashSet<string>(EnumerateContainerMemberValueIds(sourceOwnership, valueId));
+                entries.UnionWith(plan.ContainerCandidates(valueId));
+                foreach (string id in entries)
+                    PromoteValueGraph(plan, sourceOwnership, targetOwnership, id, visited, entry);
+            }
+            plan.Remove(sourceOwnership, valueId);
         }
 
         private bool OwnedValueGraphCollidesWithOwnership(
@@ -3552,11 +3623,16 @@ namespace NeoCompose.Runtime
             HashSet<string> visited)
         {
             if (!visited.Add(valueId)) return false;
+            // A declared storage boundary may already point at an independent
+            // destination row. Only rows actually moving out of the source
+            // store can collide during adoption.
+            if (!TryGetWritableValue(sourceOwnership, valueId, out MemberValue? _)) return false;
             ProjectSaveData targetStore = GetWritableStore(targetOwnership);
             if (targetStore.values.ContainsKey(valueId)
                 || data.values.TryGetValue(valueId, out MemberValue authored)
                     && ResolveAuthoredOwnership(valueId, authored) == targetOwnership
-                || TryFindOwnedParent(targetOwnership, valueId, out _))
+                || (TryFindOwnedParent(targetOwnership, valueId, out string? owner)
+                    && !visited.Contains(owner!)))
             {
                 return true;
             }
@@ -3570,9 +3646,8 @@ namespace NeoCompose.Runtime
             foreach (var child in EnumerateOwnedChildLinks(
                 sourceRow!, sourceMember))
             {
-                NeoValueOwnership childOwnership =
-                    DeclaredOwnership(child.member!) ?? sourceOwnership;
-                if (childOwnership != sourceOwnership) continue;
+                NeoValueOwnership childTarget = DeclaredOwnership(child.member!) ?? targetOwnership;
+                if (childTarget != targetOwnership) continue;
                 if (OwnedValueGraphCollidesWithOwnership(
                     sourceOwnership,
                     targetOwnership,
@@ -3587,8 +3662,8 @@ namespace NeoCompose.Runtime
                 && IsUnorderedList(list)
                 && TryResolveCollectionEntryMember(sourceMember)
                     is Member entryMember
-                && (DeclaredOwnership(entryMember) ?? sourceOwnership)
-                    == sourceOwnership)
+                && (DeclaredOwnership(entryMember) ?? targetOwnership)
+                    == targetOwnership)
             {
                 foreach (string memberId in EnumerateContainerMemberValueIds(
                     sourceOwnership,
@@ -3609,13 +3684,14 @@ namespace NeoCompose.Runtime
         }
 
         private string CloneValueGraphToOwnership(
+            NeoWritePlan plan,
             NeoValueOwnership targetOwnership,
             string sourceValueId,
             Dictionary<string, string> remappedIds,
             Member? sourceMember = null)
         {
             if (remappedIds.TryGetValue(sourceValueId, out string existingId)) return existingId;
-            if (!TryGetValue(sourceValueId, out MemberValue? sourceRow))
+            if (!plan.TryGet(sourceValueId, out MemberValue? sourceRow))
             {
                 return sourceValueId;
             }
@@ -3634,8 +3710,8 @@ namespace NeoCompose.Runtime
                     foreach (var pair in obj.value)
                     {
                         Member? childMember = TryResolveOwnedChildMember(sourceRow, sourceMember, pair.Key);
-                        remapped[pair.Key] = childMember is not null && TryGetValue(pair.Value, out MemberValue? _)
-                            ? CloneValueGraphToOwnership(targetOwnership, pair.Value, remappedIds, childMember)
+                        remapped[pair.Key] = childMember is not null && plan.TryGet(pair.Value, out MemberValue? _)
+                            ? CloneValueGraphToOwnership(plan, targetOwnership, pair.Value, remappedIds, childMember)
                             : pair.Value;
                     }
                     obj.value = remapped;
@@ -3645,8 +3721,9 @@ namespace NeoCompose.Runtime
                         foreach (var link in
                             EnumerateConstructorSettledAggregateLinks(sourceObject, sourceMember))
                         {
-                            if (!TryGetValue(link.valueId, out MemberValue? _)) continue;
+                            if (!plan.TryGet(link.valueId, out MemberValue? _)) continue;
                             string clonedChildId = CloneValueGraphToOwnership(
+                                plan,
                                 targetOwnership,
                                 link.valueId,
                                 remappedIds,
@@ -3668,8 +3745,8 @@ namespace NeoCompose.Runtime
                     for (int i = 0; i < arr.value.Length; i++)
                     {
                         string childId = arr.value[i];
-                        remapped[i] = entryMember is not null && TryGetValue(childId, out MemberValue? _)
-                            ? CloneValueGraphToOwnership(targetOwnership, childId, remappedIds, entryMember)
+                        remapped[i] = entryMember is not null && plan.TryGet(childId, out MemberValue? _)
+                            ? CloneValueGraphToOwnership(plan, targetOwnership, childId, remappedIds, entryMember)
                             : childId;
                     }
                     arr.value = remapped;
@@ -3677,7 +3754,7 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            SetWritableValue(targetOwnership, clone);
+            plan.Set(targetOwnership, clone);
             return clone.id;
         }
 
@@ -3984,6 +4061,8 @@ namespace NeoCompose.Runtime
                 TryGetVirtualClassChildValueId(row.id, schemaKey, out childId);
             }
             if (string.IsNullOrWhiteSpace(childId)) return null;
+            if (ownership == NeoValueOwnership.Session)
+                return TryGetWritableShadowSource(NeoValueOwnership.Session, childId!, out MemberValue? shadowSource) ? shadowSource : null;
             if (ownership is NeoValueOwnership scope)
                 return TryGetValue(scope, childId!, out MemberValue? child) ? child : null;
             return ResolveValueRow(childId!);
@@ -4007,7 +4086,7 @@ namespace NeoCompose.Runtime
                 if (TryInferDirectMemberForValueId(valueId, out member)) return true;
                 if (VariantGraphs.TryGetValue(valueId, out VariantRecord? variant))
                 { member = NeoVariantSupport.GraphMember(this, variant); return true; }
-                if (virtualClassPlacementByChildId.TryGetValue(valueId, out VirtualClassPlacement? virtualPlacement))
+                if (TryResolveVirtualPlacement(valueId, out VirtualClassPlacement? virtualPlacement))
                 { member = virtualPlacement.member; return true; }
                 if (TryGetValue(valueId, out MemberValue? containedValue)
                     && !string.IsNullOrEmpty(containedValue.containerId)
@@ -4065,25 +4144,7 @@ namespace NeoCompose.Runtime
             string valueId,
             [NotNullWhen(true)] out Member? member)
         {
-            if (valueInferenceScopeDepth > 0)
-                return ValueInferenceIndex.Members.TryGetValue(valueId, out member);
-            foreach (var candidate in data.members.Values)
-            {
-                if (candidate.valueId == valueId)
-                {
-                    member = candidate;
-                    return true;
-                }
-            }
-            member = null;
-            return false;
-        }
-
-        private IEnumerable<KeyValuePair<string, MemberValue>> EnumerateAllValueRows()
-        {
-            foreach (var pair in sessionData.values) yield return pair;
-            foreach (var pair in saveData.values) yield return pair;
-            foreach (var pair in data.values) yield return pair;
+            return ValueInferenceIndex.Members.TryGetValue(valueId, out member);
         }
 
         /// <summary>
@@ -4460,6 +4521,12 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             string valueId)
         {
+            if (candidateReplay is not null)
+            {
+                if (ownership != NeoValueOwnership.Session) throw new InvalidOperationException("Replay can only reclaim its Session allocations.");
+                return RemoveReplayAllocationGraph(valueId);
+            }
+
             Member? sourceMember = TryInferMemberForValueId(
                 valueId,
                 out Member? inferred)
@@ -4670,6 +4737,11 @@ namespace NeoCompose.Runtime
             string id,
             [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
+            if (ownership == NeoValueOwnership.Session && candidateReplay?.Allocations.TryGetValue(id, out MemberValue? allocated) == true)
+            { value = allocated as TValue; return value is not null; }
+            if (candidateReadPlan?.Rows.TryGetValue((ownership, id), out MemberValue? proposed) == true)
+            { value = proposed as TValue; return value is not null; }
+
             capturedValueReads?.Add(id);
             value = null;
             if (ownership == NeoValueOwnership.Asset) return false;
@@ -4770,6 +4842,7 @@ namespace NeoCompose.Runtime
         /// <summary>Index maintenance chokepoint for a store write at <c>value.id</c>.</summary>
         private void IndexStoreWrite(NeoValueOwnership ownership, MemberValue value)
         {
+            IndexPlacementParent(ownership, value);
             var (byContainer, byRow) = MembershipMaps(ownership);
             if (byRow.TryGetValue(value.id, out string previousContainerId)
                 && previousContainerId != value.containerId)
@@ -4789,6 +4862,7 @@ namespace NeoCompose.Runtime
         /// <summary>Index maintenance chokepoint for a store removal at <paramref name="id"/>.</summary>
         private void IndexStoreRemove(NeoValueOwnership ownership, string id)
         {
+            UnindexPlacementParent(ownership, id);
             var (byContainer, byRow) = MembershipMaps(ownership);
             if (!byRow.TryGetValue(id, out string containerId)) return;
             if (byContainer.TryGetValue(containerId, out var members))
@@ -5125,6 +5199,21 @@ namespace NeoCompose.Runtime
             CollectLiveMembers(virtualEntriesByContainer, containerValueId, seen, members);
             CollectLiveMembers(saveEntriesByContainer, containerValueId, seen, members);
             CollectLiveMembers(sessionEntriesByContainer, containerValueId, seen, members);
+            if (candidateReplay is not null)
+            {
+                CollectLiveMembers(candidateReplay.ContainerMembers, containerValueId, seen, members);
+                CollectLiveMembers(candidateReplay.VirtualContainerMembers, containerValueId, seen, members);
+            }
+            if (candidateReadPlan is not null)
+            {
+                foreach (string memberId in candidateReadPlan.ContainerCandidates(containerValueId))
+                {
+                    if (!seen.Add(memberId)) continue;
+                    MemberValue? row = ResolveValueRow(memberId);
+                    if (row is null || row.IsRemoved || row.containerId != containerValueId) continue;
+                    members.Add(memberId);
+                }
+            }
             members.Sort(System.StringComparer.Ordinal);
             return members;
         }
@@ -5142,6 +5231,7 @@ namespace NeoCompose.Runtime
                 var effective = ResolveValueRow(memberId);
                 if (effective is null) continue;
                 if (effective.IsRemoved) continue;
+                if (!string.IsNullOrEmpty(effective.containerId) && effective.containerId != containerValueId) continue;
                 members.Add(memberId);
             }
         }
@@ -5151,11 +5241,14 @@ namespace NeoCompose.Runtime
         /// can distinguish "explicitly removed" from "absent".</summary>
         internal MemberValue? ResolveValueRow(string valueId)
         {
+            if (candidateReplay?.Allocations.TryGetValue(valueId, out MemberValue? allocated) == true) return allocated;
+
             capturedValueReads?.Add(valueId);
+            if (candidateReadPlan is not null) return candidateReadPlan.Resolve(valueId);
             if (sessionData.values.TryGetValue(valueId, out MemberValue sessionRow)) return sessionRow;
             if (saveData.values.TryGetValue(valueId, out MemberValue saveRow)) return saveRow;
             if (data.values.TryGetValue(valueId, out MemberValue authoredRow)) return authoredRow;
-            if (virtualValues.TryGetValue(valueId, out MemberValue virtualRow)) return virtualRow;
+            if (TryResolveVirtualValue(valueId, out MemberValue virtualRow)) return virtualRow;
             return null;
         }
 
@@ -5339,7 +5432,7 @@ namespace NeoCompose.Runtime
             [NotNullWhen(true)] out NeoMember? node)
         {
             string key = MakeNodeKey(memberId, overrideValueId, ownership);
-            return nodesInternal.TryGetValue(key, out node);
+            return (candidateReplay?.Nodes ?? nodesInternal).TryGetValue(key, out node);
         }
 
         internal bool TryGetNode(string memberId, string? overrideValueId, [NotNullWhen(true)] out NeoMember? node)
@@ -5364,6 +5457,8 @@ namespace NeoCompose.Runtime
                 node.member.RuntimeDeclarationIdentity,
                 node.overrideValueId,
                 node.ownership);
+            if (candidateReplay is not null)
+            { candidateReplay.Nodes[key] = node; return; }
             if (nodesInternal.TryGetValue(key, out NeoMember previous)) UnindexNode(previous);
             nodesInternal[key] = node;
             IndexNode(node);
@@ -5381,6 +5476,12 @@ namespace NeoCompose.Runtime
                 node.member.RuntimeDeclarationIdentity,
                 node.overrideValueId,
                 node.ownership);
+            if (candidateReplay is not null)
+            {
+                if (candidateReplay.Nodes.TryGetValue(key, out NeoMember? candidate) && ReferenceEquals(candidate, node))
+                    candidateReplay.Nodes.Remove(key);
+                return;
+            }
             // Only remove if the registered instance is the one we're
             // unregistering — guards against the "I disposed an
             // instance that was already replaced in the registry by a
@@ -5401,14 +5502,15 @@ namespace NeoCompose.Runtime
                 node.member.RuntimeDeclarationIdentity,
                 node.overrideValueId,
                 node.ownership);
-            if (generatedValuesInternal.TryGetValue(key, out NeoGeneratedClassValue existing))
+            var registry = candidateReplay?.GeneratedValues ?? generatedValuesInternal;
+            if (registry.TryGetValue(key, out NeoGeneratedClassValue existing))
             {
                 if (existing is TGenerated match) return match;
                 existing.Dispose();
             }
 
             TGenerated generated = create();
-            generatedValuesInternal[key] = generated;
+            registry[key] = generated;
             return generated;
         }
 
@@ -5420,12 +5522,13 @@ namespace NeoCompose.Runtime
                 node.member.RuntimeDeclarationIdentity,
                 node.overrideValueId,
                 node.ownership);
-            if (generatedValuesInternal.TryGetValue(key, out NeoGeneratedClassValue existing)
+            var registry = candidateReplay?.GeneratedValues ?? generatedValuesInternal;
+            if (registry.TryGetValue(key, out NeoGeneratedClassValue existing)
                 && !ReferenceEquals(existing, generated))
             {
                 existing.Dispose();
             }
-            generatedValuesInternal[key] = generated;
+            registry[key] = generated;
         }
 
         internal void UnregisterGeneratedClassValue(NeoGeneratedClassValue generated, NeoMemberClass node)
@@ -5434,10 +5537,11 @@ namespace NeoCompose.Runtime
                 node.member.RuntimeDeclarationIdentity,
                 node.overrideValueId,
                 node.ownership);
-            if (generatedValuesInternal.TryGetValue(key, out NeoGeneratedClassValue existing)
+            var registry = candidateReplay?.GeneratedValues ?? generatedValuesInternal;
+            if (registry.TryGetValue(key, out NeoGeneratedClassValue existing)
                 && ReferenceEquals(existing, generated))
             {
-                generatedValuesInternal.Remove(key);
+                registry.Remove(key);
             }
         }
 
@@ -7249,79 +7353,31 @@ namespace NeoCompose.Runtime
             CurrentChangeSource = NeoChangeSource.External;
             try
             {
-                // Shadows the incoming content no longer carries fall back to the
-                // authored defaults (the web's "Reset to default").
-                var removedIds = new List<string>();
-                foreach (var id in saveValues.Keys)
+                var plan = new NeoWritePlan(this);
+                var changedValueIds = new HashSet<string>(System.StringComparer.Ordinal);
+                foreach (string id in saveValues.Keys)
                 {
-                    if (!rows.ContainsKey(id)) removedIds.Add(id);
+                    if (rows.ContainsKey(id)) continue;
+                    plan.Remove(NeoValueOwnership.Save, id);
+                    changedValueIds.Add(id);
                 }
-
-                foreach (var id in removedIds)
+                foreach (MemberValue row in rows.Values)
                 {
-                    RemoveWritableShadow(NeoValueOwnership.Save, id);
-                }
-
-                var changedValueIds = new HashSet<string>(
-                    removedIds,
-                    System.StringComparer.Ordinal);
-                foreach (var row in rows.Values)
-                {
-                    if (saveValues.TryGetValue(row.id, out var existing)
-                        && JsonConvert.SerializeObject(existing) == JsonConvert.SerializeObject(row))
-                    {
-                        continue; // unchanged: don't disturb bound nodes
-                    }
-
-                    SetSaveValue(row);
+                    if (saveValues.TryGetValue(row.id, out MemberValue existing)
+                        && JsonConvert.SerializeObject(existing) == JsonConvert.SerializeObject(row)) continue;
+                    plan.Set(NeoValueOwnership.Save, row);
                     changedValueIds.Add(row.id);
                 }
-
-                // Live patches may introduce or remove sparse Class spine rows
-                // and root provenance, so the virtual index is invalidated only
-                // after the incoming overlay is complete — readers never see a
-                // partial replay graph. Only the roots this patch reaches are
-                // replayed; a message that touches one row must not cost a full
-                // project re-expansion. A live apply is also not a place to
-                // fail closed: one malformed root must not gut the index for a
-                // running game, so failures are scoped to their own root.
-                if (!TryReexpandVirtualInstanceRootsForChangedRows(
-                        changedValueIds,
-                        failClosed: false))
-                {
-                    InitializeVirtualInstanceValues(failClosed: false);
-                }
-
-                // Binding metadata is independent from the target rows. Keep
-                // absent (authored fallback) distinct from present-null
-                // (explicit unset), and invalidate static wrappers even when
-                // no value row changed in this live patch.
                 var staticMemberIds = new HashSet<string>(saveData.staticBindings.Keys);
                 staticMemberIds.UnionWith(incoming.staticBindings.Keys);
                 foreach (string memberId in staticMemberIds)
                 {
-                    bool hadBefore = saveData.staticBindings.TryGetValue(
-                        memberId,
-                        out string? before);
-                    bool hasAfter = incoming.staticBindings.TryGetValue(
-                        memberId,
-                        out string? after);
-                    if (hadBefore == hasAfter && (!hadBefore || before == after))
-                    {
-                        continue;
-                    }
-                    if (hasAfter)
-                    {
-                        saveData.staticBindings[memberId] = after;
-                    }
-                    else
-                    {
-                        saveData.staticBindings.Remove(memberId);
-                    }
-                    OnStaticBindingChanged?.Invoke(
-                        NeoValueOwnership.Save,
-                        memberId);
+                    bool hadBefore = saveData.staticBindings.TryGetValue(memberId, out string? before);
+                    bool hasAfter = incoming.staticBindings.TryGetValue(memberId, out string? after);
+                    if (hadBefore == hasAfter && (!hadBefore || before == after)) continue;
+                    plan.Bind(NeoValueOwnership.Save, memberId, hasAfter, after);
                 }
+                plan.Commit();
             }
             finally
             {
@@ -7518,7 +7574,8 @@ namespace NeoCompose.Runtime
                 string containerId = pendingContainers.Dequeue();
                 if (!expandedContainers.Add(containerId)) continue;
                 if (!authoredEntriesByContainer.ContainsKey(containerId)
-                    && !storeByContainer.ContainsKey(containerId))
+                    && !storeByContainer.ContainsKey(containerId)
+                    && candidateReadPlan?.ContainerCandidates(containerId).Any() != true)
                 {
                     continue;
                 }
@@ -7526,10 +7583,9 @@ namespace NeoCompose.Runtime
                     TryGetOverlaidValue(ownership, containerId, out ArrayMemberValue? containerRow)
                     && containerRow.value is not null;
 
-                foreach (var memberId in EnumerateContainerMemberIds(
-                    ownership,
-                    storeByContainer,
-                    containerId))
+                var memberIds = new HashSet<string>(EnumerateContainerMemberIds(ownership, storeByContainer, containerId));
+                if (candidateReadPlan is not null) memberIds.UnionWith(candidateReadPlan.ContainerCandidates(containerId));
+                foreach (string memberId in memberIds)
                 {
                     bool isTombstone =
                         store.values.TryGetValue(memberId, out MemberValue overlayRow)
@@ -7592,7 +7648,6 @@ namespace NeoCompose.Runtime
             Member? sourceMember = null,
             Queue<string>? newlyReachable = null)
         {
-            var store = GetWritableStore(ownership);
             var pending = new Queue<(string valueId, Member? member)>();
             pending.Enqueue((valueId, sourceMember));
             while (pending.Count > 0)
@@ -7600,6 +7655,8 @@ namespace NeoCompose.Runtime
                 var current = pending.Dequeue();
                 if (!reachable.Add(current.valueId)) continue;
                 newlyReachable?.Enqueue(current.valueId);
+                if (TryGetWritableValue(ownership, current.valueId, out MemberValue? stored)
+                    && stored.IsRemoved) continue;
                 // P75 sparse spines are a reachability edge that no stored
                 // body carries: a write under an omitted Class member adopts
                 // the deterministic virtual id WITHOUT linking key -> id into
@@ -7626,8 +7683,7 @@ namespace NeoCompose.Runtime
                     if (childOwnership != ownership) continue;
                     pending.Enqueue((virtualChild.valueId, virtualChild.member));
                 }
-                if (!store.values.TryGetValue(current.valueId, out MemberValue? val)
-                    && !data.values.TryGetValue(current.valueId, out val))
+                if (!TryGetOverlaidValue(ownership, current.valueId, out MemberValue? val))
                 {
                     continue;
                 }

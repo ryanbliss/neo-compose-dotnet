@@ -30,7 +30,6 @@ namespace NeoCompose.Tests
         private const string TileClassId = "tile-class";
         private const string TileLayerBaseClassId = "tile-layer-base-class";
         private const string TileLayerClassId = "background-layer";
-        private const string TileInstanceClassId = "tile-instance-class";
         private const string TileLayerLinkBaseClassId = "tile-layer-link-base-class";
         private const string TileLayerLinkClassId = "tile-layer-link-class";
         private const string WorldPartitionKey = "world:" + GridClassId;
@@ -153,7 +152,7 @@ namespace NeoCompose.Tests
             var client = NeoTestSaveStack.ClientFromSchema(BuildPartitionedProjectData());
 
             var primitive = ResolvePrimitive(client);
-            var tiles = primitive.GetTiles("background-layer", TileClassId);
+            var tiles = primitive.GetTileProjections("background-layer", TileClassId);
 
             Assert.IsTrue(client.IsValuePartitionLoaded(WorldPartitionKey));
             Assert.AreEqual(1, tiles.Count);
@@ -165,15 +164,49 @@ namespace NeoCompose.Tests
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildPartitionedProjectData());
             var primitive = ResolvePrimitive(client);
-            Assert.AreEqual(1, primitive.GetTiles("background-layer", TileClassId).Count);
+            Assert.AreEqual(1, primitive.GetTileProjections("background-layer", TileClassId).Count);
 
             client.UnloadValuePartition(WorldPartitionKey);
             Assert.IsFalse(client.IsValuePartitionLoaded(WorldPartitionKey));
 
             // The same primitive keeps working: the query path re-ensures the
             // partition and rebuilds the spatial index.
-            Assert.AreEqual(1, primitive.GetTiles("background-layer", TileClassId).Count);
+            Assert.AreEqual(1, primitive.GetTileProjections("background-layer", TileClassId).Count);
             Assert.IsTrue(client.IsValuePartitionLoaded(WorldPartitionKey));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void GridSubscription_SurvivesPartitionChangesWithoutAnotherQuery(bool reloadOwnPartition)
+        {
+            ProjectData data = BuildPartitionedProjectData();
+            data.valuePartitions!["world:unrelated"] = new JObject();
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = ResolvePrimitive(client);
+            var changes = new List<NeoTileGridChangedArgs>();
+            using var subscription = primitive.OnChanged(changes.Add);
+
+            if (reloadOwnPartition)
+            {
+                client.UnloadValuePartition(WorldPartitionKey);
+                Assert.IsFalse(client.IsValuePartitionLoaded(WorldPartitionKey));
+                client.LoadValuePartition(WorldPartitionKey);
+            }
+            else
+            {
+                client.LoadValuePartition("world:unrelated");
+                client.UnloadValuePartition("world:unrelated");
+            }
+
+            client.SetSaveValue(new Vector2MemberValue
+            {
+                id = "floor-1-cell",
+                value = new NeoVector2Value { x = 8, y = 9 },
+            });
+
+            Assert.AreEqual(1, changes.Count);
+            CollectionAssert.AreEquivalent(new[] { new Vector2Int(3, 4) }, changes[0].TileLayers[0].CellsToClear);
+            CollectionAssert.AreEquivalent(new[] { new Vector2Int(8, 9) }, changes[0].TileLayers[0].CellsToSetOrRefresh);
         }
 
         // ------------------------------------------------------------------
@@ -206,7 +239,7 @@ namespace NeoCompose.Tests
                 new ObjectMemberValue
                 {
                     id = "unrelated-malformed-root",
-                    classId = TileInstanceClassId,
+                    classId = TileClassId,
                     value = new Dictionary<string, string>(),
                     constructorArgs = new Dictionary<string, JToken?>(),
                     instanceConstructorId = null,
@@ -288,7 +321,7 @@ namespace NeoCompose.Tests
             client.SetSaveValue(new ObjectMemberValue
             {
                 id = "painted-1",
-                classId = TileInstanceClassId,
+                classId = TileClassId,
                 containerId = TilesListValueId,
                 value = new Dictionary<string, string>(),
             });
@@ -446,11 +479,10 @@ namespace NeoCompose.Tests
         /// A grid whose <c>Children</c> placement subtree ships in
         /// <c>valuePartitions["world:grid-class"]</c> (keyed on the grid's
         /// concrete class id): Children list → tile layer link → unordered
-        /// Tiles list ← one placement (Cell + Tile lookup). The grid root row
+        /// Tiles list ← one raw tile row carrying Cell. The grid root row
         /// itself lives in the MAIN partition (unstamped), so its type id — the
         /// partition key — is resolvable before the placement subtree loads.
-        /// The tile asset the placement references also stays in the main
-        /// partition (lookup targets are references, not owned rows).
+        /// A class-default tile sample also stays in the main partition.
         /// </summary>
         private static ProjectData BuildPartitionedProjectData()
         {
@@ -476,7 +508,12 @@ namespace NeoCompose.Tests
                 id = TileClassId,
                 projectId = "project-a",
                 name = "Tile",
-                schema = new Dictionary<string, string>(),
+                schema = new Dictionary<string, string>
+                {
+                    ["Cell"] = "tile-instance-cell-member",
+                    ["Enabled"] = "tile-instance-enabled-member",
+                },
+                system = JObject.FromObject(new { worldKind = "tile" }),
             };
             var tileLayerClass = new NeoSchemaClass
             {
@@ -494,17 +531,6 @@ namespace NeoCompose.Tests
                 schema = new Dictionary<string, string>(),
                 Modifier = NeoClassModifierKind.Abstract,
                 system = JObject.FromObject(new { worldKind = "tileLayer" }),
-            };
-            var tileInstanceClass = new NeoSchemaClass
-            {
-                id = TileInstanceClassId,
-                projectId = "project-a",
-                name = "Tile Instance",
-                schema = new Dictionary<string, string>
-                {
-                    ["Cell"] = "tile-instance-cell-member",
-                    ["Enabled"] = "tile-instance-enabled-member",
-                },
             };
             var tileLayerLinkBaseClass = new NeoSchemaClass
             {
@@ -529,15 +555,12 @@ namespace NeoCompose.Tests
 
             JObject floorPlacement = PartitionRow(
                 "floor-1",
-                TileInstanceClassId,
+                TileClassId,
                 new JObject
                 {
                     ["Cell"] = "floor-1-cell",
-                    ["assetClassId"] = TileClassId,
                 },
                 containerId: TilesListValueId);
-            floorPlacement["instanceConstructorId"] = JValue.CreateNull();
-            floorPlacement["constructorArgs"] = new JObject();
 
             var partition = new JObject
             {
@@ -625,7 +648,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Tile",
                         kind = MemberKind.Class,
-                        classId = TileInstanceClassId,
+                        classId = TileClassId,
                     },
                 },
                 values = new Dictionary<string, MemberValue>
@@ -659,7 +682,6 @@ namespace NeoCompose.Tests
                     [TileClassId] = tileClass,
                     [TileLayerBaseClassId] = tileLayerBaseClass,
                     [TileLayerClassId] = tileLayerClass,
-                    [TileInstanceClassId] = tileInstanceClass,
                     [TileLayerLinkBaseClassId] = tileLayerLinkBaseClass,
                     [TileLayerLinkClassId] = tileLayerLinkClass,
                 },

@@ -21,6 +21,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             Objects = objects;
             TileLayersInOrder = new IReadOnlyNeoTileLayerRuntime[] { Background, Collisions };
             ObjectLayersInOrder = new IReadOnlyNeoObjectLayerRuntime[] { Objects };
+            primitive.RegisterScriptContent(this);
         }
 
         private ReadOnlyOldConsoleLandingGridContent(NeoReadOnlyTileGridPrimitive primitive)

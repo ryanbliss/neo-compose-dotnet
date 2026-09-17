@@ -113,19 +113,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TrySetTileClass(cell, tile);
         }
 
-        public NeoPlacementResult TrySetTile(Vector2Int cell, ICollisionTileLayerCompatibleTile tile)
-        {
-            return TrySetTileValue(cell, tile);
-        }
-
         public NeoPlacementResult TryConvertTile<TAsset>(NeoTileInstanceId instanceId) where TAsset : class, ICollisionTileLayerCompatibleTile
         {
             return TryConvertTileClass<TAsset>(instanceId);
-        }
-
-        public NeoPlacementResult TryConvertTile(NeoTileInstanceId instanceId, ICollisionTileLayerCompatibleTile target)
-        {
-            return TryConvertTileValue(instanceId, target);
         }
 
         public NeoPlacementResult TryResetTile(NeoTileInstanceId instanceId)

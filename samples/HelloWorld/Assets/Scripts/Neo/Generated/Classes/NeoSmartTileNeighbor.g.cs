@@ -97,20 +97,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         string INeoSmartTileNeighbor.Condition => Condition.optionId;
         string? INeoSmartTileNeighbor.TileClassId => ResolveExactInternalRecordRelationTarget(InternalRecordRelationKinds.WorldSmartTileNeighborTile, "value", "class");
 
-        public virtual NeoVector2Int Cell
-        {
-            get
-            {
-                return new NeoVector2Int(writableNode.Get<NeoMemberVector2IntWritable>("Cell"), this);
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoSmartTileNeighbor.Cell");
-                NeoGeneratedTypesSupport.SetVector2Int(writableNode, "Cell", value);
-            }
-        }
-
-        NeoReadOnlyVector2Int IReadOnlyNeoSmartTileNeighbor.Cell
+        public virtual NeoReadOnlyVector2Int Cell
         {
             get
             {
@@ -124,11 +111,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Condition"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Condition' has no selected option.") : NeoSmartTileCondition.FromOptionId(selected);
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoSmartTileNeighbor.Condition");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Condition", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
 

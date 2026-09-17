@@ -697,6 +697,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void ClearInstanceOverride()
         {
+            var plan = new NeoWritePlan(client);
             NeoMember leaf = ResolveLeafNode();
             string? valueId = leaf.overrideValueId ?? leaf.value?.id;
             if (string.IsNullOrEmpty(valueId)) return;
@@ -705,7 +706,7 @@ namespace NeoCompose.Runtime
             bool detached = false;
             string? detachedValueId = null;
             if (string.IsNullOrEmpty(parentValueId)
-                || !client.TryGetWritableValue(
+                || !plan.TryGetWritable(
                     writableParent.ownership,
                     parentValueId!,
                     out ObjectMemberValue? storedParent)
@@ -726,7 +727,7 @@ namespace NeoCompose.Runtime
                         leaf.ownership,
                         valueId!,
                         out string? indexedParentId)
-                    && client.TryGetWritableValue(
+                    && plan.TryGetWritable(
                         writableParent.ownership,
                         indexedParentId,
                         out storedParent))
@@ -749,21 +750,20 @@ namespace NeoCompose.Runtime
                 if (nextBody.TryGetValue(writableKey, out detachedValueId))
                 {
                     nextBody.Remove(writableKey);
-                    client.SetWritableValue(writableParent.ownership, next, "value");
+                    plan.Set(writableParent.ownership, next, "value");
                     detached = true;
                 }
             }
             if (detached)
             {
-                client.RemoveWritableValueAndDescendantsIfUnlinked(
-                    leaf.ownership,
-                    detachedValueId!,
-                    leaf.member);
+                client.StageUnlinkedRemovals(plan, leaf.ownership,
+                    new[] { detachedValueId! }, leaf.member);
             }
             else
             {
-                client.RemoveWritableShadow(leaf.ownership, valueId!);
+                plan.Remove(leaf.ownership, valueId!);
             }
+            plan.Commit();
         }
 
         /// <summary>

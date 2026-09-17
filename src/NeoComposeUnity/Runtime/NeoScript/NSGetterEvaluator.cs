@@ -1332,6 +1332,8 @@ namespace NeoCompose.Runtime.NeoScript
                         result.Length);
                     return result;
                 }
+                case TileConvertPointer convert:
+                    return EvalTileConvert(convert, scope, ctx);
                 case CallFunctionPointer functionCall:
                     return EvalFunctionCall(functionCall, scope, ctx);
                 case CallDelegatePointer delegateCall:
@@ -3195,6 +3197,43 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 throw new NSGetterRuntimeError(
                     $"Variant Initialize failed: {error.Message}");
+            }
+        }
+
+        private static bool EvalTileConvert(
+            TileConvertPointer pointer,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            object? receiver = EvalPointer(pointer.receiverPointer, scope, ctx);
+            if (receiver is null || !TryFindRowReferenceByReference(receiver, ctx, out RowReference source))
+                throw new NSGetterRuntimeError("Tile conversion receiver has no backing value row.");
+            if (ctx.allocationTracker.IsAllocatedSessionRoot(source.valueId)) return false;
+            string? targetClassId = pointer.targetClassId;
+            if (pointer.targetPointer is not null)
+            {
+                object? target = EvalPointer(pointer.targetPointer, scope, ctx);
+                if (target is null || !TryFindRowReferenceByReference(target, ctx, out RowReference targetRow))
+                    throw new NSGetterRuntimeError("Tile conversion target has no backing class row.");
+                targetClassId = ctx.client.TryGetValue(targetRow.ownership, targetRow.valueId, out ObjectMemberValue? targetValue)
+                    ? targetValue.classId : null;
+            }
+            if (string.IsNullOrWhiteSpace(targetClassId))
+                throw new NSGetterRuntimeError("Tile conversion target has no class.");
+            try
+            {
+                ctx.client.ConvertTile(source.ownership, source.valueId, targetClassId!);
+                if (ctx.client.TryGetValue(source.ownership, source.valueId, out ObjectMemberValue? converted))
+                    RefreshCachedRowAfterWrite(converted, ctx, source.ownership);
+                return true;
+            }
+            catch (NeoPlacementValidationException)
+            {
+                return false;
+            }
+            catch (Exception error) when (error is InvalidOperationException || error is ArgumentException)
+            {
+                throw new NSGetterRuntimeError($"Tile conversion failed for value '{source.valueId}': {error.Message}");
             }
         }
 
@@ -5313,13 +5352,15 @@ namespace NeoCompose.Runtime.NeoScript
             // subsequent reads observe writes through the promoted row.
             foreach (var pair in ctx.rowReverseIndex.ToArray())
             {
-                if (pair.Value.valueId != row.id
-                    || pair.Value.ownership != ownership
-                    || patchedObjects.Contains(pair.Key))
-                {
+                if (pair.Value.valueId != row.id || pair.Value.ownership != ownership)
                     continue;
+                if (pair.Value.classId != row.classId)
+                {
+                    ctx.rowReverseIndex.Remove(pair.Key);
+                    ctx.rowReverseIndex.Add(pair.Key, new RowReference(
+                        row.id, ownership, row.classId, pair.Value.member));
                 }
-                PatchCachedShape(row, pair.Key);
+                if (!patchedObjects.Contains(pair.Key)) PatchCachedShape(row, pair.Key);
             }
         }
 

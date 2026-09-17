@@ -7,6 +7,10 @@
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
 
+# Temporary scenes created and removed by Unity's PlayMode test runner
+/Assets/InitTestScene*.unity
+/Assets/InitTestScene*.unity.meta
+
 # Visual Studio cache directory
 .vs/
 

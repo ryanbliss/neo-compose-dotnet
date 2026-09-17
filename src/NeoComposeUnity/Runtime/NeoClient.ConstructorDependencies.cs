@@ -16,6 +16,13 @@ namespace NeoCompose.Runtime
         // assigning parents or copying shared arguments to different identities.
         private void RetainConstructorDependencies(MemberValue value)
         {
+            var plan = new NeoWritePlan(this);
+            StageConstructorDependencies(plan, value);
+            if (plan.Rows.Count > 0) plan.Commit();
+        }
+
+        private void StageConstructorDependencies(NeoWritePlan plan, MemberValue value)
+        {
             if (value is not ObjectMemberValue { constructorArgs: not null }) return;
             var pending = new Queue<(string id, Member? member)>();
             foreach (var link in EnumerateConstructorDependencyLinks(value, NeoValueOwnership.Session))
@@ -29,12 +36,12 @@ namespace NeoCompose.Runtime
                 var (id, member) = pending.Dequeue();
                 if (!visited.Add(id)) continue;
                 MemberValue? row;
-                if (!saveData.values.TryGetValue(id, out row))
+                if (!plan.TryGetWritable(NeoValueOwnership.Save, id, out row))
                 {
                     // Existing authored identities must keep resolving through
                     // the export, even if Session has an override at that id.
                     if (data.values.ContainsKey(id)
-                        || !sessionData.values.TryGetValue(id, out row)) continue;
+                        || !plan.TryGetWritable(NeoValueOwnership.Session, id, out row)) continue;
                     copies.Add(CloneValueRow(row));
                 }
                 foreach (var child in EnumerateOwnedChildLinks(row, member))
@@ -51,16 +58,8 @@ namespace NeoCompose.Runtime
                     pending.Enqueue(dependency);
             }
 
-            // Publish the complete closure before the caller emits its Save
-            // notification. The visited set also handles shared/cyclic recipes.
             foreach (var row in copies)
-            {
-                StampMapKeyForWrite(NeoValueOwnership.Save, row);
-                saveData.values[row.id] = row;
-                IndexStoreWrite(NeoValueOwnership.Save, row);
-                if (!suppressLiveAutoCommit && loader is NeoSaveSynchronizer synchronizer)
-                    synchronizer.MarkDirtyValue(row.id, null);
-            }
+                plan.Set(NeoValueOwnership.Save, row, silent: true);
         }
 
         private IEnumerable<(string id, Member? member)> EnumerateConstructorDependencyLinks(

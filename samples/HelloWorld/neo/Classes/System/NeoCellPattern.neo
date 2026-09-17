@@ -1,0 +1,94 @@
+/// An immutable ordered pattern of cell offsets, relative to an origin.
+/// Hand-built patterns preserve order and duplicates; factories order cells nearest first.
+@id("system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7")
+@system(kind: .WorldAuthoring, worldKind: .CellPattern)
+sealed class NeoCellPattern {
+  /// A filled rectangle of offsets. Omitting radiusY uses radiusX on both axes.
+  @id("system_aaad2df6-e31e-5f5d-95b9-e265211faed5")
+  @system(kind: .WorldAuthoring)
+  native public static NeoCellPattern Box(int radiusX, int? radiusY = null, NeoCellPatternExcluding excluding = .None);
+
+  /// The ordered offsets translated to absolute cells around origin.
+  @id("system_c72d9b09-fc4c-55db-b763-f1954a536069")
+  @system(kind: .WorldAuthoring)
+  native public virtual List<Vector2Int> Cells(Vector2Int origin);
+
+  /// Only the origin cell.
+  @id("system_d90a6e51-0b1e-5354-b4e2-ad4155a833f1")
+  @system(kind: .WorldAuthoring)
+  public static NeoCellPattern Center => new NeoCellPattern(offsets: [new(0, 0)]);
+
+  /// Whether the pattern includes the offset.
+  @id("system_65a16908-05a6-52f9-a467-4e37e95ba0be")
+  @system(kind: .WorldAuthoring)
+  native public virtual bool Contains(Vector2Int offset);
+
+  /// Number of offsets, including any duplicates.
+  @id("system_51d883c9-d451-5747-bcf0-e314e44bffa8")
+  @system(kind: .WorldAuthoring)
+  public virtual int Count => this._offsets.Count;
+
+  /// Axis-aligned offsets. Omitting radiusY uses radiusX on both axes.
+  @id("system_df8ebca6-a1d1-57c1-8762-227943fc51d8")
+  @system(kind: .WorldAuthoring)
+  native public static NeoCellPattern Cross(int radiusX, int? radiusY = null, NeoCellPatternExcluding excluding = .None);
+
+  /// The eight surrounding cells, excluding the origin.
+  @id("system_a8f2f798-7988-5df8-8294-decdd4316c7e")
+  @system(kind: .WorldAuthoring)
+  public static NeoCellPattern EightNeighbors => NeoCellPattern.Box(1, null, .Center);
+
+  /// No cells.
+  @id("system_98d035f6-9f7d-5d2b-ae01-70ce90621333")
+  @system(kind: .WorldAuthoring)
+  public static NeoCellPattern Empty => new NeoCellPattern(offsets: []);
+
+  /// The four edge-adjacent cells, excluding the origin.
+  @id("system_57290d57-16dd-54d6-ad1e-81a72bd7f457")
+  @system(kind: .WorldAuthoring)
+  public static NeoCellPattern FourNeighbors => NeoCellPattern.Cross(1, null, .Center);
+
+  /// Offsets from the origin through length steps in direction. Center excludes only the origin.
+  @id("system_ef0d4cbb-7182-5d93-9bb8-60a5a18f81a5")
+  @system(kind: .WorldAuthoring)
+  native public static NeoCellPattern Line(Vector2Int direction, int length, NeoCellPatternExcluding excluding = .None);
+
+  /// Cells from the origin through size minus one. Both dimensions must be positive.
+  @id("system_d803cfd5-ce53-57da-abc2-7cd69befeb01")
+  @system(kind: .WorldAuthoring)
+  native public static NeoCellPattern Rect(Vector2Int size);
+
+  /// The square ring at the given Chebyshev radius. Zero returns the center.
+  @id("system_82222600-f67f-5127-bb2d-278381b4ef2f")
+  @system(kind: .WorldAuthoring)
+  native public static NeoCellPattern Ring(int radius);
+
+  /// Shift every offset, preserving order and duplicates.
+  @id("system_efc67858-0c95-573f-a8a9-d7e07d0a1d55")
+  @system(kind: .WorldAuthoring)
+  native public virtual NeoCellPattern Translate(Vector2Int offset);
+
+  /// Combine patterns, retaining each offset once in first-occurrence order.
+  @id("system_77b14581-e34c-5eb1-a820-788618276e46")
+  @system(kind: .WorldAuthoring)
+  native public virtual NeoCellPattern Union(NeoCellPattern other);
+
+  /// Prepend the origin when it is absent.
+  @id("system_1da9303d-c362-541a-a77b-244fb0ffcbb6")
+  @system(kind: .WorldAuthoring)
+  native public virtual NeoCellPattern WithCenter();
+
+  /// Remove every occurrence of the origin.
+  @id("system_7dce7f78-2c8f-5a1f-aa80-89dc217dcdff")
+  @system(kind: .WorldAuthoring)
+  native public virtual NeoCellPattern WithoutCenter();
+
+  @id("system_02a01003-41ff-531c-a63c-1e905ca88d7d")
+  @system(kind: .WorldAuthoring)
+  private List<Vector2Int> _offsets = [];
+
+  @id("system_f68684d6-6ea0-5d57-9f96-d544b17bf369")
+  public NeoCellPattern(List<Vector2Int> offsets) {
+    this._offsets = offsets.Select((offset) => { return Vector2Int(offset.x, offset.y); });
+  }
+}

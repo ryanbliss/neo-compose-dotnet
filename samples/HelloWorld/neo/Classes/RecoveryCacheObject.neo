@@ -30,9 +30,9 @@ class RecoveryCacheObject : ConsoleObject {
 
   @id("d8e9ad0e-157f-4709-96a7-8775efa3dd11")
   @system(kind: .WorldAuthoring)
-  public override List<NeoObjectPlacementTile> PlacementTiles = [
+  public override List<NeoPlacementTile> PlacementTiles = [
     @id("9404babf-786a-4e74-aec4-9c6667485278")
-    new NeoObjectPlacementTile {
+    new NeoPlacementTile {
       Cell = new(0, 0)
     }
   ];

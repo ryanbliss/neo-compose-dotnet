@@ -110,7 +110,10 @@ namespace NeoCompose.Tests
                 "a leaf edit should update warm indexes instead of rebuilding them");
             Assert.Greater(node.IndexDiagnostics.DerivedIncrementalUpdateCount, 0);
 
+            NeoMember retainedLast = node[4];
             node.RemoveById("item-2");
+            Assert.AreSame(retainedLast, node[3]);
+            Assert.IsFalse(retainedLast.isDisposed);
             Assert.IsNull(slug["renamed"]);
             Assert.AreEqual(2, category["odd"].Count);
             Assert.IsFalse(node.ContainsValueId("item-2"));

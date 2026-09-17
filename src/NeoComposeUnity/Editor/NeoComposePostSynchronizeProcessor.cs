@@ -267,8 +267,6 @@ namespace NeoCompose.Unity.Editor
             SynchronizeGeneratedTileAssets(
                 projectData,
                 assetDatabasePath,
-                project,
-                resolveMethod,
                 client,
                 readOnlyFactories);
 
@@ -312,11 +310,9 @@ namespace NeoCompose.Unity.Editor
             method?.Invoke(classValue, Array.Empty<object>());
         }
 
-        private static void SynchronizeGeneratedTileAssets(
+        internal static void SynchronizeGeneratedTileAssets(
             ProjectData projectData,
             string assetDatabasePath,
-            IDisposable project,
-            MethodInfo resolveMethod,
             NeoClient client,
             IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
                 readOnlyFactories)
@@ -325,47 +321,18 @@ namespace NeoCompose.Unity.Editor
             var assetDatabase = AssetDatabase.LoadAssetAtPath<NeoAssetDatabase>(assetDatabasePath);
             if (assetDatabase == null) return;
 
-            var assetValueIds = new HashSet<string>(
-                EnumerateReferencedTileAssetValueIds(projectData));
-            foreach (var stale in assetDatabase.FindMissingTileAssets(assetValueIds))
-            {
-                DeleteGeneratedTileAsset(stale.AssetPath);
-                assetDatabase.RemoveTileAsset(stale.AssetValueId);
-            }
-
-            foreach (string assetValueId in assetValueIds.OrderBy(id => id, StringComparer.Ordinal))
-            {
-                object? resolved = resolveMethod.Invoke(project, new object[] { assetValueId });
-                if (resolved is not NeoGeneratedClassValue classValue) continue;
-                var generatedTile = NeoTileAssetFactory.CreateTransientTileBase(classValue);
-                if (generatedTile == null) continue;
-
-                string assetPath = GeneratedTileAssetPath(assetValueId, generatedTile);
-                var existingEntry = assetDatabase.TryGetTileEntry(assetValueId);
-                if (existingEntry != null &&
-                    !string.IsNullOrWhiteSpace(existingEntry.AssetPath) &&
-                    existingEntry.AssetPath != assetPath)
-                {
-                    DeleteGeneratedTileAsset(existingEntry.AssetPath);
-                }
-                DeleteAlternateGeneratedTileAsset(assetValueId, assetPath);
-
-                TileBase persistedTile = PersistGeneratedTileAsset(assetPath, generatedTile);
-                assetDatabase.SetTileAsset(
-                    assetValueId,
-                    classValue.classId,
-                    assetPath,
-                    GeneratedTileContentHash(projectData, assetValueId, classValue),
-                    persistedTile);
-            }
-
             var tileClassIds = new HashSet<string>(
-                EnumerateReferencedTileClassIds(projectData));
-            foreach (var stale in assetDatabase.FindMissingTileClassAssets(tileClassIds))
+                EnumerateTileClassIds(projectData));
+            // Old per-value mappings can share a class with its canonical asset.
+            // Replace the mapping list once; retain canonical files so sync
+            // refreshes them in place and preserves their Unity references.
+            foreach (var old in assetDatabase.TileAssets)
             {
-                DeleteGeneratedTileAsset(stale.AssetPath);
-                assetDatabase.RemoveTileClassAsset(stale.TileClassId);
+                if (!tileClassIds.Contains(old.TileClassId)
+                    || !IsClassTileAssetPath(old.AssetPath, old.TileClassId))
+                    DeleteGeneratedTileAsset(old.AssetPath);
             }
+            var tileEntries = new List<NeoAssetDatabaseTileEntry>(tileClassIds.Count);
 
             foreach (string tileClassId in tileClassIds.OrderBy(id => id, StringComparer.Ordinal))
             {
@@ -375,102 +342,50 @@ namespace NeoCompose.Unity.Editor
                         tileClassId,
                         readOnlyFactories);
                 var generatedTile = NeoTileAssetFactory.CreateTransientTileBase(classValue);
-                if (generatedTile == null) continue;
+                if (generatedTile == null)
+                {
+                    DeleteAlternateGeneratedTileAsset(tileClassId, string.Empty);
+                    continue;
+                }
 
                 string assetPath = GeneratedTileAssetPath(tileClassId, generatedTile);
-                var existingEntry = assetDatabase.TryGetTileEntryForClass(tileClassId);
-                if (existingEntry != null
-                    && !string.IsNullOrWhiteSpace(existingEntry.AssetPath)
-                    && existingEntry.AssetPath != assetPath)
-                {
-                    DeleteGeneratedTileAsset(existingEntry.AssetPath);
-                }
                 DeleteAlternateGeneratedTileAsset(tileClassId, assetPath);
 
                 TileBase persistedTile = PersistGeneratedTileAsset(assetPath, generatedTile);
-                assetDatabase.SetTileClassAsset(
-                    tileClassId,
-                    assetPath,
-                    GeneratedTileClassContentHash(projectData, tileClassId, classValue),
-                    persistedTile);
+                tileEntries.Add(new NeoAssetDatabaseTileEntry
+                {
+                    TileClassId = tileClassId,
+                    AssetPath = assetPath,
+                    ContentHash = GeneratedTileClassContentHash(projectData, tileClassId, classValue),
+                    TileBase = persistedTile,
+                });
             }
 
+            assetDatabase.ReplaceTileAssets(tileEntries);
             EditorUtility.SetDirty(assetDatabase);
             AssetDatabase.SaveAssets();
         }
 
-        /// <summary>
-        /// Optional asset override value ids referenced by class-backed tile
-        /// placements. Default-backed placements are cached separately by
-        /// their tile class id.
-        /// </summary>
-        internal static IEnumerable<string> EnumerateReferencedTileAssetValueIds(
-            ProjectData projectData)
+        /// <summary>Concrete tile definitions, including classes used only by lazy placements.</summary>
+        internal static IEnumerable<string> EnumerateTileClassIds(ProjectData projectData)
         {
-            var seen = new HashSet<string>();
-            foreach (var row in projectData.values.Values)
+            foreach (var type in projectData.classes.Values)
             {
-                if (row is not ObjectMemberValue placement) continue;
-                if (string.IsNullOrEmpty(placement.containerId)) continue;
-                if (string.IsNullOrEmpty(placement.classId)) continue;
-                if (placement.value == null) continue;
-                if (!IsClassBackedTilePlacement(placement.value)) continue;
-                string? assetValueId = ReadDirectReference(
-                    placement.value,
-                    "assetValueId");
-                if (!string.IsNullOrWhiteSpace(assetValueId)
-                    && seen.Add(assetValueId!))
-                {
-                    yield return assetValueId!;
-                }
+                if (type.Modifier == NeoClassModifierKind.Abstract
+                    || type.genericParams is { Count: > 0 }) continue;
+                if (NeoSchemaClassInheritance.ResolveChain(
+                        type.id,
+                        id => projectData.classes.TryGetValue(id, out var resolved) ? resolved : null)
+                    .Any(ancestor => ancestor.system?["worldKind"]?.ToString() == "tile"))
+                    yield return type.id;
             }
         }
 
-        internal static IEnumerable<string> EnumerateReferencedTileClassIds(
-            ProjectData projectData)
+        private static bool IsClassTileAssetPath(string path, string classId)
         {
-            var seen = new HashSet<string>();
-            foreach (var row in projectData.values.Values)
-            {
-                if (row is not ObjectMemberValue placement) continue;
-                if (string.IsNullOrEmpty(placement.containerId)) continue;
-                if (placement.value == null || !IsClassBackedTilePlacement(placement.value))
-                {
-                    continue;
-                }
-                if (!string.IsNullOrWhiteSpace(
-                    ReadDirectReference(placement.value, "assetValueId")))
-                {
-                    continue;
-                }
-                string? classId = ReadDirectReference(placement.value, "assetClassId");
-                if (!string.IsNullOrWhiteSpace(classId) && seen.Add(classId!))
-                {
-                    yield return classId!;
-                }
-            }
-        }
-
-        private static bool IsClassBackedTilePlacement(
-            IReadOnlyDictionary<string, string> value)
-        {
-            return ReadDirectReference(value, "assetClassId") != null
-                && ReadDirectReference(value, "Cell") != null;
-        }
-
-        private static string? ReadDirectReference(
-            IReadOnlyDictionary<string, string> value,
-            string key)
-        {
-            foreach (var pair in value)
-            {
-                if (!string.Equals(pair.Key, key, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-                return string.IsNullOrWhiteSpace(pair.Value) ? null : pair.Value;
-            }
-            return null;
+            string fileName = $"{SanitizeAssetFileName(classId)}.asset";
+            return path == $"{GeneratedTileAssetDirectory}/{fileName}"
+                || path == $"{GeneratedRuleTileAssetDirectory}/{fileName}";
         }
 
         private static string GeneratedTileAssetPath(string assetId, TileBase tileBase)
@@ -539,20 +454,6 @@ namespace NeoCompose.Unity.Editor
                 }
                 current = next;
             }
-        }
-
-        private static string GeneratedTileContentHash(
-            ProjectData projectData,
-            string assetValueId,
-            NeoGeneratedClassValue classValue)
-        {
-            string updatedAt = projectData.values.TryGetValue(assetValueId, out var row)
-                ? row.updatedAt.ToString()
-                : "";
-            string tileKind = NeoTileAssetFactory.TryResolveSmartTile(classValue, out _)
-                ? "rule"
-                : "tile";
-            return $"{classValue.classId ?? ""}:{updatedAt}:{tileKind}";
         }
 
         private static string GeneratedTileClassContentHash(

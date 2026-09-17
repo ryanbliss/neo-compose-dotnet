@@ -54,7 +54,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["neo-tile-grid-record-relations-v1-class-e06896b149a650d6ceb37fbdfdba9ffa"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.CollisionTileLayer.Create(client, node),
                 ["neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ExitPromptObject987403.Create(client, node),
                 ["system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, node),
-                ["system_4689bc94-de98-46cd-b220-efe118f4106c"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTileInstance.Create(client, node),
                 ["system_49803132-d83b-4e1e-8a10-6699dca5dc1c"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.Create(client, node),
                 ["system_49f62a6e-7238-4bee-b5fd-66458a138903"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.Create(client, node),
                 ["system_57342999-9cf1-4e01-b6d1-18d26ad554f5"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.Create(client, node),
@@ -64,8 +63,9 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["system_98cebff1-0590-4c59-8ef0-618d2c14f905"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoDialogueMemory.Create(client, node),
                 ["system_9f34deed-2616-43c9-b614-d812da89ee51"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.Create(client, node),
                 ["system_b3a94a53-8cb8-4df1-95f4-597bca10dac2"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, node),
-                ["system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, node),
+                ["system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.Create(client, node),
                 ["system_d48b66ab-4d59-47e7-a25a-591fe97062de"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteObject.Create(client, node),
+                ["system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"] = NeoCellPatternStorage.ReadRequired,
                 ["system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteAnimationSegment.Create(client, node),
             };
 
@@ -113,7 +113,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["neo-tile-grid-record-relations-v1-class-e06896b149a650d6ceb37fbdfdba9ffa"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.CollisionTileLayer.CreateWritable(client, node),
                 ["neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ExitPromptObject987403.CreateWritable(client, node),
                 ["system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoCollider.CreateWritable(client, node),
-                ["system_4689bc94-de98-46cd-b220-efe118f4106c"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTileInstance.CreateWritable(client, node),
                 ["system_49803132-d83b-4e1e-8a10-6699dca5dc1c"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.CreateWritable(client, node),
                 ["system_49f62a6e-7238-4bee-b5fd-66458a138903"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.CreateWritable(client, node),
                 ["system_57342999-9cf1-4e01-b6d1-18d26ad554f5"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateWritable(client, node),
@@ -123,8 +122,9 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["system_98cebff1-0590-4c59-8ef0-618d2c14f905"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoDialogueMemory.CreateWritable(client, node),
                 ["system_9f34deed-2616-43c9-b614-d812da89ee51"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.CreateWritable(client, node),
                 ["system_b3a94a53-8cb8-4df1-95f4-597bca10dac2"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.CreateWritable(client, node),
-                ["system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.CreateWritable(client, node),
+                ["system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.CreateWritable(client, node),
                 ["system_d48b66ab-4d59-47e7-a25a-591fe97062de"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteObject.CreateWritable(client, node),
+                ["system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"] = (client, node) => NeoCellPatternStorage.ReadRequired(client, node),
                 ["system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteAnimationSegment.CreateWritable(client, node),
             };
 
@@ -172,7 +172,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.CollisionTileLayer)] = "neo-tile-grid-record-relations-v1-class-e06896b149a650d6ceb37fbdfdba9ffa",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.ExitPromptObject987403)] = "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoCollider)] = "system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d",
-                [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoTileInstance)] = "system_4689bc94-de98-46cd-b220-efe118f4106c",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor)] = "system_49803132-d83b-4e1e-8a10-6699dca5dc1c",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule)] = "system_49f62a6e-7238-4bee-b5fd-66458a138903",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoMemory)] = "system_57342999-9cf1-4e01-b6d1-18d26ad554f5",
@@ -182,9 +181,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoDialogueMemory)] = "system_98cebff1-0590-4c59-8ef0-618d2c14f905",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile)] = "system_9f34deed-2616-43c9-b614-d812da89ee51",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer)] = "system_b3a94a53-8cb8-4df1-95f4-597bca10dac2",
-                [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile)] = "system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9",
+                [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile)] = "system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoSpriteObject)] = "system_d48b66ab-4d59-47e7-a25a-591fe97062de",
+                [typeof(NeoCompose.Runtime.NeoCellPattern)] = "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoSpriteAnimationSegment)] = "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3",
+            };
+
+        private static readonly IReadOnlyDictionary<string, Func<NeoClient, string, INeoTileGridContent>> ScriptGridContentFactories =
+            new Dictionary<string, Func<NeoClient, string, INeoTileGridContent>>
+            {
+                ["b44d80a9-7760-4919-8844-0cb71d08b788"] = (client, id) => ReadOnlyOldConsoleLandingGridContent.Resolve(client, id),
             };
 
         internal object? ResolveDialogueValue(string valueId) =>

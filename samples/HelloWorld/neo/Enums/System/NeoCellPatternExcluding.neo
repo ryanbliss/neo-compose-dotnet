@@ -1,0 +1,7 @@
+@id("system_072f749f-62fe-5917-9f7e-f9f29c3a7063")
+enum NeoCellPatternExcluding {
+  @id("system_5c30e23b-1767-5e15-b633-40ae182157a7")
+  None,
+  @id("system_456431b5-aa5b-5ea0-9f72-0e16f7114e09")
+  Center,
+}

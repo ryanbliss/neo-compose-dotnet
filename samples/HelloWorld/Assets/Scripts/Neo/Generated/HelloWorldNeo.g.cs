@@ -31,6 +31,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             Client = client;
             Client.RegisterGeneratedClassFactories(DialogueReadOnlyValueFactories, DialogueWritableValueFactories);
+            Client.ScriptGridQueries.RegisterFactories(ScriptGridContentFactories);
             Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(DeferredNativeFunctionInvokers);
             Instance = this;

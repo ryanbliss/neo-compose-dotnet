@@ -620,10 +620,31 @@ namespace NeoCompose.Tests
                 nestedConstructor,
                 0);
             using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var parameters = new[]
+            {
+                new Variable { id = "__this__", typeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = ItemClassId } },
+                new Variable { id = "__root__", typeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = "__root__" } },
+                new Variable { id = nestedParameterId, typeInfo = nestedConstructor.argumentTypes[0] },
+            };
+            nestedConstructor.action = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = parameters, typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null },
+                instructions = System.Array.Empty<Instruction>(),
+            };
             ((ListMember)members["nested-items-member"]).defaultValue = new ArrayMemberValueBase
             {
-                init = new InitializerBody { code = "Nested" },
+                init = new InitializerBody { code = "Nested", compiled = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = parameters,
+                    typeInfo = new CollectionTypeInfo { type = MemberKind.List, required = true,
+                        entryTypeInfo = nestedConstructor.argumentTypes[0].entryTypeInfo },
+                    instructions = new Instruction[] { new ReturnInstruction { type = InstructionKind.Return,
+                        pointer = new VariablePointer { type = PointerKind.Variable, variableId = nestedParameterId } } },
+                } },
             };
+            NeoGeneratedTypesSupport.InvalidateConstructorSchemaCaches(client);
             data.constructors[nestedConstructorId] = nestedConstructor;
             var authored = data.values;
             ((ObjectMemberValue)authored["item-a"]).value!["Nested"] = "nested-a";
@@ -656,7 +677,9 @@ namespace NeoCompose.Tests
             {
                 id = "item-a", mark = NeoValueMarks.Removed,
             });
-            client.AddSaveValue("item-c", new ObjectMemberValue
+            client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]
+            {
+            new ObjectMemberValue
             {
                 id = "item-c",
                 classId = ItemClassId,
@@ -667,14 +690,15 @@ namespace NeoCompose.Tests
                 {
                     [nestedParameterId] = "nested-c",
                 },
-            });
-            client.AddSaveValue("nested-c", new ArrayMemberValue
+            },
+            new ArrayMemberValue
             {
                 id = "nested-c", value = System.Array.Empty<string>(),
-            });
-            client.AddSaveValue("nested-c-member", new StringMemberValue
+            },
+            new StringMemberValue
             {
                 id = "nested-c-member", containerId = "nested-c", value = "c",
+            },
             });
 
             Assert.IsTrue(client.TryFindOwnedParent(
@@ -715,8 +739,10 @@ namespace NeoCompose.Tests
                 Assert.AreEqual(
                     clonedNestedId,
                     clonedItem.constructorArgs![nestedParameterId]!.ToObject<string>());
-                string clonedNestedMemberId =
-                    client.GetUnorderedListEntryIds(clonedNestedId).Single();
+                string[] nestedIds = client.GetUnorderedListEntryIds(clonedNestedId).ToArray();
+                Assert.AreEqual(1, nestedIds.Length, Newtonsoft.Json.JsonConvert.SerializeObject(
+                    nestedIds.Select(id => client.TryGetValue(id, out MemberValue? row) ? row : null)));
+                string clonedNestedMemberId = nestedIds.Single();
                 Assert.IsTrue(client.TryGetValue(
                     NeoValueOwnership.Session,
                     clonedNestedMemberId,
