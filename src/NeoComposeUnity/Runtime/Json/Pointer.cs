@@ -227,9 +227,15 @@ namespace NeoCompose.Runtime.Json
         public Pointer whenFalse = null!;
     }
 
+    /// <summary>Constructs once and applies ordinary assignments in order.</summary>
+    public class ObjectInitializerPointer : Pointer
+    {
+        public Variable receiver = null!;
+        public AssignInstruction[] assignments = null!;
+    }
+
     /// <summary>
-    /// Constructs a NeoDelegate closure. Capture pointers are evaluated once
-    /// at creation and bind the nested action's trailing parameters.
+    /// Constructs a NeoDelegate closure. Capture pointers bind the trailing parameters.
     /// </summary>
     public class DelegateClosurePointer : Pointer
     {
@@ -335,6 +341,7 @@ namespace NeoCompose.Runtime.Json
                 case PointerKind.CallGetter: return typeof(CallGetterPointer);
                 case PointerKind.Coalesce: return typeof(CoalescePointer);
                 case PointerKind.Conditional: return typeof(ConditionalPointer);
+                case PointerKind.ObjectInitializer: return typeof(ObjectInitializerPointer);
                 case PointerKind.DelegateClosure: return typeof(DelegateClosurePointer);
                 case PointerKind.ToBool: return typeof(ToBoolPointer);
                 case PointerKind.Stringify: return typeof(StringifyPointer);
@@ -364,6 +371,22 @@ namespace NeoCompose.Runtime.Json
                     || (hasTarget && obj["targetClassId"] is not null))
                     throw new JsonSerializationException(
                         "TileConvertPointer requires receiverPointer, callSiteId and exactly one targetClassId or targetPointer.");
+                return;
+            }
+            if (concrete == typeof(ObjectInitializerPointer))
+            {
+                if (obj["receiver"] is not JObject receiver
+                    || receiver["id"]?.Type != JTokenType.String
+                    || string.IsNullOrWhiteSpace(receiver["id"]!.Value<string>())
+                    || receiver["pointer"]?.Type != JTokenType.Object
+                    || receiver["typeInfo"]?.Type != JTokenType.Object)
+                    throw new JsonSerializationException("ObjectInitializerPointer requires a receiver variable.");
+                if (obj["assignments"] is not JArray assignments)
+                    throw new JsonSerializationException("ObjectInitializerPointer requires an assignments array.");
+                foreach (JToken assignment in assignments)
+                    if (assignment is not JObject instruction
+                        || instruction["type"]?.Value<string>() != InstructionKind.Assign)
+                        throw new JsonSerializationException("ObjectInitializerPointer entries must be assignment instructions.");
                 return;
             }
             if (concrete == typeof(ConditionalPointer))

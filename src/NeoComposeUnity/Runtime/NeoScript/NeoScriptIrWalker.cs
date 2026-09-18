@@ -145,6 +145,9 @@ namespace NeoCompose.Runtime.NeoScript
                 case CoalescePointer coalesce:
                     return AnyPointer(coalesce.left, predicate)
                         || AnyPointer(coalesce.right, predicate);
+                case ObjectInitializerPointer initializer:
+                    return AnyPointer(initializer.receiver.pointer, predicate)
+                        || AnyPointer(initializer.assignments, predicate);
                 case ConditionalPointer conditional:
                     return AnyPointer(conditional.condition, predicate)
                         || AnyPointer(conditional.whenTrue, predicate)

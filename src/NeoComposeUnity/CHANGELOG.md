@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.39.0] - 2026-09-17
+
+- Execute NeoScript object initializers as construction followed by ordinary assignments, including property setters.
+- Preserve the receiver and completed assignments across deferred calls, and keep initializer expressions in the caller's scope.
+
 ## [0.38.0] - 2026-09-16
 
 - Read raw tile placements with `Cell` and execute compiler revision 15, including `NeoTile.TryConvert<T>()` and dynamic target conversion.
