@@ -2460,6 +2460,127 @@ namespace NeoCompose.Tests
             Assert.AreEqual(false, flag!.value);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ObjectInitializer_ResumesWithoutRepeatingConstructionOrAssignments(bool fail)
+        {
+            var first = new IntMember { id = "init-first", name = "First", kind = MemberKind.Int };
+            var second = new IntMember { id = "init-second", name = "Second", kind = MemberKind.Int };
+            var property = new NSPropertyMember
+            {
+                id = "init-property", name = "Computed", kind = MemberKind.NSProperty,
+                returnTypeInfo = IntType(), code = "return this.First;", setterCode = "this.First = value;",
+                getter = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Key(Variable("__this__"), "First"))),
+                setter = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = Array.Empty<Variable>(),
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = new Instruction[] { new AssignInstruction
+                    {
+                        type = InstructionKind.Assign, operatorValue = "=", pointer = Variable("__value__"),
+                        target = new WriteTarget { pointer = Key(Variable("__this__"), "First"), typeInfo = IntType(), writability = WritabilityKind.Session },
+                    } },
+                },
+            };
+            var shape = new NeoSchemaClass
+            {
+                id = "init-class", name = "Initialized", projectId = ProjectId,
+                schema = new Dictionary<string, string> { ["First"] = first.id, ["Second"] = second.id, ["Computed"] = property.id },
+            };
+            var type = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = shape.id };
+            var fetch = NativeFunction("init-fetch", "Fetch", true);
+            var count = NativeFunction("init-count", "Count", false);
+            var initializer = new ObjectInitializerPointer
+            {
+                type = PointerKind.ObjectInitializer,
+                receiver = LocalVariable("initialized", new FunctionPointer
+                {
+                    type = PointerKind.Function,
+                    function = new ClassConstructorFunction
+                    {
+                        type = FunctionKind.ClassConstructor,
+                        info = new FunctionClassConstructorInfo
+                        {
+                            schemaClassInfo = type,
+                            fields = new[]
+                            {
+                                new FunctionClassConstructorField { schemaKey = "First", memberId = first.id, valuePointer = Call(count.id, "construction") },
+                                new FunctionClassConstructorField { schemaKey = "Second", memberId = second.id, valuePointer = Number(0) },
+                            },
+                        },
+                    },
+                }, type),
+                assignments = new[]
+                {
+                    new AssignInstruction
+                    {
+                        type = InstructionKind.Assign, operatorValue = "=", pointer = Call(count.id, "first-assignment"),
+                        target = new WriteTarget
+                        {
+                            pointer = new CallGetterPointer { type = PointerKind.CallGetter, memberId = property.id, receiver = CallReceiver.Instance(Variable("initialized")) },
+                            typeInfo = IntType(), writability = WritabilityKind.Setter,
+                        },
+                    },
+                    SetField("Second", Add(Key(Variable("initialized"), "First"), Call(fetch.id, "initializer-fetch"))),
+                    SetField("First", Call(fetch.id, "initializer-second-fetch")),
+                    SetField("Second", Add(Key(Variable("initialized"), "First"), Key(Variable("initialized"), "Second"))),
+                },
+            };
+            // Exercise the wire discriminator rather than only CLR construction.
+            initializer = (ObjectInitializerPointer)JsonConvert.DeserializeObject<Pointer>(JsonConvert.SerializeObject(initializer))!;
+            var function = ScriptFunction("init-script", "Initialize", true, IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
+                    Return(Add(Key(initializer, "Second"), Call(fetch.id, "after-initializer")))));
+            using NeoClient client = BuildClient(new JsonMember[] { first, second, property, fetch, count, function },
+                ReceiverClass(("Fetch", fetch.id), ("Count", count.id), ("Initialize", function.id)),
+                new[] { shape });
+            int immediateCalls = 0;
+            int deferredCalls = 0;
+            NeoDeferredFunction<int>? pending = null;
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                [count.id] = (_, _, _) => ++immediateCalls,
+            });
+            client.RegisterDeferredNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+            {
+                [fetch.id] = (_, _, _, handle) =>
+                {
+                    deferredCalls++;
+                    pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(handle, fetch.name);
+                },
+            });
+            Task<object?> task = new NeoMemberNSFunction(client, function, null).InvokeAsync("receiver-value", Array.Empty<object?>());
+            Assert.IsFalse(task.IsCompleted);
+            Assert.AreEqual(2, immediateCalls);
+            pending!.Complete(10);
+            Assert.IsFalse(task.IsCompleted);
+            Assert.AreEqual(2, deferredCalls);
+            Assert.AreEqual(2, immediateCalls, "Construction and earlier assignments must survive both pauses.");
+            if (fail)
+            {
+                pending!.Fail(new NSGetterRuntimeError("initializer failed"));
+                Assert.Throws<NSGetterRuntimeError>(() => task.GetAwaiter().GetResult());
+                Assert.AreEqual(2, immediateCalls);
+                Assert.AreEqual(2, deferredCalls, "A failed initializer must not evaluate the enclosing expression's next operand.");
+                return;
+            }
+            pending!.Complete(20);
+            Assert.IsFalse(task.IsCompleted);
+            Assert.AreEqual(3, deferredCalls);
+            Assert.AreEqual(2, immediateCalls);
+            pending!.Complete(30);
+            Assert.AreEqual(62, Convert.ToInt32(task.GetAwaiter().GetResult()));
+            Assert.AreEqual(2, immediateCalls);
+
+            AssignInstruction SetField(string key, Pointer value) => new()
+            {
+                type = InstructionKind.Assign, operatorValue = "=", pointer = value,
+                target = new WriteTarget { pointer = Key(Variable("initialized"), key), typeInfo = IntType(), writability = WritabilityKind.Session },
+            };
+        }
+
         [Test]
         public void InvokeAsync_TwoDeferredCallsResumeLeftToRightExactlyOnce()
         {

@@ -554,6 +554,7 @@ namespace NeoCompose.Runtime.NeoScript
             internal ConditionalWeakTable<object, RowReference> rowReverseIndex { get; }
             internal Dictionary<string, HashSet<string>> rowCacheKeysByRow { get; }
             internal LinkedFunctionCallHandler? linkedFunctionCallHandler { get; private set; }
+            internal Func<ObjectInitializerPointer, NeoScriptScope, Context, object?>? objectInitializerHandler { get; private set; }
             internal Dictionary<string, SchemaPlacement?> schemaPlacementCache { get; }
             internal Dictionary<string, string?> callableDispatchCache { get; }
             internal Dictionary<
@@ -688,6 +689,7 @@ namespace NeoCompose.Runtime.NeoScript
                 child.initializerPlacement = initializerPlacement;
                 child.gridReads = gridReads;
                 child.linkedFunctionCallHandler = linkedFunctionCallHandler;
+                child.objectInitializerHandler = objectInitializerHandler;
                 child.collectionCallbackPreparationMetrics =
                     collectionCallbackPreparationMetrics;
                 return child;
@@ -814,8 +816,9 @@ namespace NeoCompose.Runtime.NeoScript
                     sharedAllocationTracker: allocationTracker));
             }
 
-            internal Context WithFunctionCallHandler(
-                LinkedFunctionCallHandler handler)
+            internal Context WithExpressionHandlers(
+                LinkedFunctionCallHandler handler,
+                Func<ObjectInitializerPointer, NeoScriptScope, Context, object?> initializerHandler)
             {
                 Context child = ShareAllocationTracker(new Context(
                     client,
@@ -838,6 +841,7 @@ namespace NeoCompose.Runtime.NeoScript
                     executionBudgetLimits: null,
                     sharedAllocationTracker: allocationTracker));
                 child.linkedFunctionCallHandler = handler;
+                child.objectInitializerHandler = initializerHandler;
                 return child;
             }
 
@@ -1290,6 +1294,10 @@ namespace NeoCompose.Runtime.NeoScript
                     if (left is not null) return left;
                     return EvalPointer(cp.right, scope, ctx);
                 }
+                case ObjectInitializerPointer initializer:
+                    return ctx.objectInitializerHandler is not null
+                        ? ctx.objectInitializerHandler(initializer, scope, ctx)
+                        : NeoScriptExecutor.EvaluateImmediateObjectInitializer(initializer, scope, ctx);
                 case ConditionalPointer conditional:
                 {
                     var condition = EvalPointer(conditional.condition, scope, ctx);

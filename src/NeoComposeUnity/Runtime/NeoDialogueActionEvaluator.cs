@@ -404,15 +404,7 @@ namespace NeoCompose.Runtime
             NeoScriptExecutionOptions? options)
         {
             var expressionState = resumeState ?? new ExpressionResumeState();
-            var actionCtx = ctx.WithFunctionCallHandler(
-                (pointer, currentScope, currentCtx) =>
-                    EvalFunctionCall(
-                        client,
-                        pointer,
-                        currentScope,
-                        currentCtx,
-                        expressionState,
-                        options));
+            var actionCtx = BuildExpressionContext(client, ctx, expressionState, options);
             for (int i = startIndex; i < instructions.Length; i++)
             {
                 ctx.allocationTracker.ConsumeWorkUnit();
@@ -1804,15 +1796,11 @@ namespace NeoCompose.Runtime
             ExpressionResumeState expressionState,
             NeoScriptExecutionOptions? options)
         {
-            return ctx.WithFunctionCallHandler(
-                (pointer, currentScope, currentCtx) =>
-                    EvalFunctionCall(
-                        client,
-                        pointer,
-                        currentScope,
-                        currentCtx,
-                        expressionState,
-                        options));
+            return ctx.WithExpressionHandlers(
+                (pointer, currentScope, currentCtx) => EvalFunctionCall(
+                    client, pointer, currentScope, currentCtx, expressionState, options),
+                (pointer, currentScope, currentCtx) => EvalObjectInitializer(
+                    pointer, currentScope, currentCtx, expressionState, options));
         }
 
         private static NeoScriptExecutionResult PauseLoopExpression(
@@ -2135,6 +2123,52 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx)
         {
             return NSGetterEvaluator.EvaluatePointer(pointer, scope, ctx);
+        }
+
+        internal static object? EvaluateImmediateObjectInitializer(
+            ObjectInitializerPointer pointer,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx) =>
+            EvalObjectInitializer(pointer, scope, ctx, new ExpressionResumeState(),
+                NeoScriptExecutionOptions.ForImmediate(ctx.client));
+
+        private static object? EvalObjectInitializer(
+            ObjectInitializerPointer pointer,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            ExpressionResumeState expressionState,
+            NeoScriptExecutionOptions? options)
+        {
+            string resumeKey = expressionState.NextInvocationKey("initializer:" + pointer.receiver.id);
+            if (expressionState.TryGet(resumeKey, out object? cached, out Exception? error))
+            {
+                if (error is not null) throw error;
+                return cached;
+            }
+            try
+            {
+                // Execute as inline instructions, with no callable return validation.
+                // A suspended child retains its receiver and completed assignments.
+                var instructions = new Instruction[pointer.assignments.Length + 2];
+                instructions[0] = new VariableInstruction { variable = pointer.receiver };
+                Array.Copy(pointer.assignments, 0, instructions, 1, pointer.assignments.Length);
+                instructions[instructions.Length - 1] = new ReturnInstruction
+                {
+                    pointer = new VariablePointer { variableId = pointer.receiver.id },
+                };
+                NeoScriptExecutionResult result = ExecuteInstructions(ctx.client, instructions,
+                    pointer.receiver.typeInfo, scope.CreateChild(1), ctx, 0, null, options);
+                if (result.IsPaused)
+                    throw new NeoFunctionCallSuspended(resumeKey, result.SuspendedMemberId!, result);
+                expressionState.StoreValue(resumeKey, result.ReturnValue);
+                return result.ReturnValue;
+            }
+            catch (NeoFunctionCallSuspended) { throw; }
+            catch (Exception exception)
+            {
+                expressionState.StoreError(resumeKey, exception);
+                throw;
+            }
         }
 
         private static object? EvalFunctionCall(

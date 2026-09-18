@@ -31,6 +31,7 @@ namespace NeoCompose.Runtime.Json
         public const string Coalesce = "coalesce";
         /// <summary>Lazy <c>condition ? whenTrue : whenFalse</c> (revision 12).</summary>
         public const string Conditional = "conditional";
+        public const string ObjectInitializer = "objectInitializer";
         /// <summary>Creates a NeoDelegate with explicit by-value captures.</summary>
         public const string DelegateClosure = "delegateClosure";
         public const string ToBool = "toBool";
