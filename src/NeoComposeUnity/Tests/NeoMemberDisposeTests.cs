@@ -57,6 +57,75 @@ namespace NeoCompose.Tests
         // -----------------------------------------------------------------
 
         [Test]
+        public void WritableSubscription_FollowsLateBindingAndOwnership_AndStopsAfterDisposal()
+        {
+            using var client = LoadClient();
+            var node = (NeoMemberStringWritable)NeoMember.CreateWritable(
+                client, RequireMember<StringMember>(client, "member-name"), null, NeoValueOwnership.Save);
+            node.SetLiteralOverride("bound");
+            string id = node.value!.id;
+            int changes = 0;
+            node.OnChanged += _ => changes++;
+            client.SetWritableValue(NeoValueOwnership.Session, new StringMemberValue { id = id, value = "session" });
+            client.SetWritableValue(NeoValueOwnership.Save, new StringMemberValue { id = "unrelated", value = "other" });
+            Assert.AreEqual("bound", node.value!.value);
+            Assert.AreEqual(0, changes);
+            client.SetWritableValue(NeoValueOwnership.Save, new StringMemberValue { id = id, value = "updated" });
+            Assert.AreEqual("updated", node.value!.value);
+            Assert.AreEqual(1, changes);
+            node.Dispose();
+            client.SetWritableValue(NeoValueOwnership.Save, new StringMemberValue { id = id, value = "disposed" });
+            Assert.AreEqual(1, changes);
+        }
+
+        [Test]
+        public void WritableSubscription_ReentrantWriteUsesCurrentSubscriptions_OuterDeliveryKeepsItsSnapshot()
+        {
+            using var client = LoadClient();
+            var calls = new System.Collections.Generic.List<string>();
+            System.IDisposable? first = null;
+            System.IDisposable? added = null;
+            first = client.SubscribeWritableValue("target", (_, _) =>
+            {
+                calls.Add("first");
+                first!.Dispose();
+                added = client.SubscribeWritableValue("target", (_, _) => calls.Add("added"));
+                client.SetWritableValue(NeoValueOwnership.Save, new StringMemberValue { id = "target", value = "nested" });
+            });
+            using var second = client.SubscribeWritableValue("target", (_, _) => calls.Add("second"));
+            using var unrelated = client.SubscribeWritableValue("other", (_, _) => Assert.Fail("Unrelated subscriber invoked."));
+            client.SetWritableValue(NeoValueOwnership.Save, new StringMemberValue { id = "target", value = "outer" });
+            CollectionAssert.AreEqual(new[] { "first", "second", "added", "second" }, calls);
+            added!.Dispose();
+        }
+
+        [Test]
+        public void ClassScalarWrite_PinsDefaultOnce_ThenSkipsIdenticalExplicitOverride()
+        {
+            using var client = LoadClient();
+            var hero = (NeoMemberClassWritable)NeoMember.CreateWritable(
+                client, RequireMember<ClassMember>(client, "member-hero"), "v-dict", NeoValueOwnership.Save);
+            int publications = 0;
+            client.OnWritableValuesPublished += (_, _) => publications++;
+            string initial = hero.Get<NeoMemberString>("Name").value!.value!;
+            NeoGeneratedTypesSupport.SetValue(hero, "Name", NeoGeneratedTypesSupport.Value(initial));
+            Assert.Greater(publications, 0, "First explicit override must pin the default.");
+            var child = hero.Get<NeoMemberString>("Name");
+            var pinned = client.saveValues[child.value!.id];
+            publications = 0;
+            NeoGeneratedTypesSupport.SetValue(hero, "Name", NeoGeneratedTypesSupport.Value(initial));
+            Assert.AreEqual(0, publications);
+            Assert.AreSame(pinned, client.saveValues[child.value!.id]);
+            NeoGeneratedTypesSupport.SetValue(hero, "Name", NeoGeneratedTypesSupport.Value("Frodo"));
+            Assert.AreEqual(1, publications);
+            Assert.AreEqual("Frodo", child.value!.value);
+            NeoGeneratedTypesSupport.SetValue(hero, "Name", NeoValueWritePayload.FromValue(new NeoValuePayload(
+                "Frodo", valueRows: new MemberValue[] { new StringMemberValue { id = "envelope-row", value = "updated" } })));
+            Assert.AreEqual("updated", ((StringMemberValue)client.saveValues["envelope-row"]).value,
+                "An equal scalar must still publish accompanying payload rows.");
+        }
+
+        [Test]
         public void Dispose_UnregistersFromClientNodes()
         {
             var client = LoadClient();

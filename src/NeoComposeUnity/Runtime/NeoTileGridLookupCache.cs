@@ -11,17 +11,18 @@ namespace NeoCompose.Runtime
 {
     /// <summary>
     /// Client-owned spatial index shared by all views of a grid.
-    /// First access reads the layer's containment membership once, then sorts
-    /// occupied cells for deterministic enumeration. Point queries are O(1)
+    /// First access reads the layer's containment membership once; occupied
+    /// cells are sorted lazily for deterministic enumeration. Point queries are O(1)
     /// dictionary hits. Invalidation is value-change-event
     /// driven: every value id the build consulted (grid row, Children list,
     /// link rows, containment list values, placement rows and their Cell
     /// children, object rows, ...) is recorded as a dependency, and a write
     /// to any of them — including the membership-change notification a
     /// containerId-carrying row raises for its container — drops the layer
-    /// index for a lazy rebuild.
+    /// index for a lazy rebuild. Validated runtime leaf writes preserve these
+    /// indexes; object movement patches only its footprints and projected tiles.
     /// </summary>
-    internal sealed class NeoTileGridLookupCache : IDisposable
+    internal sealed partial class NeoTileGridLookupCache : IDisposable
     {
         private static readonly IReadOnlyList<NeoTilePlacementRecord> EmptyTileRecords =
             Array.Empty<NeoTilePlacementRecord>();
@@ -157,6 +158,7 @@ namespace NeoCompose.Runtime
             IReadOnlyCollection<(NeoValueOwnership ownership, string valueId)> changed,
             NeoWritePlan plan)
         {
+            if (plan.HasValidatedRuntimeLeaves) return;
             if (plan.ValidatedTileConversions.Count != 0)
             {
                 ApplyTileConversions(plan.ValidatedTileConversions);
@@ -446,20 +448,36 @@ namespace NeoCompose.Runtime
                 }
                 CandidatesByCell = candidatesByCell;
                 DependencyIds = dependencyIds;
-                var ordered = new List<List<NeoTilePlacementRecord>>(candidatesByCell.Values);
+                for (int i = 0; i < records.Count; i++)
+                    if (records[i].SourceObjectInstanceId is string objectId)
+                    {
+                        if (!RecordIndicesByObject.TryGetValue(objectId, out var indices))
+                            RecordIndicesByObject[objectId] = indices = new List<int>();
+                        indices.Add(i);
+                    }
+            }
+
+            public Dictionary<string, List<int>> RecordIndicesByObject { get; } = new();
+            private IReadOnlyList<List<NeoTilePlacementRecord>>? candidatesInCellOrder;
+            internal void InvalidateCellOrder() => candidatesInCellOrder = null;
+            public IReadOnlyList<List<NeoTilePlacementRecord>> CandidatesInCellOrder =>
+                candidatesInCellOrder ??= SortCells();
+
+            private IReadOnlyList<List<NeoTilePlacementRecord>> SortCells()
+            {
+                var ordered = new List<List<NeoTilePlacementRecord>>(CandidatesByCell.Values);
                 ordered.Sort((left, right) =>
                 {
                     int y = left[0].Cell.y.CompareTo(right[0].Cell.y);
                     return y != 0 ? y : left[0].Cell.x.CompareTo(right[0].Cell.x);
                 });
-                CandidatesInCellOrder = ordered;
+                return ordered;
             }
 
             public List<NeoTilePlacementRecord> Records { get; }
             public Dictionary<string, int> FirstRecordIndexByPlacementId { get; }
             public Dictionary<string, List<int>> AdditionalRecordIndicesByPlacementId { get; } = new();
             public Dictionary<Vector2Int, List<NeoTilePlacementRecord>> CandidatesByCell { get; }
-            public IReadOnlyList<List<NeoTilePlacementRecord>> CandidatesInCellOrder { get; }
             public HashSet<string> DependencyIds { get; }
         }
 
@@ -472,11 +490,16 @@ namespace NeoCompose.Runtime
             {
                 Records = records;
                 ById = new Dictionary<string, NeoObjectPlacementRecord>(records.Count);
-                foreach (var record in records) ById.Add(record.InstanceId, record);
+                for (int i = 0; i < records.Count; i++)
+                {
+                    ById.Add(records[i].InstanceId, records[i]);
+                    RecordIndices.Add(records[i].InstanceId, i);
+                }
                 CandidatesByCell = candidatesByCell;
                 DependencyIds = dependencyIds;
             }
 
+            public Dictionary<string, int> RecordIndices { get; } = new();
             public Dictionary<string, NeoObjectPlacementRecord> ById { get; }
             public List<NeoObjectPlacementRecord> Records { get; }
             public Dictionary<Vector2Int, List<NeoObjectPlacementRecord>> CandidatesByCell { get; }

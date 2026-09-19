@@ -1947,7 +1947,7 @@ namespace NeoCompose.Runtime
             return records;
         }
 
-        private Vector2Int ReadObjectOrigin(
+        internal Vector2Int ReadObjectOrigin(
             ObjectMemberValue objectRow,
             HashSet<string>? dependencyIds)
         {

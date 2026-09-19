@@ -787,6 +787,7 @@ namespace NeoCompose.Runtime
             // repeated removal from a large multicast delegate is quadratic.
             OnSaveValueChanged = null;
             OnWritableValueChanged = null;
+            writableValueSubscriptions.Clear();
             OnStaticBindingChanged = null;
             assets.Dispose();
             save.Dispose();
@@ -891,6 +892,7 @@ namespace NeoCompose.Runtime
         private readonly HashSet<System.Action> pendingAnimationRenderUpdates = new();
 
         private NeoScript.NSGetterEvaluator.Context? animationEvaluationContext;
+        private static readonly Unity.Profiling.ProfilerMarker AnimationRowRefreshMarker = new("NeoCompose.Animation.RefreshRow");
 
         internal NeoScript.NSGetterEvaluator.Context CreateGetterContext(NeoValueOwnership ownership)
         {
@@ -910,6 +912,7 @@ namespace NeoCompose.Runtime
         private void RefreshAnimationEvaluationRow(NeoValueOwnership ownership, string valueId)
         {
             if (animationEvaluationContext is null) return;
+            using var marker = AnimationRowRefreshMarker.Auto();
             if (TryGetValue(ownership, valueId, out MemberValue? row))
                 NeoScript.NSGetterEvaluator.RefreshCachedRowAfterWrite(row, animationEvaluationContext, ownership);
             else
@@ -2884,7 +2887,7 @@ namespace NeoCompose.Runtime
         private void NotifyWritableValueChanged(
             NeoValueOwnership ownership, string valueId, string? changedField = null)
         {
-            OnWritableValueChanged?.Invoke(ownership, valueId);
+            PublishWritableValueChange(ownership, valueId);
             NotifyContainerMembershipChanged(ownership, valueId);
             if (ownership == NeoValueOwnership.Save) RaiseSaveValueChanged(valueId, changedField);
         }
@@ -2929,7 +2932,7 @@ namespace NeoCompose.Runtime
             if (isReplayingVirtualInstance) return;
             foreach (MemberValue value in values)
             {
-                OnWritableValueChanged?.Invoke(
+                PublishWritableValueChange(
                     NeoValueOwnership.Session,
                     value.id);
                 if (!string.IsNullOrEmpty(value.containerId))
@@ -4598,7 +4601,7 @@ namespace NeoCompose.Runtime
                 if (announceRemoval)
                 {
                     TouchWritableStoreUpdatedAt(ownership);
-                    OnWritableValueChanged?.Invoke(ownership, valueId);
+                    PublishWritableValueChange(ownership, valueId);
                     if (memberContainerId is not null)
                     {
                         RaiseContainerChanged(ownership, memberContainerId);
@@ -4719,7 +4722,7 @@ namespace NeoCompose.Runtime
                 removed.Add(valueId);
                 IndexStoreRemove(ownership, valueId);
                 TouchWritableStoreUpdatedAt(ownership);
-                OnWritableValueChanged?.Invoke(ownership, valueId);
+                PublishWritableValueChange(ownership, valueId);
                 if (memberContainerId is not null)
                 {
                     RaiseContainerChanged(ownership, memberContainerId);
@@ -5290,7 +5293,7 @@ namespace NeoCompose.Runtime
             pendingContainerNotifications.Clear();
             foreach (var (ownership, containerId) in pending)
             {
-                OnWritableValueChanged?.Invoke(ownership, containerId);
+                PublishWritableValueChange(ownership, containerId);
             }
         }
 
@@ -5304,7 +5307,7 @@ namespace NeoCompose.Runtime
                 }
                 return;
             }
-            OnWritableValueChanged?.Invoke(ownership, containerId);
+            PublishWritableValueChange(ownership, containerId);
         }
 
         /// <summary>

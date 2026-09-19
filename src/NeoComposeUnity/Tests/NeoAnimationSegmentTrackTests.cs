@@ -769,6 +769,18 @@ namespace NeoCompose.Tests
             Equip(client, "seg-b");
             Assert.IsTrue(source.TryReadContent(0, out var equipped));
             Assert.AreEqual("b0", ((SpriteMemberValue)equipped!).value!.fileId);
+
+            client.SetWritableValue(NeoValueOwnership.Session,
+                Number("seg-a-duration", 3));
+            reads.Clear();
+            using (client.CaptureValueReads(reads)) Assert.AreEqual(2, source.BaseDuration);
+            Assert.IsEmpty(reads, "A replaced segment must release its old dependencies.");
+
+            client.SetWritableValue(NeoValueOwnership.Session,
+                Number("seg-b-duration", 4));
+            Assert.AreEqual(4, source.BaseDuration, "The new segment must retain live dependencies.");
+            Equip(client, "seg-a");
+            Assert.AreEqual(3, source.BaseDuration, "Switching back must read the latest segment state.");
         }
 
         /// <summary>
