@@ -1136,7 +1136,8 @@ namespace NeoCompose.Runtime
         private readonly string segmentKey;
         private readonly string label;
         private readonly string? trackValueId;
-        private readonly Action<NeoValueOwnership, string> writableValueChanged;
+        private readonly List<IDisposable> valueSubscriptions = new();
+        private static readonly Unity.Profiling.ProfilerMarker ResolveSegmentMarker = new("NeoCompose.Animation.ResolveSegment");
 
         private MemberValue?[] contentRows = Array.Empty<MemberValue?>();
         private bool[] contentAuthored = Array.Empty<bool>();
@@ -1155,8 +1156,6 @@ namespace NeoCompose.Runtime
             this.segmentKey = segmentKey;
             this.label = label;
             trackValueId = track.value?.id;
-            writableValueChanged = HandleWritableValueChanged;
-            client.OnWritableValueChanged += writableValueChanged;
         }
 
         /// <summary>
@@ -1199,7 +1198,8 @@ namespace NeoCompose.Runtime
         {
             if (disposed) return;
             disposed = true;
-            client.OnWritableValueChanged -= writableValueChanged;
+            foreach (var subscription in valueSubscriptions) subscription.Dispose();
+            valueSubscriptions.Clear();
             contentRows = Array.Empty<MemberValue?>();
             contentAuthored = Array.Empty<bool>();
         }
@@ -1219,11 +1219,21 @@ namespace NeoCompose.Runtime
             contentRows = Array.Empty<MemberValue?>();
             contentAuthored = Array.Empty<bool>();
             dependencies.Clear();
-            using (client.CaptureValueReads(dependencies))
+            using var marker = ResolveSegmentMarker.Auto();
+            foreach (var subscription in valueSubscriptions) subscription.Dispose();
+            valueSubscriptions.Clear();
+            try
             {
-                string? rowId = ResolveSegmentRowId();
-                if (rowId is null) return;
-                ReadContent(rowId);
+                using (client.CaptureValueReads(dependencies))
+                {
+                    string? rowId = ResolveSegmentRowId();
+                    if (rowId is not null) ReadContent(rowId);
+                }
+            }
+            finally
+            {
+                foreach (string id in dependencies)
+                    valueSubscriptions.Add(client.SubscribeWritableValue(id, HandleWritableValueChanged));
             }
         }
 
