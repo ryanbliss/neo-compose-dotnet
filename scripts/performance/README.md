@@ -42,7 +42,7 @@ timings. Diagnostics add instrumentation; compare normal runs to normal runs.
 
 Apple M3 Max, Unity 6000.5.4f1. Neowyn `aedf02c` plus its current local content;
 export SHA-256 `afa5b194b4d62c9d08dd015407c3dfbd12b68781edacb17ecb758343a1429f1f`.
-Baseline SDK `6243222`; revised SDK is this change. Both serial runs used the
+Baseline SDK `6243222`; the initial revised SDK was `a98f753`. Both serial runs used the
 same isolated game copy, with no other test suite running.
 
 | Measurement | Baseline | Revised |
@@ -65,18 +65,41 @@ with concurrent SDK tests reproduced 14 FPS walking on the baseline and about
 1,026 FPS after the first implementation. Use the serial comparison above for
 the primary result, since background load differed.
 
-The final 30-second diagnostic run with SDK markers measured 1,560.6 FPS idle
+The initial 30-second diagnostic run with SDK markers measured 1,560.6 FPS idle
 and 1,472.1 FPS walking, walking median 0.5896 ms, p99 2.6210 ms, maximum
 29.8192 ms, and one player body throughout 120 units of movement. Periodic turns
 still caused roughly 15–20 ms frames: segment re-resolution accounted for
 11–14 ms and script row refresh about 0.9–1.2 ms. The direct facing setter and
 steady-state tick measurements do not include that deferred resolution cost.
 
-[Issue #172](https://github.com/ryanbliss/neo-compose-dotnet/issues/172) tracks the
-next experiment: profile and optimize segment getter re-resolution, then
-target script alias-cache refresh, and attribute the larger idle stalls with
-a CPU timeline. These are unresolved, separate from the grid and notification
-improvements measured here.
+Further profiling isolated 2.8–3.0 ms per turn in removing and recreating
+animation dependency subscriptions. Tracks now retain subscriptions to unchanged
+value IDs and only add/remove changed dependencies. This avoids delegate copying
+and allocation while preserving getter execution, side effects, dependency
+switching, and disposal. Getter-result caching was not chosen because these
+getters can have side effects.
+
+A subsequent serial 30-second diagnostic run measured 1,810.1 FPS idle and
+1,666.5 FPS walking, walking median 0.5100 ms, p99 1.5357 ms, maximum
+32.5672 ms, and one player body. Ordinary turn frames remained roughly 11–13 ms;
+segment re-resolution was typically 8.5–11.1 ms. These are separate diagnostic
+runs with different instrumentation from the table above, not a controlled
+estimate of the subscription change's FPS gain. The change removes confirmed
+unnecessary work, but does not eliminate turning hitches.
+
+Two CPU timeline runs, each with 60 seconds idle and 60 seconds walking, did
+not reproduce the original half-second stall. Their largest measured frames
+were 38.6 ms and 29.9 ms. One captured 39.0 ms profiler frame spent 36.5 ms in
+`GarbageCollector.CollectIncremental`. That attributes that smaller stall only;
+it does not establish the cause of the 631–652 ms events. One additional full
+capture failed inside Unity's native profiler and was excluded.
+
+[Issue #172](https://github.com/ryanbliss/neo-compose-dotnet/issues/172) remains
+open for getter execution, script alias-cache refresh, and the larger idle
+stalls. The next isolation experiment is a standalone development player with
+CPU timelines and thread CPU time, to separate game work from editor overhead
+and time spent waiting or descheduled. No fix for the half-second stall is
+claimed here.
 
 ## Architectural changes
 

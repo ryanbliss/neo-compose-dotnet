@@ -1136,7 +1136,9 @@ namespace NeoCompose.Runtime
         private readonly string segmentKey;
         private readonly string label;
         private readonly string? trackValueId;
-        private readonly List<IDisposable> valueSubscriptions = new();
+        private readonly Dictionary<string, IDisposable> valueSubscriptions = new(StringComparer.Ordinal);
+        private readonly List<string> removedDependencies = new();
+        private bool resolving;
         private static readonly Unity.Profiling.ProfilerMarker ResolveSegmentMarker = new("NeoCompose.Animation.ResolveSegment");
 
         private MemberValue?[] contentRows = Array.Empty<MemberValue?>();
@@ -1198,7 +1200,7 @@ namespace NeoCompose.Runtime
         {
             if (disposed) return;
             disposed = true;
-            foreach (var subscription in valueSubscriptions) subscription.Dispose();
+            foreach (var subscription in valueSubscriptions.Values) subscription.Dispose();
             valueSubscriptions.Clear();
             contentRows = Array.Empty<MemberValue?>();
             contentAuthored = Array.Empty<bool>();
@@ -1208,7 +1210,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             string valueId)
         {
-            if (disposed) return;
+            if (disposed || resolving) return;
             if (dependencies.Contains(valueId)) dirty = true;
         }
 
@@ -1220,8 +1222,9 @@ namespace NeoCompose.Runtime
             contentAuthored = Array.Empty<bool>();
             dependencies.Clear();
             using var marker = ResolveSegmentMarker.Auto();
-            foreach (var subscription in valueSubscriptions) subscription.Dispose();
-            valueSubscriptions.Clear();
+            // As before, writes made by an effect-capable getter do not invalidate
+            // this resolution. Retain its subscriptions while reads are recaptured.
+            resolving = true;
             try
             {
                 using (client.CaptureValueReads(dependencies))
@@ -1232,8 +1235,25 @@ namespace NeoCompose.Runtime
             }
             finally
             {
-                foreach (string id in dependencies)
-                    valueSubscriptions.Add(client.SubscribeWritableValue(id, HandleWritableValueChanged));
+                resolving = false;
+                if (!disposed) RefreshSubscriptions();
+            }
+        }
+
+        private void RefreshSubscriptions()
+        {
+            foreach (var pair in valueSubscriptions)
+            {
+                if (dependencies.Contains(pair.Key)) continue;
+                pair.Value.Dispose();
+                removedDependencies.Add(pair.Key);
+            }
+            foreach (string id in removedDependencies) valueSubscriptions.Remove(id);
+            removedDependencies.Clear();
+            foreach (string id in dependencies)
+            {
+                if (!valueSubscriptions.ContainsKey(id))
+                    valueSubscriptions.Add(id, client.SubscribeWritableValue(id, HandleWritableValueChanged));
             }
         }
 
