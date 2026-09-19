@@ -1041,6 +1041,121 @@ namespace NeoCompose.Tests
             ((ObjectMemberValue)data.values["thing-instance"]).constructorArgs!["__arg_0__"] = sibling.id;
         }
 
+        [TestCase(NeoValueOwnership.Save, false)]
+        [TestCase(NeoValueOwnership.Save, true)]
+        [TestCase(NeoValueOwnership.Session, false)]
+        [TestCase(NeoValueOwnership.Session, true)]
+        public void FirstLeafOverrideDoesNotReplayUnrelatedDefaults(NeoValueOwnership storage, bool selection)
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["save-root-class"].schema.Clear();
+            ((ObjectMemberValue)data.values["value-save"]).value!.Clear();
+            data.classes["assets-root-class"].schema["Thing"] = "thing-member";
+            ((ObjectMemberValue)data.values["value-assets"]).value!["Thing"] = "thing-instance";
+            data.members["thing-member"].Storage = NeoMemberStorage.Immutable;
+            data.classes["thing-class"].allowedStorage = NeoMemberStorage.Immutable;
+            data.classes["thing-class"].schema["Other"] = "other-member";
+            data.members["other-member"] = new IntMember
+            {
+                id = "other-member", name = "Other", kind = MemberKind.Int,
+                defaultValue = new NumberMemberValueBase { value = 7 },
+            };
+            if (selection)
+            {
+                data.enums["choices"] = new NeoCompose.Runtime.Json.Enum
+                {
+                    id = "choices", name = "Choices", projectId = "p75-project",
+                    options = new Dictionary<string, EnumOption>
+                    {
+                        ["one"] = new EnumOption { text = "One" },
+                        ["two"] = new EnumOption { text = "Two" },
+                    },
+                };
+                data.members["thing-count"] = new EnumMember
+                {
+                    id = "thing-count", name = "Count", kind = MemberKind.Enum, enumId = "choices",
+                    defaultValue = new ArrayMemberValueBase { value = new[] { "one" } },
+                };
+            }
+            if (!selection)
+            {
+                var observer = SchemaClass("observer-class", "Observer", NeoMemberStorage.Save);
+                observer.schema["Copied"] = "copied-member";
+                data.classes[observer.id] = observer;
+                data.classes["save-root-class"].schema["Observer"] = "observer-member";
+                data.members["observer-member"] = new ClassMember
+                {
+                    id = "observer-member", name = "Observer", kind = MemberKind.Class,
+                    classId = observer.id, Storage = NeoMemberStorage.Save,
+                };
+                data.members["copied-member"] = new IntMember
+                {
+                    id = "copied-member", name = "Copied", kind = MemberKind.Int,
+                    defaultValue = new NumberMemberValueBase
+                    {
+                        init = new InitializerBody
+                        {
+                            // Exact-row references follow the effective overlay.
+                            // An Assets-root read intentionally stays Asset-scoped.
+                            code = "",
+                            compiled = new FunctionWithReturnType
+                            {
+                                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                                parameters = new[]
+                                {
+                                    ConstructorVariable("__this__", ClassType(observer.id)),
+                                    ConstructorVariable("__root__", ClassType("__root__")),
+                                },
+                                typeInfo = IntTypeInfo(),
+                                instructions = new Instruction[]
+                                {
+                                    new ReturnInstruction
+                                    {
+                                        type = InstructionKind.Return,
+                                        pointer = new ReferencePointer
+                                        {
+                                            type = PointerKind.Reference, valueId = "authored-count",
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                };
+                var observerValue = ObjectValue("observer-instance", observer.id);
+                observerValue.instanceConstructorId = null;
+                observerValue.constructorArgs = new Dictionary<string, JToken?>();
+                data.values[observerValue.id] = observerValue;
+                ((ObjectMemberValue)data.values["value-save"]).value!["Observer"] = observerValue.id;
+            }
+            // The writable view inherits its destination store while the
+            // authored leaf remains Asset-owned until its first overlay.
+            data.values["authored-count"] = selection
+                ? new ArrayMemberValue { id = "authored-count", value = new[] { "one" } }
+                : new NumberMemberValue { id = "authored-count", value = 5 };
+            ((ObjectMemberValue)data.values["thing-instance"]).value!["Count"] = "authored-count";
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var thing = client.assets.Get<NeoMemberClass>("Thing");
+            string changedId = thing.Get<NeoMember>("Count").value!.id;
+            string otherId = thing.Get<NeoMember>("Other").value!.id;
+            Assert.IsTrue(client.TryGetValueOwnership(changedId, out var beforeOwnership));
+            Assert.AreEqual(NeoValueOwnership.Asset, beforeOwnership, "The first write must cross the ownership boundary.");
+            Assert.IsTrue(client.TryGetValue(otherId, out MemberValue? otherBefore));
+            NeoMemberIntWritable? copied = selection ? null : client.save
+                .Get<NeoMemberClassWritable>("Observer").Get<NeoMemberIntWritable>("Copied");
+            if (copied is not null) Assert.AreEqual(5, copied.value!.value);
+            var writable = thing.AsWritableView(storage);
+            if (selection) writable.Get<NeoMemberEnumWritable>("Count").Set(new[] { "two" });
+            else writable.Get<NeoMemberIntWritable>("Count").Set(9);
+            Assert.IsTrue(client.TryGetValueOwnership(changedId, out var afterOwnership));
+            Assert.AreEqual(storage, afterOwnership);
+            Assert.IsTrue(client.TryGetValue(otherId, out MemberValue? otherAfter));
+            Assert.AreSame(otherBefore, otherAfter, "A leaf override must reuse the unrelated constructed default.");
+            if (copied is not null) Assert.AreEqual(9, copied.value!.value, "A constructor that copies the changed leaf must replay.");
+            if (selection) CollectionAssert.AreEqual(new[] { "two" }, writable.Get<NeoMemberEnumWritable>("Count").value!.value);
+            else Assert.AreEqual(9, writable.Get<NeoMemberIntWritable>("Count").value!.value);
+        }
+
         [Test]
         public void SparseInstanceTracksDefaultAndWritesAtStableVirtualId()
         {

@@ -101,6 +101,62 @@ CPU timelines and thread CPU time, to separate game work from editor overhead
 and time spent waiting or descheduled. No fix for the half-second stall is
 claimed here.
 
+## First movement after a fresh world load
+
+The warmed benchmark above missed the first position and facing overrides.
+`NeowynColdMovementBenchmark.cs` adds a separate path with no setter or animation
+warmup and no discarded frames. Copy it into the isolated game's
+`Assets/Tests/Editor`, then run:
+
+```sh
+unity test /absolute/path/to/neowyn-copy --mode EditMode \
+  --filter NeowynColdMovementBenchmark --output /tmp/neowyn-cold.xml --timeout 400
+```
+
+It starts a fresh local game, applies real gamepad input for ten seconds, then
+stops and restarts twice for two seconds each. It asserts movement and reports
+`NEO_COLD` frame timings, including the first twelve frames. Profiling is disabled
+for these timing samples. The same batch-mode limitations above apply.
+
+On merged SDK `052918e`, the first facing override replayed 308 constructor roots
+and the first position override replayed 301. CPU traces attributed the stalls
+to candidate constructor reconstruction during those writes. Both changed an
+Asset-owned default to its first Save-owned override. The ownership guard ran
+before leaf reuse, incorrectly treating these overrides as structural changes.
+Later writes were already Save-owned and avoided the expensive path.
+
+The ownership guard now follows the scalar and Enum/Lookup/DialogueLookup leaf
+checks. A leaf can gain an override without retiring an owned subtree. Real
+constructor read dependencies still invalidate because these writes are not
+marked unchanged. Structural changes and external writes retain replay.
+
+Serial runs using the same Neowyn content and machine as above:
+
+| Cold movement measurement | Merged baseline | Fixed | Fixed, fresh-load repeat |
+| --- | ---: | ---: | ---: |
+| First frame | 1,831.699 ms | 6.431 ms | 6.900 ms |
+| Second frame | 1,735.245 ms | 0.787 ms | 0.721 ms |
+| Maximum over first ten seconds | 1,831.699 ms | 20.821 ms | 189.227 ms |
+| Distance over first ten seconds | 28.400 | 40.000 | 40.000 |
+
+The first baseline/fixed pair used an inactive CPU-trace helper. The repeat used
+the committed benchmark without that helper. Temporary game-side profiler
+markers remained identical. No other test suite ran concurrently.
+
+The repeat's 189 ms outlier is retained; these results establish removal of the
+reproducible first-write freeze, not the elimination of all intermittent stalls.
+A separate 30-second CPU timeline run captured 42,783 frames, with a maximum
+profiler frame of 27.357 ms. It did not reproduce the 189 ms outlier. The earlier
+631–652 ms events are still not attributed to this defect.
+[Issue #172](https://github.com/ryanbliss/neo-compose-dotnet/issues/172) stays open.
+
+Prewarming was rejected because it merely moves this unnecessary reconstruction
+into loading. Skipping all constructor invalidation would break copied/computed
+defaults. The fix changes the shared leaf reuse rule and preserves actual
+constructor dependencies. Regression tests cover first Save and Session
+overrides for scalar and selection leaves, retain an unrelated default's row
+identity, and check a dependent copied scalar updates after the override.
+
 ## Architectural changes
 
 - Member nodes and animation segment sources subscribe by the value IDs they
