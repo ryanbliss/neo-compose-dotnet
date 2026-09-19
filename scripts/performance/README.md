@@ -96,10 +96,10 @@ capture failed inside Unity's native profiler and was excluded.
 
 [Issue #172](https://github.com/ryanbliss/neo-compose-dotnet/issues/172) remains
 open for getter execution, script alias-cache refresh, and the larger idle
-stalls. The next isolation experiment is a standalone development player with
-CPU timelines and thread CPU time, to separate game work from editor overhead
-and time spent waiting or descheduled. No fix for the half-second stall is
-claimed here.
+stalls. The later native investigation below uses a standalone development
+player and thread CPU time to separate game work from time spent waiting. It
+attributes a newly captured presentation stall, not the uncaptured historical
+half-second frames.
 
 ## First movement after a fresh world load
 
@@ -156,6 +156,108 @@ defaults. The fix changes the shared leaf reuse rule and preserves actual
 constructor dependencies. Regression tests cover first Save and Session
 overrides for scalar and selection leaves, retain an unrelated default's row
 identity, and check a dependent copied scalar updates after the override.
+
+## Native stall investigation
+
+The intermittent stalls were investigated further after the cold-write fix.
+A rendered macOS development player reproduced a 1,033.289 ms walking interval
+with 13.846 ms of main-thread CPU and 23.933 ms of process CPU. An external
+heartbeat watchdog started native sampling after 62 ms without a new frame.
+The trigger's last frame was 248860 and the measured interval was frame 248861.
+
+The matching native capture recorded 648 of 759 main-thread samples in:
+
+```text
+PlayerRender
+  GfxDeviceClient::BeginFrame
+    GfxDeviceClient::WaitForPendingPresent
+      Semaphore::WaitForSignal
+```
+
+The CVDisplayLink thread recorded 657 samples in:
+
+```text
+CVDisplayLink::performIO
+  MetalSurfaceCallback
+    MetalCopyFromTextureToDrawable
+      CAMetalLayer.nextDrawable
+        CAMetalLayerPrivateNextDrawableLocked
+          semaphore_timedwait_trap
+```
+
+This locates the captured stall in the legacy Metal presentation/drawable
+acquisition path. It does not prove why the drawable was unavailable or that
+the timed wait expired. Sampling began after the stall started and could affect
+its remaining duration. The previously uncaptured 189 ms Editor frame and the
+631–652 ms frames cannot retrospectively be assigned this cause.
+
+Unity 6000.5 supports a replacement Mac Player path through the
+`metalUseMetalDisplayLink` project setting or `UNITY_USE_METAL_DISPLAY_LINK=1`.
+Unity documents improved frame pacing and reduced stutter with this path.
+[Unity release notes](https://unity.com/releases/editor/alpha/6000.5.0a8).
+
+Serial runs of the same player binary used fresh saves and 60 seconds each of
+walking, idle, and resumed walking. Real gamepad input alternated direction every
+0.6 seconds. The only player launch change was the environment switch, and the
+log confirmed `CAMetalDisplayLink created`.
+
+| Phase | Legacy maximum | MetalDisplayLink maximum |
+| --- | ---: | ---: |
+| Walking | 21.062 ms | 35.055 ms |
+| Idle | 15.883 ms | 24.623 ms |
+| Resumed walking | 1,033.289 ms | 31.347 ms |
+
+Both new-path walking phases covered 240.005 units, versus 232.084 during the
+interrupted legacy resumed walk. No >60 ms watchdog event occurred in the
+new-path run. The new path ran at roughly 118–120 FPS; the legacy path was
+uncapped at roughly 1,340–1,615 FPS. These results support changing presentation
+and pacing together, not an increase in SDK throughput. They do not prove that
+all hitches are eliminated, and the Mac Player setting does not affect the Editor.
+
+The serialized-setting rebuild confirmed activation without an environment
+override, but exposed a background-execution problem. After a normal first
+walking minute with a 29.948 ms maximum, its idle phase stopped at frame 9548.
+Native samples showed the main thread idle in the AppKit event loop, with the
+first sample also recording an active-space change. Raising the player window
+resumed it immediately; the resumed interval measured 72,678.638 ms. Neowyn and
+the probe both had `runInBackground` enabled. The initial visibility transition
+was not deliberately controlled, so the exact visibility condition still needs
+isolation. This was a different wait from the legacy presentation capture. Its resumed
+walking phase also contained 195.834, 347.799 and 251.016 ms intervals. The
+watchdog triggered on the first, but native sampling did not start until 365 ms
+after the trigger, too late to attribute that interval. Those later samples and
+the adjacent frames are potentially perturbed by the sampler and remain
+unattributed; they further prevent treating this repeat as a successful fix.
+
+The setting change was rejected pending that investigation. It is not part of
+this PR, and the incomplete/visibility-interrupted repeat is not counted as a
+clean performance run. A clean first run was insufficient evidence to ship it.
+The next engine experiment should control visible, covered, minimized and
+other-Space states on both paths, then compare legacy pacing limits if preserving
+background simulation remains a requirement. This is separate from reducing
+SDK animation allocations and getter work.
+
+An unprofiled three-minute Editor run with the same native watchdog measured
+40.598 / 37.175 / 39.418 ms maxima for walking, idle and resumed walking across
+288,989 frames. Both walking phases covered 240.005 units. No watchdog event
+occurred, so that run supplies no attribution for the historical Editor outlier.
+
+The machine and content match the earlier samples, with macOS 26.6.2 and SDK
+`936d7f9`. The isolated game copy needed four existing player-compilation issues
+corrected before either build could run: two unused UnityEditor imports, an
+editor-only dirty call, and resource-load name resolution. Neither comparison
+changed these repairs. The original game checkout remained untouched.
+
+A separate instrumented Editor run captured an 84.748 ms CPU frame containing
+79.965 ms in `NeoAnimationRunner.Update`, including segment resolution and a
+9.378 ms `GC.Collect` sample. Another frame spent 43.884 ms in incremental GC.
+These are distinct from the native presentation wait. Allocation callstack
+recording then identified animation subscriptions, expression contexts and
+`RefreshCachedRowAfterWrite` among allocation sources; that instrumentation
+slowed the game enough to induce catch-up work, so its allocation totals and
+frame times are not ordinary gameplay measurements. It does not establish that
+one of those sites caused the original 189 ms event. Remaining SDK work stays
+tracked in [issue 172](https://github.com/ryanbliss/neo-compose-dotnet/issues/172).
 
 ## Architectural changes
 
