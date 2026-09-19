@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.39.2] - 2026-09-19
+
+- Close a generic instance's constructor parameters through the member that declares it when the save reachability sweep types its arguments. Only List and Dictionary rows carry a `genericBindings` stamp, so loading a save holding a `ValueWatcher<int>` used to fail with "Generic NSFunction type '...' is unbound for this receiver."
+
 ## [0.39.1] - 2026-09-19
 
 - Resolve a sparse override member's `enumId`, `classId`, `entryMemberId`, and `keyEnumId` through its `extendsMemberId` chain, matching the web resolver. A subclass override such as `public override readonly ItemType Type = .Garden;` is stored without `enumId`, and loading it used to fail with `ArgumentNullException: key` from `NeoClient.TryGetEnum`.
