@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.39.3] - 2026-09-19
+
+- Record a delegate constructor argument's absent instance target as JSON null. A member target bound to the row that declares it stores a null `valueId`, but the writer emitted it as a string token holding null, which the reader refuses — so replaying a sparse instance such as `new LayerSortingTrack(selector: this.SelectSclera)` failed with "NeoDelegate member target 'valueId' must be null or a non-empty string."
+
 ## [0.39.2] - 2026-09-19
 
 - Close a generic instance's constructor parameters through the member that declares it when the save reachability sweep types its arguments. Only List and Dictionary rows carry a `genericBindings` stamp, so loading a save holding a `ValueWatcher<int>` used to fail with "Generic NSFunction type '...' is unbound for this receiver."

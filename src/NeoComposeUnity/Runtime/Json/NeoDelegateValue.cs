@@ -148,7 +148,13 @@ namespace NeoCompose.Runtime.Json
                 writer.WritePropertyName("memberId");
                 writer.WriteValue(delegateValue.memberId);
                 writer.WritePropertyName("valueId");
-                writer.WriteValue(delegateValue.valueId);
+                // A declaration-default target is JSON null. Writing the null
+                // string instead records a String token holding null when the
+                // destination is a JToken, and the reader this pairs with
+                // accepts only a real null — so the value would no longer read
+                // back as the one it was written from.
+                if (delegateValue.valueId is null) writer.WriteNull();
+                else writer.WriteValue(delegateValue.valueId);
             }
             else
             {
