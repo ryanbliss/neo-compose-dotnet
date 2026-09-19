@@ -67,6 +67,24 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void EmptyOffsets_ReplayTwoStoredPatternsWithoutSharedArrayCollision()
+        {
+            // Empty constructor lists used to hand every row the shared
+            // Array.Empty singleton as its origin key, so the second empty
+            // pattern's replay threw "Key already in the list".
+            using NeoClient client = Client();
+            var first = NeoCellPatternStorage.Serialize(client, new NeoCellPattern(Array.Empty<Vector2Int>()))!;
+            var second = NeoCellPatternStorage.Serialize(client, new NeoCellPattern(Array.Empty<Vector2Int>()))!;
+            Assert.AreNotEqual(first.valueId, second.valueId);
+            var member = new ClassMember { id = "pattern-field", name = "Pattern", kind = MemberKind.Class, classId = NeoCellPatternStorage.ClassId };
+            var firstNode = new NeoMemberClassWritable(client, member, first.valueId!, NeoValueOwnership.Session);
+            var secondNode = new NeoMemberClassWritable(client, member, second.valueId!, NeoValueOwnership.Session);
+            Assert.AreEqual(0, NeoCellPatternStorage.ReadRequired(client, firstNode).Count);
+            Assert.AreEqual(0, NeoCellPatternStorage.ReadRequired(client, secondNode).Count);
+            Assert.AreEqual(0, NeoCellPatternStorage.ReadRequired(client, firstNode).Count);
+        }
+
+        [Test]
         public void NativeReturns_NormalizePatternAndPatternListForOrdinaryCountGetter()
         {
             var patternType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = NeoCellPatternStorage.ClassId };

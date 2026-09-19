@@ -1712,7 +1712,10 @@ namespace NeoCompose.Runtime
                         ctx,
                         $"entry of {subject}"));
             }
-            object?[] normalized = result.ToArray();
+            // Fresh array per call: List.ToArray() returns the shared
+            // Array.Empty singleton for empty lists, and origins key on identity.
+            var normalized = new object?[result.Count];
+            result.CopyTo(normalized);
             NeoGeneratedTypesSupport.PreserveConstructorCollectionOrigin(value, normalized);
             return normalized;
         }

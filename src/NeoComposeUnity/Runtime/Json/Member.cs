@@ -251,6 +251,10 @@ namespace NeoCompose.Runtime.Json
         public bool ShouldSerializegetter() => ShouldSerializeChainResolvedField("getter");
         public bool ShouldSerializesetter() => ShouldSerializeChainResolvedField("setter");
         public bool ShouldSerializeaction() => ShouldSerializeChainResolvedField("action");
+        public bool ShouldSerializeentryMemberId() => ShouldSerializeChainResolvedField("entryMemberId");
+        public bool ShouldSerializekeyEnumId() => ShouldSerializeChainResolvedField("keyEnumId");
+        public bool ShouldSerializeclassId() => ShouldSerializeChainResolvedField("classId");
+        public bool ShouldSerializeenumId() => ShouldSerializeChainResolvedField("enumId");
 
         /// <summary>The resolved requirement used by runtime consumers.</summary>
         [JsonIgnore]
