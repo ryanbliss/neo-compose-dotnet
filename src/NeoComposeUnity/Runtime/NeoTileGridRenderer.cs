@@ -945,10 +945,17 @@ namespace NeoCompose.Runtime
 
             foreach (var instanceId in change.AddedOrChangedInstances)
             {
-                DestroyRenderedObject(instanceId);
                 var resolved = NeoWorldLayerRuntimeSupport.GetObject(layer, instanceId);
-                if (resolved == null) continue;
-                if (!ShouldRenderObjectInstance(layer, resolved)) continue;
+                if (resolved == null || !ShouldRenderObjectInstance(layer, resolved))
+                {
+                    DestroyRenderedObject(instanceId);
+                    continue;
+                }
+                // Reevaluate lifecycle filters, while retaining controllers and
+                // animation on an object that remains visible after moving.
+                if (change.PositionsOnly && objectRootsByInstanceId.TryGetValue(instanceId, out var existing)
+                    && existing != null) continue;
+                DestroyRenderedObject(instanceId);
                 objectRootsByInstanceId[instanceId] =
                     SpawnObject(root.transform, layer, resolved, fallbackSortingOrder);
             }

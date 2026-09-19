@@ -83,6 +83,8 @@ namespace NeoCompose.Runtime
         private void ValidateWritePlan(NeoWritePlan plan)
         {
             if (plan.Rows.Count == 0 && plan.Bindings.Count == 0) return;
+            bool runtimeLeaves = IsRuntimeLeafWrite(plan);
+            var positionObjects = new HashSet<string>();
             var stagedParents = new Dictionary<string, HashSet<string>>();
             var pending = new Queue<string>();
             foreach (var pair in plan.Rows)
@@ -116,6 +118,11 @@ namespace NeoCompose.Runtime
                 if (!string.IsNullOrEmpty(previous?.containerId)) pending.Enqueue(previous!.containerId!);
                 foreach (string parent in PlacementParents(id))
                 {
+                    if (runtimeLeaves && plan.Rows.Keys.Any(key => key.id == id)
+                        && plan.Resolve(parent) is ObjectMemberValue positionOwner
+                        && HasWorldKind(positionOwner.classId, "object")
+                        && ResolveClassChildRow(positionOwner, "Position")?.id == id)
+                        positionObjects.Add(parent);
                     if (plan.Resolve(parent) is ObjectMemberValue owner && HasWorldKind(owner.classId, "tile"))
                     {
                         CheckFields(owner.value);
@@ -133,6 +140,27 @@ namespace NeoCompose.Runtime
                 if (stagedParents.TryGetValue(id, out var proposed))
                     foreach (string parent in proposed) pending.Enqueue(parent);
             }
+            if (runtimeLeaves && tiles.Count == 0)
+            {
+                var positions = new Dictionary<string, Vector2Int>();
+                using (ReadCandidate(plan))
+                    foreach (string id in positionObjects)
+                    {
+                        var owner = (ObjectMemberValue)ResolveValueRow(id)!;
+                        if (ResolveClassChildRow(owner, "Position") is not Vector3MemberValue { value: not null } position
+                            || !Finite(position.value.x) || !Finite(position.value.y) || !Finite(position.value.z))
+                            throw PlacementError("object-position-invalid", $"Object '{id}' requires a finite Position.");
+                        // Use the same cell conversion as the normal placement builder.
+                        if (grids.Count != 0)
+                            positions[id] = NeoReadOnlyTileGridPrimitive.Resolve(this, grids.First())
+                                .ReadObjectOrigin(owner, null);
+                    }
+                if (positions.Count != 0)
+                    foreach (string gridId in grids)
+                        GetGridLookupCache(gridId).PrepareObjectMoves(plan, positions);
+                plan.HasValidatedRuntimeLeaves = true;
+                return;
+            }
             // These builders read rows and declarations only. Do not resolve
             // generated wrappers or populate persistent layer caches here.
             var primitives = new Dictionary<string, NeoReadOnlyTileGridPrimitive>();
@@ -146,6 +174,31 @@ namespace NeoCompose.Runtime
                 foreach (string tileId in tiles) ValidateTileRow(tileId);
                 foreach (string gridId in grids) ValidateGridPlacements(plan, gridId, primitives[gridId], compatibleLayers);
             }
+        }
+
+        // Only value replacements with unchanged graph edges qualify. Cell edits,
+        // collection edits and constructor replay retain structural validation.
+        private bool IsRuntimeLeafWrite(NeoWritePlan plan)
+        {
+            if (candidateReplay is not null || plan.Bindings.Count != 0 || plan.Rows.Count == 0) return false;
+            foreach (var pair in plan.Rows)
+            {
+                MemberValue? next = pair.Value;
+                if (next is null || next.IsRemoved
+                    || !TryGetCommittedOverlaidValue(pair.Key.ownership, pair.Key.id, out MemberValue? previous)
+                    || previous.IsRemoved || next.GetType() != previous.GetType()
+                    || next.classId != previous.classId || next.containerId != previous.containerId
+                    || next.mapKey != previous.mapKey || next.sourceValueId != previous.sourceValueId
+                    || next.hasInstanceConstructorId || next.constructorArgs is not null
+                    || next.instanceVariantId is not null || next.instanceVariantRowValueId is not null)
+                    return false;
+                if (next is NumberMemberValue or StringMemberValue or BoolMemberValue
+                    or Vector3MemberValue or ColorMemberValue or FileMemberValue or SpriteMemberValue) continue;
+                if (next is ArrayMemberValue && TryInferMemberForValueId(next.id, out Member? member)
+                    && member is EnumMember or LookupMember or DialogueLookupMember) continue;
+                return false;
+            }
+            return true;
         }
 
         private void ValidateTileRow(string tileId)

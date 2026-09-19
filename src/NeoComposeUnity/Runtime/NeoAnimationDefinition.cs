@@ -1136,7 +1136,10 @@ namespace NeoCompose.Runtime
         private readonly string segmentKey;
         private readonly string label;
         private readonly string? trackValueId;
-        private readonly Action<NeoValueOwnership, string> writableValueChanged;
+        private readonly Dictionary<string, IDisposable> valueSubscriptions = new(StringComparer.Ordinal);
+        private readonly List<string> removedDependencies = new();
+        private bool resolving;
+        private static readonly Unity.Profiling.ProfilerMarker ResolveSegmentMarker = new("NeoCompose.Animation.ResolveSegment");
 
         private MemberValue?[] contentRows = Array.Empty<MemberValue?>();
         private bool[] contentAuthored = Array.Empty<bool>();
@@ -1155,8 +1158,6 @@ namespace NeoCompose.Runtime
             this.segmentKey = segmentKey;
             this.label = label;
             trackValueId = track.value?.id;
-            writableValueChanged = HandleWritableValueChanged;
-            client.OnWritableValueChanged += writableValueChanged;
         }
 
         /// <summary>
@@ -1199,7 +1200,8 @@ namespace NeoCompose.Runtime
         {
             if (disposed) return;
             disposed = true;
-            client.OnWritableValueChanged -= writableValueChanged;
+            foreach (var subscription in valueSubscriptions.Values) subscription.Dispose();
+            valueSubscriptions.Clear();
             contentRows = Array.Empty<MemberValue?>();
             contentAuthored = Array.Empty<bool>();
         }
@@ -1208,7 +1210,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             string valueId)
         {
-            if (disposed) return;
+            if (disposed || resolving) return;
             if (dependencies.Contains(valueId)) dirty = true;
         }
 
@@ -1219,11 +1221,39 @@ namespace NeoCompose.Runtime
             contentRows = Array.Empty<MemberValue?>();
             contentAuthored = Array.Empty<bool>();
             dependencies.Clear();
-            using (client.CaptureValueReads(dependencies))
+            using var marker = ResolveSegmentMarker.Auto();
+            // As before, writes made by an effect-capable getter do not invalidate
+            // this resolution. Retain its subscriptions while reads are recaptured.
+            resolving = true;
+            try
             {
-                string? rowId = ResolveSegmentRowId();
-                if (rowId is null) return;
-                ReadContent(rowId);
+                using (client.CaptureValueReads(dependencies))
+                {
+                    string? rowId = ResolveSegmentRowId();
+                    if (rowId is not null) ReadContent(rowId);
+                }
+            }
+            finally
+            {
+                resolving = false;
+                if (!disposed) RefreshSubscriptions();
+            }
+        }
+
+        private void RefreshSubscriptions()
+        {
+            foreach (var pair in valueSubscriptions)
+            {
+                if (dependencies.Contains(pair.Key)) continue;
+                pair.Value.Dispose();
+                removedDependencies.Add(pair.Key);
+            }
+            foreach (string id in removedDependencies) valueSubscriptions.Remove(id);
+            removedDependencies.Clear();
+            foreach (string id in dependencies)
+            {
+                if (!valueSubscriptions.ContainsKey(id))
+                    valueSubscriptions.Add(id, client.SubscribeWritableValue(id, HandleWritableValueChanged));
             }
         }
 

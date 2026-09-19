@@ -1050,6 +1050,7 @@ namespace NeoCompose.Runtime
 
     public sealed class NeoObjectLayerChangedArgs
     {
+        internal bool PositionsOnly { get; set; }
         public NeoObjectLayerChangedArgs(
             string layerId,
             IReadOnlyList<NeoObjectInstanceId> removedInstances,

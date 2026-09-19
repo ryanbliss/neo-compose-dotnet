@@ -498,7 +498,7 @@ namespace NeoCompose.Runtime
             InitFromValueData();
             // Subscribe before registering so the first value-row change is
             // observable from the moment the node exists.
-            client.OnWritableValueChanged += HandleWritableValueChanged;
+            SubscribeToValueChanges();
             // Last step in the base ctor — children walked from a
             // collection-type derived ctor body run after this, but they
             // register under their own keys, so registration order is
@@ -515,15 +515,24 @@ namespace NeoCompose.Runtime
             : base(client, ResolveMember(client, memberId), overrideValueId, ownership)
         {
             InitFromValueData();
-            client.OnWritableValueChanged += HandleWritableValueChanged;
+            SubscribeToValueChanges();
             client.RegisterNode(this);
         }
 
         public override void Dispose()
         {
             if (isDisposed) return;
-            client.OnWritableValueChanged -= HandleWritableValueChanged;
+            valueChangeSubscription?.Dispose();
             base.Dispose();
+        }
+
+        private System.IDisposable? valueChangeSubscription;
+
+        private void SubscribeToValueChanges()
+        {
+            valueChangeSubscription?.Dispose();
+            valueChangeSubscription = valueId is string id
+                ? client.SubscribeWritableValue(id, HandleWritableValueChanged) : null;
         }
 
         private void HandleWritableValueChanged(
@@ -728,6 +737,7 @@ namespace NeoCompose.Runtime
             {
                 value = newRow;
                 boundValueId = newRow.id;
+                SubscribeToValueChanges();
             });
             parent?.BindChildValueId(plan, this, newRow.id);
         }

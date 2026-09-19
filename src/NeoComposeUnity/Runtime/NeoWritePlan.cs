@@ -22,6 +22,7 @@ namespace NeoCompose.Runtime
     {
         internal readonly NeoClient Client;
         internal readonly long BaseRevision;
+        internal bool HasValidatedRuntimeLeaves;
         internal readonly List<NeoValidatedTileConversion> ValidatedTileConversions = new();
         internal readonly Dictionary<(string gridId, string layerId), NeoPreparedLayerRecords<NeoTilePlacementRecord>> PreparedTileLayers = new();
         internal readonly Dictionary<(string gridId, string layerId), NeoPreparedLayerRecords<NeoObjectPlacementRecord>> PreparedObjectLayers = new();
@@ -273,7 +274,7 @@ namespace NeoCompose.Runtime
                 foreach (var item in changed)
                     if (!plan.Rows.ContainsKey((item.ownership, item.valueId))
                         && preparedExpansions?.HiddenVirtualIds.Contains(item.valueId) == true)
-                        OnWritableValueChanged?.Invoke(item.ownership, item.valueId);
+                        PublishWritableValueChange(item.ownership, item.valueId);
                 foreach (var pair in plan.Bindings)
                 {
                     OnStaticBindingChanged?.Invoke(pair.Key.ownership, pair.Key.memberId);
