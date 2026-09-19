@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.39.1] - 2026-09-19
+
+- Resolve a sparse override member's `enumId`, `classId`, `entryMemberId`, and `keyEnumId` through its `extendsMemberId` chain, matching the web resolver. A subclass override such as `public override readonly ItemType Type = .Garden;` is stored without `enumId`, and loading it used to fail with `ArgumentNullException: key` from `NeoClient.TryGetEnum`.
+- Give every constructor collection argument its own array, so two rows that both store an empty list no longer share one origin key. Replaying a second empty-list instance — a `NeoCellPattern` with no offsets, for example — used to fail with "Key already in the list".
+
 ## [0.39.0] - 2026-09-17
 
 - Execute NeoScript object initializers as construction followed by ordinary assignments, including property setters.

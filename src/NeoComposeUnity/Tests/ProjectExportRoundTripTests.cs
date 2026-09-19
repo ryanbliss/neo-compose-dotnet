@@ -1293,6 +1293,81 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void OverrideKindIdentity_InheritsWithoutChangingSparseExport()
+        {
+            var enumRoot = new EnumMember { id = "enum-root", enumId = "first-enum" };
+            var enumOverride = (EnumMember)JsonConvert.DeserializeObject<Member>(@"{
+                'id':'enum-override','kind':8,'extendsMemberId':'enum-root',
+                'defaultValue':{'value':['option']}
+            }")!;
+            var enumRedeclared = (EnumMember)JsonConvert.DeserializeObject<Member>(@"{
+                'id':'enum-redeclared','kind':8,'extendsMemberId':'enum-override',
+                'enumId':'explicit-enum'
+            }")!;
+            var classRoot = new ClassMember { id = "class-root", classId = "first-class" };
+            var classOverride = (ClassMember)JsonConvert.DeserializeObject<Member>(@"{
+                'id':'class-override','kind':7,'extendsMemberId':'class-root'
+            }")!;
+            var listRoot = new ListMember { id = "list-root", entryMemberId = "first-entry" };
+            var listOverride = (ListMember)JsonConvert.DeserializeObject<Member>(@"{
+                'id':'list-override','kind':6,'extendsMemberId':'list-root'
+            }")!;
+            var dictionaryRoot = new DictionaryMember
+            {
+                id = "dictionary-root",
+                entryMemberId = "first-key-entry",
+                KeyKind = NeoDictionaryKeyKind.Enum,
+                keyEnumId = "first-key-enum",
+            };
+            var dictionaryOverride = (DictionaryMember)JsonConvert.DeserializeObject<Member>(@"{
+                'id':'dictionary-override','kind':5,'extendsMemberId':'dictionary-root'
+            }")!;
+            var members = new Dictionary<string, Member>
+            {
+                [enumRoot.id] = enumRoot,
+                [enumOverride.id] = enumOverride,
+                [enumRedeclared.id] = enumRedeclared,
+                [classRoot.id] = classRoot,
+                [classOverride.id] = classOverride,
+                [listRoot.id] = listRoot,
+                [listOverride.id] = listOverride,
+                [dictionaryRoot.id] = dictionaryRoot,
+                [dictionaryOverride.id] = dictionaryOverride,
+            };
+
+            NeoMemberShapeResolution.ResolveAll(members);
+
+            Assert.AreEqual("first-enum", enumOverride.enumId);
+            Assert.AreEqual("explicit-enum", enumRedeclared.enumId);
+            Assert.AreEqual("first-class", classOverride.classId);
+            Assert.AreEqual("first-entry", listOverride.entryMemberId);
+            Assert.AreEqual("first-key-entry", dictionaryOverride.entryMemberId);
+            Assert.AreEqual(NeoDictionaryKeyKind.Enum, dictionaryOverride.KeyKind);
+            Assert.AreEqual("first-key-enum", dictionaryOverride.keyEnumId);
+
+            var enumWire = JObject.Parse(JsonConvert.SerializeObject(enumOverride));
+            Assert.IsFalse(enumWire.ContainsKey("enumId"));
+            Assert.AreEqual(
+                "explicit-enum",
+                JObject.Parse(JsonConvert.SerializeObject(enumRedeclared)).Value<string>("enumId"));
+            Assert.IsFalse(JObject.Parse(JsonConvert.SerializeObject(classOverride)).ContainsKey("classId"));
+            Assert.IsFalse(JObject.Parse(JsonConvert.SerializeObject(listOverride)).ContainsKey("entryMemberId"));
+            var dictionaryWire = JObject.Parse(JsonConvert.SerializeObject(dictionaryOverride));
+            Assert.IsFalse(dictionaryWire.ContainsKey("entryMemberId"));
+            Assert.IsFalse(dictionaryWire.ContainsKey("keyEnumId"));
+            Assert.AreEqual(
+                "first-enum",
+                JObject.Parse(JsonConvert.SerializeObject(enumRoot)).Value<string>("enumId"));
+
+            var roundTripped = (EnumMember)enumWire.ToObject<Member>()!;
+            members[enumOverride.id] = roundTripped;
+            enumRoot.enumId = "second-enum";
+            NeoMemberShapeResolution.ResolveAll(members);
+            Assert.AreEqual("second-enum", roundTripped.enumId);
+            Assert.IsFalse(JObject.Parse(JsonConvert.SerializeObject(roundTripped)).ContainsKey("enumId"));
+        }
+
+        [Test]
         public void LookupCollectionValue_AbsentInheritsButNullClears()
         {
             var root = (LookupMember)JsonConvert.DeserializeObject<Member>(@"{

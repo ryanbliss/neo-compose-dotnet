@@ -5079,7 +5079,11 @@ namespace NeoCompose.Runtime
                             var values = new List<object?>();
                             foreach (string id in ids)
                                 values.Add(Read(id, entryMember, entryStorage, entryType));
-                            object?[] result = values.ToArray();
+                            // One array per row: List.ToArray() hands every
+                            // empty list the shared Array.Empty singleton, and
+                            // the origins table keys on reference identity.
+                            var result = new object?[values.Count];
+                            values.CopyTo(result);
                             ConstructorCollectionOrigins.Add(result, new NeoScript.NSGetterEvaluator.RowReference(
                                 valueId, storage, member: sourceMember));
                             return result;
