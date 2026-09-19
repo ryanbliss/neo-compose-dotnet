@@ -3991,5 +3991,24 @@ namespace NeoCompose.Tests
                 value = value ?? new Dictionary<string, string>(),
             };
         }
+
+        /// <summary>
+        /// A declaration-default delegate argument — <c>this.SelectSclera</c>
+        /// on the row that declares it — records a null <c>valueId</c>.
+        /// Recording and replay are the two halves of one round trip, so the
+        /// token the first writes must be a token the second accepts.
+        /// </summary>
+        [Test]
+        public void DeclarationDefaultDelegateArgument_RecordsATokenReplayCanRead()
+        {
+            JToken? token = NeoClient.ConstructorArgumentToken(
+                new NeoDelegateValue { memberId = "member-select" },
+                "'selector' of constructor 'constructor-track'");
+
+            Assert.AreEqual(JTokenType.Null, token!["valueId"]!.Type);
+            NeoDelegateValue replayed = token.ToObject<NeoDelegateValue>()!;
+            Assert.AreEqual("member-select", replayed.memberId);
+            Assert.IsNull(replayed.valueId);
+        }
     }
 }
