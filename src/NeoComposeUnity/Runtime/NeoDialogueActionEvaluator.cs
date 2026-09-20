@@ -2754,6 +2754,13 @@ namespace NeoCompose.Runtime
                         throw new NSGetterRuntimeError(
                             $"Member '{memberMember.name}' is readonly and can only be changed through its class default.");
                     }
+                    if (memberMember is GenericMember)
+                    {
+                        memberMember = NeoGenericResolution.SubstituteMember(
+                            client, memberMember,
+                            NeoNSFunctionRuntime.ResolveReceiverGenericEnv(
+                                client, receiver!, ctx, $"Member '{memberMember.name}'"));
+                    }
                     return new NeoClassMemberWriteTarget(receiverRowId, keyString, memberMember!, ownership);
                 }
                 return new NeoDictionaryEntryWriteTarget(receiverRowId, keyString, targetType, ownership);

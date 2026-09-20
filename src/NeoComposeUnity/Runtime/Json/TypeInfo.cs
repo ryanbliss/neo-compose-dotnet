@@ -19,6 +19,7 @@ namespace NeoCompose.Runtime.Json
     [JsonConverter(typeof(TypeInfoConverter))]
     public abstract class TypeInfo
     {
+        [JsonConverter(typeof(TypeInfoKindConverter))]
         public MemberKind type;
         public bool required;
 
@@ -128,6 +129,24 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo entryTypeInfo = null!;
         public string? collectionMemberId;
         public string? collectionValueId;
+    }
+
+    // Unlike member records, TypeInfo uses string sentinels for Unknown and Void.
+    // Preserve that wire shape when closures are written into save constructor arguments.
+    public sealed class TypeInfoKindConverter : JsonConverter
+    {
+        public override bool CanRead => false;
+        public override bool CanConvert(Type objectType) => objectType == typeof(MemberKind);
+
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+        {
+            var kind = (MemberKind)value!;
+            if (kind is MemberKind.Unknown or MemberKind.Void) writer.WriteValue(kind.ToString());
+            else writer.WriteValue((int)kind);
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+            => throw new NotSupportedException();
     }
 
     public class TypeInfoConverter : DiscriminatedConverter<TypeInfo>

@@ -2332,6 +2332,115 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SavedClosure_RoundTripsUnknownTypeDiscriminator()
+        {
+            var closure = new NeoDelegateValue
+            {
+                action = new FunctionWithReturnType
+                {
+                    typeInfo = IntType(),
+                    parameters = new[] { Parameter("__this__", new UnknownTypeInfo { type = MemberKind.Unknown, required = true }) },
+                    instructions = Array.Empty<Instruction>(),
+                },
+            };
+            var json = JObject.FromObject(closure);
+            Assert.AreEqual("Unknown", (string?)json["action"]!["parameters"]![0]!["typeInfo"]!["type"]);
+            var restored = json.ToObject<NeoDelegateValue>();
+            Assert.IsInstanceOf<UnknownTypeInfo>(restored!.action!.parameters![0].typeInfo);
+            Assert.AreEqual(MemberKind.Int, restored.action.typeInfo.type);
+        }
+
+        [Test]
+        public void DelegateReturnType_RoundTripsVoidDiscriminator()
+        {
+            var type = new DelegateTypeInfo
+            {
+                type = MemberKind.NSDelegate,
+                returnTypeInfo = new VoidTypeInfo { type = MemberKind.Void, required = true },
+                argumentTypes = Array.Empty<TypeInfo>(),
+            };
+            var json = JObject.FromObject(type);
+            Assert.AreEqual("Void", (string?)json["returnTypeInfo"]!["type"]);
+            Assert.IsInstanceOf<VoidTypeInfo>(json.ToObject<DelegateTypeInfo>()!.returnTypeInfo);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Invoke_WritesGenericFieldsUsingSavePlacement(bool readOnly)
+        {
+            const string param = "watcher-param";
+            var current = new GenericMember
+            {
+                id = "watcher-current", name = "Current", projectId = ProjectId,
+                kind = MemberKind.Generic, genericParamId = param,
+                Mutability = readOnly ? NeoMemberMutabilityKind.ReadOnly : NeoMemberMutabilityKind.Mutable,
+            };
+            if (readOnly) current.Storage = NeoMemberStorage.Immutable;
+            var previous = new GenericMember
+            {
+                id = "watcher-previous", name = "Previous", projectId = ProjectId,
+                kind = MemberKind.Generic, genericParamId = param,
+            };
+            AssignInstruction Assign(string key, Pointer value) => new()
+            {
+                type = InstructionKind.Assign, operatorValue = "=", pointer = value,
+                target = new WriteTarget
+                {
+                    pointer = Key(Variable("__this__"), key), typeInfo = IntType(),
+                    writability = WritabilityKind.Save,
+                },
+            };
+            var function = ScriptFunction("watcher-set", "Set", false, IntType(),
+                new[] { Argument("value", MemberKind.Int) },
+                Action(IntType(), new[] { Argument("value", MemberKind.Int) },
+                    Assign("Current", Variable("__arg_0__")),
+                    Assign("Previous", Key(Variable("__this__"), "Current")),
+                    Return(Key(Variable("__this__"), "Previous"))));
+            var binding = new IntMember
+            {
+                id = "watcher-int", name = "Int", projectId = ProjectId, kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            var placement = new ClassMember
+            {
+                id = "watcher-placement", name = "Watcher", projectId = ProjectId,
+                kind = MemberKind.Class, classId = "receiver-class",
+                classArguments = new Dictionary<string, GenericBinding>
+                {
+                    [param] = new() { kind = NeoGenericBindingKind.Member, memberId = binding.id },
+                },
+            };
+            var watcherClass = ReceiverClass(("Current", current.id), ("Previous", previous.id), ("Set", function.id));
+            watcherClass.genericParams = new List<GenericParamDeclaration> { new() { id = param, name = "T" } };
+            var rootClass = new NeoSchemaClass
+            {
+                id = "root-class", name = "Root", projectId = ProjectId,
+                schema = new Dictionary<string, string> { ["Watcher"] = placement.id },
+            };
+            using NeoClient client = BuildClient(new JsonMember[] { current, previous, function, binding, placement }, watcherClass, new[] { rootClass });
+            var root = ObjectValue("root-save-value", "root-class");
+            root.value!["Watcher"] = "saved-watcher";
+            client.SetWritableValue(NeoValueOwnership.Save, root);
+            client.SetWritableValue(NeoValueOwnership.Save, ObjectValue("saved-watcher", watcherClass.id));
+            var node = new NeoMemberNSFunction(client, function, null, NeoValueOwnership.Save);
+            if (readOnly)
+            {
+                StringAssert.Contains("readonly", Assert.Throws<NSGetterRuntimeError>(() => node.Invoke("saved-watcher", new object?[] { 12 }))!.Message);
+                return;
+            }
+            Assert.AreEqual(12L, Convert.ToInt64(node.Invoke("saved-watcher", new object?[] { 12 })));
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "saved-watcher", out ObjectMemberValue? saved));
+            string currentId = saved!.value!["Current"];
+            string previousId = saved.value["Previous"];
+            Assert.AreEqual(23L, Convert.ToInt64(node.Invoke("saved-watcher", new object?[] { 23 })));
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "saved-watcher", out saved));
+            Assert.AreEqual(currentId, saved!.value!["Current"]);
+            Assert.AreEqual(previousId, saved.value["Previous"]);
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, currentId, out NumberMemberValue? number));
+            Assert.AreEqual(23d, number!.value);
+        }
+
+        [Test]
         public void Invoke_MutationBodyReturnsTheUpdatedSaveValue()
         {
             FunctionArgumentTypeInfo argument = Argument("RequiredLevel", MemberKind.Int);

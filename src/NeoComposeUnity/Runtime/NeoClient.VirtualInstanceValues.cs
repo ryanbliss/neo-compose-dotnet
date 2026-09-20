@@ -1531,6 +1531,10 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             ObjectMemberValue instanceRoot)
         {
+            // Removed fields are intentionally absent, not missing defaults.
+            // Do not recreate their virtual descendants or keep them reachable.
+            if (TryGetWritableValue(ownership, materializedId ?? node.virtualId, out MemberValue? storedRow)
+                && storedRow.IsRemoved) return;
             MemberValue? materialized = null;
             if (materializedId is not null)
                 TryGetOverlaidValue(ownership, materializedId, out materialized);
@@ -1542,10 +1546,17 @@ namespace NeoCompose.Runtime
             if (materialized is null
                 && materializedId != node.virtualId)
             {
+                if (TryGetWritableValue(ownership, node.virtualId, out MemberValue? fallbackRow)
+                    && fallbackRow.IsRemoved) return;
                 TryGetOverlaidValue(ownership, node.virtualId, out materialized);
             }
             if (materialized is null)
             {
+                // A materialized nested instance can retain default-child edges
+                // from its outer constructor namespace. Recreate the default at
+                // the persisted edge's identity so that reference stays valid.
+                if (materializedId is not null && IsVirtualInstanceRoot(instanceRoot))
+                    node.virtualId = materializedId;
                 IndexVirtualSubtree(expansion, node, instanceRoot, ownership);
                 return;
             }
