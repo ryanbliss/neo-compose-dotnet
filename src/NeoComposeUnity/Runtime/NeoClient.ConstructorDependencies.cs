@@ -88,10 +88,12 @@ namespace NeoCompose.Runtime
                 NeoGenericResolution.CloseClassArgumentsFromStamp(row.genericBindings, placement?.classArguments));
             for (int index = 0; index < constructor.argumentTypes.Length; index++)
             {
-                var parameter = NeoNSFunctionRuntime.ResolveInvocationTypeInfo(this, constructor.argumentTypes[index], env);
-                if (parameter.type is not (MemberKind.Class or MemberKind.Interface or MemberKind.List or MemberKind.Dictionary)
-                    || !row.constructorArgs!.TryGetValue(ConstructorParameterId(constructor, index), out var token)
+                // Scalar arguments cannot retain another row. Some detached
+                // authored frames have no closed placement until instantiated.
+                if (!row.constructorArgs!.TryGetValue(ConstructorParameterId(constructor, index), out var token)
                     || token?.Type != JTokenType.String) continue;
+                var parameter = NeoNSFunctionRuntime.ResolveInvocationTypeInfo(this, constructor.argumentTypes[index], env);
+                if (parameter.type is not (MemberKind.Class or MemberKind.Interface or MemberKind.List or MemberKind.Dictionary)) continue;
                 var pending = new Queue<(string id, TypeInfo type)>();
                 var visited = new HashSet<string>();
                 pending.Enqueue((token.Value<string>()!, parameter));

@@ -147,6 +147,9 @@ namespace NeoCompose.Runtime
         internal NeoTileLayerRenderSnapshot GetRenderSnapshot() =>
             Binding.Primitive.GetTileLayerRenderSnapshot(LayerClassId);
 
+        internal IEnumerable<NeoTileProjection> EnumerateRenderTiles() =>
+            Binding.Primitive.EnumerateTileProjections(LayerClassId);
+
         protected NeoPlacementResult TrySetTileClass<TAsset>(Vector2Int cell)
             where TAsset : class =>
             WritablePrimitive().TrySetTile(
@@ -326,6 +329,12 @@ namespace NeoCompose.Runtime
         {
             NeoGeneratedTileLayerValue generated => generated.GetRenderSnapshot(),
             ReadOnlyNeoTileLayerRuntime runtime => runtime.GetRenderSnapshot(),
+            _ => throw new InvalidOperationException($"Tile layer '{layer.GetType().Name}' does not provide a render projection."),
+        };
+        internal static IEnumerable<NeoTileProjection> EnumerateRenderTiles(IReadOnlyNeoTileLayerRuntime layer) => layer switch
+        {
+            NeoGeneratedTileLayerValue generated => generated.EnumerateRenderTiles(),
+            ReadOnlyNeoTileLayerRuntime runtime => runtime.EnumerateRenderTiles(),
             _ => throw new InvalidOperationException($"Tile layer '{layer.GetType().Name}' does not provide a render projection."),
         };
         internal static NeoTileProjection? GetTile(IReadOnlyNeoTileLayerRuntime layer, Vector2Int cell) => layer switch

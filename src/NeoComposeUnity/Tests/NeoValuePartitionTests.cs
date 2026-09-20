@@ -300,6 +300,48 @@ namespace NeoCompose.Tests
         // Overlay writes inherit the partition stamp.
         // ------------------------------------------------------------------
 
+        [TestCase(NeoValueOwnership.Save)]
+        [TestCase(NeoValueOwnership.Session)]
+        public void FirstVirtualScalarWriteRetainsPartitionWithoutRebuildingDefaults(NeoValueOwnership ownership)
+        {
+            var data = BuildPartitionedProjectData();
+            foreach (string key in new[] { "SortingOrder", "Unrelated" })
+            {
+                data.classes[TileLayerLinkClassId].schema[key] = key;
+                data.members[key] = new IntMember
+                {
+                    id = key, name = key, kind = MemberKind.Int,
+                    defaultValue = new NumberMemberValueBase { value = 70 },
+                };
+            }
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            client.LoadValuePartition(WorldPartitionKey);
+            using var link = new NeoMemberClassWritable(client,
+                (ClassMember)data.members["grid-child-entry-member"], "background-link", ownership);
+            var before = link.Get<NeoMemberInt>("SortingOrder").value!;
+            var unrelated = link.Get<NeoMemberInt>("Unrelated").value!;
+            Assert.AreEqual(WorldPartitionKey, before.mapKey);
+            Assert.IsFalse(client.values.ContainsKey(before.id), "Exercise a virtual leaf, not an authored row.");
+            int writes = 0;
+            client.OnWritableValuesPublished += (_, plan) =>
+            {
+                writes++;
+                Assert.IsTrue(plan.HasValidatedRuntimeLeaves, "A partitioned scalar override must retain leaf validation.");
+                Assert.IsEmpty(plan.PreparedTileLayers);
+                Assert.IsEmpty(plan.PreparedObjectLayers);
+            };
+            foreach (int value in new[] { 70, 71 })
+            {
+                link.SetSerializedValue("SortingOrder", NeoValueWritePayload.FromValue(value));
+                Assert.IsTrue(client.TryGetWritableValue(ownership, before.id, out NumberMemberValue? written));
+                Assert.AreEqual(WorldPartitionKey, written!.mapKey);
+                Assert.AreEqual(value, written.value);
+                Assert.IsTrue(client.TryGetValue(unrelated.id, out MemberValue? after));
+                Assert.AreSame(unrelated, after, "The sibling default must not be replayed.");
+            }
+            Assert.AreEqual(2, writes, "First-write pinning must remain observable even when the value is unchanged.");
+        }
+
         [Test]
         public void SaveShadow_OfAuthoredPartitionRow_InheritsTheStamp()
         {

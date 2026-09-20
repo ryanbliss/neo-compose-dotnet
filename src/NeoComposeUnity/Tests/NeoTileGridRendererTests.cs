@@ -45,6 +45,56 @@ namespace NeoCompose.Tests
         private const string BackgroundLayerClassId = "background-layer-class";
         private const string ObjectsLayerClassId = "objects-layer-class";
 
+        [Test]
+        public void RenderEnumeration_PreservesPendingTilesWhenAnObjectMovesBetweenYields()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            var expected = primitive.GetTileProjections(BackgroundLayerClassId)
+                .Select(tile => (tile.InstanceId, tile.Cell)).ToArray();
+            using var iterator = primitive.EnumerateTileProjections(BackgroundLayerClassId).GetEnumerator();
+            Assert.IsTrue(iterator.MoveNext());
+            var actual = new List<(NeoTileInstanceId, Vector2Int)> { (iterator.Current.InstanceId, iterator.Current.Cell) };
+            client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue
+            {
+                id = "shop-1-position", value = new NeoVector3Value { x = 30, y = 40 },
+            });
+            while (iterator.MoveNext()) actual.Add((iterator.Current.InstanceId, iterator.Current.Cell));
+            CollectionAssert.AreEqual(expected, actual);
+        }
+
+        [Test]
+        public void RemovingANewTileClearsTheLookupAndLiveTilemap()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            var sprite = CreateTestSprite("removed-tile");
+            var primitive = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(sprite), BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+            var go = new GameObject("Tile removal");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(new TestTileGridContent(primitive, new[] { new TestGeneratedTileLayerRuntime(primitive) }));
+                var cell = new Vector2Int(40, 40);
+                Assert.IsTrue(primitive.TrySetTile(BackgroundLayerClassId, cell, TileClassId, new[] { TileClassId }).Ok);
+                var tile = primitive.ResolveTile(BackgroundLayerClassId, cell, TileClassId);
+                Assert.IsNotNull(tile);
+                var map = go.GetComponentInChildren<Tilemap>();
+                Assert.IsTrue(map.HasTile(new Vector3Int(40, 40, 0)));
+                Assert.IsTrue(primitive.TryRemoveTile(tile!.InstanceId).Ok);
+                Assert.IsNull(primitive.ResolveTile(BackgroundLayerClassId, cell, TileClassId));
+                Assert.IsFalse(map.HasTile(new Vector3Int(40, 40, 0)));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(sprite.texture);
+                UnityEngine.Object.DestroyImmediate(sprite);
+            }
+        }
+
         [TestCase(0)]
         [TestCase(1000)]
         public void RuntimeMovement_PatchesOnlyMovedObjectAndItsProjectedTiles(int unrelatedTiles)
@@ -1952,7 +2002,7 @@ namespace NeoCompose.Tests
                 },
             };
 
-        private static NeoObjectProjection SpawnAnimationTestObject(NeoClient client)
+        private static NeoObjectProjection SpawnAnimationTestObject(NeoClient client, Vector2Int? cell = null)
         {
             NeoTileGridPrimitive primitive = NeoTileGridPrimitive.ResolveForSave(
                 client,
@@ -1971,8 +2021,8 @@ namespace NeoCompose.Tests
                 "shop-object",
                 BuildClassBackedReadOnlyFactories(),
                 BuildClassBackedWritableFactories())!;
-            Assert.IsTrue(layer.SpawnClone(new Vector2Int(4, 5), asset).Ok);
-            return layer.GetObjectProjection(new Vector2Int(4, 5))!;
+            Assert.IsTrue(layer.SpawnClone(cell ?? new Vector2Int(4, 5), asset).Ok);
+            return layer.GetObjectProjection(cell ?? new Vector2Int(4, 5))!;
         }
 
         [Test]
@@ -3133,6 +3183,73 @@ namespace NeoCompose.Tests
                 UnityEngine.Object.DestroyImmediate(sprite.texture);
                 UnityEngine.Object.DestroyImmediate(sprite);
             }
+        }
+
+        [UnityTest]
+        public IEnumerator RenderAsync_HydratesGeneratedTilesWithinTheFrameBudget()
+        {
+            yield return new EnterPlayMode();
+            var data = BuildClassBackedTileGridProjectData();
+            for (int i = 0; i < 10; i++)
+            {
+                string id = "async-tile-" + i;
+                data.values[id] = new ObjectMemberValue
+                {
+                    id = id, classId = TileClassId, containerId = "background-link-tiles",
+                    value = new Dictionary<string, string> { ["Cell"] = id + "-cell" },
+                };
+                data.values[id + "-cell"] = new Vector2MemberValue
+                {
+                    id = id + "-cell", value = new NeoVector2Value { x = i + 100, y = 100 },
+                };
+            }
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var sprite = CreateTestSprite("async-hydration");
+            var factories = BuildClassBackedReadOnlyFactories(sprite);
+            var originalFactory = factories[TileClassId];
+            var hydratedByFrame = new Dictionary<int, int>();
+            factories[TileClassId] = (resolvedClient, node) =>
+            {
+                if (node.value?.id.StartsWith("async-tile-", StringComparison.Ordinal) == true)
+                    hydratedByFrame[Time.frameCount] = hydratedByFrame.GetValueOrDefault(Time.frameCount) + 1;
+                return originalFactory(resolvedClient, node);
+            };
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
+                factories, BuildClassBackedWritableFactories());
+            var go = new GameObject("Async generated tile hydration");
+            Exception? error = null;
+            bool complete = false;
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                Render();
+                for (int frame = 0; frame < 120 && !complete; frame++) yield return null;
+                if (error is not null) throw error;
+                Assert.IsTrue(complete);
+                Assert.AreEqual(10, hydratedByFrame.Values.Sum());
+                Assert.That(hydratedByFrame.Values.Max(), Is.LessThanOrEqualTo(2),
+                    "The one-tile budget permits at most one lookahead, not hydration of the whole layer.");
+                var map = go.GetComponentInChildren<Tilemap>();
+                for (int i = 0; i < 10; i++) Assert.IsNotNull(map.GetTile(new Vector3Int(i + 100, 100, 0)));
+
+                async void Render()
+                {
+                    try
+                    {
+                        await renderer.RenderAsync(primitive, new[] { new TestGeneratedTileLayerRuntime(primitive) },
+                            options: new NeoTileGridRenderOptions { MaxTilesPerFrame = 1, LiveSync = false });
+                    }
+                    catch (Exception exception) { error = exception; }
+                    finally { complete = true; }
+                }
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(sprite.texture);
+                UnityEngine.Object.DestroyImmediate(sprite);
+            }
+            yield return new ExitPlayMode();
         }
 
         [UnityTest]
@@ -4938,6 +5055,134 @@ namespace NeoCompose.Tests
             {
                 UnityEngine.Object.DestroyImmediate(go);
                 DestroyTestSprite(hatSprite);
+            }
+        }
+
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        public void Render_NestedPositionWritesPreserveAnchorsAndOnlyMoveTheirOwnTransforms(bool composition, bool destroyComponent)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildPlacementAnimationProjectData());
+            var root = (TestComposedObject)SpawnAnimationTestObject(client).Info;
+            var part = (TestComposedObject)SpawnAnimationTestObject(client, new Vector2Int(5, 5)).Info;
+            part.Name = "Part";
+            part.Position = new NeoReadOnlyVector3(1, 2, 0);
+            var sprite = new TestSpriteObject(client, part.BackingNode)
+            {
+                Name = "Part", Position = part.Position, Size = new NeoReadOnlyVector3(2, 3, 0),
+            };
+            part.Children = new INeoWorldObjectValue[] { new TestSpriteChild { Name = "Art" } };
+            var sibling = new TestSpriteChild { Name = "Sibling" };
+            root.Children = new INeoWorldObjectValue[] { composition ? part : sprite, sibling };
+            void Write(Vector3 position)
+            {
+                part.Position = sprite.Position = new NeoReadOnlyVector3(position);
+                NeoGeneratedTypesSupport.SetValue(NeoGeneratedTypesSupport.AsWritable(part.BackingNode),
+                    "Position", NeoValueWritePayload.FromValue(position));
+            }
+            var go = new GameObject("Nested positions");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.CellSize = 2;
+                renderer.Render(NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(root, "Default", 12) });
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var placed));
+                var target = placed.transform.Find("Part");
+                var other = placed.transform.Find("Sibling");
+                var anchor = composition ? Vector3.zero : new Vector3(2, 3, 0);
+                Write(new Vector3(-.0625f, 0, 0));
+                Assert.AreEqual(anchor + new Vector3(-.125f, 0, 0), target.localPosition);
+                var otherPosition = other.localPosition;
+                var child = composition ? target.Find("Art") : null;
+                var childPosition = child != null ? child.localPosition : Vector3.zero;
+                foreach (var offset in new[] { Vector3.zero, new Vector3(.125f, -.25f, 1), Vector3.zero })
+                {
+                    client.BeginAnimationFrame();
+                    Write(Vector3.one);
+                    Write(offset);
+                    client.EndAnimationFrame();
+                    Assert.AreEqual(anchor + offset * 2, target.localPosition);
+                    Assert.AreEqual(otherPosition, other.localPosition);
+                    if (child != null) Assert.AreEqual(childPosition, child.localPosition);
+                }
+                // A queued animation callback must not survive teardown.
+                client.BeginAnimationFrame();
+                Write(Vector3.one);
+                var beforeDestroy = target.localPosition;
+                if (destroyComponent) UnityEngine.Object.DestroyImmediate(renderer);
+                else renderer.Clear();
+                Assert.DoesNotThrow(() => client.EndAnimationFrame());
+                Assert.DoesNotThrow(() => Write(new Vector3(5, 6, 0)));
+                if (destroyComponent) Assert.AreEqual(beforeDestroy, target.localPosition);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        [UnityTest]
+        public IEnumerator Render_NestedPositionsStopUpdatingAfterRendererDestruction()
+        {
+            // Unity dispatches OnDestroy for these runtime components in Play Mode.
+            yield return new EnterPlayMode();
+            Render_NestedPositionWritesPreserveAnchorsAndOnlyMoveTheirOwnTransforms(false, true);
+            Render_NestedPositionWritesPreserveAnchorsAndOnlyMoveTheirOwnTransforms(true, true);
+            yield return new ExitPlayMode();
+        }
+
+        [Test]
+        public void Render_NestedTileLinkPositionPreservesDistinctTileAnchors()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.classes[TileLayerLinkClassId].schema["Position"] = "object-position-member";
+            data.members["object-position-member"].DeclaredStorage = NeoMemberStorage.Session;
+            var second = JObject.FromObject(data.values["floor-local"]).ToObject<ObjectMemberValue>()!;
+            second.id = "second-floor";
+            second.value!["Cell"] = "second-cell";
+            data.values[second.id] = second;
+            data.values["second-cell"] = new Vector2MemberValue
+            {
+                id = "second-cell", value = new NeoVector2Value { x = 3, y = -2 },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            SeedWritableTileLayerLink(client);
+            client.AddSaveValue("shop-floor-link-tiles", new ArrayMemberValue
+            {
+                id = "shop-floor-link-tiles", value = new[] { "floor-local", "second-floor" },
+            });
+            var art = CreateTestSprite("tile");
+            var factories = BuildClassBackedReadOnlyFactories(art);
+            var writable = BuildClassBackedWritableFactories();
+            client.RegisterGeneratedClassFactories(factories, writable);
+            var link = (TestTileLayerLink)NeoGeneratedTypesSupport.ResolveClassValue(
+                client, "shop-floor-link", factories, writable)!;
+            var root = ResolveComposedTestObject(client);
+            root.Children = new INeoWorldObjectValue[] { link };
+            var go = new GameObject("Nested tile link positions");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.CellSize = 2;
+                renderer.Render(NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(root, "Default", 12) });
+                var drawn = go.GetComponentsInChildren<SpriteRenderer>();
+                Assert.AreEqual(2, drawn.Length);
+                var anchors = drawn.Select(tile => tile.transform.localPosition).ToArray();
+                Assert.AreNotEqual(anchors[0], anchors[1]);
+                foreach (var offset in new[] { new Vector3(.125f, -.25f, 0), Vector3.zero })
+                {
+                    link.Position = new NeoReadOnlyVector3(offset);
+                    NeoGeneratedTypesSupport.SetValue(NeoGeneratedTypesSupport.AsWritable(link.BackingNode),
+                        "Position", NeoValueWritePayload.FromValue(offset));
+                    for (int i = 0; i < drawn.Length; i++)
+                        Assert.AreEqual(anchors[i] + offset * 2, drawn[i].transform.localPosition);
+                }
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(art);
             }
         }
 

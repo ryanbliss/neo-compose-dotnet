@@ -153,6 +153,7 @@ namespace NeoCompose.Runtime
             /// GameObject.
             /// </summary>
             public bool? Applied { get; set; }
+            public NestedObjectPositionBinding? PositionBinding { get; set; }
         }
 
         /// <summary>
@@ -160,13 +161,22 @@ namespace NeoCompose.Runtime
         /// that governs its visibility. Bucketing is what keeps reconciling
         /// cheap: a 400-tile layer-link child is one bucket, not 400 entries.
         /// </summary>
-        private sealed class ObjectVisibilityIndex
+        private sealed class ObjectVisibilityIndex : IDisposable
         {
             private readonly Dictionary<INeoWorldObjectValue, RenderedObjectVisibility>
                 bucketsByValue =
                     new(ReferenceComparer<INeoWorldObjectValue>.Instance);
 
+            private readonly NeoTileGridRenderer renderer;
+
+            public ObjectVisibilityIndex(NeoTileGridRenderer renderer) => this.renderer = renderer;
+
             public List<RenderedObjectVisibility> Buckets { get; } = new();
+
+            public void Dispose()
+            {
+                foreach (var bucket in Buckets) bucket.PositionBinding?.Dispose();
+            }
 
             /// <summary>
             /// Records a rendered GameObject against the value that governs it.
@@ -175,15 +185,75 @@ namespace NeoCompose.Runtime
             /// <c>SpawnObject</c> applies the whole index in one pass once
             /// <c>NeoObjectBehaviour.Initialize</c> has run.
             /// </summary>
-            public void Register(INeoWorldObjectValue value, GameObject gameObject)
+            public void Register(INeoWorldObjectValue value, GameObject gameObject, bool trackPosition = true)
             {
                 if (!bucketsByValue.TryGetValue(value, out var bucket))
                 {
                     bucket = new RenderedObjectVisibility(value);
                     bucketsByValue[value] = bucket;
                     Buckets.Add(bucket);
+                    if (trackPosition && value is NeoGeneratedClassValue generated)
+                    {
+                        bucket.PositionBinding = new NestedObjectPositionBinding(renderer, value, generated);
+                    }
                 }
                 bucket.GameObjects.Add(gameObject);
+                bucket.PositionBinding?.Register(gameObject.transform);
+            }
+        }
+
+        /// <summary>
+        /// Tracks one nested value, preserving each rendered transform's fixed
+        /// sprite-center or tile-cell offset. Animation writes update only this
+        /// value's transforms, once per applied frame, before playback returns.
+        /// </summary>
+        private sealed class NestedObjectPositionBinding : IDisposable
+        {
+            private readonly NeoTileGridRenderer renderer;
+            private readonly INeoWorldObjectValue value;
+            private readonly List<(Transform Transform, Vector3 Anchor)> targets = new();
+            private readonly IDisposable subscription;
+            private Vector3 applied;
+            private bool disposed;
+
+            public NestedObjectPositionBinding(
+                NeoTileGridRenderer renderer,
+                INeoWorldObjectValue value,
+                NeoGeneratedClassValue generated)
+            {
+                this.renderer = renderer;
+                this.value = value;
+                applied = renderer.CellOffsetToLocalPosition(value.Position);
+                Action refresh = Refresh;
+                subscription = generated.WatchAnyChange((owner, changed, _) =>
+                {
+                    // Descendant writes bubble to composition owners. Only the
+                    // owner's Position (or replacement of the owner) can move it.
+                    if (ReferenceEquals(changed, owner.BackingNode)
+                        || (owner.BackingNode.TryGetSchemaKeyForChild(changed, out var key)
+                            && key == "Position"))
+                        generated.Client.RefreshAnimationRendering(refresh);
+                });
+            }
+
+            public void Register(Transform target) =>
+                targets.Add((target, target.localPosition - applied));
+
+            private void Refresh()
+            {
+                if (disposed) return;
+                var position = renderer.CellOffsetToLocalPosition(value.Position);
+                if (position == applied) return;
+                foreach (var target in targets)
+                    if (target.Transform != null)
+                        target.Transform.localPosition = target.Anchor + position;
+                applied = position;
+            }
+
+            public void Dispose()
+            {
+                disposed = true;
+                subscription.Dispose();
             }
         }
 
@@ -631,8 +701,7 @@ namespace NeoCompose.Runtime
                     var positions = new List<Vector3Int>(Math.Min(512, options.NormalizedMaxTilesPerFrame));
                     var tiles = new List<TileBase>(Math.Min(512, options.NormalizedMaxTilesPerFrame));
                     var renderedTiles = new Dictionary<Vector2Int, TileBase>();
-                    var snapshot = NeoWorldLayerRuntimeSupport.GetRenderSnapshot(layer);
-                    foreach (var tile in snapshot.Winners)
+                    foreach (var tile in NeoWorldLayerRuntimeSupport.EnumerateRenderTiles(layer))
                     {
                         token.ThrowIfCancellationRequested();
                         if (tilesThisFrame >= options.NormalizedMaxTilesPerFrame
@@ -733,7 +802,7 @@ namespace NeoCompose.Runtime
             CancelInFlightRender();
             StopLiveSync();
             DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.RendererDestroyed);
-            DisposeObjectPositionSubscriptions();
+            ClearRenderedIndexes();
             ClearTileBaseCache();
         }
 
@@ -964,7 +1033,8 @@ namespace NeoCompose.Runtime
         private void DestroyRenderedObject(NeoObjectInstanceId instanceId)
         {
             DisposeObjectPositionSubscription(instanceId);
-            objectVisibilityByInstanceId.Remove(instanceId);
+            if (objectVisibilityByInstanceId.Remove(instanceId, out var visibility))
+                visibility.Dispose();
             objectSpritesByInstanceId.Remove(instanceId);
             if (!objectRootsByInstanceId.TryGetValue(instanceId, out var root) ||
                 root == null)
@@ -1207,6 +1277,7 @@ namespace NeoCompose.Runtime
             objectLayerRootsByLayerId.Clear();
             DisposeObjectPositionSubscriptions();
             objectRootsByInstanceId.Clear();
+            foreach (var visibility in objectVisibilityByInstanceId.Values) visibility.Dispose();
             objectVisibilityByInstanceId.Clear();
             objectSpritesByInstanceId.Clear();
             objectLayerFallbackSortingOrdersByLayerId.Clear();
@@ -1496,7 +1567,7 @@ namespace NeoCompose.Runtime
             go.transform.localPosition = CellToLocalPosition(instance.Cell);
             TrackObjectPosition(instance);
 
-            var visibility = new ObjectVisibilityIndex();
+            var visibility = new ObjectVisibilityIndex(this);
             objectVisibilityByInstanceId[instance.InstanceId] = visibility;
             var sprites = new List<RenderedObjectSprite>();
             objectSpritesByInstanceId[instance.InstanceId] = sprites;
@@ -1506,7 +1577,7 @@ namespace NeoCompose.Runtime
             // run.
             if (instance.Object is INeoWorldObjectValue rootObject)
             {
-                visibility.Register(rootObject, go);
+                visibility.Register(rootObject, go, trackPosition: false);
             }
 
             var sortingOrder =

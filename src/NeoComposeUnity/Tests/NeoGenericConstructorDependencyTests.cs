@@ -83,6 +83,24 @@ namespace NeoCompose.Tests
             CollectionAssert.IsEmpty(unlinked);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public void SaveSweepDoesNotTypeDetachedScalarOrOmittedConstructorArguments(bool hasScalarArgument)
+        {
+            var data = BuildProjectData();
+            data.classes["watcher-class"].allowedStorage = NeoMemberStorage.Save;
+            var row = ObjectValue(WatcherValueId, "watcher-class");
+            row.instanceConstructorId = "watcher-constructor";
+            row.constructorArgs = new Dictionary<string, JToken?>();
+            if (hasScalarArgument) row.constructorArgs["__arg_0__"] = new JValue(60);
+            data.values[row.id] = row;
+            // A detached authored animation frame has no closed placement.
+            // Scalar and omitted arguments cannot reference retained rows.
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            Assert.IsFalse(client.TryInferMemberForValueId(row.id, out _));
+            Assert.DoesNotThrow(() => client.FindUnlinkedSaveValueIds());
+        }
+
         private static ProjectData BuildProjectData()
         {
             var rootClass = new NeoSchemaClass
