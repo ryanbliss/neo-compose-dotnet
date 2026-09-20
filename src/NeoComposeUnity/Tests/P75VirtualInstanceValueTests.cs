@@ -1880,6 +1880,7 @@ namespace NeoCompose.Tests
         public void PersistedNestedSparseRootAtItsVirtualIdReplaysAfterItsParent()
         {
             string nestedId;
+            string deepId;
             string saved;
             using (NeoClient first = NeoTestSaveStack.ClientFromSchema(
                 BuildNestedProjectData()))
@@ -1888,6 +1889,7 @@ namespace NeoCompose.Tests
                     .Get<NeoMemberClassWritable>("Thing")
                     .Get<NeoMemberClassWritable>("Nested");
                 nestedId = nested.value!.id;
+                deepId = nested.Get<NeoMemberClassWritable>("Deep").value!.id;
                 // Make Base a real selection change so the public ToVariant
                 // seam persists the virtual receiver instead of returning early.
                 nested.value.instanceVariantId = "previous-variant";
@@ -1913,6 +1915,10 @@ namespace NeoCompose.Tests
                 .Get<NeoMemberClassWritable>("Thing")
                 .Get<NeoMemberClassWritable>("Nested");
             Assert.AreEqual(nestedId, nestedValue.value!.id);
+            Assert.AreEqual(deepId, nestedValue.Get<NeoMemberClassWritable>("Deep").value!.id);
+            Assert.IsTrue(client.TryGetValue<ObjectMemberValue>(deepId, out var restoredDefault));
+            Assert.AreEqual(deepId, restoredDefault!.id);
+            Assert.IsFalse(client.saveValues.ContainsKey(deepId), "Reconstructed defaults remain virtual.");
             Assert.AreEqual(
                 5d,
                 nestedValue
