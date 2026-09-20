@@ -33,12 +33,12 @@ namespace Assets.Scripts.Neo
 
         internal new static SampleTileLayerLink Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleTileLayerLink>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleTileLayerLink>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-sample-blocked-path" => new SampleBlockedPath(client, node, false, NeoValueOwnership.Save),
+                    "class-sample-blocked-path" => new SampleBlockedPath(factoryClient, factoryNode, false, NeoValueOwnership.Save),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'SampleTileLayerLink' without a concrete client type id."),
                 };
             });
@@ -46,12 +46,12 @@ namespace Assets.Scripts.Neo
 
         internal new static SampleTileLayerLink CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleTileLayerLink>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleTileLayerLink>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-sample-blocked-path" => new SampleBlockedPath(client, node, false, node.ownership),
+                    "class-sample-blocked-path" => new SampleBlockedPath(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'SampleTileLayerLink' without a concrete client type id."),
                 };
             });
@@ -81,7 +81,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<SampleTileInstance>(client, writableNode.Get<NeoMemberListWritable>("Tiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Tiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.SampleTileInstance.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.SampleTileInstance.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("SampleTileLayerLink.Tiles"), () => IsReadOnly);
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Tiles");
+                if (TryGetStoredView<NeoList<SampleTileInstance>>("Tiles", memberNode, out var cached)) return cached;
+                return CacheStoredView("Tiles", memberNode, new NeoList<SampleTileInstance>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Tiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.SampleTileInstance.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.SampleTileInstance.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("SampleTileLayerLink.Tiles"), () => IsReadOnly));
             }
         }
 
@@ -89,7 +91,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlySampleTileInstance>(client, node.Get<NeoMemberList>("Tiles"), (client, child) => global::Assets.Scripts.Neo.SampleTileInstance.Create(client, (NeoMemberClass)child));
+                var memberNode = node.Get<NeoMemberList>("Tiles");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlySampleTileInstance>>("Tiles", memberNode, out var cached)) return cached;
+                return CacheStoredView("Tiles", memberNode, new NeoReadOnlyList<IReadOnlySampleTileInstance>(client, memberNode, (client, child) => global::Assets.Scripts.Neo.SampleTileInstance.Create(client, (NeoMemberClass)child)));
             }
         }
 

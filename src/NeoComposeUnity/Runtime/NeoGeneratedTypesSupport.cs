@@ -1038,6 +1038,15 @@ namespace NeoCompose.Runtime
             return client.GetOrCreateGeneratedClassValue(node, create);
         }
 
+        public static TGenerated GetOrCreateGeneratedClassValue<TGenerated>(
+            NeoClient client,
+            NeoMemberClass node,
+            Func<NeoClient, NeoMemberClass, TGenerated> create)
+            where TGenerated : NeoGeneratedClassValue
+        {
+            return client.GetOrCreateGeneratedClassValue(node, create);
+        }
+
         /// <summary>
         /// P67 §7.1 — resolves one declared variant of <typeparamref name="T"/>.
         /// Generated `Class.Variants` entries call this helper.

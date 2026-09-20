@@ -39,14 +39,14 @@ namespace Assets.Scripts.Neo
 
         internal static NeoObjectBase Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectBase>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-animated-sprite" => new AnimatedSprite(client, node, true, NeoValueOwnership.Asset),
-                    "class-animated-sprite-child" => new AnimatedSpriteChild(client, node, true, NeoValueOwnership.Asset),
-                    "system_d48b66ab-4d59-47e7-a25a-591fe97062de" => new NeoSpriteObject(client, node, true, NeoValueOwnership.Asset),
+                    "class-animated-sprite" => new AnimatedSprite(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "class-animated-sprite-child" => new AnimatedSpriteChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_d48b66ab-4d59-47e7-a25a-591fe97062de" => new NeoSpriteObject(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectBase' without a concrete client type id."),
                 };
             });
@@ -54,14 +54,14 @@ namespace Assets.Scripts.Neo
 
         internal static NeoObjectBase CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectBase>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-animated-sprite" => new AnimatedSprite(client, node, false, node.ownership),
-                    "class-animated-sprite-child" => new AnimatedSpriteChild(client, node, false, node.ownership),
-                    "system_d48b66ab-4d59-47e7-a25a-591fe97062de" => new NeoSpriteObject(client, node, false, node.ownership),
+                    "class-animated-sprite" => new AnimatedSprite(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "class-animated-sprite-child" => new AnimatedSpriteChild(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_d48b66ab-4d59-47e7-a25a-591fe97062de" => new NeoSpriteObject(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectBase' without a concrete client type id."),
                 };
             });
@@ -107,7 +107,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Position"), this);
+                var memberNode = writableNode.Get<NeoMemberVector3Writable>("Position");
+                if (TryGetStoredView<NeoVector3>("Position", memberNode, out var cached)) return cached;
+                return CacheStoredView("Position", memberNode, new NeoVector3(memberNode, this));
             }
             set
             {
@@ -120,7 +122,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyVector3(node.Get<NeoMemberVector3>("Position"));
+                var memberNode = node.Get<NeoMemberVector3>("Position");
+                if (TryGetStoredView<NeoReadOnlyVector3>("Position", memberNode, out var cached)) return cached;
+                return CacheStoredView("Position", memberNode, new NeoReadOnlyVector3(memberNode));
             }
         }
 
@@ -128,7 +132,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Size"), this);
+                var memberNode = writableNode.Get<NeoMemberVector3Writable>("Size");
+                if (TryGetStoredView<NeoVector3>("Size", memberNode, out var cached)) return cached;
+                return CacheStoredView("Size", memberNode, new NeoVector3(memberNode, this));
             }
             set
             {
@@ -141,7 +147,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyVector3(node.Get<NeoMemberVector3>("Size"));
+                var memberNode = node.Get<NeoMemberVector3>("Size");
+                if (TryGetStoredView<NeoReadOnlyVector3>("Size", memberNode, out var cached)) return cached;
+                return CacheStoredView("Size", memberNode, new NeoReadOnlyVector3(memberNode));
             }
         }
 

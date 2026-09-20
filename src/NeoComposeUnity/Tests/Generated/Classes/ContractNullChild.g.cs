@@ -48,26 +48,26 @@ namespace Assets.Scripts.Neo
 
         internal new static ContractNullChild Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractNullChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractNullChild>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-contract-null-deep-child" => new ContractNullDeepChild(client, node, true, NeoValueOwnership.Asset),
-                    _ => new ContractNullChild(client, node, true, NeoValueOwnership.Asset),
+                    "class-contract-null-deep-child" => new ContractNullDeepChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    _ => new ContractNullChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static ContractNullChild CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractNullChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractNullChild>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-contract-null-deep-child" => new ContractNullDeepChild(client, node, false, node.ownership),
-                    _ => new ContractNullChild(client, node, false, node.ownership),
+                    "class-contract-null-deep-child" => new ContractNullDeepChild(factoryClient, factoryNode, false, factoryNode.ownership),
+                    _ => new ContractNullChild(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

@@ -31,12 +31,12 @@ namespace Assets.Scripts.Neo
 
         internal static SampleLayerGroupBase Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleLayerGroupBase>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleLayerGroupBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-sample-blocked-path" => new SampleBlockedPath(client, node, false, NeoValueOwnership.Save),
+                    "class-sample-blocked-path" => new SampleBlockedPath(factoryClient, factoryNode, false, NeoValueOwnership.Save),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'SampleLayerGroupBase' without a concrete client type id."),
                 };
             });
@@ -44,12 +44,12 @@ namespace Assets.Scripts.Neo
 
         internal static SampleLayerGroupBase CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleLayerGroupBase>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleLayerGroupBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-sample-blocked-path" => new SampleBlockedPath(client, node, false, node.ownership),
+                    "class-sample-blocked-path" => new SampleBlockedPath(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'SampleLayerGroupBase' without a concrete client type id."),
                 };
             });

@@ -48,24 +48,24 @@ namespace Assets.Scripts.Neo
 
         internal static StorageD Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageD>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageD>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new StorageD(client, node, true, NeoValueOwnership.Asset),
+                    _ => new StorageD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static StorageD CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageD>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageD>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new StorageD(client, node, false, node.ownership),
+                    _ => new StorageD(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

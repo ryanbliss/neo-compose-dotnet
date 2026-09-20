@@ -46,26 +46,26 @@ namespace Assets.Scripts.Neo
 
         internal new static ContractChild Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractChild>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-contract-deep-child" => new ContractDeepChild(client, node, true, NeoValueOwnership.Asset),
-                    _ => new ContractChild(client, node, true, NeoValueOwnership.Asset),
+                    "class-contract-deep-child" => new ContractDeepChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    _ => new ContractChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static ContractChild CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractChild>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-contract-deep-child" => new ContractDeepChild(client, node, false, node.ownership),
-                    _ => new ContractChild(client, node, false, node.ownership),
+                    "class-contract-deep-child" => new ContractDeepChild(factoryClient, factoryNode, false, factoryNode.ownership),
+                    _ => new ContractChild(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

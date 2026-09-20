@@ -46,24 +46,24 @@ namespace Assets.Scripts.Neo
 
         internal new static GenericStringPayload Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericStringPayload>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericStringPayload>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new GenericStringPayload(client, node, true, NeoValueOwnership.Asset),
+                    _ => new GenericStringPayload(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static GenericStringPayload CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericStringPayload>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericStringPayload>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new GenericStringPayload(client, node, false, node.ownership),
+                    _ => new GenericStringPayload(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

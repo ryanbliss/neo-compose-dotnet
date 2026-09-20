@@ -50,24 +50,24 @@ namespace Assets.Scripts.Neo
 
         internal static SampleTileInstance Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleTileInstance>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleTileInstance>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new SampleTileInstance(client, node, true, NeoValueOwnership.Asset),
+                    _ => new SampleTileInstance(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static SampleTileInstance CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleTileInstance>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleTileInstance>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new SampleTileInstance(client, node, false, node.ownership),
+                    _ => new SampleTileInstance(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

@@ -279,3 +279,83 @@ Animation batching and native component mirrors were considered, but would
 change intermediate-write visibility or introduce another state owner. The
 measured regression is addressed at the shared subscription and spatial-index
 boundaries instead.
+
+
+## Stored property reads in Editor Play Mode
+
+The generated accessors recreated bound vector/sprite/color and list/dictionary
+views on every access. Generated classes and single enum options already reused
+instances, but class cache hits still allocated a captured factory and composed
+registry key. Single class lookups also allocated a temporary selection list and
+registry key. These allocations were unnecessary for unchanged stored reads.
+
+Generated instance accessors now cache live views on their owning generated
+class, distinguished by schema key, wrapper type, and exact backing node. A
+changed backing node replaces that entry. Retargeting or disposing the owner
+clears its views. The views continue reading the current node; no stored values
+are copied into a second state store. Writable and read-only views retain their
+existing permission callbacks. Class factories use a noncapturing overload and
+reuse the node's registry key. Single lookups resolve current target ownership
+and consult the active registry, including writable compatibility, while reusing
+the previous selection's key when applicable.
+
+Measured in the real Neowyn generated code, Unity 6000.5.4f1 Editor Play Mode on
+M3 Max/macOS 26.6.2. Each operation was warmed once, then read 10,000 times inside
+a dedicated CPU Profiler marker. Bytes are the sum of `GC.Alloc` metadata under
+that marker, not the duration reported by an allocation recorder. The final
+repeat reused the same instance on all 10,000 reads for each operation.
+
+| Stored property | Before bytes/read | After bytes/read |
+| --- | ---: | ---: |
+| Body.Position | 48 | 0 |
+| Body.Children | 584 | 0 |
+| Body.SortingGroup | 410 | 0 |
+| Config.Eyes | 768 | 0 |
+| Config.Facing | 0 | 0 |
+| Body.Name | 0 | 0 |
+
+The test project was regenerated with the companion Unity generator change.
+The sample retains its existing generated output to exercise compatibility with
+older generated callers. An unrelated native-function dispatch difference in
+the fixture generator was excluded from the committed fixture update.
+
+These are scoped read-allocation results, not gameplay FPS or a claim that all
+stored access paths allocate zero. Collection element conversion, multiselection
+materialization, static property wrappers, and NeoScript evaluation have separate
+paths. In particular, extending evaluator caches across frames requires preserving
+read-dependency capture and invalidation; this change does not do that.
+
+The detailed Editor investigation also captured 1,652.571 ms and 1,656.770 ms
+frames dominated by the MCP diagnostic command handler (1,631.547 ms and
+1,636.198 ms). Those runs are contaminated for hitch/FPS analysis. The scoped
+read markers execute later, independently of those commands. They do not explain
+the user's historical 189 ms event. Subsequent gameplay measurements use an
+explicit start-file barrier after setup/focus commands, with no automation calls
+during the measurement window. The older hidden-EditorLoop capture remains
+unattributed. Background presentation waits are not evidence clearing the SDK.
+
+Raw captures and the diagnostic probe are retained in the session rig's
+`artifacts/stored-read-reuse-2026-09-19` directory. The unresolved gameplay
+investigation remains [issue 172](https://github.com/ryanbliss/neo-compose-dotnet/issues/172).
+
+
+An additional unprofiled, gated Editor comparison used 20 seconds per phase,
+real gamepad input, fresh private saves, VSync off and a 300 FPS target. Both
+first-walking and idle phases remained focused throughout. Resumed walking lost
+focus in both scenes and is excluded from comparison.
+
+| Scene / phase | Mean ms | P99 ms | Maximum ms | Allocated MB/s |
+| --- | ---: | ---: | ---: | ---: |
+| NeoWorld walking | 6.186 | 19.893 | 44.534 | 13.45 |
+| WorldScene walking | 8.344 | 15.072 | 40.612 | 3.63 |
+| NeoWorld idle | 6.817 | 17.205 | 42.021 | 4.33 |
+| WorldScene idle | 7.831 | 16.263 | 32.540 | 2.12 |
+
+Neither run reproduced the historical 189 ms event. The scenes have different
+content (23 versus 122 renderers, both three cameras), so their means cannot
+establish SDK overhead or parity. Both also fall short of the user's reported
+~280 FPS walking baseline; this experiment does not claim to reproduce that
+throughput. The allocation difference still warrants investigation. Next targets
+are evaluator projection reuse with correct dependency capture and the write
+path's reverse-row alias copies. Profiling must establish their contribution
+before assigning an intermittent hitch to either.

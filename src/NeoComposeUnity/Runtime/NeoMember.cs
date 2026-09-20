@@ -40,6 +40,9 @@ namespace NeoCompose.Runtime
         /// reaching into the typed intermediate.
         /// </summary>
         public string? overrideValueId { get; }
+        private string? registryKey;
+        internal string RegistryKey => registryKey ??= NeoClient.MakeNodeKey(
+            member.RuntimeDeclarationIdentity, overrideValueId, ownership);
         private MemberValue? boundValue;
         internal bool IsRegisteredWithClient { get; set; }
         public MemberValue? value
@@ -334,7 +337,7 @@ namespace NeoCompose.Runtime
             };
         }
 
-        private static bool IsWritableCompatible(Member member, NeoMember existing)
+        internal static bool IsWritableCompatible(Member member, NeoMember existing)
         {
             return member switch
             {

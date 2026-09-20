@@ -33,13 +33,13 @@ namespace Assets.Scripts.Neo
 
         internal new static ContractMiddle Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractMiddle>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractMiddle>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-contract-child" => new ContractChild(client, node, true, NeoValueOwnership.Asset),
-                    "class-contract-deep-child" => new ContractDeepChild(client, node, true, NeoValueOwnership.Asset),
+                    "class-contract-child" => new ContractChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "class-contract-deep-child" => new ContractDeepChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ContractMiddle' without a concrete client type id."),
                 };
             });
@@ -47,13 +47,13 @@ namespace Assets.Scripts.Neo
 
         internal new static ContractMiddle CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractMiddle>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractMiddle>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-contract-child" => new ContractChild(client, node, false, node.ownership),
-                    "class-contract-deep-child" => new ContractDeepChild(client, node, false, node.ownership),
+                    "class-contract-child" => new ContractChild(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "class-contract-deep-child" => new ContractDeepChild(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ContractMiddle' without a concrete client type id."),
                 };
             });

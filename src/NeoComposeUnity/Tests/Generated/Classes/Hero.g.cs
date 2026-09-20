@@ -78,24 +78,24 @@ namespace Assets.Scripts.Neo
 
         internal static Hero Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Hero>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Hero>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new Hero(client, node, true, NeoValueOwnership.Asset),
+                    _ => new Hero(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static Hero CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Hero>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Hero>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new Hero(client, node, false, node.ownership),
+                    _ => new Hero(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -158,7 +158,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Position"), this);
+                var memberNode = writableNode.Get<NeoMemberVector3Writable>("Position");
+                if (TryGetStoredView<NeoVector3>("Position", memberNode, out var cached)) return cached;
+                return CacheStoredView("Position", memberNode, new NeoVector3(memberNode, this));
             }
             set
             {
@@ -171,7 +173,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyVector3(node.Get<NeoMemberVector3>("Position"));
+                var memberNode = node.Get<NeoMemberVector3>("Position");
+                if (TryGetStoredView<NeoReadOnlyVector3>("Position", memberNode, out var cached)) return cached;
+                return CacheStoredView("Position", memberNode, new NeoReadOnlyVector3(memberNode));
             }
         }
 
@@ -179,8 +183,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = writableNode.Get<NeoMemberVector3IntWritable>("GridCell");
-                return child.value is null ? null : new NeoVector3Int(child, this);
+                var memberNode = writableNode.Get<NeoMemberVector3IntWritable>("GridCell");
+                if (memberNode.value is null) return null;
+                if (TryGetStoredView<NeoVector3Int>("GridCell", memberNode, out var cached)) return cached;
+                return CacheStoredView("GridCell", memberNode, new NeoVector3Int(memberNode, this));
             }
             set
             {
@@ -193,8 +199,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = node.Get<NeoMemberVector3Int>("GridCell");
-                return child.value is null ? null : new NeoReadOnlyVector3Int(child);
+                var memberNode = node.Get<NeoMemberVector3Int>("GridCell");
+                if (memberNode.value is null) return null;
+                if (TryGetStoredView<NeoReadOnlyVector3Int>("GridCell", memberNode, out var cached)) return cached;
+                return CacheStoredView("GridCell", memberNode, new NeoReadOnlyVector3Int(memberNode));
             }
         }
 
@@ -202,7 +210,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<NeoVector3>(client, writableNode.Get<NeoMemberListWritable>("Path"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Path"), (client, child) => new NeoVector3((NeoMemberVector3)child, this), item => NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.Vector3Value(item.Value)), () => ThrowIfReadOnly("Hero.Path"), () => IsReadOnly);
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Path");
+                if (TryGetStoredView<NeoList<NeoVector3>>("Path", memberNode, out var cached)) return cached;
+                return CacheStoredView("Path", memberNode, new NeoList<NeoVector3>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Path"), (client, child) => new NeoVector3((NeoMemberVector3)child, this), item => NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.Vector3Value(item.Value)), () => ThrowIfReadOnly("Hero.Path"), () => IsReadOnly));
             }
         }
 
@@ -210,7 +220,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<NeoReadOnlyVector3>(client, node.Get<NeoMemberList>("Path"), (client, child) => new NeoReadOnlyVector3((NeoMemberVector3)child));
+                var memberNode = node.Get<NeoMemberList>("Path");
+                if (TryGetStoredView<NeoReadOnlyList<NeoReadOnlyVector3>>("Path", memberNode, out var cached)) return cached;
+                return CacheStoredView("Path", memberNode, new NeoReadOnlyList<NeoReadOnlyVector3>(client, memberNode, (client, child) => new NeoReadOnlyVector3((NeoMemberVector3)child)));
             }
         }
 
@@ -219,7 +231,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoDictionary<Element, string?>(client, writableNode.Get<NeoMemberDictionaryWritable>("ElementAffinity"), () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("ElementAffinity"), (client, child) => ((NeoMemberString)child).Text, item => NeoGeneratedTypesSupport.Value(item), Element.FromOptionId, key => key.optionId, () => ThrowIfReadOnly("Hero.ElementAffinity"), () => IsReadOnly);
+                var memberNode = writableNode.Get<NeoMemberDictionaryWritable>("ElementAffinity");
+                if (TryGetStoredView<NeoDictionary<Element, string?>>("ElementAffinity", memberNode, out var cached)) return cached;
+                return CacheStoredView("ElementAffinity", memberNode, new NeoDictionary<Element, string?>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("ElementAffinity"), (client, child) => ((NeoMemberString)child).Text, item => NeoGeneratedTypesSupport.Value(item), Element.FromOptionId, key => key.optionId, () => ThrowIfReadOnly("Hero.ElementAffinity"), () => IsReadOnly));
             }
         }
 
@@ -227,7 +241,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyDictionary<Element, string?>(client, node.Get<NeoMemberDictionary>("ElementAffinity"), (client, child) => ((NeoMemberString)child).Text, Element.FromOptionId, key => key.optionId);
+                var memberNode = node.Get<NeoMemberDictionary>("ElementAffinity");
+                if (TryGetStoredView<NeoReadOnlyDictionary<Element, string?>>("ElementAffinity", memberNode, out var cached)) return cached;
+                return CacheStoredView("ElementAffinity", memberNode, new NeoReadOnlyDictionary<Element, string?>(client, memberNode, (client, child) => ((NeoMemberString)child).Text, Element.FromOptionId, key => key.optionId));
             }
         }
 

@@ -5435,8 +5435,11 @@ namespace NeoCompose.Runtime
             [NotNullWhen(true)] out NeoMember? node)
         {
             string key = MakeNodeKey(memberId, overrideValueId, ownership);
-            return (candidateReplay?.Nodes ?? nodesInternal).TryGetValue(key, out node);
+            return TryGetNode(key, out node);
         }
+
+        internal bool TryGetNode(string registryKey, [NotNullWhen(true)] out NeoMember? node) =>
+            (candidateReplay?.Nodes ?? nodesInternal).TryGetValue(registryKey, out node);
 
         internal bool TryGetNode(string memberId, string? overrideValueId, [NotNullWhen(true)] out NeoMember? node)
         {
@@ -5499,12 +5502,21 @@ namespace NeoCompose.Runtime
         internal TGenerated GetOrCreateGeneratedClassValue<TGenerated>(
             NeoMemberClass node,
             System.Func<TGenerated> create)
+            where TGenerated : NeoGeneratedClassValue =>
+            GetOrCreateGeneratedClassValue(node, create, static factory => factory());
+
+        internal TGenerated GetOrCreateGeneratedClassValue<TGenerated>(
+            NeoMemberClass node,
+            System.Func<NeoClient, NeoMemberClass, TGenerated> create)
+            where TGenerated : NeoGeneratedClassValue =>
+            GetOrCreateGeneratedClassValue(node, (Client: this, Node: node, Create: create),
+                static state => state.Create(state.Client, state.Node));
+
+        private TGenerated GetOrCreateGeneratedClassValue<TGenerated, TState>(
+            NeoMemberClass node, TState state, System.Func<TState, TGenerated> create)
             where TGenerated : NeoGeneratedClassValue
         {
-            string key = MakeNodeKey(
-                node.member.RuntimeDeclarationIdentity,
-                node.overrideValueId,
-                node.ownership);
+            string key = node.RegistryKey;
             var registry = candidateReplay?.GeneratedValues ?? generatedValuesInternal;
             if (registry.TryGetValue(key, out NeoGeneratedClassValue existing))
             {
@@ -5512,7 +5524,7 @@ namespace NeoCompose.Runtime
                 existing.Dispose();
             }
 
-            TGenerated generated = create();
+            TGenerated generated = create(state);
             registry[key] = generated;
             return generated;
         }

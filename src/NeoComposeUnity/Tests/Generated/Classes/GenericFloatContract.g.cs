@@ -48,24 +48,24 @@ namespace Assets.Scripts.Neo
 
         internal new static GenericFloatContract Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFloatContract>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFloatContract>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new GenericFloatContract(client, node, true, NeoValueOwnership.Asset),
+                    _ => new GenericFloatContract(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static GenericFloatContract CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFloatContract>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFloatContract>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new GenericFloatContract(client, node, false, node.ownership),
+                    _ => new GenericFloatContract(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -113,7 +113,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<double>(client, writableNode.Get<NeoMemberListWritable>("Values"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Values"), (client, child) => NeoGenericBindings.Resolve<double>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<double>(client, writableNode.Get<NeoMemberListWritable>("Values")).Serialize(item), () => ThrowIfReadOnly("GenericFloatContract.Values"), () => IsReadOnly);
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Values");
+                if (TryGetStoredView<NeoList<double>>("Values", memberNode, out var cached)) return cached;
+                return CacheStoredView("Values", memberNode, new NeoList<double>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Values"), (client, child) => NeoGenericBindings.Resolve<double>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<double>(client, writableNode.Get<NeoMemberListWritable>("Values")).Serialize(item), () => ThrowIfReadOnly("GenericFloatContract.Values"), () => IsReadOnly));
             }
         }
 

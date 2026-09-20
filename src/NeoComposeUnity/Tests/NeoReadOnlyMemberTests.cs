@@ -117,6 +117,7 @@ namespace NeoCompose.Tests
             Assert.IsFalse(assetFavorite is NeoMemberLookupWritable);
             var selected = assetFavorite.GetSelected();
             Assert.AreEqual(1, selected.Count);
+            Assert.AreSame(selected[0], assetFavorite.GetFirstSelected());
             Assert.AreEqual(
                 "lookup target",
                 ((NeoMemberClass)selected[0]).Get<NeoMemberString>("Name").value!.value);

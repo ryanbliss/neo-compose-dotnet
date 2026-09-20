@@ -46,24 +46,24 @@ namespace Assets.Scripts.Neo
 
         internal new static SampleBlockedPath Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleBlockedPath>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleBlockedPath>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new SampleBlockedPath(client, node, false, NeoValueOwnership.Save),
+                    _ => new SampleBlockedPath(factoryClient, factoryNode, false, NeoValueOwnership.Save),
                 };
             });
         }
 
         internal new static SampleBlockedPath CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleBlockedPath>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleBlockedPath>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new SampleBlockedPath(client, node, false, node.ownership),
+                    _ => new SampleBlockedPath(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
