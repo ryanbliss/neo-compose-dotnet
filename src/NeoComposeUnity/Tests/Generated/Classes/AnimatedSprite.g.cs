@@ -59,26 +59,26 @@ namespace Assets.Scripts.Neo
 
         internal new static AnimatedSprite Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimatedSprite>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimatedSprite>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-animated-sprite-child" => new AnimatedSpriteChild(client, node, true, NeoValueOwnership.Asset),
-                    _ => new AnimatedSprite(client, node, true, NeoValueOwnership.Asset),
+                    "class-animated-sprite-child" => new AnimatedSpriteChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    _ => new AnimatedSprite(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static AnimatedSprite CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimatedSprite>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimatedSprite>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-animated-sprite-child" => new AnimatedSpriteChild(client, node, false, node.ownership),
-                    _ => new AnimatedSprite(client, node, false, node.ownership),
+                    "class-animated-sprite-child" => new AnimatedSpriteChild(factoryClient, factoryNode, false, factoryNode.ownership),
+                    _ => new AnimatedSprite(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

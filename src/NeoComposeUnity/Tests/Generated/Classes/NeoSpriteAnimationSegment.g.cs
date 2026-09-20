@@ -47,24 +47,24 @@ namespace Assets.Scripts.Neo
 
         internal new static NeoSpriteAnimationSegment Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegment>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegment>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new NeoSpriteAnimationSegment(client, node, true, NeoValueOwnership.Asset),
+                    _ => new NeoSpriteAnimationSegment(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static NeoSpriteAnimationSegment CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegment>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegment>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new NeoSpriteAnimationSegment(client, node, false, node.ownership),
+                    _ => new NeoSpriteAnimationSegment(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

@@ -53,13 +53,13 @@ namespace Assets.Scripts.Neo
 
         internal static GenericContract<T> Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericContract<T>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericContract<T>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-generic-float-contract" => (GenericContract<T>)(object)new GenericFloatContract(client, node, true, NeoValueOwnership.Asset),
-                    "class-generic-string-contract" => (GenericContract<T>)(object)new GenericStringContract(client, node, true, NeoValueOwnership.Asset),
+                    "class-generic-float-contract" => (GenericContract<T>)(object)new GenericFloatContract(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "class-generic-string-contract" => (GenericContract<T>)(object)new GenericStringContract(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericContract' without a concrete client type id."),
                 };
             });
@@ -67,13 +67,13 @@ namespace Assets.Scripts.Neo
 
         internal static GenericContract<T> CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericContract<T>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericContract<T>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-generic-float-contract" => (GenericContract<T>)(object)new GenericFloatContract(client, node, false, node.ownership),
-                    "class-generic-string-contract" => (GenericContract<T>)(object)new GenericStringContract(client, node, false, node.ownership),
+                    "class-generic-float-contract" => (GenericContract<T>)(object)new GenericFloatContract(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "class-generic-string-contract" => (GenericContract<T>)(object)new GenericStringContract(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericContract' without a concrete client type id."),
                 };
             });
@@ -107,7 +107,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<T>(client, node.Get<NeoMemberList>("Values"), (client, child) => NeoGenericBindings.Resolve<T>(client, (NeoMember)child).Read((NeoMember)child));
+                var memberNode = node.Get<NeoMemberList>("Values");
+                if (TryGetStoredView<NeoReadOnlyList<T>>("Values", memberNode, out var cached)) return cached;
+                return CacheStoredView("Values", memberNode, new NeoReadOnlyList<T>(client, memberNode, (client, child) => NeoGenericBindings.Resolve<T>(client, (NeoMember)child).Read((NeoMember)child)));
             }
         }
 

@@ -31,13 +31,13 @@ namespace Assets.Scripts.Neo
 
         internal static GenericPayload<P> Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericPayload<P>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericPayload<P>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-generic-float-payload" => (GenericPayload<P>)(object)new GenericFloatPayload(client, node, true, NeoValueOwnership.Asset),
-                    "class-generic-string-payload" => (GenericPayload<P>)(object)new GenericStringPayload(client, node, true, NeoValueOwnership.Asset),
+                    "class-generic-float-payload" => (GenericPayload<P>)(object)new GenericFloatPayload(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "class-generic-string-payload" => (GenericPayload<P>)(object)new GenericStringPayload(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericPayload' without a concrete client type id."),
                 };
             });
@@ -45,13 +45,13 @@ namespace Assets.Scripts.Neo
 
         internal static GenericPayload<P> CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericPayload<P>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericPayload<P>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-generic-float-payload" => (GenericPayload<P>)(object)new GenericFloatPayload(client, node, false, node.ownership),
-                    "class-generic-string-payload" => (GenericPayload<P>)(object)new GenericStringPayload(client, node, false, node.ownership),
+                    "class-generic-float-payload" => (GenericPayload<P>)(object)new GenericFloatPayload(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "class-generic-string-payload" => (GenericPayload<P>)(object)new GenericStringPayload(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericPayload' without a concrete client type id."),
                 };
             });

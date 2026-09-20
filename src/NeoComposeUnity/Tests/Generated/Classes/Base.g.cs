@@ -48,28 +48,28 @@ namespace Assets.Scripts.Neo
 
         internal static Base Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Base>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Base>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-derived" => new Derived(client, node, true, NeoValueOwnership.Asset),
-                    "class-override" => new Override(client, node, true, NeoValueOwnership.Asset),
-                    _ => new Base(client, node, true, NeoValueOwnership.Asset),
+                    "class-derived" => new Derived(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "class-override" => new Override(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    _ => new Base(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static Base CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Base>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Base>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-derived" => new Derived(client, node, false, node.ownership),
-                    "class-override" => new Override(client, node, false, node.ownership),
-                    _ => new Base(client, node, false, node.ownership),
+                    "class-derived" => new Derived(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "class-override" => new Override(factoryClient, factoryNode, false, factoryNode.ownership),
+                    _ => new Base(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

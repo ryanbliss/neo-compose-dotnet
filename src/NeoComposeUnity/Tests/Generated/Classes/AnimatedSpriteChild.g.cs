@@ -55,24 +55,24 @@ namespace Assets.Scripts.Neo
 
         internal new static AnimatedSpriteChild Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimatedSpriteChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimatedSpriteChild>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new AnimatedSpriteChild(client, node, true, NeoValueOwnership.Asset),
+                    _ => new AnimatedSpriteChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static AnimatedSpriteChild CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimatedSpriteChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimatedSpriteChild>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new AnimatedSpriteChild(client, node, false, node.ownership),
+                    _ => new AnimatedSpriteChild(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

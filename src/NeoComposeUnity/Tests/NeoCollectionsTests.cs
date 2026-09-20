@@ -258,13 +258,28 @@ namespace NeoCompose.Tests
             Assert.IsFalse(choices.Add("v-a"));
             Assert.IsTrue(choices.Contains("v-a"));
             Assert.AreEqual(1, choices.Count);
+            var firstSelected = choiceNode.GetFirstSelected();
+            Assert.AreSame(choiceNode.GetSelected()[0], firstSelected);
+            Assert.AreSame(firstSelected, choiceNode.GetFirstSelected());
+            var replacement = new NeoMemberStringWritable(client,
+                (StringMember)firstSelected!.member, firstSelected.overrideValueId,
+                firstSelected.ownership);
+            Assert.AreSame(replacement, choiceNode.GetFirstSelected());
+            var readOnlyReplacement = new NeoMemberString(client,
+                (StringMember)firstSelected.member, firstSelected.overrideValueId,
+                firstSelected.ownership);
+            Assert.IsInstanceOf<NeoMemberStringWritable>(choiceNode.GetFirstSelected());
+            Assert.AreNotSame(readOnlyReplacement, choiceNode.GetFirstSelected());
 
             Assert.IsTrue(choices.Remove("v-a"));
             Assert.IsFalse(choices.Contains("v-a"));
             Assert.AreEqual(0, choices.Count);
 
             choices.Add("v-b");
+            Assert.AreEqual("v-b", choiceNode.GetFirstSelected()!.overrideValueId);
+            Assert.AreNotSame(firstSelected, choiceNode.GetFirstSelected());
             choices.Clear();
+            Assert.IsNull(choiceNode.GetFirstSelected());
             Assert.AreEqual(0, choices.Count);
             Assert.GreaterOrEqual(changed, 3);
         }

@@ -5,262 +5,262 @@
     {
       "id": "class:class-abstract-readonly-stats",
       "path": "Generated/Classes/AbstractReadonlyStats.g.cs",
-      "hash": "b19b9ac63629cdf448884ec4aee33cd00202ab2fcf8b73c37935e4bde3b48dc3"
+      "hash": "94f31dac26dc2fd929d6fe93c808a813e0db43ba0080225fd0269a2e3ab24503"
     },
     {
       "id": "class:class-animated-sprite",
       "path": "Generated/Classes/AnimatedSprite.g.cs",
-      "hash": "42845e831485c57fc8b8a9202d159f6c848c7e93faad74b3114084d7d9d32203"
+      "hash": "e5d505aa8f7f9a6ab0a9dc4d553e44b6841a1e741a090ef7c4205f7b550a30f7"
     },
     {
       "id": "class:class-animated-sprite-child",
       "path": "Generated/Classes/AnimatedSpriteChild.g.cs",
-      "hash": "2bc7d6cd7459102596373f02b458ecbc2cb1ba9fd51c9ae6a954ee772cbf00d4"
+      "hash": "561952358535a90493d2f228a303ebb592903d741d82585f0b949916efc8f91d"
     },
     {
       "id": "class:class-base",
       "path": "Generated/Classes/Base.g.cs",
-      "hash": "a0d23a01f1732565d1624eecd73825afa5b701052ef9fd15e6cc913422008537"
+      "hash": "8d495eb003ca8b45c7229564ecaac0357039ce9bb5831c2e5664d36e26042118"
     },
     {
       "id": "class:class-concrete-readonly-stats",
       "path": "Generated/Classes/ConcreteReadonlyStats.g.cs",
-      "hash": "9606e6161b477a76f436040d6ff469b583c979ae74d115134b74f50fc64e137b"
+      "hash": "ac845cc8121fac8c1d97c4ffacddb516085e282e8d15583718eda24c79023b66"
     },
     {
       "id": "class:class-contract-base",
       "path": "Generated/Classes/ContractBase.g.cs",
-      "hash": "5cb700cdfeeff4e82a6c3eb4d5921282c57feace317a4bcd0e9b1fdf8a7fe800"
+      "hash": "2f8840d4b7d25957aa93642312b2dffc6729a2029d5883039a78aff971161d3e"
     },
     {
       "id": "class:class-contract-child",
       "path": "Generated/Classes/ContractChild.g.cs",
-      "hash": "5c841c5428f01e88683504b414e2a6ca14688951faf008cc235f55ed048a589f"
+      "hash": "f9acb83f4eb18d745dbfc6688307e9b960c84e0b913d70aa2401ec6df7060fde"
     },
     {
       "id": "class:class-contract-deep-child",
       "path": "Generated/Classes/ContractDeepChild.g.cs",
-      "hash": "de67f620284561ddad838bdb8d61c8d137feecfc3e618beccb58655d443f9866"
+      "hash": "6c397c310cbee1c6ea833f7f04a0761242dc361998054c1372324cf7fa210158"
     },
     {
       "id": "class:class-contract-explicit-child",
       "path": "Generated/Classes/ContractExplicitChild.g.cs",
-      "hash": "8810cb106f6e3db5f38c3ef865b4bdce0b03a7fd842a5f5b13ad708caa398323"
+      "hash": "86188a3653dfbd7c3afbafa3fbd308b7d484d21ab43090c843068742948ad975"
     },
     {
       "id": "class:class-contract-middle",
       "path": "Generated/Classes/ContractMiddle.g.cs",
-      "hash": "079f9e616c482e4ec697145b58b5aab34467664df2f4fcbcf0cd605a5abb7764"
+      "hash": "1042713f51461a5bbc8c71b8c43a6d942c09c9b4d5b4a29df8dbc5e980986fad"
     },
     {
       "id": "class:class-contract-null-child",
       "path": "Generated/Classes/ContractNullChild.g.cs",
-      "hash": "3bae5520908fe004ff39de4c7a513b5154ba45041ffca4b972f6c2978e1bbc61"
+      "hash": "6147fff85e8be1bbe217f243a275e3e044f1241b5699f9c97f7dfe950831b10b"
     },
     {
       "id": "class:class-contract-null-deep-child",
       "path": "Generated/Classes/ContractNullDeepChild.g.cs",
-      "hash": "8280e6855695f2392aaa5922b65ac230e40928901e439731abedf8c88802e97b"
+      "hash": "ebe021c62762ae5d9d82838fdd145cf088dc8c15442dfaf8947f4a42634899e1"
     },
     {
       "id": "class:class-derived",
       "path": "Generated/Classes/Derived.g.cs",
-      "hash": "195ddd3ec314e686b80f63f36304f5ed9e1bfa7ad2c54f7c8528d9d1fc5a427f"
+      "hash": "ec5c6c44532608ffc09040f36a55edf14a9606109c0758dad9a08f90fcfa14c2"
     },
     {
       "id": "class:class-generic-contract",
       "path": "Generated/Classes/GenericContract.g.cs",
-      "hash": "77ceb8169697fb04060ff2a30ae5ead8e1e7fbd4f78aed542957d4be36b5e753"
+      "hash": "7604d12d41cc301cc010fedce5e30d800ccad678f43b08cea73178603b97c23e"
     },
     {
       "id": "class:class-generic-float-contract",
       "path": "Generated/Classes/GenericFloatContract.g.cs",
-      "hash": "1546864404263dd936ec3a723d7538406688be01649d87f770ce9b90f68d04f6"
+      "hash": "040a1d23a76999b9366e8113775cee845040f852f0fc522fb2293d91a94914c3"
     },
     {
       "id": "class:class-generic-float-payload",
       "path": "Generated/Classes/GenericFloatPayload.g.cs",
-      "hash": "8431d61341e82bd1923315396c7071a24392c6653186e02a11a83b94f78b1e7e"
+      "hash": "4e574e691cdcf4b9299e6875120fe85b9b03770499e5751f90c7617180760d8f"
     },
     {
       "id": "class:class-generic-function-box",
       "path": "Generated/Classes/GenericFunctionBox.g.cs",
-      "hash": "a435dbc40fae9c67b285cb8834ee59cfa4f13f11018faddbfa6711242d52ee72"
+      "hash": "8635dc4dcb3b4dc37e771350732e8b9a8e1bd540d4826972603292de417cf5c1"
     },
     {
       "id": "class:class-generic-function-contract",
       "path": "Generated/Classes/GenericFunctionContract.g.cs",
-      "hash": "d5c68f996896393042b083939dedcd27173997323dc0259f049747ba77f5a5b8"
+      "hash": "0133a65a762e8fbf705be91883ed66c83d3e7be028ab87a08b69de127b1723ab"
     },
     {
       "id": "class:class-generic-function-hero-contract",
       "path": "Generated/Classes/GenericFunctionHeroContract.g.cs",
-      "hash": "70271291103fca31cce68025510f4dd2be84b832a4136aedaec8a3451839f926"
+      "hash": "4f4433f51027878f37344342d2905e36516f162e8d5cd73f402760990da555e3"
     },
     {
       "id": "class:class-generic-payload",
       "path": "Generated/Classes/GenericPayload.g.cs",
-      "hash": "eda7f97958e5f4113b3f4f5cb11040c0170666ab888830ed64d7980751a7cc2e"
+      "hash": "f880065dcc85f7648f87e0fe287c4a41f29dc87f7b55f377f33db252b8448bcb"
     },
     {
       "id": "class:class-generic-string-contract",
       "path": "Generated/Classes/GenericStringContract.g.cs",
-      "hash": "7394e59c5589fa3ca9d4f9f06904e4c499155d7a24eb99a6e55244d54980c927"
+      "hash": "ef0e34ad3539cadf1dd9454c585789978e2b11911e0665003eba2d0aa7bf6a0e"
     },
     {
       "id": "class:class-generic-string-payload",
       "path": "Generated/Classes/GenericStringPayload.g.cs",
-      "hash": "c7436053250d94a506959c5c10f5d87fa9c06aef5b4a9cbebfb685479d299789"
+      "hash": "59e8a50c3f9ecf6616d622ce17cdd76a3cfa9e4b9cb9f4033842ba7631e304ef"
     },
     {
       "id": "class:class-hero",
       "path": "Generated/Classes/Hero.g.cs",
-      "hash": "0065f0b142860fa9856a5bab947237ff341fade03578cbbe62954d4ac00d4989"
+      "hash": "33962ab306ff6f5f999092c45adce9ad688736d7b8c6175ed613efae2aa9e29c"
     },
     {
       "id": "class:system_6529416a-f68b-49a3-b3d2-2af8fda60cb4",
       "path": "Generated/Classes/NeoAnimationFrameBase.g.cs",
-      "hash": "dc1e723ff1f18084428659329eba635729937e721aa78c3ed47c77181b74316c"
+      "hash": "ea5d4623d32e1fe6ec8ae0ce504d53aebfe0e5de28f667a48d4f7a78f079fb5d"
     },
     {
       "id": "class:system_2866011d-30fe-410a-8a04-d2ff291b77cd",
       "path": "Generated/Classes/NeoAnimationSegment.g.cs",
-      "hash": "f4dfd120ce3cfcec3ae93034b695b20bf8859c74c146a6dc813b9b960f56c149"
+      "hash": "a75323ea4ae0c90e98fce294e15d16116896ecca2faa2e92998775f21f2a826b"
     },
     {
       "id": "class:system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab",
       "path": "Generated/Classes/NeoAnimationSegmentFrame.g.cs",
-      "hash": "20cd81f8a74f251c38322b25f09a243034ec1923d3efe00695abb178e51f52c4"
+      "hash": "4a8604173dd73d34fad5074e158a762e96fa14aa00051cc912e385508b1b1fed"
     },
     {
       "id": "class:system_fd551dd8-6e6b-4044-9f32-7445ab344200",
       "path": "Generated/Classes/NeoAnimationSegmentTrack.g.cs",
-      "hash": "c74b0f7ad22bf8726fd8eea77c291ae1439bc3352913e40720fed65f4de4e051"
+      "hash": "66234de46849d7bb03b2dfc97d3016c5b8033a1a9870ab8977014adc149f9506"
     },
     {
       "id": "class:system_45755778-ecfe-4a6c-b65f-a08017a7fb56",
       "path": "Generated/Classes/NeoAnimationTrackBase.g.cs",
-      "hash": "a4764e8493fc75a4a97211286b83cf444d5ac0e0ae54f604dd8ac65603143a1d"
+      "hash": "33bd1378c1281d9a0fbd6351b9e6417e6757cfae100207406f410e8411f86ebc"
     },
     {
       "id": "class:class-choice-log",
       "path": "Generated/Classes/NeoChoiceLog.g.cs",
-      "hash": "1c46c117111b43bbfc98f65c65380a866289a67d23a688719425c5e5e3bd66ed"
+      "hash": "6f5fad83d4ba4444e1b90ae256e2ce7fc96d7babdd0448badb1273f946d1df18"
     },
     {
       "id": "class:system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d",
       "path": "Generated/Classes/NeoCollider.g.cs",
-      "hash": "ffc537f41d7544a2b047a81d6bb2c93c199409c3f94d595dc831fb9abdb3555c"
+      "hash": "b19af7adf37a9d6024c99860756b0f37e02539a6ee1d93c7b802cc2f739febc7"
     },
     {
       "id": "class:class-dialogue-memory",
       "path": "Generated/Classes/NeoDialogueMemory.g.cs",
-      "hash": "570442c08442d1e0ef7020ebc4bb50cd8138ad043acb47e04b6418ed6810409d"
+      "hash": "60647f2a71f1220894d630b4f9d5800eb21a9ef1500c1f73e265cca88d83e6ee"
     },
     {
       "id": "class:class-neo-memory",
       "path": "Generated/Classes/NeoMemory.g.cs",
-      "hash": "3630cb4b2628c87e452096dee9e6b0941791256435f26da8d512b5b07f6638a8"
+      "hash": "ef164714d9927cd568b2f212c4b637782ca4be546f1ed6963455f37da6fffce1"
     },
     {
       "id": "class:system_f671535d-0eb6-4139-9caf-5c5276febd31",
       "path": "Generated/Classes/NeoObject.g.cs",
-      "hash": "ba97e5649a3f68ab214c48d5e80d65651d9f6cc217262b96198dd934dc3c4b74"
+      "hash": "a6dd88d42e56e5f9eca649c9412aa86ccdf67387ecc15ba642502be4ad28e382"
     },
     {
       "id": "class:system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
       "path": "Generated/Classes/NeoObjectBase.g.cs",
-      "hash": "8127de285fda6ffe39c9b382a15743c040060b15afe6e15efbc037f72564e592"
+      "hash": "17ae4b90a285b03277eb4d54334c4dc78557ad95787d74a7dfc8743511a27827"
     },
     {
       "id": "class:system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9",
       "path": "Generated/Classes/NeoObjectPlacementTile.g.cs",
-      "hash": "5902672f9f9bccd1822f2d828c83ef548f6fe4744e114169aa27f57801829628"
+      "hash": "3e3452dd3b09cca06484e6ec0fd5a42236bf95d946a452f932b5903a9fc5ed95"
     },
     {
       "id": "class:system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3",
       "path": "Generated/Classes/NeoSpriteAnimationSegment.g.cs",
-      "hash": "5aa9d301246af0044226c344ec92ece549465d2cf232f54fe9ed69245c77cd7d"
+      "hash": "6fc5a66d02c492e80463891a78bba78849af080c6057405df23b814e61ad7810"
     },
     {
       "id": "class:system_24b70585-0798-49ad-b650-4c118bac1eb1",
       "path": "Generated/Classes/NeoSpriteAnimationSegmentTrack.g.cs",
-      "hash": "8e41227b15c335956133240437ecf3e06e2e070815520b8adaca77f7cedd8e3d"
+      "hash": "4befedcfc35fa4167a9345727fb4f624ac676682b7a2bdfdc3d47afe7fb7eff0"
     },
     {
       "id": "class:system_d48b66ab-4d59-47e7-a25a-591fe97062de",
       "path": "Generated/Classes/NeoSpriteObject.g.cs",
-      "hash": "8e14f39fddbb08b41e0be2083cc9a70e158bfa95e78f980cf01d0601aca3b343"
+      "hash": "8a9ec252e30b5e9c1da26ca9d69da4f684c9778afb19b36193c0be76f1a08f40"
     },
     {
       "id": "class:class-text-node-memory",
       "path": "Generated/Classes/NeoTextNodeMemory.g.cs",
-      "hash": "6c15bd76e8f241b4eefc165a76d8ab70bf67923c1d823b76db9d0ef32601443f"
+      "hash": "73766ceb4b4e22fd110544724f1d8063136fd65bcca6db9b815cb9f494be3e7b"
     },
     {
       "id": "class:class-override",
       "path": "Generated/Classes/Override.g.cs",
-      "hash": "c187058a99ddf239e68b9e2953193938cd419636e84c30854bcec1e9f78760dc"
+      "hash": "21873c64a106dd3a651c213b6caa25b06ecea5fd57dc8cbcbe9ac2aeaf804731"
     },
     {
       "id": "class:class-root",
       "path": "Generated/Classes/Root.g.cs",
-      "hash": "2eae6c4401a6f2520a69e72c1b98a3d514613bc0755f606c363344fbbc4ffd1b"
+      "hash": "2d27a9ae524ae7673df02951bbeb456d6e86b1a4b898a460e4e2e12f830d5c00"
     },
     {
       "id": "class:class-sample-blocked-path",
       "path": "Generated/Classes/SampleBlockedPath.g.cs",
-      "hash": "db814ede759634e45230773b1d522d9cc79d5688846455bb7aedb7c412cd1643"
+      "hash": "201ef4a343c89469c366c2336c7e97e5632841b774316c4c1225d0b9e7fc643a"
     },
     {
       "id": "class:class-sample-layer-group-base",
       "path": "Generated/Classes/SampleLayerGroupBase.g.cs",
-      "hash": "f81c77f6ab7e4833cdc9f0bd29824549302f859546eb08aae888ad9541e74b9b"
+      "hash": "004ee60716d2765c261b4fb54becffdc7493bc60d295aa7937ded432d3c455d4"
     },
     {
       "id": "class:class-sample-tile-instance",
       "path": "Generated/Classes/SampleTileInstance.g.cs",
-      "hash": "f188d04c670650b3175d5c9a7529ff325a5a0172b549abade28aed786861619c"
+      "hash": "0469f0972a4c8ddf16cae3c03b3eed21021f3752ee02d0eb9880df55a53fec2b"
     },
     {
       "id": "class:class-sample-tile-layer-link",
       "path": "Generated/Classes/SampleTileLayerLink.g.cs",
-      "hash": "6c40997bea08ab91611ca4d1dda30a639910492becbdedf5e8b9959aaba80ece"
+      "hash": "be9731b72d59dd54464ea9bb3a8574c2e1b36b0aa4de4d957fd0fa21245a3869"
     },
     {
       "id": "class:class-storage-a",
       "path": "Generated/Classes/StorageA.g.cs",
-      "hash": "1499d7ce2a0dc5e6f157290554a8ff337b1530abcdae74ca997957da68d7dfe3"
+      "hash": "7d07623d2c63238920487f02fe2c4480544d54e0721ea5d0849c025068158531"
     },
     {
       "id": "class:class-storage-b",
       "path": "Generated/Classes/StorageB.g.cs",
-      "hash": "b1a26a8e31dbe4752dfe7a5f55b1a9950823b29aababa81eb486295613c9420d"
+      "hash": "2f1cd9782ebc39bf47b3c06d45466cee744cf9be942995ba024cb1207f639dc9"
     },
     {
       "id": "class:class-storage-c",
       "path": "Generated/Classes/StorageC.g.cs",
-      "hash": "5eb555d083389901fa2a19188bfa7e37ec0b561484e62b66e36b8781de6bc2eb"
+      "hash": "c4435c798258924af3e7929d2078558ea4a7d354a1460a57f87d563f2bf65640"
     },
     {
       "id": "class:class-storage-d",
       "path": "Generated/Classes/StorageD.g.cs",
-      "hash": "59d4c4f107405527a7db9011bb13edf7778b4eb4b7f394f783844c87bde8aa7e"
+      "hash": "d6ee925a5cfabd776cea2a2bc6b01cbd076c3028d9652f34e9f238451a3c71e9"
     },
     {
       "id": "class:class-storage-e",
       "path": "Generated/Classes/StorageE.g.cs",
-      "hash": "22633f8c4cb485c31f122828cb859a6e534183c5e48072a3e44539cd7b3a0594"
+      "hash": "3e198a3fe4cc0cda7b0b6f0d983811c669d1f8af1a6aaf98ac325acc13b70050"
     },
     {
       "id": "class:class-storage-f",
       "path": "Generated/Classes/StorageF.g.cs",
-      "hash": "a3bfeb2efc34d577869e47bc405c99d9a667f8c0f616ab52ad476a2c6b4a4db8"
+      "hash": "7a690bbe0e8ef7a3f3f1ec72e8a134ae98e964c372c4a22a296f2b1171296339"
     },
     {
       "id": "class:class-storage-g",
       "path": "Generated/Classes/StorageG.g.cs",
-      "hash": "28e1fce65ec698afab81a190d3a84e219455f9ce9201aaad441c8cc1efa08ac5"
+      "hash": "36e17d8aee41c3eb7b0ec5c042aaef54a0fdcb378244aac3233f591d0345d83e"
     },
     {
       "id": "dialogues:memory",

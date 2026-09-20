@@ -33,12 +33,12 @@ namespace Assets.Scripts.Neo
 
         internal static NeoAnimationSegment<T> Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegment<T>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegment<T>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3" => (NeoAnimationSegment<T>)(object)new NeoSpriteAnimationSegment(client, node, true, NeoValueOwnership.Asset),
+                    "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3" => (NeoAnimationSegment<T>)(object)new NeoSpriteAnimationSegment(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoAnimationSegment' without a concrete client type id."),
                 };
             });
@@ -46,12 +46,12 @@ namespace Assets.Scripts.Neo
 
         internal static NeoAnimationSegment<T> CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegment<T>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegment<T>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3" => (NeoAnimationSegment<T>)(object)new NeoSpriteAnimationSegment(client, node, false, node.ownership),
+                    "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3" => (NeoAnimationSegment<T>)(object)new NeoSpriteAnimationSegment(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoAnimationSegment' without a concrete client type id."),
                 };
             });
@@ -94,7 +94,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<NeoAnimationSegmentFrame<T>>(client, writableNode.Get<NeoMemberListWritable>("Frames"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Frames"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.NeoAnimationSegmentFrame<T>.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.NeoAnimationSegmentFrame<T>.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoAnimationSegment.Frames"), () => IsReadOnly);
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Frames");
+                if (TryGetStoredView<NeoList<NeoAnimationSegmentFrame<T>>>("Frames", memberNode, out var cached)) return cached;
+                return CacheStoredView("Frames", memberNode, new NeoList<NeoAnimationSegmentFrame<T>>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Frames"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.NeoAnimationSegmentFrame<T>.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.NeoAnimationSegmentFrame<T>.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoAnimationSegment.Frames"), () => IsReadOnly));
             }
         }
 
@@ -102,7 +104,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoAnimationSegmentFrame<T>>(client, node.Get<NeoMemberList>("Frames"), (client, child) => global::Assets.Scripts.Neo.NeoAnimationSegmentFrame<T>.Create(client, (NeoMemberClass)child));
+                var memberNode = node.Get<NeoMemberList>("Frames");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoAnimationSegmentFrame<T>>>("Frames", memberNode, out var cached)) return cached;
+                return CacheStoredView("Frames", memberNode, new NeoReadOnlyList<IReadOnlyNeoAnimationSegmentFrame<T>>(client, memberNode, (client, child) => global::Assets.Scripts.Neo.NeoAnimationSegmentFrame<T>.Create(client, (NeoMemberClass)child)));
             }
         }
 

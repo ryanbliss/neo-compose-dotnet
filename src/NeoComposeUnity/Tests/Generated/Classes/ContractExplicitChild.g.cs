@@ -61,24 +61,24 @@ namespace Assets.Scripts.Neo
 
         internal new static ContractExplicitChild Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractExplicitChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractExplicitChild>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new ContractExplicitChild(client, node, true, NeoValueOwnership.Asset),
+                    _ => new ContractExplicitChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static ContractExplicitChild CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractExplicitChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractExplicitChild>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new ContractExplicitChild(client, node, false, node.ownership),
+                    _ => new ContractExplicitChild(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

@@ -28,58 +28,52 @@ namespace NeoCompose.Runtime
         /// <summary>Selected ids in the target collection. Empty when nothing is set.</summary>
         public string[] Selected() => value?.value ?? System.Array.Empty<string>();
 
-        /// <summary>
-        /// Resolves the selected ids against the looked-up collection
-        /// and returns the matching <see cref="NeoMember"/>s.
-        /// Walks: <c>collectionMemberId</c> → target member →
-        /// target value (using the effective <c>collectionValueId</c> if set, else
-        /// the target member's <c>valueId</c>) → entries indexed by
-        /// each selected id.
-        ///
-        /// <para>Resolved instances are constructed ad-hoc per call —
-        /// this layer doesn't pin a global cache. Callers that hit the
-        /// same Lookup repeatedly should cache the result.</para>
-        /// </summary>
+        private NeoMember? firstSelection;
+
+        /// <summary>Resolves the current first selection without allocating a result list.</summary>
+        public NeoMember? GetFirstSelected()
+        {
+            string[] ids = Selected();
+            if (ids.Length == 0)
+            {
+                firstSelection = null;
+                return null;
+            }
+            ResolveTargetValue(out NeoValueOwnership targetOwnership);
+            Member entry = ResolveEntryMemberForLookup();
+            // Reuse the composed key, but still consult the active registry:
+            // candidate replay and same-key replacement must resolve their own node.
+            if (firstSelection is not null
+                && firstSelection.overrideValueId == ids[0]
+                && firstSelection.ownership == targetOwnership
+                && firstSelection.member.RuntimeDeclarationIdentity == entry.RuntimeDeclarationIdentity
+                && client.TryGetNode(firstSelection.RegistryKey, out NeoMember? current)
+                && (targetOwnership == NeoValueOwnership.Asset || IsWritableCompatible(entry, current)))
+            {
+                firstSelection = current;
+                return current;
+            }
+            firstSelection = ResolveSelection(entry, ids[0], targetOwnership);
+            return firstSelection;
+        }
+
+        /// <summary>Resolves the current selections against their target collection.</summary>
         public IList<NeoMember> GetSelected()
         {
             List<NeoMember> resolved = new();
-            string[] selectedIds = Selected();
-            if (selectedIds.Length == 0) return resolved;
-
-            if (!client.TryGetMember(member.collectionMemberId, out Member? targetMember))
-            {
-                throw new System.ArgumentOutOfRangeException(
-                    nameof(member.collectionMemberId),
-                    $"No member for collection target {member.collectionMemberId}");
-            }
-
-            string? targetValueId = ResolveTargetValueId(targetMember);
-            if (targetValueId is null)
-            {
-                throw new System.InvalidOperationException(
-                    $"Lookup target {member.collectionMemberId} has no bound value");
-            }
-            if (!client.TryGetValue(targetValueId, out MemberValue? targetValue))
-            {
-                throw new System.InvalidOperationException(
-                    $"Lookup target value {targetValueId} not found");
-            }
-            client.TryGetValueOwnership(targetValueId, out NeoValueOwnership targetOwnership);
-
-            // The entry member defines the type of each selected
-            // entry. List/Lookup → entryMemberId; Dictionary →
-            // entryMemberId; Class → schema-keyed (lookup into
-            // Class collections isn't currently supported).
-            Member entryMember = ResolveEntryMember(targetMember);
-
-            foreach (var id in selectedIds)
-            {
-                resolved.Add(targetOwnership == NeoValueOwnership.Save || targetOwnership == NeoValueOwnership.Session
-                    ? CreateWritable(client, entryMember, id, targetOwnership)
-                    : Create(client, entryMember, id));
-            }
+            string[] ids = Selected();
+            if (ids.Length == 0) return resolved;
+            ResolveTargetValue(out NeoValueOwnership targetOwnership);
+            Member entry = ResolveEntryMemberForLookup();
+            foreach (string id in ids)
+                resolved.Add(ResolveSelection(entry, id, targetOwnership));
             return resolved;
         }
+
+        private NeoMember ResolveSelection(Member entry, string id, NeoValueOwnership targetOwnership) =>
+            targetOwnership == NeoValueOwnership.Save || targetOwnership == NeoValueOwnership.Session
+                ? CreateWritable(client, entry, id, targetOwnership)
+                : Create(client, entry, id);
 
         internal bool IsSelectableId(string valueId)
         {

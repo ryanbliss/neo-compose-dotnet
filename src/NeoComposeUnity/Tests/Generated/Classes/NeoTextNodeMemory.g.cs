@@ -57,24 +57,24 @@ namespace Assets.Scripts.Neo
 
         internal static NeoTextNodeMemory Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTextNodeMemory>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTextNodeMemory>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new NeoTextNodeMemory(client, node, true, NeoValueOwnership.Asset),
+                    _ => new NeoTextNodeMemory(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static NeoTextNodeMemory CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTextNodeMemory>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTextNodeMemory>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new NeoTextNodeMemory(client, node, false, node.ownership),
+                    _ => new NeoTextNodeMemory(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -142,7 +142,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<NeoChoiceLog>(client, writableNode.Get<NeoMemberListWritable>("ChoiceHistory"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("ChoiceHistory"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoTextNodeMemory.ChoiceHistory"), () => IsReadOnly);
+                var memberNode = writableNode.Get<NeoMemberListWritable>("ChoiceHistory");
+                if (TryGetStoredView<NeoList<NeoChoiceLog>>("ChoiceHistory", memberNode, out var cached)) return cached;
+                return CacheStoredView("ChoiceHistory", memberNode, new NeoList<NeoChoiceLog>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("ChoiceHistory"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoTextNodeMemory.ChoiceHistory"), () => IsReadOnly));
             }
         }
 
@@ -150,7 +152,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoChoiceLog>(client, node.Get<NeoMemberList>("ChoiceHistory"), (client, child) => global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, (NeoMemberClass)child));
+                var memberNode = node.Get<NeoMemberList>("ChoiceHistory");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoChoiceLog>>("ChoiceHistory", memberNode, out var cached)) return cached;
+                return CacheStoredView("ChoiceHistory", memberNode, new NeoReadOnlyList<IReadOnlyNeoChoiceLog>(client, memberNode, (client, child) => global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, (NeoMemberClass)child)));
             }
         }
 

@@ -54,24 +54,24 @@ namespace Assets.Scripts.Neo
 
         internal static NeoDialogueMemory Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoDialogueMemory>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoDialogueMemory>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new NeoDialogueMemory(client, node, true, NeoValueOwnership.Asset),
+                    _ => new NeoDialogueMemory(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static NeoDialogueMemory CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoDialogueMemory>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoDialogueMemory>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new NeoDialogueMemory(client, node, false, node.ownership),
+                    _ => new NeoDialogueMemory(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -126,7 +126,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoDictionary<NeoTextNodeMemory>(client, writableNode.Get<NeoMemberDictionaryWritable>("TextNodeMemories"), () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("TextNodeMemories"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.NeoTextNodeMemory.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.NeoTextNodeMemory.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoDialogueMemory.TextNodeMemories"), () => IsReadOnly);
+                var memberNode = writableNode.Get<NeoMemberDictionaryWritable>("TextNodeMemories");
+                if (TryGetStoredView<NeoDictionary<NeoTextNodeMemory>>("TextNodeMemories", memberNode, out var cached)) return cached;
+                return CacheStoredView("TextNodeMemories", memberNode, new NeoDictionary<NeoTextNodeMemory>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("TextNodeMemories"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.NeoTextNodeMemory.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.NeoTextNodeMemory.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoDialogueMemory.TextNodeMemories"), () => IsReadOnly));
             }
         }
 
@@ -134,7 +136,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyDictionary<IReadOnlyNeoTextNodeMemory>(client, node.Get<NeoMemberDictionary>("TextNodeMemories"), (client, child) => global::Assets.Scripts.Neo.NeoTextNodeMemory.Create(client, (NeoMemberClass)child));
+                var memberNode = node.Get<NeoMemberDictionary>("TextNodeMemories");
+                if (TryGetStoredView<NeoReadOnlyDictionary<IReadOnlyNeoTextNodeMemory>>("TextNodeMemories", memberNode, out var cached)) return cached;
+                return CacheStoredView("TextNodeMemories", memberNode, new NeoReadOnlyDictionary<IReadOnlyNeoTextNodeMemory>(client, memberNode, (client, child) => global::Assets.Scripts.Neo.NeoTextNodeMemory.Create(client, (NeoMemberClass)child)));
             }
         }
 

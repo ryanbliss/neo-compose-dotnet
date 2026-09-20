@@ -66,28 +66,28 @@ namespace Assets.Scripts.Neo
 
         internal new static NeoSpriteObject Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteObject>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteObject>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-animated-sprite" => new AnimatedSprite(client, node, true, NeoValueOwnership.Asset),
-                    "class-animated-sprite-child" => new AnimatedSpriteChild(client, node, true, NeoValueOwnership.Asset),
-                    _ => new NeoSpriteObject(client, node, true, NeoValueOwnership.Asset),
+                    "class-animated-sprite" => new AnimatedSprite(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "class-animated-sprite-child" => new AnimatedSpriteChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    _ => new NeoSpriteObject(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static NeoSpriteObject CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteObject>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteObject>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-animated-sprite" => new AnimatedSprite(client, node, false, node.ownership),
-                    "class-animated-sprite-child" => new AnimatedSpriteChild(client, node, false, node.ownership),
-                    _ => new NeoSpriteObject(client, node, false, node.ownership),
+                    "class-animated-sprite" => new AnimatedSprite(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "class-animated-sprite-child" => new AnimatedSpriteChild(factoryClient, factoryNode, false, factoryNode.ownership),
+                    _ => new NeoSpriteObject(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -132,7 +132,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoSprite(writableNode.Get<NeoMemberSpriteWritable>("Sprite"), this);
+                var memberNode = writableNode.Get<NeoMemberSpriteWritable>("Sprite");
+                if (TryGetStoredView<NeoSprite>("Sprite", memberNode, out var cached)) return cached;
+                return CacheStoredView("Sprite", memberNode, new NeoSprite(memberNode, this));
             }
             set
             {
@@ -145,7 +147,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("Sprite"));
+                var memberNode = node.Get<NeoMemberSprite>("Sprite");
+                if (TryGetStoredView<NeoReadOnlySprite>("Sprite", memberNode, out var cached)) return cached;
+                return CacheStoredView("Sprite", memberNode, new NeoReadOnlySprite(memberNode));
             }
         }
 

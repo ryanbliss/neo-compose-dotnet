@@ -531,6 +531,80 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void StoredViews_ReuseWrappersAndReadCurrentValues()
+        {
+            var app = LoadGeneratedClient(out _);
+            var hero = new Hero(Position: new NeoVector3(1, 2, 3),
+                GridCell: new NeoVector3Int(4, 5, 6),
+                Path: new[] { new NeoVector3(7, 8, 9) });
+            var position = hero.Position;
+            var path = hero.Path;
+            var readOnlyPath = ((IReadOnlyHero)hero).Path;
+            Assert.AreSame(position, hero.Position);
+            Assert.AreSame(path, hero.Path);
+            Assert.AreSame(readOnlyPath, ((IReadOnlyHero)hero).Path);
+            Assert.AreNotSame(path, readOnlyPath);
+
+            hero.Position = new Vector3(10, 11, 12);
+            Assert.AreEqual(new Vector3(10, 11, 12), (Vector3)hero.Position);
+            // Existing views read current state while their backing node survives.
+            Assert.AreEqual((Vector3)hero.Position, (Vector3)position);
+            path.Add(new Vector3(13, 14, 15));
+            Assert.AreEqual(2, hero.Path.Count);
+            Assert.AreEqual(2, readOnlyPath.Count);
+
+            hero.GridCell = null;
+            Assert.IsNull(hero.GridCell);
+            hero.GridCell = new Vector3Int(20, 21, 22);
+            Assert.AreEqual(20, hero.GridCell!.x);
+            Assert.AreSame(hero.GridCell, hero.GridCell);
+        }
+
+        [Test]
+        public void StoredViews_CollectionReplacementUsesCurrentBackingNode()
+        {
+            var app = LoadGeneratedClient(out _);
+            var hero = new Hero(Path: new[] { new NeoVector3(1, 2, 3) });
+            app.Save.Heroes.Add(hero);
+            var previous = hero.Path;
+            var parent = JsonConvert.DeserializeObject<ObjectMemberValue>(
+                JsonConvert.SerializeObject(hero.WritableBackingNode.value))!;
+            app.Client.SetSaveValue(new ArrayMemberValue
+            {
+                id = "replacement-path", createdAt = "now", updatedAt = "now",
+                value = System.Array.Empty<string>(),
+            });
+            parent.value!["Path"] = "replacement-path";
+            app.Client.SetSaveValue(parent);
+            var current = hero.Path;
+            Assert.AreNotSame(previous, current);
+            Assert.AreSame(current, hero.Path);
+            Assert.AreEqual(0, current.Count);
+            current.Add(new Vector3(7, 8, 9));
+            Assert.AreEqual(1, hero.Path.Count);
+            Assert.AreEqual(7, hero.Path[0].x);
+        }
+
+        [Test]
+        public void StoredViews_PromotionRebindsViewsToSaveOwnership()
+        {
+            var app = LoadGeneratedClient(out _);
+            var hero = new Hero(Position: new NeoVector3(1, 2, 3),
+                Path: new[] { new NeoVector3(4, 5, 6) });
+            var sessionPosition = hero.Position;
+            var sessionPath = hero.Path;
+            app.Save.Heroes.Add(hero);
+            Assert.AreNotSame(sessionPosition, hero.Position);
+            Assert.AreNotSame(sessionPath, hero.Path);
+            Assert.AreSame(hero.Path, hero.Path);
+            hero.Position = new Vector3(30, 31, 32);
+            hero.Path.Add(new Vector3(40, 41, 42));
+            Assert.AreEqual(30, hero.Position.x);
+            Assert.AreEqual(2, hero.Path.Count);
+            Assert.IsTrue(app.SerializeSaveData().Contains("42"));
+        }
+
+        [Test]
         public void GeneratedVectorProperties_ReadAndMutateComponents()
         {
             var app = LoadGeneratedClient(out _);

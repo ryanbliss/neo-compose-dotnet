@@ -50,12 +50,12 @@ namespace Assets.Scripts.Neo
 
         internal static GenericFunctionContract<T> Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFunctionContract<T>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFunctionContract<T>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-generic-function-hero-contract" => (GenericFunctionContract<T>)(object)new GenericFunctionHeroContract(client, node, true, NeoValueOwnership.Asset),
+                    "class-generic-function-hero-contract" => (GenericFunctionContract<T>)(object)new GenericFunctionHeroContract(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericFunctionContract' without a concrete client type id."),
                 };
             });
@@ -63,12 +63,12 @@ namespace Assets.Scripts.Neo
 
         internal static GenericFunctionContract<T> CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFunctionContract<T>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFunctionContract<T>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-generic-function-hero-contract" => (GenericFunctionContract<T>)(object)new GenericFunctionHeroContract(client, node, false, node.ownership),
+                    "class-generic-function-hero-contract" => (GenericFunctionContract<T>)(object)new GenericFunctionHeroContract(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericFunctionContract' without a concrete client type id."),
                 };
             });

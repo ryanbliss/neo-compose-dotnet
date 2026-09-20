@@ -46,24 +46,24 @@ namespace Assets.Scripts.Neo
 
         internal new static GenericFunctionHeroContract Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFunctionHeroContract>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFunctionHeroContract>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new GenericFunctionHeroContract(client, node, true, NeoValueOwnership.Asset),
+                    _ => new GenericFunctionHeroContract(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static GenericFunctionHeroContract CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFunctionHeroContract>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFunctionHeroContract>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new GenericFunctionHeroContract(client, node, false, node.ownership),
+                    _ => new GenericFunctionHeroContract(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

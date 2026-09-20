@@ -33,12 +33,12 @@ namespace Assets.Scripts.Neo
 
         internal static AbstractReadonlyStats Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AbstractReadonlyStats>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AbstractReadonlyStats>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-concrete-readonly-stats" => new ConcreteReadonlyStats(client, node, true, NeoValueOwnership.Asset),
+                    "class-concrete-readonly-stats" => new ConcreteReadonlyStats(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'AbstractReadonlyStats' without a concrete client type id."),
                 };
             });
@@ -46,12 +46,12 @@ namespace Assets.Scripts.Neo
 
         internal static AbstractReadonlyStats CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AbstractReadonlyStats>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AbstractReadonlyStats>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    "class-concrete-readonly-stats" => new ConcreteReadonlyStats(client, node, false, node.ownership),
+                    "class-concrete-readonly-stats" => new ConcreteReadonlyStats(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'AbstractReadonlyStats' without a concrete client type id."),
                 };
             });

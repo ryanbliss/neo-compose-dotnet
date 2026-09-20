@@ -44,24 +44,24 @@ namespace Assets.Scripts.Neo
 
         internal new static ConcreteReadonlyStats Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ConcreteReadonlyStats>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ConcreteReadonlyStats>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new ConcreteReadonlyStats(client, node, true, NeoValueOwnership.Asset),
+                    _ => new ConcreteReadonlyStats(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static ConcreteReadonlyStats CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ConcreteReadonlyStats>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ConcreteReadonlyStats>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new ConcreteReadonlyStats(client, node, false, node.ownership),
+                    _ => new ConcreteReadonlyStats(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

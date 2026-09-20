@@ -48,24 +48,24 @@ namespace Assets.Scripts.Neo
 
         internal static NeoMemory Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoMemory>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoMemory>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new NeoMemory(client, node, true, NeoValueOwnership.Asset),
+                    _ => new NeoMemory(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static NeoMemory CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoMemory>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoMemory>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.value?.classId;
                 return clientClassId switch
                 {
-                    _ => new NeoMemory(client, node, false, node.ownership),
+                    _ => new NeoMemory(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -94,7 +94,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoDictionary<NeoDialogueMemory>(client, writableNode.Get<NeoMemberDictionaryWritable>("DialogueMemories"), () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("DialogueMemories"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.NeoDialogueMemory.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.NeoDialogueMemory.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoMemory.DialogueMemories"), () => IsReadOnly);
+                var memberNode = writableNode.Get<NeoMemberDictionaryWritable>("DialogueMemories");
+                if (TryGetStoredView<NeoDictionary<NeoDialogueMemory>>("DialogueMemories", memberNode, out var cached)) return cached;
+                return CacheStoredView("DialogueMemories", memberNode, new NeoDictionary<NeoDialogueMemory>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("DialogueMemories"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.NeoDialogueMemory.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.NeoDialogueMemory.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoMemory.DialogueMemories"), () => IsReadOnly));
             }
         }
 
@@ -102,7 +104,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyDictionary<IReadOnlyNeoDialogueMemory>(client, node.Get<NeoMemberDictionary>("DialogueMemories"), (client, child) => global::Assets.Scripts.Neo.NeoDialogueMemory.Create(client, (NeoMemberClass)child));
+                var memberNode = node.Get<NeoMemberDictionary>("DialogueMemories");
+                if (TryGetStoredView<NeoReadOnlyDictionary<IReadOnlyNeoDialogueMemory>>("DialogueMemories", memberNode, out var cached)) return cached;
+                return CacheStoredView("DialogueMemories", memberNode, new NeoReadOnlyDictionary<IReadOnlyNeoDialogueMemory>(client, memberNode, (client, child) => global::Assets.Scripts.Neo.NeoDialogueMemory.Create(client, (NeoMemberClass)child)));
             }
         }
 

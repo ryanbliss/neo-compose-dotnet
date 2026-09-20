@@ -17,6 +17,7 @@ namespace NeoCompose.Runtime
         private bool isDisposed;
         private readonly List<IDisposable> subscriptions = new();
         private NeoMemberClassWritable? writableNodeCache;
+        private Dictionary<(string key, Type type), (NeoMember node, object view)>? storedViews;
         private bool isClassDefaultReference;
         private readonly string animationWrapperIdentity =
             System.Guid.NewGuid().ToString("N");
@@ -79,6 +80,31 @@ namespace NeoCompose.Runtime
             LazyInitialize();
         }
 
+        // Views read their current backing node; cache the wrapper, never its value.
+        // Owner-local entries preserve the permission callbacks of writable views.
+        protected bool TryGetStoredView<TView>(
+            string key, NeoMember member, out TView view) where TView : class
+        {
+            if (storedViews is not null
+                && storedViews.TryGetValue((key, typeof(TView)), out var cached)
+                && ReferenceEquals(cached.node, member)
+                && !member.isDisposed)
+            {
+                view = (TView)cached.view;
+                return true;
+            }
+            view = null!;
+            return false;
+        }
+
+        protected TView CacheStoredView<TView>(
+            string key, NeoMember member, TView view) where TView : class
+        {
+            storedViews ??= new();
+            storedViews[(key, typeof(TView))] = (member, view);
+            return view;
+        }
+
         protected void ThrowIfReadOnly(string memberName)
         {
             if (!IsReadOnly) return;
@@ -103,6 +129,7 @@ namespace NeoCompose.Runtime
         {
             if (isDisposed) return;
             isDisposed = true;
+            storedViews?.Clear();
             if (OwnsBackingValueLifetime) client.ReleaseAnimationClips(this);
             foreach (var subscription in subscriptions.ToArray())
             {
@@ -146,6 +173,7 @@ namespace NeoCompose.Runtime
                     $"Cannot retarget generated value '{GetType().Name}' to non-class member '{member.id}'.");
             }
 
+            storedViews?.Clear();
             var previous = node;
             previous.OnChanged -= HandleNodeChanged;
             previous.OnDisposed -= HandleNodeDisposed;

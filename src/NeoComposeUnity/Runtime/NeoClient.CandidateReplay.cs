@@ -77,7 +77,6 @@ namespace NeoCompose.Runtime
                 || !TryGetCommittedValue(id, out MemberValue? previous)
                 || !TryGetCommittedOwnership(id, out NeoValueOwnership oldOwnership)
                 || !plan.TryGetOwnership(id, out NeoValueOwnership nextOwnership)
-                || oldOwnership != nextOwnership
                 || next.GetType() != previous.GetType()
                 || next.IsRemoved || previous.IsRemoved
                 || next.classId != previous.classId
@@ -91,6 +90,13 @@ namespace NeoCompose.Runtime
                 or Vector2MemberValue or Vector3MemberValue or ColorMemberValue
                 or FileMemberValue or SpriteMemberValue or NullMemberValue) return true;
 
+            if (next is ArrayMemberValue && TryInferMemberForValueId(id, out Member? selectionMember)
+                && selectionMember is EnumMember or LookupMember or DialogueLookupMember) return true;
+
+            // A first leaf overlay changes ownership without changing the
+            // containing graph. Structural reuse still requires the same store.
+            if (oldOwnership != nextOwnership) return false;
+
             // Compound setters may include a parent whose field links and
             // construction recipe did not change alongside the changed leaf.
             if (next is ObjectMemberValue { classId: not null }
@@ -101,8 +107,6 @@ namespace NeoCompose.Runtime
                 unchanged = true;
                 return true;
             }
-            if (next is ArrayMemberValue && TryInferMemberForValueId(id, out Member? selectionMember)
-                && selectionMember is EnumMember or LookupMember or DialogueLookupMember) return true;
 
             // Adding collection entries preserves every existing default edge.
             // Replacements, removals, null collections and class field maps
