@@ -464,6 +464,9 @@ namespace NeoCompose.Runtime
         internal virtual NeoTileLayerRenderSnapshot GetRenderSnapshot() =>
             new(GetTileProjections());
 
+        internal virtual IEnumerable<NeoTileProjection> EnumerateRenderTiles() =>
+            GetRenderSnapshot().Winners;
+
         internal virtual NeoTileProjection? GetTileProjection(Vector2Int cell) => null;
 
         public virtual IDisposable OnChanged(Action<NeoTileLayerChangedArgs> handler) =>
@@ -552,6 +555,9 @@ namespace NeoCompose.Runtime
 
         internal override NeoTileLayerRenderSnapshot GetRenderSnapshot() =>
             primitive.GetTileLayerRenderSnapshot(LayerId, ExpectedClassId);
+
+        internal override IEnumerable<NeoTileProjection> EnumerateRenderTiles() =>
+            primitive.EnumerateTileProjections(LayerId, ExpectedClassId);
 
         public override IDisposable OnChanged(Action<NeoTileLayerChangedArgs> handler) =>
             primitive.OnTileLayerChanged(LayerId, handler);
@@ -1188,14 +1194,23 @@ namespace NeoCompose.Runtime
         internal virtual IReadOnlyList<NeoTileProjection> GetTileProjections(
             string layerId,
             string expectedTileFamilyClassId = "")
+            => new List<NeoTileProjection>(EnumerateTileProjections(layerId, expectedTileFamilyClassId));
+
+        // Resolve generated values as rendering consumes them, so the async
+        // renderer's frame budget covers hydration as well as tilemap writes.
+        internal IEnumerable<NeoTileProjection> EnumerateTileProjections(
+            string layerId, string expectedTileFamilyClassId = "")
         {
-            var winners = new List<NeoTileProjection>();
-            foreach (var cellCandidates in LookupCache.TileCandidatesInCellOrder(layerId))
+            // Movement mutates the cache's inner candidate lists. Freeze the
+            // lightweight records before yielding; generated values remain lazy.
+            var cells = LookupCache.TileCandidatesInCellOrder(layerId);
+            var snapshot = new NeoTilePlacementRecord[cells.Count][];
+            for (int i = 0; i < cells.Count; i++) snapshot[i] = cells[i].ToArray();
+            foreach (var cellCandidates in snapshot)
             {
                 var winner = ResolveWinner(layerId, cellCandidates, expectedTileFamilyClassId);
-                if (winner is not null) winners.Add(winner);
+                if (winner is not null) yield return winner;
             }
-            return winners;
         }
 
         internal IReadOnlyList<NeoGeneratedClassValue> GetTileValues(
@@ -2906,7 +2921,10 @@ namespace NeoCompose.Runtime
             }
             if (client.TryGetWritableValue(writeOwnership, memberValueId, out MemberValue? _))
             {
-                client.RemoveWritableValueAndDescendants(writeOwnership, memberValueId);
+                var plan = new NeoWritePlan(client);
+                var member = client.TryInferMemberForValueId(memberValueId, out var inferred) ? inferred : null;
+                client.StageOwnedRemoval(plan, writeOwnership, memberValueId, member);
+                plan.Commit();
                 return;
             }
             // The row lives in a lower overlay (e.g. session removal of a

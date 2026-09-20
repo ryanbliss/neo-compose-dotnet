@@ -319,10 +319,12 @@ namespace NeoCompose.Runtime
             // behavior for required data.
             string? resolvedValueId = valueId;
             if (resolvedValueId is not null
-                && client.TryGetOverlaidValue(
+                && (client.TryGetOverlaidValue(
                     ownership,
                     resolvedValueId,
-                    out NullMemberValue? _))
+                    out NullMemberValue? _)
+                    || (client.TryGetWritableValue(ownership, resolvedValueId, out MemberValue? stored)
+                        && stored.IsRemoved)))
             {
                 DisposeChildren(previousChildren.Values);
                 return;
@@ -860,6 +862,7 @@ namespace NeoCompose.Runtime
                 // A shadow of a stamped collection row keeps the immutable
                 // stamp (spec Decision 9/16); a row that predates the stamp
                 // recomputes the identical value from this record's env.
+                next.mapKey = existing.mapKey;
                 next.genericBindings = existing.genericBindings;
                 NeoGenericResolution.StampGenericBindings(client, childMember, next, GenericEnv);
                 client.StageWritablePayloadRows(plan, childOwnership, setValue?.value);

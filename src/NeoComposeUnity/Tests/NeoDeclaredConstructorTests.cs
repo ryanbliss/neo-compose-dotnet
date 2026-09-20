@@ -441,6 +441,34 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void OptionalConstructedClass_CanBeClearedAndReplaced()
+        {
+            var data = BuildProjectData();
+            data.classes["root-class"].schema["Part"] = "optional-part";
+            data.members["optional-part"] = new ClassMember
+            {
+                id = "optional-part", projectId = ProjectId, name = "Part",
+                kind = MemberKind.Class, classId = "part-class",
+                Requirement = NeoMemberRequirementKind.Optional,
+                defaultValue = new ObjectMemberValueBase { value = null },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            foreach (string label in new[] { "first", "replacement" })
+            {
+                using var part = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client, "part-class", "ctor-part",
+                    new[] { new NeoDeclaredConstructorArgument("Prefix", label) });
+                client.save.SetSerializedValue("Part", NeoValueWritePayload.FromValueReference(part.value!.id));
+                var stored = client.save.Get<NeoMemberClassWritable>("Part");
+                Assert.AreEqual(label, stored.Get<NeoMemberString>("Label").value!.value);
+                Assert.AreEqual("init-tag", stored.Get<NeoMemberString>("Tag").value!.value);
+                Assert.DoesNotThrow(() => client.save.Unset("Part"));
+                Assert.IsNull(stored.value);
+                Assert.IsFalse(stored.TryGet<NeoMember>("Tag", out _));
+            }
+        }
+
+        [Test]
         public void DeclaredConstructor_OptionalMemberInitializerMaterializes()
         {
             NeoClient client = BuildClient();
