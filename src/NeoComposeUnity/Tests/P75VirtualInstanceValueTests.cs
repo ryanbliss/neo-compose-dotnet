@@ -141,6 +141,33 @@ namespace NeoCompose.Tests
 
         [TestCase(NeoListKind.Ordered)]
         [TestCase(NeoListKind.Unordered)]
+        public void VirtualCollectionEntriesRetainClosedGenericPlacements(NeoListKind kind)
+        {
+            ProjectData data = BuildUnorderedListProjectData("entry");
+            ((ListMember)data.members["thing-items"]).ListKind = kind;
+            var itemClass = SchemaClass("item-class", "Item", NeoMemberStorage.Save);
+            itemClass.genericParams = new List<GenericParamDeclaration> { new() { id = "item-t", name = "T" } };
+            itemClass.schema["Count"] = "item-count";
+            data.classes[itemClass.id] = itemClass;
+            data.members["int-binding"] = new IntMember { id = "int-binding", name = "IntBinding", kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required, defaultValue = new NumberMemberValueBase { value = 5 } };
+            data.members["item-count"] = new GenericMember { id = "item-count", name = "Count", kind = MemberKind.Generic,
+                genericParamId = "item-t", defaultValue = new NullMemberValueBase { value = 5d } };
+            data.members["thing-item"] = new ClassMember { id = "thing-item", name = "Item", kind = MemberKind.Class,
+                classId = itemClass.id, Requirement = NeoMemberRequirementKind.Required,
+                classArguments = new Dictionary<string, GenericBinding> { ["item-t"] = new() { kind = NeoGenericBindingKind.Member, memberId = "int-binding" } } };
+            var entry = ObjectValue("entry", itemClass.id);
+            data.values[entry.id] = entry;
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var list = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberList>("Items");
+            var child = list.Cast<NeoMemberClassWritable>().Single();
+            Assert.IsTrue(client.TryInferMemberForValueId(child.value!.id, out Member? placement));
+            Assert.That(((ClassMember)placement!).classArguments!["item-t"].memberId, Is.EqualTo("int-binding"));
+            Assert.That(child.Get<NeoMemberIntWritable>("Count").value!.value, Is.EqualTo(5d));
+        }
+
+        [TestCase(NeoListKind.Ordered)]
+        [TestCase(NeoListKind.Unordered)]
         public void UnstampedDefaultsRetainCollectionEntries(NeoListKind listKind)
         {
             ProjectData data = BuildUnorderedListProjectData();
@@ -1697,6 +1724,20 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(computed ? "initialized" : "from generic default", client.save.Get<NeoMemberClassWritable>("Thing")
                 .Get<NeoMemberClassWritable>("Payload").Get<NeoMemberStringWritable>("Name").value!.value);
+            var payload = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberClassWritable>("Payload");
+            using var projected = NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass<NeoMemberClass>(
+                client, NSGetterEvaluator.UnwrapRow(payload.value!, new NSGetterEvaluator.Context(client, null, null), NeoValueOwnership.Save), true, (_, node) => node, (_, node) => node);
+            Assert.AreEqual(computed ? "initialized" : "from generic default",
+                projected.Get<NeoMemberStringWritable>("Name").value!.value);
+            // Runtime construction also checks completeness, unlike sparse replay.
+            var fields = new[] { new NeoGeneratedTypesSupport.RuntimeConstructorField
+                { schemaKey = "Name", memberId = "payload-name", value = "runtime" } };
+            var resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(client, payloadType,
+                null, Array.Empty<string>(), fields, binding.classArguments);
+            var constructed = NeoGeneratedTypesSupport.ConstructDeclaredClassValue(resolved,
+                new Dictionary<string, object?>(), fields, new NSGetterEvaluator.Context(client, null, null));
+            Assert.AreEqual("runtime", constructed.Get<NeoMemberStringWritable>("Name").value!.value);
+
         }
 
         [Test]
@@ -2632,6 +2673,58 @@ namespace NeoCompose.Tests
                 .Get<NeoMemberIntWritable>("Count");
             Assert.AreEqual(5d, reapplied.value!.value);
             Assert.AreEqual(virtualId, reapplied.value.id);
+        }
+
+        [Test]
+        public void NullClassAssignmentRemovesOwnedSparseChildrenBeforeSaveReload()
+        {
+            var data = BuildNestedProjectData();
+            ((ClassMember)data.members["thing-member"]).Requirement = NeoMemberRequirementKind.Optional;
+            string saved;
+            using (var client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                var thing = client.save.Get<NeoMemberClassWritable>("Thing");
+                var nested = thing.Get<NeoMemberClassWritable>("Nested");
+                var nestedRow = (ObjectMemberValue)client.CloneRowForWrite(nested.value!);
+                client.SetSaveValue(nestedRow);
+                var thingRow = (ObjectMemberValue)client.CloneRowForWrite(thing.value!);
+                thingRow.value!["Nested"] = nestedRow.id;
+                client.SetSaveValue(thingRow);
+                using var secondProjection = new NeoMemberClassWritable(client, nested.member, nestedRow.id, NeoValueOwnership.Save);
+                var ctx = new NSGetterEvaluator.Context(client, null, null);
+                var root = NeoScriptRuntimeRoot(client, ctx);
+                ctx = ctx.WithRoot(root);
+                var classType = new ClassTypeInfo { type = MemberKind.Class, classId = "thing-class", required = false };
+                Assert.IsNotNull(NSGetterEvaluator.EvaluatePointer(
+                    PointerKeyOf(PointerKeyOf(RootPointer(), "Save"), "Thing"),
+                    new Dictionary<string, object?> { ["__root__"] = root }, ctx));
+                NeoScriptExecutor.Execute(client, new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = Array.Empty<Variable>(),
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = new Instruction[] { new AssignInstruction
+                    {
+                        type = InstructionKind.Assign, operatorValue = "=",
+                        target = new WriteTarget
+                        {
+                            pointer = PointerKeyOf(PointerKeyOf(RootPointer(), "Save"), "Thing"),
+                            typeInfo = classType, writability = WritabilityKind.Save,
+                        },
+                        pointer = new ValuePointer { type = PointerKind.Value, value = new Value
+                            { typeInfo = classType, value = JValue.CreateNull() } },
+                    } },
+                }, new Dictionary<string, object?> { ["__root__"] = root }, ctx);
+                Assert.IsNull(NSGetterEvaluator.EvaluatePointer(
+                    PointerKeyOf(PointerKeyOf(RootPointer(), "Save"), "Thing"),
+                    new Dictionary<string, object?> { ["__root__"] = root }, ctx));
+                Assert.IsFalse(client.saveValues.ContainsKey(nestedRow.id));
+                Assert.IsTrue(nested.isDisposed, "Superseded cache entries may still have live subscribers.");
+                Assert.IsTrue(secondProjection.isDisposed);
+                saved = client.SerializeSaveData();
+            }
+            using var reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.IsNull(reopened.save.Get<NeoMemberClassWritable>("Thing").value?.value);
         }
 
         [Test]

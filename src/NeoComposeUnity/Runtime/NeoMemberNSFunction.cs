@@ -1319,34 +1319,24 @@ namespace NeoCompose.Runtime
                         value = NSGetterEvaluator.CoerceDecimalOperand(value, subject);
                     break;
                 case MemberKind.Vector2:
-                    if (value is NeoReadOnlyVector2 vector2)
-                        value = NeoGeneratedTypesSupport.Vector2Value(vector2.Value);
-                    else if (value is Vector2 unityVector2)
-                        value = NeoGeneratedTypesSupport.Vector2Value(unityVector2);
+                    if (NeoGeneratedTypesSupport.ReadVector2Value(value) is Vector2 normalizedVector2)
+                        value = NeoGeneratedTypesSupport.Vector2Value(normalizedVector2);
                     break;
                 case MemberKind.Vector2Int:
-                    if (value is NeoReadOnlyVector2Int vector2Int)
-                        value = NeoGeneratedTypesSupport.Vector2IntValue(vector2Int.Value);
-                    else if (value is Vector2Int unityVector2Int)
-                        value = NeoGeneratedTypesSupport.Vector2IntValue(unityVector2Int);
+                    if (NeoGeneratedTypesSupport.ReadVector2IntValue(value) is Vector2Int normalizedVector2Int)
+                        value = NeoGeneratedTypesSupport.Vector2IntValue(normalizedVector2Int);
                     break;
                 case MemberKind.Vector3:
-                    if (value is NeoReadOnlyVector3 vector3)
-                        value = NeoGeneratedTypesSupport.Vector3Value(vector3.Value);
-                    else if (value is Vector3 unityVector3)
-                        value = NeoGeneratedTypesSupport.Vector3Value(unityVector3);
+                    if (NeoGeneratedTypesSupport.ReadVector3Value(value) is Vector3 normalizedVector3)
+                        value = NeoGeneratedTypesSupport.Vector3Value(normalizedVector3);
                     break;
                 case MemberKind.Vector3Int:
-                    if (value is NeoReadOnlyVector3Int vector3Int)
-                        value = NeoGeneratedTypesSupport.Vector3IntValue(vector3Int.Value);
-                    else if (value is Vector3Int unityVector3Int)
-                        value = NeoGeneratedTypesSupport.Vector3IntValue(unityVector3Int);
+                    if (NeoGeneratedTypesSupport.ReadVector3IntValue(value) is Vector3Int normalizedVector3Int)
+                        value = NeoGeneratedTypesSupport.Vector3IntValue(normalizedVector3Int);
                     break;
                 case MemberKind.Color:
-                    if (value is NeoReadOnlyColor color)
-                        value = NeoGeneratedTypesSupport.ColorValue(color.Value);
-                    else if (value is Color unityColor)
-                        value = NeoGeneratedTypesSupport.ColorValue(unityColor);
+                    if (NeoGeneratedTypesSupport.ReadColorValue(value) is Color normalizedColor)
+                        value = NeoGeneratedTypesSupport.ColorValue(normalizedColor);
                     break;
                 case MemberKind.Sprite:
                     // The wrapper arm mirrors Color/Vector above, and is what

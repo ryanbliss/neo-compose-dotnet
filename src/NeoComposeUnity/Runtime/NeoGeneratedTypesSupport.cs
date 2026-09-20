@@ -4589,9 +4589,7 @@ namespace NeoCompose.Runtime
             // and the server-side collapse verifier proved merged
             // completeness.
             if (client.IsReplayingVirtualInstance) return;
-            foreach (MergedSchemaEntry entry in ResolveMergedSchema(
-                client,
-                resolved.classTypeInfo.classId))
+            foreach (MergedSchemaEntry entry in resolved.metadata.classPlan.schema)
             {
                 if (!resolved.membersBySchemaKey.TryGetValue(
                         entry.schemaKey,
@@ -5908,7 +5906,7 @@ namespace NeoCompose.Runtime
             return result;
         }
 
-        private static string[] ConstructorLookupIds(
+        internal static string[] ConstructorLookupIds(
             object runtimeValue,
             LookupMember member)
         {
@@ -7561,8 +7559,12 @@ namespace NeoCompose.Runtime
                     $"NSProperty getter returned class value id '{valueId}', but the backing row does not declare a classId and its owning member could not be inferred.");
             }
 
+            client.TryInferMemberForValueId(valueId!, out Member? placement);
             var member = new ClassMember
             {
+                classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
+                    row.genericBindings, (placement as ClassMember)?.classArguments)
+                    is { } arguments ? new Dictionary<string, GenericBinding>(arguments) : null,
                 id = $"__neo_nsg_class_{classId}",
                 name = "NSPropertyClassValue",
                 kind = MemberKind.Class,

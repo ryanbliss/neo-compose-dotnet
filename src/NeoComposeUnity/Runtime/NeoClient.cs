@@ -1087,6 +1087,7 @@ namespace NeoCompose.Runtime
         // Save/Session entries are recorded — Immutable-effective values fall
         // through to the Asset default.
         private readonly Dictionary<string, NeoValueOwnership> authoredOwnership = new();
+        private readonly Dictionary<string, NeoValueOwnership> authoredStorageRoots = new();
 
         private void BuildAuthoredOwnershipMap()
         {
@@ -1155,10 +1156,23 @@ namespace NeoCompose.Runtime
             if (effective != NeoValueOwnership.Asset)
             {
                 authoredOwnership[valueId] = effective;
+                if (effective != inherited) authoredStorageRoots[valueId] = effective;
             }
             foreach (var child in EnumerateOwnedChildLinks(row, member))
             {
                 WalkAuthoredOwnership(child.valueId, child.member, effective, visited);
+            }
+            // Unordered lists store only a presence discriminator. Their owned
+            // entries are indexed by containerId, not listed in the array body.
+            // Use authored membership here: writable overlays are classified by
+            // their own stores and must not change the defaults' ownership map.
+            if (member is ListMember list && IsUnorderedList(list)
+                && row is ArrayMemberValue { value: not null }
+                && authoredEntriesByContainer.TryGetValue(valueId, out var entries))
+            {
+                Member? entryMember = TryResolveCollectionEntryMember(list, row);
+                foreach (string entryId in entries)
+                    WalkAuthoredOwnership(entryId, entryMember, effective, visited);
             }
         }
 
@@ -7521,7 +7535,9 @@ namespace NeoCompose.Runtime
                         staticMember);
                 }
             }
-            foreach (var pair in authoredOwnership)
+            // Only storage boundaries are independent roots. Owned descendants
+            // must remain reachable through their current parent/container.
+            foreach (var pair in authoredStorageRoots)
             {
                 if (pair.Value == ownership)
                 {

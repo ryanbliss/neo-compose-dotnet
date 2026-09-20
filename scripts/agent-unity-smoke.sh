@@ -73,8 +73,8 @@ fi
 read -r rig_id web_origin deployment_name seed_id < <(node -e '
 const { readFileSync } = require("node:fs");
 const manifest = JSON.parse(readFileSync(process.argv[1], "utf8"));
-if (manifest.formatVersion !== 1) {
-  console.error(`Rig manifest declares formatVersion ${manifest.formatVersion}; this script understands 1.`);
+if (manifest.formatVersion !== 2) {
+  console.error(`Rig manifest declares formatVersion ${manifest.formatVersion}; this script understands 2.`);
   process.exit(1);
 }
 process.stdout.write(

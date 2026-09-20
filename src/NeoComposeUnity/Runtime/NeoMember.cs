@@ -542,8 +542,18 @@ namespace NeoCompose.Runtime
             NeoValueOwnership changedOwnership,
             string changedValueId)
         {
-            if (changedOwnership != ownership) return;
+            if (isDisposed || changedOwnership != ownership) return;
             if (changedValueId != valueId) return;
+            // A removed bound value has no declaration-default object to
+            // reconstruct. Retire all live subscribers, including projections
+            // replaced in the node cache but still held by their caller.
+            if (this is NeoMemberClass
+                && !client.TryGetOverlaidValue(ownership, changedValueId, out MemberValue? _))
+            {
+                value = null;
+                Dispose();
+                return;
+            }
             if (this is NeoMemberDictionary
                 || this is NeoMemberList)
             {
