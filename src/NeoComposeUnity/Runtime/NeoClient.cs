@@ -3424,7 +3424,7 @@ namespace NeoCompose.Runtime
                 return true;
             }
 
-            foreach (var candidate in EnumerateParentRows())
+            foreach (var candidate in EnumerateParentRows(childValueId))
             {
                 string candidateId = candidate.valueId;
                 MemberValue parent = candidate.row;
@@ -3554,31 +3554,26 @@ namespace NeoCompose.Runtime
         }
 
         private IEnumerable<(string valueId, MemberValue row, NeoValueOwnership ownership)>
-            EnumerateParentRows()
+            EnumerateParentRows(string childId)
         {
-            // Inspect each writable overlay independently. The same stable id
-            // can legitimately be present in both stores with different row
-            // payloads; neither may hide the other during ownership checks.
-            foreach (var pair in sessionData.values)
+            // The placement index is a conservative set of payload references,
+            // not proof of ownership. Inspect each candidate in BOTH writable
+            // stores and still validate its schema edge at the call site.
+            var candidates = new HashSet<string>(PlacementParents(childId));
+            foreach (string id in candidates)
+                if (sessionData.values.TryGetValue(id, out var row))
+                    yield return (id, row, NeoValueOwnership.Session);
+            foreach (string id in candidates)
+                if (saveData.values.TryGetValue(id, out var row))
+                    yield return (id, row, NeoValueOwnership.Save);
+            foreach (string id in candidates)
             {
-                yield return (pair.Key, pair.Value, NeoValueOwnership.Session);
-            }
-            foreach (var pair in saveData.values)
-            {
-                yield return (pair.Key, pair.Value, NeoValueOwnership.Save);
-            }
-            foreach (var pair in data.values)
-            {
-                NeoValueOwnership authoredOwnershipForRow =
-                    ResolveAuthoredOwnership(pair.Key, pair.Value);
-                // A writable shadow replaces this authored row only in its
-                // own graph. A distinct shadow in the other store does not.
-                if (authoredOwnershipForRow != NeoValueOwnership.Asset
-                    && GetWritableStore(authoredOwnershipForRow).values.ContainsKey(pair.Key))
-                {
-                    continue;
-                }
-                yield return (pair.Key, pair.Value, authoredOwnershipForRow);
+                if (!data.values.TryGetValue(id, out var row)) continue;
+                NeoValueOwnership ownership = ResolveAuthoredOwnership(id, row);
+                // A shadow replaces the authored edge only in its own store.
+                if (ownership != NeoValueOwnership.Asset
+                    && GetWritableStore(ownership).values.ContainsKey(id)) continue;
+                yield return (id, row, ownership);
             }
         }
 

@@ -88,7 +88,8 @@ namespace NeoCompose.Runtime
             // invalidate through constructorArgumentRootsByValueId below.
             if (next is NumberMemberValue or StringMemberValue or BoolMemberValue
                 or Vector2MemberValue or Vector3MemberValue or ColorMemberValue
-                or FileMemberValue or SpriteMemberValue or NullMemberValue) return true;
+                or FileMemberValue or SpriteMemberValue or NullMemberValue
+                or DelegateMemberValue or ActionMemberValue) return true;
 
             if (next is ArrayMemberValue && TryInferMemberForValueId(id, out Member? selectionMember)
                 && selectionMember is EnumMember or LookupMember or DialogueLookupMember) return true;
@@ -100,9 +101,7 @@ namespace NeoCompose.Runtime
             // Compound setters may include a parent whose field links and
             // construction recipe did not change alongside the changed leaf.
             if (next is ObjectMemberValue { classId: not null }
-                && NeoSemanticJson.ProjectRecordsEqual(
-                    Newtonsoft.Json.Linq.JObject.FromObject(previous),
-                    Newtonsoft.Json.Linq.JObject.FromObject(next)))
+                && NeoSemanticJson.MemberRowsEqual(previous, next))
             {
                 unchanged = true;
                 return true;
@@ -127,7 +126,7 @@ namespace NeoCompose.Runtime
         private void PrepareCandidateRoot(string rootId)
         {
             CandidateReplay candidate = candidateReplay!;
-            if (candidate.Expansions.ContainsKey(rootId)) return;
+            if (candidate.RetainedRoots.Contains(rootId) || candidate.Expansions.ContainsKey(rootId)) return;
             if (virtualRootByFootprintId.TryGetValue(rootId, out string? ownerRoot)
                 && ownerRoot != rootId && candidate.AffectedRoots.Contains(ownerRoot)
                 && !replayingVirtualRootIds.Contains(ownerRoot))
@@ -139,13 +138,69 @@ namespace NeoCompose.Runtime
             if (!IsVirtualInstanceRoot(root)
                 && virtualRootByFootprintId.TryGetValue(rootId, out string? containingRoot)
                 && containingRoot != rootId && candidate.AffectedRoots.Contains(containingRoot)) return;
+            // A constructor can return fully materialized nested instances.
+            // If this child has never owned a separate expansion, the enclosing
+            // replay already constructed it and all its declaration defaults.
+            if (!virtualFootprintByRoot.ContainsKey(rootId)
+                && virtualRootByFootprintId.TryGetValue(rootId, out var enclosing)
+                && enclosing != rootId
+                && (candidate.RetainedRoots.Contains(enclosing)
+                    || candidate.Values.ContainsKey(rootId) && candidate.Expansions.ContainsKey(enclosing))) return;
             if (!IsVirtualInstanceRoot(root)
                 && (!TryInferMemberForValueId(rootId, out Member? member)
                     || member is not ClassMember placement || placement.Payload == NeoMemberPayloadKind.Partial)) return;
+            if (CanRetainCandidateRoot(candidate, root))
+            {
+                candidate.RetainedRoots.Add(rootId);
+                if (virtualValueIdsByRoot.TryGetValue(rootId, out var retainedIds))
+                    candidate.HiddenVirtualIds.ExceptWith(retainedIds);
+                return;
+            }
             if (!replayingVirtualRootIds.Add(rootId))
                 throw new InvalidOperationException($"Sparse constructor dependency cycle at '{rootId}'.");
             try { candidate.Add(ExpandVirtualInstanceRootCore(root, prepareOnly: true)); }
             finally { replayingVirtualRootIds.Remove(rootId); }
+        }
+
+        private bool CanRetainCandidateRoot(CandidateReplay candidate, ObjectMemberValue root)
+        {
+            if (CurrentChangeSource == NeoChangeSource.External
+                || !virtualFootprintByRoot.TryGetValue(root.id, out var footprint)
+                || !SameRow(PreviousRow(root.id), root)) return false;
+            foreach (var write in candidate.Plan.Rows.Keys)
+                if (footprint.Contains(write.id)) return false;
+            if (constructorArgumentValueIdsByRoot.TryGetValue(root.id, out var dependencies))
+            {
+                foreach (string id in dependencies)
+                {
+                    if (id.StartsWith("static:", StringComparison.Ordinal))
+                    {
+                        foreach (var binding in candidate.Plan.Bindings.Keys)
+                            if (id == $"static:{binding.ownership}:{binding.memberId}") return false;
+                        continue;
+                    }
+                    bool written = candidate.Plan.Rows.ContainsKey((NeoValueOwnership.Save, id))
+                        || candidate.Plan.Rows.ContainsKey((NeoValueOwnership.Session, id));
+                    if (!written && footprint.Contains(id)) continue;
+                    if (!written && !candidate.HiddenVirtualIds.Contains(id)) continue;
+                    if (candidate.HiddenVirtualIds.Contains(id) && !candidate.Values.ContainsKey(id))
+                        return false;
+                    if (!SameRow(PreviousRow(id), candidate.Plan.Resolve(id)))
+                        return false;
+                }
+            }
+            if (virtualValueIdsByRoot.TryGetValue(root.id, out var values))
+                foreach (string id in values)
+                    if (candidate.Values.TryGetValue(id, out var proposed)
+                        && virtualValues.TryGetValue(id, out var current) && !SameRow(current, proposed)) return false;
+            return true;
+
+            MemberValue? PreviousRow(string id) => sessionData.values.TryGetValue(id, out var session) ? session
+                : saveData.values.TryGetValue(id, out var save) ? save
+                : data.values.TryGetValue(id, out var asset) ? asset
+                : virtualValues.TryGetValue(id, out var cached) ? cached : null;
+
+            static bool SameRow(MemberValue? left, MemberValue? right) => NeoSemanticJson.MemberRowsEqual(left, right);
         }
 
         private CandidateReplay? ValidatePreparedWrite(NeoWritePlan plan)
@@ -191,20 +246,19 @@ namespace NeoCompose.Runtime
                     && candidate.Ownership.TryGetValue(id, out var nextOwnership)
                     && oldOwnership == nextOwnership
                     && virtualValues.TryGetValue(id, out MemberValue previous)
-                    && NeoSemanticJson.ProjectRecordsEqual(
-                        Newtonsoft.Json.Linq.JObject.FromObject(previous),
-                        Newtonsoft.Json.Linq.JObject.FromObject(next))) continue;
+                    && NeoSemanticJson.MemberRowsEqual(previous, next)) continue;
                 changed.Add((oldOwnership, id));
                 if (candidate.Ownership.TryGetValue(id, out var changedOwnership))
                     changed.Add((changedOwnership, id));
             }
             foreach (var row in candidate.Ownership)
                 if (!candidate.HiddenVirtualIds.Contains(row.Key)) changed.Add((row.Value, row.Key));
-            foreach (string root in candidate.AffectedRoots) ClearVirtualInstanceRoot(root);
+            foreach (string root in candidate.AffectedRoots)
+                if (!candidate.RetainedRoots.Contains(root)) ClearVirtualInstanceRoot(root);
             foreach (PreparedVirtualExpansion expansion in candidate.Expansions.Values)
                 InstallVirtualExpansion(expansion);
             foreach (string root in candidate.AffectedRoots)
-                if (nodesByValueId.TryGetValue(root, out var nodes))
+                if (!candidate.RetainedRoots.Contains(root) && nodesByValueId.TryGetValue(root, out var nodes))
                     foreach (NeoMember node in nodes.ToArray())
                         if (!node.isDisposed && node is NeoMemberClass classNode
                             && TryGetOverlaidValue(node.ownership, root, out ObjectMemberValue? _))
@@ -271,6 +325,7 @@ namespace NeoCompose.Runtime
             internal readonly Dictionary<string, Dictionary<string, string>> ClassChildren = new();
             internal readonly Dictionary<string, VirtualClassPlacement> Placements = new();
             internal readonly HashSet<string> AffectedRoots = new();
+            internal readonly HashSet<string> RetainedRoots = new();
             internal readonly HashSet<string> ReplacedConstructionRoots = new();
             internal readonly HashSet<string> HiddenVirtualIds = new();
             internal readonly IReadOnlyDictionary<string, MemberValue> SessionRows;

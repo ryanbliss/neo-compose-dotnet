@@ -3093,8 +3093,8 @@ namespace NeoCompose.Runtime.NeoScript
 
             try
             {
-                NeoMemberClassWritable node =
-                    NeoGeneratedTypesSupport.ConstructDeclaredClassValue(
+                var constructed =
+                    NeoGeneratedTypesSupport.ConstructDeclaredClassValueData(
                         resolved,
                         argumentValues,
                         fields,
@@ -3116,28 +3116,8 @@ namespace NeoCompose.Runtime.NeoScript
                                     constructionCtx);
                             }
                         });
-                try
-                {
-                    if (node.value is null)
-                    {
-                        throw new NSGetterRuntimeError(
-                            $"Declared constructor for '{info.schemaClassInfo.classId}' produced no root row.");
-                    }
-                    ctx.allocationTracker.RegisterSessionRoot(node.value.id);
-                    return UnwrapCached(
-                        node.value,
-                        ctx,
-                        NeoValueOwnership.Session,
-                        node.member);
-                }
-                finally
-                {
-                    // NeoScript returns the stable row-backed CLR value, not
-                    // the generated wrapper. Keeping this temporary wrapper
-                    // alive would retain it and every child as writable-value
-                    // subscribers for the rest of the evaluation.
-                    node.Dispose();
-                }
+                ctx.allocationTracker.RegisterSessionRoot(constructed.value.id);
+                return UnwrapCached(constructed.value, ctx, NeoValueOwnership.Session, constructed.member);
             }
             catch (Exception error)
                 when (error is InvalidOperationException

@@ -1222,21 +1222,58 @@ namespace NeoCompose.Runtime
             NeoClient client,
             NSGetterEvaluator.Context ctx)
         {
-            ObjectMemberValue? Resolve(NeoMemberClass node, NeoValueOwnership ownership) =>
-                node.value is ObjectMemberValue row && client.TryGetValue(ownership, row.id, out ObjectMemberValue? current)
-                    ? current : null;
-            return new Dictionary<string, object?>(3)
+            return new RuntimeRoot(client, ctx);
+        }
+
+        // Binding the three root names is not a read of their values. Resolve
+        // only the root the script accesses, so constructor dependency capture
+        // does not subscribe every constructor to all three global graphs.
+        private sealed class RuntimeRoot : IDictionary<string, object?>
+        {
+            private readonly NeoClient client;
+            private readonly NSGetterEvaluator.Context context;
+            private static readonly string[] names = { "Assets", "Save", "Session" };
+            internal RuntimeRoot(NeoClient client, NSGetterEvaluator.Context context)
+            { this.client = client; this.context = context; }
+            public bool TryGetValue(string key, out object? value)
             {
-                ["Assets"] = Resolve(client.assets, NeoValueOwnership.Asset) is ObjectMemberValue assets
-                    ? NSGetterEvaluator.UnwrapRow(assets, ctx, NeoValueOwnership.Asset)
-                    : null,
-                ["Save"] = Resolve(client.save, NeoValueOwnership.Save) is ObjectMemberValue save
-                    ? NSGetterEvaluator.UnwrapRow(save, ctx, NeoValueOwnership.Save)
-                    : null,
-                ["Session"] = Resolve(client.session, NeoValueOwnership.Session) is ObjectMemberValue session
-                    ? NSGetterEvaluator.UnwrapRow(session, ctx, NeoValueOwnership.Session)
-                    : null,
-            };
+                NeoMemberClass? node = key switch
+                {
+                    "Assets" => client.assets, "Save" => client.save,
+                    "Session" => client.session, _ => null,
+                };
+                if (node is null) { value = null; return false; }
+                NeoValueOwnership ownership = key == "Assets" ? NeoValueOwnership.Asset
+                    : key == "Save" ? NeoValueOwnership.Save : NeoValueOwnership.Session;
+                value = node.value is ObjectMemberValue row
+                    && client.TryGetValue(ownership, row.id, out ObjectMemberValue? current)
+                    ? NSGetterEvaluator.UnwrapRow(current, context, ownership) : null;
+                return true;
+            }
+            public object? this[string key]
+            {
+                get => TryGetValue(key, out var value) ? value : throw new KeyNotFoundException(key);
+                set => throw new NotSupportedException();
+            }
+            public ICollection<string> Keys => Array.AsReadOnly(names);
+            public ICollection<object?> Values => new[] { this["Assets"], this["Save"], this["Session"] };
+            public int Count => 3;
+            public bool IsReadOnly => true;
+            public bool ContainsKey(string key) => key is "Assets" or "Save" or "Session";
+            public bool Contains(KeyValuePair<string, object?> item) =>
+                TryGetValue(item.Key, out var value) && Equals(value, item.Value);
+            public IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
+            {
+                foreach (string key in names) yield return new KeyValuePair<string, object?>(key, this[key]);
+            }
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+            public void CopyTo(KeyValuePair<string, object?>[] array, int index)
+            { foreach (var pair in this) array[index++] = pair; }
+            public void Add(string key, object? value) => throw new NotSupportedException();
+            public void Add(KeyValuePair<string, object?> item) => throw new NotSupportedException();
+            public bool Remove(string key) => throw new NotSupportedException();
+            public bool Remove(KeyValuePair<string, object?> item) => throw new NotSupportedException();
+            public void Clear() => throw new NotSupportedException();
         }
 
         internal static object? Normalize(

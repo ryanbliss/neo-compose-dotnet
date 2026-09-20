@@ -4,6 +4,8 @@
 #nullable enable
 
 using System.IO;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Assets.Scripts.Neo;
 using NeoCompose.Runtime;
@@ -19,6 +21,66 @@ namespace NeoCompose.Tests
     {
         private const string ProjectFixture =
             "Packages/com.ryanbliss.neocompose/Tests/synth-example.json";
+
+        [Test]
+        public void TypedReplayComparisonPreservesRowSemantics()
+        {
+            MemberValue[] rows =
+            {
+                new ObjectMemberValue { value = new Dictionary<string, string> { ["a"] = "one", ["b"] = "two" } },
+                new ObjectMemberValue { value = null },
+                new ArrayMemberValue { value = new[] { "one", "two" } },
+                new ArrayMemberValue { value = null },
+                new NumberMemberValue { value = 3 },
+                new NumberMemberValue { value = null },
+                new BoolMemberValue { value = true },
+                new StringMemberValue { value = "text" },
+                new Vector2MemberValue { value = new NeoVector2Value { x = 1, y = 2 } },
+                new Vector3MemberValue { value = new NeoVector3Value { x = 1, y = 2, z = 3 } },
+                new ColorMemberValue { value = new NeoColorValue { r = 1, a = 1 } },
+                new FileMemberValue { value = null },
+                new FileMemberValue { value = new FileValue { fileId = "file" } },
+                new SpriteMemberValue { value = new SpriteValue { fileId = "sprite", sliceIndex = 2 } },
+                new DelegateMemberValue { value = new NeoDelegateValue { memberId = "method", valueId = "receiver" } },
+                new ActionMemberValue { value = new NeoActionValue() },
+                new NullMemberValue(),
+            };
+            foreach (MemberValue row in rows)
+            {
+                row.id = "row";
+                var copy = (MemberValue)JObject.FromObject(row).ToObject(row.GetType())!;
+                Check(row, copy);
+                copy.updatedAt = new NeoTimestamp(123);
+                copy.createdAt = new NeoTimestamp(456);
+                Check(row, copy);
+                foreach (Action<MemberValue> change in new Action<MemberValue>[]
+                {
+                    value => value.containerId = "container",
+                    value => value.mapKey = "entry",
+                    value => value.sourceValueId = "source",
+                    value => value.mark = "removed",
+                    value => value.genericBindings = new Dictionary<string, string> { ["T"] = "class" },
+                })
+                {
+                    copy = (MemberValue)JObject.FromObject(row).ToObject(row.GetType())!;
+                    change(copy);
+                    Check(row, copy);
+                }
+            }
+            var a = new ObjectMemberValue { id = "row", classId = "class", value = new(),
+                instanceConstructorId = "ctor", constructorArgs = new() { ["one"] = JObject.Parse("{ 'x': 1, 'y': 2 }") } };
+            var b = (ObjectMemberValue)JObject.FromObject(a).ToObject(typeof(ObjectMemberValue))!;
+            b.constructorArgs!["one"] = JObject.Parse("{ 'y': 2, 'x': 1 }");
+            Check(a, b);
+            b.constructorArgs["one"]!["y"] = 3;
+            Check(a, b);
+            Check(new ArrayMemberValue { value = new[] { "one", "two" } },
+                new ArrayMemberValue { value = new[] { "two", "one" } });
+
+            static void Check(MemberValue left, MemberValue right) => Assert.AreEqual(
+                NeoSemanticJson.ProjectRecordsEqual(JObject.FromObject(left), JObject.FromObject(right)),
+                NeoSemanticJson.MemberRowsEqual(left, right), left.GetType().Name);
+        }
 
         [Test]
         public void LivePatchBatch_IgnoresOnlyTopLevelServerMetadata()

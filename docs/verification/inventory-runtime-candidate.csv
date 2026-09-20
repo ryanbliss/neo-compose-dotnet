@@ -1,0 +1,32 @@
+action,trial,actionMs,allocatedBytes,maxFrameMs
+menu.open,0,26.313,4231037,47.388
+menu.tab.Friends,0,35.511,1959808,72.620
+menu.tab.Crafting,0,11.096,897516,18.236
+menu.tab.Dev Tools,0,9.827,447400,23.382
+menu.tab.Inventory,0,20.887,4077781,43.491
+dev.add.wood.menu,0,48.251,6006049,68.835
+dev.add.wood.world,0,7.489,1271934,14.966
+inventory.add.wood,0,5.660,1245288,10.320
+inventory.add.tool,0,35.004,6358145,44.609
+equip.tool,0,296.281,96843944,323.014
+equip.wood,0,152.108,51692852,176.462
+menu.open,1,1.954,93330,13.114
+menu.tab.Friends,1,13.134,1555764,53.773
+menu.tab.Crafting,1,4.638,525208,12.461
+menu.tab.Dev Tools,1,2.392,288322,10.816
+menu.tab.Inventory,1,45.986,5931263,76.580
+dev.add.wood.menu,1,7.249,1485648,20.794
+dev.add.wood.world,1,19.289,1526550,43.167
+inventory.add.wood,1,5.737,1513080,10.641
+equip.tool,1,149.332,49959170,173.360
+equip.wood,1,147.226,49941253,170.119
+menu.open,2,2.655,93458,12.845
+menu.tab.Friends,2,13.586,1555764,69.246
+menu.tab.Crafting,2,5.417,519448,15.182
+menu.tab.Dev Tools,2,2.469,288322,10.370
+menu.tab.Inventory,2,28.534,6297611,66.801
+dev.add.wood.menu,2,6.803,1711668,16.403
+dev.add.wood.world,2,6.746,1755974,13.245
+inventory.add.wood,2,6.127,1743468,12.224
+equip.tool,2,142.943,49975250,164.625
+equip.wood,2,138.942,49961173,160.009

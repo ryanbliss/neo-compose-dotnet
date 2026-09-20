@@ -5,6 +5,8 @@
 
 using System;
 using System.Linq;
+using System.Collections.Generic;
+using NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Runtime
@@ -24,6 +26,90 @@ namespace NeoCompose.Runtime
             "createdAt",
             "updatedAt",
         };
+
+        // Runtime replay compares thousands of already typed rows. Keep the
+        // JSON fallback for uncommon payloads while avoiding serialization of
+        // ordinary class maps, collections and scalar leaves.
+        internal static bool MemberRowsEqual(MemberValue? left, MemberValue? right)
+        {
+            if (ReferenceEquals(left, right)) return true;
+            if (left is null || right is null) return false;
+            if (left.GetType() != right.GetType() || left.init is not null || right.init is not null)
+                return ProjectRecordsEqual(JObject.FromObject(left), JObject.FromObject(right));
+            if (left.id != right.id || left.classId != right.classId || left.mark != right.mark
+                || left.containerId != right.containerId || left.mapKey != right.mapKey
+                || left.sourceValueId != right.sourceValueId
+                || left.hasInstanceConstructorId != right.hasInstanceConstructorId
+                || left.instanceConstructorId != right.instanceConstructorId
+                || left.instanceVariantId != right.instanceVariantId
+                || left.instanceVariantRowValueId != right.instanceVariantRowValueId
+                || !MapsEqual(left.genericBindings, right.genericBindings)
+                || !MapsEqual(left.constructorArgs, right.constructorArgs)) return false;
+            return left switch
+            {
+                ObjectMemberValue a => MapsEqual(a.value, ((ObjectMemberValue)right).value),
+                ArrayMemberValue a => ArraysEqual(a.value, ((ArrayMemberValue)right).value),
+                NumberMemberValue a => a.value == ((NumberMemberValue)right).value,
+                BoolMemberValue a => a.value == ((BoolMemberValue)right).value,
+                StringMemberValue a => a.value == ((StringMemberValue)right).value
+                    && a.neoLocalizationMode == ((StringMemberValue)right).neoLocalizationMode,
+                Vector2MemberValue a => VectorEqual(a.value, ((Vector2MemberValue)right).value),
+                Vector3MemberValue a => VectorEqual(a.value, ((Vector3MemberValue)right).value),
+                ColorMemberValue a => ColorEqual(a.value, ((ColorMemberValue)right).value),
+                DelegateMemberValue a when IsMemberTargetOrNull(a.value)
+                    && IsMemberTargetOrNull(((DelegateMemberValue)right).value) =>
+                    DelegateEqual(a.value, ((DelegateMemberValue)right).value),
+                ActionMemberValue a => ActionEqual(a.value, ((ActionMemberValue)right).value),
+                FileMemberValue a => ReferenceEquals(a.value, ((FileMemberValue)right).value)
+                    || a.value is not null && ((FileMemberValue)right).value is { } file && a.value.fileId == file.fileId,
+                SpriteMemberValue a => a.value?.fileId == ((SpriteMemberValue)right).value?.fileId
+                    && a.value?.sliceIndex == ((SpriteMemberValue)right).value?.sliceIndex,
+                _ => ProjectRecordsEqual(JObject.FromObject(left), JObject.FromObject(right)),
+            };
+        }
+
+        private static bool IsMemberTargetOrNull(NeoDelegateValue? value) => value is null || value.IsMemberTarget;
+
+        private static bool DelegateEqual(NeoDelegateValue? left, NeoDelegateValue? right) =>
+            ReferenceEquals(left, right) || (left is not null && right is not null
+                && left.memberId == right.memberId && left.valueId == right.valueId);
+
+        private static bool ActionEqual(NeoActionValue? left, NeoActionValue? right)
+        {
+            if (ReferenceEquals(left, right)) return true;
+            if (left is null || right is null || left.listeners.Count != right.listeners.Count) return false;
+            for (int i = 0; i < left.listeners.Count; i++)
+                if (!DelegateEqual(left.listeners[i], right.listeners[i])) return false;
+            return true;
+        }
+
+        private static bool ArraysEqual(string[]? left, string[]? right)
+        {
+            if (ReferenceEquals(left, right)) return true;
+            if (left is null || right is null || left.Length != right.Length) return false;
+            for (int i = 0; i < left.Length; i++) if (left[i] != right[i]) return false;
+            return true;
+        }
+
+        private static bool MapsEqual<T>(Dictionary<string, T>? left, Dictionary<string, T>? right)
+        {
+            if (ReferenceEquals(left, right)) return true;
+            if (left is null || right is null || left.Count != right.Count) return false;
+            foreach (var pair in left)
+                if (!right.TryGetValue(pair.Key, out var value)
+                    || (pair.Value is JToken token ? !JToken.DeepEquals(token, value as JToken)
+                        : !EqualityComparer<T>.Default.Equals(pair.Value, value))) return false;
+            return true;
+        }
+
+        private static bool VectorEqual(NeoVector2Value? left, NeoVector2Value? right) =>
+            ReferenceEquals(left, right) || (left is not null && right is not null
+                && left.GetType() == right.GetType() && left.x == right.x && left.y == right.y
+                && (left is not NeoVector3Value a || right is NeoVector3Value b && a.z == b.z));
+
+        private static bool ColorEqual(NeoColorValue? left, NeoColorValue? right) =>
+            ReferenceEquals(left, right) || (left is not null && right is not null
+                && left.r == right.r && left.g == right.g && left.b == right.b && left.a == right.a);
 
         internal static bool ProjectRecordsEqual(JToken? left, JToken? right) =>
             JToken.DeepEquals(ProjectRecord(left), ProjectRecord(right));

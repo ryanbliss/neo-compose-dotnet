@@ -18,6 +18,68 @@ namespace NeoCompose.Tests
 {
     public class P75VirtualInstanceValueTests
     {
+        [Test]
+        public void RemovingAListEntryRetainsUnchangedSiblingConstruction()
+        {
+            var data = BuildNestedProjectData();
+            var nested = ObjectValue("nested-instance", "nested-class");
+            nested.instanceConstructorId = null;
+            nested.constructorArgs = new();
+            data.values[nested.id] = nested;
+            ((ObjectMemberValue)data.values["thing-instance"]).value!["Nested"] = nested.id;
+            data.classes["thing-class"].schema["Items"] = "items";
+            data.members["items"] = new ListMember
+            {
+                id = "items", name = "Items", kind = MemberKind.List, entryMemberId = "entry",
+                defaultValue = new ArrayMemberValueBase { value = new[] { "first", "second" } },
+            };
+            data.members["entry"] = new StringMember { id = "entry", name = "Entry", kind = MemberKind.String };
+            data.values["first"] = new StringMemberValue { id = "first", value = "one" };
+            data.values["second"] = new StringMemberValue { id = "second", value = "two" };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            var count = thing.Get<NeoMemberClassWritable>("Nested")
+                .Get<NeoMemberClassWritable>("Deep").Get<NeoMemberIntWritable>("Count");
+            var before = count.value;
+            thing.Get<NeoMemberListWritable>("Items").RemoveAt(0);
+            Assert.AreSame(before, count.value, "An unchanged sibling must retain its constructed rows.");
+            Assert.AreEqual(1, thing.Get<NeoMemberListWritable>("Items").value!.value!.Length);
+            Assert.AreEqual(5, count.value!.value);
+        }
+
+        [Test]
+        public void BindingScriptRootOnlyCapturesTheRootActuallyRead()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var reads = new HashSet<string>();
+            using (client.CaptureValueReads(reads))
+            {
+                var ctx = new NSGetterEvaluator.Context(client, null, null);
+                var root = NeoScriptValueMarshaller.ResolveRoot(client, ctx);
+                Assert.IsEmpty(reads, "Binding names must not subscribe constructors to unused roots.");
+                ctx = ctx.WithRoot(root);
+                var getter = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = Array.Empty<Variable>(), typeInfo = IntTypeInfo(),
+                    instructions = new Instruction[]
+                    {
+                        new ReturnInstruction
+                        {
+                            type = InstructionKind.Return,
+                            pointer = PointerKeyOf(PointerKeyOf(PointerKeyOf(RootPointer(), "Save"), "Thing"), "Count"),
+                        },
+                    },
+                };
+                Assert.AreEqual(5d, NSGetterEvaluator.Evaluate(getter, ctx));
+                Assert.Contains("value-save", reads.ToArray());
+                Assert.IsFalse(reads.Contains("value-assets"));
+                Assert.IsFalse(reads.Contains("value-session"));
+                Assert.Contains(client.save.Get<NeoMemberClassWritable>("Thing")
+                    .Get<NeoMemberIntWritable>("Count").value!.id, reads.ToArray());
+            }
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void UnstampedStoredClassReadsItsDeclarationDefault(bool overridden)
@@ -2349,6 +2411,7 @@ namespace NeoCompose.Tests
             NeoMemberClassWritable thing =
                 client.save.Get<NeoMemberClassWritable>("Thing");
             string virtualActionId = thing.Get<NeoMemberAction>("OnPing").value!.id;
+            var untouchedCount = thing.Get<NeoMemberIntWritable>("Count").value;
 
             var ctx = new NSGetterEvaluator.Context(client, null, null);
             Dictionary<string, object?> root = NeoScriptRuntimeRoot(client, ctx);
@@ -2388,6 +2451,8 @@ namespace NeoCompose.Tests
                 new Dictionary<string, object?> { ["__root__"] = root },
                 ctx);
 
+            Assert.AreSame(untouchedCount, thing.Get<NeoMemberIntWritable>("Count").value,
+                "Changing listeners must retain unrelated constructor defaults.");
             NeoMemberAction subscribed = client.save
                 .Get<NeoMemberClassWritable>("Thing")
                 .Get<NeoMemberAction>("OnPing");

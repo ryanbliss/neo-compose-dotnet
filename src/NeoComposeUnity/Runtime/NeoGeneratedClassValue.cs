@@ -74,7 +74,11 @@ namespace NeoCompose.Runtime
             this.node = node;
             this.fallbackClassId = fallbackClassId;
             IsReadOnly = isReadOnly;
-            InheritedStorageOwnership = inheritedStorageOwnership;
+            // A read-only generated interface is still a view of its backing
+            // store. Its factory's default Asset argument must not redirect
+            // computed members or methods away from a Save/Session receiver.
+            InheritedStorageOwnership = inheritedStorageOwnership == NeoValueOwnership.Asset
+                ? node.ownership : inheritedStorageOwnership;
             this.node.OnChanged += HandleNodeChanged;
             this.node.OnDisposed += HandleNodeDisposed;
             LazyInitialize();
