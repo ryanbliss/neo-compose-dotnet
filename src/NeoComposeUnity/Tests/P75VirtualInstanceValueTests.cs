@@ -811,8 +811,9 @@ namespace NeoCompose.Tests
         [TestCase(false, true)]
         [TestCase(false, false, MemberKind.List)]
         [TestCase(false, false, MemberKind.Dictionary)]
+        [TestCase(false, false, MemberKind.Class, true)]
         public void SavingConstructorOnlyArgumentsPreservesSharedDependencies(
-            bool clone, bool trackedPatch = false, MemberKind argumentKind = MemberKind.Class)
+            bool clone, bool trackedPatch = false, MemberKind argumentKind = MemberKind.Class, bool detachClone = false)
         {
             var data = BuildProjectData();
             data.classes["thing-class"].allowedStorage = NeoMemberStorage.Inherit;
@@ -921,6 +922,21 @@ namespace NeoCompose.Tests
                     Assert.AreEqual(argumentId, client.saveValues[id].constructorArgs!["__arg_0__"]!.Value<string>());
                 }
                 client.SetSaveValue(root);
+                if (detachClone)
+                {
+                    using var storedClient = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: client.SerializeSaveData());
+                    var storedRoot = (ObjectMemberValue)storedClient.CloneRowForWrite(storedClient.save.value!);
+                    string detached = storedClient.CloneValueReference(storedRoot.value!["First"], NeoValueOwnership.Save);
+                    storedRoot.value.Remove("First"); storedRoot.value.Remove("Second");
+                    storedClient.SetSaveValue(storedRoot);
+                    storedClient.RunGarbageCollector();
+                    Assert.IsFalse(storedClient.saveValues.ContainsKey(configId), "Detached Session dependencies must not keep unrelated Save rows alive.");
+                    Assert.IsTrue(storedClient.TryGetValue(NeoValueOwnership.Session, configId, out ObjectMemberValue? retained));
+                    Assert.IsTrue(storedClient.TryGetValue(NeoValueOwnership.Session, retained!.value!["Count"], out NumberMemberValue? retainedCount));
+                    Assert.AreEqual(42, retainedCount!.value);
+                    Assert.DoesNotThrow(() => storedClient.CloneValueReference(detached, NeoValueOwnership.Session));
+                    return;
+                }
                 client.RunGarbageCollector();
                 Assert.IsTrue(client.saveValues.ContainsKey(configId), "Constructor-only inputs must survive without an owning field.");
                 Assert.IsTrue(client.saveValues.ContainsKey("retained-list-entry"), "Unordered inputs need their container memberships retained.");

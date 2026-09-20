@@ -3197,6 +3197,12 @@ namespace NeoCompose.Runtime
             EnsureVirtualReplayArgumentReady(sourceValueId);
             var plan = new NeoWritePlan(this);
             string result = PrepareFreshClone(plan, targetOwnership, sourceOwnership, sourceValueId, sourceMember);
+            // A detached clone can outlive the Save-owned object whose child
+            // was supplied as a constructor-only input. Retain that replay
+            // dependency in the clone's Session store before unlinking source.
+            if (targetOwnership == NeoValueOwnership.Session && candidateReplay is null)
+                foreach (var pair in plan.Rows.ToArray())
+                    if (pair.Value is not null) StageConstructorDependencies(plan, pair.Value, targetOwnership);
             plan.Commit();
             return result;
         }
