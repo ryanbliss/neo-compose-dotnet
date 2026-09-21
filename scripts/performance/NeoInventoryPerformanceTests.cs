@@ -120,15 +120,17 @@ public class NeoInventoryPerformanceTests
         var axe = flow.Client.Assets.Items.Index.Slug["axe.stone"];
         var body = Object.FindObjectsByType<Assets.Scripts.Neo.CharacterCreator.BodyAnimator>()
             .Single(b => b.Config.Slug == "character.player");
+        body.GetComponent<Assets.Scripts.Neo.CharacterCreator.PlayerController>().enabled = false;
+        body.HandleDirectionUpdate(Vector2.up);
         var attack = body.Body.Children.OfType<AttackItemSprite>().Single();
         var rod = body.Body.Children.OfType<FishingRodSprite>().Single();
         var attackRenderer = body.transform.Find("AttackItem").GetComponent<SpriteRenderer>();
         var rodRenderer = body.transform.Find("FishingRod").GetComponent<SpriteRenderer>();
         var torso = body.transform.Find("Torso/Torso").GetComponent<SpriteRenderer>();
         inventory.AddStack(new InventoryItemStack(wood, 1));
-        var tools = flow.Client.Assets.Items.Where(i => i is IHasHeldItem h && h.Asset is IReadOnlyAttackItemAsset).Take(2).ToArray();
+        var tools = flow.Client.Assets.Items.Where(i => i is IHasHeldItem h && h.Asset is IReadOnlyAttackItemAsset).ToArray();
         var fishing = flow.Client.Assets.Items.First(i => i is IHasHeldItem h && h.Asset is IReadOnlyFishingRodAsset);
-        Assert.That(tools.Length, Is.EqualTo(2));
+        Assert.That(tools.Any(item => item.Slug == "axe.stone"), Is.True);
         foreach (var item in tools.Concat(new[] { fishing })) inventory.AddStack(new InventoryItemStack(item, 1));
         foreach (var item in tools.Concat(new[] { fishing }).Concat(tools.Reverse()))
         {
@@ -143,8 +145,25 @@ public class NeoInventoryPerformanceTests
             Assert.That(attack.Config.HeldItem?.valueId, Is.EqualTo(asset.valueId), "Retained attack layer must use the live config.");
             bool attacking = asset is IReadOnlyAttackItemAsset;
             if (attacking) Assert.That(((IReadOnlyAttackItemSprite)attack).ToolArt.valueId, Is.EqualTo(((IReadOnlyAttackItemAsset)asset).Item.valueId), "ToolArt getter must follow config.");
-            var frames = attacking ? ((IReadOnlyAttackItemAsset)asset).Item.Idle.Down.Frames
-                : ((IReadOnlyFishingRodAsset)asset).Item.Idle.Down.Frames;
+            var frames = attacking ? ((IReadOnlyAttackItemAsset)asset).Item.Idle.Up.Frames
+                : ((IReadOnlyFishingRodAsset)asset).Item.Idle.Up.Frames;
+            Assert.That((attacking ? (BodyLayerSprite)attack : rod).FlipX, Is.False, "Idle up model flip: " + item.Slug);
+            Assert.That((attacking ? attackRenderer : rodRenderer).flipX, Is.False, "Idle up renderer flip: " + item.Slug);
+            foreach (var direction in new[] { Vector2.down, Vector2.left, Vector2.up, Vector2.right, Vector2.up })
+            {
+                body.HandleDirectionUpdate(direction);
+                for (float ready = Time.time + .4f; Time.time < ready;) yield return null;
+                bool expectedFlip = direction == Vector2.left;
+                Assert.That((attacking ? (BodyLayerSprite)attack : rod).FlipX, Is.EqualTo(expectedFlip), "Idle turn model " + direction + ": " + item.Slug);
+                Assert.That((attacking ? attackRenderer : rodRenderer).flipX, Is.EqualTo(expectedFlip), "Idle turn renderer " + direction + ": " + item.Slug);
+            }
+            foreach (bool moving in new[] { true, false })
+            {
+                body.SetIsMoving(moving);
+                for (float ready = Time.time + .4f; Time.time < ready;) yield return null;
+                Assert.That((attacking ? (BodyLayerSprite)attack : rod).FlipX, Is.EqualTo(moving), "Up model after moving=" + moving + ": " + item.Slug);
+                Assert.That((attacking ? attackRenderer : rodRenderer).flipX, Is.EqualTo(moving), "Up renderer after moving=" + moving + ": " + item.Slug);
+            }
             Assert.That(attack.Enabled, Is.EqualTo(attacking));
             Assert.That(rod.Enabled, Is.EqualTo(!attacking));
             Assert.That(frames.Select(frame => frame.Value), Does.Contain((attacking ? attackRenderer : rodRenderer).sprite), item.Slug);

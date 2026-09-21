@@ -104,10 +104,14 @@ side effects, call-site initializer retention/replacement, stable IDs, null
 Save overlays, ownership, disposal, collection cleanup, notifications, placement
 validation, and semantic numeric comparisons.
 
-The actual Neowyn visual test switches two attack tools and a fishing rod,
+The actual Neowyn visual test switches all catalog attack tools and a fishing rod,
 returns to empty hands, waits real game time for the animation, checks the
 rendered sprite against the selected item's animation, checks enabled layers,
-and verifies that torso/equipment renderer identities are retained.
+and verifies that torso/equipment renderer identities are retained. It also checks
+all idle-facing flips and the transition from up-facing walking back to idle.
+The authored idle-up item tracks now use their literal right-handed artwork;
+walk and attack keep their existing mirror. This correction is in Neowyn Neo
+data, not an SDK rendering change.
 
 This fixes the enclosing CharacterBody replay bottleneck. It does not establish
 native-speed parity or an everywhere-under-10-ms frame guarantee. Cold frame
