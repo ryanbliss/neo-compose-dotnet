@@ -1795,6 +1795,12 @@ namespace NeoCompose.Runtime
             }
         }
 
+        internal bool HasObjectCarriedTiles(string objectValueId, HashSet<string> dependencies)
+        {
+            foreach (var _ in ResolveObjectCarriedLinks(objectValueId, dependencies)) return true;
+            return false;
+        }
+
         private readonly struct ObjectCarriedLink
         {
             public ObjectCarriedLink(string linkValueId, string layerId, string tilesListValueId, int childIndex)
@@ -2762,6 +2768,7 @@ namespace NeoCompose.Runtime
             var objects = (NeoMemberListWritable)NeoMember.CreateWritable(
                 client, objectsMember, targetLink.ListValueId, writeOwnership);
             objects.PrepareAddSerialized(plan, NeoValueWritePayload.FromValueReference(instanceId, generatedObject));
+            plan.ObjectInsertion = (GridValueId, layerId, targetLink.ListValueId, instanceId);
             plan.Commit();
             return NeoPlacementResult.Success();
         }

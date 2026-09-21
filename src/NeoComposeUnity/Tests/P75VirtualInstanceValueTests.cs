@@ -38,10 +38,14 @@ namespace NeoCompose.Tests
             Assert.That(projected.Get<NeoMemberInt>("Count").value!.value, Is.EqualTo(73));
         }
 
-        [Test]
-        public void RepeatedClassResolutionKeepsTheGeneratedViewsRegisteredNode()
+        [TestCase(0)]
+        [TestCase(2000)]
+        public void RepeatedClassResolutionKeepsTheGeneratedViewsRegisteredNode(int unrelatedValues)
         {
-            using var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var data = BuildProjectData();
+            for (int i = 0; i < unrelatedValues; i++)
+                data.values["unrelated-" + i] = ObjectValue("unrelated-" + i, "thing-class");
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
             var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
             {
                 ["thing-class"] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
@@ -54,6 +58,9 @@ namespace NeoCompose.Tests
             };
             var first = (ResolvedThing)NeoGeneratedTypesSupport.ResolveClassValue(
                 client, "thing-instance", factories, writable)!;
+            Assert.That(first.BackingNode.member.id, Is.EqualTo("thing-member"));
+            Assert.That(first.BackingNode.Get<NeoMemberInt>("Count").value!.value, Is.EqualTo(5));
+            Assert.That(client.InferMemberParents("thing-instance").Select(p => p.Key), Is.EqualTo(new[] { "value-save" }));
             for (int i = 0; i < 3; i++)
             {
                 var next = NeoGeneratedTypesSupport.ResolveClassValue(client, "thing-instance", factories, writable);

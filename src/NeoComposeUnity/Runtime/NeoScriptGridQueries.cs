@@ -36,8 +36,8 @@ namespace NeoCompose.Runtime
                         foreach (var layer in change.ObjectLayers)
                         {
                             foreach (var id in layer.ChangedInstances)
-                                if (reads.placements.Contains(id.Value)) { Invalidate(); return; }
-                            foreach (var changed in layer.ChangedCells)
+                                if (reads.placements.Contains(id.Value) && layer.OrderOnlyDeltas?.ContainsKey(id) != true) { Invalidate(); return; }
+                            foreach (var changed in layer.ContentChangedCells)
                                 if (reads.objects.Contains(changed)) { Invalidate(); return; }
                         }
                         foreach (var layer in change.TileLayers)
@@ -123,12 +123,12 @@ namespace NeoCompose.Runtime
         internal void RegisterContent(INeoTileGridContent content, string gridId) => contentByGrid[gridId] = content;
         internal void Bind(string receiverId, string gridId, string layerId, string instanceId) => placements[receiverId] = (gridId, layerId, instanceId);
 
-        private (INeoTileGridContent content, NeoObjectProjection placement) Resolve(string receiverId)
+        private (INeoTileGridContent content, NeoObjectPlacementRecord placement) Resolve(string receiverId)
         {
             if (placements.TryGetValue(receiverId, out var binding)
                 && contentByGrid.TryGetValue(binding.grid, out var content))
             {
-                var placement = content.Primitive.ResolveObjectInstance(binding.layer, new NeoObjectInstanceId(binding.instance));
+                var placement = content.Primitive.LookupCache.ObjectRecord(binding.layer, binding.instance);
                 if (placement is not null) return (content, placement);
                 placements.Remove(receiverId);
             }
@@ -145,9 +145,9 @@ namespace NeoCompose.Runtime
                     RegisterContent(content);
                     foreach (var layer in content.ObjectLayersInOrder)
                     {
-                        var placement = content.Primitive.ResolveObjectInstance(layer.LayerId, new NeoObjectInstanceId(receiverId));
+                        var placement = content.Primitive.LookupCache.ObjectRecord(layer.LayerId, receiverId);
                         if (placement is null) continue;
-                        Bind(receiverId, current, layer.LayerId, placement.InstanceId.Value);
+                        Bind(receiverId, current, layer.LayerId, placement.InstanceId);
                         return (content, placement);
                     }
                     break;
@@ -183,7 +183,7 @@ namespace NeoCompose.Runtime
                 ?? (receiver as INeoValueReference)?.valueId
                 ?? throw new NSGetterRuntimeError("Grid query receiver has no placement identity.");
             var (content, placement) = Resolve(receiverId);
-            ctx.gridReads?.Record(content, placement.InstanceId.Value, null, false);
+            ctx.gridReads?.Record(content, placement.InstanceId, null, false);
             if (getCell)
             {
                 result = NeoVectorValues.FromVector2Int(placement.Cell);
@@ -194,7 +194,7 @@ namespace NeoCompose.Runtime
             var objects = getObjects ? new List<object?>() : null;
             foreach (Vector2Int cell in pattern.GetCells(placement.Cell))
             {
-                ctx.gridReads?.Record(content, placement.InstanceId.Value, cell, getTile);
+                ctx.gridReads?.Record(content, placement.InstanceId, cell, getTile);
                 if (getTile)
                 {
                     var tile = content.GetTile(cell);
@@ -202,11 +202,15 @@ namespace NeoCompose.Runtime
                     result = RuntimeValue(tile, ctx);
                     return true;
                 }
-                foreach (var item in content.GetObjects(cell))
-                {
-                    ctx.allocationTracker.ConsumeProducedCollectionEntry();
-                    objects!.Add(RuntimeValue(item, ctx));
-                }
+                // NeoScript already consumes stored-row views. Do not create
+                // generated C# wrappers and intermediate lists for every cell.
+                foreach (var layer in content.ObjectLayersInOrder)
+                    foreach (var item in content.Primitive.LookupCache.ObjectCandidatesAt(layer.LayerId, cell))
+                    {
+                        ctx.allocationTracker.ConsumeProducedCollectionEntry();
+                        Bind(item.InstanceId, content.Primitive.GridValueId, layer.LayerId, item.InstanceId);
+                        objects!.Add(RuntimeValue(item.InstanceId, ctx));
+                    }
             }
             result = getObjects ? objects!.ToArray() : null;
             return true;
@@ -214,7 +218,14 @@ namespace NeoCompose.Runtime
 
         private static object? RuntimeValue(INeoValueReference reference, NSGetterEvaluator.Context ctx)
         {
-            if (reference.valueId is not string id || !ctx.client.TryGetValue(id, out MemberValue? row))
+            if (reference.valueId is not string id)
+                throw new NSGetterRuntimeError("Grid query result has no stored value.");
+            return RuntimeValue(id, ctx);
+        }
+
+        private static object? RuntimeValue(string id, NSGetterEvaluator.Context ctx)
+        {
+            if (!ctx.client.TryGetValue(id, out MemberValue? row))
                 throw new NSGetterRuntimeError("Grid query result has no stored value.");
             var ownership = ctx.client.TryGetValueOwnership(id, out NeoValueOwnership found) ? found : NeoValueOwnership.Asset;
             return NSGetterEvaluator.UnwrapRow(row, ctx, ownership);

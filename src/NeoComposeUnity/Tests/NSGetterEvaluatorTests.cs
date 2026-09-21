@@ -45,6 +45,30 @@ namespace NeoCompose.Tests
             return NeoTestSaveStack.LoadClient(LoadFixture("synth-example.json"));
         }
 
+        [Test]
+        public void MemberDispatchIndexesAreSharedAcrossCallsAndClearedWithSchemaChanges()
+        {
+            var data = JsonConvert.DeserializeObject<ProjectData>(LoadFixture("synth-example.json"))!;
+            data.classes["wide"] = new NeoSchemaClass { id = "wide", name = "Wide", schema = new Dictionary<string, string>() };
+            for (int i = 0; i < 2000; i++)
+            {
+                string key = "Field" + i;
+                data.classes["wide"].schema[key] = key;
+                data.members[key] = new IntMember { id = key, name = key, kind = MemberKind.Int };
+            }
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var last = client.ResolveInstanceSurfaceMember("wide", "Field1999");
+            Assert.AreEqual("Field1999", last!.memberId);
+            Assert.AreSame(last, client.ResolveInstanceSurfaceMember("wide", "Field1999"));
+            var firstContext = client.CreateGetterContext(NeoValueOwnership.Session);
+            firstContext.callableDispatchCache["wide\nMethod"] = "original";
+            Assert.AreSame(firstContext.callableDispatchCache, client.CreateGetterContext(NeoValueOwnership.Save).callableDispatchCache);
+            data.classes["wide"].schema["Field1999"] = "Field0";
+            client.InvalidateSchemaResolutionCaches();
+            Assert.AreEqual("Field0", client.ResolveInstanceSurfaceMember("wide", "Field1999")!.memberId);
+            Assert.IsEmpty(firstContext.callableDispatchCache);
+        }
+
         private static NSPropertyMember RequireNSGetter(NeoClient client, string id)
         {
             if (!client.TryGetMember(id, out NSPropertyMember? member))
@@ -64,6 +88,102 @@ namespace NeoCompose.Tests
                 throw new System.InvalidOperationException("unreachable");
             }
             return member;
+        }
+
+        [Test]
+        public void ScalarReadsDoNotAllocateIdentityIndexesAndObserveCurrentValues()
+        {
+            using var client = LoadClient();
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var number = new NumberMemberValue { id = "scalar-number", value = 1 };
+            var boolean = new BoolMemberValue { id = "scalar-bool", value = false };
+            var text = new StringMemberValue { id = "scalar-text", value = "before" };
+            Assert.That(NSGetterEvaluator.UnwrapRow(number, context), Is.EqualTo(1));
+            Assert.That(NSGetterEvaluator.UnwrapRow(boolean, context), Is.False);
+            Assert.That(NSGetterEvaluator.UnwrapRow(text, context), Is.EqualTo("before"));
+            number.value = 2;
+            boolean.value = true;
+            text.value = "after";
+            Assert.That(NSGetterEvaluator.UnwrapRow(number, context), Is.EqualTo(2));
+            Assert.That(NSGetterEvaluator.UnwrapRow(boolean, context), Is.True);
+            Assert.That(NSGetterEvaluator.UnwrapRow(text, context), Is.EqualTo("after"));
+            long before = System.GC.GetAllocatedBytesForCurrentThread();
+            for (int i = 0; i < 1000; i++) NSGetterEvaluator.UnwrapRow(number, context);
+            Assert.That(System.GC.GetAllocatedBytesForCurrentThread() - before, Is.LessThan(40000),
+                "Only the numeric result may be boxed; reads must not construct string keys or row indexes.");
+            Assert.That(context.rowUnwrapCache, Is.Empty);
+            Assert.That(context.rowCacheKeysByRow, Is.Empty);
+        }
+
+        [Test]
+        public void CachedRowWriteAndEvictionOnlyVisitThatRowsAliases()
+        {
+            using var client = LoadClient();
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var changed = new ObjectMemberValue { id = "changed-row", classId = "before",
+                value = new Dictionary<string, string> { ["Field"] = "before-child" } };
+            var alias = (IDictionary<string, object?>)NSGetterEvaluator.UnwrapRow(changed, context, NeoValueOwnership.Save)!;
+            // Invalidation leaves a local alias alive while the next read creates
+            // another canonical CLR object for the same row.
+            NSGetterEvaluator.InvalidateCachedCollection(changed.id, NeoValueOwnership.Save, context);
+            var current = (IDictionary<string, object?>)NSGetterEvaluator.UnwrapRow(changed, context, NeoValueOwnership.Save)!;
+            var sessionAlias = NSGetterEvaluator.UnwrapRow(changed, context, NeoValueOwnership.Session)!;
+            for (int i = 0; i < 5000; i++)
+                NSGetterEvaluator.UnwrapRow(new ObjectMemberValue { id = "unrelated-" + i,
+                    value = new Dictionary<string, string>() }, context, NeoValueOwnership.Save);
+            var updated = new ObjectMemberValue { id = changed.id, classId = "after",
+                value = new Dictionary<string, string> { ["Field"] = "after-child" } };
+            NSGetterEvaluator.RefreshCachedRowAfterWrite(updated, context, NeoValueOwnership.Save);
+            long before = System.GC.GetAllocatedBytesForCurrentThread();
+            NSGetterEvaluator.RefreshCachedRowAfterWrite(updated, context, NeoValueOwnership.Save);
+            long allocated = System.GC.GetAllocatedBytesForCurrentThread() - before;
+            Assert.That(allocated, Is.LessThan(32768), "A one-row write must not snapshot all 5000 unrelated aliases.");
+            Assert.That(alias["Field"], Is.EqualTo("after-child"));
+            Assert.That(current["Field"], Is.EqualTo("after-child"));
+            Assert.That(((IDictionary<string, object?>)sessionAlias)["Field"], Is.EqualTo("before-child"));
+            Assert.That(context.rowReverseIndex.TryGetValue(alias, out var reference), Is.True);
+            Assert.That(reference.classId, Is.EqualTo("after"));
+            NSGetterEvaluator.EvictCachedRows(context, NeoValueOwnership.Save, new[] { changed.id });
+            Assert.That(context.rowReverseIndex.TryGetValue(alias, out _), Is.False);
+            Assert.That(context.rowReverseIndex.TryGetValue(current, out _), Is.False);
+            Assert.That(context.rowReverseIndex.TryGetValue(sessionAlias, out _), Is.True);
+            Assert.That(context.rowUnwrapCache.Count, Is.EqualTo(5001));
+        }
+
+        [TestCase("handler", "inventory", true)]
+        [TestCase("other", "inventory", false)]
+        [TestCase("handler", "other-inventory", false)]
+        [TestCase("handler", null, false)]
+        public void BoundDelegateEqualityUsesMemberAndReceiver(string memberId, string? receiverId, bool expected)
+        {
+            using var client = LoadClient();
+            var left = new NeoDelegateValue { memberId = "handler", valueId = "inventory" };
+            var right = new NeoDelegateValue { memberId = memberId, valueId = receiverId };
+            var getter = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = System.Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Bool, required = true },
+                instructions = new Instruction[] { new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = new OperationPointer
+                    {
+                        type = PointerKind.Operation,
+                        operation = new BooleanOperation
+                        {
+                            type = OperationKind.Boolean,
+                            expression = new BooleanExpression { condition = new Condition
+                            {
+                                type = OperatorKind.EqualTo,
+                                operand1 = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" },
+                                operand2 = new VariablePointer { type = PointerKind.Variable, variableId = "__root__" },
+                            } },
+                        },
+                    },
+                } },
+            };
+            Assert.That(NSGetterEvaluator.Evaluate(getter, new NSGetterEvaluator.Context(client, left, right)), Is.EqualTo(expected));
         }
 
         [TestCase(false)]

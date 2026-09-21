@@ -1796,6 +1796,9 @@ namespace NeoCompose.Runtime
             ExpressionResumeState expressionState,
             NeoScriptExecutionOptions? options)
         {
+            // Immediate frames cannot resume. Retaining every nested call's
+            // result and dynamic occurrence key only adds allocations there.
+            if (options?.AllowDeferredFunctionCalls != true) expressionState.DisableRecording();
             return ctx.WithExpressionHandlers(
                 (pointer, currentScope, currentCtx) => EvalFunctionCall(
                     client, pointer, currentScope, currentCtx, expressionState, options),
@@ -2208,7 +2211,7 @@ namespace NeoCompose.Runtime
                 var args = new object?[pointer.args.Length];
                 for (int i = 0; i < pointer.args.Length; i++)
                 {
-                    args[i] = NSGetterEvaluator.EvaluatePointer(pointer.args[i], scope, ctx);
+                    args[i] = NSGetterEvaluator.EvaluateFunctionArgument(pointer, i, scope, ctx);
                 }
                 string? memberId = NSGetterEvaluator.ResolveFunctionMemberId(
                     pointer,
@@ -5086,16 +5089,21 @@ namespace NeoCompose.Runtime
 
         private sealed class ExpressionResumeState
         {
-            private readonly Dictionary<string, CachedFunctionResult> results = new();
-            private readonly Dictionary<string, int> invocationCounts = new();
+            private Dictionary<string, CachedFunctionResult>? results;
+            private Dictionary<string, int>? invocationCounts;
+            private bool recording = true;
+
+            internal void DisableRecording() => recording = false;
 
             internal void BeginInstructionAttempt()
             {
-                invocationCounts.Clear();
+                invocationCounts?.Clear();
             }
 
             internal string NextInvocationKey(string callSiteId)
             {
+                if (!recording) return callSiteId;
+                invocationCounts ??= new();
                 invocationCounts.TryGetValue(callSiteId, out int occurrence);
                 invocationCounts[callSiteId] = occurrence + 1;
                 return callSiteId + "\n" + occurrence;
@@ -5106,7 +5114,7 @@ namespace NeoCompose.Runtime
                 out object? value,
                 out Exception? error)
             {
-                if (results.TryGetValue(callSiteId, out CachedFunctionResult cached))
+                if (recording && results is not null && results.TryGetValue(callSiteId, out CachedFunctionResult cached))
                 {
                     value = cached.Value;
                     error = cached.Error;
@@ -5119,11 +5127,15 @@ namespace NeoCompose.Runtime
 
             internal void StoreValue(string callSiteId, object? value)
             {
+                if (!recording) return;
+                results ??= new();
                 results[callSiteId] = new CachedFunctionResult(value, null);
             }
 
             internal void StoreError(string callSiteId, Exception error)
             {
+                if (!recording) return;
+                results ??= new();
                 results[callSiteId] = new CachedFunctionResult(null, error);
             }
 

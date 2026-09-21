@@ -13,6 +13,8 @@ namespace NeoCompose.Runtime
     {
         private static readonly Unity.Profiling.ProfilerMarker PrepareReplayMarker = new("NeoCompose.Write.PrepareReplay");
         private static readonly Unity.Profiling.ProfilerMarker InstallReplayMarker = new("NeoCompose.Write.InstallReplay");
+        private static readonly Unity.Profiling.ProfilerMarker FindReplayMarker = new("NeoCompose.Write.FindReplay");
+        private static readonly Unity.Profiling.ProfilerMarker ExpandReplayMarker = new("NeoCompose.Write.ExpandReplay");
         private CandidateReplay? candidateReplay;
         internal MemberValue? ReplayAllocation(string id) =>
             candidateReplay is not null && candidateReplay.Allocations.TryGetValue(id, out MemberValue? row) ? row : null;
@@ -316,14 +318,16 @@ namespace NeoCompose.Runtime
         private CandidateReplay? ValidatePreparedWrite(NeoWritePlan plan)
         {
             using var marker = PrepareReplayMarker.Auto();
-            CandidateReplay? candidate = PrepareCandidateExpansions(plan);
+            CandidateReplay? candidate;
+            using (FindReplayMarker.Auto()) candidate = PrepareCandidateExpansions(plan);
             if (candidate is null) { ValidateWritePlan(plan); return null; }
             candidateReplay = candidate;
             try
             {
                 using (ReadCandidate(plan))
                 {
-                    foreach (string id in candidate.AffectedRoots.OrderBy(id => id).ToArray()) PrepareCandidateRoot(id);
+                    using (ExpandReplayMarker.Auto())
+                        foreach (string id in candidate.AffectedRoots.OrderBy(id => id).ToArray()) PrepareCandidateRoot(id);
                     ValidateWritePlan(plan);
                 }
                 return candidate;

@@ -2,6 +2,14 @@
 
 ## [0.39.6] - 2026-09-21
 
+- Validate an isolated object insertion against the cached occupied cells and update that index in place. Multiple existing layer links remain supported. Unrelated object geometry and tile indexes are retained; compound writes and objects carrying tiles still use full validation.
+- Expose `NeoObjectLayerChangedArgs.ContentChangedCells` for spatial gameplay listeners. Sorting-only sibling changes still update render order through `ChangedCells` and `ChangedInstances`, but no longer invalidate unchanged NeoScript placement queries or plant neighborhoods.
+- Use indexed declaration/parent lookup when resolving generated classes, and index runtime member/function dispatch by class. Repeated local reads no longer search unrelated saved objects or scan the same inherited schema.
+- Refresh only the CLR aliases of the row being written instead of snapshotting every alias in the NeoScript context. Read scalar rows directly without allocating object-identity cache entries; structured aliases, localization and storage boundaries retain their existing behavior.
+- Compare bound delegates by member and receiver identity. Repeated inventory initialization recognizes an unchanged listener instead of removing and adding it through the write pipeline.
+- Consume direct `NeoCellPattern` transform arguments to native grid queries without constructing temporary Session graphs. Standalone patterns still materialize normally, and native object queries reuse cached placement records without constructing intermediate generated C# views.
+- Allocate expression-resume bookkeeping only for execution that permits deferred calls. Immediate calls keep the same evaluation order and effects without retaining unused continuation results. Add profiler samples for NeoScript functions and constructor replay phases.
+
 - Reject a variant swap that changes an already placed object's occupied cells before publishing any writes. Detached variants remain unrestricted, and visual size may change independently of PlacementTiles. Growth and regrowth no longer need position compensation.
 
 - Preserve runtime storage when projecting a computed class through a read-only interface. Runtime-constructed shop entries now retain constructor-supplied lookup values instead of trying to recreate computed defaults as asset literals.

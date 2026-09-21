@@ -1593,16 +1593,9 @@ namespace NeoCompose.Runtime
             HashSet<string> visitingValueIds,
             out Member? member)
         {
-            foreach (var candidate in client.members.Values)
-            {
-                if (candidate.valueId == valueId)
-                {
-                    member = candidate;
-                    return true;
-                }
-            }
+            if (client.TryInferDirectMemberForValueId(valueId, out member)) return true;
 
-            foreach (var parent in EnumerateValues(client))
+            foreach (var parent in client.InferMemberParents(valueId))
             {
                 if (parent.Value is not ObjectMemberValue objectValue
                     || objectValue.value == null)
@@ -1668,7 +1661,7 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            foreach (var parent in EnumerateValues(client))
+            foreach (var parent in client.InferMemberParents(valueId))
             {
                 if (parent.Value is ArrayMemberValue arrayValue
                     && arrayValue.value != null
@@ -1755,14 +1748,6 @@ namespace NeoCompose.Runtime
 
             entryMember = resolved;
             return true;
-        }
-
-        private static IEnumerable<KeyValuePair<string, MemberValue>> EnumerateValues(
-            NeoClient client)
-        {
-            foreach (var pair in client.sessionValues) yield return pair;
-            foreach (var pair in client.saveValues) yield return pair;
-            foreach (var pair in client.values) yield return pair;
         }
 
         private static bool Contains(string[] values, string value)

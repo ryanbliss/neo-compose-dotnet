@@ -80,8 +80,10 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        private static readonly Unity.Profiling.ProfilerMarker ValidatePlacementsMarker = new("NeoCompose.Write.ValidatePlacements");
         private void ValidateWritePlan(NeoWritePlan plan)
         {
+            using var sample = ValidatePlacementsMarker.Auto();
             if (plan.Rows.Count == 0 && plan.Bindings.Count == 0) return;
             bool runtimeLeaves = IsRuntimeLeafWrite(plan);
             var positionObjects = new HashSet<string>();
@@ -179,6 +181,7 @@ namespace NeoCompose.Runtime
                 var compatibleLayers = new Dictionary<(bool tile, string classId), HashSet<string>>();
                 foreach (string objectId in objects)
                     if (ResolveValueRow(objectId) is ObjectMemberValue obj && !obj.IsRemoved) ValidateObjectFootprint(obj);
+                if (TryValidateObjectInsertion(plan, primitives, compatibleLayers)) return;
                 if (TryValidateDirectTileConversions(plan, primitives, compatibleLayers)) return;
                 foreach (string tileId in tiles) ValidateTileRow(tileId);
                 foreach (string gridId in grids) ValidateGridPlacements(plan, gridId, primitives[gridId], compatibleLayers);

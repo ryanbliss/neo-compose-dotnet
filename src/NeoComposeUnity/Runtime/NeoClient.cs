@@ -877,6 +877,19 @@ namespace NeoCompose.Runtime
         }
 
         internal Dictionary<string, SchemaPlacement?> ScriptSchemaPlacements { get; } = new();
+        internal Dictionary<string, string?> ScriptCallableDispatch { get; } = new();
+        private readonly Dictionary<string, Dictionary<string, MergedSchemaEntry>> instanceSurfaceMembers = new();
+
+        internal MergedSchemaEntry? ResolveInstanceSurfaceMember(string classId, string key)
+        {
+            if (!instanceSurfaceMembers.TryGetValue(classId, out var members))
+            {
+                members = new Dictionary<string, MergedSchemaEntry>(System.StringComparer.Ordinal);
+                foreach (var entry in ResolveInstanceSurfaceSchema(classId)) members.TryAdd(entry.schemaKey, entry);
+                instanceSurfaceMembers.Add(classId, members);
+            }
+            return members.GetValueOrDefault(key);
+        }
 
         internal SchemaPlacement? FindSchemaPlacement(string memberId)
         {
@@ -1669,6 +1682,8 @@ namespace NeoCompose.Runtime
         {
             authoredValueInferenceIndex = null;
             ScriptSchemaPlacements.Clear();
+            ScriptCallableDispatch.Clear();
+            instanceSurfaceMembers.Clear();
             classInheritanceChains.Clear();
             instanceSurfaceSchemas.Clear();
             storedInstanceSchemas.Clear();
@@ -4183,7 +4198,7 @@ namespace NeoCompose.Runtime
             finally { visitingValueIds.Remove(valueId); }
         }
 
-        private bool TryInferDirectMemberForValueId(
+        internal bool TryInferDirectMemberForValueId(
             string valueId,
             [NotNullWhen(true)] out Member? member)
         {
