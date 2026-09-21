@@ -2,6 +2,8 @@
 
 ## [0.39.6] - 2026-09-21
 
+- Reject a variant swap that changes an already placed object's occupied cells before publishing any writes. Detached variants remain unrestricted, and visual size may change independently of PlacementTiles. Growth and regrowth no longer need position compensation.
+
 - Preserve runtime storage when projecting a computed class through a read-only interface. Runtime-constructed shop entries now retain constructor-supplied lookup values instead of trying to recreate computed defaults as asset literals.
 - Ignore dependency notifications for generated receivers whose backing row has been removed. Despawning a plant can invalidate its grid queries before its view is retired; callbacks must not re-evaluate the deleted receiver.
 - Validate lookup-set selections against unordered collection membership as well as ordered arrays. Nightly per-plant prestige grants can now record an item from the unordered catalog without rejecting its valid ID.

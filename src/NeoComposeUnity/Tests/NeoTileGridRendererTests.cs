@@ -1094,6 +1094,43 @@ namespace NeoCompose.Tests
             }
         }
 
+        [TestCase("shop-1", true)]
+        [TestCase("shop-object", true)]
+        [TestCase("shop-1", false)]
+        public void VariantSwapPreservesPlacedCellsButAllowsDetachedFootprintsAndVisualSize(string id, bool moveCell)
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            ConfigureObjectPlacementFootprint(data, id, Vector2Int.one, new Vector2Int(2, 1));
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var member = new ClassMember { id = "variant-target", name = "Target", kind = MemberKind.Class, classId = ObjectClassId };
+            var receiver = new NeoMemberClassWritable(client, member, id, NeoValueOwnership.Save);
+            var revision = client.WriteRevision;
+            void Apply() => client.PrepareVariantApply(receiver, _ =>
+            {
+                client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue
+                {
+                    id = id + "-size", value = new NeoVector3Value { x = 5, y = 5, z = 0 },
+                });
+                if (moveCell) client.SetWritableValue(NeoValueOwnership.Save, new Vector2MemberValue
+                {
+                    id = id + "-placement-cell-0", value = new NeoVector2Value { x = 0, y = 0 },
+                });
+            });
+            if (id == "shop-1" && moveCell)
+            {
+                var error = Assert.Throws<NeoPlacementValidationException>(Apply);
+                Assert.AreEqual("object-variant-footprint-changed", error!.ErrorCode);
+                Assert.AreEqual(revision, client.WriteRevision, "Rejected Apply must publish no writes.");
+                Assert.AreEqual(1, ((Vector3MemberValue)client.ResolveValueRow(id + "-size")!).value!.x);
+                Assert.AreEqual(2, ((Vector2MemberValue)client.ResolveValueRow(id + "-placement-cell-0")!).value!.x);
+            }
+            else
+            {
+                Assert.DoesNotThrow(Apply);
+                Assert.AreEqual(5, ((Vector3MemberValue)client.ResolveValueRow(id + "-size")!).value!.x);
+            }
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void ObjectPlacementRejectsNonOriginFootprintOverlapWithoutWriting(

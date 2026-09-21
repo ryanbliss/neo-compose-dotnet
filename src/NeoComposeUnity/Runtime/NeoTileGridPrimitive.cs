@@ -1993,7 +1993,7 @@ namespace NeoCompose.Runtime
             return ReadCellRow(positionRowId) ?? Vector2Int.zero;
         }
 
-        private IReadOnlyList<Vector2Int> ReadObjectFootprint(
+        internal IReadOnlyList<Vector2Int> ReadObjectFootprint(
             ObjectMemberValue objectRow,
             Vector2Int origin,
             HashSet<string>? dependencyIds)
