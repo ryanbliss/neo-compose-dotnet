@@ -359,3 +359,22 @@ throughput. The allocation difference still warrants investigation. Next targets
 are evaluator projection reuse with correct dependency capture and the write
 path's reverse-row alias copies. Profiling must establish their contribution
 before assigning an intermittent hitch to either.
+
+## Inventory and equipment replay
+
+`NeoInventoryPerformanceTests.cs` runs in the Neowyn Unity project, where the
+generated types and scenes exist. Copy it to `Assets/Tests/Editor/` (replacing
+the local copy, if present), then run its EditMode Unity tests. Each test enters
+Play Mode and loads the real scene. Run timing tests separately, with profiling
+disabled and no concurrent test/deploy jobs.
+
+- `RealWorldInventoryActions`: fresh Neo save, actual menu/Dev Tools/inventory
+  commands, and three axe/wood equipment cycles. Writes
+  `neo-inventory-performance.csv` in the process temporary directory.
+- `OriginalWorldEquipmentActions`: original `WorldScene` and inventory path,
+  with the legacy save system in test mode. Writes
+  `original-inventory-performance.csv`.
+- `EquipmentVisualsStayLiveAcrossToolRodAndEmptyHands`: verifies live sprite
+  frames, held-item data, enabled layers, and retained renderer identities.
+
+See `docs/verification/equipment-replay-performance.md` for measurement limits.

@@ -528,7 +528,7 @@ namespace NeoCompose.Runtime
             bool ordered = collectionValue is ArrayMemberValue array
                 && array.value is not null
                 && Array.IndexOf(array.value, rowValueId) >= 0;
-            bool unordered = client.TryGetValue(rowValueId, out MemberValue? row)
+            bool unordered = client.TryGetReplayReference(rowValueId, out MemberValue? row)
                 && string.Equals(
                     row.containerId,
                     binding.collectionValueId,
@@ -706,6 +706,7 @@ namespace NeoCompose.Runtime
                 client.TryGetValueOwnership(record.valueId, out NeoValueOwnership resolved)
                     ? resolved
                     : NeoValueOwnership.Asset;
+            using var wrapperReads = client.SuppressValueReads();
             return new NeoMemberClass(client, factoryMember, record.valueId, ownership);
         }
 
@@ -790,6 +791,7 @@ namespace NeoCompose.Runtime
                 createdAt = row.createdAt,
                 updatedAt = row.updatedAt,
             };
+            using var wrapperReads = client.SuppressValueReads();
             return new NeoMemberClassWritable(
                 client,
                 factoryMember,

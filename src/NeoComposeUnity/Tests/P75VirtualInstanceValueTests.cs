@@ -19,6 +19,233 @@ namespace NeoCompose.Tests
     public class P75VirtualInstanceValueTests
     {
         [Test]
+        public void NullSavedOverlayPreservesAuthoredConstructorDefaults()
+        {
+            var data = BuildProjectData();
+            data.classes["thing-class"].allowedStorage = NeoMemberStorage.Inherit;
+            var member = (ClassMember)data.members["thing-member"];
+            member.Storage = NeoMemberStorage.Inherit;
+            member.Requirement = NeoMemberRequirementKind.Optional;
+            data.classes["assets-root-class"].schema["Thing"] = member.id;
+            ((ObjectMemberValue)data.values["value-assets"]).value!["Thing"] = "thing-instance";
+            ((IntMember)data.members["thing-count"]).defaultValue = new NumberMemberValueBase
+            {
+                init = new InitializerBody
+                {
+                    code = "5",
+                    compiled = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = new[] { ConstructorVariable("__root__", ClassType("__root__")) },
+                        typeInfo = IntTypeInfo(),
+                        instructions = new Instruction[] { new ReturnInstruction { type = InstructionKind.Return, pointer = IntLiteral(5) } },
+                    },
+                },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var asset = client.assets.Get<NeoMemberClass>("Thing");
+            var saved = client.save.Get<NeoMemberClassWritable>("Thing");
+            var original = asset.Get<NeoMemberInt>("Count").value!;
+            client.ImportValueReference(NeoValueOwnership.Save, "thing-instance", out _, "thing-instance");
+            client.SetSaveValue(new ObjectMemberValue { id = "thing-instance", classId = "thing-class", value = null });
+            Assert.IsNull(saved.value!.value);
+            Assert.AreEqual(5, asset.Get<NeoMemberInt>("Count").value!.value);
+            Assert.AreEqual(original.id, asset.Get<NeoMemberInt>("Count").value!.id);
+            var reset = new NeoWritePlan(client);
+            reset.Remove(NeoValueOwnership.Save, "thing-instance");
+            reset.Commit();
+            Assert.AreEqual(5, saved.Get<NeoMemberIntWritable>("Count").value!.value);
+        }
+
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        public void NestedLeafDependencyReplaysOnlyItsOwnGraph(bool parentReadsResult, bool parentWritesResult)
+        {
+            var data = BuildProjectData();
+            data.classes["save-root-class"].schema["Input"] = "input-member";
+            data.members["input-member"] = new IntMember
+            {
+                id = "input-member", name = "Input", kind = MemberKind.Int,
+                Storage = NeoMemberStorage.Save, defaultValue = new NumberMemberValueBase { value = 1 },
+            };
+            data.values["input-value"] = new NumberMemberValue { id = "input-value", value = 1 };
+            ((ObjectMemberValue)data.values["value-save"]).value!["Input"] = "input-value";
+            data.classes["save-root-class"].schema["Unrelated"] = "unrelated-member";
+            data.members["unrelated-member"] = new IntMember
+            {
+                id = "unrelated-member", name = "Unrelated", kind = MemberKind.Int,
+                Storage = NeoMemberStorage.Save, defaultValue = new NumberMemberValueBase { value = 0 },
+            };
+            data.values["unrelated-value"] = new NumberMemberValue { id = "unrelated-value", value = 0 };
+            ((ObjectMemberValue)data.values["value-save"]).value!["Unrelated"] = "unrelated-value";
+            data.classes["leaf-class"] = new NeoSchemaClass
+            {
+                id = "leaf-class", name = "Leaf", projectId = "p75-project",
+                schema = new Dictionary<string, string> { ["Count"] = "leaf-count", ["Name"] = "leaf-name" },
+            };
+            data.members["leaf-name"] = new StringMember { id = "leaf-name", name = "Name", kind = MemberKind.String, defaultValue = new StringMemberValueBase { value = "default" } };
+            data.members["leaf-count"] = new IntMember
+            {
+                id = "leaf-count", name = "Count", kind = MemberKind.Int,
+                defaultValue = new NumberMemberValueBase { init = Init(IntTypeInfo(),
+                    PointerKeyOf(new ReferencePointer { type = PointerKind.Reference, valueId = "value-save" }, "Input")) },
+            };
+            data.classes["thing-class"].schema["Leaf"] = "thing-leaf";
+            data.members["thing-leaf"] = new ClassMember
+            {
+                id = "thing-leaf", name = "Leaf", kind = MemberKind.Class, classId = "leaf-class",
+                defaultValue = new ObjectMemberValueBase { init = Init(ClassType("leaf-class"), new FunctionPointer
+                {
+                    type = PointerKind.Function,
+                    function = new DeclaredConstructorFunction
+                    {
+                        type = FunctionKind.DeclaredConstructor,
+                        info = new DeclaredConstructorInfo
+                        {
+                            schemaClassInfo = ClassType("leaf-class"),
+                            args = Array.Empty<DeclaredConstructorArgument>(),
+                            fields = new[] { new FunctionClassConstructorField
+                            {
+                                schemaKey = "Name", memberId = "leaf-name",
+                                valuePointer = new ValuePointer { type = PointerKind.Value,
+                                    value = new Value { typeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true }, value = "call-site" } },
+                            } },
+                        },
+                    },
+                }) },
+            };
+            if (parentReadsResult || parentWritesResult)
+            {
+                data.classes["thing-class"].constructorIds = new[] { "thing-ctor" };
+                ((ObjectMemberValue)data.values["thing-instance"]).instanceConstructorId = "thing-ctor";
+                var receiver = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" };
+                data.constructors["thing-ctor"] = new ConstructorRecord
+                {
+                    id = "thing-ctor", classId = "thing-class", projectId = "p75-project",
+                    argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                    action = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = new[] { ConstructorVariable("__this__", ClassType("thing-class")), ConstructorVariable("__root__", ClassType("__root__")) },
+                        typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                        instructions = new Instruction[]
+                        {
+                            new AssignInstruction
+                            {
+                                type = InstructionKind.Assign, operatorValue = "=",
+                                target = new WriteTarget { pointer = parentWritesResult ? PointerKeyOf(PointerKeyOf(receiver, "Leaf"), "Count") : PointerKeyOf(receiver, "Count"), typeInfo = IntTypeInfo(), writability = WritabilityKind.Session },
+                                pointer = parentWritesResult ? new ValuePointer { type = PointerKind.Value, value = new Value { typeInfo = IntTypeInfo(), value = 99 } } : PointerKeyOf(PointerKeyOf(receiver, "Leaf"), "Count"),
+                            },
+                        },
+                    },
+                };
+            }
+            data.classes["leaf-class"].constructorIds = new[] { "replacement-leaf-ctor" };
+            data.constructors["replacement-leaf-ctor"] = new ConstructorRecord
+            {
+                id = "replacement-leaf-ctor", classId = "leaf-class", projectId = "p75-project",
+                argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "config", type = MemberKind.Class, classId = "save-root-class", required = true } },
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[] { ConstructorVariable("__this__", ClassType("leaf-class")), ConstructorVariable("__root__", ClassType("__root__")), ConstructorVariable("__arg_0__", ClassType("save-root-class")) },
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = new Instruction[] { new AssignInstruction
+                    {
+                        type = InstructionKind.Assign, operatorValue = "=",
+                        target = new WriteTarget
+                        {
+                            pointer = PointerKeyOf(new VariablePointer { type = PointerKind.Variable, variableId = "__this__" }, "Name"),
+                            typeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true }, writability = WritabilityKind.Session,
+                        },
+                        pointer = new ValuePointer { type = PointerKind.Value, value = new Value
+                            { typeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true }, value = "replacement" } },
+                    } },
+                },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            var sibling = thing.Get<NeoMemberIntWritable>("Count");
+            var leaf = thing.Get<NeoMemberClassWritable>("Leaf");
+            string leafId = leaf.value!.id;
+            string valueId = leaf.Get<NeoMemberIntWritable>("Count").value!.id;
+            client.TryGetValue(sibling.value!.id, out MemberValue? originalSibling);
+            Assert.AreEqual(parentWritesResult ? 99 : 1, leaf.Get<NeoMemberIntWritable>("Count").value!.value);
+            client.save.Get<NeoMemberIntWritable>("Input").Set(7);
+            Assert.AreEqual(parentWritesResult ? 99 : 7, leaf.Get<NeoMemberIntWritable>("Count").value!.value);
+            Assert.AreEqual("call-site", leaf.Get<NeoMemberStringWritable>("Name").value!.value);
+            Assert.AreEqual(leafId, leaf.value!.id);
+            Assert.AreEqual(valueId, leaf.Get<NeoMemberIntWritable>("Count").value!.id);
+            client.TryGetValue(sibling.value!.id, out MemberValue? nextSibling);
+            if (parentReadsResult)
+                Assert.AreEqual(7, thing.Get<NeoMemberIntWritable>("Count").value!.value, "A parent that consumes the result must replay too.");
+            else if (!parentWritesResult)
+                Assert.AreSame(originalSibling, nextSibling, "Changing a leaf input must not reconstruct its enclosing graph.");
+            client.TryGetValue(valueId, out MemberValue? beforeUnrelatedWrite);
+            client.save.Get<NeoMemberIntWritable>("Unrelated").Set(99);
+            client.TryGetValue(valueId, out MemberValue? afterUnrelatedWrite);
+            Assert.AreSame(beforeUnrelatedWrite, afterUnrelatedWrite,
+                "A class reference must depend on the fields read, not every write to its row.");
+            var replacement = new NeoWritePlan(client);
+            var saveRoot = (ObjectMemberValue)client.CloneRowForWrite(client.save.value!);
+            saveRoot.value!["Input"] = "replacement-input";
+            replacement.Set(NeoValueOwnership.Save, new NumberMemberValue { id = "replacement-input", value = 11 });
+            replacement.Set(NeoValueOwnership.Save, saveRoot);
+            replacement.Commit();
+            Assert.AreEqual(parentWritesResult ? 99 : 11, leaf.Get<NeoMemberIntWritable>("Count").value!.value,
+                "Replacing a field link must invalidate readers even when the class identity is unchanged.");
+            if (parentReadsResult) Assert.AreEqual(11, thing.Get<NeoMemberIntWritable>("Count").value!.value);
+            leaf.Get<NeoMemberIntWritable>("Count").Set(42);
+            if (parentReadsResult)
+                Assert.AreEqual(11, thing.Get<NeoMemberIntWritable>("Count").value!.value,
+                    "The parent constructor reads the fresh child before saved overrides are applied.");
+            client.save.Get<NeoMemberIntWritable>("Input").Set(9);
+            Assert.AreEqual(42, leaf.Get<NeoMemberIntWritable>("Count").value!.value, "Stored field overrides must survive independent replay.");
+
+            if (!parentReadsResult && !parentWritesResult)
+            {
+                var replaced = (ObjectMemberValue)client.CloneRowForWrite(leaf.value!);
+                replaced.instanceConstructorId = "replacement-leaf-ctor";
+                replaced.constructorArgs = new() { ["__arg_0__"] = new JValue("value-save") };
+                replaced.value = new();
+                var replacePlan = new NeoWritePlan(client);
+                replacePlan.Remove(NeoValueOwnership.Save, valueId);
+                replacePlan.Set(NeoValueOwnership.Save, replaced);
+                replacePlan.Commit();
+                var currentLeaf = thing.Get<NeoMemberClassWritable>("Leaf");
+                Assert.AreEqual("replacement", currentLeaf.Get<NeoMemberStringWritable>("Name").value!.value,
+                    "Replacing a nested constructor must not restore the old call-site initializer.");
+                client.save.Get<NeoMemberIntWritable>("Input").Set(12);
+                Assert.AreEqual("replacement", currentLeaf.Get<NeoMemberStringWritable>("Name").value!.value);
+                Assert.AreEqual(12, currentLeaf.Get<NeoMemberIntWritable>("Count").value!.value);
+                string currentCountId = currentLeaf.Get<NeoMemberIntWritable>("Count").value!.id;
+                client.TryGetValue(currentCountId, out MemberValue? beforeMetadataOnlyChange);
+                var unrelatedPlan = new NeoWritePlan(client);
+                var unrelatedRoot = (ObjectMemberValue)client.CloneRowForWrite(client.save.value!);
+                unrelatedRoot.value!["Unrelated"] = "other-unrelated-value";
+                unrelatedPlan.Set(NeoValueOwnership.Save, new NumberMemberValue { id = "other-unrelated-value", value = 100 });
+                unrelatedPlan.Set(NeoValueOwnership.Save, unrelatedRoot);
+                unrelatedPlan.Commit();
+                client.TryGetValue(currentCountId, out MemberValue? afterMetadataOnlyChange);
+                Assert.AreSame(beforeMetadataOnlyChange, afterMetadataOnlyChange,
+                    "Stored constructor argument metadata must not read an entire class payload.");
+            }
+
+            static InitializerBody Init(TypeInfo type, Pointer pointer) => new()
+            {
+                code = "fixture",
+                compiled = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[] { ConstructorVariable("__root__", ClassType("__root__")) },
+                    typeInfo = type,
+                    instructions = new Instruction[] { new ReturnInstruction { type = InstructionKind.Return, pointer = pointer } },
+                },
+            };
+        }
+
+        [Test]
         public void RemovingAListEntryRetainsUnchangedSiblingConstruction()
         {
             var data = BuildNestedProjectData();

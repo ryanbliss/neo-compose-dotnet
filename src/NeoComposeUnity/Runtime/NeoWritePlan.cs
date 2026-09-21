@@ -23,6 +23,7 @@ namespace NeoCompose.Runtime
         internal readonly NeoClient Client;
         internal readonly long BaseRevision;
         internal bool HasValidatedRuntimeLeaves;
+        internal readonly HashSet<string> UnchangedValueIds = new();
         internal readonly List<NeoValidatedTileConversion> ValidatedTileConversions = new();
         internal readonly Dictionary<(string gridId, string layerId), NeoPreparedLayerRecords<NeoTilePlacementRecord>> PreparedTileLayers = new();
         internal readonly Dictionary<(string gridId, string layerId), NeoPreparedLayerRecords<NeoObjectPlacementRecord>> PreparedObjectLayers = new();
@@ -106,6 +107,9 @@ namespace NeoCompose.Runtime
 
         internal bool TryGetOwnership(string id, out NeoValueOwnership ownership)
         {
+            // Ownership resolution is metadata, like the committed-store path.
+            // It must not turn a class reference into a whole-payload read.
+            using var metadataReads = Client.SuppressValueReads();
             if (TryGetWritable(NeoValueOwnership.Session, id, out _))
             { ownership = NeoValueOwnership.Session; return true; }
             if (TryGetWritable(NeoValueOwnership.Save, id, out _))
@@ -170,6 +174,7 @@ namespace NeoCompose.Runtime
 {
     public partial class NeoClient
     {
+        private static readonly Unity.Profiling.ProfilerMarker CommitWriteMarker = new("NeoCompose.Write.Commit");
         internal long WriteRevision { get; private set; }
         private NeoWritePlan? candidateReadPlan;
         internal MemberValue? ResolveWritePlanGlobalFallback(NeoWritePlan plan, string id)
@@ -198,6 +203,24 @@ namespace NeoCompose.Runtime
 
         internal void CommitWritePlan(NeoWritePlan plan)
         {
+            using var marker = CommitWriteMarker.Auto();
+            if (nestedConstructedRows is not null)
+                foreach (var key in plan.Rows.Keys)
+                    if (nestedConstructedRows.TryGetValue(key.id, out var producer)
+                        && !ReferenceEquals(producer, nestedConstructorCapture))
+                        producer.HasExternalWrites = true;
+            if (plan.Bindings.Count != 0)
+                for (var scope = nestedConstructorCapture; scope is not null; scope = scope.Parent) scope.HasExternalWrites = true;
+            if (nestedConstructorCapture is not null)
+                foreach (var key in plan.Rows.Keys)
+                {
+                    bool exists = ResolveValueRow(key.id) is not null;
+                    for (var scope = nestedConstructorCapture; scope is not null; scope = scope.Parent)
+                    {
+                        if (!exists) scope.Allocations.Add(key.id);
+                        else if (!scope.Allocations.Contains(key.id)) scope.HasExternalWrites = true;
+                    }
+                }
             if (candidateReplay is not null)
             { candidateReplay.Apply(plan); return; }
             if (!ReferenceEquals(plan.Client, this))
@@ -213,6 +236,11 @@ namespace NeoCompose.Runtime
             CandidateReplay? preparedExpansions = ValidatePreparedWrite(plan);
             if (plan.BaseRevision != WriteRevision)
                 throw new InvalidOperationException("The data graph changed during candidate validation.");
+            foreach (var row in plan.Rows)
+                if (TryGetCommittedOwnership(row.Key.id, out var previousOwnership)
+                    && previousOwnership == row.Key.ownership
+                    && ReplayRowsEqual(PreviousReplayRow(row.Key.id), row.Value))
+                    plan.UnchangedValueIds.Add(row.Key.id);
             var changed = new HashSet<(NeoValueOwnership ownership, string valueId)>();
             var oldContainers = new Dictionary<(NeoValueOwnership ownership, string id), string>();
             foreach (var pair in plan.Rows)
@@ -267,7 +295,10 @@ namespace NeoCompose.Runtime
                         continue;
                     }
                     plan.Fields.TryGetValue(pair.Key, out string? changedField);
-                    NotifyWritableValueChanged(pair.Key.ownership, pair.Key.id, changedField);
+                    NotifyWritableValueChanged(pair.Key.ownership, pair.Key.id, changedField,
+                        valueChanged: !(plan.UnchangedValueIds.Contains(pair.Key.id)
+                            && pair.Value is ObjectMemberValue { classId: not null, value: not null } parentRow
+                            && parentRow.value.Values.Any(childId => plan.Rows.ContainsKey((pair.Key.ownership, childId)))));
                     if (oldContainers.TryGetValue(pair.Key, out string? containerId))
                         RaiseContainerChanged(pair.Key.ownership, containerId);
                 }
@@ -296,12 +327,23 @@ namespace NeoCompose.Runtime
     {
         internal void StageUnlinkedRemovals(
             NeoWritePlan plan, NeoValueOwnership ownership, IEnumerable<string> valueIds, Member? member)
+            => StageUnlinkedRemovals(plan, ownership, valueIds.Select(id => (id, member)));
+
+        internal void StageUnlinkedRemovals(NeoWritePlan plan, NeoValueOwnership ownership,
+            IEnumerable<(string valueId, Member? member)> roots)
         {
+            // A detached default often has no writable rows at all. Find the
+            // actual removals before walking global reachability, and share
+            // that walk across all children released by one assignment.
+            var removals = new List<string>();
+            var visited = new HashSet<string>();
+            foreach (var root in roots)
+                StageOwnedRemoval(plan, ownership, root.valueId, root.member, false, visited, null, removals);
+            if (removals.Count == 0) return;
             HashSet<string> reachable;
             using (ReadCandidate(plan)) reachable = BuildReachableWritableValueIds(ownership);
-            var visited = new HashSet<string>();
-            foreach (string id in valueIds)
-                StageOwnedRemoval(plan, ownership, id, member, false, visited, reachable);
+            foreach (string id in removals)
+                if (!reachable.Contains(id)) plan.Remove(ownership, id);
         }
 
         internal void StageOwnedRemoval(
@@ -313,7 +355,7 @@ namespace NeoCompose.Runtime
 
         private void StageOwnedRemoval(
             NeoWritePlan plan, NeoValueOwnership ownership, string valueId, Member? member,
-            bool tombstone, HashSet<string> visited, HashSet<string>? reachable)
+            bool tombstone, HashSet<string> visited, HashSet<string>? reachable, List<string>? removals = null)
         {
             if (reachable?.Contains(valueId) == true || !visited.Add(valueId)) return;
             MemberValue? row = plan.Resolve(ownership, valueId);
@@ -324,7 +366,7 @@ namespace NeoCompose.Runtime
                     NeoValueOwnership childOwnership = child.member is null
                         ? ownership : DeclaredOwnership(child.member) ?? ownership;
                     if (childOwnership != ownership) continue;
-                    StageOwnedRemoval(plan, ownership, child.valueId, child.member, false, visited, reachable);
+                    StageOwnedRemoval(plan, ownership, child.valueId, child.member, false, visited, reachable, removals);
                 }
                 if (member is ListMember list && IsUnorderedList(list))
                 {
@@ -332,7 +374,7 @@ namespace NeoCompose.Runtime
                     var entries = new HashSet<string>(EnumerateContainerMemberValueIds(ownership, valueId));
                     entries.UnionWith(plan.ContainerCandidates(valueId));
                     foreach (string childId in entries)
-                        StageOwnedRemoval(plan, ownership, childId, entry, false, visited, reachable);
+                        StageOwnedRemoval(plan, ownership, childId, entry, false, visited, reachable, removals);
                 }
             }
             if (tombstone)
@@ -343,7 +385,11 @@ namespace NeoCompose.Runtime
                     id = valueId, createdAt = now, updatedAt = now, mark = NeoValueMarks.Removed,
                 }, "mark");
             }
-            else if (plan.TryGetWritable(ownership, valueId, out _)) plan.Remove(ownership, valueId);
+            else if (plan.TryGetWritable(ownership, valueId, out _))
+            {
+                if (removals is not null) removals.Add(valueId);
+                else plan.Remove(ownership, valueId);
+            }
         }
     }
 }

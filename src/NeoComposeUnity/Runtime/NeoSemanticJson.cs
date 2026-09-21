@@ -30,7 +30,7 @@ namespace NeoCompose.Runtime
         // Runtime replay compares thousands of already typed rows. Keep the
         // JSON fallback for uncommon payloads while avoiding serialization of
         // ordinary class maps, collections and scalar leaves.
-        internal static bool MemberRowsEqual(MemberValue? left, MemberValue? right)
+        internal static bool MemberRowsEqual(MemberValue? left, MemberValue? right, bool ignoreObjectFields = false)
         {
             if (ReferenceEquals(left, right)) return true;
             if (left is null || right is null) return false;
@@ -47,7 +47,7 @@ namespace NeoCompose.Runtime
                 || !MapsEqual(left.constructorArgs, right.constructorArgs)) return false;
             return left switch
             {
-                ObjectMemberValue a => MapsEqual(a.value, ((ObjectMemberValue)right).value),
+                ObjectMemberValue a => ignoreObjectFields || MapsEqual(a.value, ((ObjectMemberValue)right).value),
                 ArrayMemberValue a => ArraysEqual(a.value, ((ArrayMemberValue)right).value),
                 NumberMemberValue a => a.value == ((NumberMemberValue)right).value,
                 BoolMemberValue a => a.value == ((BoolMemberValue)right).value,
@@ -91,15 +91,31 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        private static bool MapsEqual<T>(Dictionary<string, T>? left, Dictionary<string, T>? right)
+        internal static bool MapsEqual<T>(Dictionary<string, T>? left, Dictionary<string, T>? right)
         {
             if (ReferenceEquals(left, right)) return true;
             if (left is null || right is null || left.Count != right.Count) return false;
             foreach (var pair in left)
                 if (!right.TryGetValue(pair.Key, out var value)
-                    || (pair.Value is JToken token ? !JToken.DeepEquals(token, value as JToken)
+                    || (pair.Value is JToken token ? !ReplayTokensEqual(token, value as JToken)
                         : !EqualityComparer<T>.Default.Equals(pair.Value, value))) return false;
             return true;
+        }
+
+        private static bool ReplayTokensEqual(JToken left, JToken? right)
+        {
+            if (right is null) return false;
+            if (left.Type != right.Type
+                && left.Type is JTokenType.Integer or JTokenType.Float
+                && right.Type is JTokenType.Integer or JTokenType.Float)
+            {
+                // NeoScript numbers round-trip through both integer and
+                // floating JSON tokens. Compare exact representable integers;
+                // large JSON integers keep the conservative typed comparison.
+                double integer = (left.Type == JTokenType.Integer ? left : right).Value<double>();
+                return Math.Abs(integer) <= 9007199254740991d && left.Value<double>() == right.Value<double>();
+            }
+            return JToken.DeepEquals(left, right);
         }
 
         private static bool VectorEqual(NeoVector2Value? left, NeoVector2Value? right) =>
