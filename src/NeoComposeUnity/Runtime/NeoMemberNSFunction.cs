@@ -304,6 +304,7 @@ namespace NeoCompose.Runtime
             ReturnTypeInfo = returnTypeInfo;
             ArgumentTypes = argumentTypes;
             Deferred = deferred;
+            Profile = new Unity.Profiling.ProfilerMarker("NeoScript." + member.name);
         }
 
         internal string MemberId { get; }
@@ -312,6 +313,7 @@ namespace NeoCompose.Runtime
         internal TypeInfo ReturnTypeInfo { get; }
         internal FunctionArgumentTypeInfo[] ArgumentTypes { get; }
         internal bool Deferred { get; }
+        internal Unity.Profiling.ProfilerMarker Profile { get; }
     }
 
     internal static class NeoNSFunctionRuntime
@@ -375,6 +377,7 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions options)
         {
+            using var sample = function.Profile.Auto();
             bool isStatic = function.Member.Modifier == NeoMemberModifierKind.Static;
             if (receiver is null && !isStatic)
             {

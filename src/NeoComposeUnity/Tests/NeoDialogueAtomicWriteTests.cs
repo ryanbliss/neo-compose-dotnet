@@ -46,6 +46,20 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ForeachSnapshotRetainsCollectionOwnershipForUnchangedAuthoredEntries()
+        {
+            var schema = Schema(false);
+            schema.values["item-1"] = new ObjectMemberValue { id = "item-1", classId = "item", value = new() { ["Name"] = "name-1" } };
+            schema.values["name-1"] = new StringMemberValue { id = "name-1", value = "original" };
+            using var client = NeoTestSaveStack.ClientFromSchema(schema);
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var collection = NSGetterEvaluator.UnwrapRow(new ArrayMemberValue { id = "save-view", value = new[] { "item-1" } }, context, NeoValueOwnership.Save);
+            var snapshot = NSGetterEvaluator.SnapshotCollectionEntries(collection, context);
+            var entry = snapshot[0].Resolve(context);
+            Assert.That(NSGetterEvaluator.FindRowOwnershipByReference(entry, context), Is.EqualTo(NeoValueOwnership.Save));
+        }
+
+        [Test]
         public void InvalidRemoveDoesNotPublishAnAuthoredShadow()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));

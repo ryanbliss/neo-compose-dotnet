@@ -553,6 +553,7 @@ namespace NeoCompose.Runtime.NeoScript
             /// </summary>
             internal ConditionalWeakTable<object, RowReference> rowReverseIndex { get; }
             internal Dictionary<string, HashSet<string>> rowCacheKeysByRow { get; }
+            internal RowAliasIndex rowAliases { get; }
             internal LinkedFunctionCallHandler? linkedFunctionCallHandler { get; private set; }
             internal Func<ObjectInitializerPointer, NeoScriptScope, Context, object?>? objectInitializerHandler { get; private set; }
             internal Dictionary<string, SchemaPlacement?> schemaPlacementCache { get; }
@@ -662,6 +663,7 @@ namespace NeoCompose.Runtime.NeoScript
                 this.rowUnwrapCache = rowUnwrapCache ?? new Dictionary<string, object?>();
                 this.rowReverseIndex = rowReverseIndex
                     ?? new ConditionalWeakTable<object, RowReference>();
+                rowAliases = RowAliasIndexes.GetValue(this.rowReverseIndex, CreateRowAliasIndex);
                 this.rowCacheKeysByRow = rowCacheKeysByRow
                     ?? new Dictionary<string, HashSet<string>>();
                 this.valueOwnership = valueOwnership;
@@ -671,7 +673,7 @@ namespace NeoCompose.Runtime.NeoScript
                 this.schemaPlacementCache = schemaPlacementCache
                     ?? client.ScriptSchemaPlacements;
                 this.callableDispatchCache = callableDispatchCache
-                    ?? new Dictionary<string, string?>();
+                    ?? client.ScriptCallableDispatch;
                 this.genericEnvironmentCache = genericEnvironmentCache
                     ?? new Dictionary<
                         string,
@@ -942,6 +944,59 @@ namespace NeoCompose.Runtime.NeoScript
             bool IEqualityComparer<object>.Equals(object? x, object? y) => ReferenceEquals(x, y);
             int IEqualityComparer<object>.GetHashCode(object obj) =>
                 System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+        }
+
+        // Keep the index with the shared reverse table, including contexts made
+        // through the public constructor. Weak aliases do not keep script locals alive.
+        private static readonly ConditionalWeakTable<ConditionalWeakTable<object, RowReference>, RowAliasIndex>
+            RowAliasIndexes = new();
+
+        private static RowAliasIndex CreateRowAliasIndex(ConditionalWeakTable<object, RowReference> reverse)
+        {
+            var index = new RowAliasIndex();
+            foreach (var pair in reverse) index.Add(pair.Key, pair.Value);
+            return index;
+        }
+
+        internal sealed class RowAliasIndex
+        {
+            private readonly Dictionary<string, List<WeakReference<object>>> rows = new();
+
+            internal void Add(object alias, RowReference row)
+            {
+                string key = RowCacheRowKey(row.ownership, row.valueId);
+                if (!rows.TryGetValue(key, out var aliases)) rows[key] = aliases = new();
+                aliases.Add(new WeakReference<object>(alias));
+            }
+
+            internal void Remove(object alias, RowReference row)
+            {
+                string key = RowCacheRowKey(row.ownership, row.valueId);
+                if (!rows.TryGetValue(key, out var aliases)) return;
+                for (int i = aliases.Count - 1; i >= 0; i--)
+                    if (!aliases[i].TryGetTarget(out var target) || ReferenceEquals(target, alias)) aliases.RemoveAt(i);
+                if (aliases.Count == 0) rows.Remove(key);
+            }
+
+            internal IEnumerable<object> Get(NeoValueOwnership ownership, string id)
+            {
+                string key = RowCacheRowKey(ownership, id);
+                if (!rows.TryGetValue(key, out var aliases)) yield break;
+                for (int i = aliases.Count - 1; i >= 0; i--)
+                    if (aliases[i].TryGetTarget(out var target)) yield return target;
+                    else aliases.RemoveAt(i);
+                if (aliases.Count == 0) rows.Remove(key);
+            }
+
+            internal void Remove(NeoValueOwnership ownership, string id) => rows.Remove(RowCacheRowKey(ownership, id));
+        }
+
+        private static void SetRowReference(Context ctx, object alias, RowReference row)
+        {
+            if (ctx.rowReverseIndex.TryGetValue(alias, out var previous)) ctx.rowAliases.Remove(alias, previous);
+            ctx.rowReverseIndex.Remove(alias);
+            ctx.rowReverseIndex.Add(alias, row);
+            ctx.rowAliases.Add(alias, row);
         }
 
         public sealed class RowReference
@@ -1440,6 +1495,28 @@ namespace NeoCompose.Runtime.NeoScript
             return NormalizeNativeResult(memberId, ctx.client.InvokeNativeFunction(memberId, receiver, args), ctx);
         }
 
+        internal static object? EvaluateFunctionArgument(CallFunctionPointer call, int index,
+            NeoScriptScope scope, Context ctx)
+        {
+            if (index != 0 || call.args.Length != 1
+                || call.memberId is not ("system_f5ca386c-990c-54a1-8473-2d49d2cd887d" or "system_593e6208-e2ca-505e-9933-04b17102b6d2")
+                || call.args[0] is not CallFunctionPointer patternCall
+                || !NeoCellPatternRuntime.ProducesPattern(patternCall.memberId))
+                return EvalPointer(call.args[index], scope, ctx);
+
+            var receiver = EvalCallReceiver(patternCall.receiver, scope, ctx);
+            if (patternCall.optional == true && receiver is null && !patternCall.receiver.IsStatic) return null;
+            var args = new object?[patternCall.args.Length];
+            for (int i = 0; i < args.Length; i++) args[i] = EvalPointer(patternCall.args[i], scope, ctx);
+            string? memberId = ResolveFunctionMemberId(patternCall, receiver, ctx);
+            if (memberId != patternCall.memberId || !ctx.client.TryGetMember(memberId!, out FunctionMember? _))
+                throw new NSGetterRuntimeError($"CellPattern intrinsic '{patternCall.memberId}' has an invalid native declaration.");
+            ctx.allocationTracker.ConsumeWorkUnit();
+            NeoCellPatternRuntime.TryInvoke(memberId!, receiver,
+                FillNativeCallSiteArguments(memberId!, args, ctx), ctx, out var result, materialize: false);
+            return result;
+        }
+
         internal static object? NormalizeNativeResult(string memberId, object? value, Context ctx)
         {
             ctx.client.TryGetMember(memberId, out FunctionMember? member);
@@ -1463,7 +1540,7 @@ namespace NeoCompose.Runtime.NeoScript
             var args = new object?[pointer.args.Length];
             for (int i = 0; i < pointer.args.Length; i++)
             {
-                args[i] = EvalPointer(pointer.args[i], scope, ctx);
+                args[i] = EvaluateFunctionArgument(pointer, i, scope, ctx);
             }
             string? memberId = ResolveFunctionMemberId(
                 pointer,
@@ -2561,14 +2638,7 @@ namespace NeoCompose.Runtime.NeoScript
             try
             {
                 runtimeChain = ctx.client.ResolveClassInheritanceChain(runtimeClassId!);
-                foreach (var candidate in ctx.client.ResolveInstanceSurfaceSchema(runtimeClassId!))
-                {
-                    if (candidate.schemaKey == schemaKey)
-                    {
-                        entry = candidate;
-                        break;
-                    }
-                }
+                entry = ctx.client.ResolveInstanceSurfaceMember(runtimeClassId!, schemaKey);
             }
             catch (CircularInheritanceError)
             {
@@ -2610,6 +2680,10 @@ namespace NeoCompose.Runtime.NeoScript
                 return DispatchResult.Ok(
                     ResolveValueIfId(at, ctx, FindRowOwnershipByReference(receiver, ctx), member));
             }
+            if (FindRowMemberByReference(receiver, ctx) is ClassMember { Payload: NeoMemberPayloadKind.Partial })
+            {
+                return DispatchResult.NoInfo(matchedMember: true);
+            }
             // P75: a collapse-stamped row stores only the members that differ
             // from its construction — an absent key is usually a VIRTUAL
             // child indexed at its deterministic id, not an authored
@@ -2629,6 +2703,16 @@ namespace NeoCompose.Runtime.NeoScript
                         ctx,
                         FindRowOwnershipByReference(receiver, ctx),
                         member));
+            }
+            // Null class defaults have no child row in a sparse construction.
+            // Match the generated accessor's default without hiding missing
+            // required fields or evaluating an initializer out of context.
+            if (member is ClassMember optionalClass
+                && member.Requirement == NeoMemberRequirementKind.Optional
+                && optionalClass.defaultValue is { value: null }
+                && MemberValueFactory.InitializerOf(member) is null)
+            {
+                return DispatchResult.Ok(null);
             }
             return DispatchResult.NoInfo(matchedMember: true);
         }
@@ -3280,7 +3364,10 @@ namespace NeoCompose.Runtime.NeoScript
                     createdAt = row.createdAt,
                     updatedAt = row.updatedAt,
                 };
-                using var node = new NeoMemberClassWritable(
+                // This view shares cached descendants with the caller's object.
+                // Keep it in the client graph; disposing a temporary root also
+                // disposes the live object's state after ToVariant returns.
+                var node = (NeoMemberClassWritable)NeoMember.CreateWritable(
                     ctx.client,
                     member,
                     source.valueId,
@@ -3482,7 +3569,8 @@ namespace NeoCompose.Runtime.NeoScript
                             ctx.client.sessionValues.Keys);
                         string cloneId = ctx.client.CloneValueReference(
                             source.valueId,
-                            source.ownership);
+                            source.ownership,
+                            source.member);
                         ctx.allocationTracker.RegisterSessionRoot(cloneId);
                         var createdRows = new List<MemberValue>();
                         foreach (var pair in ctx.client.sessionValues)
@@ -4802,6 +4890,9 @@ namespace NeoCompose.Runtime.NeoScript
                     "foreach receiver must be a List, Dictionary, Set/Lookup, or derived collection view.");
             }
 
+            JsonMember? collectionMember = FindRowMemberByReference(collection, ctx);
+            if (collectionMember is null && FindRowIdByReference(collection, ctx) is string collectionId)
+                ctx.client.TryInferMemberForValueId(collectionId, out collectionMember);
             var snapshot = new List<CollectionEntrySnapshot>();
             foreach (OrderedRawCollectionEntry entry in
                 OrderedRawCollectionEntries(collection))
@@ -4811,8 +4902,9 @@ namespace NeoCompose.Runtime.NeoScript
                 NeoValueOwnership? entryOwnership = null;
                 if (entry.Raw is string id)
                 {
-                    NeoValueOwnership resolvedOwnership =
-                        ResolveOwnershipForValueId(ctx, id);
+                    NeoValueOwnership resolvedOwnership = collectionMember is LookupMember
+                        ? ResolveOwnershipForValueId(ctx, id)
+                        : FindRowOwnershipByReference(collection, ctx) ?? ResolveOwnershipForValueId(ctx, id);
                     entryOwnership = resolvedOwnership;
                     ctx.client.TryGetValue(
                         resolvedOwnership,
@@ -4877,10 +4969,13 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static bool JsEqual(object? a, object? b)
         {
-            if (a is null && b is null) return true;
-            if (a is null || b is null) return false;
+            if (a is null || b is null) return a is null && b is null;
             // Numeric-tolerant equality (int vs double both come through as numbers).
             if (TryAsDouble(a, out double da) && TryAsDouble(b, out double db)) return da == db;
+            if (ReferenceEquals(a, b)) return true;
+            if (a is NeoDelegateValue { IsMemberTarget: true } leftDelegate
+                && b is NeoDelegateValue { IsMemberTarget: true } rightDelegate)
+                return leftDelegate.memberId == rightDelegate.memberId && leftDelegate.valueId == rightDelegate.valueId;
             if (a is string sa && b is string sb) return sa == sb;
             if (a is bool ba && b is bool bb) return ba == bb;
             if (a is object?[] aa && b is object?[] ab)
@@ -5090,7 +5185,7 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 if (row is not null)
                 {
-                    return UnwrapCached(row, ctx, ownership);
+                    return UnwrapCached(row, ctx, ownership, FindRowMemberByReference(value, ctx));
                 }
             }
             return value;
@@ -5227,6 +5322,19 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? member = null)
         {
             ctx.gridReads?.RecordValue(ctx.client, ownership, row.id);
+            // Scalars have value semantics and no writable CLR aliases. Read the
+            // current row directly instead of allocating cache keys and an index
+            // entry just to retain a box. Structured values still need identity.
+            switch (row)
+            {
+                case NumberMemberValue number: return number.value;
+                case BoolMemberValue boolean: return boolean.value;
+                case NullMemberValue: return null;
+                case StringMemberValue text when member is not StringMember stringMember
+                    || stringMember.Format == NeoStringFormatKind.Plain
+                    || text.neoLocalizationMode == NeoStringLocalizationMode.Literal:
+                    return text.value;
+            }
             string cacheKey = RowCacheKey(ownership, row.id, member);
             if (ctx.rowUnwrapCache.TryGetValue(cacheKey, out var cached)) return cached;
             if (member is null && row is ArrayMemberValue)
@@ -5266,8 +5374,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 string? effectiveClassId = row.classId
                     ?? (member as ClassMember)?.classId;
-                ctx.rowReverseIndex.Remove(unwrapped!);
-                ctx.rowReverseIndex.Add(unwrapped!, new RowReference(
+                SetRowReference(ctx, unwrapped!, new RowReference(
                     row.id,
                     ownership,
                     effectiveClassId,
@@ -5341,17 +5448,16 @@ namespace NeoCompose.Runtime.NeoScript
             // canonical unwrap cache has one entry per row, but all existing
             // aliases remain in the reverse index. Patch those aliases too so
             // subsequent reads observe writes through the promoted row.
-            foreach (var pair in ctx.rowReverseIndex.ToArray())
+            foreach (object alias in ctx.rowAliases.Get(ownership, row.id))
             {
-                if (pair.Value.valueId != row.id || pair.Value.ownership != ownership)
-                    continue;
-                if (pair.Value.classId != row.classId)
+                if (!ctx.rowReverseIndex.TryGetValue(alias, out var reference)) continue;
+                if (reference.classId != row.classId)
                 {
-                    ctx.rowReverseIndex.Remove(pair.Key);
-                    ctx.rowReverseIndex.Add(pair.Key, new RowReference(
-                        row.id, ownership, row.classId, pair.Value.member));
+                    ctx.rowReverseIndex.Remove(alias);
+                    ctx.rowReverseIndex.Add(alias, new RowReference(
+                        row.id, ownership, row.classId, reference.member));
                 }
-                if (!patchedObjects.Contains(pair.Key)) PatchCachedShape(row, pair.Key);
+                if (!patchedObjects.Contains(alias)) PatchCachedShape(row, alias);
             }
         }
 
@@ -5467,8 +5573,7 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     continue;
                 }
-                ctx.rowReverseIndex.Remove(pair.Key);
-                ctx.rowReverseIndex.Add(pair.Key, new RowReference(
+                SetRowReference(ctx, pair.Key, new RowReference(
                     row.valueId,
                     targetOwnership,
                     row.classId,
@@ -5560,13 +5665,10 @@ namespace NeoCompose.Runtime.NeoScript
                     ctx.rowCacheKeysByRow.Remove(rowKey);
                 }
             }
-            foreach (var pair in ctx.rowReverseIndex.ToArray())
+            foreach (string rowId in removed)
             {
-                if (pair.Value.ownership == ownership
-                    && removed.Contains(pair.Value.valueId))
-                {
-                    ctx.rowReverseIndex.Remove(pair.Key);
-                }
+                foreach (object alias in ctx.rowAliases.Get(ownership, rowId)) ctx.rowReverseIndex.Remove(alias);
+                ctx.rowAliases.Remove(ownership, rowId);
             }
         }
 

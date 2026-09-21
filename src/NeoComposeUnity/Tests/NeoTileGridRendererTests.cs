@@ -46,6 +46,55 @@ namespace NeoCompose.Tests
         private const string ObjectsLayerClassId = "objects-layer-class";
 
         [Test]
+        public void InsertingEarlierObjectPreservesSiblingRootAndUpdatesItsSorting()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            var sprite = CreateTestSprite("ordered-sibling");
+            var factories = BuildClassBackedReadOnlyFactories(sprite);
+            factories[ObjectClassId] = (c, n) => new TestComposedSpriteObject(c, n) { Sprite = sprite };
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid", factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>());
+            var go = new GameObject("Object insertion");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(new TestTileGridContent(primitive, Array.Empty<IReadOnlyNeoTileLayerRuntime>(),
+                    new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) }));
+                Assert.IsTrue(renderer.TryGetObjectRoot("shop-1", out var original));
+                var drawn = original.GetComponentInChildren<SpriteRenderer>();
+                int order = drawn.sortingOrder;
+                NeoTileGridChangedArgs? changed = null;
+                using var subscription = primitive.OnChanged(args => changed = args);
+                client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
+                {
+                    id = "aaa-earlier", classId = ObjectClassId, containerId = "objects-link-objects",
+                    value = new Dictionary<string, string>(),
+                });
+                Assert.IsTrue(renderer.TryGetObjectRoot("shop-1", out var after));
+                Assert.AreSame(original, after, "An insertion must not reset sibling gameplay controllers.");
+                Assert.AreEqual(order + 1, drawn.sortingOrder);
+                var added = changed!.ObjectLayers.Single();
+                Assert.That(added.ChangedCells, Does.Contain(new Vector2Int(10, 20)), "Draw-order consumers still receive the sibling update.");
+                Assert.That(added.ContentChangedCells, Has.No.Member(new Vector2Int(10, 20)), "Unchanged sibling content must not wake local gameplay listeners.");
+                Assert.That(added.ContentChangedCells, Is.Not.Empty);
+                client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
+                {
+                    id = "aaa-earlier", classId = ObjectClassId, containerId = "objects-link-objects", mark = NeoValueMarks.Removed,
+                });
+                Assert.IsTrue(renderer.TryGetObjectRoot("shop-1", out after));
+                Assert.AreSame(original, after);
+                Assert.AreEqual(order, drawn.sortingOrder);
+                Assert.That(changed!.ObjectLayers.Single().ContentChangedCells, Has.No.Member(new Vector2Int(10, 20)));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(sprite.texture);
+                UnityEngine.Object.DestroyImmediate(sprite);
+            }
+        }
+
+        [Test]
         public void RenderEnumeration_PreservesPendingTilesWhenAnObjectMovesBetweenYields()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
@@ -216,6 +265,25 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoScriptObjectQueriesReadIndexedRowsWithoutConstructingGeneratedViews()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            var factories = BuildClassBackedReadOnlyFactories();
+            factories[ObjectClassId] = (_, _) => throw new InvalidOperationException("A native query must not construct a C# object view.");
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid", factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>());
+            client.ScriptGridQueries.RegisterContent(new TestTileGridContent(primitive, Array.Empty<IReadOnlyNeoTileLayerRuntime>(),
+                new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) }));
+            client.ScriptGridQueries.Bind("shop-1", "town-grid", ObjectsLayerClassId, "shop-1");
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
+            object? receiver = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
+            Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
+                new object?[] { NeoCellPattern.Center }, ctx, out object? result));
+            Assert.AreSame(receiver, ((object?[])result!).Single());
+            Assert.AreEqual(ObjectClassId, NSGetterEvaluator.FindRowClassIdByReference(((object?[])result!).Single(), ctx));
+        }
+
+        [Test]
         public void NeoScriptGridQuery_ResolvesAuthoredPlacementWithoutPriorContentAccessAndTracksMisses()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
@@ -248,7 +316,15 @@ namespace NeoCompose.Tests
                 objectLayers: new[] { new NeoObjectLayerChangedArgs(ObjectsLayerClassId, Array.Empty<NeoObjectInstanceId>(),
                     Array.Empty<NeoObjectInstanceId>(), new[] { changed }, NeoTileGridChangeSourceKind.Direct, null) }));
             Change(new Vector2Int(99, 99));
-            Assert.AreEqual(0, invalidations);
+            client.ScriptGridQueries.NotifyChanged(new NeoTileGridChangedArgs("town-grid",
+                objectLayers: new[] { new NeoObjectLayerChangedArgs(ObjectsLayerClassId,
+                    new[] { new NeoObjectInstanceId("shop-1") }, Array.Empty<NeoObjectInstanceId>(),
+                    new[] { new Vector2Int(60, 70) }, NeoTileGridChangeSourceKind.Direct, null)
+                {
+                    ContentChangedCells = Array.Empty<Vector2Int>(),
+                    OrderOnlyDeltas = new Dictionary<NeoObjectInstanceId, int> { [new NeoObjectInstanceId("shop-1")] = 1 },
+                } }));
+            Assert.AreEqual(0, invalidations, "Sorting-only sibling changes do not change placement query results.");
             Change(new Vector2Int(60, 70));
             Assert.AreEqual(1, invalidations);
             Assert.AreEqual(1, created);
@@ -985,6 +1061,68 @@ namespace NeoCompose.Tests
             Assert.AreEqual(ownership, ((NeoGeneratedClassValue)layer.GetObjectProjection(new Vector2Int(10, 20))!.Info).ValueOwnership);
         }
 
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        public void ObjectInsertionKeepsExistingIndexesAndUpdatesOnlyItsOccupiedCells(bool session, bool multipleSources)
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            ConfigureObjectPlacementFootprint(data, "shop-object", new Vector2Int(5, 5),
+                new Vector2Int(2, 1), new Vector2Int(2, 2));
+            if (multipleSources)
+            {
+                var children = (ArrayMemberValue)data.values["town-grid-children"];
+                children.value = children.value!.Concat(new[] { "additional-source" }).ToArray();
+                data.values["additional-source"] = new ObjectMemberValue { id = "additional-source", classId = ObjectLayerLinkClassId,
+                    value = new Dictionary<string, string> { ["ObjectLayer"] = "objects-link-layer", ["Objects"] = "additional-objects" } };
+                data.values["additional-objects"] = new ArrayMemberValue { id = "additional-objects", value = new[] { "additional-object" } };
+                data.values["additional-object"] = new ObjectMemberValue { id = "additional-object", classId = ObjectClassId,
+                    value = new Dictionary<string, string> { ["Position"] = "additional-position" } };
+                data.values["additional-position"] = new Vector3MemberValue { id = "additional-position", value = new NeoVector3Value { x = 100, y = 100 } };
+            }
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writable = BuildClassBackedWritableFactories();
+            var types = new Dictionary<Type, string> { [typeof(TestComposedObject)] = ObjectClassId };
+            var primitive = session
+                ? NeoTileGridPrimitive.ResolveForSession(client, "town-grid", factories, writable, types)
+                : NeoTileGridPrimitive.ResolveForSave(client, "town-grid", factories, writable, types);
+            var layer = primitive.BindWritableObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId });
+            var asset = (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(client, "shop-object", factories, writable)!;
+            var objects = primitive.LookupCache.ObjectRecords(ObjectsLayerClassId);
+            var tiles = primitive.LookupCache.TileRecords(BackgroundLayerClassId);
+            int insertions = 0;
+            client.OnWritableValuesPublished += (_, plan) =>
+            {
+                if (plan.ObjectInsertion is null) return;
+                Assert.AreEqual("town-grid", plan.ValidatedObjectInsertionGrid);
+                Assert.IsEmpty(plan.PreparedObjectLayers);
+                Assert.IsEmpty(plan.PreparedTileLayers);
+                insertions++;
+            };
+            var changes = new List<NeoTileGridChangedArgs>();
+            using var subscription = primitive.OnChanged(changes.Add);
+            var placed = layer.SpawnClone(new Vector2Int(4, 5), asset);
+            Assert.IsTrue(placed.Ok, placed.Message);
+            Assert.AreEqual(1, insertions);
+            Assert.AreSame(objects, primitive.LookupCache.ObjectRecords(ObjectsLayerClassId));
+            Assert.AreSame(tiles, primitive.LookupCache.TileRecords(BackgroundLayerClassId));
+            CollectionAssert.AreEquivalent(new[] { new Vector2Int(6, 6), new Vector2Int(6, 7) },
+                changes.Single().ObjectLayers.Single().ContentChangedCells);
+            var first = layer.GetObjectProjection(new Vector2Int(6, 6));
+            Assert.NotNull(first);
+            Assert.AreEqual(first!.InstanceId, layer.GetObjectProjection(new Vector2Int(6, 7))!.InstanceId);
+            Assert.IsNull(layer.GetObjectProjection(new Vector2Int(4, 5)));
+            var rejected = layer.SpawnClone(new Vector2Int(4, 6), asset);
+            Assert.IsFalse(rejected.Ok);
+            Assert.AreEqual("tile-grid-object-cell-occupied", rejected.ErrorCode);
+            Assert.AreEqual(1, insertions);
+            Assert.AreSame(objects, primitive.LookupCache.ObjectRecords(ObjectsLayerClassId));
+            Assert.AreEqual(multipleSources ? 3 : 2, objects.Count);
+            if (multipleSources) Assert.AreEqual(2, objects.Single(record => record.InstanceId == "additional-object").Order);
+        }
+
         [Test]
         public void ObjectPlacementAdoptsConstructedValuesInSaveAndSession()
         {
@@ -1049,6 +1187,43 @@ namespace NeoCompose.Tests
                     resolvedAsset.InstanceId.Value];
                 Assert.AreEqual(ObjectClassId, assetPlacement.classId);
                 Assert.IsFalse(assetPlacement.value!.ContainsKey("assetValueId"));
+            }
+        }
+
+        [TestCase("shop-1", true)]
+        [TestCase("shop-object", true)]
+        [TestCase("shop-1", false)]
+        public void VariantSwapPreservesPlacedCellsButAllowsDetachedFootprintsAndVisualSize(string id, bool moveCell)
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            ConfigureObjectPlacementFootprint(data, id, Vector2Int.one, new Vector2Int(2, 1));
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var member = new ClassMember { id = "variant-target", name = "Target", kind = MemberKind.Class, classId = ObjectClassId };
+            var receiver = new NeoMemberClassWritable(client, member, id, NeoValueOwnership.Save);
+            var revision = client.WriteRevision;
+            void Apply() => client.PrepareVariantApply(receiver, _ =>
+            {
+                client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue
+                {
+                    id = id + "-size", value = new NeoVector3Value { x = 5, y = 5, z = 0 },
+                });
+                if (moveCell) client.SetWritableValue(NeoValueOwnership.Save, new Vector2MemberValue
+                {
+                    id = id + "-placement-cell-0", value = new NeoVector2Value { x = 0, y = 0 },
+                });
+            });
+            if (id == "shop-1" && moveCell)
+            {
+                var error = Assert.Throws<NeoPlacementValidationException>(Apply);
+                Assert.AreEqual("object-variant-footprint-changed", error!.ErrorCode);
+                Assert.AreEqual(revision, client.WriteRevision, "Rejected Apply must publish no writes.");
+                Assert.AreEqual(1, ((Vector3MemberValue)client.ResolveValueRow(id + "-size")!).value!.x);
+                Assert.AreEqual(2, ((Vector2MemberValue)client.ResolveValueRow(id + "-placement-cell-0")!).value!.x);
+            }
+            else
+            {
+                Assert.DoesNotThrow(Apply);
+                Assert.AreEqual(5, ((Vector3MemberValue)client.ResolveValueRow(id + "-size")!).value!.x);
             }
         }
 
@@ -2167,6 +2342,49 @@ namespace NeoCompose.Tests
             var placement = (ObjectMemberValue)client.saveValues[created!.InstanceId.Value];
             Assert.AreEqual("background-link-tiles", placement.containerId);
             Assert.AreNotEqual("blocked-path-tiles", placement.containerId);
+        }
+
+        [Test]
+        public void TilePlacementRetainsSaveOverlayWhenAllSourceLinksAreImmutable()
+        {
+            ProjectData data = BuildClassBackedTileGridProjectData();
+            data.classes[TileLayerLinkClassId].allowedStorage = NeoMemberStorage.Immutable;
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+            var layer = primitive.BindWritableTileLayer<TestAuthoredTileLayer>(BackgroundLayerClassId, new[] { TileClassId });
+            var result = layer.Place<TestTile>(new Vector2Int(14, 15));
+            Assert.IsTrue(result.Ok, result.Message);
+            var tile = layer.GetTileProjection(new Vector2Int(14, 15));
+            Assert.AreEqual("background-link-tiles", client.saveValues[tile!.InstanceId.Value].containerId);
+            Assert.IsFalse(data.values.ContainsKey(tile.InstanceId.Value), "Tile overlays must not change authored values.");
+        }
+
+        [Test]
+        public void DirectPlacementSkipsImmutableSourceLinks()
+        {
+            ProjectData data = BuildClassBackedTileGridProjectData();
+            var original = (ListMember)data.members["tile-layer-link-tiles-member"];
+            var immutable = (ListMember)original.ShallowClone();
+            immutable.id = "immutable-link-tiles";
+            immutable.Storage = NeoMemberStorage.Immutable;
+            data.members[immutable.id] = immutable;
+            data.classes["immutable-link"] = new NeoSchemaClass
+            {
+                id = "immutable-link", extendsClassId = TileLayerLinkClassId,
+                schema = new Dictionary<string, string> { ["Tiles"] = immutable.id },
+            };
+            ((ObjectMemberValue)data.values["background-link"]).classId = "immutable-link";
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+            var layer = primitive.BindWritableTileLayer<TestAuthoredTileLayer>(BackgroundLayerClassId, new[] { TileClassId });
+            var result = layer.Place<TestTile>(new Vector2Int(14, 15));
+            Assert.IsTrue(result.Ok, result.Message);
+            var tile = layer.GetTileProjection(new Vector2Int(14, 15));
+            Assert.AreEqual("blocked-path-tiles", client.saveValues[tile!.InstanceId.Value].containerId);
         }
 
         [Test]
@@ -4844,6 +5062,39 @@ namespace NeoCompose.Tests
             }
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Render_ColliderOnlyChildPreservesItsGeometryAndVisibility(bool enabled)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var obj = ResolveComposedTestObject(client);
+            obj.Children = new INeoWorldObjectValue[]
+            {
+                new TestComposedChild
+                {
+                    Name = "SleepTrigger", Enabled = enabled, Position = new NeoReadOnlyVector3(0, -1, 0),
+                    Collider = new TestObjectCollider { Size = new NeoReadOnlyVector2(.25f, 1),
+                        Offset = new NeoReadOnlyVector2(.5f, .34f), IsTrigger = true },
+                },
+            };
+            var go = new GameObject("Collider-only child");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(), new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) });
+                var collider = go.GetComponentInChildren<BoxCollider2D>(true);
+                Assert.IsNotNull(collider);
+                Assert.AreEqual("SleepTrigger", collider.name);
+                Assert.AreEqual(enabled, collider.gameObject.activeSelf);
+                Assert.AreEqual(new Vector2(.25f, 1), collider.size);
+                Assert.AreEqual(new Vector2(.5f, .34f), collider.offset);
+                Assert.AreEqual(new Vector3(0, -1, 0), collider.transform.localPosition);
+                Assert.IsTrue(collider.isTrigger);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
         [Test]
         public void Render_DisabledCompositionPartAtDepthTwoHidesItsWholeSubtree()
         {
@@ -6364,8 +6615,9 @@ namespace NeoCompose.Tests
         /// </summary>
         private sealed class TestComposedChild
             : INeoWorldObjectValue,
-              INeoObjectCompositionSource
+              INeoObjectCompositionSource, INeoColliderSource
         {
+            public INeoCollider? Collider { get; set; }
             public string? valueId => null;
             public string Name { get; set; } = "";
             public NeoReadOnlyVector3 Position { get; set; } = new(Vector3.zero);

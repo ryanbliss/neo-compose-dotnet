@@ -48,7 +48,8 @@ namespace NeoCompose.Runtime
         public string? valueId => isClassDefaultReference
             ? null
             : node.overrideValueId ?? node.value?.id;
-        public string? classId => node.value?.classId ?? fallbackClassId;
+        public string? classId => node.ClassId;
+        internal ClassMember BackingMember => node.member;
         public bool IsReadOnly { get; }
         internal NeoClient Client => client;
         internal NeoValueOwnership ValueOwnership => node.ownership;
@@ -270,6 +271,7 @@ namespace NeoCompose.Runtime
             if (handler is null) throw new ArgumentNullException(nameof(handler));
             void Handle(NeoMember changed)
             {
+                if (!CanReadChange()) return;
                 if (node.TryGetSchemaKeyForChild(changed, out string? key) && key == field.Key)
                 {
                     handler((T)readValue()!, client.CurrentChangeSource);
@@ -294,6 +296,7 @@ namespace NeoCompose.Runtime
             if (handler is null) throw new ArgumentNullException(nameof(handler));
             void Handle(NeoMember changed)
             {
+                if (!CanReadChange()) return;
                 var changes = new Dictionary<INeoField, object?>();
                 if (node.TryGetSchemaKeyForChild(changed, out string? key))
                 {
@@ -318,6 +321,14 @@ namespace NeoCompose.Runtime
             node.OnChanged += Handle;
             return TrackSubscription(new NeoDisposableSubscription(
                 () => node.OnChanged -= Handle));
+        }
+
+        private bool CanReadChange()
+        {
+            // Grid dependencies publish after row removal but before every
+            // view/listener has been retired. Never evaluate a dead receiver.
+            return !isDisposed && (node.overrideValueId is not string id
+                || client.TryGetValue(node.ownership, id, out MemberValue? _));
         }
 
         private IDisposable TrackSubscription(IDisposable subscription)

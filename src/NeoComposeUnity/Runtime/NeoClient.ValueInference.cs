@@ -19,7 +19,7 @@ namespace NeoCompose.Runtime
         private AuthoredValueInferenceIndex ValueInferenceIndex =>
             authoredValueInferenceIndex ??= new AuthoredValueInferenceIndex(data);
 
-        private IEnumerable<KeyValuePair<string, MemberValue>> InferMemberParents(string childId)
+        internal IEnumerable<KeyValuePair<string, MemberValue>> InferMemberParents(string childId)
         {
             var candidates = new HashSet<string>(PlacementParents(childId));
             if (candidateReadPlan is not null)

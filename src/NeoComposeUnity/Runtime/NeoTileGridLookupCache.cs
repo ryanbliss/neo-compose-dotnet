@@ -158,6 +158,7 @@ namespace NeoCompose.Runtime
             IReadOnlyCollection<(NeoValueOwnership ownership, string valueId)> changed,
             NeoWritePlan plan)
         {
+            if (plan.ValidatedObjectInsertionGrid == primitive.GridValueId) return;
             if (plan.HasValidatedRuntimeLeaves) return;
             if (plan.ValidatedTileConversions.Count != 0)
             {
@@ -282,24 +283,34 @@ namespace NeoCompose.Runtime
                 var next = GetObjectLayerIndex(pair.Key);
                 var removed = new List<NeoObjectInstanceId>();
                 var cells = new HashSet<Vector2Int>();
+                var contentCells = new HashSet<Vector2Int>();
                 foreach (var previous in pair.Value.ById)
                     if (!next.ById.ContainsKey(previous.Key))
                     {
                         removed.Add(previous.Key);
                         cells.UnionWith(previous.Value.Footprint);
+                        contentCells.UnionWith(previous.Value.Footprint);
                     }
                 var updated = new List<NeoObjectInstanceId>();
+                Dictionary<NeoObjectInstanceId, int>? orderOnly = null;
                 foreach (var current in next.ById)
                 {
                     if (pair.Value.ById.TryGetValue(current.Key, out var previous)
                         && !ObjectChanged(previous, current.Value, changedIds)) continue;
                     updated.Add(current.Key);
+                    if (previous is not null && !ObjectChanged(previous, current.Value, changedIds, ignoreOrder: true))
+                        (orderOnly ??= new())[current.Key] = current.Value.Order - previous.Order;
+                    else
+                    {
+                        if (previous is not null) contentCells.UnionWith(previous.Footprint);
+                        contentCells.UnionWith(current.Value.Footprint);
+                    }
                     if (previous is not null) cells.UnionWith(previous.Footprint);
                     cells.UnionWith(current.Value.Footprint);
                 }
                 if (removed.Count == 0 && updated.Count == 0 && cells.Count == 0) continue;
                 objects.Add(new NeoObjectLayerChangedArgs(pair.Key, removed, updated,
-                    new List<Vector2Int>(cells), NeoTileGridChangeSourceKind.Direct, null));
+                    new List<Vector2Int>(cells), NeoTileGridChangeSourceKind.Direct, null) { OrderOnlyDeltas = orderOnly, ContentChangedCells = new List<Vector2Int>(contentCells) });
             }
             changedTileLayers.Clear();
             changedObjectLayers.Clear();
@@ -332,14 +343,15 @@ namespace NeoCompose.Runtime
         private static bool ObjectChanged(
             NeoObjectPlacementRecord before,
             NeoObjectPlacementRecord after,
-            HashSet<string> changedIds)
+            HashSet<string> changedIds,
+            bool ignoreOrder = false)
         {
             if (changedIds.Contains(after.InstanceId)
                 || before.Cell != after.Cell
                 || before.AssetClassId != after.AssetClassId
                 || before.AssetValueId != after.AssetValueId
                 || before.Ownership != after.Ownership
-                || before.Order != after.Order
+                || (!ignoreOrder && before.Order != after.Order)
                 || before.Footprint.Count != after.Footprint.Count) return true;
             for (int i = 0; i < after.Footprint.Count; i++)
                 if (before.Footprint[i] != after.Footprint[i]) return true;

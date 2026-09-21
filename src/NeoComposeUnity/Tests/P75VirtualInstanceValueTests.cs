@@ -18,6 +18,70 @@ namespace NeoCompose.Tests
 {
     public class P75VirtualInstanceValueTests
     {
+        private sealed class ResolvedThing : NeoGeneratedClassValue
+        {
+            internal ResolvedThing(NeoClient client, NeoMemberClass node, bool readOnly)
+                : base(client, node, "thing-class", readOnly, node.ownership) { }
+        }
+
+        [Test]
+        public void ReadOnlyComputedClassProjectionRetainsRuntimeOwnership()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            thing.Get<NeoMemberIntWritable>("Count").Set(73);
+            var runtime = NSGetterEvaluator.UnwrapRow(thing.value!,
+                new NSGetterEvaluator.Context(client, null, null), NeoValueOwnership.Save);
+            using var projected = NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass<NeoMemberClass>(
+                client, runtime, false, (_, node) => node, (_, node) => node);
+            Assert.That(projected.ownership, Is.EqualTo(NeoValueOwnership.Save));
+            Assert.That(projected.Get<NeoMemberInt>("Count").value!.value, Is.EqualTo(73));
+        }
+
+        [TestCase(0)]
+        [TestCase(2000)]
+        public void RepeatedClassResolutionKeepsTheGeneratedViewsRegisteredNode(int unrelatedValues)
+        {
+            var data = BuildProjectData();
+            for (int i = 0; i < unrelatedValues; i++)
+                data.values["unrelated-" + i] = ObjectValue("unrelated-" + i, "thing-class");
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+            {
+                ["thing-class"] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                    c, n, (owner, node) => new ResolvedThing(owner, node, true)),
+            };
+            var writable = new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
+            {
+                ["thing-class"] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                    c, n, (owner, node) => new ResolvedThing(owner, node, false)),
+            };
+            var first = (ResolvedThing)NeoGeneratedTypesSupport.ResolveClassValue(
+                client, "thing-instance", factories, writable)!;
+            Assert.That(first.BackingNode.member.id, Is.EqualTo("thing-member"));
+            Assert.That(first.BackingNode.Get<NeoMemberInt>("Count").value!.value, Is.EqualTo(5));
+            Assert.That(client.InferMemberParents("thing-instance").Select(p => p.Key), Is.EqualTo(new[] { "value-save" }));
+            for (int i = 0; i < 3; i++)
+            {
+                var next = NeoGeneratedTypesSupport.ResolveClassValue(client, "thing-instance", factories, writable);
+                Assert.AreSame(first, next);
+                Assert.IsTrue(client.TryGetNode(first.BackingNode.member.RuntimeDeclarationIdentity,
+                    first.BackingNode.overrideValueId, first.BackingNode.ownership, out var registered));
+                Assert.AreSame(first.BackingNode, registered,
+                    "Repeated renderer/native resolution must not replace the node that refreshes this cached view.");
+            }
+        }
+
+        [Test]
+        public void LookupFindsCollectionInsideSparseInstance()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildUnorderedListProjectData());
+            var items = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberList>("Items");
+            Assert.IsTrue(client.TryResolveLookupCollectionValueId("thing-items", null, out string? target));
+            Assert.AreEqual(items.value!.id, target);
+            Assert.IsFalse(client.saveValues.ContainsKey(target!));
+        }
+
         [Test]
         public void NullSavedOverlayPreservesAuthoredConstructorDefaults()
         {
@@ -340,6 +404,52 @@ namespace NeoCompose.Tests
             };
             Assert.AreEqual(overridden ? 3d : 1d,
                 NSGetterEvaluator.Evaluate(getter, ctx), "NeoScript read");
+        }
+
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        public void NeoScriptReadsOmittedNullableClassDefaults(bool storedOverride, bool partial)
+        {
+            ProjectData data = BuildProjectData();
+            if (partial) ((ClassMember)data.members["thing-member"]).Payload = NeoMemberPayloadKind.Partial;
+            data.classes["thing-class"].schema["Optional"] = "optional-class";
+            data.members["optional-class"] = new ClassMember
+            {
+                id = "optional-class", name = "Optional", kind = MemberKind.Class,
+                classId = "thing-class", Requirement = NeoMemberRequirementKind.Optional,
+                defaultValue = new ObjectMemberValueBase { value = null },
+            };
+            if (storedOverride)
+            {
+                data.values["optional-value"] = ObjectValue("optional-value", "thing-class");
+                ((ObjectMemberValue)data.values["thing-instance"]).value!["Optional"] = "optional-value";
+            }
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            ctx = ctx.WithRoot(NeoScriptRuntimeRoot(client, ctx));
+            var type = ClassType("thing-class"); type.required = false;
+            var getter = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(), typeInfo = type,
+                instructions = new Instruction[] { new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = PointerKeyOf(PointerKeyOf(PointerKeyOf(RootPointer(), "Save"), "Thing"), "Optional"),
+                } },
+            };
+            // Partial objects preserve absent keys rather than inheriting defaults.
+            if (partial && !storedOverride)
+            {
+                Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(getter, ctx));
+                return;
+            }
+            // Read through NeoScript before constructing a C# child wrapper.
+            object? value = NSGetterEvaluator.Evaluate(getter, ctx);
+            if (storedOverride) Assert.IsNotNull(value);
+            else Assert.IsNull(value);
         }
 
         [Test]

@@ -1024,6 +1024,24 @@ namespace NeoCompose.Runtime
                 // animation on an object that remains visible after moving.
                 if (change.PositionsOnly && objectRootsByInstanceId.TryGetValue(instanceId, out var existing)
                     && existing != null) continue;
+                if (change.OrderOnlyDeltas != null && change.OrderOnlyDeltas.TryGetValue(instanceId, out int orderDelta)
+                    && objectRootsByInstanceId.TryGetValue(instanceId, out var reordered) && reordered != null)
+                {
+                    // Inserting/removing an unordered collection entry can shift
+                    // its siblings' render ranks. Keep their gameplay controllers.
+                    foreach (var sprite in reordered.GetComponentsInChildren<SpriteRenderer>(true))
+                        sprite.sortingOrder += orderDelta;
+                    foreach (var group in reordered.GetComponentsInChildren<UnityEngine.Rendering.SortingGroup>(true))
+                        group.sortingOrder += orderDelta;
+                    if (objectSpritesByInstanceId.TryGetValue(instanceId, out var bindings))
+                        for (int i = 0; i < bindings.Count; i++)
+                        {
+                            var binding = bindings[i];
+                            bindings[i] = new RenderedObjectSprite(binding.Value, binding.Renderer,
+                                binding.CellSpan, binding.BoundsCollider, binding.BaseSortingOrder + orderDelta);
+                        }
+                    continue;
+                }
                 DestroyRenderedObject(instanceId);
                 objectRootsByInstanceId[instanceId] =
                     SpawnObject(root.transform, layer, resolved, fallbackSortingOrder);
@@ -1747,6 +1765,12 @@ namespace NeoCompose.Runtime
                 depth + 1,
                 visibility,
                 sprites);
+            if (child is INeoColliderSource colliderSource && TryResolveObjectColliderSpec(colliderSource, out var colliderSpec))
+            {
+                ApplyBoxCollider(childRoot, new NeoBoxColliderSpec(colliderSpec.Size * cellSize,
+                    colliderSpec.Offset * cellSize, colliderSpec.IsTrigger));
+                childRendered++;
+            }
             if (childRendered == 0)
             {
                 DestroyCompositionRoot(childRoot);

@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.39.6] - 2026-09-21
+
+- Validate an isolated object insertion against the cached occupied cells and update that index in place. Multiple existing layer links remain supported. Unrelated object geometry and tile indexes are retained; compound writes and objects carrying tiles still use full validation.
+- Expose `NeoObjectLayerChangedArgs.ContentChangedCells` for spatial gameplay listeners. Sorting-only sibling changes still update render order through `ChangedCells` and `ChangedInstances`, but no longer invalidate unchanged NeoScript placement queries or plant neighborhoods.
+- Use indexed declaration/parent lookup when resolving generated classes, and index runtime member/function dispatch by class. Repeated local reads no longer search unrelated saved objects or scan the same inherited schema.
+- Refresh only the CLR aliases of the row being written instead of snapshotting every alias in the NeoScript context. Read scalar rows directly without allocating object-identity cache entries; structured aliases, localization and storage boundaries retain their existing behavior.
+- Compare bound delegates by member and receiver identity. Repeated inventory initialization recognizes an unchanged listener instead of removing and adding it through the write pipeline.
+- Consume direct `NeoCellPattern` transform arguments to native grid queries without constructing temporary Session graphs. Standalone patterns still materialize normally, and native object queries reuse cached placement records without constructing intermediate generated C# views.
+- Allocate expression-resume bookkeeping only for execution that permits deferred calls. Immediate calls keep the same evaluation order and effects without retaining unused continuation results. Add profiler samples for NeoScript functions and constructor replay phases.
+
+- Reject a variant swap that changes an already placed object's occupied cells before publishing any writes. Detached variants remain unrestricted, and visual size may change independently of PlacementTiles. Growth and regrowth no longer need position compensation.
+
+- Preserve runtime storage when projecting a computed class through a read-only interface. Runtime-constructed shop entries now retain constructor-supplied lookup values instead of trying to recreate computed defaults as asset literals.
+- Ignore dependency notifications for generated receivers whose backing row has been removed. Despawning a plant can invalidate its grid queries before its view is retired; callbacks must not re-evaluate the deleted receiver.
+- Validate lookup-set selections against unordered collection membership as well as ordered arrays. Nightly per-plant prestige grants can now record an item from the unordered catalog without rejecting its valid ID.
+- Render collider-only composition children with their authored size, offset, trigger flag and visibility. Bed sleep triggers and lower furniture colliders previously disappeared because children without sprites were discarded.
+- Reuse cached generated objects before registering new member nodes. Repeated renderer/native lookups previously left cached views outside the refresh registry; changing a boulder variant then exposed disposed collider children.
+- Update sorting in place when adding or removing an unordered object shifts sibling ranks. Keep sibling GameObjects, controllers and animation state so neighboring plants can display score-change emotes.
+- Resolve lookup collections inside sparse constructed values, including storage inventories whose save parent has no materialized child binding.
+- Cancel pending editor post-sync work when entering Play Mode and resume it in Edit Mode, keeping navigation baking out of a running game.
+- Prefer a grid placement link whose storage permits the write. An immutable scenery link can share a rendered layer with a Save link without receiving new sandbox objects or hiding them from the Save link's collections. Retain tile overlays for class-level immutable sources when no mutable link exists and the tile collection does not explicitly restrict storage.
+- Convert NeoScript computed list and dictionary results into their declared C# entry types. Trait lists now expose generated plant-trait wrappers instead of raw evaluator dictionaries, including nested collections and nullable entries.
+- Resolve generated class factories from the effective runtime class, including classes supplied by a closed generic member or declaration default. Preserve that class when cloning an implicit object into a detached graph, so inventory default data retains its concrete type.
+- Keep a foreach snapshot's collection ownership for unchanged authored entries. Save-backed world tiles can now be converted while iterating their layer without being mistaken for immutable asset tiles.
+
+## [0.39.5] - 2026-09-20
+
+- Read omitted optional Class fields with explicit null defaults consistently in NeoScript and generated C#. Keep receiver member metadata when unwrapping nested records so Partial payloads retain absent fields instead of inheriting defaults. This fixes plant harvest tooltips on sparse authored growth stages.
+
+- Keep the NeoScript `ToVariant` receiver in the client-owned member graph. Disposing its temporary wrapper previously disposed cached children shared with a live object, causing subsequent reads of placed inventory data to fail after variant refresh. Preserve the caller and its saved state across repeated variant applications.
+
 ## [0.39.4] - 2026-09-20
 
 - Preserve Save/Session ownership across generated read-only views, NeoScript delegate arguments, class field writes, and unordered-list membership. Explicitly writable fields on immutable parents write only their own storage; Session actions and callbacks remain Session-only.

@@ -1064,16 +1064,31 @@ namespace NeoCompose.Runtime
         private protected NeoGridLayerLinkModel? ResolveDirectWriteTargetLink(
             string layerClassId,
             bool isTileLayer,
+            NeoValueOwnership writeOwnership,
             out bool ambiguous)
         {
             ambiguous = false;
             NeoGridLayerLinkModel? onlyMatch = null;
             NeoGridLayerLinkModel? overrideOwner = null;
+            NeoGridLayerLinkModel? tileOverlaySource = null;
             int matches = 0;
             foreach (var link in ResolveGridLinks(null))
             {
                 if (link.IsTileLink != isTileLayer || link.LayerId != layerClassId)
                 {
+                    continue;
+                }
+                NeoValueOwnership? declared = ResolveCollectionOwnership(link.ListValueId);
+                bool collectionHasStorage = declared is not null;
+                if (declared is null && client.TryResolveSchemaClassAllowedOwnership(link.LinkClassId, out var classOwnership))
+                    declared = classOwnership;
+                if (declared is not null && declared != writeOwnership)
+                {
+                    // Tile placements are separate overlay rows; an immutable
+                    // source still supports them when no writable link exists.
+                    // Object adoption, in contrast, mutates the owning list.
+                    if (isTileLayer && !collectionHasStorage && declared == NeoValueOwnership.Asset)
+                        tileOverlaySource ??= link;
                     continue;
                 }
                 matches += 1;
@@ -1086,7 +1101,7 @@ namespace NeoCompose.Runtime
                 }
                 overrideOwner = link;
             }
-            if (matches <= 1) return onlyMatch;
+            if (matches <= 1) return onlyMatch ?? tileOverlaySource;
             if (overrideOwner is not null) return overrideOwner;
             // Children order is authored order, so the first direct link is
             // the canonical write target while later links remain additional
@@ -1780,6 +1795,12 @@ namespace NeoCompose.Runtime
             }
         }
 
+        internal bool HasObjectCarriedTiles(string objectValueId, HashSet<string> dependencies)
+        {
+            foreach (var _ in ResolveObjectCarriedLinks(objectValueId, dependencies)) return true;
+            return false;
+        }
+
         private readonly struct ObjectCarriedLink
         {
             public ObjectCarriedLink(string linkValueId, string layerId, string tilesListValueId, int childIndex)
@@ -1978,7 +1999,7 @@ namespace NeoCompose.Runtime
             return ReadCellRow(positionRowId) ?? Vector2Int.zero;
         }
 
-        private IReadOnlyList<Vector2Int> ReadObjectFootprint(
+        internal IReadOnlyList<Vector2Int> ReadObjectFootprint(
             ObjectMemberValue objectRow,
             Vector2Int origin,
             HashSet<string>? dependencyIds)
@@ -2497,6 +2518,7 @@ namespace NeoCompose.Runtime
             NeoGridLayerLinkModel? targetLink = ResolveDirectWriteTargetLink(
                 layerId,
                 isTileLayer: true,
+                writeOwnership,
                 out bool ambiguousTarget);
             if (targetLink is null)
             {
@@ -2696,6 +2718,7 @@ namespace NeoCompose.Runtime
             NeoGridLayerLinkModel? targetLink = ResolveDirectWriteTargetLink(
                 layerId,
                 isTileLayer: false,
+                writeOwnership,
                 out bool ambiguousTarget);
             if (targetLink is null)
             {
@@ -2745,6 +2768,7 @@ namespace NeoCompose.Runtime
             var objects = (NeoMemberListWritable)NeoMember.CreateWritable(
                 client, objectsMember, targetLink.ListValueId, writeOwnership);
             objects.PrepareAddSerialized(plan, NeoValueWritePayload.FromValueReference(instanceId, generatedObject));
+            plan.ObjectInsertion = (GridValueId, layerId, targetLink.ListValueId, instanceId);
             plan.Commit();
             return NeoPlacementResult.Success();
         }

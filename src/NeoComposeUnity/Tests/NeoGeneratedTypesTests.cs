@@ -491,6 +491,28 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GeneratedChangesIgnoreDependencyNotificationsAfterRowRemoval()
+        {
+            using var app = LoadGeneratedClient(out _);
+            var hero = new Hero(Name: "Removed", Health: 7);
+            var node = hero.BackingNode;
+            var name = node.Get<NeoMemberString>("Name");
+            int notifications = 0;
+            using var batch = hero.OnChanged(_ => notifications++);
+            using var field = hero.OnChanged(Hero.Fields.Name, (_, _) => notifications++);
+            var signal = (System.Action<NeoMember>)System.Delegate.CreateDelegate(typeof(System.Action<NeoMember>), node,
+                typeof(NeoMember).GetMethod("NotifyChanged", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                    null, new[] { typeof(NeoMember) }, null)!);
+            // Grid dependencies publish before removed member views are retired.
+            // A final notification must not re-evaluate a deleted receiver.
+            app.Client.OnWritableValuesPublished += (_, _) => { signal(name); signal(node); };
+            var plan = new NeoWritePlan(app.Client);
+            plan.Remove(hero.ValueOwnership, hero.valueId!);
+            plan.Commit();
+            Assert.That(notifications, Is.Zero);
+        }
+
+        [Test]
         public void GeneratedWrapper_BatchOnChanged_ReportsChangedField()
         {
             var app = LoadGeneratedClient(out _);
@@ -1641,6 +1663,43 @@ namespace NeoCompose.Tests
             Assert.AreEqual("Clone", clone.Name);
             Assert.DoesNotThrow(() => app.Session.Heroes.Add(clone));
             Assert.AreEqual(clone.valueId, app.Session.Heroes[app.Session.Heroes.Count - 1]!.valueId);
+        }
+
+        [Test]
+        public void ScriptCollectionsConvertNestedAndNullableEntries()
+        {
+            var source = new object?[] { new Dictionary<string, object?> { ["a"] = 12d, ["missing"] = null }, null };
+            var result = NeoGeneratedTypesSupport.ReadScriptList(source, entry => entry is null ? null :
+                NeoGeneratedTypesSupport.ReadScriptDictionary<int?>(entry, item => item is null ? null : (int)(double)item));
+            Assert.That(result.Count, Is.EqualTo(2));
+            Assert.That(result[0]!["a"], Is.EqualTo(12));
+            Assert.That(result[0]!["missing"], Is.Null);
+            Assert.That(result[1], Is.Null);
+        }
+
+        [Test]
+        public void CloneValueReference_PreservesAnImplicitConcreteClassAfterDetaching()
+        {
+            using var app = LoadGeneratedClient(out _);
+            const string classId = "implicit-concrete-clone";
+            const string valueId = "implicit-concrete-value";
+            ((Dictionary<string, NeoSchemaClass>)app.Client.classes)[classId] = new NeoSchemaClass
+            {
+                id = classId, name = "Concrete", schema = new Dictionary<string, string>(),
+            };
+            ((Dictionary<string, Member>)app.Client.members)["implicit-concrete-member"] = new ClassMember
+            {
+                id = "implicit-concrete-member", name = "Concrete", kind = MemberKind.Class,
+                classId = classId, valueId = valueId,
+            };
+            app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
+            {
+                id = valueId, value = new Dictionary<string, string>(),
+            });
+            string clone = app.Client.CloneValueReference(valueId, NeoValueOwnership.Session,
+                app.Client.members["implicit-concrete-member"]);
+            Assert.That(app.Client.TryGetValue(NeoValueOwnership.Session, clone, out ObjectMemberValue? row), Is.True);
+            Assert.That(row!.classId, Is.EqualTo(classId), "A detached clone must retain the concrete class previously supplied by its member.");
         }
 
         [Test]

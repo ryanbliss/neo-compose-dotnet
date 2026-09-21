@@ -23,6 +23,8 @@ namespace NeoCompose.Runtime
         internal readonly NeoClient Client;
         internal readonly long BaseRevision;
         internal bool HasValidatedRuntimeLeaves;
+        internal (string gridId, string layerId, string listId, string instanceId)? ObjectInsertion;
+        internal string? ValidatedObjectInsertionGrid;
         internal readonly HashSet<string> UnchangedValueIds = new();
         internal readonly List<NeoValidatedTileConversion> ValidatedTileConversions = new();
         internal readonly Dictionary<(string gridId, string layerId), NeoPreparedLayerRecords<NeoTilePlacementRecord>> PreparedTileLayers = new();

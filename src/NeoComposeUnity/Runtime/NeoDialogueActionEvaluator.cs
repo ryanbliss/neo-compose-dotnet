@@ -1796,6 +1796,9 @@ namespace NeoCompose.Runtime
             ExpressionResumeState expressionState,
             NeoScriptExecutionOptions? options)
         {
+            // Immediate frames cannot resume. Retaining every nested call's
+            // result and dynamic occurrence key only adds allocations there.
+            if (options?.AllowDeferredFunctionCalls != true) expressionState.DisableRecording();
             return ctx.WithExpressionHandlers(
                 (pointer, currentScope, currentCtx) => EvalFunctionCall(
                     client, pointer, currentScope, currentCtx, expressionState, options),
@@ -2208,7 +2211,7 @@ namespace NeoCompose.Runtime
                 var args = new object?[pointer.args.Length];
                 for (int i = 0; i < pointer.args.Length; i++)
                 {
-                    args[i] = NSGetterEvaluator.EvaluatePointer(pointer.args[i], scope, ctx);
+                    args[i] = NSGetterEvaluator.EvaluateFunctionArgument(pointer, i, scope, ctx);
                 }
                 string? memberId = NSGetterEvaluator.ResolveFunctionMemberId(
                     pointer,
@@ -3230,7 +3233,7 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError(
                         "Lookup set class argument must be a selected value id or generated class value.");
                 }
-                if (!LookupCollectionContainsValueId(collectionValue, valueId!))
+                if (!NeoMemberLookup.ResolveCollectionEntryIds(client, collectionMember, collectionValue).Contains(valueId!))
                 {
                     throw new NSGetterRuntimeError(
                         $"Lookup selection id '{valueId}' is not present in the configured lookup collection.");
@@ -3238,7 +3241,7 @@ namespace NeoCompose.Runtime
                 return valueId!;
             }
 
-            string? matchedValueId = FindLookupCollectionValueByPayload(client, collectionValue, value);
+            string? matchedValueId = FindLookupCollectionValueByPayload(client, collectionMember, collectionValue, value);
             if (matchedValueId is null)
             {
                 throw new NSGetterRuntimeError(
@@ -3247,31 +3250,13 @@ namespace NeoCompose.Runtime
             return matchedValueId;
         }
 
-        private static bool LookupCollectionContainsValueId(
-            MemberValue collectionValue,
-            string valueId)
-        {
-            return collectionValue switch
-            {
-                ArrayMemberValue array when array.value is not null =>
-                    Array.IndexOf(array.value, valueId) >= 0,
-                ObjectMemberValue obj when obj.value is not null =>
-                    obj.value.ContainsValue(valueId),
-                _ => false,
-            };
-        }
-
         private static string? FindLookupCollectionValueByPayload(
             NeoClient client,
+            JsonMember collectionMember,
             MemberValue collectionValue,
             object? value)
         {
-            IEnumerable<string> childIds = collectionValue switch
-            {
-                ArrayMemberValue array when array.value is not null => array.value,
-                ObjectMemberValue obj when obj.value is not null => obj.value.Values,
-                _ => Array.Empty<string>(),
-            };
+            var childIds = NeoMemberLookup.ResolveCollectionEntryIds(client, collectionMember, collectionValue);
             foreach (var childId in childIds)
             {
                 if (!client.TryGetValue(childId, out MemberValue? child)) continue;
@@ -5104,16 +5089,21 @@ namespace NeoCompose.Runtime
 
         private sealed class ExpressionResumeState
         {
-            private readonly Dictionary<string, CachedFunctionResult> results = new();
-            private readonly Dictionary<string, int> invocationCounts = new();
+            private Dictionary<string, CachedFunctionResult>? results;
+            private Dictionary<string, int>? invocationCounts;
+            private bool recording = true;
+
+            internal void DisableRecording() => recording = false;
 
             internal void BeginInstructionAttempt()
             {
-                invocationCounts.Clear();
+                invocationCounts?.Clear();
             }
 
             internal string NextInvocationKey(string callSiteId)
             {
+                if (!recording) return callSiteId;
+                invocationCounts ??= new();
                 invocationCounts.TryGetValue(callSiteId, out int occurrence);
                 invocationCounts[callSiteId] = occurrence + 1;
                 return callSiteId + "\n" + occurrence;
@@ -5124,7 +5114,7 @@ namespace NeoCompose.Runtime
                 out object? value,
                 out Exception? error)
             {
-                if (results.TryGetValue(callSiteId, out CachedFunctionResult cached))
+                if (recording && results is not null && results.TryGetValue(callSiteId, out CachedFunctionResult cached))
                 {
                     value = cached.Value;
                     error = cached.Error;
@@ -5137,11 +5127,15 @@ namespace NeoCompose.Runtime
 
             internal void StoreValue(string callSiteId, object? value)
             {
+                if (!recording) return;
+                results ??= new();
                 results[callSiteId] = new CachedFunctionResult(value, null);
             }
 
             internal void StoreError(string callSiteId, Exception error)
             {
+                if (!recording) return;
+                results ??= new();
                 results[callSiteId] = new CachedFunctionResult(null, error);
             }
 

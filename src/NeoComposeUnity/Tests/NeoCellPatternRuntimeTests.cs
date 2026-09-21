@@ -45,6 +45,44 @@ namespace NeoCompose.Tests
             Assert.AreEqual(true, contains);
         }
 
+        [TestCase(0, 0)]
+        [TestCase(2, 1)]
+        public void DirectQueryPatternDoesNotConstructTemporaryRows(int x, int y)
+        {
+            using NeoClient client = Client();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            object source = NeoCellPatternStorage.Materialize(NeoCellPattern.EightNeighbors, ctx);
+            var translate = new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                callSiteId = "translate-query-pattern",
+                memberId = "system_efc67858-0c95-573f-a8a9-d7e07d0a1d55",
+                receiver = CallReceiver.Instance(new VariablePointer { type = PointerKind.Variable, variableId = "source" }),
+                args = new Pointer[] { new ValuePointer { type = PointerKind.Value, value = new Value
+                {
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Vector2Int, required = true },
+                    value = JObject.FromObject(new { x, y }),
+                } } },
+            };
+            var query = new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction, callSiteId = "query",
+                memberId = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d",
+                args = new Pointer[] { translate },
+            };
+            var scope = new NeoScriptScope(new Dictionary<string, object?> { ["source"] = source });
+            int before = client.sessionValues.Count;
+            object? result = NSGetterEvaluator.EvaluateFunctionArgument(query, 0, scope, ctx);
+            Assert.That(client.sessionValues.Count, Is.EqualTo(before), "Query-only offsets must not become Session rows.");
+            CollectionAssert.AreEqual(NeoCellPattern.EightNeighbors.Translate(new Vector2Int(x, y)), NeoCellPatternStorage.ReadRuntime(result, ctx));
+            // The same expression outside a query still exposes a canonical
+            // class identity and constructor provenance for storage/normal calls.
+            object? stored = NSGetterEvaluator.EvaluatePointer(translate, scope, ctx);
+            string id = NSGetterEvaluator.FindRowIdByReference(stored, ctx)!;
+            Assert.That(client.TryGetValue(id, out ObjectMemberValue? row), Is.True);
+            Assert.That(row!.instanceConstructorId, Is.EqualTo(NeoCellPatternStorage.ConstructorId));
+        }
+
         [Test]
         public void SnapshotRead_ReflectsChangedOffsetRowsWithoutChangingPreviousPattern()
         {

@@ -937,10 +937,18 @@ namespace NeoCompose.Tests
             Assert.AreEqual("Potion", entry!.value);
         }
 
-        [Test]
-        public void ActionsNode_CollectionCall_LookupAdd_StoresAssetEntryRef()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ActionsNode_CollectionCall_LookupAdd_StoresAssetEntryRef(bool unordered)
         {
-            var client = CreateClient();
+            var client = CreateClient(data =>
+            {
+                if (!unordered) return;
+                ((ListMember)data.members["member-items"]).ListKind = NeoListKind.Unordered;
+                ((ArrayMemberValue)data.values["assets-items-value"]).value = Array.Empty<string>();
+                data.values["asset-item-value"].containerId = "assets-items-value";
+                data.values["asset-item-value-b"].containerId = "assets-items-value";
+            });
             client.SetSaveValue(new ArrayMemberValue
             {
                 id = "default-inventory-value",
