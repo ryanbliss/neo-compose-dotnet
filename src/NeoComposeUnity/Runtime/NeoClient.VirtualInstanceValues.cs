@@ -1561,6 +1561,8 @@ namespace NeoCompose.Runtime
                 return;
             }
             node.effectiveId = materialized.id;
+            if (node.parent is not null)
+                expansion.TrackPlacement(node.parent.effectiveId, node.effectiveId, node.member, ownership);
             if (materialized.id != instanceRoot.id
                 && materialized is ObjectMemberValue nestedRoot
                 && IsVirtualInstanceRoot(nestedRoot))
@@ -1713,6 +1715,10 @@ namespace NeoCompose.Runtime
             string? unorderedContainerId = null)
         {
             node.effectiveId = node.virtualId;
+            // Collection entries need their closed placement just as class
+            // fields do, including when a candidate replay hides the old graph.
+            if (node.parent is not null)
+                expansion.TrackPlacement(node.parent.effectiveId, node.virtualId, node.member, ownership);
             expansion.Footprint.Add(node.virtualId);
             MemberValue virtualRow = RewriteVirtualRow(node, instanceRoot);
             if (unorderedContainerId is not null)
@@ -1775,6 +1781,9 @@ namespace NeoCompose.Runtime
                 NeoValueOwnership ownership,
                 string valueId)
         {
+            if (TryGetOverlaidValue(ownership, valueId, out ObjectMemberValue? current)
+                && current.value is null)
+                yield break;
             if (TryResolveVirtualClassChildren(
                     valueId,
                     out Dictionary<string, string>? links))
@@ -1836,16 +1845,19 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Every virtual expansion id stamped with <paramref name="ownership"/>
-        /// — the virtual twin of the authored-ownership map, seeding the
-        /// writable-store reachability sweeps.
+        /// Virtual storage boundaries are independent writable roots. Ordinary
+        /// descendants remain reachable only through their owning graph.
         /// </summary>
         private IEnumerable<string> VirtualValueIdsByOwnership(
             NeoValueOwnership ownership)
         {
             foreach (var pair in virtualValueOwnership)
             {
-                if (pair.Value == ownership) yield return pair.Key;
+                if (pair.Value == ownership
+                    && TryResolveVirtualPlacement(pair.Key, out VirtualClassPlacement? placement)
+                    && TryGetValueOwnership(placement.parentValueId, out NeoValueOwnership parentOwnership)
+                    && parentOwnership != ownership)
+                    yield return pair.Key;
             }
         }
 

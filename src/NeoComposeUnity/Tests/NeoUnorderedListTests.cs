@@ -25,6 +25,60 @@ namespace NeoCompose.Tests
         private const string ItemsListValueId = "bag-items-list";
         private const string NullItemsListValueId = "bag-null-items-list";
 
+        [TestCase(NeoMemberStorage.Save, NeoValueOwnership.Save)]
+        [TestCase(NeoMemberStorage.Session, NeoValueOwnership.Session)]
+        [TestCase(NeoMemberStorage.Immutable, NeoValueOwnership.Asset)]
+        public void AuthoredUnorderedEntriesInheritPlacementOwnership(
+            NeoMemberStorage storage, NeoValueOwnership expected)
+        {
+            var data = BuildProjectData();
+            data.members["items-member"].Storage = storage;
+            var name = new StringMember
+            {
+                id = "item-name", name = "Name", projectId = "project-a", kind = MemberKind.String,
+            };
+            data.members[name.id] = name;
+            data.classes[ItemClassId].schema["Name"] = name.id;
+            ((ObjectMemberValue)data.values["item-a"]).value!["Name"] = "item-a-name";
+            data.values["item-a-name"] = new StringMemberValue { id = "item-a-name", value = "Before" };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            Assert.IsTrue(client.TryGetValueOwnership("item-a", out var entryOwnership));
+            Assert.AreEqual(expected, entryOwnership);
+            Assert.IsTrue(client.TryGetValueOwnership("item-a-name", out var childOwnership));
+            Assert.AreEqual(expected, childOwnership);
+            if (expected == NeoValueOwnership.Asset) return;
+            var target = new WriteTarget
+            {
+                writability = expected == NeoValueOwnership.Save ? WritabilityKind.Save : WritabilityKind.Session,
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.String },
+                pointer = new KeyOfPointer
+                {
+                    type = PointerKind.KeyOf,
+                    keyOf = new KeyOf
+                    {
+                        pointer = new ReferencePointer { type = PointerKind.Reference, valueId = "item-a" },
+                        key = new ValuePointer { type = PointerKind.Value, value = new Value
+                        { typeInfo = new PrimitiveTypeInfo { type = MemberKind.String }, value = Newtonsoft.Json.Linq.JToken.FromObject("Name") } },
+                    },
+                },
+            };
+            NeoScriptExecutor.Execute(client, new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = System.Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null },
+                instructions = new Instruction[] { new AssignInstruction
+                {
+                    type = InstructionKind.Assign, operatorValue = "=", target = target,
+                    pointer = new ValuePointer { type = PointerKind.Value, value = new Value
+                    { typeInfo = new PrimitiveTypeInfo { type = MemberKind.String }, value = Newtonsoft.Json.Linq.JToken.FromObject("After") } },
+                } },
+            }, new Dictionary<string, object?>(), new NSGetterEvaluator.Context(client, null, null));
+            Assert.AreEqual("Before", ((StringMemberValue)data.values["item-a-name"]).value);
+            Assert.IsTrue(client.TryGetValue(expected, "item-a-name", out StringMemberValue? changed));
+            Assert.AreEqual("After", changed!.value);
+        }
+
         [Test]
         public void NeoScript_UnorderedReadsAndMutationsUseMembership(
             [Values(false, true)] bool alias, [Values(false, true)] bool primitive,

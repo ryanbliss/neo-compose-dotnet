@@ -2708,11 +2708,15 @@ namespace NeoCompose.Runtime
             {
                 throw new NSGetterRuntimeError("Assignment receiver is not backed by a Neo value row.");
             }
-            receiverRowId = EnsureWritableRow(client, receiverRowId, ownership);
-            if (!client.TryGetValue(ownership, receiverRowId, out MemberValue? row))
+            NeoValueOwnership receiverOwnership = NSGetterEvaluator.FindRowOwnershipByReference(receiver, ctx)
+                ?? (client.TryGetValueOwnership(receiverRowId, out var resolvedOwnership) ? resolvedOwnership : ownership);
+            if (!client.TryGetValue(receiverOwnership, receiverRowId, out MemberValue? row))
             {
                 throw new NSGetterRuntimeError($"Missing receiver row '{receiverRowId}'.");
             }
+
+            if (row is not ObjectMemberValue { classId: not null })
+                EnsureWritableRow(client, receiverRowId, ownership);
 
             // P42 §1.2 / §3. A structured leaf is one value row, so a field
             // assignment is a read-modify-write of that row rather than a new
@@ -2761,8 +2765,12 @@ namespace NeoCompose.Runtime
                             NeoNSFunctionRuntime.ResolveReceiverGenericEnv(
                                 client, receiver!, ctx, $"Member '{memberMember.name}'"));
                     }
-                    return new NeoClassMemberWriteTarget(receiverRowId, keyString, memberMember!, ownership);
+                    NeoValueOwnership fieldOwnership = client.DeclaredOwnership(memberMember!) ?? receiverOwnership;
+                    if (fieldOwnership != ownership || fieldOwnership == NeoValueOwnership.Asset)
+                        throw new NSGetterRuntimeError($"Member '{memberMember!.name}' is not {ownership}-owned.");
+                    return new NeoClassMemberWriteTarget(receiverRowId, keyString, memberMember!, ownership, receiverOwnership);
                 }
+                EnsureWritableRow(client, receiverRowId, ownership);
                 return new NeoDictionaryEntryWriteTarget(receiverRowId, keyString, targetType, ownership);
             }
             throw new NSGetterRuntimeError("Assignment receiver must be a list, dictionary, or class object.");
@@ -3116,6 +3124,8 @@ namespace NeoCompose.Runtime
             string createdAt,
             string updatedAt)
         {
+            if (member is LookupMember lookup && value is not null)
+                value = NeoGeneratedTypesSupport.ConstructorLookupIds(value, lookup);
             var payload = value is INeoValuePayloadProvider provider
                 ? provider.ToNeoValuePayload()
                 : value;
@@ -3407,7 +3417,20 @@ namespace NeoCompose.Runtime
         private static void StoreWritableRow(NeoWritePlan plan, NeoClient client,
             NeoValueOwnership ownership, MemberValue row, NSGetterEvaluator.Context ctx)
         {
+            // Nulling a class slot preserves the slot id, but releases the
+            // previous object's owned fields (including sparse instances).
+            var removedChildren = row is ObjectMemberValue { value: null }
+                && plan.Resolve(ownership, row.id) is ObjectMemberValue previous
+                ? client.EnumerateOwnedChildLinks(previous, null).ToArray()
+                : Array.Empty<(string valueId, Member? member)>();
             plan.Set(ownership, row);
+            foreach (var child in removedChildren)
+            {
+                var childOwnership = child.member is null
+                    ? ownership : client.DeclaredOwnership(child.member) ?? ownership;
+                if (childOwnership == ownership)
+                    client.StageUnlinkedRemovals(plan, ownership, new[] { child.valueId }, child.member);
+            }
             plan.AfterCommit(() => NSGetterEvaluator.RefreshCachedRowAfterWrite(row, ctx, ownership));
         }
 
@@ -3576,17 +3599,20 @@ namespace NeoCompose.Runtime
             private readonly string key;
             private readonly JsonMember member;
             private readonly NeoValueOwnership ownership;
+            private readonly NeoValueOwnership parentOwnership;
 
             public NeoClassMemberWriteTarget(
                 string parentRowId,
                 string key,
                 JsonMember member,
-                NeoValueOwnership ownership)
+                NeoValueOwnership ownership,
+                NeoValueOwnership? parentOwnership = null)
             {
                 this.parentRowId = parentRowId;
                 this.key = key;
                 this.member = member;
                 this.ownership = ownership;
+                this.parentOwnership = parentOwnership ?? ownership;
             }
 
             /// <summary>
@@ -3635,7 +3661,7 @@ namespace NeoCompose.Runtime
                 NeoClient client,
                 NSGetterEvaluator.Context ctx)
             {
-                if (!client.TryGetValue(ownership, parentRowId, out ObjectMemberValue? parent)
+                if (!client.TryGetValue(parentOwnership, parentRowId, out ObjectMemberValue? parent)
                     || !TryResolveBoundChild(
                         client,
                         parentRowId,
@@ -3656,11 +3682,13 @@ namespace NeoCompose.Runtime
             {
                 PrepareWrite(client, plan =>
                 {
-                    string writableParentRowId = PrepareWritableRow(plan, client, parentRowId, ownership);
-                    if (!client.TryGetValue(ownership, writableParentRowId, out ObjectMemberValue? parent))
+                    string writableParentRowId = parentOwnership == NeoValueOwnership.Asset
+                        ? parentRowId : PrepareWritableRow(plan, client, parentRowId, parentOwnership);
+                    if (!client.TryGetValue(parentOwnership, writableParentRowId, out ObjectMemberValue? parent))
                     {
                         throw new NSGetterRuntimeError($"Missing parent row '{writableParentRowId}'.");
                     }
+                    parent = (ObjectMemberValue)client.CloneRowForWrite(parent);
                     parent.value ??= new Dictionary<string, string>();
                     value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan);
                     var now = DateTime.UtcNow.ToString("o");
@@ -3693,12 +3721,14 @@ namespace NeoCompose.Runtime
                                 ctx,
                                 existingId);
                             if (importedId == existingId) return;
+                            if (parentOwnership == NeoValueOwnership.Asset)
+                                throw new NSGetterRuntimeError($"Cannot rebind '{key}' on an immutable parent.");
                             parent.value[key] = importedId;
                             plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                                 importedId,
                                 writableParentRowId));
                             parent.updatedAt = now;
-                            StoreWritableRow(plan, client, ownership, parent, ctx);
+                            StoreWritableRow(plan, client, parentOwnership, parent, ctx);
                             client.StageUnlinkedRemovals(plan, ownership, new[] { existingId }, member);
                             return;
                         }
@@ -3722,6 +3752,8 @@ namespace NeoCompose.Runtime
                     }
                     else
                     {
+                        if (parentOwnership == NeoValueOwnership.Asset)
+                            throw new NSGetterRuntimeError($"Cannot bind missing member '{key}' on an immutable parent.");
                         if (TryGetClassValueReferenceId(
                                 value,
                                 MemberKindInfo(member),
@@ -3737,7 +3769,7 @@ namespace NeoCompose.Runtime
                                 parent.value[key],
                                 writableParentRowId));
                             parent.updatedAt = now;
-                            StoreWritableRow(plan, client, ownership, parent, ctx);
+                            StoreWritableRow(plan, client, parentOwnership, parent, ctx);
                             return;
                         }
                         var childId = Guid.NewGuid().ToString();
@@ -3746,7 +3778,8 @@ namespace NeoCompose.Runtime
                         parent.value[key] = childId;
                     }
                     parent.updatedAt = now;
-                    StoreWritableRow(plan, client, ownership, parent, ctx);
+                    if (parentOwnership != NeoValueOwnership.Asset)
+                        StoreWritableRow(plan, client, parentOwnership, parent, ctx);
                 });
             }
         }

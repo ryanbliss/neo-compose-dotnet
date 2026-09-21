@@ -1100,6 +1100,10 @@ namespace NeoCompose.Runtime.NeoScript
                         }
                         return value;
                     }
+                    // Clear() lowers to an action literal assignment. Preserve
+                    // its listener-set type instead of unwrapping it as a map.
+                    if (vp.value.typeInfo.type == MemberKind.NSAction)
+                        return vp.value.value?.ToObject<NeoActionValue>() ?? new NeoActionValue();
                     return UnwrapJToken(vp.value.value);
                 }
                 case VariablePointer vrp:
@@ -5374,7 +5378,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static bool PatchCachedShape(MemberValue row, object? cached)
         {
-            if (row is ObjectMemberValue objectRow
+            if (row is ObjectMemberValue { value: not null } objectRow
                 && cached is IDictionary<string, object?> record)
             {
                 record.Clear();
@@ -6180,9 +6184,12 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static NeoValueOwnership? FindRowOwnershipByReference(object? value, Context ctx)
         {
+            // Row-backed arguments can cross evaluator contexts. Their original
+            // reverse index is then unavailable, but the record still carries
+            // the exact selected store, including sparse authored fallbacks.
             return TryFindRowReferenceByReference(value, ctx, out RowReference rowRef)
                 ? rowRef.ownership
-                : null;
+                : value is NeoObjectRecord record ? record.valueOwnership : null;
         }
 
         private static bool TryFindRowReferenceByReference(

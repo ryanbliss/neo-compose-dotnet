@@ -283,6 +283,30 @@ namespace NeoCompose.Tests
         /// the whole graph reachable for the life of the subscription.
         /// </summary>
         [Test]
+        public void ClearActionLiteralReplacesStoredListeners()
+        {
+            using NeoClient client = BuildClient(
+                storedListeners: ListenerSet(Listener(BumpOneMemberId)));
+            RunBody(client, Body(new AssignInstruction
+            {
+                type = InstructionKind.Assign,
+                target = ActionWriteTarget(),
+                pointer = new ValuePointer
+                {
+                    type = PointerKind.Value,
+                    value = new Value
+                    {
+                        typeInfo = ActionType(),
+                        value = JObject.Parse("{\"listeners\":[]}"),
+                    },
+                },
+            }, CallActionInstruction()));
+
+            Assert.AreEqual(0, StoredListeners(client).listeners.Count);
+            Assert.AreEqual(0d, CounterValue(client));
+        }
+
+        [Test]
         public void AddActionListener_StoresAPersistedCopyOfTheListener()
         {
             NeoClient client = BuildClient();

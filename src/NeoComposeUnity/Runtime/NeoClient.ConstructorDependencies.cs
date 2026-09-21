@@ -12,8 +12,8 @@ namespace NeoCompose.Runtime
     public partial class NeoClient
     {
         // Constructor arguments are replay references, not owned fields. Keep
-        // their Session-only inputs when a recipe becomes durable, without
-        // assigning parents or copying shared arguments to different identities.
+        // their inputs across storage transitions (including detached Session
+        // clones), without assigning parents or changing reference identities.
         private void RetainConstructorDependencies(MemberValue value)
         {
             var plan = new NeoWritePlan(this);
@@ -21,11 +21,12 @@ namespace NeoCompose.Runtime
             if (plan.Rows.Count > 0) plan.Commit();
         }
 
-        private void StageConstructorDependencies(NeoWritePlan plan, MemberValue value)
+        private void StageConstructorDependencies(NeoWritePlan plan, MemberValue value, NeoValueOwnership targetOwnership = NeoValueOwnership.Save)
         {
             if (value is not ObjectMemberValue { constructorArgs: not null }) return;
+            var sourceOwnership = targetOwnership == NeoValueOwnership.Save ? NeoValueOwnership.Session : NeoValueOwnership.Save;
             var pending = new Queue<(string id, Member? member)>();
-            foreach (var link in EnumerateConstructorDependencyLinks(value, NeoValueOwnership.Session))
+            foreach (var link in EnumerateConstructorDependencyLinks(value, targetOwnership))
                 pending.Enqueue(link);
             if (pending.Count == 0) return;
 
@@ -36,30 +37,30 @@ namespace NeoCompose.Runtime
                 var (id, member) = pending.Dequeue();
                 if (!visited.Add(id)) continue;
                 MemberValue? row;
-                if (!plan.TryGetWritable(NeoValueOwnership.Save, id, out row))
+                if (!plan.TryGetWritable(targetOwnership, id, out row))
                 {
                     // Existing authored identities must keep resolving through
                     // the export, even if Session has an override at that id.
                     if (data.values.ContainsKey(id)
-                        || !plan.TryGetWritable(NeoValueOwnership.Session, id, out row)) continue;
+                        || !plan.TryGetWritable(sourceOwnership, id, out row)) continue;
                     copies.Add(CloneValueRow(row));
                 }
                 foreach (var child in EnumerateOwnedChildLinks(row, member))
-                    if (child.member is null || DeclaredOwnership(child.member) != NeoValueOwnership.Session)
+                    if (child.member is null || DeclaredOwnership(child.member) != sourceOwnership)
                         pending.Enqueue((child.valueId, child.member));
                 if (member is ListMember list && IsUnorderedList(list))
                 {
-                    var owner = saveData.values.ContainsKey(id) ? NeoValueOwnership.Save : NeoValueOwnership.Session;
+                    var owner = GetWritableStore(targetOwnership).values.ContainsKey(id) ? targetOwnership : sourceOwnership;
                     var entry = TryResolveCollectionEntryMember(list, row);
                     foreach (var childId in EnumerateContainerMemberValueIds(owner, id))
                         pending.Enqueue((childId, entry));
                 }
-                foreach (var dependency in EnumerateConstructorDependencyLinks(row, NeoValueOwnership.Session))
+                foreach (var dependency in EnumerateConstructorDependencyLinks(row, targetOwnership))
                     pending.Enqueue(dependency);
             }
 
             foreach (var row in copies)
-                plan.Set(NeoValueOwnership.Save, row, silent: true);
+                plan.Set(targetOwnership, row, silent: true);
         }
 
         private IEnumerable<(string id, Member? member)> EnumerateConstructorDependencyLinks(

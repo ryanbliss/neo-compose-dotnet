@@ -18,6 +18,34 @@ namespace NeoCompose.Tests
 {
     public class NSFunctionRuntimeTests
     {
+        [TestCase(MemberKind.Vector2)]
+        [TestCase(MemberKind.Vector2Int)]
+        [TestCase(MemberKind.Vector3)]
+        [TestCase(MemberKind.Vector3Int)]
+        [TestCase(MemberKind.Color)]
+        public void StoredStructuredArgumentsInCollectionsNormalizeAfterJsonReplay(MemberKind kind)
+        {
+            using NeoClient client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var entry = new PrimitiveTypeInfo { type = kind, required = true };
+            var type = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = entry };
+            var components = kind == MemberKind.Color
+                ? new Dictionary<string, object?> { ["r"] = .25d, ["g"] = .5d, ["b"] = .75d, ["a"] = 1d }
+                : new Dictionary<string, object?> { ["x"] = 2L, ["y"] = -3L, ["z"] = 4L };
+            if (kind == MemberKind.Vector2 || kind == MemberKind.Vector2Int) components.Remove("z");
+            var result = (object?[])NeoScriptValueMarshaller.Normalize(client, NeoValueOwnership.Session,
+                new object[] { components }, type, ctx, "replayed offsets")!;
+            Assert.That(result.Length, Is.EqualTo(1));
+            if (kind == MemberKind.Color)
+                Assert.That(NeoGeneratedTypesSupport.ReadColorValue(result[0])!.Value.g, Is.EqualTo(.5f));
+            else if (kind == MemberKind.Vector2 || kind == MemberKind.Vector2Int)
+                Assert.That(NeoGeneratedTypesSupport.ReadVector2Value(result[0])!.Value.y, Is.EqualTo(-3f));
+            else
+                Assert.That(NeoGeneratedTypesSupport.ReadVector3Value(result[0])!.Value.z, Is.EqualTo(4f));
+            Assert.Throws<InvalidOperationException>(() => NeoScriptValueMarshaller.Normalize(client,
+                NeoValueOwnership.Session, new object[] { new Dictionary<string, object>() }, type, ctx, "invalid offsets"));
+        }
+
         [Test]
         public void GetterWithoutAllocationsDoesNotTraverseReturnGraphForEscapeTracking()
         {
@@ -228,6 +256,62 @@ namespace NeoCompose.Tests
 
         [TestCase(NeoValueOwnership.Session)]
         [TestCase(NeoValueOwnership.Save)]
+        public void CrossContextClassArgumentRetainsSelectedOwnership(NeoValueOwnership ownership)
+        {
+            var count = new IntMember { id = "count", name = "Count", kind = MemberKind.Int };
+            var config = ObjectValue("selected-config", "receiver-class");
+            config.value!["Count"] = "count-value";
+            using NeoClient client = BuildClient(new JsonMember[] { count }, ReceiverClass(("Count", count.id)),
+                additionalValues: new MemberValue[] { config,
+                    new NumberMemberValue { id = "count-value", value = 1 } });
+            client.SetWritableValue(NeoValueOwnership.Save, new NumberMemberValue { id = "count-value", value = 9 });
+            client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = "count-value", value = 17 });
+            var source = new NSGetterEvaluator.Context(client, null, null);
+            object argument = NSGetterEvaluator.UnwrapRow(config, source, ownership)!;
+            var destination = new NSGetterEvaluator.Context(client, null, null);
+            object? normalized = NeoScriptValueMarshaller.Normalize(client, NeoValueOwnership.Asset, argument,
+                new ClassTypeInfo { type = MemberKind.Class, classId = "receiver-class", required = true },
+                destination, "cross-context delegate argument");
+            Assert.AreEqual(ownership, NSGetterEvaluator.FindRowOwnershipByReference(normalized, destination));
+            Assert.AreEqual(ownership == NeoValueOwnership.Save ? 9d : 17d,
+                NSGetterEvaluator.EvaluatePointer(new KeyOfPointer
+                {
+                    type = PointerKind.KeyOf,
+                    keyOf = new KeyOf { pointer = Variable("selected"), key = Text("Count") }, memberId = count.id,
+                }, new Dictionary<string, object?> { ["selected"] = normalized }, destination));
+        }
+
+        [Test]
+        public void SingleLookupAssignmentStoresTheSelectedObjectIdentity()
+        {
+            var entry = new ClassMember { id = "entry", kind = MemberKind.Class, classId = "receiver-class" };
+            var collection = new ListMember { id = "choices", kind = MemberKind.List, entryMemberId = entry.id, valueId = "choices-value" };
+            var lookup = new LookupMember { id = "selected", name = "Selected", kind = MemberKind.Lookup,
+                collectionMemberId = collection.id, collectionValueId = collection.valueId,
+                Storage = NeoMemberStorage.Save, Selection = NeoMemberSelectionKind.Single };
+            var target = ObjectValue("selected-value", "receiver-class");
+            var receiver = ObjectValue("receiver-value", "receiver-class");
+            receiver.value!["Selected"] = "selection-value";
+            var function = ScriptFunction("select", "Select", false, IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(), Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
+                    new AssignInstruction { type = InstructionKind.Assign, operatorValue = "=",
+                        target = new WriteTarget { pointer = Key(Variable("__this__"), "Selected"),
+                            typeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = "receiver-class", required = false }, writability = WritabilityKind.Save },
+                        pointer = new ReferencePointer { type = PointerKind.Reference, valueId = target.id } }, Return(Number(1))));
+            using var client = BuildClient(new JsonMember[] { entry, collection, lookup, function },
+                ReceiverClass(("Selected", lookup.id), ("Select", function.id)),
+                additionalValues: new MemberValue[] { receiver, target,
+                    new ArrayMemberValue { id = collection.valueId!, value = new[] { target.id } },
+                    new ArrayMemberValue { id = "selection-value", value = null } });
+            client.SetWritableValue(NeoValueOwnership.Save, receiver);
+            new NeoMemberNSFunction(client, function, null, NeoValueOwnership.Save).Invoke(receiver.id, Array.Empty<object?>());
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "selection-value", out ArrayMemberValue? selected));
+            CollectionAssert.AreEqual(new[] { target.id }, selected!.value);
+            Assert.IsFalse(client.HasWritableValue(NeoValueOwnership.Save, target.id), "A selection must not clone its asset.");
+        }
+
+        [TestCase(NeoValueOwnership.Session)]
+        [TestCase(NeoValueOwnership.Save)]
         public void LookupSelectionKeepsCollectionOwnershipForSparseEntry(NeoValueOwnership ownership)
         {
             var count = new IntMember { id = "count", name = "Count", kind = MemberKind.Int };
@@ -265,6 +349,33 @@ namespace NeoCompose.Tests
             var ctx = new NSGetterEvaluator.Context(client, null, null);
             Assert.AreEqual(23d, NSGetterEvaluator.ResolveValueIfId(row.id, ctx,
                 ownership == NeoValueOwnership.Session ? NeoValueOwnership.Save : NeoValueOwnership.Session, member));
+        }
+
+        [TestCase(NeoValueOwnership.Asset, NeoMemberStorage.Session, WritabilityKind.Session)]
+        [TestCase(NeoValueOwnership.Save, NeoMemberStorage.Session, WritabilityKind.Session)]
+        [TestCase(NeoValueOwnership.Session, NeoMemberStorage.Save, WritabilityKind.Save)]
+        public void FieldWriteHonorsStorageBoundary(NeoValueOwnership parentOwnership,
+            NeoMemberStorage storage, string writability)
+        {
+            var count = new IntMember { id = "count", name = "Count", kind = MemberKind.Int,
+                Storage = storage, valueId = "count-value", defaultValue = new NumberMemberValueBase { value = 0 } };
+            var function = ScriptFunction("set-count", "SetCount", false, IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(), Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
+                    new AssignInstruction { type = InstructionKind.Assign, operatorValue = "=",
+                        target = new WriteTarget { pointer = Key(Variable("__this__"), "Count"), typeInfo = IntType(), writability = writability },
+                        pointer = Number(7) }, Return(Key(Variable("__this__"), "Count"))));
+            var receiver = ObjectValue("receiver-value", "receiver-class");
+            receiver.value!["Count"] = "count-value";
+            using var client = BuildClient(new JsonMember[] { count, function }, ReceiverClass(("Count", count.id), ("SetCount", function.id)),
+                additionalValues: new MemberValue[] { receiver, new NumberMemberValue { id = "count-value", value = 0 } });
+            if (parentOwnership != NeoValueOwnership.Asset)
+                client.SetWritableValue(parentOwnership, receiver);
+            var node = new NeoMemberNSFunction(client, function, null, parentOwnership);
+            Assert.AreEqual(7d, node.Invoke("receiver-value", Array.Empty<object?>()));
+            var targetOwnership = storage == NeoMemberStorage.Session ? NeoValueOwnership.Session : NeoValueOwnership.Save;
+            Assert.IsTrue(client.TryGetValue(targetOwnership, "count-value", out NumberMemberValue? changed));
+            Assert.AreEqual(7d, changed!.value);
+            Assert.IsFalse(client.HasWritableValue(targetOwnership, "receiver-value"), "A field write must not copy its parent into the field's store.");
         }
 
         [TestCase(false, false)]
