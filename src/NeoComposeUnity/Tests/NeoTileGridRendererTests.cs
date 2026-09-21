@@ -46,6 +46,48 @@ namespace NeoCompose.Tests
         private const string ObjectsLayerClassId = "objects-layer-class";
 
         [Test]
+        public void InsertingEarlierObjectPreservesSiblingRootAndUpdatesItsSorting()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            var sprite = CreateTestSprite("ordered-sibling");
+            var factories = BuildClassBackedReadOnlyFactories(sprite);
+            factories[ObjectClassId] = (c, n) => new TestComposedSpriteObject(c, n) { Sprite = sprite };
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid", factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>());
+            var go = new GameObject("Object insertion");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(new TestTileGridContent(primitive, Array.Empty<IReadOnlyNeoTileLayerRuntime>(),
+                    new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) }));
+                Assert.IsTrue(renderer.TryGetObjectRoot("shop-1", out var original));
+                var drawn = original.GetComponentInChildren<SpriteRenderer>();
+                int order = drawn.sortingOrder;
+                client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
+                {
+                    id = "aaa-earlier", classId = ObjectClassId, containerId = "objects-link-objects",
+                    value = new Dictionary<string, string>(),
+                });
+                Assert.IsTrue(renderer.TryGetObjectRoot("shop-1", out var after));
+                Assert.AreSame(original, after, "An insertion must not reset sibling gameplay controllers.");
+                Assert.AreEqual(order + 1, drawn.sortingOrder);
+                client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
+                {
+                    id = "aaa-earlier", classId = ObjectClassId, containerId = "objects-link-objects", mark = NeoValueMarks.Removed,
+                });
+                Assert.IsTrue(renderer.TryGetObjectRoot("shop-1", out after));
+                Assert.AreSame(original, after);
+                Assert.AreEqual(order, drawn.sortingOrder);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(sprite.texture);
+                UnityEngine.Object.DestroyImmediate(sprite);
+            }
+        }
+
+        [Test]
         public void RenderEnumeration_PreservesPendingTilesWhenAnObjectMovesBetweenYields()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
@@ -2167,6 +2209,32 @@ namespace NeoCompose.Tests
             var placement = (ObjectMemberValue)client.saveValues[created!.InstanceId.Value];
             Assert.AreEqual("background-link-tiles", placement.containerId);
             Assert.AreNotEqual("blocked-path-tiles", placement.containerId);
+        }
+
+        [Test]
+        public void DirectPlacementSkipsImmutableSourceLinks()
+        {
+            ProjectData data = BuildClassBackedTileGridProjectData();
+            var original = (ListMember)data.members["tile-layer-link-tiles-member"];
+            var immutable = (ListMember)original.ShallowClone();
+            immutable.id = "immutable-link-tiles";
+            immutable.Storage = NeoMemberStorage.Immutable;
+            data.members[immutable.id] = immutable;
+            data.classes["immutable-link"] = new NeoSchemaClass
+            {
+                id = "immutable-link", extendsClassId = TileLayerLinkClassId,
+                schema = new Dictionary<string, string> { ["Tiles"] = immutable.id },
+            };
+            ((ObjectMemberValue)data.values["background-link"]).classId = "immutable-link";
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+            var layer = primitive.BindWritableTileLayer<TestAuthoredTileLayer>(BackgroundLayerClassId, new[] { TileClassId });
+            var result = layer.Place<TestTile>(new Vector2Int(14, 15));
+            Assert.IsTrue(result.Ok, result.Message);
+            var tile = layer.GetTileProjection(new Vector2Int(14, 15));
+            Assert.AreEqual("blocked-path-tiles", client.saveValues[tile!.InstanceId.Value].containerId);
         }
 
         [Test]
@@ -4844,6 +4912,39 @@ namespace NeoCompose.Tests
             }
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Render_ColliderOnlyChildPreservesItsGeometryAndVisibility(bool enabled)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var obj = ResolveComposedTestObject(client);
+            obj.Children = new INeoWorldObjectValue[]
+            {
+                new TestComposedChild
+                {
+                    Name = "SleepTrigger", Enabled = enabled, Position = new NeoReadOnlyVector3(0, -1, 0),
+                    Collider = new TestObjectCollider { Size = new NeoReadOnlyVector2(.25f, 1),
+                        Offset = new NeoReadOnlyVector2(.5f, .34f), IsTrigger = true },
+                },
+            };
+            var go = new GameObject("Collider-only child");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(), new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) });
+                var collider = go.GetComponentInChildren<BoxCollider2D>(true);
+                Assert.IsNotNull(collider);
+                Assert.AreEqual("SleepTrigger", collider.name);
+                Assert.AreEqual(enabled, collider.gameObject.activeSelf);
+                Assert.AreEqual(new Vector2(.25f, 1), collider.size);
+                Assert.AreEqual(new Vector2(.5f, .34f), collider.offset);
+                Assert.AreEqual(new Vector3(0, -1, 0), collider.transform.localPosition);
+                Assert.IsTrue(collider.isTrigger);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
         [Test]
         public void Render_DisabledCompositionPartAtDepthTwoHidesItsWholeSubtree()
         {
@@ -6364,8 +6465,9 @@ namespace NeoCompose.Tests
         /// </summary>
         private sealed class TestComposedChild
             : INeoWorldObjectValue,
-              INeoObjectCompositionSource
+              INeoObjectCompositionSource, INeoColliderSource
         {
+            public INeoCollider? Collider { get; set; }
             public string? valueId => null;
             public string Name { get; set; } = "";
             public NeoReadOnlyVector3 Position { get; set; } = new(Vector3.zero);

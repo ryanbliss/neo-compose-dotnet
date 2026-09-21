@@ -3176,7 +3176,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal string CloneValueReference(
             string sourceValueId,
-            NeoValueOwnership? sourceOwnership = null)
+            NeoValueOwnership? sourceOwnership = null,
+            Member? sourceMember = null)
         {
             ObjectMemberValue? sourceRow;
             bool foundSource = sourceOwnership is NeoValueOwnership exactOwnership
@@ -3188,7 +3189,7 @@ namespace NeoCompose.Runtime
                     $"Cannot clone Class value '{sourceValueId}': its object value row does not exist.");
             }
 
-            Member? sourceMember = TryInferMemberForValueId(sourceValueId, out Member? inferred)
+            sourceMember ??= TryInferMemberForValueId(sourceValueId, out Member? inferred)
                 ? inferred
                 : null;
             string? sourceClassId = sourceRow.classId
@@ -3268,6 +3269,9 @@ namespace NeoCompose.Runtime
                 {
                     case ObjectMemberValue obj when obj.value is not null:
                     {
+                        // The clone no longer has the source member's type context.
+                        obj.classId ??= (sourceMember as ClassMember)?.defaultValue?.classId
+                            ?? (sourceMember as ClassMember)?.classId;
                         var effectiveFields = new Dictionary<string, string>(obj.value);
                         if (sourceRow is ObjectMemberValue sourceObject)
                         {
@@ -5419,6 +5423,18 @@ namespace NeoCompose.Runtime
             AddBoundValueCandidates(sessionData.values.Values, schemaKeys, candidates);
             AddBoundValueCandidates(saveData.values.Values, schemaKeys, candidates);
             AddBoundValueCandidates(data.values.Values, schemaKeys, candidates);
+            // Sparse instances keep their collection bindings in the replay graph,
+            // even after a Save overlay adds entries without writing the parent.
+            foreach (string id in virtualClassPlacementByChildId.Keys) AddVirtualCandidate(id);
+            if (candidateReplay is not null)
+                foreach (string id in candidateReplay.Placements.Keys) AddVirtualCandidate(id);
+            void AddVirtualCandidate(string id)
+            {
+                if (!TryResolveVirtualPlacement(id, out var placement) || placement.member.id != memberId) return;
+                if (ResolveValueRow(placement.parentValueId) is not ObjectMemberValue parent || parent.IsRemoved) return;
+                foreach (string key in schemaKeys)
+                    if (ResolveClassChildRow(parent, key)?.id == id && !candidates.Contains(id)) candidates.Add(id);
+            }
 
             foreach (var candidate in candidates)
             {
@@ -5533,6 +5549,13 @@ namespace NeoCompose.Runtime
                 nodesInternal.Remove(key);
                 UnindexNode(node);
             }
+        }
+
+        internal bool TryGetGeneratedClassValue(string declarationId, string valueId,
+            NeoValueOwnership ownership, [NotNullWhen(true)] out NeoGeneratedClassValue? value)
+        {
+            var registry = candidateReplay?.GeneratedValues ?? generatedValuesInternal;
+            return registry.TryGetValue(MakeNodeKey(declarationId, valueId, ownership), out value);
         }
 
         internal TGenerated GetOrCreateGeneratedClassValue<TGenerated>(

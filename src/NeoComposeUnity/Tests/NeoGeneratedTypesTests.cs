@@ -1644,6 +1644,43 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ScriptCollectionsConvertNestedAndNullableEntries()
+        {
+            var source = new object?[] { new Dictionary<string, object?> { ["a"] = 12d, ["missing"] = null }, null };
+            var result = NeoGeneratedTypesSupport.ReadScriptList(source, entry => entry is null ? null :
+                NeoGeneratedTypesSupport.ReadScriptDictionary<int?>(entry, item => item is null ? null : (int)(double)item));
+            Assert.That(result.Count, Is.EqualTo(2));
+            Assert.That(result[0]!["a"], Is.EqualTo(12));
+            Assert.That(result[0]!["missing"], Is.Null);
+            Assert.That(result[1], Is.Null);
+        }
+
+        [Test]
+        public void CloneValueReference_PreservesAnImplicitConcreteClassAfterDetaching()
+        {
+            using var app = LoadGeneratedClient(out _);
+            const string classId = "implicit-concrete-clone";
+            const string valueId = "implicit-concrete-value";
+            ((Dictionary<string, NeoSchemaClass>)app.Client.classes)[classId] = new NeoSchemaClass
+            {
+                id = classId, name = "Concrete", schema = new Dictionary<string, string>(),
+            };
+            ((Dictionary<string, Member>)app.Client.members)["implicit-concrete-member"] = new ClassMember
+            {
+                id = "implicit-concrete-member", name = "Concrete", kind = MemberKind.Class,
+                classId = classId, valueId = valueId,
+            };
+            app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
+            {
+                id = valueId, value = new Dictionary<string, string>(),
+            });
+            string clone = app.Client.CloneValueReference(valueId, NeoValueOwnership.Session,
+                app.Client.members["implicit-concrete-member"]);
+            Assert.That(app.Client.TryGetValue(NeoValueOwnership.Session, clone, out ObjectMemberValue? row), Is.True);
+            Assert.That(row!.classId, Is.EqualTo(classId), "A detached clone must retain the concrete class previously supplied by its member.");
+        }
+
+        [Test]
         public void CloneValueReference_RejectsStaticOnlyRuntimeClass()
         {
             var app = LoadGeneratedClient(out _);

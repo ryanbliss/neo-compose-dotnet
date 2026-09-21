@@ -18,6 +18,49 @@ namespace NeoCompose.Tests
 {
     public class P75VirtualInstanceValueTests
     {
+        private sealed class ResolvedThing : NeoGeneratedClassValue
+        {
+            internal ResolvedThing(NeoClient client, NeoMemberClass node, bool readOnly)
+                : base(client, node, "thing-class", readOnly, node.ownership) { }
+        }
+
+        [Test]
+        public void RepeatedClassResolutionKeepsTheGeneratedViewsRegisteredNode()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+            {
+                ["thing-class"] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                    c, n, (owner, node) => new ResolvedThing(owner, node, true)),
+            };
+            var writable = new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
+            {
+                ["thing-class"] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                    c, n, (owner, node) => new ResolvedThing(owner, node, false)),
+            };
+            var first = (ResolvedThing)NeoGeneratedTypesSupport.ResolveClassValue(
+                client, "thing-instance", factories, writable)!;
+            for (int i = 0; i < 3; i++)
+            {
+                var next = NeoGeneratedTypesSupport.ResolveClassValue(client, "thing-instance", factories, writable);
+                Assert.AreSame(first, next);
+                Assert.IsTrue(client.TryGetNode(first.BackingNode.member.RuntimeDeclarationIdentity,
+                    first.BackingNode.overrideValueId, first.BackingNode.ownership, out var registered));
+                Assert.AreSame(first.BackingNode, registered,
+                    "Repeated renderer/native resolution must not replace the node that refreshes this cached view.");
+            }
+        }
+
+        [Test]
+        public void LookupFindsCollectionInsideSparseInstance()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildUnorderedListProjectData());
+            var items = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberList>("Items");
+            Assert.IsTrue(client.TryResolveLookupCollectionValueId("thing-items", null, out string? target));
+            Assert.AreEqual(items.value!.id, target);
+            Assert.IsFalse(client.saveValues.ContainsKey(target!));
+        }
+
         [Test]
         public void NullSavedOverlayPreservesAuthoredConstructorDefaults()
         {

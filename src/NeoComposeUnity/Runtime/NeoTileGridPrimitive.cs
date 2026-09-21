@@ -1064,6 +1064,7 @@ namespace NeoCompose.Runtime
         private protected NeoGridLayerLinkModel? ResolveDirectWriteTargetLink(
             string layerClassId,
             bool isTileLayer,
+            NeoValueOwnership writeOwnership,
             out bool ambiguous)
         {
             ambiguous = false;
@@ -1076,6 +1077,10 @@ namespace NeoCompose.Runtime
                 {
                     continue;
                 }
+                NeoValueOwnership? declared = ResolveCollectionOwnership(link.ListValueId);
+                if (declared is null && client.TryResolveSchemaClassAllowedOwnership(link.LinkClassId, out var classOwnership))
+                    declared = classOwnership;
+                if (declared is not null && declared != writeOwnership) continue;
                 matches += 1;
                 onlyMatch ??= link;
                 if (link.LayerOverrideValueId is null) continue;
@@ -2497,6 +2502,7 @@ namespace NeoCompose.Runtime
             NeoGridLayerLinkModel? targetLink = ResolveDirectWriteTargetLink(
                 layerId,
                 isTileLayer: true,
+                writeOwnership,
                 out bool ambiguousTarget);
             if (targetLink is null)
             {
@@ -2696,6 +2702,7 @@ namespace NeoCompose.Runtime
             NeoGridLayerLinkModel? targetLink = ResolveDirectWriteTargetLink(
                 layerId,
                 isTileLayer: false,
+                writeOwnership,
                 out bool ambiguousTarget);
             if (targetLink is null)
             {

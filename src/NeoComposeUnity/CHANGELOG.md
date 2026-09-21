@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.39.6] - 2026-09-21
+
+- Validate lookup-set selections against unordered collection membership as well as ordered arrays. Nightly per-plant prestige grants can now record an item from the unordered catalog without rejecting its valid ID.
+- Render collider-only composition children with their authored size, offset, trigger flag and visibility. Bed sleep triggers and lower furniture colliders previously disappeared because children without sprites were discarded.
+- Reuse registered member nodes when resolving generated objects. Repeated renderer/native lookups previously left cached views outside the refresh registry; changing a boulder variant then exposed disposed collider children.
+- Update sorting in place when adding or removing an unordered object shifts sibling ranks. Keep sibling GameObjects, controllers and animation state so neighboring plants can display score-change emotes.
+- Resolve lookup collections inside sparse constructed values, including storage inventories whose save parent has no materialized child binding.
+- Cancel pending editor post-sync work when entering Play Mode and resume it in Edit Mode, keeping navigation baking out of a running game.
+- Choose a grid placement link whose storage permits the write. An immutable scenery link can share a rendered layer with a Save link without receiving new sandbox objects or hiding them from the Save link's collections.
+- Convert NeoScript computed list and dictionary results into their declared C# entry types. Trait lists now expose generated plant-trait wrappers instead of raw evaluator dictionaries, including nested collections and nullable entries.
+- Resolve generated class factories from the effective runtime class, including classes supplied by a closed generic member or declaration default. Preserve that class when cloning an implicit object into a detached graph, so inventory default data retains its concrete type.
+- Keep a foreach snapshot's collection ownership for unchanged authored entries. Save-backed world tiles can now be converted while iterating their layer without being mistaken for immutable asset tiles.
+
 ## [0.39.5] - 2026-09-20
 
 - Read omitted optional Class fields with explicit null defaults consistently in NeoScript and generated C#. Keep receiver member metadata when unwrapping nested records so Partial payloads retain absent fields instead of inheriting defaults. This fixes plant harvest tooltips on sparse authored growth stages.

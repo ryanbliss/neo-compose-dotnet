@@ -1432,6 +1432,12 @@ namespace NeoCompose.Runtime
                 };
             }
 
+            // Generated factories memoize by declaration, placement and storage.
+            // Check before constructing a node: registering a replacement would
+            // strand the cached view outside subsequent replay refreshes.
+            if (client.TryGetGeneratedClassValue(member.RuntimeDeclarationIdentity, valueId, ownership, out var cached)
+                && cached.classId == classId) return cached;
+
             if ((ownership == NeoValueOwnership.Save || ownership == NeoValueOwnership.Session)
                 && savedFactories.TryGetValue(classId, out var savedFactory))
             {
@@ -1442,9 +1448,7 @@ namespace NeoCompose.Runtime
 
             if (readOnlyFactories.TryGetValue(classId, out var readOnlyFactory))
             {
-                return readOnlyFactory(
-                    client,
-                    new NeoMemberClass(client, member, valueId, ownership));
+                return readOnlyFactory(client, new NeoMemberClass(client, member, valueId, ownership));
             }
 
             return null;
@@ -1883,7 +1887,8 @@ namespace NeoCompose.Runtime
                     : NeoValueOwnership.Asset);
             string clonedValueId = client.CloneValueReference(
                 source.valueId!,
-                sourceOwnership);
+                sourceOwnership,
+                (source as NeoGeneratedClassValue)?.BackingMember);
             if (!client.TryGetValue(clonedValueId, out ObjectMemberValue? clone))
             {
                 throw new InvalidOperationException(
@@ -7479,6 +7484,27 @@ namespace NeoCompose.Runtime
             Func<string, TEnum> create)
         {
             return optionIds.Length == 0 ? default : create(optionIds[0]);
+        }
+
+        // Computed collections carry evaluator values, not generated wrappers. Apply
+        // the same per-entry codec as scalar getters, including ownership and nulls.
+        public static IReadOnlyList<T> ReadScriptList<T>(object? value, Func<object?, T> read)
+        {
+            if (value is not IReadOnlyList<object?> entries)
+                throw new InvalidOperationException("NeoScript returned an invalid List value.");
+            if (entries.Count == 0) return Array.Empty<T>();
+            var result = new T[entries.Count];
+            for (int i = 0; i < entries.Count; i++) result[i] = read(entries[i]);
+            return result;
+        }
+
+        public static IReadOnlyDictionary<string, T> ReadScriptDictionary<T>(object? value, Func<object?, T> read)
+        {
+            if (value is not IReadOnlyDictionary<string, object?> entries)
+                throw new InvalidOperationException("NeoScript returned an invalid Dictionary value.");
+            var result = new Dictionary<string, T>(entries.Count, StringComparer.Ordinal);
+            foreach (var pair in entries) result.Add(pair.Key, read(pair.Value));
+            return result;
         }
 
         public static IReadOnlyList<TEnum> ReadEnumList<TEnum>(

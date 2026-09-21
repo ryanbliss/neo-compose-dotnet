@@ -23,6 +23,9 @@ namespace NeoCompose.Runtime
           IEnumerable<KeyValuePair<string, NeoMember>>
     {
         protected NeoSchemaClass schemaClass;
+
+        /// <summary>The effective class, including the member type when its row omits classId.</summary>
+        public string ClassId => schemaClass.id;
         /// <summary>
         /// Inheritance chain (child-first) for the row's effective
         /// class. Empty when the chain is cyclic — see

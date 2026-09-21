@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using System.Linq;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -79,14 +80,15 @@ namespace NeoCompose.Runtime
         {
             if (string.IsNullOrWhiteSpace(valueId)) return false;
             MemberValue targetValue = ResolveTargetValue(out _);
-            return targetValue switch
-            {
-                ArrayMemberValue array when array.value is not null =>
-                    System.Array.IndexOf(array.value, valueId) >= 0,
-                ObjectMemberValue obj when obj.value is not null =>
-                    obj.value.ContainsValue(valueId),
-                _ => false,
-            };
+            return ResolveCollectionEntryIds(client, ResolveTargetMember(), targetValue).Contains(valueId);
+        }
+
+        internal static IEnumerable<string> ResolveCollectionEntryIds(NeoClient client, Member collection, MemberValue value)
+        {
+            if (collection is ListMember list && value is ArrayMemberValue array)
+                return NeoMemberList.ResolveEntryValueIds(client, array, client.IsUnorderedList(list));
+            if (value is ObjectMemberValue obj && obj.value != null) return obj.value.Values;
+            return System.Array.Empty<string>();
         }
 
         internal Member ResolveEntryMemberForLookup() =>

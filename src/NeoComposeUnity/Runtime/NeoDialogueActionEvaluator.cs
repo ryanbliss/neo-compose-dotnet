@@ -3230,7 +3230,7 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError(
                         "Lookup set class argument must be a selected value id or generated class value.");
                 }
-                if (!LookupCollectionContainsValueId(collectionValue, valueId!))
+                if (!NeoMemberLookup.ResolveCollectionEntryIds(client, collectionMember, collectionValue).Contains(valueId!))
                 {
                     throw new NSGetterRuntimeError(
                         $"Lookup selection id '{valueId}' is not present in the configured lookup collection.");
@@ -3238,7 +3238,7 @@ namespace NeoCompose.Runtime
                 return valueId!;
             }
 
-            string? matchedValueId = FindLookupCollectionValueByPayload(client, collectionValue, value);
+            string? matchedValueId = FindLookupCollectionValueByPayload(client, collectionMember, collectionValue, value);
             if (matchedValueId is null)
             {
                 throw new NSGetterRuntimeError(
@@ -3247,31 +3247,13 @@ namespace NeoCompose.Runtime
             return matchedValueId;
         }
 
-        private static bool LookupCollectionContainsValueId(
-            MemberValue collectionValue,
-            string valueId)
-        {
-            return collectionValue switch
-            {
-                ArrayMemberValue array when array.value is not null =>
-                    Array.IndexOf(array.value, valueId) >= 0,
-                ObjectMemberValue obj when obj.value is not null =>
-                    obj.value.ContainsValue(valueId),
-                _ => false,
-            };
-        }
-
         private static string? FindLookupCollectionValueByPayload(
             NeoClient client,
+            JsonMember collectionMember,
             MemberValue collectionValue,
             object? value)
         {
-            IEnumerable<string> childIds = collectionValue switch
-            {
-                ArrayMemberValue array when array.value is not null => array.value,
-                ObjectMemberValue obj when obj.value is not null => obj.value.Values,
-                _ => Array.Empty<string>(),
-            };
+            var childIds = NeoMemberLookup.ResolveCollectionEntryIds(client, collectionMember, collectionValue);
             foreach (var childId in childIds)
             {
                 if (!client.TryGetValue(childId, out MemberValue? child)) continue;

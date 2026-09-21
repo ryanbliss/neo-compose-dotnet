@@ -3499,7 +3499,8 @@ namespace NeoCompose.Runtime.NeoScript
                             ctx.client.sessionValues.Keys);
                         string cloneId = ctx.client.CloneValueReference(
                             source.valueId,
-                            source.ownership);
+                            source.ownership,
+                            source.member);
                         ctx.allocationTracker.RegisterSessionRoot(cloneId);
                         var createdRows = new List<MemberValue>();
                         foreach (var pair in ctx.client.sessionValues)
@@ -4819,6 +4820,9 @@ namespace NeoCompose.Runtime.NeoScript
                     "foreach receiver must be a List, Dictionary, Set/Lookup, or derived collection view.");
             }
 
+            JsonMember? collectionMember = FindRowMemberByReference(collection, ctx);
+            if (collectionMember is null && FindRowIdByReference(collection, ctx) is string collectionId)
+                ctx.client.TryInferMemberForValueId(collectionId, out collectionMember);
             var snapshot = new List<CollectionEntrySnapshot>();
             foreach (OrderedRawCollectionEntry entry in
                 OrderedRawCollectionEntries(collection))
@@ -4828,8 +4832,9 @@ namespace NeoCompose.Runtime.NeoScript
                 NeoValueOwnership? entryOwnership = null;
                 if (entry.Raw is string id)
                 {
-                    NeoValueOwnership resolvedOwnership =
-                        ResolveOwnershipForValueId(ctx, id);
+                    NeoValueOwnership resolvedOwnership = collectionMember is LookupMember
+                        ? ResolveOwnershipForValueId(ctx, id)
+                        : FindRowOwnershipByReference(collection, ctx) ?? ResolveOwnershipForValueId(ctx, id);
                     entryOwnership = resolvedOwnership;
                     ctx.client.TryGetValue(
                         resolvedOwnership,

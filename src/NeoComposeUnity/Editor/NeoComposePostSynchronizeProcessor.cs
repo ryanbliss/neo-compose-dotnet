@@ -61,6 +61,11 @@ namespace NeoCompose.Unity.Editor
             var interrupted = Persistence.Load();
             if (interrupted != null) TaskCoordinator.RecoverInterrupted(interrupted);
             EditorApplication.delayCall += TryRunPending;
+            EditorApplication.playModeStateChanged += state =>
+            {
+                if (state == PlayModeStateChange.ExitingEditMode) activeCancellation?.Cancel();
+                if (state == PlayModeStateChange.EnteredEditMode) EditorApplication.delayCall += TryRunPending;
+            };
         }
 
         public static void Schedule(NeoComposeConfig config, string projectJsonPath, IReadOnlyList<string> changedPaths)
@@ -93,7 +98,7 @@ namespace NeoCompose.Unity.Editor
 
         private static async void TryRunPending()
         {
-            if (isRunning) return;
+            if (isRunning || EditorApplication.isPlayingOrWillChangePlaymode) return;
             var generation = Persistence.Load();
             if (generation == null ||
                 generation.Status == NeoPostSynchronizeGenerationStatus.Failed)

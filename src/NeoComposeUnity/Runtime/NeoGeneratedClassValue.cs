@@ -48,7 +48,8 @@ namespace NeoCompose.Runtime
         public string? valueId => isClassDefaultReference
             ? null
             : node.overrideValueId ?? node.value?.id;
-        public string? classId => node.value?.classId ?? fallbackClassId;
+        public string? classId => node.ClassId;
+        internal ClassMember BackingMember => node.member;
         public bool IsReadOnly { get; }
         internal NeoClient Client => client;
         internal NeoValueOwnership ValueOwnership => node.ownership;

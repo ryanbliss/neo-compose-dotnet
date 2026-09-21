@@ -1051,6 +1051,7 @@ namespace NeoCompose.Runtime
     public sealed class NeoObjectLayerChangedArgs
     {
         internal bool PositionsOnly { get; set; }
+        internal IReadOnlyDictionary<NeoObjectInstanceId, int>? OrderOnlyDeltas { get; set; }
         public NeoObjectLayerChangedArgs(
             string layerId,
             IReadOnlyList<NeoObjectInstanceId> removedInstances,
