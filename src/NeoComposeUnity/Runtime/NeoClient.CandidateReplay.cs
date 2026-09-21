@@ -374,8 +374,9 @@ namespace NeoCompose.Runtime
                 if (!candidate.HiddenVirtualIds.Contains(row.Key)) changed.Add((row.Value, row.Key));
             foreach (string root in candidate.AffectedRoots)
                 if (!candidate.RetainedRoots.Contains(root)) ClearVirtualInstanceRoot(root);
+            // Candidate expansions already include their nested boundaries.
             foreach (PreparedVirtualExpansion expansion in candidate.Expansions.Values)
-                InstallVirtualExpansion(expansion);
+                InstallVirtualExpansion(expansion, includeNested: false);
             foreach (string root in candidate.AffectedRoots)
                 if (!candidate.RetainedRoots.Contains(root) && nodesByValueId.TryGetValue(root, out var nodes))
                     foreach (NeoMember node in nodes.ToArray())

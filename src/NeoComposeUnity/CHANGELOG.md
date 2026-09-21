@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.39.4] - 2026-09-20
+
+- Preserve Save/Session ownership across generated read-only views, NeoScript delegate arguments, class field writes, and unordered-list membership. Explicitly writable fields on immutable parents write only their own storage; Session actions and callbacks remain Session-only.
+- Preserve closed generic bindings for computed class results, constructor validation, and virtual collection entries. Normalize stored vector and color constructor arguments through the shared structured-value readers, including collection arguments.
+- Keep typed action literals when clearing listener sets and convert single lookup assignments to the selected asset identity without cloning it.
+- Release owned sparse children when class slots become null, evict null objects from evaluator caches, and dispose stale class wrappers. Restrict virtual reachability roots to storage boundaries so transfer/crafting saves reload without orphaned quantity watchers. Detached Session clones retain the constructor inputs they need after their Save source is removed.
+- Resolve global NeoScript roots lazily, use indexed ownership candidates, and compare ordinary typed row payloads without JSON serialization. Row-only NeoScript construction avoids temporary generated wrapper trees. Local listener changes and complete equal overlays no longer rebuild unrelated constructors; actual dependencies still invalidate.
+- Replay independent nested leaf constructors in their original ID namespace when equipment changes. Keep unchanged character layers and wrapper identities; preserve call-site fields, saved overrides, constructor evaluation order, and conservative enclosing replay for dependent or side-effecting constructions. Class identity/field dependencies no longer treat ownership/type metadata as whole-object reads.
+- Limit placement validation to owning geometry edges while validating changed replay outputs. Suppress duplicate unchanged-parent notifications in child writes, skip orphan scans with no writable removals, and share reachability across removed children.
+- Prepare typed field callbacks when registering on Mono to avoid a first-notification JIT hitch. Equipment changes in Neowyn fell from 125–132 ms and about 50 MB per repeated switch to 2.6–4.3 ms and about 0.7 MB. These are Editor measurements, not a universal frame-time guarantee; IL2CPP was not measured.
+- Update the rig smoke script for format-2 manifests. Add inventory/equipment measurements and live visual regression checks. These changes comprise SDK PRs #177, #179, and #181; companion generated-binding fixes are in Neo Compose #992.
+
 ## [0.39.3] - 2026-09-19
 
 - Record a delegate constructor argument's absent instance target as JSON null. A member target bound to the row that declares it stores a null `valueId`, but the writer emitted it as a string token holding null, which the reader refuses — so replaying a sparse instance such as `new LayerSortingTrack(selector: this.SelectSclera)` failed with "NeoDelegate member target 'valueId' must be null or a non-empty string."

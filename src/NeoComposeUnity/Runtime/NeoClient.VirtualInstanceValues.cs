@@ -1554,7 +1554,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private void InstallVirtualExpansion(PreparedVirtualExpansion expansion)
+        private void InstallVirtualExpansion(PreparedVirtualExpansion expansion, bool includeNested = true)
         {
             string rootId = expansion.Root.id;
             foreach (var pair in expansion.Values)
@@ -1576,7 +1576,8 @@ namespace NeoCompose.Runtime
             IndexConstructorArgumentRows(expansion.Root);
             foreach (string id in expansion.Dependencies) TrackReplayDependency(rootId, id);
             if (expansion.Boundary is not null) InstallNestedReplayBoundary(expansion.Boundary);
-            foreach (var nested in expansion.Nested) InstallVirtualExpansion(nested);
+            if (includeNested)
+                foreach (var nested in expansion.Nested) InstallVirtualExpansion(nested);
         }
 
         private void OverlaySparseInstance(
