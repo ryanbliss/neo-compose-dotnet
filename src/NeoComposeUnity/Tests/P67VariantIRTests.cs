@@ -138,6 +138,29 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void VariantApplyKeepsTheCallersCachedChildrenAlive()
+        {
+            using NeoClient client = LoadClient();
+            string targetId = NewSessionInstance(client);
+            var member = new ClassMember
+            {
+                id = "held-widget-view", name = "HeldWidget", kind = MemberKind.Class,
+                classId = WidgetClassId,
+            };
+            using var held = new NeoMemberClassWritable(client, member, targetId, NeoValueOwnership.Session);
+            for (int i = 0; i < 3; i++)
+            {
+                NSGetterEvaluator.Evaluate(
+                    Getter(Return(VariantApplyPointer(Reference(targetId),
+                        VariantRef(WidgetClassId, "variant-up")))), Context(client));
+                Assert.IsFalse(held.Get<NeoMemberString>("Label").isDisposed,
+                    "The temporary ToVariant receiver must not dispose descendants shared with a live view.");
+                Assert.AreEqual("up", ReadLabel(client, held));
+                Assert.IsFalse(held.Get<NeoMemberString>("Trace").isDisposed);
+            }
+        }
+
+        [Test]
         public void VariantApplyRejectsFailedReplayWithoutPublishingItsClosureWrites()
         {
             ProjectData data = BuildVariantProjectData();

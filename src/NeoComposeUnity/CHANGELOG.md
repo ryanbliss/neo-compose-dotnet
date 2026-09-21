@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.39.5] - 2026-09-20
+
+- Keep the NeoScript `ToVariant` receiver in the client-owned member graph. Disposing its temporary wrapper previously disposed cached children shared with a live object, causing subsequent reads of placed inventory data to fail after variant refresh. Preserve the caller and its saved state across repeated variant applications.
+
 ## [0.39.4] - 2026-09-20
 
 - Preserve Save/Session ownership across generated read-only views, NeoScript delegate arguments, class field writes, and unordered-list membership. Explicitly writable fields on immutable parents write only their own storage; Session actions and callbacks remain Session-only.

@@ -3280,7 +3280,10 @@ namespace NeoCompose.Runtime.NeoScript
                     createdAt = row.createdAt,
                     updatedAt = row.updatedAt,
                 };
-                using var node = new NeoMemberClassWritable(
+                // This view shares cached descendants with the caller's object.
+                // Keep it in the client graph; disposing a temporary root also
+                // disposes the live object's state after ToVariant returns.
+                var node = (NeoMemberClassWritable)NeoMember.CreateWritable(
                     ctx.client,
                     member,
                     source.valueId,
