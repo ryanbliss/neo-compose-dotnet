@@ -4049,6 +4049,30 @@ namespace NeoCompose.Runtime
             NeoScript.NSGetterEvaluator.Context ctx,
             Action<NeoScript.NSGetterEvaluator.Context>? evaluateFieldValues = null)
         {
+            RuntimeConstructedClassValue constructed = ConstructDeclaredClassValueData(
+                resolved, argumentValues, fields, ctx, evaluateFieldValues);
+            try
+            {
+                return new NeoMemberClassWritable(resolved.client, constructed.member,
+                    constructed.value.id, NeoValueOwnership.Session);
+            }
+            catch
+            {
+                ReclaimFailedConstruction(resolved.client, constructed.value.id, ctx);
+                throw;
+            }
+        }
+
+        // NeoScript needs the constructed rows, not a temporary tree of C#
+        // wrappers and subscriptions. Share the construction semantics and only
+        // create wrappers for the generated C# API that actually returns them.
+        internal static RuntimeConstructedClassValue ConstructDeclaredClassValueData(
+            NeoResolvedDeclaredConstructor resolved,
+            IReadOnlyDictionary<string, object?> argumentValues,
+            IReadOnlyList<RuntimeConstructorField> fields,
+            NeoScript.NSGetterEvaluator.Context ctx,
+            Action<NeoScript.NSGetterEvaluator.Context>? evaluateFieldValues = null)
+        {
             NeoClient client = resolved.client;
             NeoScript.NSGetterEvaluator.Context constructionCtx =
                 PushConstructionFrame(ctx, resolved.schemaClass.name);
@@ -4066,7 +4090,7 @@ namespace NeoCompose.Runtime
             // overridden member's initializer still RUNS and is then overwritten
             // by step 4 (§1.2), which is observably different from never
             // running it.
-            NeoMemberClassWritable node = CreateSuppliedClassValue(
+            RuntimeConstructedClassValue constructed = CreateSuppliedClassValueData(
                 client,
                 resolved.classTypeInfo,
                 Array.Empty<RuntimeConstructorField>(),
@@ -4076,9 +4100,7 @@ namespace NeoCompose.Runtime
                 requireCompleteRoot: false,
                 validatedMetadata: resolved.metadata,
                 trustedRuntimeRows: true);
-            ObjectMemberValue root = node.value
-                ?? throw new InvalidOperationException(
-                    $"Declared constructor for '{resolved.classTypeInfo.classId}' produced no root row.");
+            ObjectMemberValue root = constructed.value;
             if (resolved.storedGenericBindings is not null)
             {
                 root.genericBindings = new Dictionary<string, string>(
@@ -4086,7 +4108,7 @@ namespace NeoCompose.Runtime
                     StringComparer.Ordinal);
             }
 
-            // `CreateSuppliedClassValue` PUBLISHES the whole graph, and every
+            // `CreateSuppliedClassValueData` PUBLISHES the whole graph, and every
             // step below can throw — a constructor body may `throw` outright.
             // A failure therefore has to reclaim what step 1 published, or the
             // rows stay in sessionData forever: the evaluator's terminal
@@ -4137,14 +4159,15 @@ namespace NeoCompose.Runtime
                     argumentValues,
                     root.id,
                     constructionCtx);
-                node.RefreshChildrenAfterConstruction();
             }
             catch
             {
                 ReclaimFailedConstruction(client, root.id, constructionCtx);
                 throw;
             }
-            return node;
+            if (!client.TryGetValue(NeoValueOwnership.Session, root.id, out ObjectMemberValue? current))
+                throw new InvalidOperationException($"Declared constructor lost root '{root.id}'.");
+            return new RuntimeConstructedClassValue(current, constructed.member);
         }
 
         /// <summary>

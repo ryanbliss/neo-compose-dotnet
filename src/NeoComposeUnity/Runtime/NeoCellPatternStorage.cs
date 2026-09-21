@@ -103,11 +103,11 @@ namespace NeoCompose.Runtime
             var resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(ctx.client,
                 new ClassTypeInfo { type = MemberKind.Class, required = true, classId = ClassId },
                 ConstructorId, new[] { "offsets" }, Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>());
-            var node = NeoGeneratedTypesSupport.ConstructDeclaredClassValue(resolved,
+            var constructed = NeoGeneratedTypesSupport.ConstructDeclaredClassValueData(resolved,
                 new Dictionary<string, object?> { ["offsets"] = Offsets(pattern) },
                 Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>(), ctx);
-            ctx.allocationTracker.RegisterSessionRoot(node.value!.id);
-            return NSGetterEvaluator.UnwrapRow(node.value, ctx, NeoValueOwnership.Session)!;
+            ctx.allocationTracker.RegisterSessionRoot(constructed.value.id);
+            return NSGetterEvaluator.UnwrapRow(constructed.value, ctx, NeoValueOwnership.Session)!;
         }
 
         internal static NeoCellPattern ReadRuntime(object? value, NSGetterEvaluator.Context ctx)

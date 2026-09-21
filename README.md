@@ -87,6 +87,12 @@ The old `TrySwapVariant` APIs and class/value spawn overloads are removed.
 Replacing an object with another class requires removing the old placement
 and spawning a new object. Tile conversion changes the existing row's class.
 
+## Runtime performance
+
+[Inventory runtime measurements](docs/verification/inventory-runtime-performance.md)
+document the real-game scenario, before/after frame and allocation samples,
+causes addressed, and remaining equipment-change cost.
+
 ## Tests
 
 - **Compilation preflight** — before opening the sample, verify that its

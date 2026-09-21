@@ -348,6 +348,23 @@ namespace NeoCompose.Tests
             Assert.DoesNotThrow(() => disposable.Dispose());
         }
 
+        [TestCase(NeoValueOwnership.Save)]
+        [TestCase(NeoValueOwnership.Session)]
+        public void ReadOnlyGeneratedViewKeepsBackingStoreForComputedMemberContext(NeoValueOwnership ownership)
+        {
+            var app = LoadGeneratedClient(out _);
+            var member = RequireMember<ClassMember>(app.Client, "member-derived");
+            var writable = new Derived(app.Client,
+                new NeoMemberClassWritable(app.Client, member, null, ownership), false, ownership);
+            writable.Name = "Stored receiver";
+            using var view = new Derived(app.Client,
+                new NeoMemberClass(app.Client, member, writable.valueId, ownership), true);
+            Assert.IsTrue(view.IsReadOnly);
+            Assert.IsFalse(view.TryWritable(out Derived _));
+            Assert.AreEqual("Stored receiver", view.WritableBackingNode.Get<NeoMemberString>("Name").Text,
+                "Computed members and functions use this context even through a read-only interface.");
+        }
+
         [Test]
         public void GeneratedInheritance_ReadsInheritedAndOwnedMembers()
         {
@@ -1732,6 +1749,25 @@ namespace NeoCompose.Tests
                 clonedSaveParent!.value!.ContainsKey("Child"),
                 "explicit clone must use the requested Save row, not the same-id Session row");
             Assert.AreNotEqual(childValueId, clonedSaveParent.value["Child"]);
+
+            // The index is now warm. Replacements in either store must remove
+            // old candidate edges while preserving the other store's edge.
+            app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
+            {
+                id = parentValueId, classId = parentClassId,
+                value = new Dictionary<string, string> { ["Child"] = childValueId },
+            });
+            app.Client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
+            {
+                id = parentValueId, classId = parentClassId, value = new(),
+            });
+            Assert.IsTrue(app.Client.TryFindOwnedParent(NeoValueOwnership.Save, childValueId, out detectedParent));
+            Assert.AreEqual(parentValueId, detectedParent);
+            app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
+            {
+                id = parentValueId, classId = parentClassId, value = new(),
+            });
+            Assert.IsFalse(app.Client.TryFindOwnedParent(NeoValueOwnership.Save, childValueId, out _));
         }
 
         [Test]
