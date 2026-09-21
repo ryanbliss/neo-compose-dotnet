@@ -2,13 +2,15 @@
 
 ## [0.39.6] - 2026-09-21
 
+- Preserve runtime storage when projecting a computed class through a read-only interface. Runtime-constructed shop entries now retain constructor-supplied lookup values instead of trying to recreate computed defaults as asset literals.
+- Ignore dependency notifications for generated receivers whose backing row has been removed. Despawning a plant can invalidate its grid queries before its view is retired; callbacks must not re-evaluate the deleted receiver.
 - Validate lookup-set selections against unordered collection membership as well as ordered arrays. Nightly per-plant prestige grants can now record an item from the unordered catalog without rejecting its valid ID.
 - Render collider-only composition children with their authored size, offset, trigger flag and visibility. Bed sleep triggers and lower furniture colliders previously disappeared because children without sprites were discarded.
 - Reuse cached generated objects before registering new member nodes. Repeated renderer/native lookups previously left cached views outside the refresh registry; changing a boulder variant then exposed disposed collider children.
 - Update sorting in place when adding or removing an unordered object shifts sibling ranks. Keep sibling GameObjects, controllers and animation state so neighboring plants can display score-change emotes.
 - Resolve lookup collections inside sparse constructed values, including storage inventories whose save parent has no materialized child binding.
 - Cancel pending editor post-sync work when entering Play Mode and resume it in Edit Mode, keeping navigation baking out of a running game.
-- Choose a grid placement link whose storage permits the write. An immutable scenery link can share a rendered layer with a Save link without receiving new sandbox objects or hiding them from the Save link's collections.
+- Prefer a grid placement link whose storage permits the write. An immutable scenery link can share a rendered layer with a Save link without receiving new sandbox objects or hiding them from the Save link's collections. Retain tile overlays for class-level immutable sources when no mutable link exists and the tile collection does not explicitly restrict storage.
 - Convert NeoScript computed list and dictionary results into their declared C# entry types. Trait lists now expose generated plant-trait wrappers instead of raw evaluator dictionaries, including nested collections and nullable entries.
 - Resolve generated class factories from the effective runtime class, including classes supplied by a closed generic member or declaration default. Preserve that class when cloning an implicit object into a detached graph, so inventory default data retains its concrete type.
 - Keep a foreach snapshot's collection ownership for unchanged authored entries. Save-backed world tiles can now be converted while iterating their layer without being mistaken for immutable asset tiles.

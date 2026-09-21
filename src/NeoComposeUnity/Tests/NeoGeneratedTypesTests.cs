@@ -491,6 +491,28 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GeneratedChangesIgnoreDependencyNotificationsAfterRowRemoval()
+        {
+            using var app = LoadGeneratedClient(out _);
+            var hero = new Hero(Name: "Removed", Health: 7);
+            var node = hero.BackingNode;
+            var name = node.Get<NeoMemberString>("Name");
+            int notifications = 0;
+            using var batch = hero.OnChanged(_ => notifications++);
+            using var field = hero.OnChanged(Hero.Fields.Name, (_, _) => notifications++);
+            var signal = (System.Action<NeoMember>)System.Delegate.CreateDelegate(typeof(System.Action<NeoMember>), node,
+                typeof(NeoMember).GetMethod("NotifyChanged", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                    null, new[] { typeof(NeoMember) }, null)!);
+            // Grid dependencies publish before removed member views are retired.
+            // A final notification must not re-evaluate a deleted receiver.
+            app.Client.OnWritableValuesPublished += (_, _) => { signal(name); signal(node); };
+            var plan = new NeoWritePlan(app.Client);
+            plan.Remove(hero.ValueOwnership, hero.valueId!);
+            plan.Commit();
+            Assert.That(notifications, Is.Zero);
+        }
+
+        [Test]
         public void GeneratedWrapper_BatchOnChanged_ReportsChangedField()
         {
             var app = LoadGeneratedClient(out _);

@@ -2212,6 +2212,23 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void TilePlacementRetainsSaveOverlayWhenAllSourceLinksAreImmutable()
+        {
+            ProjectData data = BuildClassBackedTileGridProjectData();
+            data.classes[TileLayerLinkClassId].allowedStorage = NeoMemberStorage.Immutable;
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+            var layer = primitive.BindWritableTileLayer<TestAuthoredTileLayer>(BackgroundLayerClassId, new[] { TileClassId });
+            var result = layer.Place<TestTile>(new Vector2Int(14, 15));
+            Assert.IsTrue(result.Ok, result.Message);
+            var tile = layer.GetTileProjection(new Vector2Int(14, 15));
+            Assert.AreEqual("background-link-tiles", client.saveValues[tile!.InstanceId.Value].containerId);
+            Assert.IsFalse(data.values.ContainsKey(tile.InstanceId.Value), "Tile overlays must not change authored values.");
+        }
+
+        [Test]
         public void DirectPlacementSkipsImmutableSourceLinks()
         {
             ProjectData data = BuildClassBackedTileGridProjectData();

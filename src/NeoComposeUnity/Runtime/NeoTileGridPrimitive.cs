@@ -1070,6 +1070,7 @@ namespace NeoCompose.Runtime
             ambiguous = false;
             NeoGridLayerLinkModel? onlyMatch = null;
             NeoGridLayerLinkModel? overrideOwner = null;
+            NeoGridLayerLinkModel? tileOverlaySource = null;
             int matches = 0;
             foreach (var link in ResolveGridLinks(null))
             {
@@ -1078,9 +1079,18 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 NeoValueOwnership? declared = ResolveCollectionOwnership(link.ListValueId);
+                bool collectionHasStorage = declared is not null;
                 if (declared is null && client.TryResolveSchemaClassAllowedOwnership(link.LinkClassId, out var classOwnership))
                     declared = classOwnership;
-                if (declared is not null && declared != writeOwnership) continue;
+                if (declared is not null && declared != writeOwnership)
+                {
+                    // Tile placements are separate overlay rows; an immutable
+                    // source still supports them when no writable link exists.
+                    // Object adoption, in contrast, mutates the owning list.
+                    if (isTileLayer && !collectionHasStorage && declared == NeoValueOwnership.Asset)
+                        tileOverlaySource ??= link;
+                    continue;
+                }
                 matches += 1;
                 onlyMatch ??= link;
                 if (link.LayerOverrideValueId is null) continue;
@@ -1091,7 +1101,7 @@ namespace NeoCompose.Runtime
                 }
                 overrideOwner = link;
             }
-            if (matches <= 1) return onlyMatch;
+            if (matches <= 1) return onlyMatch ?? tileOverlaySource;
             if (overrideOwner is not null) return overrideOwner;
             // Children order is authored order, so the first direct link is
             // the canonical write target while later links remain additional

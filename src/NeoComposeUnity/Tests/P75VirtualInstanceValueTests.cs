@@ -25,6 +25,20 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ReadOnlyComputedClassProjectionRetainsRuntimeOwnership()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            thing.Get<NeoMemberIntWritable>("Count").Set(73);
+            var runtime = NSGetterEvaluator.UnwrapRow(thing.value!,
+                new NSGetterEvaluator.Context(client, null, null), NeoValueOwnership.Save);
+            using var projected = NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass<NeoMemberClass>(
+                client, runtime, false, (_, node) => node, (_, node) => node);
+            Assert.That(projected.ownership, Is.EqualTo(NeoValueOwnership.Save));
+            Assert.That(projected.Get<NeoMemberInt>("Count").value!.value, Is.EqualTo(73));
+        }
+
+        [Test]
         public void RepeatedClassResolutionKeepsTheGeneratedViewsRegisteredNode()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());

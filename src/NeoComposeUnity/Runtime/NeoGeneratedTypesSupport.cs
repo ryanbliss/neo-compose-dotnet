@@ -7659,7 +7659,10 @@ namespace NeoCompose.Runtime
 
             return readOnlyFactory(
                 client,
-                new NeoMemberClass(client, member, valueId));
+                client.TryGetValueOwnership(valueId, out var readOwnership)
+                    && readOwnership != NeoValueOwnership.Asset
+                    ? new NeoMemberClassWritable(client, member, valueId, readOwnership)
+                    : new NeoMemberClass(client, member, valueId));
         }
 
         public static T ReadRequiredNSPropertyClass<T>(
