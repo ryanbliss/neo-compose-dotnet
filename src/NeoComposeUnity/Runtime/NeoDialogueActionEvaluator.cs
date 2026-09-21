@@ -3424,13 +3424,9 @@ namespace NeoCompose.Runtime
                 ? client.EnumerateOwnedChildLinks(previous, null).ToArray()
                 : Array.Empty<(string valueId, Member? member)>();
             plan.Set(ownership, row);
-            foreach (var child in removedChildren)
-            {
-                var childOwnership = child.member is null
-                    ? ownership : client.DeclaredOwnership(child.member) ?? ownership;
-                if (childOwnership == ownership)
-                    client.StageUnlinkedRemovals(plan, ownership, new[] { child.valueId }, child.member);
-            }
+            if (removedChildren.Length != 0)
+                client.StageUnlinkedRemovals(plan, ownership, removedChildren.Where(child =>
+                    (child.member is null ? ownership : client.DeclaredOwnership(child.member) ?? ownership) == ownership));
             plan.AfterCommit(() => NSGetterEvaluator.RefreshCachedRowAfterWrite(row, ctx, ownership));
         }
 

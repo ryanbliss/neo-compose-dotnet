@@ -4053,6 +4053,7 @@ namespace NeoCompose.Runtime
                 resolved, argumentValues, fields, ctx, evaluateFieldValues);
             try
             {
+                using var wrapperReads = resolved.client.SuppressValueReads();
                 return new NeoMemberClassWritable(resolved.client, constructed.member,
                     constructed.value.id, NeoValueOwnership.Session);
             }
@@ -4074,6 +4075,7 @@ namespace NeoCompose.Runtime
             Action<NeoScript.NSGetterEvaluator.Context>? evaluateFieldValues = null)
         {
             NeoClient client = resolved.client;
+            using var replayCapture = client.BeginNestedConstructorCapture();
             NeoScript.NSGetterEvaluator.Context constructionCtx =
                 PushConstructionFrame(ctx, resolved.schemaClass.name);
             object?[] positionalArguments = OrderDeclaredArguments(
@@ -4144,7 +4146,8 @@ namespace NeoCompose.Runtime
                 // post-body value. (The legacy schema-derived
                 // `classConstructor` arm has no body and stays eval-first on
                 // both runtimes.)
-                evaluateFieldValues?.Invoke(constructionCtx);
+                using (replayCapture?.ReadCallSite())
+                    evaluateFieldValues?.Invoke(constructionCtx);
                 ApplyDeclaredConstructorFields(
                     client,
                     resolved,
@@ -4167,6 +4170,7 @@ namespace NeoCompose.Runtime
             }
             if (!client.TryGetValue(NeoValueOwnership.Session, root.id, out ObjectMemberValue? current))
                 throw new InvalidOperationException($"Declared constructor lost root '{root.id}'.");
+            replayCapture?.Complete(current, fields);
             return new RuntimeConstructedClassValue(current, constructed.member);
         }
 
@@ -5048,7 +5052,8 @@ namespace NeoCompose.Runtime
         {
             if (reference.ownership is not NeoValueOwnership ownership)
                 throw new InvalidOperationException($"Stored {subject} has no storage ownership.");
-            client.TryInferMemberForValueId(reference.valueId, out Member? member);
+            Member? member;
+            using (client.SuppressValueReads()) client.TryInferMemberForValueId(reference.valueId, out member);
             // Resolve typed row links before Normalize validates their values.
             // Keep Class rows in this evaluator context so they retain identity.
             var active = new HashSet<(NeoValueOwnership, string)>();
@@ -5057,7 +5062,7 @@ namespace NeoCompose.Runtime
             object? Read(
                 string valueId, Member? sourceMember, NeoValueOwnership storage, TypeInfo expectedType)
             {
-                if (!client.TryGetValue(storage, valueId, out MemberValue? row) || row.IsRemoved)
+                if (!client.TryGetReplayReference(valueId, out MemberValue? row, storage) || row.IsRemoved)
                     throw new InvalidOperationException(
                         $"Stored {subject} references missing value '{valueId}' in {storage} storage.");
                 if (expectedType.type is not (MemberKind.List or MemberKind.Dictionary))

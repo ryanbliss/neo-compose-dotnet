@@ -87,6 +87,7 @@ namespace NeoCompose.Runtime
             var positionObjects = new HashSet<string>();
             var stagedParents = new Dictionary<string, HashSet<string>>();
             var pending = new Queue<string>();
+            var writtenDescendants = new HashSet<string>(plan.Rows.Keys.Select(key => key.id));
             foreach (var pair in plan.Rows)
             {
                 pending.Enqueue(pair.Key.id);
@@ -101,6 +102,11 @@ namespace NeoCompose.Runtime
             }
             foreach (var binding in plan.Bindings.Values)
                 if (binding.valueId is not null) pending.Enqueue(binding.valueId);
+            if (candidateReplay is not null)
+                foreach (var pair in candidateReplay.Values)
+                    if (!virtualValues.TryGetValue(pair.Key, out var previousVirtual)
+                        || !NeoSemanticJson.MemberRowsEqual(previousVirtual, pair.Value))
+                        pending.Enqueue(pair.Key);
             var visited = new HashSet<string>();
             var grids = new HashSet<string>();
             var tiles = new HashSet<string>();
@@ -118,12 +124,14 @@ namespace NeoCompose.Runtime
                 if (!string.IsNullOrEmpty(previous?.containerId)) pending.Enqueue(previous!.containerId!);
                 foreach (string parent in PlacementParents(id))
                 {
+                    if (!IsPlacementEdge(plan, parent, id)) continue;
+                    if (writtenDescendants.Contains(id)) writtenDescendants.Add(parent);
                     if (runtimeLeaves && plan.Rows.Keys.Any(key => key.id == id)
                         && plan.Resolve(parent) is ObjectMemberValue positionOwner
                         && HasWorldKind(positionOwner.classId, "object")
                         && ResolveClassChildRow(positionOwner, "Position")?.id == id)
                         positionObjects.Add(parent);
-                    if (plan.Resolve(parent) is ObjectMemberValue owner && HasWorldKind(owner.classId, "tile"))
+                    if (writtenDescendants.Contains(id) && plan.Resolve(parent) is ObjectMemberValue owner && HasWorldKind(owner.classId, "tile"))
                     {
                         CheckFields(owner.value);
                         if (TryResolveVirtualClassChildren(parent, out var defaults)) CheckFields(defaults);
@@ -138,7 +146,8 @@ namespace NeoCompose.Runtime
                     pending.Enqueue(parent);
                 }
                 if (stagedParents.TryGetValue(id, out var proposed))
-                    foreach (string parent in proposed) pending.Enqueue(parent);
+                    foreach (string parent in proposed)
+                        if (IsPlacementEdge(plan, parent, id)) pending.Enqueue(parent);
             }
             if (runtimeLeaves && tiles.Count == 0)
             {
@@ -173,6 +182,36 @@ namespace NeoCompose.Runtime
                 if (TryValidateDirectTileConversions(plan, primitives, compatibleLayers)) return;
                 foreach (string tileId in tiles) ValidateTileRow(tileId);
                 foreach (string gridId in grids) ValidateGridPlacements(plan, gridId, primitives[gridId], compatibleLayers);
+            }
+        }
+
+        // The parent index also contains lookup selections and constructor
+        // arguments. Those are references, not containment: editing a catalog
+        // or config row must not walk every world object that references it.
+        // Replayed outputs are validated separately above.
+        private bool IsPlacementEdge(NeoWritePlan plan, string parentId, string childId)
+        {
+            MemberValue? next = plan.Resolve(parentId);
+            TryGetCommittedValue(parentId, out MemberValue? previous);
+            if (HasWorldKind(next?.classId ?? previous?.classId, "object"))
+                return GeometryChild(next as ObjectMemberValue) || GeometryChild(previous as ObjectMemberValue);
+            if (TryResolveVirtualPlacement(childId, out var placement)
+                && placement.parentValueId == parentId) return true;
+            return Owns(next) || Owns(previous);
+
+            bool GeometryChild(ObjectMemberValue? row)
+            {
+                if (row is null) return false;
+                return ResolveClassChildRow(row, "Position")?.id == childId
+                    || ResolveClassChildRow(row, "PlacementTiles")?.id == childId;
+            }
+
+            bool Owns(MemberValue? row)
+            {
+                if (row is ObjectMemberValue obj) return obj.value?.ContainsValue(childId) == true;
+                return row is ArrayMemberValue array && array.value is not null
+                    && Array.IndexOf(array.value, childId) >= 0
+                    && TryInferMemberForValueId(parentId, out Member? member) && member is ListMember;
             }
         }
 

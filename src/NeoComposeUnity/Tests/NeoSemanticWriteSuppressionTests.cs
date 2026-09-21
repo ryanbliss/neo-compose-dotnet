@@ -23,6 +23,21 @@ namespace NeoCompose.Tests
             "Packages/com.ryanbliss.neocompose/Tests/synth-example.json";
 
         [Test]
+        public void ConstructorNumericArgumentsRetainIdentityAcrossJsonNumberKinds()
+        {
+            var left = new ObjectMemberValue { id = "sprite", classId = "sprite-class", value = new(),
+                constructorArgs = new() { ["order"] = new JValue(70d) } };
+            var right = new ObjectMemberValue { id = "sprite", classId = "sprite-class", value = new(),
+                constructorArgs = new() { ["order"] = new JValue(70L) } };
+            Assert.IsTrue(NeoSemanticJson.MemberRowsEqual(left, right));
+            right.constructorArgs["order"] = new JValue(71L);
+            Assert.IsFalse(NeoSemanticJson.MemberRowsEqual(left, right));
+            left.constructorArgs["order"] = new JValue(9007199254740992d);
+            right.constructorArgs["order"] = new JValue(9007199254740993L);
+            Assert.IsFalse(NeoSemanticJson.MemberRowsEqual(left, right));
+        }
+
+        [Test]
         public void TypedReplayComparisonPreservesRowSemantics()
         {
             MemberValue[] rows =

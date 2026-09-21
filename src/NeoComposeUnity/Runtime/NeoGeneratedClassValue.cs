@@ -275,6 +275,13 @@ namespace NeoCompose.Runtime
                     handler((T)readValue()!, client.CurrentChangeSource);
                 }
             }
+#if ENABLE_MONO
+            // Prepare the typed callback when it is bound, without reading or
+            // invoking user code. Mono otherwise JITs its generic trampoline
+            // on the first gameplay notification (about 18 ms in Neowyn).
+            Action<NeoMember> callback = Handle;
+            _ = callback.Method.MethodHandle.GetFunctionPointer();
+#endif
             node.OnChanged += Handle;
             return TrackSubscription(new NeoDisposableSubscription(
                 () => node.OnChanged -= Handle));

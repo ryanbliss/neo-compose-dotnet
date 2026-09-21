@@ -1151,10 +1151,7 @@ namespace NeoCompose.Runtime.NeoScript
                         }
                     }
                     if (row is null
-                        && !ctx.client.TryGetValue(
-                            ownership,
-                            rp.valueId,
-                            out row))
+                        && !ctx.client.TryGetReplayReference(rp.valueId, out row, ownership))
                     {
                         throw new NSGetterRuntimeError(
                             $"Missing value reference: {rp.valueId}");
@@ -2607,6 +2604,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return DispatchResult.Ok(DispatchNSGetterById(entry.memberId, receiver, ctx));
             }
 
+            ctx.client.ReadReplayField(FindRowIdByReference(receiver, ctx), schemaKey);
             if (record!.TryGetValue(schemaKey, out var at))
             {
                 return DispatchResult.Ok(
@@ -5038,9 +5036,10 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? member = null)
         {
             if (at is not string id) return at;
+            ctx.client.ReadNestedConstructorResult(id);
             var ownership = (member is null ? null : ctx.client.DeclaredOwnership(member))
                 ?? preferredOwnership ?? ResolveOwnershipForValueId(ctx, id);
-            if (!ctx.client.TryGetValue(ownership, id, out MemberValue? row)) return at;
+            if (!ctx.client.TryGetReplayReference(id, out MemberValue? row, ownership)) return at;
             var v = UnwrapCached(row, ctx, ownership, member);
             if (member is LookupMember lookup
                 && lookup.Selection != NeoMemberSelectionKind.Multi
@@ -5049,7 +5048,7 @@ namespace NeoCompose.Runtime.NeoScript
                 && arr[0] is string singleId)
             {
                 var singleOwnership = ResolveLookupSelectionOwnership(ctx, lookup, singleId);
-                if (ctx.client.TryGetValue(singleOwnership, singleId, out MemberValue? next))
+                if (ctx.client.TryGetReplayReference(singleId, out MemberValue? next, singleOwnership))
                 {
                     return UnwrapCached(next, ctx, singleOwnership);
                 }
@@ -5083,11 +5082,11 @@ namespace NeoCompose.Runtime.NeoScript
                 // Older generated callers may wrap a row id without carrying
                 // its store. Retain that fallback only when the supplied view
                 // cannot resolve the row; a valid sparse view keeps its ownership.
-                if (!ctx.client.TryGetValue(ownership, reference.valueId!, out MemberValue? row)
+                if (!ctx.client.TryGetReplayReference(reference.valueId!, out MemberValue? row, ownership)
                     && value is NeoGeneratedClassValue)
                 {
                     ownership = ResolveOwnershipForValueId(ctx, reference.valueId!);
-                    ctx.client.TryGetValue(ownership, reference.valueId!, out row);
+                    ctx.client.TryGetReplayReference(reference.valueId!, out row, ownership);
                 }
                 if (row is not null)
                 {
@@ -5929,10 +5928,10 @@ namespace NeoCompose.Runtime.NeoScript
             // wrong overlay for an unwrapped NeoObjectRecord.
             if (TryFindRowReferenceByReference(value, ctx, out RowReference rowRef))
             {
-                if (!ctx.client.TryGetValue(
-                        rowRef.ownership,
+                if (!ctx.client.TryGetReplayReference(
                         rowRef.valueId,
-                        out MemberValue? indexedRow))
+                        out MemberValue? indexedRow,
+                        rowRef.ownership))
                 {
                     // Declaration-default rows are synthetic and
                     // intentionally do not live in the client's persisted

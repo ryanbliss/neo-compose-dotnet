@@ -939,16 +939,30 @@ namespace NeoCompose.Runtime
         }
 
         private HashSet<string>? capturedValueReads;
+        internal ValueReadCapture CaptureValueReads(HashSet<string> reads) => new(this, reads, true);
+        internal ValueReadCapture SuppressValueReads() => new(this, null, false);
 
-        internal System.IDisposable CaptureValueReads(HashSet<string> reads)
+        internal readonly struct ValueReadCapture : System.IDisposable
         {
-            var previous = capturedValueReads;
-            capturedValueReads = reads;
-            return new NeoDisposableAction(() =>
+            private readonly NeoClient client;
+            private readonly HashSet<string>? previous;
+            private readonly HashSet<string>? reads;
+            private readonly bool propagate;
+
+            internal ValueReadCapture(NeoClient client, HashSet<string>? reads, bool propagate)
             {
-                capturedValueReads = previous;
-                previous?.UnionWith(reads);
-            });
+                this.client = client;
+                previous = client.capturedValueReads;
+                this.reads = reads;
+                this.propagate = propagate;
+                client.capturedValueReads = reads;
+            }
+
+            public void Dispose()
+            {
+                client.capturedValueReads = previous;
+                if (propagate && reads is not null) previous?.UnionWith(reads);
+            }
         }
 
         internal bool TryGetValue<TValue>(string id, [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
@@ -2899,9 +2913,12 @@ namespace NeoCompose.Runtime
         }
 
         private void NotifyWritableValueChanged(
-            NeoValueOwnership ownership, string valueId, string? changedField = null)
+            NeoValueOwnership ownership, string valueId, string? changedField = null, bool valueChanged = true)
         {
-            PublishWritableValueChange(ownership, valueId);
+            if (valueChanged) PublishWritableValueChange(ownership, valueId);
+            else if (nodesByValueId.TryGetValue(valueId, out var unchangedNodes))
+                foreach (NeoMember node in unchangedNodes.ToArray())
+                    if (!node.isDisposed && node.ownership == ownership) node.RefreshCommittedValue();
             NotifyContainerMembershipChanged(ownership, valueId);
             if (ownership == NeoValueOwnership.Save) RaiseSaveValueChanged(valueId, changedField);
         }
@@ -2917,6 +2934,10 @@ namespace NeoCompose.Runtime
         internal void PublishConstructedSessionRows(
             IReadOnlyList<MemberValue> values)
         {
+            if (nestedConstructorCapture is not null)
+                foreach (MemberValue row in values)
+                    for (var scope = nestedConstructorCapture; scope is not null; scope = scope.Parent)
+                        scope.Allocations.Add(row.id);
             if (candidateReplay is not null)
             {
                 foreach (MemberValue row in values)

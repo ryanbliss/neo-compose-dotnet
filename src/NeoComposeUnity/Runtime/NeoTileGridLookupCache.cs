@@ -165,7 +165,8 @@ namespace NeoCompose.Runtime
                 return;
             }
             var ids = new HashSet<string>();
-            foreach (var value in changed) ids.Add(value.valueId);
+            foreach (var value in changed)
+                if (!plan.UnchangedValueIds.Contains(value.valueId)) ids.Add(value.valueId);
             InvalidateDependents(tileLayers, changedTileLayers, ids);
             InvalidateDependents(objectLayers, changedObjectLayers, ids);
             foreach (string layerId in changedTileLayers.Keys)

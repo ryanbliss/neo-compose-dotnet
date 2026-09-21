@@ -1670,10 +1670,7 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             string subject)
         {
-            if (!client.TryGetValue(
-                    fallbackOwnership,
-                    valueId,
-                    out MemberValue? row))
+            if (!client.TryGetReplayReference(valueId, out MemberValue? row, fallbackOwnership))
             {
                 throw new InvalidOperationException(
                     $"Neo value '{valueId}' for {subject} was not found in {fallbackOwnership} storage.");
