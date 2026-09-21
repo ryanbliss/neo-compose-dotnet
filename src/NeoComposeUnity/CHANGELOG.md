@@ -4,7 +4,7 @@
 
 - Validate lookup-set selections against unordered collection membership as well as ordered arrays. Nightly per-plant prestige grants can now record an item from the unordered catalog without rejecting its valid ID.
 - Render collider-only composition children with their authored size, offset, trigger flag and visibility. Bed sleep triggers and lower furniture colliders previously disappeared because children without sprites were discarded.
-- Reuse registered member nodes when resolving generated objects. Repeated renderer/native lookups previously left cached views outside the refresh registry; changing a boulder variant then exposed disposed collider children.
+- Reuse cached generated objects before registering new member nodes. Repeated renderer/native lookups previously left cached views outside the refresh registry; changing a boulder variant then exposed disposed collider children.
 - Update sorting in place when adding or removing an unordered object shifts sibling ranks. Keep sibling GameObjects, controllers and animation state so neighboring plants can display score-change emotes.
 - Resolve lookup collections inside sparse constructed values, including storage inventories whose save parent has no materialized child binding.
 - Cancel pending editor post-sync work when entering Play Mode and resume it in Edit Mode, keeping navigation baking out of a running game.
