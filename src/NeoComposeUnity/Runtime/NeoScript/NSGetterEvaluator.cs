@@ -2610,6 +2610,10 @@ namespace NeoCompose.Runtime.NeoScript
                 return DispatchResult.Ok(
                     ResolveValueIfId(at, ctx, FindRowOwnershipByReference(receiver, ctx), member));
             }
+            if (FindRowMemberByReference(receiver, ctx) is ClassMember { Payload: NeoMemberPayloadKind.Partial })
+            {
+                return DispatchResult.NoInfo(matchedMember: true);
+            }
             // P75: a collapse-stamped row stores only the members that differ
             // from its construction — an absent key is usually a VIRTUAL
             // child indexed at its deterministic id, not an authored
@@ -2629,6 +2633,16 @@ namespace NeoCompose.Runtime.NeoScript
                         ctx,
                         FindRowOwnershipByReference(receiver, ctx),
                         member));
+            }
+            // Null class defaults have no child row in a sparse construction.
+            // Match the generated accessor's default without hiding missing
+            // required fields or evaluating an initializer out of context.
+            if (member is ClassMember optionalClass
+                && member.Requirement == NeoMemberRequirementKind.Optional
+                && optionalClass.defaultValue is { value: null }
+                && MemberValueFactory.InitializerOf(member) is null)
+            {
+                return DispatchResult.Ok(null);
             }
             return DispatchResult.NoInfo(matchedMember: true);
         }
@@ -5093,7 +5107,7 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 if (row is not null)
                 {
-                    return UnwrapCached(row, ctx, ownership);
+                    return UnwrapCached(row, ctx, ownership, FindRowMemberByReference(value, ctx));
                 }
             }
             return value;

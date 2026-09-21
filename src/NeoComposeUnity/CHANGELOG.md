@@ -2,6 +2,8 @@
 
 ## [0.39.5] - 2026-09-20
 
+- Read omitted optional Class fields with explicit null defaults consistently in NeoScript and generated C#. Keep receiver member metadata when unwrapping nested records so Partial payloads retain absent fields instead of inheriting defaults. This fixes plant harvest tooltips on sparse authored growth stages.
+
 - Keep the NeoScript `ToVariant` receiver in the client-owned member graph. Disposing its temporary wrapper previously disposed cached children shared with a live object, causing subsequent reads of placed inventory data to fail after variant refresh. Preserve the caller and its saved state across repeated variant applications.
 
 ## [0.39.4] - 2026-09-20

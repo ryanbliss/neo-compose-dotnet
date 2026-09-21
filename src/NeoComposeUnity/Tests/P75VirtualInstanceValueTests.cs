@@ -342,6 +342,52 @@ namespace NeoCompose.Tests
                 NSGetterEvaluator.Evaluate(getter, ctx), "NeoScript read");
         }
 
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        public void NeoScriptReadsOmittedNullableClassDefaults(bool storedOverride, bool partial)
+        {
+            ProjectData data = BuildProjectData();
+            if (partial) ((ClassMember)data.members["thing-member"]).Payload = NeoMemberPayloadKind.Partial;
+            data.classes["thing-class"].schema["Optional"] = "optional-class";
+            data.members["optional-class"] = new ClassMember
+            {
+                id = "optional-class", name = "Optional", kind = MemberKind.Class,
+                classId = "thing-class", Requirement = NeoMemberRequirementKind.Optional,
+                defaultValue = new ObjectMemberValueBase { value = null },
+            };
+            if (storedOverride)
+            {
+                data.values["optional-value"] = ObjectValue("optional-value", "thing-class");
+                ((ObjectMemberValue)data.values["thing-instance"]).value!["Optional"] = "optional-value";
+            }
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            ctx = ctx.WithRoot(NeoScriptRuntimeRoot(client, ctx));
+            var type = ClassType("thing-class"); type.required = false;
+            var getter = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(), typeInfo = type,
+                instructions = new Instruction[] { new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = PointerKeyOf(PointerKeyOf(PointerKeyOf(RootPointer(), "Save"), "Thing"), "Optional"),
+                } },
+            };
+            // Partial objects preserve absent keys rather than inheriting defaults.
+            if (partial && !storedOverride)
+            {
+                Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(getter, ctx));
+                return;
+            }
+            // Read through NeoScript before constructing a C# child wrapper.
+            object? value = NSGetterEvaluator.Evaluate(getter, ctx);
+            if (storedOverride) Assert.IsNotNull(value);
+            else Assert.IsNull(value);
+        }
+
         [Test]
         public void UnstampedDefaultsKeepWritesIsolatedAndSurviveSaveReload()
         {
