@@ -27,6 +27,13 @@ Soil/plant averages contain six operations, chest two, bed one at 36 plants. Raw
 
 The original scene's equivalent six-by-six workload measured soil/plant/bed frames of 4.30/4.60/2.90 ms. Original walking averaged 3.63 ms, max 6.27 ms; candidate walking averaged 6.85 ms with a 130.19 ms outlier. Both current walking fixtures use 1.6 seconds of input. The earliest Neo baseline used 120 frames, so its walking rows are not a matched duration comparison. Original scene content and available planting coordinates differ from NeoWorld; this comparison establishes regression magnitude rather than identical-world causality.
 
+
+### Repeat after complete local export and background-input setup
+
+A second focused run passed the full sandbox UI check, both benchmarks, and clock/currency/lighting validation (4/4). The local export now also includes dialogue-node aggregates and localization inputs. Both movement fixtures explicitly enable and restore `Application.runInBackground` so an unfocused editor continues simulation. Raw samples are `sandbox-runtime-repeat.csv` and `sandbox-runtime-legacy-repeat.csv`.
+
+At 30–36 plants, mean action/frame costs were soil 2.11/39.32 ms, planting 150.20/200.57 ms, chest 49.62/106.50 ms, and bed 76.73/86.36 ms. The planting maximum frame was 456.98 ms. Neo walking averaged 4.57 ms, max 17.03 ms; the original averaged 3.59 ms, max 6.75 ms. Original soil/plant/bed frames were 3.87/3.92/3.94 ms. This repeat confirms the remaining regression and variability; the earlier table is not a reliable upper bound.
+
 ## Attribution and remaining work
 
 - Indexed generated-class inference removes unrelated saved-value searches. Keyed app subscriptions and `ContentChangedCells` stop order-only changes from refreshing every plant.
