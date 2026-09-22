@@ -10,128 +10,121 @@ namespace NeoCompose.Runtime
 {
     internal sealed partial class NeoTileGridLookupCache
     {
-        internal void PrepareObjectMoves(NeoWritePlan plan, Dictionary<string, Vector2Int> positions)
+        /// <summary>One object's validated move: the records to swap and the change to publish.</summary>
+        internal sealed class ObjectMove
+        {
+            internal readonly NeoTileGridLookupCache Cache;
+            internal readonly List<(string layer, ObjectLayerIndex index, NeoObjectPlacementRecord before, NeoObjectPlacementRecord after)> Objects = new();
+            internal readonly List<(string layer, TileLayerIndex index, int slot, NeoTilePlacementRecord before, NeoTilePlacementRecord after)> Tiles = new();
+            internal NeoTileGridChangedArgs? Change;
+            internal ObjectMove(NeoTileGridLookupCache cache) => Cache = cache;
+        }
+
+        /// <summary>
+        /// Validates moving <paramref name="objectId"/> to <paramref name="cell"/>
+        /// against this grid's indexes. Returns null when the object is not
+        /// indexed here or stays in its cell; throws on a collision. Changes
+        /// no index.
+        /// </summary>
+        internal ObjectMove? PrepareObjectMove(string objectId, Vector2Int cell)
         {
             // A moving object stays in its cell for most frames. Allocate the
             // move bookkeeping only once a footprint actually changes cell.
-            List<(string layer, ObjectLayerIndex index, NeoObjectPlacementRecord before, NeoObjectPlacementRecord after)>? objects = null;
-            Dictionary<string, Vector2Int>? deltas = null;
+            ObjectMove? move = null;
+            Vector2Int delta = default;
             foreach (string layerId in ObjectLayerIds)
             {
                 // These are committed indexes, never a speculative layer rebuild.
                 var index = GetObjectLayerIndex(layerId);
-                Dictionary<Vector2Int, string>? proposed = null;
-                foreach (var position in positions)
+                if (!index.ById.TryGetValue(objectId, out var before) || before.Cell == cell) continue;
+                delta = cell - before.Cell;
+                var footprint = new Vector2Int[before.Footprint.Count];
+                for (int i = 0; i < footprint.Length; i++)
                 {
-                    if (!index.ById.TryGetValue(position.Key, out var before) || before.Cell == position.Value) continue;
-                    var delta = position.Value - before.Cell;
-                    (deltas ??= new Dictionary<string, Vector2Int>())[position.Key] = delta;
-                    proposed ??= new Dictionary<Vector2Int, string>();
-                    var footprint = new Vector2Int[before.Footprint.Count];
-                    for (int i = 0; i < footprint.Length; i++)
-                    {
-                        var cell = footprint[i] = before.Footprint[i] + delta;
-                        if (proposed.TryGetValue(cell, out string other) && other != position.Key)
-                            throw Occupied(layerId, position.Key, other, cell);
-                        proposed[cell] = position.Key;
-                        if (index.CandidatesByCell.TryGetValue(cell, out var occupants))
-                            foreach (var occupant in occupants)
-                            {
-                                if (occupant.InstanceId == position.Key) continue;
-                                // A second moved object is checked against its proposed footprint.
-                                if (positions.TryGetValue(occupant.InstanceId, out var next) && next != occupant.Cell) continue;
-                                throw Occupied(layerId, position.Key, occupant.InstanceId, cell);
-                            }
-                    }
-                    (objects ??= new()).Add((layerId, index, before, new NeoObjectPlacementRecord(before.InstanceId,
-                        position.Value, footprint, before.Order, before.AssetClassId, before.AssetValueId, before.Ownership)));
+                    var next = footprint[i] = before.Footprint[i] + delta;
+                    if (index.CandidatesByCell.TryGetValue(next, out var occupants))
+                        foreach (var occupant in occupants)
+                            if (occupant.InstanceId != objectId) throw Occupied(layerId, objectId, occupant.InstanceId, next);
                 }
+                (move ??= new ObjectMove(this)).Objects.Add((layerId, index, before, new NeoObjectPlacementRecord(
+                    objectId, cell, footprint, before.Order, before.AssetClassId, before.AssetValueId, before.Ownership)));
             }
-            if (objects is null || deltas is null) return;
-
-            var tiles = new List<(string layer, TileLayerIndex index, int slot, NeoTilePlacementRecord before, NeoTilePlacementRecord after)>();
+            if (move is null) return null;
             foreach (string layerId in TileLayerIds)
             {
                 var index = GetTileLayerIndex(layerId);
-                var proposed = new HashSet<(string source, Vector2Int cell)>();
-                foreach (var movement in deltas)
+                if (!index.RecordIndicesByObject.TryGetValue(objectId, out var slots)) continue;
+                foreach (int slot in slots)
                 {
-                    if (!index.RecordIndicesByObject.TryGetValue(movement.Key, out var slots)) continue;
-                    foreach (int slot in slots)
-                    {
-                        var before = index.Records[slot];
-                        var cell = before.Cell + movement.Value;
-                        bool collision = !proposed.Add((before.SourceTileLayerLinkId, cell));
-                        if (index.CandidatesByCell.TryGetValue(cell, out var occupants))
-                            foreach (var occupant in occupants)
-                                if (occupant.SourceTileLayerLinkId == before.SourceTileLayerLinkId
-                                    && (occupant.SourceObjectInstanceId is null || !deltas.ContainsKey(occupant.SourceObjectInstanceId)))
-                                    collision = true;
-                        if (collision)
-                            throw new NeoPlacementValidationException("tile-cell-occupied",
-                                $"Tile link '{before.SourceTileLayerLinkId}' has more than one tile at {cell}.");
-                        tiles.Add((layerId, index, slot, before, new NeoTilePlacementRecord(before.InstanceId,
-                            before.PlacementValueId, cell, before.AssetClassId, before.Ownership, before.Order,
-                            before.SourceTileLayerLinkId, before.SourceObjectInstanceId, before.UpdatedAtMs, before.CellValueId)));
-                    }
+                    var before = index.Records[slot];
+                    var next = before.Cell + delta;
+                    if (index.CandidatesByCell.TryGetValue(next, out var occupants))
+                        foreach (var occupant in occupants)
+                            if (occupant.SourceTileLayerLinkId == before.SourceTileLayerLinkId
+                                && occupant.SourceObjectInstanceId != objectId)
+                                throw new NeoPlacementValidationException("tile-cell-occupied",
+                                    $"Tile link '{before.SourceTileLayerLinkId}' has more than one tile at {next}.");
+                    move.Tiles.Add((layerId, index, slot, before, new NeoTilePlacementRecord(before.InstanceId,
+                        before.PlacementValueId, next, before.AssetClassId, before.Ownership, before.Order,
+                        before.SourceTileLayerLinkId, before.SourceObjectInstanceId, before.UpdatedAtMs, before.CellValueId)));
                 }
             }
-
-            // Validation above changes no index. Publish all patches before notifying any observer.
-            plan.AfterCommit(() =>
-            {
-                var objectCells = new Dictionary<string, HashSet<Vector2Int>>();
-                var objectIds = new Dictionary<string, List<NeoObjectInstanceId>>();
-                var tileCells = new Dictionary<string, HashSet<Vector2Int>>();
-                foreach (var move in objects)
-                    foreach (var cell in move.before.Footprint) Remove(move.index.CandidatesByCell, cell, move.before);
-                foreach (var move in tiles) Remove(move.index.CandidatesByCell, move.before.Cell, move.before);
-                foreach (var move in objects)
-                {
-                    move.index.ById[move.after.InstanceId] = move.after;
-                    move.index.Records[move.index.RecordIndices[move.after.InstanceId]] = move.after;
-                    foreach (var cell in move.after.Footprint)
-                        Add(move.index.CandidatesByCell, cell, move.after).Sort((a, b) => a.Order.CompareTo(b.Order));
-                    if (!objectCells.TryGetValue(move.layer, out var cells))
-                    {
-                        objectCells[move.layer] = cells = new HashSet<Vector2Int>();
-                        objectIds[move.layer] = new List<NeoObjectInstanceId>();
-                    }
-                    cells.UnionWith(move.before.Footprint);
-                    cells.UnionWith(move.after.Footprint);
-                    objectIds[move.layer].Add(move.after.InstanceId);
-                }
-                foreach (var move in tiles)
-                {
-                    move.index.Records[move.slot] = move.after;
-                    Add(move.index.CandidatesByCell, move.after.Cell, move.after).Sort(CompareLoserToWinner);
-                    move.index.InvalidateCellOrder();
-                    if (!tileCells.TryGetValue(move.layer, out var cells)) tileCells[move.layer] = cells = new HashSet<Vector2Int>();
-                    cells.Add(move.before.Cell);
-                    cells.Add(move.after.Cell);
-                }
-                var objectChanges = new List<NeoObjectLayerChangedArgs>();
-                foreach (var entry in objectCells)
-                    objectChanges.Add(new NeoObjectLayerChangedArgs(entry.Key, Array.Empty<NeoObjectInstanceId>(),
-                        objectIds[entry.Key], new List<Vector2Int>(entry.Value), NeoTileGridChangeSourceKind.Direct, null)
-                        { PositionsOnly = true });
-                var tileChanges = new List<NeoTileLayerChangedArgs>();
-                foreach (var entry in tileCells)
-                {
-                    var clear = new List<Vector2Int>();
-                    var refresh = new List<Vector2Int>();
-                    foreach (var cell in entry.Value)
-                        (tileLayers[entry.Key].CandidatesByCell.ContainsKey(cell) ? refresh : clear).Add(cell);
-                    tileChanges.Add(new NeoTileLayerChangedArgs(entry.Key, clear, refresh, NeoTileGridChangeSourceKind.Direct, null));
-                }
-                var change = new NeoTileGridChangedArgs(primitive.GridValueId, tileChanges, objectChanges,
-                    primitive.Client.CurrentChangeSource);
-                primitive.Client.ScriptGridQueries.NotifyChanged(change);
-                // Lifecycle filters read generated properties, whose nodes refresh
-                // during the value notifications following this publication.
-                plan.AfterNotifications(() => Changed?.Invoke(change));
-            });
+            return move;
         }
+
+        /// <summary>Patches the indexes for a prepared move and tells NeoScript grid queries.</summary>
+        internal void ApplyObjectMove(ObjectMove move)
+        {
+            var objectCells = new Dictionary<string, HashSet<Vector2Int>>();
+            var objectIds = new Dictionary<string, List<NeoObjectInstanceId>>();
+            var tileCells = new Dictionary<string, HashSet<Vector2Int>>();
+            foreach (var item in move.Objects)
+                foreach (var cell in item.before.Footprint) Remove(item.index.CandidatesByCell, cell, item.before);
+            foreach (var item in move.Tiles) Remove(item.index.CandidatesByCell, item.before.Cell, item.before);
+            foreach (var item in move.Objects)
+            {
+                item.index.ById[item.after.InstanceId] = item.after;
+                item.index.Records[item.index.RecordIndices[item.after.InstanceId]] = item.after;
+                foreach (var cell in item.after.Footprint)
+                    Add(item.index.CandidatesByCell, cell, item.after).Sort((a, b) => a.Order.CompareTo(b.Order));
+                if (!objectCells.TryGetValue(item.layer, out var cells))
+                {
+                    objectCells[item.layer] = cells = new HashSet<Vector2Int>();
+                    objectIds[item.layer] = new List<NeoObjectInstanceId>();
+                }
+                cells.UnionWith(item.before.Footprint);
+                cells.UnionWith(item.after.Footprint);
+                objectIds[item.layer].Add(item.after.InstanceId);
+            }
+            foreach (var item in move.Tiles)
+            {
+                item.index.Records[item.slot] = item.after;
+                Add(item.index.CandidatesByCell, item.after.Cell, item.after).Sort(CompareLoserToWinner);
+                item.index.InvalidateCellOrder();
+                if (!tileCells.TryGetValue(item.layer, out var cells)) tileCells[item.layer] = cells = new HashSet<Vector2Int>();
+                cells.Add(item.before.Cell);
+                cells.Add(item.after.Cell);
+            }
+            var objectChanges = new List<NeoObjectLayerChangedArgs>();
+            foreach (var entry in objectCells)
+                objectChanges.Add(new NeoObjectLayerChangedArgs(entry.Key, Array.Empty<NeoObjectInstanceId>(),
+                    objectIds[entry.Key], new List<Vector2Int>(entry.Value), NeoTileGridChangeSourceKind.Direct, null)
+                    { PositionsOnly = true });
+            var tileChanges = new List<NeoTileLayerChangedArgs>();
+            foreach (var entry in tileCells)
+            {
+                var clear = new List<Vector2Int>();
+                var refresh = new List<Vector2Int>();
+                foreach (var cell in entry.Value)
+                    (tileLayers[entry.Key].CandidatesByCell.ContainsKey(cell) ? refresh : clear).Add(cell);
+                tileChanges.Add(new NeoTileLayerChangedArgs(entry.Key, clear, refresh, NeoTileGridChangeSourceKind.Direct, null));
+            }
+            move.Change = new NeoTileGridChangedArgs(primitive.GridValueId, tileChanges, objectChanges,
+                primitive.Client.CurrentChangeSource);
+            primitive.Client.ScriptGridQueries.NotifyChanged(move.Change);
+        }
+
+        internal void RaiseChanged(ObjectMove move) => Changed?.Invoke(move.Change!);
 
         private static NeoPlacementValidationException Occupied(string layer, string id, string other, Vector2Int cell) =>
             new("tile-grid-object-cell-occupied", $"Object layer '{layer}' has objects '{id}' and '{other}' at {cell}.");

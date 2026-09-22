@@ -4,7 +4,6 @@
 #nullable enable
 
 using System;
-using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -12,14 +11,16 @@ namespace NeoCompose.Runtime
     public partial class NeoClient
     {
         // A runtime leaf write replaces one scalar row at its stable id. The
-        // row keeps its type, class, container, map key and source, and no
-        // ancestor is a world placement, so nothing structural can change.
-        // Such a write skips the write plan, candidate replay and validation
-        // walk: it stores the row, bumps the revision, forgets the getters
-        // that read it and fans out the notifications a committed plan
-        // would. Every other write still goes through CommitWritePlan.
-        private readonly Dictionary<string, bool> worldPlacementClassIds = new(StringComparer.Ordinal);
-        private readonly List<string> leafWriteAncestorScratch = new();
+        // row keeps its type, class, container, map key and source, so
+        // nothing structural can change. Such a write skips the write plan,
+        // candidate replay and validation walk: it stores the row, bumps the
+        // revision, forgets the getters that read it and fans out the
+        // notifications a committed plan would. Every other write still goes
+        // through CommitWritePlan.
+        //
+        // The grid indexes read two scalar members: an object's Position and
+        // a tile's Cell. Writers of those members call the placement API in
+        // NeoClient.Placement.cs instead; this path does not consult the grid.
         private static readonly Unity.Profiling.ProfilerMarker LeafWriteMarker = new("NeoCompose.Write.Leaf");
 
         /// <summary>
@@ -28,6 +29,19 @@ namespace NeoCompose.Runtime
         /// having changed nothing, when the write needs a full plan.
         /// </summary>
         internal bool TryWriteLeaf(NeoValueOwnership ownership, MemberValue next, Member member, string? changedField)
+        {
+            if (!CanWriteLeaf(ownership, next, member)) return false;
+            using var marker = LeafWriteMarker.Auto();
+            StoreLeaf(ownership, next);
+            NotifyWritableValueChanged(ownership, next.id, changedField);
+            return true;
+        }
+
+        /// <summary>
+        /// Whether <paramref name="next"/> replaces a committed leaf row of
+        /// the same shape at the same id. Stamps the row's map key on the way.
+        /// </summary>
+        private bool CanWriteLeaf(NeoValueOwnership ownership, MemberValue next, Member member)
         {
             if (ownership == NeoValueOwnership.Asset || !IsLeafRow(next, member)) return false;
             if (candidateReplay is not null || candidateReadPlan is not null
@@ -43,13 +57,14 @@ namespace NeoCompose.Runtime
                 && !data.values.TryGetValue(next.id, out previous))
                 return false;
             StampMapKeyForWrite(ownership, next);
-            if (previous.IsRemoved || previous.GetType() != next.GetType()
-                || previous.classId != next.classId || previous.containerId != next.containerId
-                || previous.mapKey != next.mapKey || previous.sourceValueId != next.sourceValueId
-                || IsUnderWorldPlacement(next.id))
-                return false;
+            return !previous.IsRemoved && previous.GetType() == next.GetType()
+                && previous.classId == next.classId && previous.containerId == next.containerId
+                && previous.mapKey == next.mapKey && previous.sourceValueId == next.sourceValueId;
+        }
 
-            using var marker = LeafWriteMarker.Auto();
+        /// <summary>The store half of a leaf write: the row, the revision and the getter memo.</summary>
+        private void StoreLeaf(NeoValueOwnership ownership, MemberValue next)
+        {
             // Same bookkeeping as a committed plan: a row a nested constructor
             // produced can no longer be replayed from its arguments.
             if (nestedConstructedRows is not null
@@ -61,8 +76,6 @@ namespace NeoCompose.Runtime
             WriteRevision++;
             InvalidateGetterMemoForRow(next.id);
             if (!string.IsNullOrEmpty(next.containerId)) InvalidateGetterMemoForRow(next.containerId!);
-            NotifyWritableValueChanged(ownership, next.id, changedField);
-            return true;
         }
 
         private static bool IsLeafRow(MemberValue row, Member member) => row switch
@@ -98,39 +111,5 @@ namespace NeoCompose.Runtime
                 : b.value is not null && a.value.fileId == b.value.fileId,
             _ => false,
         };
-
-        // Grid, tile, object, layer and link rows carry placement invariants
-        // that a write anywhere beneath them must validate. The scan follows
-        // the same parent index the validation walk uses, without its
-        // scratch sets; it is a handful of dictionary lookups per ancestor.
-        private bool IsUnderWorldPlacement(string id)
-        {
-            List<string> pending = leafWriteAncestorScratch;
-            pending.Clear();
-            pending.Add(id);
-            const int MaxVisited = 64;
-            for (int index = 0; index < pending.Count; index++)
-            {
-                if (index == MaxVisited) { pending.Clear(); return true; }
-                int start = pending.Count;
-                CollectPlacementParents(pending[index], pending);
-                for (int parent = start; parent < pending.Count; parent++)
-                    if (IsWorldPlacementClass(ResolveValueRow(pending[parent])?.classId))
-                    { pending.Clear(); return true; }
-            }
-            pending.Clear();
-            return false;
-        }
-
-        private bool IsWorldPlacementClass(string? classId)
-        {
-            if (string.IsNullOrEmpty(classId)) return false;
-            if (!worldPlacementClassIds.TryGetValue(classId!, out bool world))
-                worldPlacementClassIds[classId!] = world = HasWorldKind(classId, "tileGrid")
-                    || HasWorldKind(classId, "tile") || HasWorldKind(classId, "object")
-                    || HasWorldKind(classId, "tileLayer") || HasWorldKind(classId, "objectLayer")
-                    || HasWorldKind(classId, "tileLayerLink") || HasWorldKind(classId, "objectLayerLink");
-            return world;
-        }
     }
 }

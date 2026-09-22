@@ -51,24 +51,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoSmartTile Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSmartTile>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSmartTile>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoSmartTile(client, node, true, NeoValueOwnership.Asset),
+                    _ => new NeoSmartTile(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static NeoSmartTile CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSmartTile>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSmartTile>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoSmartTile(client, node, false, node.ownership),
+                    _ => new NeoSmartTile(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -109,7 +109,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoSmartTileRule>(client, node.Get<NeoMemberList>("Rules"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.Create(client, (NeoMemberClass)child));
+                var memberNode = node.Get<NeoMemberList>("Rules");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoSmartTileRule>>("Rules", memberNode, out var cached)) return cached;
+                return CacheStoredView("Rules", memberNode, new NeoReadOnlyList<IReadOnlyNeoSmartTileRule>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.Create(client, (NeoMemberClass)child)));
             }
         }
 

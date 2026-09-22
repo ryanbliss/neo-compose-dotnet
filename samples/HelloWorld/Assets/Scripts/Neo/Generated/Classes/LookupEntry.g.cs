@@ -48,24 +48,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static LookupEntry Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<LookupEntry>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<LookupEntry>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new LookupEntry(client, node, true, NeoValueOwnership.Asset),
+                    _ => new LookupEntry(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static LookupEntry CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<LookupEntry>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<LookupEntry>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new LookupEntry(client, node, false, node.ownership),
+                    _ => new LookupEntry(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

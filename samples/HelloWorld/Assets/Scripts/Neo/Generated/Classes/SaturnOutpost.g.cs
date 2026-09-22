@@ -56,24 +56,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static SaturnOutpost Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SaturnOutpost>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SaturnOutpost>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new SaturnOutpost(client, node, true, NeoValueOwnership.Asset),
+                    _ => new SaturnOutpost(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static SaturnOutpost CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SaturnOutpost>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SaturnOutpost>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new SaturnOutpost(client, node, false, node.ownership),
+                    _ => new SaturnOutpost(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

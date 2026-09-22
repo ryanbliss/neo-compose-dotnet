@@ -58,24 +58,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static JupiterOutpost Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<JupiterOutpost>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<JupiterOutpost>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new JupiterOutpost(client, node, true, NeoValueOwnership.Asset),
+                    _ => new JupiterOutpost(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static JupiterOutpost CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<JupiterOutpost>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<JupiterOutpost>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new JupiterOutpost(client, node, false, node.ownership),
+                    _ => new JupiterOutpost(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -114,8 +114,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var child = writableNode.Get<NeoMemberSpriteWritable>("Image");
-                return child.value is null ? null : new NeoSprite(child, this);
+                var memberNode = writableNode.Get<NeoMemberSpriteWritable>("Image");
+                if (memberNode.value is null) return null;
+                if (TryGetStoredView<NeoSprite>("Image", memberNode, out var cached)) return cached;
+                return CacheStoredView("Image", memberNode, new NeoSprite(memberNode, this));
             }
             set
             {
@@ -128,8 +130,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var child = node.Get<NeoMemberSprite>("Image");
-                return child.value is null ? null : new NeoReadOnlySprite(child);
+                var memberNode = node.Get<NeoMemberSprite>("Image");
+                if (memberNode.value is null) return null;
+                if (TryGetStoredView<NeoReadOnlySprite>("Image", memberNode, out var cached)) return cached;
+                return CacheStoredView("Image", memberNode, new NeoReadOnlySprite(memberNode));
             }
         }
 

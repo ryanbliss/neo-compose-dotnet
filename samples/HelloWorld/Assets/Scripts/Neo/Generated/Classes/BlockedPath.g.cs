@@ -69,24 +69,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static BlockedPath Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<BlockedPath>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<BlockedPath>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new BlockedPath(client, node, false, NeoValueOwnership.Save),
+                    _ => new BlockedPath(factoryClient, factoryNode, false, NeoValueOwnership.Save),
                 };
             });
         }
 
         internal new static BlockedPath CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<BlockedPath>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<BlockedPath>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new BlockedPath(client, node, false, node.ownership),
+                    _ => new BlockedPath(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -153,7 +153,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoTile>)(object)((NeoTileLayerLink)this).Tiles!;
+                var memberNode = node.Get<NeoMemberList>("Tiles");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoTile>>("Tiles", memberNode, out var cached)) return cached;
+                return CacheStoredView("Tiles", memberNode, new NeoReadOnlyList<IReadOnlyNeoTile>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoMemberClass)child)));
             }
         }
 

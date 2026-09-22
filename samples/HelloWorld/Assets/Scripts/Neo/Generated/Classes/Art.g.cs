@@ -72,24 +72,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static Art Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Art>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Art>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new Art(client, node, true, NeoValueOwnership.Asset),
+                    _ => new Art(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static Art CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Art>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Art>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new Art(client, node, false, node.ownership),
+                    _ => new Art(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -118,7 +118,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("FirstWorldIconSprite"));
+                var memberNode = node.Get<NeoMemberSprite>("FirstWorldIconSprite");
+                if (TryGetStoredView<NeoReadOnlySprite>("FirstWorldIconSprite", memberNode, out var cached)) return cached;
+                return CacheStoredView("FirstWorldIconSprite", memberNode, new NeoReadOnlySprite(memberNode));
             }
         }
 
@@ -135,7 +137,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("FlareStaticSprite"));
+                var memberNode = node.Get<NeoMemberSprite>("FlareStaticSprite");
+                if (TryGetStoredView<NeoReadOnlySprite>("FlareStaticSprite", memberNode, out var cached)) return cached;
+                return CacheStoredView("FlareStaticSprite", memberNode, new NeoReadOnlySprite(memberNode));
             }
         }
 
@@ -143,7 +147,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("JupiterSprite"));
+                var memberNode = node.Get<NeoMemberSprite>("JupiterSprite");
+                if (TryGetStoredView<NeoReadOnlySprite>("JupiterSprite", memberNode, out var cached)) return cached;
+                return CacheStoredView("JupiterSprite", memberNode, new NeoReadOnlySprite(memberNode));
             }
         }
 
@@ -151,7 +157,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("SaturnSprite"));
+                var memberNode = node.Get<NeoMemberSprite>("SaturnSprite");
+                if (TryGetStoredView<NeoReadOnlySprite>("SaturnSprite", memberNode, out var cached)) return cached;
+                return CacheStoredView("SaturnSprite", memberNode, new NeoReadOnlySprite(memberNode));
             }
         }
 
@@ -168,7 +176,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("ShipSprite"));
+                var memberNode = node.Get<NeoMemberSprite>("ShipSprite");
+                if (TryGetStoredView<NeoReadOnlySprite>("ShipSprite", memberNode, out var cached)) return cached;
+                return CacheStoredView("ShipSprite", memberNode, new NeoReadOnlySprite(memberNode));
             }
         }
 
@@ -176,7 +186,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("SunSprite"));
+                var memberNode = node.Get<NeoMemberSprite>("SunSprite");
+                if (TryGetStoredView<NeoReadOnlySprite>("SunSprite", memberNode, out var cached)) return cached;
+                return CacheStoredView("SunSprite", memberNode, new NeoReadOnlySprite(memberNode));
             }
         }
 
@@ -184,7 +196,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("VaultPlaqueSprite"));
+                var memberNode = node.Get<NeoMemberSprite>("VaultPlaqueSprite");
+                if (TryGetStoredView<NeoReadOnlySprite>("VaultPlaqueSprite", memberNode, out var cached)) return cached;
+                return CacheStoredView("VaultPlaqueSprite", memberNode, new NeoReadOnlySprite(memberNode));
             }
         }
 

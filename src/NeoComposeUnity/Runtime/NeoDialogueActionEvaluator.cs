@@ -3764,7 +3764,12 @@ namespace NeoCompose.Runtime
                 if (client.TryGetWritableValue(ownership, existingId, out MemberValue? stored)
                     && !stored.IsRemoved && NeoClient.SameLeafValue(stored, replaced))
                     return true;
-                if (!client.TryWriteLeaf(ownership, replaced, member, "value")) return false;
+                // An object's Position and a tile's Cell carry grid
+                // invariants; the placement API keeps the grid indexes current.
+                bool written = client.IsPlacementMember(parent.classId, key)
+                    ? client.TryWritePlacement(ownership, parent, key, replaced, member)
+                    : client.TryWriteLeaf(ownership, replaced, member, "value");
+                if (!written) return false;
                 NSGetterEvaluator.RefreshCachedRowAfterWrite(replaced, ctx, ownership);
                 return true;
             }

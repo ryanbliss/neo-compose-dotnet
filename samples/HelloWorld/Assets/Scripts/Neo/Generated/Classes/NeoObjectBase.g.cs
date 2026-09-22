@@ -43,22 +43,22 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoObjectBase Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectBase>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(client, node, true, NeoValueOwnership.Asset),
-                    "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(client, node, false, NeoValueOwnership.Save),
-                    "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, true, NeoValueOwnership.Asset),
-                    "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, true, NeoValueOwnership.Asset),
-                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(client, node, true, NeoValueOwnership.Asset),
-                    "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(client, node, true, NeoValueOwnership.Asset),
-                    "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(client, node, true, NeoValueOwnership.Asset),
-                    "neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152" => new BackgroundTileLayerLink(client, node, true, NeoValueOwnership.Asset),
-                    "neo-tile-grid-record-relations-v1-class-c0ae01529031e2de38dc078687d59140" => new CollisionsTileLayerLink(client, node, true, NeoValueOwnership.Asset),
-                    "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" => new ExitPromptObject987403(client, node, true, NeoValueOwnership.Asset),
-                    "system_d48b66ab-4d59-47e7-a25a-591fe97062de" => new NeoSpriteObject(client, node, true, NeoValueOwnership.Asset),
+                    "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(factoryClient, factoryNode, false, NeoValueOwnership.Save),
+                    "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152" => new BackgroundTileLayerLink(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "neo-tile-grid-record-relations-v1-class-c0ae01529031e2de38dc078687d59140" => new CollisionsTileLayerLink(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" => new ExitPromptObject987403(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_d48b66ab-4d59-47e7-a25a-591fe97062de" => new NeoSpriteObject(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectBase' without a concrete client type id."),
                 };
             });
@@ -66,22 +66,22 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoObjectBase CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectBase>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(client, node, false, node.ownership),
-                    "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(client, node, false, node.ownership),
-                    "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, false, node.ownership),
-                    "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, false, node.ownership),
-                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(client, node, false, node.ownership),
-                    "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(client, node, false, node.ownership),
-                    "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(client, node, false, node.ownership),
-                    "neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152" => new BackgroundTileLayerLink(client, node, false, node.ownership),
-                    "neo-tile-grid-record-relations-v1-class-c0ae01529031e2de38dc078687d59140" => new CollisionsTileLayerLink(client, node, false, node.ownership),
-                    "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" => new ExitPromptObject987403(client, node, false, node.ownership),
-                    "system_d48b66ab-4d59-47e7-a25a-591fe97062de" => new NeoSpriteObject(client, node, false, node.ownership),
+                    "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152" => new BackgroundTileLayerLink(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "neo-tile-grid-record-relations-v1-class-c0ae01529031e2de38dc078687d59140" => new CollisionsTileLayerLink(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" => new ExitPromptObject987403(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_d48b66ab-4d59-47e7-a25a-591fe97062de" => new NeoSpriteObject(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectBase' without a concrete client type id."),
                 };
             });
@@ -133,7 +133,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyVector3(node.Get<NeoMemberVector3>("Position"));
+                var memberNode = node.Get<NeoMemberVector3>("Position");
+                if (TryGetStoredView<NeoReadOnlyVector3>("Position", memberNode, out var cached)) return cached;
+                return CacheStoredView("Position", memberNode, new NeoReadOnlyVector3(memberNode));
             }
         }
 
@@ -141,7 +143,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyVector3(node.Get<NeoMemberVector3>("Size"));
+                var memberNode = node.Get<NeoMemberVector3>("Size");
+                if (TryGetStoredView<NeoReadOnlyVector3>("Size", memberNode, out var cached)) return cached;
+                return CacheStoredView("Size", memberNode, new NeoReadOnlyVector3(memberNode));
             }
         }
 

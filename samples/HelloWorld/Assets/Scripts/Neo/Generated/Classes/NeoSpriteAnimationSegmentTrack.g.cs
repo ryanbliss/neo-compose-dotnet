@@ -41,9 +41,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static NeoSpriteAnimationSegmentTrack<TChild> Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegmentTrack<TChild>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegmentTrack<TChild>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoSpriteAnimationSegmentTrack' without a concrete client type id."),
@@ -53,9 +53,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static NeoSpriteAnimationSegmentTrack<TChild> CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegmentTrack<TChild>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegmentTrack<TChild>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoSpriteAnimationSegmentTrack' without a concrete client type id."),

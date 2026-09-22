@@ -66,24 +66,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoSmartTileRule Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSmartTileRule>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSmartTileRule>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoSmartTileRule(client, node, true, NeoValueOwnership.Asset),
+                    _ => new NeoSmartTileRule(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static NeoSmartTileRule CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSmartTileRule>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSmartTileRule>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoSmartTileRule(client, node, false, node.ownership),
+                    _ => new NeoSmartTileRule(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -145,7 +145,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor>(client, node.Get<NeoMemberList>("Neighbors"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.Create(client, (NeoMemberClass)child));
+                var memberNode = node.Get<NeoMemberList>("Neighbors");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor>>("Neighbors", memberNode, out var cached)) return cached;
+                return CacheStoredView("Neighbors", memberNode, new NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.Create(client, (NeoMemberClass)child)));
             }
         }
 
@@ -171,7 +173,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<Sprite>(client, node.Get<NeoMemberList>("Sprites"), (client, child) => ((NeoMemberSprite)child).Resolve() ?? throw new InvalidOperationException("Required Sprite '__SpriteEntry' has no synchronized asset."));
+                var memberNode = node.Get<NeoMemberList>("Sprites");
+                if (TryGetStoredView<NeoReadOnlyList<Sprite>>("Sprites", memberNode, out var cached)) return cached;
+                return CacheStoredView("Sprites", memberNode, new NeoReadOnlyList<Sprite>(client, memberNode, (client, child) => ((NeoMemberSprite)child).Resolve() ?? throw new InvalidOperationException("Required Sprite '__SpriteEntry' has no synchronized asset.")));
             }
         }
 

@@ -48,24 +48,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static Session Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Session>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Session>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new Session(client, node, true, NeoValueOwnership.Asset),
+                    _ => new Session(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static Session CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Session>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Session>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new Session(client, node, false, node.ownership),
+                    _ => new Session(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -94,7 +94,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Position"));
+                var memberNode = writableNode.Get<NeoMemberVector3Writable>("Position");
+                if (TryGetStoredView<NeoVector3>("Position", memberNode, out var cached)) return cached;
+                return CacheStoredView("Position", memberNode, new NeoVector3(memberNode));
             }
             set
             {

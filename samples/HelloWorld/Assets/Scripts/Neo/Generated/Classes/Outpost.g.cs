@@ -82,28 +82,28 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static Outpost Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Outpost>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Outpost>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "96818dab-90e5-4ab9-8f69-cce66e39e370" => new SaturnOutpost(client, node, true, NeoValueOwnership.Asset),
-                    "a50efb7e-58f6-4342-906e-0b01f98b15af" => new JupiterOutpost(client, node, true, NeoValueOwnership.Asset),
-                    _ => new Outpost(client, node, true, NeoValueOwnership.Asset),
+                    "96818dab-90e5-4ab9-8f69-cce66e39e370" => new SaturnOutpost(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a50efb7e-58f6-4342-906e-0b01f98b15af" => new JupiterOutpost(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    _ => new Outpost(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static Outpost CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Outpost>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Outpost>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "96818dab-90e5-4ab9-8f69-cce66e39e370" => new SaturnOutpost(client, node, false, node.ownership),
-                    "a50efb7e-58f6-4342-906e-0b01f98b15af" => new JupiterOutpost(client, node, false, node.ownership),
-                    _ => new Outpost(client, node, false, node.ownership),
+                    "96818dab-90e5-4ab9-8f69-cce66e39e370" => new SaturnOutpost(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a50efb7e-58f6-4342-906e-0b01f98b15af" => new JupiterOutpost(factoryClient, factoryNode, false, factoryNode.ownership),
+                    _ => new Outpost(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -152,7 +152,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("Image"));
+                var memberNode = node.Get<NeoMemberSprite>("Image");
+                if (TryGetStoredView<NeoReadOnlySprite>("Image", memberNode, out var cached)) return cached;
+                return CacheStoredView("Image", memberNode, new NeoReadOnlySprite(memberNode));
             }
         }
 

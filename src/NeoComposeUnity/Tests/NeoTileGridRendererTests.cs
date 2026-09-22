@@ -128,10 +128,7 @@ namespace NeoCompose.Tests
             CollectionAssert.Contains(objectLayers, ObjectsLayerClassId);
             CollectionAssert.Contains(tileLayers, BackgroundLayerClassId);
 
-            client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue
-            {
-                id = "shop-1-position", value = new NeoVector3Value { x = 30, y = 40 },
-            });
+            NeoGeneratedTypesSupport.SetPlacementVector3(WritableObject(client, "shop-1"), "Position", new NeoReadOnlyVector3(30, 40, 0));
             Assert.AreSame(objectLayers, cache.ObjectLayerIds, "An object move must not walk the grid's link rows again.");
             Assert.AreSame(tileLayers, cache.TileLayerIds, "An object move must not walk the grid's link rows again.");
 
@@ -187,6 +184,7 @@ namespace NeoCompose.Tests
                     value = new NeoVector2Value { x = i + 100, y = 100 } };
             }
             using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var shop = WritableObject(client, "shop-1");
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
             var notifications = new List<NeoTileGridChangedArgs>();
             var positionNode = new NeoMemberVector3(client, "object-position-member", "shop-1-position", NeoValueOwnership.Save);
@@ -201,12 +199,7 @@ namespace NeoCompose.Tests
             notifications.Clear();
             var objects = primitive.LookupCache.ObjectRecords(ObjectsLayerClassId);
             var tiles = primitive.LookupCache.TileRecords(BackgroundLayerClassId);
-            client.OnWritableValuesPublished += (_, plan) =>
-            {
-                Assert.IsTrue(plan.HasValidatedRuntimeLeaves);
-                Assert.IsEmpty(plan.PreparedTileLayers);
-                Assert.IsEmpty(plan.PreparedObjectLayers);
-            };
+            client.OnWritableValuesPublished += (_, _) => Assert.Fail("A placement write stores in place; it commits no plan.");
             var reads = new HashSet<string>();
             using (client.CaptureValueReads(reads)) Move(10.1f, 20);
             Assert.IsEmpty(notifications, "Subcell movement must not invalidate grid queries.");
@@ -228,9 +221,14 @@ namespace NeoCompose.Tests
             Assert.IsTrue(primitive.LookupCache.TileCandidatesInCellOrder(BackgroundLayerClassId)
                 .Any(bucket => bucket[0].Cell == new Vector2Int(10, 22)));
 
-            void Move(float x, float y) => client.SetWritableValue(NeoValueOwnership.Save,
-                new Vector3MemberValue { id = "shop-1-position", value = new NeoVector3Value { x = x, y = y, z = 0 } });
+            void Move(float x, float y) => NeoGeneratedTypesSupport.SetPlacementVector3(shop, "Position", new NeoReadOnlyVector3(x, y, 0));
         }
+
+        private static NeoMemberClassWritable WritableObject(NeoClient client, string id) => new(client,
+            new ClassMember { id = "placement-test-member", name = "Object", kind = MemberKind.Class, classId = ObjectClassId }, id, NeoValueOwnership.Save);
+
+        private static NeoMemberClassWritable WritableTile(NeoClient client, string id) => new(client,
+            new ClassMember { id = "placement-test-tile-member", name = "Tile", kind = MemberKind.Class, classId = TileClassId }, id, NeoValueOwnership.Save);
 
         [Test]
         public void RuntimeMovement_RejectsCollisionAndNonfinitePositionWithoutPublishing()
@@ -241,17 +239,19 @@ namespace NeoCompose.Tests
             data.values["other-position"] = new Vector3MemberValue { id = "other-position",
                 value = new NeoVector3Value { x = 12, y = 20 } };
             using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var shop = WritableObject(client, "shop-1");
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
             int notifications = 0;
             using var subscription = primitive.OnChanged(_ => notifications++);
-            client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue { id = "shop-1-position",
-                value = new NeoVector3Value { x = 10, y = 20 } });
+            NeoGeneratedTypesSupport.SetPlacementVector3(shop, "Position", new NeoReadOnlyVector3(10, 20, 0));
             notifications = 0;
             var records = primitive.LookupCache.ObjectRecords(ObjectsLayerClassId);
+            long revision = client.WriteRevision;
             foreach (float x in new[] { 12f, float.NaN, float.PositiveInfinity })
             {
-                Assert.Throws<NeoPlacementValidationException>(() => client.SetWritableValue(NeoValueOwnership.Save,
-                    new Vector3MemberValue { id = "shop-1-position", value = new NeoVector3Value { x = x, y = 20 } }));
+                Assert.Throws<NeoPlacementValidationException>(() =>
+                    NeoGeneratedTypesSupport.SetPlacementVector3(shop, "Position", new NeoReadOnlyVector3(x, 20, 0)));
+                Assert.AreEqual(revision, client.WriteRevision, "A rejected move publishes no write.");
                 Assert.AreEqual(10, ((Vector3MemberValue)client.saveValues["shop-1-position"]).value!.x);
                 Assert.AreSame(records, primitive.LookupCache.ObjectRecords(ObjectsLayerClassId));
                 Assert.AreEqual(new Vector2Int(10, 20), primitive.LookupCache.ObjectRecord(ObjectsLayerClassId, "shop-1")!.Cell);
@@ -259,8 +259,10 @@ namespace NeoCompose.Tests
             }
         }
 
+        // Raw row writes take the plan, which rebuilds the affected layers.
+        // Two positions written in one plan swap atomically.
         [Test]
-        public void RuntimeMovement_AtomicallySwapsObjects_AndRejectsOverlappingDestinations()
+        public void RuntimeMovement_PlanSwapsObjectsAtomically_AndRejectsOverlappingDestinations()
         {
             var data = BuildClassBackedTileGridProjectData();
             data.values["other-shop"] = new ObjectMemberValue { id = "other-shop", classId = ObjectClassId,
@@ -291,6 +293,45 @@ namespace NeoCompose.Tests
 
             static Vector3MemberValue Position(string id, float x) => new()
                 { id = id, value = new NeoVector3Value { x = x, y = 20 } };
+        }
+
+        [Test]
+        public void PlacementMembers_AreAnObjectsPositionAndATilesCell()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            Assert.IsTrue(client.IsPlacementMember(ObjectClassId, "Position"));
+            Assert.IsTrue(client.IsPlacementMember(TileClassId, "Cell"));
+            Assert.IsFalse(client.IsPlacementMember(ObjectClassId, "Cell"));
+            Assert.IsFalse(client.IsPlacementMember(ObjectClassId, "Name"));
+            Assert.IsFalse(client.IsPlacementMember(TileClassId, "Position"));
+            Assert.IsFalse(client.IsPlacementMember(BackgroundLayerClassId, "Position"));
+            Assert.IsFalse(client.IsPlacementMember(null, "Position"));
+        }
+
+        [Test]
+        public void TileCellPlacementWrite_CommitsThroughThePlanAndRejectsAnOccupiedCell()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            foreach (var (id, x) in new[] { ("tile-a", 100), ("tile-b", 101) })
+            {
+                data.values[id] = new ObjectMemberValue { id = id, classId = TileClassId,
+                    containerId = "background-link-tiles", value = new Dictionary<string, string> { ["Cell"] = id + "-cell" } };
+                data.values[id + "-cell"] = new Vector2MemberValue { id = id + "-cell", value = new NeoVector2Value { x = x, y = 100 } };
+            }
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var tile = WritableTile(client, "tile-a");
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
+            Assert.AreEqual("tile-a", primitive.LookupCache.TileCandidatesAt(BackgroundLayerClassId, new Vector2Int(100, 100))[0].PlacementValueId);
+            int plans = 0;
+            client.OnWritableValuesPublished += (_, _) => plans++;
+            var error = Assert.Throws<NeoPlacementValidationException>(() =>
+                NeoGeneratedTypesSupport.SetPlacementVector2Int(tile, "Cell", new NeoReadOnlyVector2Int(101, 100)));
+            Assert.AreEqual("tile-cell-occupied", error!.ErrorCode);
+            Assert.AreEqual(0, plans);
+            NeoGeneratedTypesSupport.SetPlacementVector2Int(tile, "Cell", new NeoReadOnlyVector2Int(102, 100));
+            Assert.AreEqual(1, plans, "A tile's Cell commits through the plan.");
+            Assert.IsEmpty(primitive.LookupCache.TileCandidatesAt(BackgroundLayerClassId, new Vector2Int(100, 100)));
+            Assert.AreEqual("tile-a", primitive.LookupCache.TileCandidatesAt(BackgroundLayerClassId, new Vector2Int(102, 100))[0].PlacementValueId);
         }
 
         [Test]

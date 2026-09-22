@@ -56,24 +56,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoDialogueMemory Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoDialogueMemory>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoDialogueMemory>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoDialogueMemory(client, node, true, NeoValueOwnership.Asset),
+                    _ => new NeoDialogueMemory(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static NeoDialogueMemory CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoDialogueMemory>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoDialogueMemory>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoDialogueMemory(client, node, false, node.ownership),
+                    _ => new NeoDialogueMemory(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -124,7 +124,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoDictionary<NeoTextNodeMemory>(client, writableNode.Get<NeoMemberDictionaryWritable>("TextNodeMemories"), () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("TextNodeMemories"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoTextNodeMemory.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                var memberNode = writableNode.Get<NeoMemberDictionaryWritable>("TextNodeMemories");
+                if (TryGetStoredView<NeoDictionary<NeoTextNodeMemory>>("TextNodeMemories", memberNode, out var cached)) return cached;
+                return CacheStoredView("TextNodeMemories", memberNode, new NeoDictionary<NeoTextNodeMemory>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("TextNodeMemories"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoTextNodeMemory.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item)));
             }
         }
 

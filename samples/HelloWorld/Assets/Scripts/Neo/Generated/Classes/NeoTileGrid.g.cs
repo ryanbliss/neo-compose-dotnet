@@ -45,12 +45,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoTileGrid Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTileGrid>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTileGrid>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b44d80a9-7760-4919-8844-0cb71d08b788" => new OldConsoleLandingGrid(client, node, true, NeoValueOwnership.Asset),
+                    "b44d80a9-7760-4919-8844-0cb71d08b788" => new OldConsoleLandingGrid(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTileGrid' without a concrete client type id."),
                 };
             });
@@ -58,12 +58,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoTileGrid CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTileGrid>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTileGrid>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b44d80a9-7760-4919-8844-0cb71d08b788" => new OldConsoleLandingGrid(client, node, false, node.ownership),
+                    "b44d80a9-7760-4919-8844-0cb71d08b788" => new OldConsoleLandingGrid(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTileGrid' without a concrete client type id."),
                 };
             });
@@ -113,7 +113,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyVector3(node.Get<NeoMemberVector3>("CellSize"));
+                var memberNode = node.Get<NeoMemberVector3>("CellSize");
+                if (TryGetStoredView<NeoReadOnlyVector3>("CellSize", memberNode, out var cached)) return cached;
+                return CacheStoredView("CellSize", memberNode, new NeoReadOnlyVector3(memberNode));
             }
         }
 
@@ -121,7 +123,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoLayerGroupBase>(client, node.Get<NeoMemberList>("Children"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoLayerGroupBase.Create(client, (NeoMemberClass)child));
+                var memberNode = node.Get<NeoMemberList>("Children");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoLayerGroupBase>>("Children", memberNode, out var cached)) return cached;
+                return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoLayerGroupBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoLayerGroupBase.Create(client, (NeoMemberClass)child)));
             }
         }
 

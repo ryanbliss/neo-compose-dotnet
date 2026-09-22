@@ -37,13 +37,13 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoTileLayer Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTileLayer>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTileLayer>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "neo-tile-grid-record-relations-v1-class-9f889dbed89e6fdd2a883fb5a87fea19" => new BackgroundTileLayer(client, node, true, NeoValueOwnership.Asset),
-                    "neo-tile-grid-record-relations-v1-class-e06896b149a650d6ceb37fbdfdba9ffa" => new CollisionTileLayer(client, node, true, NeoValueOwnership.Asset),
+                    "neo-tile-grid-record-relations-v1-class-9f889dbed89e6fdd2a883fb5a87fea19" => new BackgroundTileLayer(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "neo-tile-grid-record-relations-v1-class-e06896b149a650d6ceb37fbdfdba9ffa" => new CollisionTileLayer(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTileLayer' without a concrete client type id."),
                 };
             });
@@ -51,13 +51,13 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoTileLayer CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTileLayer>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTileLayer>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "neo-tile-grid-record-relations-v1-class-9f889dbed89e6fdd2a883fb5a87fea19" => new BackgroundTileLayer(client, node, false, node.ownership),
-                    "neo-tile-grid-record-relations-v1-class-e06896b149a650d6ceb37fbdfdba9ffa" => new CollisionTileLayer(client, node, false, node.ownership),
+                    "neo-tile-grid-record-relations-v1-class-9f889dbed89e6fdd2a883fb5a87fea19" => new BackgroundTileLayer(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "neo-tile-grid-record-relations-v1-class-e06896b149a650d6ceb37fbdfdba9ffa" => new CollisionTileLayer(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTileLayer' without a concrete client type id."),
                 };
             });
@@ -134,8 +134,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var selected = node.Get<NeoMemberLookup>("SortingLayer").GetSelected();
-                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, (NeoMemberClass)selected[0]);
+                var selected = node.Get<NeoMemberLookup>("SortingLayer").GetFirstSelected();
+                return selected is null ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, (NeoMemberClass)selected);
             }
             set
             {

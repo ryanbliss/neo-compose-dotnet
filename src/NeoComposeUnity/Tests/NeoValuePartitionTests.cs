@@ -322,11 +322,10 @@ namespace NeoCompose.Tests
             var unrelated = link.Get<NeoMemberInt>("Unrelated").value!;
             Assert.AreEqual(WorldPartitionKey, before.mapKey);
             Assert.IsFalse(client.values.ContainsKey(before.id), "Exercise a virtual leaf, not an authored row.");
-            int writes = 0;
+            int plans = 0;
             client.OnWritableValuesPublished += (_, plan) =>
             {
-                writes++;
-                Assert.IsTrue(plan.HasValidatedRuntimeLeaves, "A partitioned scalar override must retain leaf validation.");
+                plans++;
                 Assert.IsEmpty(plan.PreparedTileLayers);
                 Assert.IsEmpty(plan.PreparedObjectLayers);
             };
@@ -339,7 +338,9 @@ namespace NeoCompose.Tests
                 Assert.IsTrue(client.TryGetValue(unrelated.id, out MemberValue? after));
                 Assert.AreSame(unrelated, after, "The sibling default must not be replayed.");
             }
-            Assert.AreEqual(2, writes, "First-write pinning must remain observable even when the value is unchanged.");
+            // The first write pins the sparse default through the plan even
+            // though the value is unchanged; the second stores in place.
+            Assert.AreEqual(1, plans);
         }
 
         [Test]

@@ -67,9 +67,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoAnimationTrackBase Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationTrackBase>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationTrackBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoAnimationTrackBase' without a concrete client type id."),
@@ -79,9 +79,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoAnimationTrackBase CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationTrackBase>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationTrackBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoAnimationTrackBase' without a concrete client type id."),

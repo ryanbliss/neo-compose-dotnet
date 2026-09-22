@@ -33,12 +33,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static ConsoleObjectLayer Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ConsoleObjectLayer>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ConsoleObjectLayer>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "neo-tile-grid-record-relations-v1-class-d1b21a408630eedaf664ccf5720d874f" => new DefaultObjectLayer(client, node, true, NeoValueOwnership.Asset),
+                    "neo-tile-grid-record-relations-v1-class-d1b21a408630eedaf664ccf5720d874f" => new DefaultObjectLayer(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ConsoleObjectLayer' without a concrete client type id."),
                 };
             });
@@ -46,12 +46,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static ConsoleObjectLayer CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ConsoleObjectLayer>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ConsoleObjectLayer>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "neo-tile-grid-record-relations-v1-class-d1b21a408630eedaf664ccf5720d874f" => new DefaultObjectLayer(client, node, false, node.ownership),
+                    "neo-tile-grid-record-relations-v1-class-d1b21a408630eedaf664ccf5720d874f" => new DefaultObjectLayer(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ConsoleObjectLayer' without a concrete client type id."),
                 };
             });

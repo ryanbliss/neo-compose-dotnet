@@ -72,24 +72,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static Save Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Save>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Save>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new Save(client, node, true, NeoValueOwnership.Asset),
+                    _ => new Save(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static Save CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Save>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Save>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new Save(client, node, false, node.ownership),
+                    _ => new Save(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -159,8 +159,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var selected = node.Get<NeoMemberLookup>("Location").GetSelected();
-                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.Outpost.Create(client, (NeoMemberClass)selected[0]);
+                var selected = node.Get<NeoMemberLookup>("Location").GetFirstSelected();
+                return selected is null ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.Outpost.Create(client, (NeoMemberClass)selected);
             }
             set
             {
@@ -184,7 +184,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoDictionary<OutpostSaveData?>(client, writableNode.Get<NeoMemberDictionaryWritable>("OutpostSaveMap"), () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("OutpostSaveMap"), (client, child) => ((NeoMemberClass)child).value is null ? null : global::HelloWorld.Assets.Scripts.Neo.OutpostSaveData.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                var memberNode = writableNode.Get<NeoMemberDictionaryWritable>("OutpostSaveMap");
+                if (TryGetStoredView<NeoDictionary<OutpostSaveData?>>("OutpostSaveMap", memberNode, out var cached)) return cached;
+                return CacheStoredView("OutpostSaveMap", memberNode, new NeoDictionary<OutpostSaveData?>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("OutpostSaveMap"), (client, child) => ((NeoMemberClass)child).value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.OutpostSaveData.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item)));
             }
         }
 
@@ -204,7 +206,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<PlanetVisit>(client, writableNode.Get<NeoMemberListWritable>("Visited"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Visited"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Visited");
+                if (TryGetStoredView<NeoList<PlanetVisit>>("Visited", memberNode, out var cached)) return cached;
+                return CacheStoredView("Visited", memberNode, new NeoList<PlanetVisit>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Visited"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item)));
             }
         }
 
