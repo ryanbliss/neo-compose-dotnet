@@ -64,22 +64,22 @@ namespace NeoCompose.Runtime
             invalidated?.Invoke();
         }
 
-        private readonly Dictionary<NeoClient, (HashSet<string> ids, Action<NeoValueOwnership, string> handler)> values = new();
+        private readonly Dictionary<NeoClient, (HashSet<(NeoValueOwnership ownership, string id)> ids, Action<NeoValueOwnership, string> handler)> values = new();
         internal void RecordValue(NeoClient client, NeoValueOwnership ownership, string id)
         {
             if (grids.Count == 0 || invalidated is null) return;
             if (!values.TryGetValue(client, out var reads))
             {
-                var ids = new HashSet<string>();
+                var ids = new HashSet<(NeoValueOwnership ownership, string id)>();
                 void Changed(NeoValueOwnership changedOwnership, string changedId)
                 {
-                    if (ids.Contains(changedOwnership + ":" + changedId)) Invalidate();
+                    if (ids.Contains((changedOwnership, changedId))) Invalidate();
                 }
                 reads = (ids, Changed);
                 values.Add(client, reads);
                 client.OnWritableValueChanged += Changed;
             }
-            reads.ids.Add(ownership + ":" + id);
+            reads.ids.Add((ownership, id));
         }
 
         public void Dispose()
@@ -184,6 +184,7 @@ namespace NeoCompose.Runtime
                 ?? throw new NSGetterRuntimeError("Grid query receiver has no placement identity.");
             var (content, placement) = Resolve(receiverId);
             ctx.gridReads?.Record(content, placement.InstanceId, null, false);
+            ctx.client.NoteGridRead(content, placement.InstanceId, null, false);
             if (getCell)
             {
                 result = NeoVectorValues.FromVector2Int(placement.Cell);
@@ -195,6 +196,7 @@ namespace NeoCompose.Runtime
             foreach (Vector2Int cell in pattern.GetCells(placement.Cell))
             {
                 ctx.gridReads?.Record(content, placement.InstanceId, cell, getTile);
+                ctx.client.NoteGridRead(content, placement.InstanceId, cell, getTile);
                 if (getTile)
                 {
                     var tile = content.GetTile(cell);

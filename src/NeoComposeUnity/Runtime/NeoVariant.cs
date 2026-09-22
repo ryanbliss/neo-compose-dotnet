@@ -707,6 +707,23 @@ namespace NeoCompose.Runtime
                     ? resolved
                     : NeoValueOwnership.Asset;
             using var wrapperReads = client.SuppressValueReads();
+            // The graph is a committed Asset structure: reuse its persistent
+            // wrapper rather than building a fresh class tree per application.
+            if (ownership == NeoValueOwnership.Asset)
+            {
+                if (client.TryGetCommittedNode(
+                        factoryMember.RuntimeDeclarationIdentity,
+                        record.valueId,
+                        ownership,
+                        out NeoMember? existing)
+                    && existing is NeoMemberClass existingGraph
+                    && !existingGraph.isDisposed)
+                {
+                    return existingGraph;
+                }
+                return client.CreateCommittedNode(
+                    () => new NeoMemberClass(client, factoryMember, record.valueId, ownership));
+            }
             return new NeoMemberClass(client, factoryMember, record.valueId, ownership);
         }
 

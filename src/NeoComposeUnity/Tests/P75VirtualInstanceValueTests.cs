@@ -24,6 +24,149 @@ namespace NeoCompose.Tests
                 : base(client, node, "thing-class", readOnly, node.ownership) { }
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void MaterializedReplacementKeepsRealConstructorDependencies(bool combinedWrite)
+        {
+            var data = BuildProjectData();
+            data.classes["save-root-class"].schema["Input"] = "input-member";
+            data.members["input-member"] = new IntMember
+            {
+                id = "input-member", name = "Input", kind = MemberKind.Int,
+                Storage = NeoMemberStorage.Save, defaultValue = new NumberMemberValueBase { value = 1 },
+            };
+            data.values["input-value"] = new NumberMemberValue { id = "input-value", value = 1 };
+            ((ObjectMemberValue)data.values["value-save"]).value!["Input"] = "input-value";
+            data.values["stored-count"] = new NumberMemberValue { id = "stored-count", value = 5 };
+            ((ObjectMemberValue)data.values["thing-instance"]).value!["Count"] = "stored-count";
+            var initializer = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = new[] { ConstructorVariable("__root__", ClassType("__root__")) },
+                typeInfo = IntTypeInfo(),
+                instructions = new Instruction[] { new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = PointerKeyOf(PointerKeyOf(RootPointer(), "Save"), "Input"),
+                } },
+            };
+            ((IntMember)data.members["thing-count"]).defaultValue = new NumberMemberValueBase
+            {
+                init = new InitializerBody { code = "root.Save.Input", compiled = initializer },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            initializer.instructions = new Instruction[]
+            {
+                new ThrowInstruction { type = InstructionKind.Throw, pointer = IntLiteral(876) },
+            };
+            var replacement = (ObjectMemberValue)client.CloneRowForWrite(data.values["thing-instance"]);
+            replacement.value!["Count"] = "new-count";
+            var plan = new NeoWritePlan(client);
+            plan.Set(NeoValueOwnership.Save, new NumberMemberValue { id = "new-count", value = 42 });
+            plan.Set(NeoValueOwnership.Save, replacement);
+            plan.Remove(NeoValueOwnership.Save, "stored-count");
+            Assert.DoesNotThrow(() => plan.Commit(), "A complete stored replacement needs no constructor defaults.");
+            Assert.That(client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberIntWritable>("Count").value!.value, Is.EqualTo(42));
+            var inputChange = new NeoWritePlan(client);
+            if (combinedWrite)
+            {
+                var another = (ObjectMemberValue)client.CloneRowForWrite(replacement);
+                another.value!["Count"] = "third-count";
+                inputChange.Set(NeoValueOwnership.Save, another);
+                inputChange.Set(NeoValueOwnership.Save, new NumberMemberValue { id = "third-count", value = 43 });
+                inputChange.Remove(NeoValueOwnership.Save, "new-count");
+            }
+            inputChange.Set(NeoValueOwnership.Save, new NumberMemberValue { id = "input-value", value = 9 });
+            var error = Assert.Throws<InvalidOperationException>(() => inputChange.Commit());
+            StringAssert.Contains("876", error!.Message, "A real constructor input change must still replay.");
+            Assert.That(client.save.Get<NeoMemberIntWritable>("Input").value!.value, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void CompleteCloneDoesNotReplayConstructorButSparseEditStillDoes()
+        {
+            ProjectData data = BuildGenericConstructorProjectData();
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var action = data.constructors["thing-ctor"].action!;
+            action.instructions = new Instruction[]
+            {
+                new ThrowInstruction { type = InstructionKind.Throw, pointer = IntLiteral(987) },
+            };
+            string clone = client.CloneValueReference("thing-instance", NeoValueOwnership.Save);
+            Assert.That(client.TryGetValue(NeoValueOwnership.Session, clone, out ObjectMemberValue? root), Is.True);
+            Assert.That(root!.value, Contains.Key("Payload"));
+            var attached = (ObjectMemberValue)client.CloneRowForWrite(root);
+            attached.containerId = "runtime-container";
+            var attach = new NeoWritePlan(client);
+            attach.Set(NeoValueOwnership.Session, new ArrayMemberValue { id = "runtime-container", value = Array.Empty<string>() });
+            attach.Set(NeoValueOwnership.Session, attached);
+            Assert.DoesNotThrow(() => attach.Commit(), "Container membership does not change a complete graph's construction recipe.");
+            var sparse = (ObjectMemberValue)client.CloneRowForWrite(root);
+            sparse.value!.Remove("Payload");
+            var plan = new NeoWritePlan(client);
+            plan.Set(NeoValueOwnership.Session, sparse);
+            Assert.Throws<InvalidOperationException>(() => plan.Commit());
+            Assert.That(client.TryGetValue(NeoValueOwnership.Session, clone, out ObjectMemberValue? unchanged), Is.True);
+            Assert.That(unchanged!.value, Contains.Key("Payload"), "A failed sparse replay must leave the complete clone unchanged.");
+        }
+
+        [TestCase(0)]
+        [TestCase(2000)]
+        public void CloneBudgetsOnlyItsNewRowsAndRejectsBeforePublication(int unrelatedRows)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var retained = new List<MemberValue>();
+            for (int i = 0; i < unrelatedRows; i++)
+                retained.Add(new NumberMemberValue { id = "retained-" + i, value = i });
+            client.PublishConstructedSessionRows(retained);
+            var before = client.sessionValues.Keys.ToArray();
+            var tooSmall = new NeoScriptAllocationTracker(new NeoScriptExecutionBudgetLimits(constructedSessionRows: 1));
+            tooSmall.EnterExecution();
+            Assert.Throws<NeoScriptResourceLimitError>(() => client.CloneValueReference(
+                "thing-instance", NeoValueOwnership.Save, allocationTracker: tooSmall));
+            CollectionAssert.AreEquivalent(before, client.sessionValues.Keys,
+                "An over-budget clone must not publish any rows.");
+            var exact = new NeoScriptAllocationTracker(new NeoScriptExecutionBudgetLimits(constructedSessionRows: 2));
+            exact.EnterExecution();
+            string clone = client.CloneValueReference("thing-instance", NeoValueOwnership.Save, allocationTracker: exact);
+            Assert.That(client.sessionValues.Count, Is.EqualTo(before.Length + 2));
+            Assert.That(client.TryGetValue(NeoValueOwnership.Session, clone, out ObjectMemberValue? root), Is.True);
+            Assert.That(client.TryGetValue(NeoValueOwnership.Session, root!.value!["Count"], out NumberMemberValue? count), Is.True);
+            Assert.That(count!.value, Is.EqualTo(5));
+        }
+
+        [TestCase(0)]
+        [TestCase(2000)]
+        public void FailedReplayReclaimsTemporaryRowsAndPreservesExistingSessionState(int unrelatedRows)
+        {
+            ProjectData data = BuildGenericConstructorProjectData();
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var retained = new List<MemberValue>();
+            for (int i = 0; i < unrelatedRows; i++)
+                retained.Add(new NumberMemberValue { id = "retained-" + i, value = i });
+            client.PublishConstructedSessionRows(retained);
+            var before = client.sessionValues.ToDictionary(pair => pair.Key, pair => pair.Value);
+            var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            var replay = typeof(NeoClient).GetMethod("ExpandVirtualInstanceRoot", flags)!;
+            var action = data.constructors["thing-ctor"].action!;
+            Instruction[] original = action.instructions;
+            action.instructions = new Instruction[]
+            {
+                new ThrowInstruction { type = InstructionKind.Throw, pointer = IntLiteral(123) },
+            };
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                var error = Assert.Throws<System.Reflection.TargetInvocationException>(() =>
+                    replay.Invoke(client, new object[] { data.values["thing-instance"] }));
+                StringAssert.Contains("123", error!.InnerException!.Message);
+                CollectionAssert.AreEquivalent(before.Keys, client.sessionValues.Keys);
+                foreach (var pair in before) Assert.AreSame(pair.Value, client.sessionValues[pair.Key]);
+            }
+            action.instructions = original;
+            Assert.DoesNotThrow(() => replay.Invoke(client, new object[] { data.values["thing-instance"] }));
+            CollectionAssert.AreEquivalent(before.Keys, client.sessionValues.Keys);
+        }
+
         [Test]
         public void ReadOnlyComputedClassProjectionRetainsRuntimeOwnership()
         {

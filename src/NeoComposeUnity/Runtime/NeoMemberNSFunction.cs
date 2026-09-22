@@ -305,6 +305,8 @@ namespace NeoCompose.Runtime
             ArgumentTypes = argumentTypes;
             Deferred = deferred;
             Profile = new Unity.Profiling.ProfilerMarker("NeoScript." + member.name);
+            HasGenericSignature = NeoNSFunctionRuntime.ContainsGeneric(returnTypeInfo)
+                || Array.Exists(argumentTypes, NeoNSFunctionRuntime.ContainsGeneric);
         }
 
         internal string MemberId { get; }
@@ -314,6 +316,8 @@ namespace NeoCompose.Runtime
         internal FunctionArgumentTypeInfo[] ArgumentTypes { get; }
         internal bool Deferred { get; }
         internal Unity.Profiling.ProfilerMarker Profile { get; }
+        // Receiver-bound generics are a property of the signature, not the call.
+        internal bool HasGenericSignature { get; }
     }
 
     internal static class NeoNSFunctionRuntime
@@ -424,17 +428,12 @@ namespace NeoCompose.Runtime
 
             TypeInfo effectiveReturnType = function.ReturnTypeInfo;
             TypeInfo[] effectiveArgumentTypes = function.ArgumentTypes;
-            if (isStatic
-                && (ContainsGeneric(function.ReturnTypeInfo)
-                    || Array.Exists(function.ArgumentTypes, ContainsGeneric)))
+            if (isStatic && function.HasGenericSignature)
             {
                 throw new NSGetterRuntimeError(
                     $"Static NSFunction '{function.Member.name}' cannot use receiver-bound Generic signature classes.");
             }
-            if (!isStatic
-                && (ContainsGeneric(function.ReturnTypeInfo)
-                || Array.Exists(function.ArgumentTypes, ContainsGeneric))
-               )
+            if (!isStatic && function.HasGenericSignature)
             {
                 IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
                     ResolveReceiverGenericEnv(client, receiver!, ctx, function);
@@ -483,8 +482,7 @@ namespace NeoCompose.Runtime
             }
 
             NSGetterEvaluator.Context nestedCtx = ctx
-                .WithFunctionPushed(function.MemberId)
-                .WithThis(isStatic ? null : receiver);
+                .WithFunctionPushed(function.MemberId, isStatic ? null : receiver);
             NeoScriptExecutionResult execution = NeoScriptExecutor.Execute(
                 client,
                 action,
@@ -547,7 +545,7 @@ namespace NeoCompose.Runtime
                 normalized);
         }
 
-        private static bool ContainsGeneric(TypeInfo typeInfo)
+        internal static bool ContainsGeneric(TypeInfo typeInfo)
         {
             if (typeInfo.type == MemberKind.Generic) return true;
             TypeInfo? delegateReturn = typeInfo switch
@@ -1650,11 +1648,7 @@ namespace NeoCompose.Runtime
         {
             try
             {
-                foreach (NeoSchemaClass schemaClass in NeoSchemaClassInheritance.ResolveChain(
-                    actualClassId,
-                    id => client.TryGetClass(id, out NeoSchemaClass? candidate)
-                        ? candidate
-                        : null))
+                foreach (NeoSchemaClass schemaClass in client.ResolveClassInheritanceChain(actualClassId))
                 {
                     if (schemaClass.id == expectedClassId) return true;
                 }

@@ -27,14 +27,23 @@ namespace NeoCompose.Runtime.NeoScript
     internal sealed class NeoScriptAllocationTracker
     {
         private readonly NeoScriptExecutionBudgetLimits limits;
-        private readonly HashSet<string> allocatedRootIds = new();
-        private readonly HashSet<string> escapedRootIds = new();
-        private readonly HashSet<string> completedAllocationRootIds = new();
-        private readonly Dictionary<string, string> constructedParentByChildId =
-            new();
-        private readonly HashSet<string> parentlessAllocatedRootIds = new();
-        private readonly HashSet<string> budgetedConstructedRowIds = new();
-        private readonly Dictionary<string, int> budgetedProducedEntriesByRowId = new();
+        private static readonly NeoScriptExecutionBudgetLimits DefaultLimits = new();
+        // Most invocations only read existing rows; constructor bookkeeping is
+        // needed only after an invocation actually creates a Session graph.
+        private HashSet<string>? _allocatedRootIds;
+        private HashSet<string> allocatedRootIds => _allocatedRootIds ??= new();
+        private HashSet<string>? _escapedRootIds;
+        private HashSet<string> escapedRootIds => _escapedRootIds ??= new();
+        private HashSet<string>? _completedAllocationRootIds;
+        private HashSet<string> completedAllocationRootIds => _completedAllocationRootIds ??= new();
+        private Dictionary<string, string>? _constructedParentByChildId;
+        private Dictionary<string, string> constructedParentByChildId => _constructedParentByChildId ??= new();
+        private HashSet<string>? _parentlessAllocatedRootIds;
+        private HashSet<string> parentlessAllocatedRootIds => _parentlessAllocatedRootIds ??= new();
+        private HashSet<string>? _budgetedConstructedRowIds;
+        private HashSet<string> budgetedConstructedRowIds => _budgetedConstructedRowIds ??= new();
+        private Dictionary<string, int>? _budgetedProducedEntriesByRowId;
+        private Dictionary<string, int> budgetedProducedEntriesByRowId => _budgetedProducedEntriesByRowId ??= new();
         private int activeExecutions;
         private int loopIterations;
         private int workUnits;
@@ -49,7 +58,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal NeoScriptAllocationTracker(
             NeoScriptExecutionBudgetLimits? limits = null)
         {
-            this.limits = limits ?? new NeoScriptExecutionBudgetLimits();
+            this.limits = limits ?? DefaultLimits;
         }
 
         internal void EnterExecution()
@@ -57,17 +66,17 @@ namespace NeoCompose.Runtime.NeoScript
             if (activeExecutions == 0)
             {
                 constructionTimestamp = null;
-                completedAllocationRootIds.Clear();
+                _completedAllocationRootIds?.Clear();
                 loopIterations = 0;
                 workUnits = 0;
                 collectionVisits = 0;
                 producedCollectionEntries = 0;
                 constructedSessionRows = 0;
                 producedStringCharacters = 0;
-                budgetedConstructedRowIds.Clear();
-                budgetedProducedEntriesByRowId.Clear();
-                constructedParentByChildId.Clear();
-                parentlessAllocatedRootIds.Clear();
+                _budgetedConstructedRowIds?.Clear();
+                _budgetedProducedEntriesByRowId?.Clear();
+                _constructedParentByChildId?.Clear();
+                _parentlessAllocatedRootIds?.Clear();
             }
             activeExecutions++;
         }
@@ -188,8 +197,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal bool IsAllocatedSessionRoot(string valueId) =>
             !string.IsNullOrEmpty(valueId)
-            && (allocatedRootIds.Contains(valueId)
-                || completedAllocationRootIds.Contains(valueId));
+            && (_allocatedRootIds?.Contains(valueId) == true
+                || _completedAllocationRootIds?.Contains(valueId) == true);
 
         /// <summary>
         /// Records the owned edges a constructor graph already validated. The
@@ -216,7 +225,7 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         internal bool IsKnownParentlessAllocatedRoot(string valueId) =>
-            parentlessAllocatedRootIds.Contains(valueId);
+            _parentlessAllocatedRootIds?.Contains(valueId) == true;
 
         /// <summary>
         /// A fresh parentless constructor root was already validated and
@@ -231,7 +240,7 @@ namespace NeoCompose.Runtime.NeoScript
             MemberValue row,
             string? expectedMapKey,
             string? expectedContainerId) =>
-            parentlessAllocatedRootIds.Contains(valueId)
+            _parentlessAllocatedRootIds?.Contains(valueId) == true
             && row.mapKey == expectedMapKey
             && row.containerId == expectedContainerId;
 
@@ -244,7 +253,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             // Most getters return existing rows. With no temporary roots,
             // there is nothing to retain and no owned-parent graph to scan.
-            if (allocatedRootIds.Count == 0) return;
+            if (_allocatedRootIds is null || _allocatedRootIds.Count == 0) return;
             MarkEscaped(value, ctx, new HashSet<object>());
         }
 
@@ -326,7 +335,7 @@ namespace NeoCompose.Runtime.NeoScript
                     "NeoScript allocation tracker execution depth underflow.");
             }
             activeExecutions--;
-            if (activeExecutions != 0) return;
+            if (activeExecutions != 0 || _allocatedRootIds is null) return;
 
             if (terminalResult?.Returned == true)
             {
@@ -342,10 +351,11 @@ namespace NeoCompose.Runtime.NeoScript
                 // part of that parent's top-level graph; evaluating its whole
                 // ancestor chain again would duplicate the same decision for
                 // every nested constructor in an eager initializer.
-                if (TryFindConstructedOrStoredParent(
+                bool hasParent = TryFindConstructedOrStoredParent(
                         client,
                         valueId,
-                        out string? _))
+                        out string? _);
+                if (hasParent)
                 {
                     continue;
                 }
@@ -366,10 +376,10 @@ namespace NeoCompose.Runtime.NeoScript
                     NeoValueOwnership.Session,
                     removed);
             }
-            allocatedRootIds.Clear();
-            escapedRootIds.Clear();
-            constructedParentByChildId.Clear();
-            parentlessAllocatedRootIds.Clear();
+            _allocatedRootIds?.Clear();
+            _escapedRootIds?.Clear();
+            _constructedParentByChildId?.Clear();
+            _parentlessAllocatedRootIds?.Clear();
         }
 
         private bool TryFindConstructedOrStoredParent(
@@ -435,12 +445,12 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         public class Context
         {
-            private sealed class ConstructionFrameStack : IReadOnlyList<string>
+            private sealed class CallFrameStack : IReadOnlyList<string>
             {
                 private readonly IReadOnlyList<string> parent;
                 private readonly string value;
 
-                internal ConstructionFrameStack(
+                internal CallFrameStack(
                     IReadOnlyList<string> parent,
                     string value)
                 {
@@ -472,30 +482,30 @@ namespace NeoCompose.Runtime.NeoScript
                 Context ctx);
 
             public NeoClient client { get; }
-            public object? thisValue { get; }
-            public object? rootValue { get; }
-            public object? contextValue { get; }
-            public INeoDialogueMemoryStore? memoryStore { get; }
+            public object? thisValue { get; private set; }
+            public object? rootValue { get; private set; }
+            public object? contextValue { get; private set; }
+            public INeoDialogueMemoryStore? memoryStore { get; private set; }
             /// <summary>
             /// Stack of NSProperty member ids currently in-flight. Threaded
             /// through callGetter recursion via fresh-copy children so a
             /// cycle (`A.x` calls `B.y` calls `A.x` on a different receiver)
             /// trips before the runtime stack overflows.
             /// </summary>
-            public IReadOnlyCollection<string> getterCallStack { get; }
+            public IReadOnlyCollection<string> getterCallStack { get; private set; }
             /// <summary>
             /// Stack of NSProperty member ids whose setters are currently
             /// executing. Kept separate from <see cref="getterCallStack"/>,
             /// but preserved by every child context so setter→getter→setter
             /// recursion is detected by the shared NeoScript executor.
             /// </summary>
-            public IReadOnlyCollection<string> setterCallStack { get; }
+            public IReadOnlyCollection<string> setterCallStack { get; private set; }
             /// <summary>
             /// Ordered stack of NSFunction member ids currently executing.
             /// Unlike getter/setter cycle sets, recursion is valid and is only
             /// rejected once the runtime depth cap is reached.
             /// </summary>
-            public IReadOnlyList<string> functionCallStack { get; }
+            public IReadOnlyList<string> functionCallStack { get; private set; }
             /// <summary>
             /// Ordered bound-delegate targets currently executing. This is a
             /// shared mutable stack so nested evaluator contexts retain cycle
@@ -511,7 +521,7 @@ namespace NeoCompose.Runtime.NeoScript
             /// never sees it. Bounded by
             /// <see cref="NeoGeneratedTypesSupport.MaxConstructionDepth"/>.
             /// </summary>
-            public IReadOnlyList<string> constructionStack { get; }
+            public IReadOnlyList<string> constructionStack { get; private set; }
             internal NeoValueOwnership valueOwnership { get; }
 
             /// <summary>
@@ -539,7 +549,7 @@ namespace NeoCompose.Runtime.NeoScript
             /// so a callGetter's inner evaluation sees the same row
             /// identities the outer evaluation built up.
             /// </summary>
-            internal Dictionary<string, object?> rowUnwrapCache { get; }
+            internal Dictionary<RowCacheKey, object?> rowUnwrapCache { get; }
 
             /// <summary>
             /// Reverse index of <see cref="rowUnwrapCache"/>: maps an
@@ -552,8 +562,8 @@ namespace NeoCompose.Runtime.NeoScript
             /// false-positive.
             /// </summary>
             internal ConditionalWeakTable<object, RowReference> rowReverseIndex { get; }
-            internal Dictionary<string, HashSet<string>> rowCacheKeysByRow { get; }
-            internal RowAliasIndex rowAliases { get; }
+            internal Dictionary<RowKey, HashSet<RowCacheKey>> rowCacheKeysByRow { get; }
+            internal RowAliasIndex rowAliases => RowAliasIndexes.GetValue(rowReverseIndex, CreateRowAliasIndex);
             internal LinkedFunctionCallHandler? linkedFunctionCallHandler { get; private set; }
             internal Func<ObjectInitializerPointer, NeoScriptScope, Context, object?>? objectInitializerHandler { get; private set; }
             internal Dictionary<string, SchemaPlacement?> schemaPlacementCache { get; }
@@ -591,14 +601,14 @@ namespace NeoCompose.Runtime.NeoScript
                 object? contextValue = null,
                 INeoDialogueMemoryStore? memoryStore = null,
                 IReadOnlyCollection<string>? getterCallStack = null,
-                Dictionary<string, object?>? rowUnwrapCache = null,
+                Dictionary<RowCacheKey, object?>? rowUnwrapCache = null,
                 ConditionalWeakTable<object, RowReference>? rowReverseIndex = null,
                 NeoValueOwnership valueOwnership = NeoValueOwnership.Save,
                 IReadOnlyCollection<string>? setterCallStack = null,
                 IReadOnlyList<string>? functionCallStack = null,
                 Dictionary<string, SchemaPlacement?>? schemaPlacementCache = null,
                 Dictionary<string, string?>? callableDispatchCache = null,
-                Dictionary<string, HashSet<string>>? rowCacheKeysByRow = null,
+                Dictionary<RowKey, HashSet<RowCacheKey>>? rowCacheKeysByRow = null,
                 Dictionary<
                     string,
                     IReadOnlyDictionary<string, NeoGenericEnvEntry>>?
@@ -636,14 +646,14 @@ namespace NeoCompose.Runtime.NeoScript
                 object? contextValue,
                 INeoDialogueMemoryStore? memoryStore,
                 IReadOnlyCollection<string>? getterCallStack,
-                Dictionary<string, object?>? rowUnwrapCache,
+                Dictionary<RowCacheKey, object?>? rowUnwrapCache,
                 ConditionalWeakTable<object, RowReference>? rowReverseIndex,
                 NeoValueOwnership valueOwnership,
                 IReadOnlyCollection<string>? setterCallStack,
                 IReadOnlyList<string>? functionCallStack,
                 Dictionary<string, SchemaPlacement?>? schemaPlacementCache,
                 Dictionary<string, string?>? callableDispatchCache,
-                Dictionary<string, HashSet<string>>? rowCacheKeysByRow,
+                Dictionary<RowKey, HashSet<RowCacheKey>>? rowCacheKeysByRow,
                 Dictionary<
                     string,
                     IReadOnlyDictionary<string, NeoGenericEnvEntry>>?
@@ -660,12 +670,11 @@ namespace NeoCompose.Runtime.NeoScript
                 this.memoryStore = memoryStore;
                 this.getterCallStack = getterCallStack ?? System.Array.Empty<string>();
                 this.setterCallStack = setterCallStack ?? System.Array.Empty<string>();
-                this.rowUnwrapCache = rowUnwrapCache ?? new Dictionary<string, object?>();
+                this.rowUnwrapCache = rowUnwrapCache ?? new Dictionary<RowCacheKey, object?>();
                 this.rowReverseIndex = rowReverseIndex
                     ?? new ConditionalWeakTable<object, RowReference>();
-                rowAliases = RowAliasIndexes.GetValue(this.rowReverseIndex, CreateRowAliasIndex);
                 this.rowCacheKeysByRow = rowCacheKeysByRow
-                    ?? new Dictionary<string, HashSet<string>>();
+                    ?? new Dictionary<RowKey, HashSet<RowCacheKey>>();
                 this.valueOwnership = valueOwnership;
                 this.functionCallStack = functionCallStack ?? System.Array.Empty<string>();
                 // Placements depend on the exported schema, not the receiver or
@@ -685,253 +694,93 @@ namespace NeoCompose.Runtime.NeoScript
                     ?? new NeoScriptAllocationTracker(executionBudgetLimits);
             }
 
-            private Context ShareAllocationTracker(Context child)
+            // Invocation-local caches, budget, and handlers intentionally stay shared.
+            // Only receiver bindings and immutable call stacks differ between frames.
+            private Context Fork() => (Context)MemberwiseClone();
+
+            /// <summary>
+            /// The immediate-mode expression context built from THIS frame, so
+            /// nested statement blocks (if/else branches, loop bodies) reuse it
+            /// instead of forking a context and two handler closures per block.
+            /// <see cref="immediateExpressionSource"/> pins the owner: a fork
+            /// copies these fields but fails the identity check and rebuilds.
+            /// </summary>
+            internal Context? immediateExpressionContext;
+            internal Context? immediateExpressionSource;
+            internal object? immediateExpressionState;
+            internal object? immediateExpressionOptions;
+
+            internal Context WithGetterPushed(string memberId, object? receiver)
             {
-                child.allocationTracker = allocationTracker;
-                child.initializerPlacement = initializerPlacement;
-                child.gridReads = gridReads;
-                child.linkedFunctionCallHandler = linkedFunctionCallHandler;
-                child.objectInitializerHandler = objectInitializerHandler;
-                child.collectionCallbackPreparationMetrics =
-                    collectionCallbackPreparationMetrics;
+                Context child = Fork();
+                child.getterCallStack = new CallFrameStack(
+                    getterCallStack as IReadOnlyList<string> ?? getterCallStack.ToArray(), memberId);
+                child.thisValue = receiver;
                 return child;
             }
 
-            internal Context WithGetterPushed(string memberId)
+            internal Context WithThis(object? value)
             {
-                var next = new HashSet<string>(getterCallStack) { memberId };
-                return ShareAllocationTracker(new Context(
-                    client,
-                    thisValue,
-                    rootValue,
-                    contextValue,
-                    memoryStore,
-                    next,
-                    rowUnwrapCache,
-                    rowReverseIndex,
-                    valueOwnership,
-                    setterCallStack,
-                    functionCallStack,
-                    schemaPlacementCache,
-                    callableDispatchCache,
-                    rowCacheKeysByRow,
-                    genericEnvironmentCache,
-                    constructionStack,
-                    delegateCallStack,
-                    executionBudgetLimits: null,
-                    sharedAllocationTracker: allocationTracker));
+                Context child = Fork();
+                child.thisValue = value;
+                return child;
             }
 
-            internal Context WithThis(object? newThisValue)
+            internal Context WithRoot(object? value)
             {
-                return ShareAllocationTracker(new Context(
-                    client,
-                    newThisValue,
-                    rootValue,
-                    contextValue,
-                    memoryStore,
-                    getterCallStack,
-                    rowUnwrapCache,
-                    rowReverseIndex,
-                    valueOwnership,
-                    setterCallStack,
-                    functionCallStack,
-                    schemaPlacementCache,
-                    callableDispatchCache,
-                    rowCacheKeysByRow,
-                    genericEnvironmentCache,
-                    constructionStack,
-                    delegateCallStack,
-                    executionBudgetLimits: null,
-                    sharedAllocationTracker: allocationTracker));
+                Context child = Fork();
+                child.rootValue = value;
+                return child;
             }
 
-            internal Context WithRoot(object? newRootValue)
+            internal Context WithContext(object? value)
             {
-                return ShareAllocationTracker(new Context(
-                    client,
-                    thisValue,
-                    newRootValue,
-                    contextValue,
-                    memoryStore,
-                    getterCallStack,
-                    rowUnwrapCache,
-                    rowReverseIndex,
-                    valueOwnership,
-                    setterCallStack,
-                    functionCallStack,
-                    schemaPlacementCache,
-                    callableDispatchCache,
-                    rowCacheKeysByRow,
-                    genericEnvironmentCache,
-                    constructionStack,
-                    delegateCallStack,
-                    executionBudgetLimits: null,
-                    sharedAllocationTracker: allocationTracker));
+                Context child = Fork();
+                child.contextValue = value;
+                return child;
             }
 
-            internal Context WithContext(object? newContextValue)
+            internal Context WithMemoryStore(INeoDialogueMemoryStore? value)
             {
-                return ShareAllocationTracker(new Context(
-                    client,
-                    thisValue,
-                    rootValue,
-                    newContextValue,
-                    memoryStore,
-                    getterCallStack,
-                    rowUnwrapCache,
-                    rowReverseIndex,
-                    valueOwnership,
-                    setterCallStack,
-                    functionCallStack,
-                    schemaPlacementCache,
-                    callableDispatchCache,
-                    rowCacheKeysByRow,
-                    genericEnvironmentCache,
-                    constructionStack,
-                    delegateCallStack,
-                    executionBudgetLimits: null,
-                    sharedAllocationTracker: allocationTracker));
-            }
-
-            internal Context WithMemoryStore(INeoDialogueMemoryStore? newMemoryStore)
-            {
-                return ShareAllocationTracker(new Context(
-                    client,
-                    thisValue,
-                    rootValue,
-                    contextValue,
-                    newMemoryStore,
-                    getterCallStack,
-                    rowUnwrapCache,
-                    rowReverseIndex,
-                    valueOwnership,
-                    setterCallStack,
-                    functionCallStack,
-                    schemaPlacementCache,
-                    callableDispatchCache,
-                    rowCacheKeysByRow,
-                    genericEnvironmentCache,
-                    constructionStack,
-                    delegateCallStack,
-                    executionBudgetLimits: null,
-                    sharedAllocationTracker: allocationTracker));
+                Context child = Fork();
+                child.memoryStore = value;
+                return child;
             }
 
             internal Context WithExpressionHandlers(
                 LinkedFunctionCallHandler handler,
                 Func<ObjectInitializerPointer, NeoScriptScope, Context, object?> initializerHandler)
             {
-                Context child = ShareAllocationTracker(new Context(
-                    client,
-                    thisValue,
-                    rootValue,
-                    contextValue,
-                    memoryStore,
-                    getterCallStack,
-                    rowUnwrapCache,
-                    rowReverseIndex,
-                    valueOwnership,
-                    setterCallStack,
-                    functionCallStack,
-                    schemaPlacementCache,
-                    callableDispatchCache,
-                    rowCacheKeysByRow,
-                    genericEnvironmentCache,
-                    constructionStack,
-                    delegateCallStack,
-                    executionBudgetLimits: null,
-                    sharedAllocationTracker: allocationTracker));
+                Context child = Fork();
                 child.linkedFunctionCallHandler = handler;
                 child.objectInitializerHandler = initializerHandler;
                 return child;
             }
 
-            internal Context WithSetterPushed(string memberId)
+            internal Context WithSetterPushed(string memberId, object? receiver)
             {
-                var next = new HashSet<string>(setterCallStack) { memberId };
-                return ShareAllocationTracker(new Context(
-                    client,
-                    thisValue,
-                    rootValue,
-                    contextValue,
-                    memoryStore,
-                    getterCallStack,
-                    rowUnwrapCache,
-                    rowReverseIndex,
-                    valueOwnership,
-                    next,
-                    functionCallStack,
-                    schemaPlacementCache,
-                    callableDispatchCache,
-                    rowCacheKeysByRow,
-                    genericEnvironmentCache,
-                    constructionStack,
-                    delegateCallStack,
-                    executionBudgetLimits: null,
-                    sharedAllocationTracker: allocationTracker));
+                Context child = Fork();
+                child.setterCallStack = new CallFrameStack(
+                    setterCallStack as IReadOnlyList<string> ?? setterCallStack.ToArray(), memberId);
+                child.thisValue = receiver;
+                return child;
             }
 
-            internal Context WithFunctionPushed(string memberId)
+            internal Context WithFunctionPushed(string memberId, object? receiver)
             {
-                var next = new List<string>(functionCallStack.Count + 1);
-                next.AddRange(functionCallStack);
-                next.Add(memberId);
-                return ShareAllocationTracker(new Context(
-                    client,
-                    thisValue,
-                    rootValue,
-                    contextValue,
-                    memoryStore,
-                    getterCallStack,
-                    rowUnwrapCache,
-                    rowReverseIndex,
-                    valueOwnership,
-                    setterCallStack,
-                    next,
-                    schemaPlacementCache,
-                    callableDispatchCache,
-                    rowCacheKeysByRow,
-                    genericEnvironmentCache,
-                    constructionStack,
-                    delegateCallStack,
-                    executionBudgetLimits: null,
-                    sharedAllocationTracker: allocationTracker));
+                Context child = Fork();
+                child.functionCallStack = new CallFrameStack(functionCallStack, memberId);
+                child.thisValue = receiver;
+                return child;
             }
 
-            /// <summary>
-            /// P43 §7.2.3 — pushes <paramref name="className"/> onto the
-            /// construction chain. Every nested member initializer, base
-            /// constructor, and constructor body runs on the returned context,
-            /// so a cyclic construction trips the depth cap with the chain that
-            /// caused it rather than overflowing the runtime stack.
-            /// </summary>
             internal Context WithConstructionPushed(string className)
             {
-                var next = new ConstructionFrameStack(
-                    constructionStack,
-                    className);
-                return ShareAllocationTracker(new Context(
-                    client,
-                    thisValue,
-                    rootValue,
-                    contextValue,
-                    memoryStore,
-                    getterCallStack,
-                    rowUnwrapCache,
-                    rowReverseIndex,
-                    valueOwnership,
-                    setterCallStack,
-                    functionCallStack,
-                    schemaPlacementCache,
-                    callableDispatchCache,
-                    rowCacheKeysByRow,
-                    genericEnvironmentCache,
-                    next,
-                    delegateCallStack,
-                    executionBudgetLimits: null,
-                    sharedAllocationTracker: allocationTracker));
+                Context child = Fork();
+                child.constructionStack = new CallFrameStack(constructionStack, className);
+                return child;
             }
+
         }
 
         /// <summary>
@@ -960,18 +809,18 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal sealed class RowAliasIndex
         {
-            private readonly Dictionary<string, List<WeakReference<object>>> rows = new();
+            private readonly Dictionary<RowKey, List<WeakReference<object>>> rows = new();
 
             internal void Add(object alias, RowReference row)
             {
-                string key = RowCacheRowKey(row.ownership, row.valueId);
+                RowKey key = RowCacheRowKey(row.ownership, row.valueId);
                 if (!rows.TryGetValue(key, out var aliases)) rows[key] = aliases = new();
                 aliases.Add(new WeakReference<object>(alias));
             }
 
             internal void Remove(object alias, RowReference row)
             {
-                string key = RowCacheRowKey(row.ownership, row.valueId);
+                RowKey key = RowCacheRowKey(row.ownership, row.valueId);
                 if (!rows.TryGetValue(key, out var aliases)) return;
                 for (int i = aliases.Count - 1; i >= 0; i--)
                     if (!aliases[i].TryGetTarget(out var target) || ReferenceEquals(target, alias)) aliases.RemoveAt(i);
@@ -980,7 +829,7 @@ namespace NeoCompose.Runtime.NeoScript
 
             internal IEnumerable<object> Get(NeoValueOwnership ownership, string id)
             {
-                string key = RowCacheRowKey(ownership, id);
+                RowKey key = RowCacheRowKey(ownership, id);
                 if (!rows.TryGetValue(key, out var aliases)) yield break;
                 for (int i = aliases.Count - 1; i >= 0; i--)
                     if (aliases[i].TryGetTarget(out var target)) yield return target;
@@ -993,10 +842,39 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static void SetRowReference(Context ctx, object alias, RowReference row)
         {
-            if (ctx.rowReverseIndex.TryGetValue(alias, out var previous)) ctx.rowAliases.Remove(alias, previous);
+            // Reads only need object-to-row lookup. Build the reverse alias lists
+            // on the first write that must update existing CLR aliases.
+            RowAliasIndexes.TryGetValue(ctx.rowReverseIndex, out var aliases);
+            if (aliases is not null && ctx.rowReverseIndex.TryGetValue(alias, out var previous))
+                aliases.Remove(alias, previous);
             ctx.rowReverseIndex.Remove(alias);
             ctx.rowReverseIndex.Add(alias, row);
-            ctx.rowAliases.Add(alias, row);
+            aliases?.Add(alias, row);
+        }
+
+        /// <summary>Ownership-qualified row identity used as an allocation-free cache key.</summary>
+        public readonly struct RowKey : IEquatable<RowKey>
+        {
+            internal readonly NeoValueOwnership ownership;
+            internal readonly string rowId;
+            internal RowKey(NeoValueOwnership ownership, string rowId) { this.ownership = ownership; this.rowId = rowId; }
+            public bool Equals(RowKey other) => ownership == other.ownership && string.Equals(rowId, other.rowId, StringComparison.Ordinal);
+            public override bool Equals(object? obj) => obj is RowKey other && Equals(other);
+            public override int GetHashCode() => unchecked(rowId.GetHashCode() * 31 + (int)ownership);
+        }
+
+        /// <summary>Row identity plus the member it was unwrapped through.</summary>
+        public readonly struct RowCacheKey : IEquatable<RowCacheKey>
+        {
+            internal readonly NeoValueOwnership ownership;
+            internal readonly string rowId;
+            internal readonly string? memberId;
+            internal RowCacheKey(NeoValueOwnership ownership, string rowId, string? memberId) { this.ownership = ownership; this.rowId = rowId; this.memberId = memberId; }
+            public bool Equals(RowCacheKey other) => ownership == other.ownership
+                && string.Equals(rowId, other.rowId, StringComparison.Ordinal)
+                && string.Equals(memberId, other.memberId, StringComparison.Ordinal);
+            public override bool Equals(object? obj) => obj is RowCacheKey other && Equals(other);
+            public override int GetHashCode() => unchecked((rowId.GetHashCode() * 31 + (int)ownership) * 31 + (memberId?.GetHashCode() ?? 0));
         }
 
         public sealed class RowReference
@@ -2626,12 +2504,20 @@ namespace NeoCompose.Runtime.NeoScript
                 return DispatchResult.NoInfo();
             }
 
-            // Recover the row by reference equality on `.value`.
-            string? runtimeClassId = FindRowClassIdByReference(receiver, ctx);
+            // Recover the row by reference equality on `.value`. One reverse
+            // lookup serves every provenance question this dispatch asks.
+            bool hasRowRef = TryFindRowReferenceByReference(receiver, ctx, out RowReference receiverRef);
+            string? runtimeClassId = hasRowRef
+                ? ClassIdOfRowReference(receiverRef, ctx)
+                : FindRowClassIdByReference(receiver, ctx);
             if (string.IsNullOrEmpty(runtimeClassId))
             {
                 return DispatchResult.NoInfo();
             }
+            string? receiverRowId = hasRowRef ? receiverRef.valueId : null;
+            NeoValueOwnership? receiverOwnership = hasRowRef
+                ? receiverRef.ownership
+                : receiver is NeoObjectRecord receiverRecord ? receiverRecord.valueOwnership : null;
 
             MergedSchemaEntry? entry = null;
             IList<NeoSchemaClass>? runtimeChain = null;
@@ -2674,13 +2560,15 @@ namespace NeoCompose.Runtime.NeoScript
                 return DispatchResult.Ok(DispatchNSGetterById(entry.memberId, receiver, ctx));
             }
 
-            ctx.client.ReadReplayField(FindRowIdByReference(receiver, ctx), schemaKey);
-            if (record!.TryGetValue(schemaKey, out var at))
+            ctx.client.ReadReplayField(receiverRowId, schemaKey);
+            if (receiverRowId is not null) ctx.client.NoteRowRead(receiverOwnership ?? ctx.valueOwnership, receiverRowId);
+            bool hasStored = record!.TryGetValue(schemaKey, out var at);
+            if (hasStored)
             {
                 return DispatchResult.Ok(
-                    ResolveValueIfId(at, ctx, FindRowOwnershipByReference(receiver, ctx), member));
+                    ResolveValueIfId(at, ctx, receiverOwnership, member));
             }
-            if (FindRowMemberByReference(receiver, ctx) is ClassMember { Payload: NeoMemberPayloadKind.Partial })
+            if (hasRowRef && receiverRef.member is ClassMember { Payload: NeoMemberPayloadKind.Partial })
             {
                 return DispatchResult.NoInfo(matchedMember: true);
             }
@@ -2689,7 +2577,6 @@ namespace NeoCompose.Runtime.NeoScript
             // child indexed at its deterministic id, not an authored
             // omission. Resolve it before concluding anything from the
             // absence, exactly as the web evaluator does.
-            string? receiverRowId = FindRowIdByReference(receiver, ctx);
             if (!string.IsNullOrEmpty(receiverRowId)
                 && ctx.client.TryGetVirtualClassChildValueId(
                     receiverRowId!,
@@ -2701,7 +2588,7 @@ namespace NeoCompose.Runtime.NeoScript
                     ResolveValueIfId(
                         virtualChildId,
                         ctx,
-                        FindRowOwnershipByReference(receiver, ctx),
+                        receiverOwnership,
                         member));
             }
             // Null class defaults have no child row in a sparse construction.
@@ -2774,8 +2661,56 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     $"Getter '{name}' has no compiled `getter` — save its code to compile it");
             }
-            var inner = ctx.WithGetterPushed(memberId).WithThis(receiver);
-            return Evaluate(getter, inner);
+            NeoClient client = ctx.client;
+            RowReference? receiverRef = null;
+            bool memoize = client.CanMemoizeGetters
+                && TryFindRowReferenceByReference(receiver, ctx, out receiverRef);
+            NeoClient.GetterMemoKey memoKey = default;
+            if (memoize)
+            {
+                memoKey = new NeoClient.GetterMemoKey(
+                    receiverRef!.ownership, receiverRef.valueId, memberId, ctx.valueOwnership);
+                if (client.TryGetMemoizedGetter(memoKey, out NeoClient.GetterMemoEntry? hit))
+                {
+                    if (hit.row is null)
+                    {
+                        client.ReplayGetterReads(hit, ctx.gridReads);
+                        return hit.scalar;
+                    }
+                    if (client.TryGetReplayReference(hit.row.valueId, out MemberValue? hitRow, hit.row.ownership))
+                    {
+                        client.ReplayGetterReads(hit, ctx.gridReads);
+                        return UnwrapCached(hitRow!, ctx, hit.row.ownership, hit.row.member);
+                    }
+                    client.ForgetMemoizedGetter(memoKey);
+                }
+            }
+            var inner = ctx.WithGetterPushed(memberId, receiver);
+            if (!memoize) return Evaluate(getter, inner);
+            List<NeoClient.GetterRead>? enclosingCapture = client.BeginGetterReadCapture();
+            object? result;
+            List<NeoClient.GetterRead>? reads;
+            try
+            {
+                result = Evaluate(getter, inner);
+            }
+            finally
+            {
+                reads = client.EndGetterReadCapture(enclosingCapture);
+            }
+            if (client.CanMemoizeGetters)
+            {
+                if (result is null or string or bool or double or int or long or float)
+                {
+                    client.MemoizeGetter(memoKey, new NeoClient.GetterMemoEntry { scalar = result, reads = reads });
+                }
+                else if (TryFindRowReferenceByReference(result, inner, out RowReference resultRef)
+                    && resultRef.ownership != NeoValueOwnership.Session)
+                {
+                    client.MemoizeGetter(memoKey, new NeoClient.GetterMemoEntry { row = resultRef, reads = reads });
+                }
+            }
+            return result;
         }
 
         private static FunctionWithReturnType? ResolveCompiledGetter(
@@ -3175,7 +3110,7 @@ namespace NeoCompose.Runtime.NeoScript
 
             try
             {
-                var constructed =
+                NeoGeneratedTypesSupport.RuntimeConstructedClassValue constructed =
                     NeoGeneratedTypesSupport.ConstructDeclaredClassValueData(
                         resolved,
                         argumentValues,
@@ -3565,23 +3500,12 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                     try
                     {
-                        var existingSessionIds = new HashSet<string>(
-                            ctx.client.sessionValues.Keys);
                         string cloneId = ctx.client.CloneValueReference(
                             source.valueId,
                             source.ownership,
-                            source.member);
+                            source.member,
+                            ctx.allocationTracker);
                         ctx.allocationTracker.RegisterSessionRoot(cloneId);
-                        var createdRows = new List<MemberValue>();
-                        foreach (var pair in ctx.client.sessionValues)
-                        {
-                            if (!existingSessionIds.Contains(pair.Key))
-                            {
-                                createdRows.Add(pair.Value);
-                            }
-                        }
-                        ctx.allocationTracker.ConsumeCreatedSessionRows(
-                            createdRows);
                         if (!ctx.client.TryGetValue(
                                 NeoValueOwnership.Session,
                                 cloneId,
@@ -3983,10 +3907,15 @@ namespace NeoCompose.Runtime.NeoScript
                     normalized);
             }
 
-            internal void CompleteOperator(object? returnValue) =>
+            internal void CompleteOperator(object? returnValue)
+            {
                 execution.CompleteOwner(returnValue);
+            }
 
-            public void Dispose() => execution.Dispose();
+            public void Dispose()
+            {
+                execution.Dispose();
+            }
         }
 
         private static object? EvalListIndex(
@@ -4018,19 +3947,30 @@ namespace NeoCompose.Runtime.NeoScript
             }
 
             NeoMemberList listNode;
-            if (ctx.client.TryGetNode(
+            // An Asset List is immutable for the life of a candidate replay,
+            // so its wrapper (and derived index) is resolved through the
+            // committed registry rather than rebuilt inside every candidate.
+            bool committedAssetList = row.ownership == NeoValueOwnership.Asset;
+            bool found = committedAssetList
+                ? ctx.client.TryGetCommittedNode(
                     info.listMemberId,
                     row.valueId,
                     row.ownership,
                     out NeoMember? existing)
-                && existing is NeoMemberList existingList)
+                : ctx.client.TryGetNode(
+                    info.listMemberId,
+                    row.valueId,
+                    row.ownership,
+                    out existing);
+            if (found && existing is NeoMemberList existingList)
             {
                 listNode = existingList;
             }
             else
             {
-                NeoMember created = row.ownership == NeoValueOwnership.Asset
-                    ? NeoMember.Create(ctx.client, listMember, row.valueId)
+                NeoMember created = committedAssetList
+                    ? ctx.client.CreateCommittedNode(
+                        () => NeoMember.Create(ctx.client, listMember, row.valueId))
                     : NeoMember.CreateWritable(
                         ctx.client,
                         listMember,
@@ -5322,6 +5262,7 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? member = null)
         {
             ctx.gridReads?.RecordValue(ctx.client, ownership, row.id);
+            ctx.client.NoteRowRead(ownership, row.id);
             // Scalars have value semantics and no writable CLR aliases. Read the
             // current row directly instead of allocating cache keys and an index
             // entry just to retain a box. Structured values still need identity.
@@ -5335,17 +5276,17 @@ namespace NeoCompose.Runtime.NeoScript
                     || text.neoLocalizationMode == NeoStringLocalizationMode.Literal:
                     return text.value;
             }
-            string cacheKey = RowCacheKey(ownership, row.id, member);
+            RowCacheKey cacheKey = MakeRowCacheKey(ownership, row.id, member);
             if (ctx.rowUnwrapCache.TryGetValue(cacheKey, out var cached)) return cached;
             if (member is null && row is ArrayMemberValue)
                 ctx.client.TryInferMemberForValueId(row.id, out member);
             var unwrapped = ExtractWireValue(row, ownership, member, ctx);
             ctx.rowUnwrapCache[cacheKey] = unwrapped;
-            string rowCacheKey = RowCacheRowKey(ownership, row.id);
+            RowKey rowCacheKey = RowCacheRowKey(ownership, row.id);
             if (!ctx.rowCacheKeysByRow.TryGetValue(
-                    rowCacheKey, out HashSet<string>? rowKeys))
+                    rowCacheKey, out HashSet<RowCacheKey>? rowKeys))
             {
-                rowKeys = new HashSet<string>();
+                rowKeys = new HashSet<RowCacheKey>();
                 ctx.rowCacheKeysByRow[rowCacheKey] = rowKeys;
             }
             rowKeys.Add(cacheKey);
@@ -5386,9 +5327,9 @@ namespace NeoCompose.Runtime.NeoScript
         internal static void InvalidateCachedCollection(
             string rowId, NeoValueOwnership ownership, Context ctx)
         {
-            string rowKey = RowCacheRowKey(ownership, rowId);
-            if (!ctx.rowCacheKeysByRow.TryGetValue(rowKey, out HashSet<string>? keys)) return;
-            foreach (string key in keys) ctx.rowUnwrapCache.Remove(key);
+            RowKey rowKey = RowCacheRowKey(ownership, rowId);
+            if (!ctx.rowCacheKeysByRow.TryGetValue(rowKey, out HashSet<RowCacheKey>? keys)) return;
+            foreach (RowCacheKey key in keys) ctx.rowUnwrapCache.Remove(key);
             ctx.rowCacheKeysByRow.Remove(rowKey);
             // Existing aliases keep their reverse provenance and resolve the
             // current membership the next time a variable is evaluated.
@@ -5407,17 +5348,17 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx,
             NeoValueOwnership ownership)
         {
-            string rowCacheKey = RowCacheRowKey(ownership, row.id);
+            RowKey rowCacheKey = RowCacheRowKey(ownership, row.id);
             ctx.rowCacheKeysByRow.TryGetValue(
                 rowCacheKey,
-                out HashSet<string>? indexedKeys);
+                out HashSet<RowCacheKey>? indexedKeys);
             var matchingKeys = indexedKeys is null
-                ? new List<string>()
-                : new List<string>(indexedKeys);
+                ? new List<RowCacheKey>()
+                : new List<RowCacheKey>(indexedKeys);
             var patchedObjects = new HashSet<object>(
                 ReferenceEqualityComparer.Instance);
 
-            foreach (string key in matchingKeys)
+            foreach (RowCacheKey key in matchingKeys)
             {
                 if (!ctx.rowUnwrapCache.TryGetValue(key, out object? cached))
                 {
@@ -5581,14 +5522,13 @@ namespace NeoCompose.Runtime.NeoScript
                 movedRowIds.Add(row.valueId);
             }
 
-            string sourcePrefix = sourceOwnership + ":";
-            foreach (string rowCacheKey in ctx.rowCacheKeysByRow.Keys.ToArray())
+            foreach (RowKey rowCacheKey in ctx.rowCacheKeysByRow.Keys.ToArray())
             {
-                if (!rowCacheKey.StartsWith(sourcePrefix, StringComparison.Ordinal))
+                if (rowCacheKey.ownership != sourceOwnership)
                 {
                     continue;
                 }
-                string rowId = rowCacheKey.Substring(sourcePrefix.Length);
+                string rowId = rowCacheKey.rowId;
                 if (ctx.client.HasWritableValue(sourceOwnership, rowId)
                     || !ctx.client.HasWritableValue(targetOwnership, rowId))
                 {
@@ -5613,26 +5553,24 @@ namespace NeoCompose.Runtime.NeoScript
             NeoValueOwnership targetOwnership,
             string rowId)
         {
-            string sourceRowKey = RowCacheRowKey(sourceOwnership, rowId);
+            RowKey sourceRowKey = RowCacheRowKey(sourceOwnership, rowId);
             if (!ctx.rowCacheKeysByRow.TryGetValue(
                     sourceRowKey,
-                    out HashSet<string>? sourceKeys))
+                    out HashSet<RowCacheKey>? sourceKeys))
             {
                 return;
             }
-            string targetRowKey = RowCacheRowKey(targetOwnership, rowId);
+            RowKey targetRowKey = RowCacheRowKey(targetOwnership, rowId);
             if (!ctx.rowCacheKeysByRow.TryGetValue(
                     targetRowKey,
-                    out HashSet<string>? targetKeys))
+                    out HashSet<RowCacheKey>? targetKeys))
             {
-                targetKeys = new HashSet<string>();
+                targetKeys = new HashSet<RowCacheKey>();
                 ctx.rowCacheKeysByRow[targetRowKey] = targetKeys;
             }
-            string sourcePrefix = sourceOwnership + ":";
-            string targetPrefix = targetOwnership + ":";
-            foreach (string sourceKey in sourceKeys.ToArray())
+            foreach (RowCacheKey sourceKey in sourceKeys.ToArray())
             {
-                string targetKey = targetPrefix + sourceKey.Substring(sourcePrefix.Length);
+                RowCacheKey targetKey = new RowCacheKey(targetOwnership, sourceKey.rowId, sourceKey.memberId);
                 if (ctx.rowUnwrapCache.TryGetValue(sourceKey, out object? cached))
                 {
                     ctx.rowUnwrapCache.Remove(sourceKey);
@@ -5653,12 +5591,12 @@ namespace NeoCompose.Runtime.NeoScript
             var removed = new HashSet<string>(rowIds);
             foreach (string rowId in removed)
             {
-                string rowKey = RowCacheRowKey(ownership, rowId);
+                RowKey rowKey = RowCacheRowKey(ownership, rowId);
                 if (ctx.rowCacheKeysByRow.TryGetValue(
                         rowKey,
-                        out HashSet<string>? cacheKeys))
+                        out HashSet<RowCacheKey>? cacheKeys))
                 {
-                    foreach (string cacheKey in cacheKeys)
+                    foreach (RowCacheKey cacheKey in cacheKeys)
                     {
                         ctx.rowUnwrapCache.Remove(cacheKey);
                     }
@@ -5680,16 +5618,16 @@ namespace NeoCompose.Runtime.NeoScript
             _ => ownership.ToString(),
         };
 
-        private static string RowCacheRowKey(
+        private static RowKey RowCacheRowKey(
             NeoValueOwnership ownership,
             string rowId) =>
-            OwnershipName(ownership) + ":" + rowId;
+            new RowKey(ownership, rowId);
 
-        private static string RowCacheKey(
+        private static RowCacheKey MakeRowCacheKey(
             NeoValueOwnership ownership,
             string rowId,
             JsonMember? member = null) =>
-            OwnershipName(ownership) + ":" + rowId + ":" + (member?.id ?? "");
+            new RowCacheKey(ownership, rowId, member?.id);
 
         private static string? ResolveStringValue(
             StringMemberValue value,
@@ -6030,6 +5968,14 @@ namespace NeoCompose.Runtime.NeoScript
             // wrong overlay for an unwrapped NeoObjectRecord.
             if (TryFindRowReferenceByReference(value, ctx, out RowReference rowRef))
             {
+                return ClassIdOfRowReference(rowRef, ctx);
+            }
+            return FindReferencedClassId(value, ctx);
+        }
+
+        private static string? ClassIdOfRowReference(RowReference rowRef, Context ctx)
+        {
+            {
                 if (!ctx.client.TryGetReplayReference(
                         rowRef.valueId,
                         out MemberValue? indexedRow,
@@ -6054,6 +6000,10 @@ namespace NeoCompose.Runtime.NeoScript
                         ? indexedClassMember.classId
                         : null);
             }
+        }
+
+        private static string? FindReferencedClassId(object? value, Context ctx)
+        {
             if (value is INeoValueReference valueReference
                 && !string.IsNullOrEmpty(valueReference.valueId))
             {

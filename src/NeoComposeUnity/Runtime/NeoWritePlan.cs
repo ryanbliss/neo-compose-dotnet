@@ -178,6 +178,7 @@ namespace NeoCompose.Runtime
     {
         private static readonly Unity.Profiling.ProfilerMarker CommitWriteMarker = new("NeoCompose.Write.Commit");
         internal long WriteRevision { get; private set; }
+
         private NeoWritePlan? candidateReadPlan;
         internal MemberValue? ResolveWritePlanGlobalFallback(NeoWritePlan plan, string id)
         {
@@ -223,6 +224,10 @@ namespace NeoCompose.Runtime
                         else if (!scope.Allocations.Contains(key.id)) scope.HasExternalWrites = true;
                     }
                 }
+            if (replayAllocationScope is not null && candidateReplay is null)
+                foreach (var pair in plan.Rows)
+                    if (pair.Key.ownership == NeoValueOwnership.Session && pair.Value is not null
+                        && !sessionData.values.ContainsKey(pair.Key.id)) RecordReplayAllocation(pair.Key.id);
             if (candidateReplay is not null)
             { candidateReplay.Apply(plan); return; }
             if (!ReferenceEquals(plan.Client, this))
@@ -245,6 +250,7 @@ namespace NeoCompose.Runtime
                     plan.UnchangedValueIds.Add(row.Key.id);
             var changed = new HashSet<(NeoValueOwnership ownership, string valueId)>();
             var oldContainers = new Dictionary<(NeoValueOwnership ownership, string id), string>();
+            bool touchesWorld = false;
             foreach (var pair in plan.Rows)
             {
                 if (TryResolveContainerIdForValueId(pair.Key.id, out string? containerId))
@@ -255,6 +261,9 @@ namespace NeoCompose.Runtime
                 if (!string.IsNullOrEmpty(pair.Value?.containerId))
                     changed.Add((pair.Key.ownership, pair.Value!.containerId!));
                 changed.Add(pair.Key);
+                if (!touchesWorld)
+                    touchesWorld = IsWorldClass(pair.Value?.classId)
+                        || TryGetCommittedValue(pair.Key.id, out MemberValue? previousRow) && IsWorldClass(previousRow?.classId);
             }
             foreach (var binding in plan.Bindings)
             {
@@ -282,6 +291,9 @@ namespace NeoCompose.Runtime
             }
             WriteRevision++;
             InstallCandidateExpansions(preparedExpansions, changed);
+            if (plan.Bindings.Count != 0) InvalidateGetterMemo();
+            else InvalidateGetterMemoForRows(changed);
+            if (touchesWorld) InvalidateGridDependentGetterMemo();
             OnWritableValuesPublished?.Invoke(changed, plan);
             plan.NotifyCommitted();
             OnWritableValuesChanged?.Invoke(changed);
@@ -343,7 +355,15 @@ namespace NeoCompose.Runtime
                 StageOwnedRemoval(plan, ownership, root.valueId, root.member, false, visited, null, removals);
             if (removals.Count == 0) return;
             HashSet<string> reachable;
-            using (ReadCandidate(plan)) reachable = BuildReachableWritableValueIds(ownership);
+            using (ReadCandidate(plan))
+            {
+                if (CanProveUnreachable(ownership, removals))
+                {
+                    foreach (string id in removals) plan.Remove(ownership, id);
+                    return;
+                }
+                reachable = BuildReachableWritableValueIds(ownership);
+            }
             foreach (string id in removals)
                 if (!reachable.Contains(id)) plan.Remove(ownership, id);
         }

@@ -351,11 +351,7 @@ namespace NeoCompose.Runtime
             if (actualClassId == expectedClassId) return true;
             try
             {
-                foreach (NeoSchemaClass schemaClass in NeoSchemaClassInheritance.ResolveChain(
-                    actualClassId,
-                    id => client.TryGetClass(id, out NeoSchemaClass? candidate)
-                        ? candidate
-                        : null))
+                foreach (NeoSchemaClass schemaClass in client.ResolveClassInheritanceChain(actualClassId))
                 {
                     if (schemaClass.id == expectedClassId) return true;
                 }

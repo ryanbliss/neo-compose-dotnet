@@ -269,7 +269,7 @@ namespace NeoCompose.Runtime
                     client,
                     setter,
                     scope,
-                    ctx.WithSetterPushed(effectiveMemberId).WithThis(boundThis),
+                    ctx.WithSetterPushed(effectiveMemberId, boundThis),
                     NeoScriptExecutionOptions
                         .ForUnity(client)
                         .ForProperty(effectiveMemberId),

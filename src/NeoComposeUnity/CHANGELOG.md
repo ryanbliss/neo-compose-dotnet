@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.39.7] - 2026-09-21
+
+- Reuse complete local Class graphs when replacing owned data or adopting an object into a grid. Stored field changes and container membership no longer rerun a constructor solely because its old footprint contained those rows. Sparse/default-backed graphs, changed construction recipes, external content, and actual constructor dependencies still replay.
+- Track constructor-replay allocations and wrappers within the replay scope instead of snapshotting or scanning all Session values. Reclaim temporary graphs on failure as well as success, preserving unrelated Session state.
+- Charge NeoScript Class clones against their own prepared rows and reject resource-budget overflow before publishing the clone. Cloning no longer snapshots and rescans unrelated Session state.
+- Allocate NeoScript construction bookkeeping, row-alias indexes, and read-only local-binding sets only when needed. Nested evaluation contexts share existing invocation state through a shallow fork and persistent call frames; schema consumers reuse the client's inheritance cache.
+- Add separate construction, indexing, overlay, and cleanup profiler samples. Neowyn verification records matched whole-frame and allocation measurements; remaining startup, equipment, and sandbox performance work stays tracked in issues #178, #183, and #184.
+- Memoize NSProperty getter results per receiver row. Each evaluation records the rows and grid cells it read; a commit drops only the entries that read a changed row, a write to a grid, tile, or object row drops the entries that queried a grid, and a static binding change drops everything. A memoized result evaluated under NSProperty dependency capture reports the same reads the evaluation would have, so C#-side invalidation is unchanged. Results that construct Session rows are never kept.
+- Prove a freshly constructed graph unreachable from its indexed parents before walking the whole Session store when adopting or moving it into a grid. Index class-owned roots per ownership for the reachability walk, and resolve only the static members that can be bound to a child instead of every static in the schema. Placing a plant previously walked every Session value twice per spawn.
+- Reuse the committed list node and variant graph nodes during constructor replay instead of recreating them, index generated wrappers and declaring members by value id, cache the generic-signature check per function, and reuse the executor's expression context across immediate calls.
+
 ## [0.39.6] - 2026-09-21
 
 - Validate an isolated object insertion against the cached occupied cells and update that index in place. Multiple existing layer links remain supported. Unrelated object geometry and tile indexes are retained; compound writes and objects carrying tiles still use full validation.

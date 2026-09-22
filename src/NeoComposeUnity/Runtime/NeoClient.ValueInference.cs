@@ -119,7 +119,9 @@ namespace NeoCompose.Runtime
 
         private sealed class AuthoredValueInferenceIndex
         {
+            internal readonly List<Member> StaticMembers = new();
             internal readonly Dictionary<string, Member> Members = new(StringComparer.Ordinal);
+            internal readonly Dictionary<string, List<Member>> MembersByValueId = new(StringComparer.Ordinal);
             internal readonly Dictionary<string, List<KeyValuePair<string, MemberValue>>> Parents =
                 new(StringComparer.Ordinal);
 
@@ -128,7 +130,16 @@ namespace NeoCompose.Runtime
                 // Preserve the first declaration and parent iteration order used
                 // by the ordinary inference path, including ambiguous references.
                 foreach (Member member in data.members.Values)
-                    if (member.valueId != null) Members.TryAdd(member.valueId, member);
+                {
+                    if (member.Modifier == NeoMemberModifierKind.Static) StaticMembers.Add(member);
+                    if (member.valueId != null)
+                    {
+                        Members.TryAdd(member.valueId, member);
+                        if (!MembersByValueId.TryGetValue(member.valueId, out var declared))
+                            MembersByValueId[member.valueId] = declared = new List<Member>(1);
+                        declared.Add(member);
+                    }
+                }
                 foreach (var pair in data.values)
                 {
                     if (pair.Value is ObjectMemberValue obj)

@@ -183,7 +183,9 @@ namespace NeoCompose.Runtime
                 throw new NeoScriptPreExecutionValidationError(
                     $"NeoScript body is stamped compiler revision {body.compilerRevision.Value}; this SDK executes only revision {FunctionWithReturnType.CurrentCompilerRevision}. Re-export the project from a deployment at revision {FunctionWithReturnType.CurrentCompilerRevision}, or install the SDK release that matches the export.");
             }
+            if (body.validatedForExecution) return;
             ValidateControlFlowInstructionMetadata(body.instructions);
+            body.validatedForExecution = true;
         }
 
         /// <summary>
@@ -403,8 +405,33 @@ namespace NeoCompose.Runtime
             ExpressionResumeState? resumeState,
             NeoScriptExecutionOptions? options)
         {
-            var expressionState = resumeState ?? new ExpressionResumeState();
-            var actionCtx = BuildExpressionContext(client, ctx, expressionState, options);
+            // Immediate frames record nothing, so every block of one frame can
+            // share a single expression context and resume state.
+            bool immediate = resumeState is null && options?.AllowDeferredFunctionCalls != true;
+            ExpressionResumeState expressionState;
+            NSGetterEvaluator.Context actionCtx;
+            if (immediate
+                && ReferenceEquals(ctx.immediateExpressionSource, ctx)
+                && ReferenceEquals(ctx.immediateExpressionOptions, options)
+                && ctx.immediateExpressionContext is { } cachedCtx
+                && ReferenceEquals(cachedCtx.client, client)
+                && ctx.immediateExpressionState is ExpressionResumeState cachedState)
+            {
+                expressionState = cachedState;
+                actionCtx = cachedCtx;
+            }
+            else
+            {
+                expressionState = resumeState ?? new ExpressionResumeState();
+                actionCtx = BuildExpressionContext(client, ctx, expressionState, options);
+                if (immediate)
+                {
+                    ctx.immediateExpressionSource = ctx;
+                    ctx.immediateExpressionContext = actionCtx;
+                    ctx.immediateExpressionState = expressionState;
+                    ctx.immediateExpressionOptions = options;
+                }
+            }
             for (int i = startIndex; i < instructions.Length; i++)
             {
                 ctx.allocationTracker.ConsumeWorkUnit();
@@ -2189,7 +2216,8 @@ namespace NeoCompose.Runtime
             }
             string callSiteKey = pointer.callSiteId;
             string resumeKey = expressionState.NextInvocationKey(callSiteKey);
-            if (expressionState.TryGet(resumeKey, out object? cachedValue, out Exception? cachedError))
+            bool hasCached = expressionState.TryGet(resumeKey, out object? cachedValue, out Exception? cachedError);
+            if (hasCached)
             {
                 if (cachedError is not null) throw cachedError;
                 return cachedValue;
@@ -2443,8 +2471,7 @@ namespace NeoCompose.Runtime
             }
 
             var nestedCtx = ctx
-                .WithSetterPushed(effectiveMemberId)
-                .WithThis(isStatic ? null : receiver);
+                .WithSetterPushed(effectiveMemberId, isStatic ? null : receiver);
             var nestedOptions = (options ?? NeoScriptExecutionOptions.ForUnity(client))
                 .ForProperty(effectiveMemberId);
             return Execute(
@@ -2487,9 +2514,7 @@ namespace NeoCompose.Runtime
             IList<NeoSchemaClass> chain;
             try
             {
-                chain = NeoSchemaClassInheritance.ResolveChain(
-                    runtimeClassId!,
-                    id => client.TryGetClass(id, out NeoSchemaClass? schemaClass) ? schemaClass : null);
+                chain = client.ResolveClassInheritanceChain(runtimeClassId!);
             }
             catch (CircularInheritanceError)
             {
@@ -2897,9 +2922,7 @@ namespace NeoCompose.Runtime
             try
             {
                 merged = NeoSchemaClassInheritance.MergeInstanceSchema(
-                    NeoSchemaClassInheritance.ResolveChain(
-                        classId,
-                        id => client.TryGetClass(id, out NeoSchemaClass? schemaClass) ? schemaClass : null),
+                    client.ResolveClassInheritanceChain(classId),
                     id => client.TryGetMember(id, out JsonMember? member)
                         ? member
                         : null);
@@ -3681,13 +3704,14 @@ namespace NeoCompose.Runtime
                     // leaves the rest of the root omitted, which is exactly the
                     // "every value is its own instance, changing one materializes
                     // that one" contract the web already implements.
-                    if (TryResolveBoundChild(
+                    bool bound = TryResolveBoundChild(
                             client,
                             writableParentRowId,
                             parent,
                             out string existingId,
                             out MemberValue? existing)
-                        && existing is not null)
+                        && existing is not null;
+                    if (bound)
                     {
                         if (TryGetClassValueReferenceId(
                                 value,
@@ -3726,7 +3750,7 @@ namespace NeoCompose.Runtime
                         }
                         else
                         {
-                            var next = CreateValueRow(plan, client, ownership, member, value, existingId, existing.createdAt, now);
+                            var next = CreateValueRow(plan, client, ownership, member, value, existingId, existing!.createdAt, now);
                             next.classId = existing.classId;
                             StoreWritableRow(plan, client, ownership, next, ctx);
                         }
