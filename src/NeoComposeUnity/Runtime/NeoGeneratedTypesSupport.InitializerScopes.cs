@@ -61,7 +61,7 @@ namespace NeoCompose.Runtime
             lock (cache.gate)
                 index = cache.initializerIndex ??= BuildConstructorInitializerIndex(client);
             string? memberId = index.membersByInitializer.TryGetValue(init, out string? lexical) ? lexical : member.id;
-            var chain = NeoSchemaClassInheritance.ResolveChain(constructedClassId, id => client.TryGetClass(id, out NeoSchemaClass? c) ? c : null);
+            var chain = client.ResolveClassInheritanceChain(constructedClassId);
             var seen = new HashSet<string>(StringComparer.Ordinal);
             while (memberId is not null && seen.Add(memberId))
             {

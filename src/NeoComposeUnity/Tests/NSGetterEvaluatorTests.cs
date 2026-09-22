@@ -12,6 +12,7 @@ using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using UnityEngine.TestTools;
 
 namespace NeoCompose.Tests
 {
@@ -61,7 +62,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual("Field1999", last!.memberId);
             Assert.AreSame(last, client.ResolveInstanceSurfaceMember("wide", "Field1999"));
             var firstContext = client.CreateGetterContext(NeoValueOwnership.Session);
-            firstContext.callableDispatchCache["wide\nMethod"] = "original";
+            firstContext.callableDispatchCache[("wide", "Method")] = "original";
             Assert.AreSame(firstContext.callableDispatchCache, client.CreateGetterContext(NeoValueOwnership.Save).callableDispatchCache);
             data.classes["wide"].schema["Field1999"] = "Field0";
             client.InvalidateSchemaResolutionCaches();
@@ -2107,6 +2108,85 @@ namespace NeoCompose.Tests
             });
             client.SetSaveValue(savedRow);
             return client;
+        }
+
+        /// <summary>
+        /// A localized string read carries no format arguments, so the value
+        /// is the localized template. Formatting it anyway could only
+        /// succeed on placeholder-free text and warned — with a stack
+        /// capture — on every read of a template that expects arguments
+        /// (Neowyn's seed DescriptionTemplate, ~2000 warnings per session).
+        /// </summary>
+        [Test]
+        public void LocalizedStringRead_ReturnsTheTemplateWithoutFormatting()
+        {
+            var description = StringMember("member-localized-description", "Description");
+            var rootAssetsMember = ClassMember("member-localized-root-assets", "Assets", "class-localized-root");
+            rootAssetsMember.valueId = "value-localized-root";
+            var rootSaveMember = ClassMember("member-localized-root-save", "Save", "class-localized-root");
+            rootSaveMember.DeclaredStorage = NeoMemberStorage.Save;
+            var rootSessionMember = ClassMember("member-localized-root-session", "Session", "class-localized-root");
+            rootSessionMember.DeclaredStorage = NeoMemberStorage.Session;
+            var rootClass = NeoSchemaClass(
+                "class-localized-root",
+                "LocalizedRoot",
+                new Dictionary<string, string> { ["Description"] = description.id });
+            var rootRow = ObjectValue(
+                "value-localized-root",
+                rootClass.id,
+                new Dictionary<string, string> { ["Description"] = "value-localized-description" });
+            var data = new ProjectData
+            {
+                project = new Project
+                {
+                    id = "project-localized-read",
+                    name = "Localized Read",
+                    rootAssetsMemberId = rootAssetsMember.id,
+                    rootSaveFileMemberId = rootSaveMember.id,
+                    rootSessionMemberId = rootSessionMember.id,
+                    createdAt = "x",
+                    updatedAt = "x",
+                },
+                members = new Dictionary<string, NeoCompose.Runtime.Json.Member>
+                {
+                    [rootAssetsMember.id] = rootAssetsMember,
+                    [rootSaveMember.id] = rootSaveMember,
+                    [rootSessionMember.id] = rootSessionMember,
+                    [description.id] = description,
+                },
+                values = new Dictionary<string, MemberValue>
+                {
+                    [rootRow.id] = rootRow,
+                    ["value-localized-description"] = new StringMemberValue
+                    {
+                        id = "value-localized-description",
+                        value = "seed-description",
+                        neoLocalizationMode = NeoStringLocalizationMode.TextId,
+                    },
+                },
+                classes = new Dictionary<string, NeoSchemaClass> { [rootClass.id] = rootClass },
+            };
+            const string template = "A seed that grows into a {PlantName} during the {Season}.";
+            var localization = NeoLocalization.CreateEmpty(null);
+            Assert.IsTrue(localization.TryAddLoadedLocale(new ProjectLocalizationLocaleFile
+            {
+                schemaVersion = 1,
+                projectId = data.project.id,
+                versionId = "version-1",
+                locale = "en-US",
+                formattingSyntax = "smart-format",
+                values = new Dictionary<string, string?> { ["seed-description"] = template },
+            }));
+            using var client = NeoTestSaveStack.ClientFromSchema(data, localization: localization);
+
+            object? evaluated = NSGetterEvaluator.Evaluate(
+                ReturnFunction(
+                    KeyOf(new ReferencePointer { type = PointerKind.Reference, valueId = rootRow.id }, "Description"),
+                    MemberKind.String),
+                new NSGetterEvaluator.Context(client, thisValue: null, rootValue: null));
+            Assert.AreEqual(template, evaluated);
+            Assert.AreEqual(template, new NeoMemberString(client, description, "value-localized-description").Text);
+            LogAssert.NoUnexpectedReceived();
         }
 
         private static NeoClient LoadAbstractReadonlyClassDefaultClient(

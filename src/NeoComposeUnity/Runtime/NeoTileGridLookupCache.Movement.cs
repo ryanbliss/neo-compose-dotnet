@@ -12,18 +12,21 @@ namespace NeoCompose.Runtime
     {
         internal void PrepareObjectMoves(NeoWritePlan plan, Dictionary<string, Vector2Int> positions)
         {
-            var objects = new List<(string layer, ObjectLayerIndex index, NeoObjectPlacementRecord before, NeoObjectPlacementRecord after)>();
-            var deltas = new Dictionary<string, Vector2Int>();
-            foreach (string layerId in primitive.ResolveObjectLayerIds())
+            // A moving object stays in its cell for most frames. Allocate the
+            // move bookkeeping only once a footprint actually changes cell.
+            List<(string layer, ObjectLayerIndex index, NeoObjectPlacementRecord before, NeoObjectPlacementRecord after)>? objects = null;
+            Dictionary<string, Vector2Int>? deltas = null;
+            foreach (string layerId in ObjectLayerIds)
             {
                 // These are committed indexes, never a speculative layer rebuild.
                 var index = GetObjectLayerIndex(layerId);
-                var proposed = new Dictionary<Vector2Int, string>();
+                Dictionary<Vector2Int, string>? proposed = null;
                 foreach (var position in positions)
                 {
                     if (!index.ById.TryGetValue(position.Key, out var before) || before.Cell == position.Value) continue;
                     var delta = position.Value - before.Cell;
-                    deltas[position.Key] = delta;
+                    (deltas ??= new Dictionary<string, Vector2Int>())[position.Key] = delta;
+                    proposed ??= new Dictionary<Vector2Int, string>();
                     var footprint = new Vector2Int[before.Footprint.Count];
                     for (int i = 0; i < footprint.Length; i++)
                     {
@@ -40,14 +43,14 @@ namespace NeoCompose.Runtime
                                 throw Occupied(layerId, position.Key, occupant.InstanceId, cell);
                             }
                     }
-                    objects.Add((layerId, index, before, new NeoObjectPlacementRecord(before.InstanceId,
+                    (objects ??= new()).Add((layerId, index, before, new NeoObjectPlacementRecord(before.InstanceId,
                         position.Value, footprint, before.Order, before.AssetClassId, before.AssetValueId, before.Ownership)));
                 }
             }
-            if (objects.Count == 0) return;
+            if (objects is null || deltas is null) return;
 
             var tiles = new List<(string layer, TileLayerIndex index, int slot, NeoTilePlacementRecord before, NeoTilePlacementRecord after)>();
-            foreach (string layerId in primitive.ResolveTileLayerIds())
+            foreach (string layerId in TileLayerIds)
             {
                 var index = GetTileLayerIndex(layerId);
                 var proposed = new HashSet<(string source, Vector2Int cell)>();

@@ -392,6 +392,10 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class FunctionWithReturnType
     {
+        /// <summary>Set once the runtime has validated this body's instruction metadata; instructions are immutable after load. The compiler revision stamp is still checked on every execution.</summary>
+        [Newtonsoft.Json.JsonIgnore]
+        internal bool validatedForExecution;
+
         /// <summary>
         /// The only NeoScript compiler revision this runtime executes.
         /// Revision history: revision 1 is the original wire shape;

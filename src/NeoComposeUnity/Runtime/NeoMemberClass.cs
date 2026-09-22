@@ -785,7 +785,9 @@ namespace NeoCompose.Runtime
                     $"Cannot write '{key}' on Class '{member.id}': its effective storage is immutable.");
             }
             bool recordWritable = ownership != NeoValueOwnership.Asset;
-            var plan = new NeoWritePlan(client);
+            // The plan is built where a write is certain: a scalar write that
+            // repeats the stored value returns before it exists.
+            NeoWritePlan plan;
 
             // Unordered lists never store membership in the array: a
             // whole-list assignment translates to Clear + Add-each, and
@@ -794,6 +796,7 @@ namespace NeoCompose.Runtime
             if (childMember is ListMember childListMember
                 && client.IsUnorderedList(childListMember))
             {
+                plan = new NeoWritePlan(client);
                 SetSerializedUnorderedList(plan, key, setValue, recordWritable);
                 return;
             }
@@ -822,6 +825,7 @@ namespace NeoCompose.Runtime
                         throw new System.InvalidOperationException(
                             $"Cannot rebind '{key}' on static Class '{member.id}': a static record's value map is authored data. Only the stamped leaf's own value may be written.");
                     }
+                    plan = new NeoWritePlan(client);
                     string importedValueId = client.ImportValueReference(
                         plan,
                         childOwnership,
@@ -865,6 +869,7 @@ namespace NeoCompose.Runtime
                 // A shadow of a stamped collection row keeps the immutable
                 // stamp (spec Decision 9/16); a row that predates the stamp
                 // recomputes the identical value from this record's env.
+                plan = new NeoWritePlan(client);
                 next.mapKey = existing.mapKey;
                 next.genericBindings = existing.genericBindings;
                 NeoGenericResolution.StampGenericBindings(client, childMember, next, GenericEnv);
@@ -897,6 +902,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Cannot write '{key}' on static Class '{member.id}': the stamped leaf has no authored value to shadow, and a static record cannot gain new keys at runtime. Author a value for '{key}' in the web editor.");
             }
+            plan = new NeoWritePlan(client);
             string newValueId;
             if (setValue?.isValueReference == true)
             {

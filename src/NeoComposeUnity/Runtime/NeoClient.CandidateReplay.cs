@@ -23,6 +23,8 @@ namespace NeoCompose.Runtime
         {
             if (!virtualInstanceReplayReady || isReplayingVirtualInstance) return null;
             CandidateReplay? candidate = null;
+            HashSet<string>? completeLocalRoots = null;
+            HashSet<string>? changedPaths = null;
             var pending = new Queue<string>(plan.Rows.Keys.Select(key => key.id));
             foreach (var write in plan.Rows) EnqueueReplayFields(pending, write.Key.id, plan);
             foreach (var write in plan.Rows)
@@ -52,7 +54,7 @@ namespace NeoCompose.Runtime
                     if (constructorArgumentRootsByValueId.TryGetValue(id, out var dependencies))
                         foreach (string dependent in dependencies)
                         {
-                            AddRoot(dependent);
+                            AddRoot(dependent, requiresReplay: true);
                         }
                 }
             }
@@ -69,13 +71,20 @@ namespace NeoCompose.Runtime
                     candidate.ReplacedConstructionRoots.Add(write.Key.id);
             return candidate;
 
-            void AddRoot(string id)
+            void AddRoot(string id, bool requiresReplay = false)
             {
+                if (candidate?.AffectedRoots.Contains(id) == true) return;
+                if (!requiresReplay && completeLocalRoots?.Contains(id) == true) return;
+                if (!requiresReplay && CanUseCompleteLocalGraph(plan, id, ref changedPaths))
+                {
+                    (completeLocalRoots ??= new HashSet<string>()).Add(id);
+                    return;
+                }
                 candidate ??= new CandidateReplay(this, plan);
                 if (!candidate.AffectedRoots.Add(id)) return;
                 pending.Enqueue(id);
                 if (nestedReplayRootsByOwner.TryGetValue(id, out var nestedRoots))
-                    foreach (string nestedRoot in nestedRoots) AddRoot(nestedRoot);
+                    foreach (string nestedRoot in nestedRoots) AddRoot(nestedRoot, requiresReplay: true);
                 if (virtualValueIdsByRoot.TryGetValue(id, out var values)) candidate.HiddenVirtualIds.UnionWith(values);
                 if (virtualFootprintByRoot.TryGetValue(id, out var footprint))
                     foreach (string valueId in footprint)
@@ -86,6 +95,81 @@ namespace NeoCompose.Runtime
                         EnqueueReplayFields(pending, valueId, valueId == id ? plan : null);
                     }
             }
+        }
+
+        private bool CanUseCompleteLocalGraph(NeoWritePlan plan, string rootId, ref HashSet<string>? changedPaths)
+        {
+            // Fresh constructors and clones already supply their complete graph.
+            // Replaying them only to recover defaults duplicates construction.
+            // Graphs with virtual defaults and changed recipes still require replay.
+            if (CurrentChangeSource == NeoChangeSource.External
+                || virtualValueIdsByRoot.TryGetValue(rootId, out var virtualIds) && virtualIds.Count != 0
+                || virtualClassParentIdsByRoot.TryGetValue(rootId, out var virtualParents) && virtualParents.Count != 0
+                || plan.Resolve(rootId) is not ObjectMemberValue { classId: not null, value: not null } root)
+                return false;
+            if (TryGetCommittedValue(rootId, out MemberValue? previous)
+                && !NeoSemanticJson.MemberRowsEqual(previous, root, ignoreObjectFields: true, ignorePlacement: true)) return false;
+            if (!plan.TryGetOwnership(rootId, out NeoValueOwnership rootOwnership)) return false;
+            var touched = changedPaths ??= ChangedReplayPaths(plan);
+            var visited = new HashSet<(NeoValueOwnership, string)>();
+            return Complete(rootId, null, rootOwnership);
+
+            bool Complete(string id, Member? member, NeoValueOwnership ownership)
+            {
+                if (!visited.Add((ownership, id))) return true;
+                MemberValue? row;
+                if (!plan.TryGetWritable(ownership, id, out row)
+                    && !data.values.TryGetValue(id, out row)) return false;
+                if (row is null || row.IsRemoved) return false;
+                if (row is ObjectMemberValue { classId: null, value: not null } && member is ClassMember) return false;
+                if (row is ObjectMemberValue { classId: not null, value: not null } obj)
+                    foreach (var field in ResolveStoredInstanceSchema(obj.classId))
+                        if (TryGetMember(field.memberId, out Member? fieldMember)
+                            && NeoGeneratedTypesSupport.IsStoredConstructorMember(fieldMember)
+                            && !obj.value.ContainsKey(field.schemaKey))
+                        {
+                            // A previous expansion with no virtual defaults
+                            // established this absent field. Changes to actual
+                            // constructor inputs bypass this path in AddRoot.
+                            if (id == rootId && previous is ObjectMemberValue { value: not null } oldRoot
+                                && !oldRoot.value.ContainsKey(field.schemaKey)
+                                && virtualFootprintByRoot.ContainsKey(rootId)) continue;
+                            return false;
+                        }
+                foreach (var link in EnumerateOwnedChildLinks(row, member))
+                {
+                    // An existing expansion with no virtual remainder already
+                    // proved unchanged children. Visit only newly attached data,
+                    // never an unrelated inventory or world under a sibling.
+                    if (id == rootId && !touched.Contains(link.valueId) && virtualFootprintByRoot.ContainsKey(rootId)
+                        && previous is ObjectMemberValue { value: not null } prior
+                        && row is ObjectMemberValue { value: not null } current
+                        && current.value.Any(field => field.Value == link.valueId
+                            && prior.value.TryGetValue(field.Key, out string? oldId) && oldId == link.valueId)) continue;
+                    if (!Complete(link.valueId, link.member, DeclaredOwnership(link.member!) ?? ownership)) return false;
+                }
+                // Unordered entries are independent rows in this write plan;
+                // they are validated and considered for replay individually.
+                return true;
+            }
+        }
+
+        private HashSet<string> ChangedReplayPaths(NeoWritePlan plan)
+        {
+            var paths = new HashSet<string>();
+            var pending = new Queue<string>(plan.Rows.Keys.Select(key => key.id));
+            foreach (var write in plan.Rows)
+            {
+                if (write.Value?.containerId is string next) pending.Enqueue(next);
+                if (PreviousReplayRow(write.Key.id)?.containerId is string previous) pending.Enqueue(previous);
+            }
+            while (pending.Count != 0)
+            {
+                string id = pending.Dequeue();
+                if (!paths.Add(id)) continue;
+                foreach (string parent in PlacementParents(id)) pending.Enqueue(parent);
+            }
+            return paths;
         }
 
         private bool CanReuseVirtualExpansionForLocalOverlay(NeoWritePlan plan, string id, out bool unchanged)
@@ -462,6 +546,7 @@ namespace NeoCompose.Runtime
 
             internal void SetAllocation(string id, MemberValue? row)
             {
+                if (row is not null && !Allocations.ContainsKey(id)) Plan.Client.RecordReplayAllocation(id);
                 if (Allocations.TryGetValue(id, out MemberValue? oldRow))
                     foreach (string child in PlacementChildIds(oldRow))
                         if (Parents.TryGetValue(child, out var parents)) parents.Remove(id);

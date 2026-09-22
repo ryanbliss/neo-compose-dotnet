@@ -21,15 +21,23 @@ namespace NeoCompose.Runtime
             NeoValueOwnership sourceOwnership = value.ValueOwnership;
             if (sourceOwnership == NeoValueOwnership.Asset)
                 throw new InvalidOperationException("Spawn cannot adopt an immutable asset object.");
-            if (TryFindOwnedParent(sourceOwnership, valueId, out string? parentId))
+            bool owned = TryFindOwnedParent(sourceOwnership, valueId, out string? parentId);
+            if (owned)
                 throw new InvalidOperationException($"Object '{valueId}' is already owned by '{parentId}'. Clone it explicitly before spawning it again.");
             if (sourceOwnership == targetOwnership) return;
             if (sourceOwnership != NeoValueOwnership.Session || targetOwnership != NeoValueOwnership.Save)
                 throw new InvalidOperationException($"Cannot adopt object '{valueId}' from {sourceOwnership} into {targetOwnership}.");
-            if (BuildReachableWritableValueIds(sourceOwnership).Contains(valueId))
+            // A freshly constructed graph usually has no incoming edge at all.
+            // Prove that from its indexed parents before walking the whole
+            // Session graph; the proof is conservative and falls back to the
+            // full walk whenever any root or edge is possible.
+            bool bound = !CanProveUnreachable(sourceOwnership, new[] { valueId })
+                && BuildReachableWritableValueIds(sourceOwnership).Contains(valueId);
+            if (bound)
                 throw new InvalidOperationException($"Object '{valueId}' is a bound Session value and cannot be moved into Save. Clone it explicitly before spawning it.");
-            if (OwnedValueGraphCollidesWithOwnership(
-                    sourceOwnership, targetOwnership, valueId, value.BackingNode.member, new HashSet<string>()))
+            bool collides = OwnedValueGraphCollidesWithOwnership(
+                    sourceOwnership, targetOwnership, valueId, value.BackingNode.member, new HashSet<string>());
+            if (collides)
                 throw new InvalidOperationException($"Object '{valueId}' has rows already owned by the destination graph.");
         }
 

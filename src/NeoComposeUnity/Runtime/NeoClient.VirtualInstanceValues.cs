@@ -99,18 +99,18 @@ namespace NeoCompose.Runtime
 
         private int awaitingVirtualInstanceChildDepth;
         // Constructor replay publishes a temporary Session graph before all
-        // member initializers have run. Only rows allocated after this
-        // snapshot may defer a missing computed child; a preexisting sibling
+        // member initializers have run. Only rows allocated in this
+        // scope may defer a missing computed child; a preexisting sibling
         // read during the same initializer must keep its ordinary behavior.
-        private HashSet<string>? replayingVirtualInstancePreexistingSessionValueIds;
+        private HashSet<string>? replayingVirtualInstanceAllocatedSessionValueIds;
 
         internal bool IsAwaitingVirtualInstanceInitializers(
             ObjectMemberValue? row) =>
             (isReplayingVirtualInstance
                 && row is not null
                 && sessionValues.ContainsKey(row.id)
-                && replayingVirtualInstancePreexistingSessionValueIds is not null
-                && !replayingVirtualInstancePreexistingSessionValueIds.Contains(row.id))
+                && replayingVirtualInstanceAllocatedSessionValueIds is not null
+                && replayingVirtualInstanceAllocatedSessionValueIds.Contains(row.id))
             // Replay also reaches rows that are NOT in the temporary Session
             // graph: an implicit construction delegates its content to the
             // placement declaration's authored default, and a variant-stamped
@@ -922,6 +922,55 @@ namespace NeoCompose.Runtime
         }
 
         private static readonly Unity.Profiling.ProfilerMarker ReplayRootMarker = new("NeoCompose.Replay.Root");
+        private static readonly Unity.Profiling.ProfilerMarker ReplayConstructMarker = new("NeoCompose.Replay.Construct");
+        private static readonly Unity.Profiling.ProfilerMarker ReplayIndexMarker = new("NeoCompose.Replay.Index");
+        private static readonly Unity.Profiling.ProfilerMarker ReplayOverlayMarker = new("NeoCompose.Replay.Overlay");
+        private static readonly Unity.Profiling.ProfilerMarker ReplayCleanupMarker = new("NeoCompose.Replay.Cleanup");
+
+        private ReplayAllocationScope? replayAllocationScope;
+
+        private void RecordReplayAllocation(string id)
+        {
+            for (var scope = replayAllocationScope; scope is not null; scope = scope.Parent)
+                scope.Ids.Add(id);
+        }
+
+        // Temporary rows belong to a replay, not to the whole Session store.
+        // Nested scopes include their allocations in the enclosing scope so an
+        // initializer failure also reclaims rows created before the failure.
+        private sealed class ReplayAllocationScope : IDisposable
+        {
+            private readonly NeoClient client;
+            internal readonly ReplayAllocationScope? Parent;
+            internal readonly HashSet<string> Ids = new(StringComparer.Ordinal);
+            internal readonly List<NeoMember> Nodes = new();
+
+            internal ReplayAllocationScope(NeoClient client)
+            {
+                this.client = client;
+                Parent = client.replayAllocationScope;
+                client.replayAllocationScope = this;
+            }
+
+            public void Dispose()
+            {
+                using var marker = ReplayCleanupMarker.Auto();
+                client.replayAllocationScope = Parent;
+                // Retire wrappers before removing rows so no listener can read
+                // a partially reclaimed constructor graph.
+                foreach (NeoMember node in Nodes)
+                    if (!node.isDisposed && (node.overrideValueId ?? node.value?.id) is string id && Ids.Contains(id))
+                        node.Dispose();
+                if (client.candidateReplay is not null)
+                {
+                    foreach (string id in Ids) client.candidateReplay.SetAllocation(id, null);
+                    return;
+                }
+                foreach (string id in Ids)
+                    if (client.sessionData.values.ContainsKey(id))
+                        client.RemoveTemporaryWritableValueGraph(NeoValueOwnership.Session, id);
+            }
+        }
 
         private PreparedVirtualExpansion ExpandVirtualInstanceRootCore(ObjectMemberValue instanceRoot, bool prepareOnly = false, NeoValueOwnership? replayOwnership = null)
         {
@@ -958,9 +1007,7 @@ namespace NeoCompose.Runtime
                 out NeoValueOwnership resolvedOwnership)
                     ? resolvedOwnership
                     : ResolveAuthoredOwnership(instanceRoot.id, instanceRoot));
-            var before = new HashSet<string>(
-                candidateReplay is not null ? candidateReplay.Allocations.Keys : sessionValues.Keys,
-                StringComparer.Ordinal);
+            using var allocations = new ReplayAllocationScope(this);
             ClassMember? placementMember = null;
             if (TryInferMemberForValueId(
                     instanceRoot.id,
@@ -983,8 +1030,8 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, string>?
                 previousReplayingGenericBindings =
                     replayingVirtualInstanceGenericBindings;
-            HashSet<string>? previousPreexistingSessionValueIds =
-                replayingVirtualInstancePreexistingSessionValueIds;
+            HashSet<string>? previousAllocatedSessionValueIds =
+                replayingVirtualInstanceAllocatedSessionValueIds;
             isReplayingVirtualInstance = true;
             replayingVirtualInstanceRootId = instanceRoot.id;
             replayingVirtualInstanceClassId = instanceRoot.classId;
@@ -994,10 +1041,11 @@ namespace NeoCompose.Runtime
             // temporary Session graph. Keep the outer boundary so those rows
             // still await their remaining member initializers.
             if (!wasReplaying)
-                replayingVirtualInstancePreexistingSessionValueIds = before;
+                replayingVirtualInstanceAllocatedSessionValueIds = allocations.Ids;
             var captureReads = CaptureValueReads(dependencyIds);
             try
             {
+                using var constructMarker = ReplayConstructMarker.Auto();
                 if (!IsVirtualInstanceRoot(instanceRoot))
                 {
                     var declaration = (ClassMember)placementMember!.ShallowClone();
@@ -1029,8 +1077,8 @@ namespace NeoCompose.Runtime
                     previousReplayingClassArguments;
                 replayingVirtualInstanceGenericBindings =
                     previousReplayingGenericBindings;
-                replayingVirtualInstancePreexistingSessionValueIds =
-                    previousPreexistingSessionValueIds;
+                replayingVirtualInstanceAllocatedSessionValueIds =
+                    previousAllocatedSessionValueIds;
             }
 
             string temporaryRootId = constructed.value?.id
@@ -1044,31 +1092,33 @@ namespace NeoCompose.Runtime
                     $"P75 replay for '{instanceRoot.id}' lost temporary root '{temporaryRootId}'.");
             }
 
-            try
+            var claimedVirtualIds = new Dictionary<string, string>(StringComparer.Ordinal);
+            VirtualExpansionNode graph;
+            using (ReplayIndexMarker.Auto()) graph = IndexVirtualExpansion(
+                replayBoundary?.NamespaceRoot ?? instanceRoot,
+                expandedRoot,
+                constructed.member,
+                replayBoundary?.Path ?? "$",
+                claimedVirtualIds,
+                new Dictionary<MemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>>());
+            if (replayBoundary is not null)
             {
-                var claimedVirtualIds = new Dictionary<string, string>(StringComparer.Ordinal);
-                VirtualExpansionNode graph = IndexVirtualExpansion(
-                    replayBoundary?.NamespaceRoot ?? instanceRoot,
-                    expandedRoot,
-                    constructed.member,
-                    replayBoundary?.Path ?? "$",
-                    claimedVirtualIds,
-                    new Dictionary<MemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>>());
-                if (replayBoundary is not null)
-                {
-                    graph.virtualId = instanceRoot.id;
-                    RestoreNestedCallSiteFields(graph, replayBoundary);
-                }
-                var expansion = new PreparedVirtualExpansion(instanceRoot);
-                foreach (string dependency in dependencyIds)
-                    if (dependency.StartsWith("static:", StringComparison.Ordinal)
-                        || dependency.StartsWith("identity:", StringComparison.Ordinal)
-                        || dependency.StartsWith("field:", StringComparison.Ordinal)
-                        || before.Contains(dependency) || sessionData.values.ContainsKey(dependency)
-                        || data.values.ContainsKey(dependency) || saveData.values.ContainsKey(dependency)
-                        || virtualValues.ContainsKey(dependency)
-                        || candidateReplay?.Values.ContainsKey(dependency) == true)
-                        expansion.Dependencies.Add(dependency);
+                graph.virtualId = instanceRoot.id;
+                RestoreNestedCallSiteFields(graph, replayBoundary);
+            }
+            var expansion = new PreparedVirtualExpansion(instanceRoot);
+            foreach (string dependency in dependencyIds)
+                if (dependency.StartsWith("static:", StringComparison.Ordinal)
+                    || dependency.StartsWith("identity:", StringComparison.Ordinal)
+                    || dependency.StartsWith("field:", StringComparison.Ordinal)
+                    || (candidateReplay?.Allocations.ContainsKey(dependency) == true && !allocations.Ids.Contains(dependency))
+                    || sessionData.values.ContainsKey(dependency)
+                    || data.values.ContainsKey(dependency) || saveData.values.ContainsKey(dependency)
+                    || virtualValues.ContainsKey(dependency)
+                    || candidateReplay?.Values.ContainsKey(dependency) == true)
+                    expansion.Dependencies.Add(dependency);
+            using (ReplayOverlayMarker.Auto())
+            {
                 OverlaySparseInstance(
                     expansion,
                     graph,
@@ -1078,67 +1128,32 @@ namespace NeoCompose.Runtime
                 RemapVirtualDelegateReceivers(graph, expansion);
                 if (replayBoundary is not null) expansion.Boundary = replayBoundary;
                 else PartitionNestedReplay(graph, expansion, instanceRoot);
-                if (prepareOnly) return expansion;
-                InstallVirtualExpansion(expansion);
-                // The sweep above only covers ids that were ALREADY virtual.
-                // A member the previous pass found materialized contributed no
-                // prior id, so a pass that turns it back into a virtual one —
-                // an imperative pin being cleared, an override being removed —
-                // released nothing, and the wrapper still bound to that id
-                // keeps serving the row it held when the override vanished
-                // (null, since the shadow it named is gone). Release those too:
-                // the release set is every id this root answers afterwards, not
-                // just the ones it answered before.
-                if (virtualValueIdsByRoot.TryGetValue(
-                        instanceRoot.id,
-                        out HashSet<string>? publishedVirtualIds))
-                {
-                    var newlyVirtualIds = new HashSet<string>(
-                        publishedVirtualIds,
-                        StringComparer.Ordinal);
-                    newlyVirtualIds.ExceptWith(releasedVirtualIds);
-                    if (newlyVirtualIds.Count > 0)
-                    {
-                        DisposeWrappersTouchingRows(newlyVirtualIds);
-                    }
-                }
-                return expansion;
             }
-            finally
+            if (prepareOnly) return expansion;
+            InstallVirtualExpansion(expansion);
+            // The sweep above only covers ids that were ALREADY virtual.
+            // A member the previous pass found materialized contributed no
+            // prior id, so a pass that turns it back into a virtual one —
+            // an imperative pin being cleared, an override being removed —
+            // released nothing, and the wrapper still bound to that id
+            // keeps serving the row it held when the override vanished
+            // (null, since the shadow it named is gone). Release those too:
+            // the release set is every id this root answers afterwards, not
+            // just the ones it answered before.
+            if (virtualValueIdsByRoot.TryGetValue(
+                    instanceRoot.id,
+                    out HashSet<string>? publishedVirtualIds))
             {
-                if (candidateReplay is not null)
+                var newlyVirtualIds = new HashSet<string>(
+                    publishedVirtualIds,
+                    StringComparer.Ordinal);
+                newlyVirtualIds.ExceptWith(releasedVirtualIds);
+                if (newlyVirtualIds.Count > 0)
                 {
-                    var allocatedIds = candidateReplay.Allocations.Keys.Where(id => !before.Contains(id)).ToHashSet();
-                    foreach (NeoMember node in candidateReplay.Nodes.Values.ToArray())
-                        if (node.value is MemberValue row && allocatedIds.Contains(row.id)) node.Dispose();
-                    foreach (string id in allocatedIds) candidateReplay.SetAllocation(id, null);
-                }
-                else
-                {
-                // Replay constructs live wrappers over its temporary Session
-                // graph. Retire them before the first row-removal event fires:
-                // otherwise a wrapper can reinitialize against a half-deleted
-                // graph and try to materialize an init-backed declaration as a
-                // literal while cleanup is still in progress.
-                string[] temporaryIds = sessionValues.Keys
-                    .Where(id => !before.Contains(id))
-                    .ToArray();
-                DisposeWrappersTouchingRows(temporaryIds);
-                IReadOnlyCollection<string> removed = RemoveTemporaryWritableValueGraph(
-                    NeoValueOwnership.Session,
-                    temporaryRootId);
-                DisposeWrappersTouchingRows(removed);
-                foreach (string leakedId in sessionValues.Keys
-                    .Where(id => !before.Contains(id))
-                    .ToArray())
-                {
-                    IReadOnlyCollection<string> leaked = RemoveTemporaryWritableValueGraph(
-                        NeoValueOwnership.Session,
-                        leakedId);
-                    DisposeWrappersTouchingRows(leaked);
-                }
+                    DisposeWrappersTouchingRows(newlyVirtualIds);
                 }
             }
+            return expansion;
         }
 
         private NeoMemberClassWritable ReplayVirtualInstance(

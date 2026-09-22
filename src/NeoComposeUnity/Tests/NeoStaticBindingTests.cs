@@ -2338,9 +2338,9 @@ namespace NeoCompose.Tests
                 out StringMemberValue? savedName));
             Assert.AreEqual("Grace", savedName!.value);
             Assert.IsFalse(ctx.rowCacheKeysByRow.ContainsKey(
-                $"{NeoValueOwnership.Session}:{rootId}"));
+                new NSGetterEvaluator.RowKey(NeoValueOwnership.Session, rootId)));
             Assert.IsTrue(ctx.rowCacheKeysByRow.ContainsKey(
-                $"{NeoValueOwnership.Save}:{rootId}"));
+                new NSGetterEvaluator.RowKey(NeoValueOwnership.Save, rootId)));
         }
 
         [Test]
@@ -2718,7 +2718,7 @@ namespace NeoCompose.Tests
                 out ObjectMemberValue? _));
             Assert.IsNull(NSGetterEvaluator.FindRowIdByReference(received, ctx));
             Assert.IsFalse(ctx.rowCacheKeysByRow.ContainsKey(
-                $"{NeoValueOwnership.Session}:{receivedId}"));
+                new NSGetterEvaluator.RowKey(NeoValueOwnership.Session, receivedId!)));
             foreach (NeoMember node in client.nodes.Values)
             {
                 Assert.AreNotEqual(receivedId, node.overrideValueId);

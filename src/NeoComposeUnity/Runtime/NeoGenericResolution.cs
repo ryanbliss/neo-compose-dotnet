@@ -151,9 +151,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             string classId)
         {
-            var chain = NeoSchemaClassInheritance.ResolveChain(
-                classId,
-                id => client.TryGetClass(id, out NeoSchemaClass? match) ? match : null);
+            var chain = client.ResolveClassInheritanceChain(classId);
             return ResolveEnv(chain);
         }
 
@@ -258,9 +256,7 @@ namespace NeoCompose.Runtime
             string effectiveClassId,
             IReadOnlyDictionary<string, GenericBinding>? classArguments)
         {
-            var chain = NeoSchemaClassInheritance.ResolveChain(
-                effectiveClassId,
-                id => client.TryGetClass(id, out NeoSchemaClass? match) ? match : null);
+            var chain = client.ResolveClassInheritanceChain(effectiveClassId);
             return ResolveInstanceEnv(chain, classArguments);
         }
 
@@ -1463,9 +1459,7 @@ namespace NeoCompose.Runtime
             string valueClassId,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> contextEnv)
         {
-            var chain = NeoSchemaClassInheritance.ResolveChain(
-                valueClassId,
-                id => client.TryGetClass(id, out NeoSchemaClass? match) ? match : null);
+            var chain = client.ResolveClassInheritanceChain(valueClassId);
             if (chain.Count == 0)
             {
                 return NeoSlotAdmission.Reject(

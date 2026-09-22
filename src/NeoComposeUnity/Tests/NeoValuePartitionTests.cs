@@ -496,6 +496,58 @@ namespace NeoCompose.Tests
 
         /// <summary>Tile resolution requires a generated-value factory for
         /// the tile type; queries otherwise mirror production wiring.</summary>
+        /// <summary>
+        /// The authored ownership map is built once at construction over the
+        /// main map. A Save-declared unordered list inside a partition (a
+        /// world grid's placed objects) only becomes reachable when the
+        /// partition merges, so the map must be rebuilt on load — and forget
+        /// those rows on unload. Neowyn's authored boulder threw "Cannot
+        /// mutate value ... because it is not save-owned" from ApplyDamage
+        /// because the walk never saw its partition-resident container.
+        /// </summary>
+        [Test]
+        public void PartitionLoad_ClassifiesSaveDeclaredEntries_AndUnloadForgetsThem()
+        {
+            ProjectData data = BuildPartitionedProjectData();
+            data.members["tile-layer-link-tiles-member"].Storage = NeoMemberStorage.Save;
+            data.classes["root-class"].schema["Grid"] = "root-grid-member";
+            data.members["root-grid-member"] = new ClassMember
+            {
+                id = "root-grid-member",
+                projectId = "project-a",
+                name = "Grid",
+                kind = MemberKind.Class,
+                classId = GridClassId,
+            };
+            ((ObjectMemberValue)data.values["root-assets-value"]).value["Grid"] = "town-grid";
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+
+            // Construction auto-loaded the partition from wrapper binding,
+            // after the constructor's own ownership pass had already run.
+            CollectionAssert.Contains(client.LoadedValuePartitions.ToArray(), WorldPartitionKey);
+            AssertOwnership(client, "floor-1", NeoValueOwnership.Save);
+            AssertOwnership(client, "floor-1-cell", NeoValueOwnership.Save);
+            AssertOwnership(client, "background-link", NeoValueOwnership.Asset);
+
+            client.UnloadValuePartition(WorldPartitionKey);
+            Assert.IsFalse(client.TryGetValueOwnership("floor-1", out _));
+
+            client.LoadValuePartition(WorldPartitionKey);
+            AssertOwnership(client, "floor-1", NeoValueOwnership.Save);
+
+            // The throwing path (NeoScriptExecutor.EnsureWritableRow) consults
+            // exactly this ownership answer before staging a Save write.
+            Assert.IsTrue(client.EnsureWritableShadow(NeoValueOwnership.Save, "floor-1"));
+            Assert.IsTrue(client.saveValues.TryGetValue("floor-1", out var shadow));
+            Assert.AreEqual(WorldPartitionKey, shadow!.mapKey);
+        }
+
+        private static void AssertOwnership(NeoClient client, string valueId, NeoValueOwnership expected)
+        {
+            Assert.IsTrue(client.TryGetValueOwnership(valueId, out var ownership), valueId);
+            Assert.AreEqual(expected, ownership, valueId);
+        }
+
         private static NeoReadOnlyTileGridPrimitive ResolvePrimitive(NeoClient client)
         {
             var readOnlyFactories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>

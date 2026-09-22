@@ -114,6 +114,35 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void LookupCacheKeepsLayerIdsAcrossPlacementWrites()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            var primitive = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+            var cache = primitive.LookupCache;
+            var objectLayers = cache.ObjectLayerIds;
+            var tileLayers = cache.TileLayerIds;
+            CollectionAssert.AreEqual(primitive.ResolveObjectLayerIds(), objectLayers);
+            CollectionAssert.AreEqual(primitive.ResolveTileLayerIds(), tileLayers);
+            CollectionAssert.Contains(objectLayers, ObjectsLayerClassId);
+            CollectionAssert.Contains(tileLayers, BackgroundLayerClassId);
+
+            client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue
+            {
+                id = "shop-1-position", value = new NeoVector3Value { x = 30, y = 40 },
+            });
+            Assert.AreSame(objectLayers, cache.ObjectLayerIds, "An object move must not walk the grid's link rows again.");
+            Assert.AreSame(tileLayers, cache.TileLayerIds, "An object move must not walk the grid's link rows again.");
+
+            // A new placement is a structural write; the ids are re-resolved
+            // and still match the primitive.
+            Assert.IsTrue(primitive.TrySetTile(BackgroundLayerClassId, new Vector2Int(40, 40), TileClassId, new[] { TileClassId }).Ok);
+            CollectionAssert.AreEqual(primitive.ResolveObjectLayerIds(), cache.ObjectLayerIds);
+            CollectionAssert.AreEqual(primitive.ResolveTileLayerIds(), cache.TileLayerIds);
+        }
+
+        [Test]
         public void RemovingANewTileClearsTheLookupAndLiveTilemap()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());

@@ -1633,11 +1633,7 @@ namespace NeoCompose.Runtime
 
                     MergedSchemaEntry? matchedEntry = null;
                     foreach (MergedSchemaEntry entry in NeoSchemaClassInheritance.MergeStoredInstanceSchema(
-                        NeoSchemaClassInheritance.ResolveChain(
-                            parentClass.id,
-                            id => client.TryGetClass(id, out NeoSchemaClass? candidate)
-                                ? candidate
-                                : null),
+                        client.ResolveClassInheritanceChain(parentClass.id),
                         id => client.TryGetMember(id, out Member? candidate)
                             ? candidate
                             : null))
@@ -2609,8 +2605,7 @@ namespace NeoCompose.Runtime
                         || parent is not ObjectMemberValue { classId: { } classId })
                         continue;
                     bool bound = false;
-                    foreach (NeoSchemaClass owner in NeoSchemaClassInheritance.ResolveChain(
-                        classId, id => client.TryGetClass(id, out NeoSchemaClass? match) ? match : null))
+                    foreach (NeoSchemaClass owner in client.ResolveClassInheritanceChain(classId))
                     {
                         if (!owner.schema.ContainsValue(target.memberId!)) continue;
                         target.valueId = parentId;
@@ -3133,11 +3128,7 @@ namespace NeoCompose.Runtime
             if (!client.TryGetClass(actualClassId, out NeoSchemaClass? _)) return false;
             try
             {
-                foreach (NeoSchemaClass schemaClass in NeoSchemaClassInheritance.ResolveChain(
-                    actualClassId,
-                    id => client.TryGetClass(id, out NeoSchemaClass? candidate)
-                        ? candidate
-                        : null))
+                foreach (NeoSchemaClass schemaClass in client.ResolveClassInheritanceChain(actualClassId))
                 {
                     if (schemaClass.id == expectedClassId) return true;
                 }
@@ -5381,7 +5372,7 @@ namespace NeoCompose.Runtime
             return member.Requirement == NeoMemberRequirementKind.Required && !HasExplicitDefaultValue(member);
         }
 
-        private static bool IsStoredConstructorMember(Member member)
+        internal static bool IsStoredConstructorMember(Member member)
         {
             return member.Modifier != NeoMemberModifierKind.Static
                 && member.Mutability != NeoMemberMutabilityKind.ReadOnly
@@ -6217,11 +6208,7 @@ namespace NeoCompose.Runtime
             }
             IList<MergedSchemaEntry> resolved =
                 NeoSchemaClassInheritance.MergeInstanceSchema(
-                NeoSchemaClassInheritance.ResolveChain(
-                    classId,
-                    id => client.TryGetClass(id, out NeoSchemaClass? match)
-                        ? match
-                        : null),
+                client.ResolveClassInheritanceChain(classId),
                 id => client.TryGetMember(id, out Member? member)
                     ? member
                     : null);
@@ -7596,6 +7583,23 @@ namespace NeoCompose.Runtime
             {
                 throw new InvalidOperationException(
                     $"NSProperty getter returned class value id '{valueId}', but the backing row does not declare a classId and its owning member could not be inferred.");
+            }
+
+            // Generated factories memoize by declaration, placement and storage.
+            // Check before building a node: a hit must not construct and
+            // register a replacement node tree, and a read that repeats every
+            // frame (the equipped item, the placement target) then allocates
+            // nothing after its first resolution.
+            bool hasOwnership = client.TryGetValueOwnership(valueId, out NeoValueOwnership resolvedOwnership);
+            NeoValueOwnership nodeOwnership = hasOwnership && resolvedOwnership != NeoValueOwnership.Asset
+                ? resolvedOwnership
+                : NeoValueOwnership.Asset;
+            if ((!saved || nodeOwnership != NeoValueOwnership.Asset)
+                && client.TryGetGeneratedClassValue($"__neo_nsg_class_{classId}", valueId!, nodeOwnership, out NeoGeneratedClassValue? cachedValue)
+                && cachedValue.classId == classId
+                && cachedValue is T cachedTyped)
+            {
+                return cachedTyped;
             }
 
             client.TryInferMemberForValueId(valueId!, out Member? placement);

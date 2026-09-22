@@ -15,8 +15,7 @@ namespace NeoCompose.Runtime.NeoScript
     internal sealed class NeoScriptScope
     {
         private readonly Dictionary<string, object?> bindings;
-        private readonly Dictionary<string, List<string>> readOnlyBindings =
-            new(StringComparer.Ordinal);
+        private Dictionary<string, List<string>>? readOnlyBindings;
 
         internal NeoScriptScope(int capacity = 0)
         {
@@ -75,7 +74,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal void ResetLocals()
         {
             bindings.Clear();
-            readOnlyBindings.Clear();
+            readOnlyBindings?.Clear();
         }
 
         /// <summary>
@@ -86,7 +85,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal void ResetInvocationLocals(int parameterCount)
         {
             if (bindings.Count > parameterCount) bindings.Clear();
-            if (readOnlyBindings.Count > 0) readOnlyBindings.Clear();
+            readOnlyBindings?.Clear();
         }
 
         internal bool Remove(string bindingId) => bindings.Remove(bindingId);
@@ -101,6 +100,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal void MarkReadOnly(string bindingId, string error)
         {
+            readOnlyBindings ??= new(StringComparer.Ordinal);
             if (!readOnlyBindings.TryGetValue(
                     bindingId,
                     out List<string>? errors))
@@ -113,7 +113,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal void UnmarkReadOnly(string bindingId)
         {
-            if (!readOnlyBindings.TryGetValue(
+            if (readOnlyBindings is null || !readOnlyBindings.TryGetValue(
                     bindingId,
                     out List<string>? errors))
             {
@@ -125,7 +125,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal bool TryGetReadOnlyError(string bindingId, out string? error)
         {
-            if (readOnlyBindings.TryGetValue(
+            if (readOnlyBindings is not null && readOnlyBindings.TryGetValue(
                     bindingId,
                     out List<string>? errors)
                 && errors.Count > 0)

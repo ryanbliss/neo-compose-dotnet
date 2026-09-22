@@ -475,9 +475,7 @@ namespace NeoCompose.Runtime
                 {
                     if (member.Mutability == NeoMemberMutabilityKind.ReadOnly)
                     {
-                        return client.CreateDeclarationDefaultValue(
-                            member,
-                            $"__neo_readonly_default:{member.RuntimeDeclarationIdentity}") as TValue;
+                        return client.ReadOnlyDeclarationDefault(member) as TValue;
                     }
                     return MemberValueFactory.CreateFromDefault(
                         member,

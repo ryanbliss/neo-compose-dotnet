@@ -680,6 +680,37 @@ namespace NeoCompose.Tests
             assertCaptured(captured);
         }
 
+        [Test]
+        public void Compute_MemoHitReportsTheDependenciesTheEvaluationReported()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 5, createdAt = "x", updatedAt = "x" });
+            var node = new NeoMemberNSProperty(client, property, null);
+            var key = new NeoClient.GetterMemoKey(
+                NeoValueOwnership.Asset, "value-receiver", property.id, NeoValueOwnership.Asset);
+
+            var first = new HashSet<string>();
+            using (client.CaptureValueReads(first))
+            {
+                NSGetterResult miss = node.Compute("value-receiver");
+                Assert.IsTrue(miss.ok, miss.error);
+                Assert.AreEqual(5, Convert.ToInt32(miss.value));
+            }
+            Assert.IsTrue(client.TryGetMemoizedGetter(key, out _),
+                "A row-backed compute under dependency capture must still memoize.");
+            CollectionAssert.Contains(first, "value-target");
+
+            var second = new HashSet<string>();
+            using (client.CaptureValueReads(second)) Assert.AreEqual(5, Convert.ToInt32(node.Compute("value-receiver").value));
+            CollectionAssert.AreEquivalent(first, second, "A memo hit must report the reads the evaluation reported.");
+
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 9, createdAt = "x", updatedAt = "x" });
+            Assert.IsFalse(client.TryGetMemoizedGetter(key, out _), "A write to a read row must drop the entry.");
+            var third = new HashSet<string>();
+            using (client.CaptureValueReads(third)) Assert.AreEqual(9, Convert.ToInt32(node.Compute("value-receiver").value));
+            CollectionAssert.AreEquivalent(first, third);
+        }
+
         private static NeoClient BuildClient(
             out NSPropertyMember baseProperty,
             FunctionWithReturnType? baseSetter = null,

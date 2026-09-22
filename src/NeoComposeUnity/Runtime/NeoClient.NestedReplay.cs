@@ -44,13 +44,14 @@ namespace NeoCompose.Runtime
             using var capture = SuppressValueReads();
             bool found = ownership is NeoValueOwnership preferred ? TryGetValue(preferred, id, out row) : TryGetValue(id, out row);
             reads.Add(row is ObjectMemberValue { classId: not null } ? "identity:" + id : id);
+            getterValueReadCapture?.Add(row is ObjectMemberValue { classId: not null } ? "identity:" + id : id);
             return found;
         }
 
         internal void ReadReplayField(string? id, string key)
         {
             if (isReplayingVirtualInstance && id is not null)
-                capturedValueReads?.Add("field:" + id + "\n" + key);
+                NoteValueRead("field:" + id + "\n" + key);
         }
 
         private static string DependencyValueId(string dependency)
@@ -127,7 +128,7 @@ namespace NeoCompose.Runtime
                 && producer.Root?.id != id)
             {
                 producer.HasExternalReads = true;
-                capturedValueReads?.UnionWith(producer.Reads);
+                NoteValueReads(producer.Reads);
             }
         }
 

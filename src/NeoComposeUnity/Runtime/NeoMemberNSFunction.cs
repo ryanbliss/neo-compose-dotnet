@@ -305,6 +305,8 @@ namespace NeoCompose.Runtime
             ArgumentTypes = argumentTypes;
             Deferred = deferred;
             Profile = new Unity.Profiling.ProfilerMarker("NeoScript." + member.name);
+            HasGenericSignature = NeoNSFunctionRuntime.ContainsGeneric(returnTypeInfo)
+                || Array.Exists(argumentTypes, NeoNSFunctionRuntime.ContainsGeneric);
         }
 
         internal string MemberId { get; }
@@ -314,6 +316,24 @@ namespace NeoCompose.Runtime
         internal FunctionArgumentTypeInfo[] ArgumentTypes { get; }
         internal bool Deferred { get; }
         internal Unity.Profiling.ProfilerMarker Profile { get; }
+        // Receiver-bound generics are a property of the signature, not the call.
+        internal bool HasGenericSignature { get; }
+
+        // Diagnostic subjects depend only on the signature. Formatting them
+        // per call put three string allocations on every invocation.
+        private string? callSubject;
+        private string? returnSubject;
+        private string?[]? argumentSubjects;
+        internal string CallSubject =>
+            callSubject ??= $"NSFunction '{Member.name}' ({MemberId})";
+        internal string ReturnSubject =>
+            returnSubject ??= $"return value of NSFunction '{Member.name}'";
+        internal string ArgumentSubject(int index)
+        {
+            argumentSubjects ??= new string?[ArgumentTypes.Length];
+            return argumentSubjects[index]
+                ??= $"argument {index} '{ArgumentTypes[index].name}' of NSFunction '{Member.name}'";
+        }
     }
 
     internal static class NeoNSFunctionRuntime
@@ -397,7 +417,7 @@ namespace NeoCompose.Runtime
             args = NeoParameterDefaults.FillTrailingDefaults(
                 args,
                 function.ArgumentTypes,
-                $"NSFunction '{function.Member.name}' ({function.MemberId})");
+                function.CallSubject);
             if (ctx.functionCallStack.Count >= MaxCallableDepth)
             {
                 var names = new List<string>(ctx.functionCallStack.Count + 1);
@@ -424,17 +444,12 @@ namespace NeoCompose.Runtime
 
             TypeInfo effectiveReturnType = function.ReturnTypeInfo;
             TypeInfo[] effectiveArgumentTypes = function.ArgumentTypes;
-            if (isStatic
-                && (ContainsGeneric(function.ReturnTypeInfo)
-                    || Array.Exists(function.ArgumentTypes, ContainsGeneric)))
+            if (isStatic && function.HasGenericSignature)
             {
                 throw new NSGetterRuntimeError(
                     $"Static NSFunction '{function.Member.name}' cannot use receiver-bound Generic signature classes.");
             }
-            if (!isStatic
-                && (ContainsGeneric(function.ReturnTypeInfo)
-                || Array.Exists(function.ArgumentTypes, ContainsGeneric))
-               )
+            if (!isStatic && function.HasGenericSignature)
             {
                 IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
                     ResolveReceiverGenericEnv(client, receiver!, ctx, function);
@@ -470,7 +485,7 @@ namespace NeoCompose.Runtime
                         args[i],
                         effectiveArgumentTypes[i],
                         ctx,
-                        $"argument {i} '{argument.name}' of NSFunction '{function.Member.name}'");
+                        function.ArgumentSubject(i));
                 }
                 catch (Exception exception)
                 {
@@ -483,8 +498,7 @@ namespace NeoCompose.Runtime
             }
 
             NSGetterEvaluator.Context nestedCtx = ctx
-                .WithFunctionPushed(function.MemberId)
-                .WithThis(isStatic ? null : receiver);
+                .WithFunctionPushed(function.MemberId, isStatic ? null : receiver);
             NeoScriptExecutionResult execution = NeoScriptExecutor.Execute(
                 client,
                 action,
@@ -527,8 +541,7 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"NSFunction '{function.Member.name}' ended without returning a value; its compiled IR is stale or corrupt.");
             }
-            string subject =
-                $"return value of NSFunction '{function.Member.name}'";
+            string subject = function.ReturnSubject;
             object? normalized = NeoScriptValueMarshaller.Normalize(
                 client,
                 ctx.valueOwnership,
@@ -542,12 +555,15 @@ namespace NeoCompose.Runtime
                 effectiveReturnType,
                 ctx,
                 subject);
+            // Marshalling usually returns the evaluator's own value; reuse
+            // the executor's result instead of allocating a copy of it.
+            if (ReferenceEquals(normalized, execution.ReturnValue)) return execution;
             return NeoScriptExecutionResult.Completed(
                 returned: true,
                 normalized);
         }
 
-        private static bool ContainsGeneric(TypeInfo typeInfo)
+        internal static bool ContainsGeneric(TypeInfo typeInfo)
         {
             if (typeInfo.type == MemberKind.Generic) return true;
             TypeInfo? delegateReturn = typeInfo switch
@@ -1650,11 +1666,7 @@ namespace NeoCompose.Runtime
         {
             try
             {
-                foreach (NeoSchemaClass schemaClass in NeoSchemaClassInheritance.ResolveChain(
-                    actualClassId,
-                    id => client.TryGetClass(id, out NeoSchemaClass? candidate)
-                        ? candidate
-                        : null))
+                foreach (NeoSchemaClass schemaClass in client.ResolveClassInheritanceChain(actualClassId))
                 {
                     if (schemaClass.id == expectedClassId) return true;
                 }
