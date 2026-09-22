@@ -45,12 +45,6 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>
-    /// Shared mutation-capable NeoScript executor. Getters, NSFunctions,
-    /// setters, dialogue code actions, and collection callbacks supply their
-    /// own scope/context while sharing write targets, calls, and deferred
-    /// continuations.
-    /// </summary>
-    /// <summary>
     /// Validates or marshals a completed body's terminal result. The frame
     /// context is passed in so NSFunctions can share one normalizer per
     /// resolved signature instead of closing over each invocation's context.
@@ -59,6 +53,12 @@ namespace NeoCompose.Runtime
         NeoScriptExecutionResult terminal,
         NSGetterEvaluator.Context ctx);
 
+    /// <summary>
+    /// Shared mutation-capable NeoScript executor. Getters, NSFunctions,
+    /// setters, dialogue code actions, and collection callbacks supply their
+    /// own scope/context while sharing write targets, calls, and deferred
+    /// continuations.
+    /// </summary>
     internal static class NeoScriptExecutor
     {
         internal const int MaxLoopIterations = 10_000;

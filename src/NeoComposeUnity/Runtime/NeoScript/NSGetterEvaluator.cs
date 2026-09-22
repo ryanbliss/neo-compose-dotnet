@@ -1959,18 +1959,6 @@ namespace NeoCompose.Runtime.NeoScript
                 : memberId!;
         }
 
-        /// <summary>
-        /// The <c>{actionMemberName}[{owningRowId ?? "default"}]</c> frame a
-        /// failing listener is reported under — the <i>action</i> member and
-        /// the row it fanned out from, never the listener's own identity, so
-        /// both entry points and both runtimes name the same frame for the
-        /// same failure (P62 §3.1).
-        ///
-        /// <para>Built lazily from the owner
-        /// <see cref="ReadActionWithOwner"/> captured: naming the row is pure
-        /// bookkeeping that the overwhelmingly common no-failure path should
-        /// not pay for.</para>
-        /// </summary>
         // Separate from EvalPointer so the frame-name closure is only
         // allocated for action calls, not for every pointer evaluation.
         private static void EvalCallAction(
@@ -1996,6 +1984,18 @@ namespace NeoCompose.Runtime.NeoScript
                 () => ActionInvocationFrame(actionCall.action, owner, ctx));
         }
 
+        /// <summary>
+        /// The <c>{actionMemberName}[{owningRowId ?? "default"}]</c> frame a
+        /// failing listener is reported under — the <i>action</i> member and
+        /// the row it fanned out from, never the listener's own identity, so
+        /// both entry points and both runtimes name the same frame for the
+        /// same failure (P62 §3.1).
+        ///
+        /// <para>Built lazily from the owner
+        /// <see cref="ReadActionWithOwner"/> captured: naming the row is pure
+        /// bookkeeping that the overwhelmingly common no-failure path should
+        /// not pay for.</para>
+        /// </summary>
         private static string ActionInvocationFrame(
             Pointer pointer,
             object? owner,
@@ -2892,9 +2892,10 @@ namespace NeoCompose.Runtime.NeoScript
             }
             // Numeric path. Coerce every operand to double; ints round-trip.
             double folded = ToArithmeticOperand(operands[0]);
-            if (operands.Length == 1 && !IsArithmeticOp(op))
+            if (operands.Length == 1)
             {
-                throw new NSGetterRuntimeError($"Unknown arithmetic op '{op}'");
+                if (!IsArithmeticOp(op)) throw new NSGetterRuntimeError($"Unknown arithmetic op '{op}'");
+                if (op == ArithmeticOpKind.Addition) folded += 0d;
             }
             for (int i = 1; i < operands.Length; i++)
             {
@@ -2924,7 +2925,9 @@ namespace NeoCompose.Runtime.NeoScript
         {
             switch (op)
             {
-                case ArithmeticOpKind.Addition: return left + right;
+                // The TS evaluator folds addition from a 0 seed, which turns a
+                // -0 sum into +0; the trailing 0 keeps that parity.
+                case ArithmeticOpKind.Addition: return left + right + 0d;
                 case ArithmeticOpKind.Subtraction: return left - right;
                 case ArithmeticOpKind.Multiplication: return left * right;
                 case ArithmeticOpKind.Division:
