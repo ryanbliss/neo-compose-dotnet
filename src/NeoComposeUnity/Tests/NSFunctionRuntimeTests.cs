@@ -406,6 +406,100 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(new[] { "count-value" }, published, "Only the replaced child publishes.");
         }
 
+        [Test]
+        public void ScalarFieldWriteStoresTheChildWithoutAWritePlan()
+        {
+            var count = new IntMember { id = "count", name = "Count", kind = MemberKind.Int,
+                Storage = NeoMemberStorage.Save, valueId = "count-value", defaultValue = new NumberMemberValueBase { value = 0 } };
+            var function = ScriptFunction("set-count", "SetCount", false, IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(), Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
+                    new AssignInstruction { type = InstructionKind.Assign, operatorValue = "=",
+                        target = new WriteTarget { pointer = Key(Variable("__this__"), "Count"), typeInfo = IntType(), writability = WritabilityKind.Save },
+                        pointer = Number(7) }, Return(Key(Variable("__this__"), "Count"))));
+            var receiver = ObjectValue("receiver-value", "receiver-class");
+            receiver.value!["Count"] = "count-value";
+            using var client = BuildClient(new JsonMember[] { count, function }, ReceiverClass(("Count", count.id), ("SetCount", function.id)),
+                additionalValues: new MemberValue[] { receiver, new NumberMemberValue { id = "count-value", value = 0 } });
+            client.SetWritableValue(NeoValueOwnership.Save, receiver);
+            client.SetWritableValue(NeoValueOwnership.Save, new NumberMemberValue { id = "count-value", value = 0 });
+            int plans = 0;
+            client.OnWritableValuesPublished += (_, _) => plans++;
+            long revision = client.WriteRevision;
+            var node = new NeoMemberNSFunction(client, function, null, NeoValueOwnership.Save);
+            Assert.AreEqual(7d, node.Invoke("receiver-value", Array.Empty<object?>()));
+            Assert.AreEqual(0, plans, "A leaf replacement at a stable id needs no write plan.");
+            Assert.AreEqual(revision + 1, client.WriteRevision, "A leaf replacement is one revision.");
+            Assert.IsTrue(client.TryGetWritableValue(NeoValueOwnership.Save, "count-value", out NumberMemberValue? stored));
+            Assert.AreEqual(7d, stored!.value);
+            Assert.AreEqual(7d, node.Invoke("receiver-value", Array.Empty<object?>()));
+            Assert.AreEqual(revision + 1, client.WriteRevision, "Assigning the value the store already holds writes nothing.");
+        }
+
+        [Test]
+        public void GeneratedLeafSetterStoresTheChildWithoutAWritePlan()
+        {
+            var count = new IntMember { id = "count", name = "Count", kind = MemberKind.Int,
+                Storage = NeoMemberStorage.Save, valueId = "count-value", defaultValue = new NumberMemberValueBase { value = 0 } };
+            var receiverMember = new ClassMember { id = "receiver-member", projectId = ProjectId, name = "Receiver", kind = MemberKind.Class,
+                classId = "receiver-class", valueId = "receiver-value", Storage = NeoMemberStorage.Save, createdAt = "x", updatedAt = "x" };
+            var receiver = ObjectValue("receiver-value", "receiver-class");
+            receiver.value!["Count"] = "count-value";
+            using var client = BuildClient(new JsonMember[] { count, receiverMember }, ReceiverClass(("Count", count.id)),
+                additionalValues: new MemberValue[] { receiver, new NumberMemberValue { id = "count-value", value = 0 } });
+            client.SetWritableValue(NeoValueOwnership.Save, receiver);
+            client.SetWritableValue(NeoValueOwnership.Save, new NumberMemberValue { id = "count-value", value = 0 });
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "receiver-value", out ObjectMemberValue? before));
+            using var node = new NeoMemberClassWritable(client, receiverMember, "receiver-value", NeoValueOwnership.Save);
+            int plans = 0;
+            var published = new List<string>();
+            client.OnWritableValuesPublished += (_, _) => plans++;
+            client.OnWritableValueChanged += (_, id) => published.Add(id);
+            long revision = client.WriteRevision;
+
+            node.SetSerializedValue("Count", NeoValueWritePayload.FromValue(7));
+            Assert.AreEqual(7d, node.Get<NeoMemberInt>("Count").value!.value);
+            Assert.AreEqual(0, plans, "A leaf replacement at a stable id needs no write plan.");
+            Assert.AreEqual(revision + 1, client.WriteRevision);
+            CollectionAssert.AreEqual(new[] { "count-value" }, published, "Only the replaced child publishes.");
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "receiver-value", out ObjectMemberValue? after));
+            Assert.AreSame(before, after, "The parent row is untouched.");
+
+            node.SetSerializedValue("Count", NeoValueWritePayload.FromValue(7));
+            Assert.AreEqual(revision + 1, client.WriteRevision, "Setting the value the store already holds writes nothing.");
+        }
+
+        [Test]
+        public void SharedEvaluationCacheKeepsRowIdentityAcrossEvaluationsAndWrites()
+        {
+            var count = new IntMember { id = "count", name = "Count", kind = MemberKind.Int,
+                Storage = NeoMemberStorage.Save, valueId = "count-value", defaultValue = new NumberMemberValueBase { value = 0 } };
+            var receiver = ObjectValue("receiver-value", "receiver-class");
+            receiver.value!["Count"] = "count-value";
+            using var client = BuildClient(new JsonMember[] { count }, ReceiverClass(("Count", count.id)),
+                additionalValues: new MemberValue[] { receiver,
+                    new NumberMemberValue { id = "count-value", value = 0 }, new NumberMemberValue { id = "count-value-2", value = 1 } });
+            client.SetWritableValue(NeoValueOwnership.Save, receiver);
+            client.SetWritableValue(NeoValueOwnership.Save, new NumberMemberValue { id = "count-value", value = 0 });
+            client.SetWritableValue(NeoValueOwnership.Save, new NumberMemberValue { id = "count-value-2", value = 1 });
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "receiver-value", out ObjectMemberValue? row));
+
+            object? first = NSGetterEvaluator.UnwrapRow(row!, client.CreateGetterContext(NeoValueOwnership.Save), NeoValueOwnership.Save);
+            object? second = NSGetterEvaluator.UnwrapRow(row!, client.CreateGetterContext(NeoValueOwnership.Save), NeoValueOwnership.Save);
+            Assert.AreSame(first, second, "Separate evaluations unwrap one row to one CLR shape.");
+
+            var rebound = ObjectValue("receiver-value", "receiver-class");
+            rebound.value!["Count"] = "count-value-2";
+            client.SetWritableValue(NeoValueOwnership.Save, rebound);
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "receiver-value", out ObjectMemberValue? written));
+            object? third = NSGetterEvaluator.UnwrapRow(written!, client.CreateGetterContext(NeoValueOwnership.Save), NeoValueOwnership.Save);
+            Assert.AreSame(first, third, "A write patches the cached shape in place.");
+            Assert.AreEqual("count-value-2", ((IDictionary<string, object?>)first!)["Count"]);
+
+            client.InvalidateSchemaResolutionCaches();
+            object? fourth = NSGetterEvaluator.UnwrapRow(written!, client.CreateGetterContext(NeoValueOwnership.Save), NeoValueOwnership.Save);
+            Assert.AreNotSame(first, fourth, "A schema reset drops the shared shapes.");
+        }
+
         [TestCase(false, false)]
         [TestCase(false, true)]
         [TestCase(true, false)]

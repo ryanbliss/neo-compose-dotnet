@@ -311,6 +311,10 @@ namespace NeoCompose.Runtime
             if (plan.Bindings.Count != 0) InvalidateGetterMemo();
             else InvalidateGetterMemoForRows(changed);
             if (touchesWorld) InvalidateGridDependentGetterMemo();
+            if (sharedEvaluationContext is not null)
+                foreach (var item in changed)
+                    if (!plan.Rows.ContainsKey(item) || plan.Silent.Contains(item))
+                        RefreshSharedEvaluationRow(item.ownership, item.valueId);
             OnWritableValuesPublished?.Invoke(changed, plan);
             plan.NotifyCommitted();
             OnWritableValuesChanged?.Invoke(changed);
@@ -428,7 +432,7 @@ namespace NeoCompose.Runtime
             }
             if (tombstone)
             {
-                var now = NeoTimestamp.Now();
+                NeoTimestamp now = NeoTimestamp.Now();
                 plan.Set(ownership, new NullMemberValue
                 {
                     id = valueId, createdAt = now, updatedAt = now, mark = NeoValueMarks.Removed,

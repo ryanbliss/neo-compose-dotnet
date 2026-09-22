@@ -3257,8 +3257,8 @@ namespace NeoCompose.Runtime
             JsonMember member,
             object? value,
             string id,
-            string createdAt,
-            string updatedAt)
+            NeoTimestamp createdAt,
+            NeoTimestamp updatedAt)
         {
             if (member is LookupMember lookup && value is not null)
                 value = NeoGeneratedTypesSupport.ConstructorLookupIds(value, lookup);
@@ -3611,7 +3611,7 @@ namespace NeoCompose.Runtime
                         value,
                         writableRowId,
                         existing.createdAt,
-                        DateTime.UtcNow.ToString("o"));
+                        NeoTimestamp.Now());
                     next.classId = existing.classId;
                     StoreWritableRow(plan, client, ownership, next, ctx);
                 });
@@ -3741,6 +3741,34 @@ namespace NeoCompose.Runtime
             /// freshly minted random id — two different ids for the one logical
             /// member, where the web has one.</para>
             /// </summary>
+            // A scalar assignment to a bound child of a parent the store
+            // already holds replaces that child in place. Anything else
+            // (first write under an authored root, class references,
+            // collections, payload rows) prepares a plan below.
+            private bool TryWriteLeaf(NeoClient client, object? value, NSGetterEvaluator.Context ctx)
+            {
+                if (member is not (BoolMember or IntMember or FloatMember or StringMember or EnumMember
+                        or Vector2Member or Vector2IntMember or Vector3Member or Vector3IntMember or ColorMember)
+                    || value is NeoValuePayload or INeoValuePayloadProvider
+                    || parentOwnership != NeoValueOwnership.Asset
+                        && !client.HasWritableValue(parentOwnership, parentRowId)
+                    || !client.TryGetValue(parentOwnership, parentRowId, out ObjectMemberValue? parent)
+                    || !TryResolveBoundChild(client, parentRowId, parent, out string existingId, out MemberValue? existing)
+                    || existing is null)
+                    return false;
+                MemberValue replaced = MemberValueFactory.Create(
+                    member, value, existingId, existing.createdAt, NeoTimestamp.Now());
+                replaced.classId = existing.classId;
+                // An explicit override the store already holds with this value
+                // is a no-op; an inherited default still pins on first write.
+                if (client.TryGetWritableValue(ownership, existingId, out MemberValue? stored)
+                    && !stored.IsRemoved && NeoClient.SameLeafValue(stored, replaced))
+                    return true;
+                if (!client.TryWriteLeaf(ownership, replaced, member, "value")) return false;
+                NSGetterEvaluator.RefreshCachedRowAfterWrite(replaced, ctx, ownership);
+                return true;
+            }
+
             private bool TryResolveBoundChild(
                 NeoClient client,
                 string resolvedParentRowId,
@@ -3794,6 +3822,7 @@ namespace NeoCompose.Runtime
                 object? value,
                 NSGetterEvaluator.Context ctx)
             {
+                if (TryWriteLeaf(client, value, ctx)) return;
                 PrepareWrite(client, plan =>
                 {
                     if (parentOwnership != NeoValueOwnership.Asset)
@@ -3827,7 +3856,7 @@ namespace NeoCompose.Runtime
                         return writableParent;
                     }
                     value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan);
-                    var now = DateTime.UtcNow.ToString("o");
+                    NeoTimestamp now = NeoTimestamp.Now();
                     // Reusing the entry's stable id below clone-on-writes it
                     // (a fresh row at the same id shadows the authored default),
                     // so no path pre-materialization is needed. On a P75 sparse
@@ -3990,7 +4019,7 @@ namespace NeoCompose.Runtime
                         throw new NSGetterRuntimeError($"Missing target row '{writableRowId}'.");
                     }
                     ApplyField(row, value);
-                    row.updatedAt = DateTime.UtcNow.ToString("o");
+                    row.updatedAt = NeoTimestamp.Now();
                     StoreWritableRow(plan, client, ownership, row, ctx);
                 });
             }
@@ -4354,7 +4383,7 @@ namespace NeoCompose.Runtime
                         plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                             importedId,
                             parentRowId));
-                        parent.updatedAt = DateTime.UtcNow.ToString("o");
+                        parent.updatedAt = NeoTimestamp.Now();
                         StoreWritableRow(plan, client, ownership, parent, ctx);
                         client.StageUnlinkedRemovals(plan, ownership, new[] { childId }, MemberFromTypeInfo(typeInfo));
                         return;
@@ -4370,7 +4399,7 @@ namespace NeoCompose.Runtime
                         value,
                         childId,
                         existing.createdAt,
-                        DateTime.UtcNow.ToString("o"));
+                        NeoTimestamp.Now());
                     next.classId = existing.classId;
                     StoreWritableRow(plan, client, ownership, next, ctx);
                 });
@@ -4485,7 +4514,7 @@ namespace NeoCompose.Runtime
                         throw new NSGetterRuntimeError($"Missing list row '{rowId}'.");
                     }
                     row.value ??= Array.Empty<string>();
-                    var now = DateTime.UtcNow.ToString("o");
+                    NeoTimestamp now = NeoTimestamp.Now();
                     switch (mutation)
                     {
                         case CollectionMutationKind.Add:
@@ -4586,7 +4615,7 @@ namespace NeoCompose.Runtime
                 NeoValueOwnership ownership,
                 ArrayMemberValue row,
                 int index,
-                string now,
+                NeoTimestamp now,
                 TypeInfo entryTypeInfo,
                 NSGetterEvaluator.Context ctx)
             {
@@ -4638,7 +4667,7 @@ namespace NeoCompose.Runtime
                     }
                     row = (ArrayMemberValue)client.CloneRowForWrite(row);
                     row.value ??= Array.Empty<string>();
-                    var now = DateTime.UtcNow.ToString("o");
+                    NeoTimestamp now = NeoTimestamp.Now();
                     switch (mutation)
                     {
                         case CollectionMutationKind.Add:
@@ -4754,7 +4783,7 @@ namespace NeoCompose.Runtime
                         throw new NSGetterRuntimeError($"Missing dictionary row '{rowId}'.");
                     }
                     row.value ??= new Dictionary<string, string>();
-                    var now = DateTime.UtcNow.ToString("o");
+                    NeoTimestamp now = NeoTimestamp.Now();
                     if (row.value.TryGetValue(key, out string existingId)
                         && client.TryGetValue(existingId, out MemberValue? existing))
                     {
@@ -4843,7 +4872,7 @@ namespace NeoCompose.Runtime
                         return;
                     }
                     row.value.Remove(key);
-                    row.updatedAt = DateTime.UtcNow.ToString("o");
+                    row.updatedAt = NeoTimestamp.Now();
                     StoreWritableRow(plan, client, ownership, row, ctx);
                     client.StageUnlinkedRemovals(plan, ownership, new[] { removedId }, MemberFromTypeInfo(entryTypeInfo));
                 }, preparedPlan);
@@ -4864,7 +4893,7 @@ namespace NeoCompose.Runtime
                     var removedIds = new List<string>(row.value.Values);
                     ctx.allocationTracker.ConsumeCollectionVisit(removedIds.Count);
                     row.value.Clear();
-                    row.updatedAt = DateTime.UtcNow.ToString("o");
+                    row.updatedAt = NeoTimestamp.Now();
                     StoreWritableRow(plan, client, ownership, row, ctx);
                     client.StageUnlinkedRemovals(plan, ownership, removedIds, MemberFromTypeInfo(entryTypeInfo));
                 }, preparedPlan);

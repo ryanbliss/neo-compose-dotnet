@@ -179,7 +179,7 @@ namespace NeoCompose.Runtime
                 normalized = new[] { normalized[0] };
             }
 
-            string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
 
             var writable = EnsureWritableValue();
             if (writable is not null)

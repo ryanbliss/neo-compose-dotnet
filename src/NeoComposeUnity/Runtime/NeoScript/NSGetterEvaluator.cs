@@ -51,7 +51,7 @@ namespace NeoCompose.Runtime.NeoScript
         private int producedCollectionEntries;
         private int constructedSessionRows;
         private int producedStringCharacters;
-        private string? constructionTimestamp;
+        private NeoTimestamp? constructionTimestamp;
 
         internal int ActiveExecutionCount => activeExecutions;
 
@@ -81,8 +81,8 @@ namespace NeoCompose.Runtime.NeoScript
             activeExecutions++;
         }
 
-        internal string ConstructionTimestamp =>
-            constructionTimestamp ??= DateTime.UtcNow.ToString("o");
+        internal NeoTimestamp ConstructionTimestamp =>
+            constructionTimestamp ??= NeoTimestamp.Now();
 
         /// <summary>
         /// Consumes one iteration from the P50 budget shared by the complete
@@ -563,7 +563,7 @@ namespace NeoCompose.Runtime.NeoScript
             /// </summary>
             internal ConditionalWeakTable<object, RowReference> rowReverseIndex { get; }
             internal Dictionary<RowKey, HashSet<RowCacheKey>> rowCacheKeysByRow { get; }
-            internal RowAliasIndex rowAliases => RowAliasIndexes.GetValue(rowReverseIndex, CreateRowAliasIndex);
+            internal RowAliasIndex rowAliases => RowAliasIndexes.GetValue(rowReverseIndex, CreateRowAliasIndexCallback);
             internal LinkedFunctionCallHandler? linkedFunctionCallHandler { get; private set; }
             internal Func<ObjectInitializerPointer, NeoScriptScope, Context, object?>? objectInitializerHandler { get; private set; }
             internal Dictionary<string, SchemaPlacement?> schemaPlacementCache { get; }
@@ -699,6 +699,14 @@ namespace NeoCompose.Runtime.NeoScript
             private Context Fork() => (Context)MemberwiseClone();
 
             /// <summary>
+            /// Binds the root or receiver on a context no frame has seen yet.
+            /// The fork-per-binding helpers below exist for contexts already in
+            /// use; a freshly created one is bound in place.
+            /// </summary>
+            internal void BindRoot(object? value) => rootValue = value;
+            internal void BindThis(object? value) => thisValue = value;
+
+            /// <summary>
             /// The immediate-mode expression context built from THIS frame, so
             /// nested statement blocks (if/else branches, loop bodies) reuse it
             /// instead of forking a context and two handler closures per block.
@@ -800,6 +808,11 @@ namespace NeoCompose.Runtime.NeoScript
         private static readonly ConditionalWeakTable<ConditionalWeakTable<object, RowReference>, RowAliasIndex>
             RowAliasIndexes = new();
 
+        // A method group converted at the call site allocates a delegate per
+        // lookup, and the lookup runs on every row refresh.
+        private static readonly ConditionalWeakTable<ConditionalWeakTable<object, RowReference>, RowAliasIndex>.CreateValueCallback
+            CreateRowAliasIndexCallback = CreateRowAliasIndex;
+
         private static RowAliasIndex CreateRowAliasIndex(ConditionalWeakTable<object, RowReference> reverse)
         {
             var index = new RowAliasIndex();
@@ -833,6 +846,17 @@ namespace NeoCompose.Runtime.NeoScript
                 if (!rows.TryGetValue(key, out var aliases)) yield break;
                 for (int i = aliases.Count - 1; i >= 0; i--)
                     if (aliases[i].TryGetTarget(out var target)) yield return target;
+                    else aliases.RemoveAt(i);
+                if (aliases.Count == 0) rows.Remove(key);
+            }
+
+            /// <summary><see cref="Get"/> without its enumerator, for the per-commit refresh.</summary>
+            internal void GetInto(NeoValueOwnership ownership, string id, List<object> into)
+            {
+                RowKey key = RowCacheRowKey(ownership, id);
+                if (!rows.TryGetValue(key, out var aliases)) return;
+                for (int i = aliases.Count - 1; i >= 0; i--)
+                    if (aliases[i].TryGetTarget(out var target)) into.Add(target);
                     else aliases.RemoveAt(i);
                 if (aliases.Count == 0) rows.Remove(key);
             }
@@ -5390,6 +5414,14 @@ namespace NeoCompose.Runtime.NeoScript
         /// patched when possible; values whose CLR shape cannot be updated in
         /// place are evicted so the next read materialises the new row value.
         /// </summary>
+        // One refresh runs per changed row on every commit, so the walk
+        // reuses these collections. A refresh nested inside another (a patch
+        // never re-enters, but the caller's handlers may) gets fresh ones.
+        private static readonly List<RowCacheKey> refreshKeyScratch = new();
+        private static readonly List<object> refreshAliasScratch = new();
+        private static readonly HashSet<object> refreshPatchedScratch = new(ReferenceEqualityComparer.Instance);
+        private static bool refreshScratchInUse;
+
         internal static void RefreshCachedRowAfterWrite(
             MemberValue row,
             Context ctx,
@@ -5399,53 +5431,71 @@ namespace NeoCompose.Runtime.NeoScript
             ctx.rowCacheKeysByRow.TryGetValue(
                 rowCacheKey,
                 out HashSet<RowCacheKey>? indexedKeys);
-            var matchingKeys = indexedKeys is null
-                ? new List<RowCacheKey>()
-                : new List<RowCacheKey>(indexedKeys);
-            var patchedObjects = new HashSet<object>(
-                ReferenceEqualityComparer.Instance);
-
-            foreach (RowCacheKey key in matchingKeys)
+            bool pooled = !refreshScratchInUse;
+            List<RowCacheKey> matchingKeys = pooled ? refreshKeyScratch : new();
+            List<object> aliases = pooled ? refreshAliasScratch : new();
+            HashSet<object> patchedObjects = pooled ? refreshPatchedScratch : new(ReferenceEqualityComparer.Instance);
+            if (pooled) refreshScratchInUse = true;
+            try
             {
-                if (!ctx.rowUnwrapCache.TryGetValue(key, out object? cached))
+                if (indexedKeys is not null) matchingKeys.AddRange(indexedKeys);
+                ctx.rowAliases.GetInto(ownership, row.id, aliases);
+                if (matchingKeys.Count == 0 && aliases.Count == 0) return;
+
+                for (int index = 0; index < matchingKeys.Count; index++)
                 {
+                    RowCacheKey key = matchingKeys[index];
+                    if (!ctx.rowUnwrapCache.TryGetValue(key, out object? cached))
+                    {
+                        indexedKeys!.Remove(key);
+                        continue;
+                    }
+                    if (PatchCachedShape(row, cached))
+                    {
+                        if (cached is not null) patchedObjects.Add(cached);
+                        continue;
+                    }
+
+                    ctx.rowUnwrapCache.Remove(key);
                     indexedKeys!.Remove(key);
-                    continue;
+                    // Keep reverse provenance for existing locals/arguments even
+                    // when a fixed-size CLR shape (notably object[]) cannot be
+                    // patched in place. A future row read materializes a fresh
+                    // canonical shape, while the old alias can still resolve and
+                    // write through its authoritative backing row.
                 }
-                if (PatchCachedShape(row, cached))
+                if (indexedKeys is not null && indexedKeys.Count == 0)
                 {
-                    if (cached is not null) patchedObjects.Add(cached);
-                    continue;
+                    ctx.rowCacheKeysByRow.Remove(rowCacheKey);
                 }
 
-                ctx.rowUnwrapCache.Remove(key);
-                indexedKeys!.Remove(key);
-                // Keep reverse provenance for existing locals/arguments even
-                // when a fixed-size CLR shape (notably object[]) cannot be
-                // patched in place. A future row read materializes a fresh
-                // canonical shape, while the old alias can still resolve and
-                // write through its authoritative backing row.
-            }
-            if (indexedKeys is not null && indexedKeys.Count == 0)
-            {
-                ctx.rowCacheKeysByRow.Remove(rowCacheKey);
-            }
-
-            // A Session constructor graph can be promoted into Save while a
-            // local/argument still aliases one of its CLR objects. The
-            // canonical unwrap cache has one entry per row, but all existing
-            // aliases remain in the reverse index. Patch those aliases too so
-            // subsequent reads observe writes through the promoted row.
-            foreach (object alias in ctx.rowAliases.Get(ownership, row.id))
-            {
-                if (!ctx.rowReverseIndex.TryGetValue(alias, out var reference)) continue;
-                if (reference.classId != row.classId)
+                // A Session constructor graph can be promoted into Save while a
+                // local/argument still aliases one of its CLR objects. The
+                // canonical unwrap cache has one entry per row, but all existing
+                // aliases remain in the reverse index. Patch those aliases too so
+                // subsequent reads observe writes through the promoted row.
+                for (int index = 0; index < aliases.Count; index++)
                 {
-                    ctx.rowReverseIndex.Remove(alias);
-                    ctx.rowReverseIndex.Add(alias, new RowReference(
-                        row.id, ownership, row.classId, reference.member));
+                    object alias = aliases[index];
+                    if (!ctx.rowReverseIndex.TryGetValue(alias, out var reference)) continue;
+                    if (reference.classId != row.classId)
+                    {
+                        ctx.rowReverseIndex.Remove(alias);
+                        ctx.rowReverseIndex.Add(alias, new RowReference(
+                            row.id, ownership, row.classId, reference.member));
+                    }
+                    if (!patchedObjects.Contains(alias)) PatchCachedShape(row, alias);
                 }
-                if (!patchedObjects.Contains(alias)) PatchCachedShape(row, alias);
+            }
+            finally
+            {
+                if (pooled)
+                {
+                    matchingKeys.Clear();
+                    aliases.Clear();
+                    patchedObjects.Clear();
+                    refreshScratchInUse = false;
+                }
             }
         }
 
@@ -5635,26 +5685,19 @@ namespace NeoCompose.Runtime.NeoScript
             NeoValueOwnership ownership,
             IEnumerable<string> rowIds)
         {
-            var removed = new HashSet<string>(rowIds);
-            foreach (string rowId in removed)
+            foreach (string rowId in rowIds) EvictCachedRow(ctx, ownership, rowId);
+        }
+
+        internal static void EvictCachedRow(Context ctx, NeoValueOwnership ownership, string rowId)
+        {
+            RowKey rowKey = RowCacheRowKey(ownership, rowId);
+            if (ctx.rowCacheKeysByRow.TryGetValue(rowKey, out HashSet<RowCacheKey>? cacheKeys))
             {
-                RowKey rowKey = RowCacheRowKey(ownership, rowId);
-                if (ctx.rowCacheKeysByRow.TryGetValue(
-                        rowKey,
-                        out HashSet<RowCacheKey>? cacheKeys))
-                {
-                    foreach (RowCacheKey cacheKey in cacheKeys)
-                    {
-                        ctx.rowUnwrapCache.Remove(cacheKey);
-                    }
-                    ctx.rowCacheKeysByRow.Remove(rowKey);
-                }
+                foreach (RowCacheKey cacheKey in cacheKeys) ctx.rowUnwrapCache.Remove(cacheKey);
+                ctx.rowCacheKeysByRow.Remove(rowKey);
             }
-            foreach (string rowId in removed)
-            {
-                foreach (object alias in ctx.rowAliases.Get(ownership, rowId)) ctx.rowReverseIndex.Remove(alias);
-                ctx.rowAliases.Remove(ownership, rowId);
-            }
+            foreach (object alias in ctx.rowAliases.Get(ownership, rowId)) ctx.rowReverseIndex.Remove(alias);
+            ctx.rowAliases.Remove(ownership, rowId);
         }
 
         private static string OwnershipName(NeoValueOwnership ownership) => ownership switch

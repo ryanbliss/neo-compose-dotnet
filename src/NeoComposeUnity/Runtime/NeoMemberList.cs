@@ -530,7 +530,7 @@ namespace NeoCompose.Runtime
             {
                 return PrepareAddSerializedUnordered(plan, entryValue);
             }
-            string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
             NeoValueOwnership entryOwnership =
                 client.DeclaredOwnership(entryMember) ?? ownership;
             ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso);
@@ -602,7 +602,7 @@ namespace NeoCompose.Runtime
                 throw new System.ArgumentOutOfRangeException(nameof(index));
             }
             var plan = new NeoWritePlan(client);
-            string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
             string entryValueId = value.value[index];
             NeoValueOwnership entryOwnership =
                 client.DeclaredOwnership(entryMember) ?? ownership;
@@ -701,7 +701,7 @@ namespace NeoCompose.Runtime
                 throw new System.ArgumentOutOfRangeException(nameof(index));
             }
             var plan = new NeoWritePlan(client);
-            string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
             ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso);
             string[] currentArr = parentRow.value!;
             string removedValueId = currentArr[index];
@@ -740,7 +740,7 @@ namespace NeoCompose.Runtime
             }
 
             var plan = new NeoWritePlan(client);
-            string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
             ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso);
             string[] removedValueIds = parentRow.value ?? System.Array.Empty<string>();
             if (removedValueIds.Length == 0)
@@ -832,7 +832,7 @@ namespace NeoCompose.Runtime
 
         private string PrepareAddSerializedUnordered(NeoWritePlan plan, NeoValueWritePayload? entryValue)
         {
-            string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
             NeoValueOwnership entryOwnership =
                 client.DeclaredOwnership(entryMember) ?? ownership;
             ArrayMemberValue containerRow = ResolveUnorderedContainerForAdd(plan, nowIso);
@@ -927,7 +927,7 @@ namespace NeoCompose.Runtime
             var previousIds = new HashSet<string>(ResolveEntryValueIds());
             foreach (string id in previousIds)
                 if (!nextIds.Contains(id)) PrepareRemoveUnorderedEntry(plan, id);
-            string now = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp now = NeoTimestamp.Now();
             ArrayMemberValue container = EnsureWritableArray(plan, now);
             container.value = isNull ? null : System.Array.Empty<string>();
             container.updatedAt = now;
@@ -980,7 +980,7 @@ namespace NeoCompose.Runtime
                 || (client.TryResolveContainerIdForValueId(entryValueId, out string? containerId) && containerId == listId);
             if (!joined)
             {
-                var container = EnsureWritableArray(plan, System.DateTime.UtcNow.ToString("o"));
+                var container = EnsureWritableArray(plan, NeoTimestamp.Now());
                 container.value = (container.value ?? System.Array.Empty<string>()).Where(id => id != entryValueId).ToArray();
                 plan.Set(ownership, container);
             }
@@ -1043,7 +1043,7 @@ namespace NeoCompose.Runtime
         /// a fresh empty row when nothing is bound yet; throws when the list
         /// is explicitly null (adding requires a present instance).
         /// </summary>
-        private ArrayMemberValue ResolveUnorderedContainerForAdd(string nowIso)
+        private ArrayMemberValue ResolveUnorderedContainerForAdd(NeoTimestamp nowIso)
         {
             var plan = new NeoWritePlan(client);
             var row = ResolveUnorderedContainerForAdd(plan, nowIso);
@@ -1051,7 +1051,7 @@ namespace NeoCompose.Runtime
             return row;
         }
 
-        private ArrayMemberValue ResolveUnorderedContainerForAdd(NeoWritePlan plan, string nowIso)
+        private ArrayMemberValue ResolveUnorderedContainerForAdd(NeoWritePlan plan, NeoTimestamp nowIso)
         {
             string? id = plan.NodeBindings.TryGetValue(this, out string? plannedId) ? plannedId : valueId;
             var resolved = id is not null ? plan.Resolve(ownership, id) as ArrayMemberValue : value ?? valueData;
@@ -1088,7 +1088,7 @@ namespace NeoCompose.Runtime
         /// clone-on-write shadow at the stable id), minting + binding a
         /// fresh empty array through the parent when nothing is bound yet.
         /// </summary>
-        private ArrayMemberValue EnsureWritableArray(string nowIso)
+        private ArrayMemberValue EnsureWritableArray(NeoTimestamp nowIso)
         {
             var plan = new NeoWritePlan(client);
             var row = EnsureWritableArray(plan, nowIso);
@@ -1096,7 +1096,7 @@ namespace NeoCompose.Runtime
             return row;
         }
 
-        private ArrayMemberValue EnsureWritableArray(NeoWritePlan plan, string nowIso)
+        private ArrayMemberValue EnsureWritableArray(NeoWritePlan plan, NeoTimestamp nowIso)
         {
             var writable = WritableCandidate(plan);
             if (writable is not null)

@@ -30,6 +30,8 @@ namespace NeoCompose.Runtime
         {
             if (writablePlacementParents is null) return;
             UnindexPlacementParent(ownership, row.id);
+            // Only records and arrays link children; a leaf row has none to index.
+            if (row is not ObjectMemberValue and not ArrayMemberValue) return;
             var children = new HashSet<string>(PlacementChildIds(row));
             writablePlacementChildren[(ownership, row.id)] = children;
             foreach (string child in children)

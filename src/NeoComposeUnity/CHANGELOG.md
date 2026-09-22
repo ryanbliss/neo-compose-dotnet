@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.39.8] - 2026-09-22
+
+- Store leaf writes in place. A scalar replacement at a stable id (number, string, bool, vector, colour, file, sprite, or an enum/lookup selection) whose row keeps its type, class, container, map key and source, and has no grid, tile, object, layer or link ancestor, no longer builds a write plan, searches for candidate replays or walks placement validation. It stores the row, bumps the write revision, forgets the getters that read it and publishes the same per-row change, container and save notifications a committed plan would. Generated setters and NeoScript field assignments both take this path, and assigning the value the store already holds writes nothing. First writes over sparse defaults, class references, collections, payload rows and anything beneath a world placement still commit through the plan.
+- Stamp `createdAt`/`updatedAt` as numeric timestamps end to end. Every write formatted `DateTime.UtcNow` to ISO-8601 and parsed it back once or twice.
+- Keep NeoScript row shapes across evaluations. The client owns one shared unwrap cache, reverse index and per-row key index; getters, functions, setters, delegates and actions evaluate against it, so a record or array read every frame keeps one CLR identity instead of being rebuilt per evaluation. Each store change patches or evicts the rows it touched (including silent plan rows and containers); a schema reload, save load, partition load or unload, virtual re-expansion or replay reclaim drops the caches, and a constructor replay evaluates against a private context. Fresh contexts bind their root and receiver in place instead of forking twice, and the per-row refresh reuses scratch collections and a cached alias-index delegate.
+- Skip the placement-parent index for leaf rows; only records and arrays link children.
+
 ## [0.39.7] - 2026-09-21
 
 - Reuse complete local Class graphs when replacing owned data or adopting an object into a grid. Stored field changes and container membership no longer rerun a constructor solely because its old footprint contained those rows. Sparse/default-backed graphs, changed construction recipes, external content, and actual constructor dependencies still replay.

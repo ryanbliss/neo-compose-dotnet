@@ -225,11 +225,15 @@ namespace NeoCompose.Runtime
         private void InvalidateGetterMemoForRows(IEnumerable<(NeoValueOwnership ownership, string valueId)> changed)
         {
             if (getterMemo.Count == 0) return;
-            foreach (var (_, valueId) in changed)
-            {
-                if (!getterMemoKeysByRow.TryGetValue(valueId, out HashSet<GetterMemoKey>? keys)) continue;
-                ForgetMemoizedGetters(keys);
-            }
+            foreach (var (_, valueId) in changed) InvalidateGetterMemoForRow(valueId);
+        }
+
+        /// <summary>Drops every memoized getter that read one row.</summary>
+        private void InvalidateGetterMemoForRow(string valueId)
+        {
+            if (getterMemo.Count == 0
+                || !getterMemoKeysByRow.TryGetValue(valueId, out HashSet<GetterMemoKey>? keys)) return;
+            ForgetMemoizedGetters(keys);
         }
 
         /// <summary>Drops every memoized getter that queried a grid.</summary>

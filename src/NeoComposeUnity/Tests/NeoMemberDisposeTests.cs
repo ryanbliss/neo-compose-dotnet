@@ -105,19 +105,24 @@ namespace NeoCompose.Tests
             using var client = LoadClient();
             var hero = (NeoMemberClassWritable)NeoMember.CreateWritable(
                 client, RequireMember<ClassMember>(client, "member-hero"), "v-dict", NeoValueOwnership.Save);
-            int publications = 0;
-            client.OnWritableValuesPublished += (_, _) => publications++;
+            // A leaf write stores in place without a write plan, so observe
+            // the store: its revision and the per-row change event.
+            int changes = 0;
+            client.OnWritableValueChanged += (_, _) => changes++;
+            long revision = client.WriteRevision;
             string initial = hero.Get<NeoMemberString>("Name").value!.value!;
             NeoGeneratedTypesSupport.SetValue(hero, "Name", NeoGeneratedTypesSupport.Value(initial));
-            Assert.Greater(publications, 0, "First explicit override must pin the default.");
+            Assert.Greater(changes, 0, "First explicit override must pin the default.");
+            Assert.AreEqual(revision + 1, client.WriteRevision);
             var child = hero.Get<NeoMemberString>("Name");
             var pinned = client.saveValues[child.value!.id];
-            publications = 0;
+            changes = 0;
             NeoGeneratedTypesSupport.SetValue(hero, "Name", NeoGeneratedTypesSupport.Value(initial));
-            Assert.AreEqual(0, publications);
+            Assert.AreEqual(0, changes);
+            Assert.AreEqual(revision + 1, client.WriteRevision);
             Assert.AreSame(pinned, client.saveValues[child.value!.id]);
             NeoGeneratedTypesSupport.SetValue(hero, "Name", NeoGeneratedTypesSupport.Value("Frodo"));
-            Assert.AreEqual(1, publications);
+            Assert.AreEqual(1, changes);
             Assert.AreEqual("Frodo", child.value!.value);
             NeoGeneratedTypesSupport.SetValue(hero, "Name", NeoValueWritePayload.FromValue(new NeoValuePayload(
                 "Frodo", valueRows: new MemberValue[] { new StringMemberValue { id = "envelope-row", value = "updated" } })));

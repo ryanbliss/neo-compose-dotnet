@@ -84,22 +84,19 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Invoke(params object?[] args)
         {
-            var ctx = new NSGetterEvaluator.Context(
-                client,
-                thisValue: null,
-                rootValue: null,
-                valueOwnership: ownership);
-            ctx = ctx.WithRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+            var ctx = client.CreateGetterContext(ownership);
+            ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
             // The owning row is threaded in exactly as the evaluator's
             // `callAction` pointer threads it, so a listener stored with a
             // null `valueId` — every declaration default, and every
             // `this.OnX += this.Handler` — binds the row that owns the action
             // whichever language fired it (P62 §3.3).
             object? owner = ResolveLexicalThis(ctx);
+            ctx.BindThis(owner);
             NSGetterEvaluator.InvokeAction(
                 ResolveActionValue(),
                 args ?? Array.Empty<object?>(),
-                ctx.WithThis(owner),
+                ctx,
                 owner,
                 // `{actionMemberName}[{owningRowId ?? "default"}]` — the row
                 // the action fanned out from, which is what the evaluator's
@@ -307,7 +304,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         private void Write(NeoActionValue next)
         {
-            string nowIso = DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
             ActionMemberValue? writable = EnsureWritableValue();
             if (writable is not null)
             {

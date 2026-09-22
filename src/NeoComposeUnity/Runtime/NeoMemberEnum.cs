@@ -109,7 +109,7 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
 
             var writable = EnsureWritableValue();
             if (writable is not null)
