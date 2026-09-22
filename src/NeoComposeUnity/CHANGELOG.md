@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.39.8] - 2026-09-22
+
+- Fix `ToVariant` on a sparse placed object after a save stored one of its constructed children. A write under a constructed nested instance (the sprite child a `PlacedItem` constructs into `Children`) stores that instance at its deterministic id while the list above it stays virtual. On load the outer root's expansion walked the virtual list without probing stable ids and minted a second copy of the child in its own namespace, while the stored row also replayed as its own root; the two disagreed about who answers the child's omitted members, and the next variant application bound the child's init-backed `Sprite` to no row and failed with "has a computed default and cannot be materialized as a literal". The expansion now probes the stable id of every nested instance it reaches, at any depth, and leaves a stored one to its own replay. A stored template copy whose recorded constructor arguments name the outer namespace's child rows keeps its outer remainder, since only that expansion mints those rows.
+- Preserve the inner exception when `ToVariant` wraps a materialization failure in `NSGetterRuntimeError`.
+
 ## [0.39.7] - 2026-09-21
 
 - Reuse complete local Class graphs when replacing owned data or adopting an object into a grid. Stored field changes and container membership no longer rerun a constructor solely because its old footprint contained those rows. Sparse/default-backed graphs, changed construction recipes, external content, and actual constructor dependencies still replay.

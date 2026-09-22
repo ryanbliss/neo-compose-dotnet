@@ -3403,7 +3403,8 @@ namespace NeoCompose.Runtime.NeoScript
                     || error is ArgumentException)
             {
                 throw new NSGetterRuntimeError(
-                    $"ToVariant failed for value '{source.valueId}': {error.Message}");
+                    $"ToVariant failed for value '{source.valueId}': {error.Message}",
+                    error);
             }
         }
 

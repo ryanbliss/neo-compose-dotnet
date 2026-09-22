@@ -1645,7 +1645,12 @@ namespace NeoCompose.Runtime
             {
                 // A nested construction owns its own UUID namespace and is
                 // replayed independently. Do not retain an unreachable copy
-                // of its virtual remainder in the outer root's namespace.
+                // of its virtual remainder in the outer root's namespace,
+                // unless its recorded arguments name this root's copies of
+                // its children: a stored template copy replays against rows
+                // only this expansion mints.
+                if (RecordedArgumentsNameVirtualChildren(nestedRoot, node))
+                    IndexVirtualSubtree(expansion, node, instanceRoot, ownership);
                 return;
             }
             string effectiveId = materialized?.id ?? node.virtualId;
@@ -1743,6 +1748,17 @@ namespace NeoCompose.Runtime
                     {
                         childMaterializedId = matches.Dequeue();
                     }
+                    // A write under a nested instance stores it at its
+                    // deterministic id, with no source id to match above.
+                    // Probe that stable id before minting the entry again, or
+                    // this root claims a second copy of a row that already
+                    // replays as its own nested root.
+                    if (childMaterializedId is null
+                        && IsNestedInstanceNode(child)
+                        && TryGetOverlaidValue(ownership, child.virtualId, out MemberValue? _))
+                    {
+                        childMaterializedId = child.virtualId;
+                    }
                     if (childMaterializedId is null)
                     {
                         IndexVirtualSubtree(
@@ -1821,16 +1837,62 @@ namespace NeoCompose.Runtime
                         child.member,
                         childOwnership);
                 }
-                IndexVirtualSubtree(
-                    expansion,
-                    child,
-                    instanceRoot,
-                    childOwnership);
+                IndexVirtualChild(expansion, child, instanceRoot, childOwnership);
             }
             foreach (VirtualExpansionNode child in node.listChildren)
-                IndexVirtualSubtree(expansion, child, instanceRoot, ownership);
+                IndexVirtualChild(expansion, child, instanceRoot, ownership);
             foreach (VirtualExpansionNode child in node.dictionaryChildren.Values)
+                IndexVirtualChild(expansion, child, instanceRoot, ownership);
+        }
+
+        /// <summary>
+        /// A write under a nested instance stores that instance at its
+        /// deterministic id while the virtual rows above it stay virtual:
+        /// the entry object under a still-virtual Children list. Reads see
+        /// the stored row at any depth, so the index must probe for it
+        /// before minting the subtree, or this root claims a second copy of
+        /// a row that already replays as its own nested root and the two
+        /// disagree about who answers its omitted members.
+        /// </summary>
+        private void IndexVirtualChild(
+            PreparedVirtualExpansion expansion,
+            VirtualExpansionNode child,
+            ObjectMemberValue instanceRoot,
+            NeoValueOwnership ownership)
+        {
+            if (IsNestedInstanceNode(child))
+                OverlaySparseInstance(expansion, child, null, ownership, instanceRoot);
+            else
                 IndexVirtualSubtree(expansion, child, instanceRoot, ownership);
+        }
+
+        private static bool IsNestedInstanceNode(VirtualExpansionNode node)
+            => node.row is ObjectMemberValue row && IsVirtualInstanceRoot(row);
+
+        /// <summary>
+        /// Whether a stored nested root's recorded constructor arguments name
+        /// the rows this expansion mints for its children. A template copy
+        /// placed by a declaration default records its settled aggregate
+        /// arguments at the copy's deterministic child ids, so once the copy
+        /// itself is stored, only this root's remainder can still supply
+        /// them. A construction whose arguments are literals or external
+        /// references needs nothing from this namespace.
+        /// </summary>
+        private bool RecordedArgumentsNameVirtualChildren(
+            ObjectMemberValue stored,
+            VirtualExpansionNode node)
+        {
+            if (stored.constructorArgs is null || node.member is not ClassMember) return false;
+            foreach (var link in EnumerateConstructorSettledAggregateLinks(
+                stored,
+                node.member,
+                includeMaterializedChildren: true))
+            {
+                if (node.classChildren.TryGetValue(link.schemaKey, out VirtualExpansionNode? child)
+                    && child.virtualId == link.valueId)
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>
