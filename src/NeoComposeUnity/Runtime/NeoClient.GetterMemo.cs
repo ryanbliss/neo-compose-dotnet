@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -50,6 +51,11 @@ namespace NeoCompose.Runtime
             // the entry's invalidation set, and a hit under dependency capture
             // (an NSProperty compute) reports them as the evaluation would have.
             public List<GetterRead>? reads;
+            // Every value id the evaluation reported to a dependency capture
+            // (an animation segment source, a nested constructor). A hit
+            // reports the same ids, so a capture sees exactly what the
+            // evaluation would have told it.
+            public string[]? valueReads;
         }
 
         internal readonly struct GetterRead
@@ -86,22 +92,58 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, HashSet<GetterMemoKey>> getterMemoKeysByRow = new(StringComparer.Ordinal);
         private readonly HashSet<GetterMemoKey> gridDependentGetterMemoKeys = new();
         private List<GetterRead>? getterReadCapture;
+        private HashSet<string>? getterValueReadCapture;
+        private readonly Stack<HashSet<string>> valueReadCapturePool = new();
+
+        internal readonly struct GetterCaptureFrame
+        {
+            internal readonly List<GetterRead>? reads;
+            internal readonly HashSet<string>? valueReads;
+
+            internal GetterCaptureFrame(List<GetterRead>? reads, HashSet<string>? valueReads)
+            {
+                this.reads = reads;
+                this.valueReads = valueReads;
+            }
+        }
 
         /// <summary>Starts recording reads for a getter being memoized; returns the enclosing capture.</summary>
-        internal List<GetterRead>? BeginGetterReadCapture()
+        internal GetterCaptureFrame BeginGetterReadCapture()
         {
-            List<GetterRead>? previous = getterReadCapture;
+            var previous = new GetterCaptureFrame(getterReadCapture, getterValueReadCapture);
             getterReadCapture = new List<GetterRead>();
+            getterValueReadCapture = valueReadCapturePool.Count != 0
+                ? valueReadCapturePool.Pop()
+                : new HashSet<string>(StringComparer.Ordinal);
             return previous;
         }
 
         /// <summary>Stops the current capture, folding its reads into the enclosing one.</summary>
-        internal List<GetterRead>? EndGetterReadCapture(List<GetterRead>? previous)
+        internal List<GetterRead>? EndGetterReadCapture(GetterCaptureFrame previous, out string[]? valueReads)
         {
             List<GetterRead>? reads = getterReadCapture;
-            getterReadCapture = previous;
-            if (reads is not null && reads.Count != 0) previous?.AddRange(reads);
+            HashSet<string> values = getterValueReadCapture!;
+            getterReadCapture = previous.reads;
+            getterValueReadCapture = previous.valueReads;
+            if (reads is not null && reads.Count != 0) previous.reads?.AddRange(reads);
+            valueReads = values.Count == 0 ? null : values.ToArray();
+            previous.valueReads?.UnionWith(values);
+            values.Clear();
+            valueReadCapturePool.Push(values);
             return reads is null || reads.Count == 0 ? null : reads;
+        }
+
+        /// <summary>A value-store read, reported to the active dependency captures.</summary>
+        internal void NoteValueRead(string id)
+        {
+            capturedValueReads?.Add(id);
+            getterValueReadCapture?.Add(id);
+        }
+
+        internal void NoteValueReads(IEnumerable<string> ids)
+        {
+            capturedValueReads?.UnionWith(ids);
+            getterValueReadCapture?.UnionWith(ids);
         }
 
         internal void NoteRowRead(NeoValueOwnership ownership, string rowId) =>
@@ -113,6 +155,7 @@ namespace NeoCompose.Runtime
         /// <summary>Reports a memoized getter's recorded reads as if it had run.</summary>
         internal void ReplayGetterReads(GetterMemoEntry entry, NeoScriptGridReads? gridReads)
         {
+            if (entry.valueReads is not null) NoteValueReads(entry.valueReads);
             if (entry.reads is null) return;
             foreach (GetterRead read in entry.reads)
             {
@@ -124,16 +167,15 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// False while any read must observe proposed rather than committed
-        /// state, or while replay reads are being captured: a memoized result
-        /// would skip that capture. Grid-read capture
-        /// (<see cref="NeoScriptGridReads"/>) is replayed from the entry.
+        /// state. Dependency captures (<see cref="CaptureValueReads"/>) and
+        /// grid-read capture (<see cref="NeoScriptGridReads"/>) do not
+        /// disable memoization: a hit replays the entry's recorded reads.
         /// </summary>
         internal bool CanMemoizeGetters =>
             candidateReplay is null
             && candidateReadPlan is null
             && replayAllocationScope is null
-            && !isReplayingVirtualInstance
-            && capturedValueReads is null;
+            && !isReplayingVirtualInstance;
 
         internal bool TryGetMemoizedGetter(GetterMemoKey key, [NotNullWhen(true)] out GetterMemoEntry? entry) =>
             getterMemo.TryGetValue(key, out entry);
@@ -175,6 +217,10 @@ namespace NeoCompose.Runtime
             if (keys.Count == 0) getterMemoKeysByRow.Remove(rowId);
         }
 
+        // Forgetting mutates the key sets being walked, so each pass copies
+        // into one reused list rather than allocating a copy per changed row.
+        private readonly List<GetterMemoKey> memoInvalidationScratch = new();
+
         /// <summary>Drops every memoized getter that read one of the changed rows.</summary>
         private void InvalidateGetterMemoForRows(IEnumerable<(NeoValueOwnership ownership, string valueId)> changed)
         {
@@ -182,7 +228,7 @@ namespace NeoCompose.Runtime
             foreach (var (_, valueId) in changed)
             {
                 if (!getterMemoKeysByRow.TryGetValue(valueId, out HashSet<GetterMemoKey>? keys)) continue;
-                foreach (GetterMemoKey key in new List<GetterMemoKey>(keys)) ForgetMemoizedGetter(key);
+                ForgetMemoizedGetters(keys);
             }
         }
 
@@ -190,7 +236,15 @@ namespace NeoCompose.Runtime
         internal void InvalidateGridDependentGetterMemo()
         {
             if (gridDependentGetterMemoKeys.Count == 0) return;
-            foreach (GetterMemoKey key in new List<GetterMemoKey>(gridDependentGetterMemoKeys)) ForgetMemoizedGetter(key);
+            ForgetMemoizedGetters(gridDependentGetterMemoKeys);
+        }
+
+        private void ForgetMemoizedGetters(HashSet<GetterMemoKey> keys)
+        {
+            memoInvalidationScratch.Clear();
+            memoInvalidationScratch.AddRange(keys);
+            for (int i = 0; i < memoInvalidationScratch.Count; i++) ForgetMemoizedGetter(memoInvalidationScratch[i]);
+            memoInvalidationScratch.Clear();
         }
 
         internal void InvalidateGetterMemo()

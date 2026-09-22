@@ -89,6 +89,13 @@ namespace NeoCompose.Runtime
             foreach (var reads in values) reads.Key.OnWritableValueChanged -= reads.Value.handler;
             values.Clear();
         }
+
+        /// <summary>Drops every recorded read and subscription so the same instance can record a new evaluation.</summary>
+        internal void Reset()
+        {
+            Dispose();
+            isInvalidated = false;
+        }
     }
 
     public sealed class NeoScriptGridQueries

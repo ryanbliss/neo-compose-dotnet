@@ -987,14 +987,14 @@ namespace NeoCompose.Runtime
             { value = allocated as TValue; return value is not null; }
 
             if (candidateReadPlan is null) return TryGetCommittedValue(id, out value);
-            capturedValueReads?.Add(id);
+            NoteValueRead(id);
             value = candidateReadPlan.Resolve(id) as TValue;
             return value is not null;
         }
 
         internal bool TryGetCommittedValue<TValue>(string id, [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
-            capturedValueReads?.Add(id);
+            NoteValueRead(id);
             if (sessionData.values.TryGetValue(id, out MemberValue sessionIdMatch))
             {
                 if (sessionIdMatch is TValue match)
@@ -1037,7 +1037,7 @@ namespace NeoCompose.Runtime
             { value = allocated as TValue; return value is not null; }
 
             if (candidateReadPlan is null) return TryGetCommittedValue(ownership, id, out value);
-            capturedValueReads?.Add(id);
+            NoteValueRead(id);
             value = candidateReadPlan.Resolve(ownership, id) as TValue;
             return value is not null;
         }
@@ -1047,7 +1047,7 @@ namespace NeoCompose.Runtime
             string id,
             [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
-            capturedValueReads?.Add(id);
+            NoteValueRead(id);
             value = null;
             switch (ownership)
             {
@@ -1118,9 +1118,26 @@ namespace NeoCompose.Runtime
         // through to the Asset default.
         private readonly Dictionary<string, NeoValueOwnership> authoredOwnership = new();
         private readonly Dictionary<string, NeoValueOwnership> authoredStorageRoots = new();
+        // Set once the constructor's pass has run. A partition load/unload
+        // after that point changes which authored rows are reachable, so it
+        // rebuilds the map; a load DURING construction (a world grid in the
+        // root tree auto-loads from wrapper construction) is covered by the
+        // constructor's own pass and must not walk half-initialized state.
+        private bool authoredOwnershipBuilt;
 
+        /// <summary>
+        /// Classifies every authored row reachable from the three root
+        /// members (plus static and schema-default roots) by the storage its
+        /// placement declares. Idempotent: the map is derived purely from the
+        /// currently merged authored rows, so it is rebuilt whole whenever a
+        /// value partition loads or unloads — a partition's rows (a world
+        /// grid's Save-declared placed objects) are unreachable from the main
+        /// map until merged, and would otherwise stay Asset forever.
+        /// </summary>
         private void BuildAuthoredOwnershipMap()
         {
+            authoredOwnership.Clear();
+            authoredStorageRoots.Clear();
             var visited = new HashSet<string>();
             MarkAuthoredOwnership(data.project.rootAssetsMemberId, NeoValueOwnership.Asset, visited);
             MarkAuthoredOwnership(data.project.rootSaveFileMemberId, NeoValueOwnership.Save, visited);
@@ -1151,6 +1168,7 @@ namespace NeoCompose.Runtime
                     NeoValueOwnership.Asset,
                     visited);
             }
+            authoredOwnershipBuilt = true;
         }
 
         private void MarkAuthoredOwnership(
@@ -1389,7 +1407,7 @@ namespace NeoCompose.Runtime
                 return false;
             }
             ownership = ResolveStaticOwnership(member);
-            capturedValueReads?.Add($"static:{ownership}:{memberId}");
+            NoteValueRead($"static:{ownership}:{memberId}");
             if (ownership == NeoValueOwnership.Asset)
             {
                 valueId = member.valueId;
@@ -1687,6 +1705,7 @@ namespace NeoCompose.Runtime
             authoredClassOwnedRoots = null;
             InvalidateGetterMemo();
             worldClassIds.Clear();
+            worldKindByClass.Clear();
             ScriptSchemaPlacements.Clear();
             ScriptCallableDispatch.Clear();
             instanceSurfaceMembers.Clear();
@@ -2709,7 +2728,7 @@ namespace NeoCompose.Runtime
             { value = allocated as TValue; return value is not null; }
 
             if (candidateReadPlan is null) return TryGetCommittedOverlaidValue(ownership, id, out value);
-            capturedValueReads?.Add(id);
+            NoteValueRead(id);
             value = candidateReadPlan.Resolve(ownership, id) as TValue;
             return value is not null;
         }
@@ -2719,7 +2738,7 @@ namespace NeoCompose.Runtime
             string id,
             [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
-            capturedValueReads?.Add(id);
+            NoteValueRead(id);
             value = null;
             if (ownership != NeoValueOwnership.Asset)
             {
@@ -2758,7 +2777,7 @@ namespace NeoCompose.Runtime
             if (candidateReplay?.Allocations.TryGetValue(id, out MemberValue? allocated) == true)
             { value = allocated as TValue; return value is not null; }
 
-            capturedValueReads?.Add(id);
+            NoteValueRead(id);
             value = null;
             if (ownership != NeoValueOwnership.Asset)
             {
@@ -4874,7 +4893,7 @@ namespace NeoCompose.Runtime
             if (candidateReadPlan?.Rows.TryGetValue((ownership, id), out MemberValue? proposed) == true)
             { value = proposed as TValue; return value is not null; }
 
-            capturedValueReads?.Add(id);
+            NoteValueRead(id);
             value = null;
             if (ownership == NeoValueOwnership.Asset) return false;
             if (!GetWritableStore(ownership).values.TryGetValue(id, out MemberValue row))
@@ -5145,6 +5164,11 @@ namespace NeoCompose.Runtime
                 }
             }
             loadedPartitionRowIds[mapKey] = rowIds;
+            // The merged rows are now reachable from the main map (a grid's
+            // Children list hangs off a main-resident grid root). Classify
+            // them before their sparse roots replay: an expansion stamps its
+            // virtual rows with the root's ownership at install time.
+            if (authoredOwnershipBuilt) BuildAuthoredOwnershipMap();
             // A partition owns its placement roots. Replaying only those rows
             // avoids O(project) work and prevents an unrelated malformed root
             // elsewhere in the corpus from breaking this load. During client
@@ -5195,6 +5219,7 @@ namespace NeoCompose.Runtime
             authoredClassOwnedRoots = null;
             InvalidateGetterMemo();
             loadedPartitionRowIds.Remove(mapKey);
+            if (authoredOwnershipBuilt) BuildAuthoredOwnershipMap();
             OnValuePartitionChanged?.Invoke(mapKey);
         }
 
@@ -5378,7 +5403,7 @@ namespace NeoCompose.Runtime
         {
             if (candidateReplay?.Allocations.TryGetValue(valueId, out MemberValue? allocated) == true) return allocated;
 
-            capturedValueReads?.Add(valueId);
+            NoteValueRead(valueId);
             if (candidateReadPlan is not null) return candidateReadPlan.Resolve(valueId);
             if (sessionData.values.TryGetValue(valueId, out MemberValue sessionRow)) return sessionRow;
             if (saveData.values.TryGetValue(valueId, out MemberValue saveRow)) return saveRow;

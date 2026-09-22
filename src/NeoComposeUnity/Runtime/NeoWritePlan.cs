@@ -204,6 +204,17 @@ namespace NeoCompose.Runtime
         internal event Action<IReadOnlyCollection<(NeoValueOwnership ownership, string valueId)>, NeoWritePlan>? OnWritableValuesPublished;
         internal event Action<IReadOnlyCollection<(NeoValueOwnership ownership, string valueId)>>? OnWritableValuesChanged;
 
+        private static bool WritesAnyChild(NeoWritePlan plan, NeoValueOwnership ownership, ObjectMemberValue parentRow)
+        {
+            foreach (string childId in parentRow.value!.Values)
+                if (plan.Rows.ContainsKey((ownership, childId))) return true;
+            return false;
+        }
+
+        private bool commitScratchInUse;
+        private readonly HashSet<(NeoValueOwnership ownership, string valueId)> commitChangedScratch = new();
+        private readonly Dictionary<(NeoValueOwnership ownership, string id), string> commitOldContainersScratch = new();
+
         internal void CommitWritePlan(NeoWritePlan plan)
         {
             using var marker = CommitWriteMarker.Auto();
@@ -248,8 +259,14 @@ namespace NeoCompose.Runtime
                     && previousOwnership == row.Key.ownership
                     && ReplayRowsEqual(PreviousReplayRow(row.Key.id), row.Value))
                     plan.UnchangedValueIds.Add(row.Key.id);
-            var changed = new HashSet<(NeoValueOwnership ownership, string valueId)>();
-            var oldContainers = new Dictionary<(NeoValueOwnership ownership, string id), string>();
+            // Notifications can commit again before this commit returns, so
+            // the scratch sets serve only the outermost commit.
+            bool pooledScratch = !commitScratchInUse;
+            commitScratchInUse = true;
+            HashSet<(NeoValueOwnership ownership, string valueId)> changed = pooledScratch ? commitChangedScratch : new();
+            Dictionary<(NeoValueOwnership ownership, string id), string> oldContainers = pooledScratch ? commitOldContainersScratch : new();
+            try
+            {
             bool touchesWorld = false;
             foreach (var pair in plan.Rows)
             {
@@ -312,7 +329,7 @@ namespace NeoCompose.Runtime
                     NotifyWritableValueChanged(pair.Key.ownership, pair.Key.id, changedField,
                         valueChanged: !(plan.UnchangedValueIds.Contains(pair.Key.id)
                             && pair.Value is ObjectMemberValue { classId: not null, value: not null } parentRow
-                            && parentRow.value.Values.Any(childId => plan.Rows.ContainsKey((pair.Key.ownership, childId)))));
+                            && WritesAnyChild(plan, pair.Key.ownership, parentRow)));
                     if (oldContainers.TryGetValue(pair.Key, out string? containerId))
                         RaiseContainerChanged(pair.Key.ownership, containerId);
                 }
@@ -331,6 +348,16 @@ namespace NeoCompose.Runtime
                 }
             }
             plan.NotifyCompleted();
+            }
+            finally
+            {
+                if (pooledScratch)
+                {
+                    changed.Clear();
+                    oldContainers.Clear();
+                    commitScratchInUse = false;
+                }
+            }
         }
     }
 }

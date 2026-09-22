@@ -1229,7 +1229,8 @@ namespace NeoCompose.Runtime
             {
                 using (client.CaptureValueReads(dependencies))
                 {
-                    string? rowId = ResolveSegmentRowId();
+                    string? rowId;
+                    rowId = ResolveSegmentRowId();
                     if (rowId is not null) ReadContent(rowId);
                 }
             }

@@ -59,3 +59,32 @@ Causes fixed: a fresh execution option set, expression-handler closures, and a c
 On the sandbox fixture (same editor session as the getter memo table, medians): plant.place PlantInfo refresh 16.5 → 14.3 ms with `Measure` 12.2 → 10.5 ms and `Matches` 3.8 → 3.1 ms; soil.edit PlantInfo refresh 12.9 → 11.6 ms; bed.place action 13.7 → 10.5 ms; plant.place action and chest.open unchanged at 14.3 and 44 ms.
 
 Remaining cost in the loop case is row member reads: each `rank.Levels[i].PointsRelative` is about 3.6 µs (1.6 µs per hop) through the reverse index, inheritance chain, surface schema, member, and value-store lookups. That path has no redundant work to remove without a per-site inline cache keyed on schema generation, which is not on this branch.
+
+## Walking, cursor movement, and world-time ticks (same branch, later pass)
+
+Fixture: a 6 s play-mode walk over the real Neowyn checkout with the cursor circling and seven facing flips, no placed objects, profiler recording on with binary log capture (so absolute times are higher than the profiler-off numbers above; compare within the table only). Per-action figures are the allocated bytes and time for one action and the frames it dirties; per-frame figures are medians over the run.
+
+| measure | before | after |
+| --- | --- | --- |
+| Position write (one player move) | 62.9 KB / 0.416 ms | 11.4 KB / 0.213 ms |
+| scalar Save write | 7.2 KB | 3.2 KB |
+| `AddTime` (world-time tick, three field writes) | 24.4 KB | 12.3 KB |
+| `OnUpdate` | 81.4 KB / 0.371 ms | 34.4 KB / 0.199 ms |
+| per-frame garbage (median) | 139–158 KB, 1521–2189 allocations | 56–63 KB, 960–1039 allocations |
+| frame time (median) | 4.7–4.9 ms | 4.3–4.7 ms |
+
+Causes fixed:
+
+- NeoScript field writes (`NeoClassMemberWriteTarget.Write`) cloned the parent row twice and recommitted it with a new `updatedAt` on every scalar assignment, about 9 KB per commit and three commits per `AddTime`. Generated setters replace only the bound child; the NeoScript path now does the same.
+- Value subscriptions were multicast delegates: each subscribe and unsubscribe copied the whole invocation array, and the 66 facing-dependent segment tracks share the facing dependency, so a facing flip did O(n²) delegate copies. Handlers are now a list per value id, published over a pooled snapshot with the same reentrancy semantics.
+- Placement validation on every commit allocated its own queues, sets, and dictionaries, walked placement parents through an iterator, and re-resolved the world kind of each class from the schema. Scratch is pooled, parents are collected into a reused list, and world kinds are cached per class (cleared with the schema caches).
+- Lookup caches re-resolved the grid's object and tile layer ids (a walk over every link row) on every object move; they are now kept until a structural or partition change. Object-move bookkeeping, commit scratch, memo-invalidation scratch, and the generated setter's write plan allocate lazily.
+- Getter memoization was disabled under every dependency capture, so animation segment sources and nested constructor reads never hit. Entries now carry the value ids the evaluation reported and a hit replays them; 313 nested-dispatch hits versus 95 misses over the run.
+- A localized string member read formatted its template on every read, warning each time the template expected arguments. Reads now return the template.
+
+Not fixed, and reported:
+
+- A facing flip still costs about 10–11 ms of animation work in-editor: 66 segment tracks re-resolve, and the cost is interpreter body execution (about 24 µs self per selector body, 5 ms per flip) plus `Children.FirstOrDefault(lambda)` selectors (1.3 ms), subscription refresh (0.7 ms), and content resolution (0.5 ms). Nested getters, row unwraps, and exceptions were ruled out by attribution. Reducing it needs either per-hop inline caches in the interpreter (not on this branch) or fewer facing-dependent tracks on the content side.
+- Full garbage collections take 40–50 ms at the editor's 1.5–1.7 GB managed heap. They are less frequent after this pass but no cheaper; a player build with a small heap will not see them at this size.
+- The half-second and one-second frames in the cursor run are `WaitForLastPresentation → Semaphore.WaitForSignal` (editor compositor waits) and one 141 ms render-culling frame, not SDK or game code.
+- The prebuilt boulder's "not save-owned" error was an ownership-classification bug fixed in this pass (authored ownership map rebuilt on partition load). The placed-seed break bug (object neither destroyed nor magnetic, items not returned) did not reproduce in the seed-break diagnostic; it is not fixed here.

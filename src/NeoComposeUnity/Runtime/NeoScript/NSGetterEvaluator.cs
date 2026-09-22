@@ -511,7 +511,7 @@ namespace NeoCompose.Runtime.NeoScript
             /// shared mutable stack so nested evaluator contexts retain cycle
             /// detection across closure and member-target boundaries.
             /// </summary>
-            internal List<string> delegateCallStack { get; }
+            internal List<(string memberId, string? valueId)> delegateCallStack { get; }
             /// <summary>
             /// P43 §7.2.3 — ordered names of the classes currently under
             /// construction. Deliberately separate from
@@ -614,7 +614,7 @@ namespace NeoCompose.Runtime.NeoScript
                     IReadOnlyDictionary<string, NeoGenericEnvEntry>>?
                     genericEnvironmentCache = null,
                 IReadOnlyList<string>? constructionStack = null,
-                List<string>? delegateCallStack = null,
+                List<(string memberId, string? valueId)>? delegateCallStack = null,
                 NeoScriptExecutionBudgetLimits? executionBudgetLimits = null)
                 : this(
                     client,
@@ -659,7 +659,7 @@ namespace NeoCompose.Runtime.NeoScript
                     IReadOnlyDictionary<string, NeoGenericEnvEntry>>?
                     genericEnvironmentCache,
                 IReadOnlyList<string>? constructionStack,
-                List<string>? delegateCallStack,
+                List<(string memberId, string? valueId)>? delegateCallStack,
                 NeoScriptExecutionBudgetLimits? executionBudgetLimits,
                 NeoScriptAllocationTracker? sharedAllocationTracker)
             {
@@ -689,7 +689,7 @@ namespace NeoCompose.Runtime.NeoScript
                         IReadOnlyDictionary<string, NeoGenericEnvEntry>>();
                 this.constructionStack = constructionStack
                     ?? System.Array.Empty<string>();
-                this.delegateCallStack = delegateCallStack ?? new List<string>();
+                this.delegateCallStack = delegateCallStack ?? new List<(string memberId, string? valueId)>();
                 allocationTracker = sharedAllocationTracker
                     ?? new NeoScriptAllocationTracker(executionBudgetLimits);
             }
@@ -1695,6 +1695,38 @@ namespace NeoCompose.Runtime.NeoScript
         /// one of its listeners. Only an action passes it: a delegate holds
         /// exactly one target and always spells its own receiver.
         /// </param>
+        // The stack holds ids; names are only spelled out for an error.
+        private static string DescribeDelegateCallStack(
+            Context ctx,
+            (string memberId, string? valueId) frame)
+        {
+            var text = new System.Text.StringBuilder();
+            foreach (var entry in ctx.delegateCallStack) AppendDelegateFrame(text, ctx, entry);
+            AppendDelegateFrame(text, ctx, frame);
+            return text.ToString();
+        }
+
+        private static string DescribeDelegateFrame(
+            Context ctx,
+            (string memberId, string? valueId) frame)
+        {
+            var text = new System.Text.StringBuilder();
+            AppendDelegateFrame(text, ctx, frame);
+            return text.ToString();
+        }
+
+        private static void AppendDelegateFrame(
+            System.Text.StringBuilder text,
+            Context ctx,
+            (string memberId, string? valueId) frame)
+        {
+            if (text.Length != 0) text.Append(" -> ");
+            string name = ctx.client.TryGetMember(frame.memberId, out JsonMember? member)
+                ? member.name
+                : frame.memberId;
+            text.Append(name).Append('[').Append(frame.valueId ?? "default").Append(']');
+        }
+
         private static object? InvokeDelegateMemberTarget(
             NeoDelegateValue target,
             object?[] args,
@@ -1711,16 +1743,16 @@ namespace NeoCompose.Runtime.NeoScript
             // reported in the fan-out's message, never folded into the key:
             // the same (member, row) re-entered at a different listener index
             // is the same frame, and the TS evaluator keys it that way too.
-            string frame = $"{member.name}[{target.valueId ?? "default"}]";
+            (string memberId, string? valueId) frame = (memberId, target.valueId);
             if (ctx.delegateCallStack.Contains(frame))
             {
                 throw new NSGetterRuntimeError(
-                    $"NeoDelegate target cycle: {string.Join(" -> ", ctx.delegateCallStack.Concat(new[] { frame }))}.");
+                    $"NeoDelegate target cycle: {DescribeDelegateCallStack(ctx, frame)}.");
             }
             if (ctx.delegateCallStack.Count >= 64)
             {
                 throw new NSGetterRuntimeError(
-                    $"NeoDelegate call stack exceeded 64 frames: {string.Join(" -> ", ctx.delegateCallStack.Concat(new[] { frame }))}.");
+                    $"NeoDelegate call stack exceeded 64 frames: {DescribeDelegateCallStack(ctx, frame)}.");
             }
 
             object? receiver = null;
@@ -1799,7 +1831,7 @@ namespace NeoCompose.Runtime.NeoScript
                         args,
                         ctx,
                         receiver,
-                        () => frame);
+                        () => DescribeDelegateFrame(ctx, frame));
                     return null;
                 }
                 throw new NSGetterRuntimeError(
@@ -2701,27 +2733,28 @@ namespace NeoCompose.Runtime.NeoScript
             }
             var inner = ctx.WithGetterPushed(memberId, receiver);
             if (!memoize) return Evaluate(getter, inner);
-            List<NeoClient.GetterRead>? enclosingCapture = client.BeginGetterReadCapture();
+            NeoClient.GetterCaptureFrame enclosingCapture = client.BeginGetterReadCapture();
             object? result;
             List<NeoClient.GetterRead>? reads;
+            string[]? valueReads;
             try
             {
                 result = Evaluate(getter, inner);
             }
             finally
             {
-                reads = client.EndGetterReadCapture(enclosingCapture);
+                reads = client.EndGetterReadCapture(enclosingCapture, out valueReads);
             }
             if (client.CanMemoizeGetters)
             {
                 if (result is null or string or bool or double or int or long or float)
                 {
-                    client.MemoizeGetter(memoKey, new NeoClient.GetterMemoEntry { scalar = result, reads = reads });
+                    client.MemoizeGetter(memoKey, new NeoClient.GetterMemoEntry { scalar = result, reads = reads, valueReads = valueReads });
                 }
                 else if (TryFindRowReferenceByReference(result, inner, out RowReference resultRef)
                     && resultRef.ownership != NeoValueOwnership.Session)
                 {
-                    client.MemoizeGetter(memoKey, new NeoClient.GetterMemoEntry { row = resultRef, reads = reads });
+                    client.MemoizeGetter(memoKey, new NeoClient.GetterMemoEntry { row = resultRef, reads = reads, valueReads = valueReads });
                 }
             }
             return result;
@@ -5651,7 +5684,11 @@ namespace NeoCompose.Runtime.NeoScript
             if (value.value == null) return null;
             if (member.Format == NeoStringFormatKind.Plain) return value.value;
             if (value.neoLocalizationMode == NeoStringLocalizationMode.Literal) return value.value;
-            return ctx.client.Localization.ResolveText(value.value);
+            // A member read has no format arguments: hand back the localized
+            // template as-is. Running the formatter here can only succeed on
+            // placeholder-free text and warns (with a stack capture) on every
+            // read of a template that expects arguments.
+            return ctx.client.Localization.ResolveTextTemplate(value.value);
         }
 
         private static object?[] ToObjectArray(string[] arr)
@@ -6236,6 +6273,14 @@ namespace NeoCompose.Runtime.NeoScript
                 ? rowRef.ownership
                 : value is NeoObjectRecord record ? record.valueOwnership : null;
         }
+
+        /// <summary>The stored row an unwrapped value came from, for the top-level getter memo.</summary>
+        internal static bool TryFindRowReference(object? value, Context ctx, out RowReference rowRef) =>
+            TryFindRowReferenceByReference(value, ctx, out rowRef);
+
+        /// <summary>Unwraps a memoized row result the way the evaluation that produced it did.</summary>
+        internal static object? UnwrapMemoizedRow(MemberValue row, Context ctx, RowReference reference) =>
+            UnwrapCached(row, ctx, reference.ownership, reference.member);
 
         private static bool TryFindRowReferenceByReference(
             object? value,

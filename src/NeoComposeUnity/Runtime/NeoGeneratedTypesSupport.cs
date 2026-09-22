@@ -7585,6 +7585,23 @@ namespace NeoCompose.Runtime
                     $"NSProperty getter returned class value id '{valueId}', but the backing row does not declare a classId and its owning member could not be inferred.");
             }
 
+            // Generated factories memoize by declaration, placement and storage.
+            // Check before building a node: a hit must not construct and
+            // register a replacement node tree, and a read that repeats every
+            // frame (the equipped item, the placement target) then allocates
+            // nothing after its first resolution.
+            bool hasOwnership = client.TryGetValueOwnership(valueId, out NeoValueOwnership resolvedOwnership);
+            NeoValueOwnership nodeOwnership = hasOwnership && resolvedOwnership != NeoValueOwnership.Asset
+                ? resolvedOwnership
+                : NeoValueOwnership.Asset;
+            if ((!saved || nodeOwnership != NeoValueOwnership.Asset)
+                && client.TryGetGeneratedClassValue($"__neo_nsg_class_{classId}", valueId!, nodeOwnership, out NeoGeneratedClassValue? cachedValue)
+                && cachedValue.classId == classId
+                && cachedValue is T cachedTyped)
+            {
+                return cachedTyped;
+            }
+
             client.TryInferMemberForValueId(valueId!, out Member? placement);
             var member = new ClassMember
             {

@@ -56,15 +56,18 @@ namespace NeoCompose.Runtime
             }
         }
 
+        private void EnsureWritablePlacementParents()
+        {
+            if (writablePlacementParents is not null) return;
+            writablePlacementParents = new Dictionary<string, HashSet<string>>();
+            foreach (MemberValue row in saveData.values.Values) IndexPlacementParent(NeoValueOwnership.Save, row);
+            foreach (MemberValue row in sessionData.values.Values) IndexPlacementParent(NeoValueOwnership.Session, row);
+        }
+
         private IEnumerable<string> PlacementParents(string childId)
         {
-            if (writablePlacementParents is null)
-            {
-                writablePlacementParents = new Dictionary<string, HashSet<string>>();
-                foreach (MemberValue row in saveData.values.Values) IndexPlacementParent(NeoValueOwnership.Save, row);
-                foreach (MemberValue row in sessionData.values.Values) IndexPlacementParent(NeoValueOwnership.Session, row);
-            }
-            if (writablePlacementParents.TryGetValue(childId, out var writable))
+            EnsureWritablePlacementParents();
+            if (writablePlacementParents!.TryGetValue(childId, out var writable))
                 foreach (string parent in writable) yield return parent;
             if (ValueInferenceIndex.Parents.TryGetValue(childId, out var authored))
                 foreach (var parent in authored) yield return parent.Key;
@@ -72,24 +75,95 @@ namespace NeoCompose.Runtime
                 yield return placement.parentValueId;
         }
 
+        /// <summary>The iterator above without its enumerator objects, for the per-commit walk.</summary>
+        private void CollectPlacementParents(string childId, List<string> into)
+        {
+            EnsureWritablePlacementParents();
+            if (writablePlacementParents!.TryGetValue(childId, out var writable)) into.AddRange(writable);
+            if (ValueInferenceIndex.Parents.TryGetValue(childId, out var authored))
+                foreach (var parent in authored) into.Add(parent.Key);
+            if (TryResolveVirtualPlacement(childId, out var placement))
+                into.Add(placement.parentValueId);
+        }
+
+        // Every commit asks this for each row it walks past; the answer only
+        // changes with the schema, which clears the cache with the class caches.
+        private readonly Dictionary<(string classId, string kind), bool> worldKindByClass = new();
+
         internal bool HasWorldKind(string? classId, string kind)
         {
             if (string.IsNullOrEmpty(classId)) return false;
+            (string, string) key = (classId!, kind);
+            if (worldKindByClass.TryGetValue(key, out bool has)) return has;
+            has = false;
             foreach (NeoSchemaClass type in ResolveClassInheritanceChain(classId!))
-                if (type.system?["worldKind"]?.ToString() == kind) return true;
-            return false;
+                if (type.system?["worldKind"]?.ToString() == kind) { has = true; break; }
+            worldKindByClass[key] = has;
+            return has;
         }
+
+        // The walk below runs on every commit. Its collections are reused
+        // between commits; a validation nested inside another (a candidate
+        // replay) gets its own throwaway set.
+        private sealed class WriteValidationScratch
+        {
+            internal readonly HashSet<string> positionObjects = new(StringComparer.Ordinal);
+            internal readonly Dictionary<string, HashSet<string>> stagedParents = new(StringComparer.Ordinal);
+            internal readonly Queue<string> pending = new();
+            internal readonly HashSet<string> writtenDescendants = new(StringComparer.Ordinal);
+            internal readonly HashSet<string> visited = new(StringComparer.Ordinal);
+            internal readonly HashSet<string> grids = new(StringComparer.Ordinal);
+            internal readonly HashSet<string> tiles = new(StringComparer.Ordinal);
+            internal readonly HashSet<string> objects = new(StringComparer.Ordinal);
+            internal readonly List<string> parents = new();
+            internal readonly Dictionary<string, Vector2Int> positions = new(StringComparer.Ordinal);
+            internal bool inUse;
+
+            internal void Clear()
+            {
+                positionObjects.Clear();
+                stagedParents.Clear();
+                pending.Clear();
+                writtenDescendants.Clear();
+                visited.Clear();
+                grids.Clear();
+                tiles.Clear();
+                objects.Clear();
+                parents.Clear();
+                positions.Clear();
+            }
+        }
+
+        private WriteValidationScratch? writeValidationScratch;
 
         private static readonly Unity.Profiling.ProfilerMarker ValidatePlacementsMarker = new("NeoCompose.Write.ValidatePlacements");
         private void ValidateWritePlan(NeoWritePlan plan)
         {
             using var sample = ValidatePlacementsMarker.Auto();
             if (plan.Rows.Count == 0 && plan.Bindings.Count == 0) return;
+            WriteValidationScratch scratch;
+            if (writeValidationScratch is null) scratch = writeValidationScratch = new WriteValidationScratch();
+            else scratch = writeValidationScratch.inUse ? new WriteValidationScratch() : writeValidationScratch;
+            scratch.inUse = true;
+            try
+            {
+                ValidateWritePlan(plan, scratch);
+            }
+            finally
+            {
+                scratch.Clear();
+                scratch.inUse = false;
+            }
+        }
+
+        private void ValidateWritePlan(NeoWritePlan plan, WriteValidationScratch scratch)
+        {
             bool runtimeLeaves = IsRuntimeLeafWrite(plan);
-            var positionObjects = new HashSet<string>();
-            var stagedParents = new Dictionary<string, HashSet<string>>();
-            var pending = new Queue<string>();
-            var writtenDescendants = new HashSet<string>(plan.Rows.Keys.Select(key => key.id));
+            HashSet<string> positionObjects = scratch.positionObjects;
+            Dictionary<string, HashSet<string>> stagedParents = scratch.stagedParents;
+            Queue<string> pending = scratch.pending;
+            HashSet<string> writtenDescendants = scratch.writtenDescendants;
+            foreach (var key in plan.Rows.Keys) writtenDescendants.Add(key.id);
             foreach (var pair in plan.Rows)
             {
                 pending.Enqueue(pair.Key.id);
@@ -109,10 +183,11 @@ namespace NeoCompose.Runtime
                     if (!virtualValues.TryGetValue(pair.Key, out var previousVirtual)
                         || !NeoSemanticJson.MemberRowsEqual(previousVirtual, pair.Value))
                         pending.Enqueue(pair.Key);
-            var visited = new HashSet<string>();
-            var grids = new HashSet<string>();
-            var tiles = new HashSet<string>();
-            var objects = new HashSet<string>();
+            HashSet<string> visited = scratch.visited;
+            HashSet<string> grids = scratch.grids;
+            HashSet<string> tiles = scratch.tiles;
+            HashSet<string> objects = scratch.objects;
+            List<string> parentList = scratch.parents;
             while (pending.Count > 0)
             {
                 string id = pending.Dequeue();
@@ -124,11 +199,14 @@ namespace NeoCompose.Runtime
                 if (HasWorldKind(candidate?.classId, "object")) objects.Add(id);
                 if (!string.IsNullOrEmpty(candidate?.containerId)) pending.Enqueue(candidate!.containerId!);
                 if (!string.IsNullOrEmpty(previous?.containerId)) pending.Enqueue(previous!.containerId!);
-                foreach (string parent in PlacementParents(id))
+                parentList.Clear();
+                CollectPlacementParents(id, parentList);
+                for (int parentIndex = 0; parentIndex < parentList.Count; parentIndex++)
                 {
+                    string parent = parentList[parentIndex];
                     if (!IsPlacementEdge(plan, parent, id)) continue;
                     if (writtenDescendants.Contains(id)) writtenDescendants.Add(parent);
-                    if (runtimeLeaves && plan.Rows.Keys.Any(key => key.id == id)
+                    if (runtimeLeaves && PlanWritesRow(plan, id)
                         && plan.Resolve(parent) is ObjectMemberValue positionOwner
                         && HasWorldKind(positionOwner.classId, "object")
                         && ResolveClassChildRow(positionOwner, "Position")?.id == id)
@@ -153,7 +231,7 @@ namespace NeoCompose.Runtime
             }
             if (runtimeLeaves && tiles.Count == 0)
             {
-                var positions = new Dictionary<string, Vector2Int>();
+                Dictionary<string, Vector2Int> positions = scratch.positions;
                 using (ReadCandidate(plan))
                     foreach (string id in positionObjects)
                     {
@@ -163,8 +241,7 @@ namespace NeoCompose.Runtime
                             throw PlacementError("object-position-invalid", $"Object '{id}' requires a finite Position.");
                         // Use the same cell conversion as the normal placement builder.
                         if (grids.Count != 0)
-                            positions[id] = NeoReadOnlyTileGridPrimitive.Resolve(this, grids.First())
-                                .ReadObjectOrigin(owner, null);
+                            positions[id] = GetGridLookupCache(FirstOf(grids)).Primitive.ReadObjectOrigin(owner, null);
                     }
                 if (positions.Count != 0)
                     foreach (string gridId in grids)
@@ -186,6 +263,18 @@ namespace NeoCompose.Runtime
                 foreach (string tileId in tiles) ValidateTileRow(tileId);
                 foreach (string gridId in grids) ValidateGridPlacements(plan, gridId, primitives[gridId], compatibleLayers);
             }
+        }
+
+        private static bool PlanWritesRow(NeoWritePlan plan, string id)
+        {
+            foreach (var key in plan.Rows.Keys) if (key.id == id) return true;
+            return false;
+        }
+
+        private static string FirstOf(HashSet<string> set)
+        {
+            foreach (string item in set) return item;
+            throw new InvalidOperationException("The set is empty.");
         }
 
         // The parent index also contains lookup selections and constructor

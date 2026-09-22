@@ -38,6 +38,15 @@ namespace NeoCompose.Runtime
         private readonly HashSet<string> knownObjectLayers = new();
         private readonly Dictionary<string, HashSet<Vector2Int>> convertedTileCells = new();
         private event Action<NeoTileGridChangedArgs>? Changed;
+        // Layer ids follow the grid's link rows, which only a structural write
+        // or a partition change can alter. Resolving them walks every link row,
+        // so a per-frame object move must not repeat that walk.
+        private IReadOnlyList<string>? objectLayerIds;
+        private IReadOnlyList<string>? tileLayerIds;
+
+        internal NeoReadOnlyTileGridPrimitive Primitive => primitive;
+        internal IReadOnlyList<string> ObjectLayerIds => objectLayerIds ??= primitive.ResolveObjectLayerIds();
+        internal IReadOnlyList<string> TileLayerIds => tileLayerIds ??= primitive.ResolveTileLayerIds();
 
         public NeoTileGridLookupCache(NeoClient client, string gridValueId)
         {
@@ -72,6 +81,8 @@ namespace NeoCompose.Runtime
             knownTileLayers.Clear();
             knownObjectLayers.Clear();
             convertedTileCells.Clear();
+            objectLayerIds = null;
+            tileLayerIds = null;
         }
 
         // ------------------------------------------------------------------
@@ -165,6 +176,8 @@ namespace NeoCompose.Runtime
                 ApplyTileConversions(plan.ValidatedTileConversions);
                 return;
             }
+            objectLayerIds = null;
+            tileLayerIds = null;
             var ids = new HashSet<string>();
             foreach (var value in changed)
                 if (!plan.UnchangedValueIds.Contains(value.valueId)) ids.Add(value.valueId);
@@ -221,6 +234,8 @@ namespace NeoCompose.Runtime
         {
             string? gridClassId = primitive.Client.ResolveValueRow(primitive.GridValueId)?.classId;
             if (gridClassId is null || mapKey != NeoClient.MakeWorldPartitionKey(gridClassId)) return;
+            objectLayerIds = null;
+            tileLayerIds = null;
             tileLayers.Clear();
             objectLayers.Clear();
             changedTileLayers.Clear();

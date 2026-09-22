@@ -3796,14 +3796,36 @@ namespace NeoCompose.Runtime
             {
                 PrepareWrite(client, plan =>
                 {
-                    string writableParentRowId = parentOwnership == NeoValueOwnership.Asset
-                        ? parentRowId : PrepareWritableRow(plan, client, parentRowId, parentOwnership);
-                    if (!client.TryGetValue(parentOwnership, writableParentRowId, out ObjectMemberValue? parent))
+                    if (parentOwnership != NeoValueOwnership.Asset)
                     {
-                        throw new NSGetterRuntimeError($"Missing parent row '{writableParentRowId}'.");
+                        // The first write under an authored Save/Session root
+                        // shadows the root at its stable id so the save file
+                        // links the child it is about to hold. A parent the
+                        // store already holds is left alone.
+                        EnsureWritableRow(client, parentRowId, parentOwnership);
+                        if (!client.HasWritableValue(parentOwnership, parentRowId))
+                            PrepareWritableRow(plan, client, parentRowId, parentOwnership);
                     }
-                    parent = (ObjectMemberValue)client.CloneRowForWrite(parent);
-                    parent.value ??= new Dictionary<string, string>();
+                    if (!client.TryGetValue(parentOwnership, parentRowId, out ObjectMemberValue? parent))
+                    {
+                        throw new NSGetterRuntimeError($"Missing parent row '{parentRowId}'.");
+                    }
+                    // Beyond that, the parent is rewritten only when its value
+                    // map changes. A child replaced at its stable id leaves
+                    // the parent untouched, exactly as the generated setters
+                    // do; cloning and re-committing it on every scalar write
+                    // cost a row clone, a second changed row and its
+                    // notifications.
+                    ObjectMemberValue? writableParent = null;
+                    ObjectMemberValue WritableParent()
+                    {
+                        if (writableParent is not null) return writableParent;
+                        if (parentOwnership == NeoValueOwnership.Asset)
+                            throw new NSGetterRuntimeError($"Cannot rebind '{key}' on an immutable parent.");
+                        writableParent = (ObjectMemberValue)client.CloneRowForWrite(parent!);
+                        writableParent.value ??= new Dictionary<string, string>();
+                        return writableParent;
+                    }
                     value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan);
                     var now = DateTime.UtcNow.ToString("o");
                     // Reusing the entry's stable id below clone-on-writes it
@@ -3816,8 +3838,8 @@ namespace NeoCompose.Runtime
                     // that one" contract the web already implements.
                     bool bound = TryResolveBoundChild(
                             client,
-                            writableParentRowId,
-                            parent,
+                            parentRowId,
+                            parent!,
                             out string existingId,
                             out MemberValue? existing)
                         && existing is not null;
@@ -3836,14 +3858,13 @@ namespace NeoCompose.Runtime
                                 ctx,
                                 existingId);
                             if (importedId == existingId) return;
-                            if (parentOwnership == NeoValueOwnership.Asset)
-                                throw new NSGetterRuntimeError($"Cannot rebind '{key}' on an immutable parent.");
-                            parent.value[key] = importedId;
+                            ObjectMemberValue rebound = WritableParent();
+                            rebound.value![key] = importedId;
                             plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                                 importedId,
-                                writableParentRowId));
-                            parent.updatedAt = now;
-                            StoreWritableRow(plan, client, parentOwnership, parent, ctx);
+                                parentRowId));
+                            rebound.updatedAt = now;
+                            StoreWritableRow(plan, client, parentOwnership, rebound, ctx);
                             client.StageUnlinkedRemovals(plan, ownership, new[] { existingId }, member);
                             return;
                         }
@@ -3857,44 +3878,40 @@ namespace NeoCompose.Runtime
                             list.PrepareAssignSerialized(plan, NeoValueWritePayload.FromValue(
                                 payload is NeoValuePayload wrapped ? wrapped.value : payload));
                             plan.AfterCommit(() => NSGetterEvaluator.InvalidateCachedCollection(existingId, ownership, ctx));
+                            return;
                         }
-                        else
-                        {
-                            var next = CreateValueRow(plan, client, ownership, member, value, existingId, existing!.createdAt, now);
-                            next.classId = existing.classId;
-                            StoreWritableRow(plan, client, ownership, next, ctx);
-                        }
+                        var replaced = CreateValueRow(plan, client, ownership, member, value, existingId, existing!.createdAt, now);
+                        replaced.classId = existing.classId;
+                        StoreWritableRow(plan, client, ownership, replaced, ctx);
+                        return;
+                    }
+                    if (parentOwnership == NeoValueOwnership.Asset)
+                        throw new NSGetterRuntimeError($"Cannot bind missing member '{key}' on an immutable parent.");
+                    ObjectMemberValue linked = WritableParent();
+                    if (TryGetClassValueReferenceId(
+                            value,
+                            MemberKindInfo(member),
+                            ctx,
+                            out string? linkedReferenceId))
+                    {
+                        linked.value![key] = ImportClassValueReference(
+                            plan, client,
+                            ownership,
+                            linkedReferenceId!,
+                            ctx);
+                        plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
+                            linked.value[key],
+                            parentRowId));
                     }
                     else
                     {
-                        if (parentOwnership == NeoValueOwnership.Asset)
-                            throw new NSGetterRuntimeError($"Cannot bind missing member '{key}' on an immutable parent.");
-                        if (TryGetClassValueReferenceId(
-                                value,
-                                MemberKindInfo(member),
-                                ctx,
-                                out string? referenceId))
-                        {
-                            parent.value[key] = ImportClassValueReference(
-                                plan, client,
-                                ownership,
-                                referenceId!,
-                                ctx);
-                            plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
-                                parent.value[key],
-                                writableParentRowId));
-                            parent.updatedAt = now;
-                            StoreWritableRow(plan, client, parentOwnership, parent, ctx);
-                            return;
-                        }
                         var childId = Guid.NewGuid().ToString();
                         var next = CreateValueRow(plan, client, ownership, member, value, childId, now, now);
                         StoreWritableRow(plan, client, ownership, next, ctx);
-                        parent.value[key] = childId;
+                        linked.value![key] = childId;
                     }
-                    parent.updatedAt = now;
-                    if (parentOwnership != NeoValueOwnership.Asset)
-                        StoreWritableRow(plan, client, parentOwnership, parent, ctx);
+                    linked.updatedAt = now;
+                    StoreWritableRow(plan, client, parentOwnership, linked, ctx);
                 });
             }
         }

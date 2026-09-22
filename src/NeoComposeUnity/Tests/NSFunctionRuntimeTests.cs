@@ -378,6 +378,34 @@ namespace NeoCompose.Tests
             Assert.IsFalse(client.HasWritableValue(targetOwnership, "receiver-value"), "A field write must not copy its parent into the field's store.");
         }
 
+        [Test]
+        public void ScalarFieldWriteReplacesOnlyTheChildRow()
+        {
+            var count = new IntMember { id = "count", name = "Count", kind = MemberKind.Int,
+                Storage = NeoMemberStorage.Save, valueId = "count-value", defaultValue = new NumberMemberValueBase { value = 0 } };
+            var function = ScriptFunction("set-count", "SetCount", false, IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(), Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
+                    new AssignInstruction { type = InstructionKind.Assign, operatorValue = "=",
+                        target = new WriteTarget { pointer = Key(Variable("__this__"), "Count"), typeInfo = IntType(), writability = WritabilityKind.Save },
+                        pointer = Number(7) }, Return(Key(Variable("__this__"), "Count"))));
+            var receiver = ObjectValue("receiver-value", "receiver-class");
+            receiver.value!["Count"] = "count-value";
+            using var client = BuildClient(new JsonMember[] { count, function }, ReceiverClass(("Count", count.id), ("SetCount", function.id)),
+                additionalValues: new MemberValue[] { receiver, new NumberMemberValue { id = "count-value", value = 0 } });
+            client.SetWritableValue(NeoValueOwnership.Save, receiver);
+            client.SetWritableValue(NeoValueOwnership.Save, new NumberMemberValue { id = "count-value", value = 0 });
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "receiver-value", out ObjectMemberValue? before));
+            var published = new List<string>();
+            client.OnWritableValueChanged += (_, id) => published.Add(id);
+            var node = new NeoMemberNSFunction(client, function, null, NeoValueOwnership.Save);
+            Assert.AreEqual(7d, node.Invoke("receiver-value", Array.Empty<object?>()));
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "count-value", out NumberMemberValue? changed));
+            Assert.AreEqual(7d, changed!.value);
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "receiver-value", out ObjectMemberValue? after));
+            Assert.AreSame(before, after, "Replacing a bound scalar child must not clone or recommit its parent.");
+            CollectionAssert.AreEqual(new[] { "count-value" }, published, "Only the replaced child publishes.");
+        }
+
         [TestCase(false, false)]
         [TestCase(false, true)]
         [TestCase(true, false)]
