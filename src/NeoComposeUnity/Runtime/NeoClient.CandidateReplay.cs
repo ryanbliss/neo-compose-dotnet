@@ -49,6 +49,8 @@ namespace NeoCompose.Runtime
                         if (ResolveValueRow(id) is ObjectMemberValue row && IsStoredClassDefaultRoot(row)) AddRoot(id);
                         if (virtualFootprintByRoot.ContainsKey(id)) AddRoot(id);
                         if (virtualRootByFootprintId.TryGetValue(id, out string? root)) AddRoot(root);
+                        if (virtualClassPlacementByChildId.TryGetValue(id, out var placement)
+                            && placement.rootId != id && ReselectsVariant(plan, id)) AddRoot(placement.rootId);
                     }
                     if (unchanged) continue;
                     if (constructorArgumentRootsByValueId.TryGetValue(id, out var dependencies))
@@ -310,6 +312,17 @@ namespace NeoCompose.Runtime
             if (!IsVirtualInstanceRoot(root)
                 && virtualRootByFootprintId.TryGetValue(rootId, out string? containingRoot)
                 && containingRoot != rootId && candidate.AffectedRoots.Contains(containingRoot)) return;
+            // A stored nested instance is the placing root's spine exactly
+            // when that root's replay claims it (IsMaterializedSpine).
+            if (IsVirtualInstanceRoot(root)
+                && virtualClassPlacementByChildId.TryGetValue(rootId, out var slot)
+                && slot.rootId != rootId && candidate.AffectedRoots.Contains(slot.rootId))
+            {
+                if (!replayingVirtualRootIds.Contains(slot.rootId)) PrepareCandidateRoot(slot.rootId);
+                if (candidate.Expansions.TryGetValue(slot.rootId, out var placing)
+                    ? placing.Footprint.Contains(rootId)
+                    : virtualRootByFootprintId.TryGetValue(rootId, out string? spineOwner) && spineOwner == slot.rootId) return;
+            }
             // A constructor can return fully materialized nested instances.
             // If this child has never owned a separate expansion, the enclosing
             // replay already constructed it and all its declaration defaults.
@@ -334,13 +347,27 @@ namespace NeoCompose.Runtime
             finally { replayingVirtualRootIds.Remove(rootId); }
         }
 
+        /// <summary>
+        /// Whether a write changes a stored nested instance's variant
+        /// selection, which decides whether it is its placing root's spine
+        /// (IsMaterializedSpine), so that root must replay.
+        /// </summary>
+        private bool ReselectsVariant(NeoWritePlan plan, string id)
+            => (plan.Rows.TryGetValue((NeoValueOwnership.Session, id), out MemberValue? next)
+                    || plan.Rows.TryGetValue((NeoValueOwnership.Save, id), out next))
+                && next is ObjectMemberValue
+                && PreviousReplayRow(id) is ObjectMemberValue previous
+                && !SameVariantSelection(previous, next);
+
         private bool CanRetainCandidateRoot(CandidateReplay candidate, ObjectMemberValue root)
         {
             if (CurrentChangeSource == NeoChangeSource.External
                 || !virtualFootprintByRoot.TryGetValue(root.id, out var footprint)
                 || !SameRow(PreviousRow(root.id), root)) return false;
             foreach (var write in candidate.Plan.Rows.Keys)
-                if (footprint.Contains(write.id)) return false;
+                if (footprint.Contains(write.id)
+                    || virtualClassPlacementByChildId.TryGetValue(write.id, out var placement)
+                        && placement.rootId == root.id && ReselectsVariant(candidate.Plan, write.id)) return false;
             if (constructorArgumentValueIdsByRoot.TryGetValue(root.id, out var dependencies))
             {
                 foreach (string id in dependencies)

@@ -2931,6 +2931,7 @@ namespace NeoCompose.Runtime
             NeoTimestamp now = NeoTimestamp.Now();
             plan.Set(ownership, new NullMemberValue
             { id = id, createdAt = now, updatedAt = now, mark = NeoValueMarks.Removed }, "mark");
+            StageVirtualFootprintRemoval(plan, ownership, id);
             var reachableByOwnership = new Dictionary<NeoValueOwnership, HashSet<string>>();
             var visitedByOwnership = new Dictionary<NeoValueOwnership, HashSet<string>>();
             using (ReadCandidate(plan))
@@ -3532,10 +3533,12 @@ namespace NeoCompose.Runtime
             [NotNullWhen(true)] out string? parentValueId)
         {
             // Unordered-list ownership is an immutable membership stamp on
-            // the child row itself.
+            // the child row itself. A candidate replay's constructor rows are
+            // Session allocations of that candidate, not committed rows.
             MemberValue? child = null;
-            var childStore = GetWritableStore(childOwnership);
-            if (!childStore.values.TryGetValue(childValueId, out child)
+            IReadOnlyDictionary<string, MemberValue> childRows = childOwnership == NeoValueOwnership.Session
+                ? sessionValues : GetWritableStore(childOwnership).values;
+            if (!childRows.TryGetValue(childValueId, out child)
                 && data.values.TryGetValue(childValueId, out MemberValue authoredChild)
                 && ResolveAuthoredOwnership(childValueId, authoredChild) == childOwnership)
             {
