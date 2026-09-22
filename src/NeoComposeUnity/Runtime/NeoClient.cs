@@ -879,7 +879,8 @@ namespace NeoCompose.Runtime
         }
 
         internal Dictionary<string, SchemaPlacement?> ScriptSchemaPlacements { get; } = new();
-        internal Dictionary<string, string?> ScriptCallableDispatch { get; } = new();
+        internal Dictionary<(string classId, string schemaKey), string?> ScriptCallableDispatch { get; } = new();
+        internal NeoScriptExecutionOptions? immediateScriptExecutionOptions;
         private readonly Dictionary<string, Dictionary<string, MergedSchemaEntry>> instanceSurfaceMembers = new();
 
         internal MergedSchemaEntry? ResolveInstanceSurfaceMember(string classId, string key)
@@ -1694,6 +1695,7 @@ namespace NeoCompose.Runtime
             storedInstanceSchemas.Clear();
             NeoGeneratedTypesSupport.InvalidateConstructorSchemaCaches(this);
             readOnlyMemberSchemas.Clear();
+            readOnlyDeclarationDefaults.Clear();
         }
 
         private void NormalizeClassSchemas()
@@ -2088,6 +2090,26 @@ namespace NeoCompose.Runtime
                 syntheticId,
                 member.createdAt,
                 member.updatedAt);
+        }
+
+        private readonly Dictionary<string, MemberValue?> readOnlyDeclarationDefaults = new();
+
+        /// <summary>
+        /// The synthetic <c>__neo_readonly_default:*</c> row a read-only
+        /// member reads through. Rows are immutable once created, and the
+        /// row id is a pure function of the declaration identity, so the
+        /// row is materialized once per declaration instead of on every
+        /// read. Cleared with the other schema projections.
+        /// </summary>
+        internal MemberValue? ReadOnlyDeclarationDefault(Member member)
+        {
+            string identity = member.RuntimeDeclarationIdentity;
+            if (!readOnlyDeclarationDefaults.TryGetValue(identity, out MemberValue? row))
+            {
+                row = CreateDeclarationDefaultValue(member, "__neo_readonly_default:" + identity);
+                readOnlyDeclarationDefaults[identity] = row;
+            }
+            return row;
         }
 
         private void ValidateReadOnlyLookupDefault(Member member, string subject)

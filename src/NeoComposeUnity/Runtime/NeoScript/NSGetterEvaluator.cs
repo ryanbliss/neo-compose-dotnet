@@ -567,7 +567,7 @@ namespace NeoCompose.Runtime.NeoScript
             internal LinkedFunctionCallHandler? linkedFunctionCallHandler { get; private set; }
             internal Func<ObjectInitializerPointer, NeoScriptScope, Context, object?>? objectInitializerHandler { get; private set; }
             internal Dictionary<string, SchemaPlacement?> schemaPlacementCache { get; }
-            internal Dictionary<string, string?> callableDispatchCache { get; }
+            internal Dictionary<(string classId, string schemaKey), string?> callableDispatchCache { get; }
             internal Dictionary<
                 string,
                 IReadOnlyDictionary<string, NeoGenericEnvEntry>>
@@ -607,7 +607,7 @@ namespace NeoCompose.Runtime.NeoScript
                 IReadOnlyCollection<string>? setterCallStack = null,
                 IReadOnlyList<string>? functionCallStack = null,
                 Dictionary<string, SchemaPlacement?>? schemaPlacementCache = null,
-                Dictionary<string, string?>? callableDispatchCache = null,
+                Dictionary<(string classId, string schemaKey), string?>? callableDispatchCache = null,
                 Dictionary<RowKey, HashSet<RowCacheKey>>? rowCacheKeysByRow = null,
                 Dictionary<
                     string,
@@ -652,7 +652,7 @@ namespace NeoCompose.Runtime.NeoScript
                 IReadOnlyCollection<string>? setterCallStack,
                 IReadOnlyList<string>? functionCallStack,
                 Dictionary<string, SchemaPlacement?>? schemaPlacementCache,
-                Dictionary<string, string?>? callableDispatchCache,
+                Dictionary<(string classId, string schemaKey), string?>? callableDispatchCache,
                 Dictionary<RowKey, HashSet<RowCacheKey>>? rowCacheKeysByRow,
                 Dictionary<
                     string,
@@ -1016,6 +1016,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 case ValuePointer vp:
                 {
+                    if (vp.primitiveResolved) return vp.primitive;
                     if (NeoDelegateValueConverter.LooksLikeValue(vp.value.value))
                     {
                         NeoDelegateValue value = vp.value.value!
@@ -1037,7 +1038,22 @@ namespace NeoCompose.Runtime.NeoScript
                     // its listener-set type instead of unwrapping it as a map.
                     if (vp.value.typeInfo.type == MemberKind.NSAction)
                         return vp.value.value?.ToObject<NeoActionValue>() ?? new NeoActionValue();
-                    return UnwrapJToken(vp.value.value);
+                    JToken? literal = vp.value.value;
+                    if (literal is null
+                        || literal.Type is JTokenType.Null
+                            or JTokenType.Undefined
+                            or JTokenType.Boolean
+                            or JTokenType.Integer
+                            or JTokenType.Float
+                            or JTokenType.String)
+                    {
+                        // Primitive literals unwrap to immutable CLR values:
+                        // convert the token once, not on every evaluation.
+                        vp.primitive = UnwrapJToken(literal);
+                        vp.primitiveResolved = true;
+                        return vp.primitive;
+                    }
+                    return UnwrapJToken(literal);
                 }
                 case VariablePointer vrp:
                 {
@@ -2126,7 +2142,7 @@ namespace NeoCompose.Runtime.NeoScript
                     $"Cannot resolve interface Function member '{schemaKey}' because the receiver has no runtime class.");
             }
 
-            string dispatchCacheKey = runtimeClassId + "\n" + schemaKey;
+            (string, string) dispatchCacheKey = (runtimeClassId!, schemaKey!);
             if (ctx.callableDispatchCache.TryGetValue(
                     dispatchCacheKey, out string? cachedMemberId))
             {
@@ -2612,9 +2628,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return DispatchResult.NoInfo(matchedMember: true);
             }
-            MemberValue? synthetic = ctx.client.CreateDeclarationDefaultValue(
-                member,
-                $"__neo_readonly_default:{member.RuntimeDeclarationIdentity}");
+            MemberValue? synthetic = ctx.client.ReadOnlyDeclarationDefault(member);
             if (synthetic is null)
             {
                 throw new NSGetterRuntimeError(

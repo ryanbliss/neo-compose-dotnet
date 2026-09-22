@@ -61,7 +61,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual("Field1999", last!.memberId);
             Assert.AreSame(last, client.ResolveInstanceSurfaceMember("wide", "Field1999"));
             var firstContext = client.CreateGetterContext(NeoValueOwnership.Session);
-            firstContext.callableDispatchCache["wide\nMethod"] = "original";
+            firstContext.callableDispatchCache[("wide", "Method")] = "original";
             Assert.AreSame(firstContext.callableDispatchCache, client.CreateGetterContext(NeoValueOwnership.Save).callableDispatchCache);
             data.classes["wide"].schema["Field1999"] = "Field0";
             client.InvalidateSchemaResolutionCaches();

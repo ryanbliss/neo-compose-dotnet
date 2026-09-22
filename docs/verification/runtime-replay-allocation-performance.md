@@ -41,3 +41,21 @@ Same fixture (`NeoSandboxPerformanceTests.AccumulatedSandboxActions` over the re
 Causes fixed in this pass: two full Session reachability walks per spawn (adoption assertion and move-candidate check, ~2.7 ms each), per-node static-member resolution inside the owned-parent lookup, whole-collection scans inside the reachability walk, and getter results recomputed after every commit even when the commit touched unrelated rows (sprite frame writes and world-time ticks clear a whole-cache memo every frame; row-level dependency invalidation keeps 63 of 72 eligible getter dispatches per soil edit as hits).
 
 Remaining per-frame cost is the interpreter's per-call overhead in `TraitPreference.Measure` (one grid query plus `Count` over neighbors calling `Matches` → `HasTrait`, roughly 230 µs per Measure) and NeoCellPattern constructions for `Grid.Translate` (about 150 µs each, 16–25 per sample).
+
+## Interpreter per-call overhead (same branch, later pass)
+
+Micro-benchmark over the bundled Neowyn export loaded through `NeoTestSaveStack.ClientFromSchema`, calling through `NeoNSFunctionRuntime.InvokeImmediate` with a warm client. 500 warmup calls, then 9 rounds of 4000 calls; the table reports the median round in microseconds per call. Unity Mono reports zero for per-thread allocated bytes, so allocation counts were not measured.
+
+| call | before (µs) | after (µs) |
+| --- | --- | --- |
+| static `ResolveElapsedEventHours(5, 3)` (arithmetic only) | 3.89 | 2.31 |
+| `tier.QualifiesForGrant(3)` (one member read) | 4.52 | 3.04 |
+| `rank.Threshold(0)` (loop over 35 levels) | 55.5 | 46.2 |
+| `rank.Eligible(0, 100)` (NeoScript → NeoScript call into Threshold) | 64.5 | 49.5 |
+| `ExecuteResolved` with a resolved signature | 3.52 | 1.94 |
+
+Causes fixed: a fresh execution option set, expression-handler closures, and a continuation `ExpressionResumeState` per immediate call (immediate frames never suspend, so a shared stateless state and client-wide cached handlers serve every call); two closures allocated by `NeoScriptExecutor.Execute` per call; a new loop body scope per iteration; a new result object for every fallthrough, break, continue, and normalized return; the parameter-default filler and diagnostic subject strings formatted on the success path; runtime dispatch cache keys concatenated per call; and read-only members re-materializing their declaration default row (a dictionary clone for structured defaults) on every read.
+
+On the sandbox fixture (same editor session as the getter memo table, medians): plant.place PlantInfo refresh 16.5 → 14.3 ms with `Measure` 12.2 → 10.5 ms and `Matches` 3.8 → 3.1 ms; soil.edit PlantInfo refresh 12.9 → 11.6 ms; bed.place action 13.7 → 10.5 ms; plant.place action and chest.open unchanged at 14.3 and 44 ms.
+
+Remaining cost in the loop case is row member reads: each `rank.Levels[i].PointsRelative` is about 3.6 µs (1.6 µs per hop) through the reverse index, inheritance chain, surface schema, member, and value-store lookups. That path has no redundant work to remove without a per-site inline cache keyed on schema generation, which is not on this branch.

@@ -59,6 +59,9 @@ namespace NeoCompose.Runtime.Json
     public class ValuePointer : Pointer
     {
         public Value value = null!;
+        // Evaluator cache for a primitive literal (see NSGetterEvaluator).
+        internal bool primitiveResolved;
+        internal object? primitive;
     }
 
     /// <summary>Mirror of <c>INSPointerOperation</c>.</summary>

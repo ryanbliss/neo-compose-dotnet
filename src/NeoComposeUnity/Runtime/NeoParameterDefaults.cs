@@ -67,23 +67,17 @@ namespace NeoCompose.Runtime
             string subject)
         {
             int maxArity = argumentTypes.Length;
-            int minArity = NonDefaultedCount(argumentTypes);
-            string expectedArity = minArity == maxArity
-                ? $"{maxArity} arguments"
-                : $"between {minArity} and {maxArity} arguments";
-            if (args.Length > maxArity)
-            {
-                throw new NSGetterRuntimeError(
-                    $"{subject} expects {expectedArity} but received {args.Length}; " +
-                    "compiled call IR or caller is stale/corrupt.");
-            }
-            if (args.Length < minArity)
-            {
-                throw new NSGetterRuntimeError(
-                    $"{subject} expects {expectedArity} but received {args.Length}; " +
-                    "compiled call IR or caller is stale/corrupt.");
-            }
             if (args.Length == maxArity) return args;
+            int minArity = NonDefaultedCount(argumentTypes);
+            if (args.Length > maxArity || args.Length < minArity)
+            {
+                string expectedArity = minArity == maxArity
+                    ? $"{maxArity} arguments"
+                    : $"between {minArity} and {maxArity} arguments";
+                throw new NSGetterRuntimeError(
+                    $"{subject} expects {expectedArity} but received {args.Length}; " +
+                    "compiled call IR or caller is stale/corrupt.");
+            }
             var filled = new object?[maxArity];
             Array.Copy(args, filled, args.Length);
             for (int index = args.Length; index < maxArity; index++)
