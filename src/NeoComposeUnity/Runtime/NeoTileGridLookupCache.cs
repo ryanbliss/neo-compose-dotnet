@@ -19,8 +19,9 @@ namespace NeoCompose.Runtime
     /// children, object rows, ...) is recorded as a dependency, and a write
     /// to any of them — including the membership-change notification a
     /// containerId-carrying row raises for its container — drops the layer
-    /// index for a lazy rebuild. Validated runtime leaf writes preserve these
-    /// indexes; object movement patches only its footprints and projected tiles.
+    /// index for a lazy rebuild. An object's Position write goes through the
+    /// placement API instead, which patches only the moved footprint and its
+    /// projected tiles (see <see cref="ObjectMove.Prepare"/>).
     /// </summary>
     internal sealed partial class NeoTileGridLookupCache : IDisposable
     {
@@ -170,7 +171,6 @@ namespace NeoCompose.Runtime
             NeoWritePlan plan)
         {
             if (plan.ValidatedObjectInsertionGrid == primitive.GridValueId) return;
-            if (plan.HasValidatedRuntimeLeaves) return;
             if (plan.ValidatedTileConversions.Count != 0)
             {
                 ApplyTileConversions(plan.ValidatedTileConversions);

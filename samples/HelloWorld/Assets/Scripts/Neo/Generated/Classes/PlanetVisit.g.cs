@@ -51,24 +51,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static PlanetVisit Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<PlanetVisit>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<PlanetVisit>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new PlanetVisit(client, node, true, NeoValueOwnership.Asset),
+                    _ => new PlanetVisit(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static PlanetVisit CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<PlanetVisit>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<PlanetVisit>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new PlanetVisit(client, node, false, node.ownership),
+                    _ => new PlanetVisit(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

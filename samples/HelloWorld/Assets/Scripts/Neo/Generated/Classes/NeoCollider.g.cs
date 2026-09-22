@@ -58,24 +58,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoCollider Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoCollider>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoCollider>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoCollider(client, node, true, NeoValueOwnership.Asset),
+                    _ => new NeoCollider(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static NeoCollider CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoCollider>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoCollider>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoCollider(client, node, false, node.ownership),
+                    _ => new NeoCollider(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -123,8 +123,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var child = writableNode.Get<NeoMemberVector2Writable>("Offset");
-                return child.value is null ? null : new NeoVector2(child, this);
+                var memberNode = writableNode.Get<NeoMemberVector2Writable>("Offset");
+                if (memberNode.value is null) return null;
+                if (TryGetStoredView<NeoVector2>("Offset", memberNode, out var cached)) return cached;
+                return CacheStoredView("Offset", memberNode, new NeoVector2(memberNode, this));
             }
             set
             {
@@ -137,8 +139,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var child = node.Get<NeoMemberVector2>("Offset");
-                return child.value is null ? null : new NeoReadOnlyVector2(child);
+                var memberNode = node.Get<NeoMemberVector2>("Offset");
+                if (memberNode.value is null) return null;
+                if (TryGetStoredView<NeoReadOnlyVector2>("Offset", memberNode, out var cached)) return cached;
+                return CacheStoredView("Offset", memberNode, new NeoReadOnlyVector2(memberNode));
             }
         }
 
@@ -146,7 +150,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector2(writableNode.Get<NeoMemberVector2Writable>("Size"), this);
+                var memberNode = writableNode.Get<NeoMemberVector2Writable>("Size");
+                if (TryGetStoredView<NeoVector2>("Size", memberNode, out var cached)) return cached;
+                return CacheStoredView("Size", memberNode, new NeoVector2(memberNode, this));
             }
             set
             {
@@ -159,7 +165,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyVector2(node.Get<NeoMemberVector2>("Size"));
+                var memberNode = node.Get<NeoMemberVector2>("Size");
+                if (TryGetStoredView<NeoReadOnlyVector2>("Size", memberNode, out var cached)) return cached;
+                return CacheStoredView("Size", memberNode, new NeoReadOnlyVector2(memberNode));
             }
         }
 

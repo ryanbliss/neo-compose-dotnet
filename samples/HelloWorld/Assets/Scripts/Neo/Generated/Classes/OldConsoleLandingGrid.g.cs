@@ -53,24 +53,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static OldConsoleLandingGrid Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<OldConsoleLandingGrid>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<OldConsoleLandingGrid>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new OldConsoleLandingGrid(client, node, true, NeoValueOwnership.Asset),
+                    _ => new OldConsoleLandingGrid(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static OldConsoleLandingGrid CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<OldConsoleLandingGrid>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<OldConsoleLandingGrid>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new OldConsoleLandingGrid(client, node, false, node.ownership),
+                    _ => new OldConsoleLandingGrid(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

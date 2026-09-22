@@ -54,24 +54,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static Item Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Item>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Item>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new Item(client, node, true, NeoValueOwnership.Asset),
+                    _ => new Item(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static Item CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Item>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Item>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new Item(client, node, false, node.ownership),
+                    _ => new Item(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

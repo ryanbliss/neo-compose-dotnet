@@ -53,24 +53,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ComputedText Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ComputedText>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ComputedText>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new ComputedText(client, node, true, NeoValueOwnership.Asset),
+                    _ => new ComputedText(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static ComputedText CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ComputedText>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ComputedText>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new ComputedText(client, node, false, node.ownership),
+                    _ => new ComputedText(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

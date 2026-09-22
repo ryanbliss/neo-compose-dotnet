@@ -51,24 +51,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static LookupContainer Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<LookupContainer>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<LookupContainer>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new LookupContainer(client, node, true, NeoValueOwnership.Asset),
+                    _ => new LookupContainer(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static LookupContainer CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<LookupContainer>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<LookupContainer>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new LookupContainer(client, node, false, node.ownership),
+                    _ => new LookupContainer(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -97,8 +97,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var selected = node.Get<NeoMemberLookup>("Lookup").GetSelected();
-                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.LookupEntry.Create(client, (NeoMemberClass)selected[0]);
+                var selected = node.Get<NeoMemberLookup>("Lookup").GetFirstSelected();
+                return selected is null ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.LookupEntry.Create(client, (NeoMemberClass)selected);
             }
         }
 
@@ -106,7 +106,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyDictionary<IReadOnlyLookupEntry>(client, node.Get<NeoMemberDictionary>("LookupList"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.LookupEntry.Create(client, (NeoMemberClass)child));
+                var memberNode = node.Get<NeoMemberDictionary>("LookupList");
+                if (TryGetStoredView<NeoReadOnlyDictionary<IReadOnlyLookupEntry>>("LookupList", memberNode, out var cached)) return cached;
+                return CacheStoredView("LookupList", memberNode, new NeoReadOnlyDictionary<IReadOnlyLookupEntry>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.LookupEntry.Create(client, (NeoMemberClass)child)));
             }
         }
 

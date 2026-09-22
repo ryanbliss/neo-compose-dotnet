@@ -72,24 +72,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static Assets Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Assets>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Assets>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new Assets(client, node, true, NeoValueOwnership.Asset),
+                    _ => new Assets(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static Assets CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Assets>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Assets>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new Assets(client, node, false, node.ownership),
+                    _ => new Assets(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -142,7 +142,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyItem>(client, node.Get<NeoMemberList>("Items"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.Item.Create(client, (NeoMemberClass)child));
+                var memberNode = node.Get<NeoMemberList>("Items");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyItem>>("Items", memberNode, out var cached)) return cached;
+                return CacheStoredView("Items", memberNode, new NeoReadOnlyList<IReadOnlyItem>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.Item.Create(client, (NeoMemberClass)child)));
             }
         }
 
@@ -158,7 +160,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyOutpost>(client, node.Get<NeoMemberList>("Outposts"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.Outpost.Create(client, (NeoMemberClass)child));
+                var memberNode = node.Get<NeoMemberList>("Outposts");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyOutpost>>("Outposts", memberNode, out var cached)) return cached;
+                return CacheStoredView("Outposts", memberNode, new NeoReadOnlyList<IReadOnlyOutpost>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.Outpost.Create(client, (NeoMemberClass)child)));
             }
         }
 
@@ -174,7 +178,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoSortingLayer>(client, node.Get<NeoMemberList>("SortingLayers"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, (NeoMemberClass)child));
+                var memberNode = node.Get<NeoMemberList>("SortingLayers");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoSortingLayer>>("SortingLayers", memberNode, out var cached)) return cached;
+                return CacheStoredView("SortingLayers", memberNode, new NeoReadOnlyList<IReadOnlyNeoSortingLayer>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, (NeoMemberClass)child)));
             }
         }
 

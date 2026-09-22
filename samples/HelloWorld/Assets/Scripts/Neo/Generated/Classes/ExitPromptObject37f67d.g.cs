@@ -60,24 +60,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static ExitPromptObject37f67d Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ExitPromptObject37f67d>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ExitPromptObject37f67d>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new ExitPromptObject37f67d(client, node, true, NeoValueOwnership.Asset),
+                    _ => new ExitPromptObject37f67d(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static ExitPromptObject37f67d CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ExitPromptObject37f67d>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ExitPromptObject37f67d>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new ExitPromptObject37f67d(client, node, false, node.ownership),
+                    _ => new ExitPromptObject37f67d(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -132,12 +132,14 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Position"), this);
+                var memberNode = writableNode.Get<NeoMemberVector3Writable>("Position");
+                if (TryGetStoredView<NeoVector3>("Position", memberNode, out var cached)) return cached;
+                return CacheStoredView("Position", memberNode, new NeoVector3(memberNode, this));
             }
             set
             {
                 ThrowIfReadOnly("ExitPromptObject37f67d.Position");
-                NeoGeneratedTypesSupport.SetVector3(writableNode, "Position", value);
+                NeoGeneratedTypesSupport.SetPlacementVector3(writableNode, "Position", value);
             }
         }
 
@@ -145,7 +147,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyVector3(node.Get<NeoMemberVector3>("Position"));
+                var memberNode = node.Get<NeoMemberVector3>("Position");
+                if (TryGetStoredView<NeoReadOnlyVector3>("Position", memberNode, out var cached)) return cached;
+                return CacheStoredView("Position", memberNode, new NeoReadOnlyVector3(memberNode));
             }
         }
 
@@ -153,7 +157,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Size"), this);
+                var memberNode = writableNode.Get<NeoMemberVector3Writable>("Size");
+                if (TryGetStoredView<NeoVector3>("Size", memberNode, out var cached)) return cached;
+                return CacheStoredView("Size", memberNode, new NeoVector3(memberNode, this));
             }
             set
             {
@@ -166,7 +172,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyVector3(node.Get<NeoMemberVector3>("Size"));
+                var memberNode = node.Get<NeoMemberVector3>("Size");
+                if (TryGetStoredView<NeoReadOnlyVector3>("Size", memberNode, out var cached)) return cached;
+                return CacheStoredView("Size", memberNode, new NeoReadOnlyVector3(memberNode));
             }
         }
 
@@ -174,7 +182,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoObjectBase>)(object)((ExitPromptObject)this).Children!;
+                var memberNode = node.Get<NeoMemberList>("Children");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Children", memberNode, out var cached)) return cached;
+                return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
             }
         }
 
@@ -182,7 +192,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoPlacementTile>)(object)((ExitPromptObject)this).PlacementTiles!;
+                var memberNode = node.Get<NeoMemberList>("PlacementTiles");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoPlacementTile>>("PlacementTiles", memberNode, out var cached)) return cached;
+                return CacheStoredView("PlacementTiles", memberNode, new NeoReadOnlyList<IReadOnlyNeoPlacementTile>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.Create(client, (NeoMemberClass)child)));
             }
         }
 
@@ -198,7 +210,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoObjectBase>)(object)((NeoObject)this).Children!;
+                var memberNode = node.Get<NeoMemberList>("Children");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Children", memberNode, out var cached)) return cached;
+                return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
             }
         }
 
@@ -214,7 +228,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoPlacementTile>)(object)((NeoObject)this).PlacementTiles!;
+                var memberNode = node.Get<NeoMemberList>("PlacementTiles");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoPlacementTile>>("PlacementTiles", memberNode, out var cached)) return cached;
+                return CacheStoredView("PlacementTiles", memberNode, new NeoReadOnlyList<IReadOnlyNeoPlacementTile>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.Create(client, (NeoMemberClass)child)));
             }
         }
 

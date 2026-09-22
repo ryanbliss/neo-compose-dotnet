@@ -89,11 +89,11 @@ Not fixed, and reported:
 - The half-second and one-second frames in the cursor run are `WaitForLastPresentation → Semaphore.WaitForSignal` (editor compositor waits) and one 141 ms render-culling frame, not SDK or game code.
 - The prebuilt boulder's "not save-owned" error was an ownership-classification bug fixed in this pass (authored ownership map rebuilt on partition load). The placed-seed break bug (object neither destroyed nor magnetic, items not returned) did not reproduce in the seed-break diagnostic; it is not fixed here.
 
-## Store writes without a write plan (0.39.8)
+## Store writes without a write plan (#186)
 
 Same fixture and profiler settings as the previous section (profiler recording on, in-editor, real Neowyn checkout). Per-call figures are the third repetition of twenty calls; per-frame figures are medians over a 6 s walk with the cursor circling.
 
-| measure | 0.39.7 | 0.39.8 |
+| measure | before #186 | after #186 |
 | --- | --- | --- |
 | scalar Save write, generated setter (`TotalRealSecondsPlayed`) | 3.2 KB | 0.38 KB / 7 µs |
 | `AddTime` (three NeoScript field writes) | 12.3 KB | 6.1 KB / 35 µs, of which the three writes are under 0.2 KB / 8 µs |

@@ -50,24 +50,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static SealBarrierTile Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SealBarrierTile>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SealBarrierTile>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new SealBarrierTile(client, node, true, NeoValueOwnership.Asset),
+                    _ => new SealBarrierTile(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static SealBarrierTile CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SealBarrierTile>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SealBarrierTile>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new SealBarrierTile(client, node, false, node.ownership),
+                    _ => new SealBarrierTile(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -106,7 +106,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlySprite(node.Get<NeoMemberSprite>("Sprite"));
+                var memberNode = node.Get<NeoMemberSprite>("Sprite");
+                if (TryGetStoredView<NeoReadOnlySprite>("Sprite", memberNode, out var cached)) return cached;
+                return CacheStoredView("Sprite", memberNode, new NeoReadOnlySprite(memberNode));
             }
         }
 

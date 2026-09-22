@@ -891,8 +891,24 @@ namespace NeoCompose.Runtime
         // The native-typed overloads above stay for NeoScript marshalling and
         // value-row creation. The null guard throws a distinct
         // ArgumentNullException because an implicit-conversion NRE would
-        // otherwise surface with a useless message.
+        // otherwise surface with a useless message. The plain and placement
+        // funnels for one wrapper type share that guard, so the two families
+        // cannot drift apart on what they throw.
         // ------------------------------------------------------------------
+
+        private static Vector2Int RequiredValue(NeoReadOnlyVector2Int value, string key) =>
+            value is null
+                ? throw new ArgumentNullException(
+                    nameof(value),
+                    $"Cannot assign a null Vector2Int wrapper to required member '{key}'.")
+                : value.Value;
+
+        private static Vector3 RequiredValue(NeoReadOnlyVector3 value, string key) =>
+            value is null
+                ? throw new ArgumentNullException(
+                    nameof(value),
+                    $"Cannot assign a null Vector3 wrapper to required member '{key}'.")
+                : value.Value;
 
         public static void SetVector2(
             NeoMemberClassWritable node,
@@ -926,13 +942,7 @@ namespace NeoCompose.Runtime
             string key,
             NeoReadOnlyVector2Int value)
         {
-            if (value is null)
-            {
-                throw new ArgumentNullException(
-                    nameof(value),
-                    $"Cannot assign a null Vector2Int wrapper to required member '{key}'.");
-            }
-            SetVector2Int(node, key, value.Value);
+            SetVector2Int(node, key, RequiredValue(value, key));
         }
 
         public static void SetVector2IntOrClear(
@@ -953,13 +963,7 @@ namespace NeoCompose.Runtime
             string key,
             NeoReadOnlyVector3 value)
         {
-            if (value is null)
-            {
-                throw new ArgumentNullException(
-                    nameof(value),
-                    $"Cannot assign a null Vector3 wrapper to required member '{key}'.");
-            }
-            SetVector3(node, key, value.Value);
+            SetVector3(node, key, RequiredValue(value, key));
         }
 
         public static void SetVector3OrClear(
@@ -973,6 +977,54 @@ namespace NeoCompose.Runtime
                 return;
             }
             SetVector3(node, key, value.Value);
+        }
+
+        // ------------------------------------------------------------------
+        // Placement write funnels. Generated setters for an object's Position
+        // and a tile's Cell call these, so the write reaches the client's
+        // placement API and the grid indexes learn about the move. The plain
+        // funnels above store a scalar without consulting the grid.
+
+        public static void SetPlacementVector3(
+            NeoMemberClassWritable node,
+            string key,
+            NeoReadOnlyVector3 value)
+        {
+            node.SetPlacementValue(key, Value(Vector3Value(RequiredValue(value, key))));
+        }
+
+        public static void SetPlacementVector3OrClear(
+            NeoMemberClassWritable node,
+            string key,
+            NeoReadOnlyVector3? value)
+        {
+            if (value is null)
+            {
+                node.Unset(key);
+                return;
+            }
+            SetPlacementVector3(node, key, value);
+        }
+
+        public static void SetPlacementVector2Int(
+            NeoMemberClassWritable node,
+            string key,
+            NeoReadOnlyVector2Int value)
+        {
+            node.SetPlacementValue(key, Value(Vector2IntValue(RequiredValue(value, key))));
+        }
+
+        public static void SetPlacementVector2IntOrClear(
+            NeoMemberClassWritable node,
+            string key,
+            NeoReadOnlyVector2Int? value)
+        {
+            if (value is null)
+            {
+                node.Unset(key);
+                return;
+            }
+            SetPlacementVector2Int(node, key, value);
         }
 
         public static void SetVector3Int(

@@ -742,7 +742,21 @@ namespace NeoCompose.Runtime
         /// it into the record's (clone-on-write) value-map under
         /// <paramref name="key"/>.
         /// </summary>
-        internal void SetSerializedValue(string key, NeoValueWritePayload? setValue)
+        internal void SetSerializedValue(string key, NeoValueWritePayload? setValue) =>
+            SetSerializedValue(key, setValue, placement: false);
+
+        /// <summary>
+        /// Writes a member that carries a grid placement invariant: an object's
+        /// Position or a tile's Cell. Generated setters and NeoScript route
+        /// those members here so the grid indexes learn about the move;
+        /// <see cref="SetSerializedValue(string, NeoValueWritePayload?)"/>
+        /// stores a scalar without consulting the grid. Any other member
+        /// written through here is an ordinary write.
+        /// </summary>
+        public void SetPlacementValue(string key, NeoValueWritePayload? setValue) =>
+            SetSerializedValue(key, setValue, placement: true);
+
+        private void SetSerializedValue(string key, NeoValueWritePayload? setValue, bool placement)
         {
             AssertContainingClassesCanBeConstructed();
             NeoTimestamp nowIso = NeoTimestamp.Now();
@@ -874,7 +888,9 @@ namespace NeoCompose.Runtime
                 NeoGenericResolution.StampGenericBindings(client, childMember, next, GenericEnv);
                 // A leaf replacement with no payload rows stores in place.
                 if (setValue?.value is not NeoValuePayload { valueRows: { Count: > 0 } }
-                    && client.TryWriteLeaf(childOwnership, next, childMember, "value"))
+                    && (placement
+                        ? value is not null && client.TryWritePlacement(childOwnership, value, key, next, childMember)
+                        : client.TryWriteLeaf(childOwnership, next, childMember, "value")))
                 {
                     if (existingChild is null || existingChild.isDisposed) ReinitializeChildren();
                     if (!childWillSelfNotify) NotifyChildChanged(key);

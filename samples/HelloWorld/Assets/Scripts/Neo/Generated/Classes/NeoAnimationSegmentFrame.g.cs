@@ -39,11 +39,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static NeoAnimationSegmentFrame<T> Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegmentFrame<T>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegmentFrame<T>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab" => new NeoAnimationSegmentFrame<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoAnimationSegmentFrame' without a concrete client type id."),
                 };
             });
@@ -51,11 +52,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static NeoAnimationSegmentFrame<T> CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegmentFrame<T>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegmentFrame<T>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab" => new NeoAnimationSegmentFrame<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoAnimationSegmentFrame' without a concrete client type id."),
                 };
             });

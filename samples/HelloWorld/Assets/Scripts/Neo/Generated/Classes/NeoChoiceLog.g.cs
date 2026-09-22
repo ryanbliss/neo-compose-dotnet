@@ -48,24 +48,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoChoiceLog Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoChoiceLog>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoChoiceLog>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoChoiceLog(client, node, true, NeoValueOwnership.Asset),
+                    _ => new NeoChoiceLog(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static NeoChoiceLog CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoChoiceLog>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoChoiceLog>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoChoiceLog(client, node, false, node.ownership),
+                    _ => new NeoChoiceLog(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

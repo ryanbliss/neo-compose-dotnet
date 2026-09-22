@@ -31,15 +31,15 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static NeoLayerGroupBase Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoLayerGroupBase>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoLayerGroupBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(client, node, false, NeoValueOwnership.Save),
-                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(client, node, true, NeoValueOwnership.Asset),
-                    "neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152" => new BackgroundTileLayerLink(client, node, true, NeoValueOwnership.Asset),
-                    "neo-tile-grid-record-relations-v1-class-c0ae01529031e2de38dc078687d59140" => new CollisionsTileLayerLink(client, node, true, NeoValueOwnership.Asset),
+                    "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(factoryClient, factoryNode, false, NeoValueOwnership.Save),
+                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152" => new BackgroundTileLayerLink(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "neo-tile-grid-record-relations-v1-class-c0ae01529031e2de38dc078687d59140" => new CollisionsTileLayerLink(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoLayerGroupBase' without a concrete client type id."),
                 };
             });
@@ -47,15 +47,15 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static NeoLayerGroupBase CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoLayerGroupBase>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoLayerGroupBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(client, node, false, node.ownership),
-                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(client, node, false, node.ownership),
-                    "neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152" => new BackgroundTileLayerLink(client, node, false, node.ownership),
-                    "neo-tile-grid-record-relations-v1-class-c0ae01529031e2de38dc078687d59140" => new CollisionsTileLayerLink(client, node, false, node.ownership),
+                    "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152" => new BackgroundTileLayerLink(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "neo-tile-grid-record-relations-v1-class-c0ae01529031e2de38dc078687d59140" => new CollisionsTileLayerLink(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoLayerGroupBase' without a concrete client type id."),
                 };
             });

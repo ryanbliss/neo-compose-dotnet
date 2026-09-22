@@ -52,24 +52,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoSortingGroup Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSortingGroup>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSortingGroup>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoSortingGroup(client, node, true, NeoValueOwnership.Asset),
+                    _ => new NeoSortingGroup(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static NeoSortingGroup CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSortingGroup>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSortingGroup>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoSortingGroup(client, node, false, node.ownership),
+                    _ => new NeoSortingGroup(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }

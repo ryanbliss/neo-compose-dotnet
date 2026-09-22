@@ -59,24 +59,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static NeoSpriteAnimationSegment Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegment>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegment>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoSpriteAnimationSegment(client, node, true, NeoValueOwnership.Asset),
+                    _ => new NeoSpriteAnimationSegment(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static NeoSpriteAnimationSegment CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegment>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegment>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoSpriteAnimationSegment(client, node, false, node.ownership),
+                    _ => new NeoSpriteAnimationSegment(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -105,7 +105,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoAnimationSegmentFrame<Sprite>>)(object)((NeoAnimationSegment<Sprite>)this).Frames!;
+                var memberNode = node.Get<NeoMemberList>("Frames");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoAnimationSegmentFrame<Sprite>>>("Frames", memberNode, out var cached)) return cached;
+                return CacheStoredView("Frames", memberNode, new NeoReadOnlyList<IReadOnlyNeoAnimationSegmentFrame<Sprite>>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoAnimationSegmentFrame<Sprite>.Create(client, (NeoMemberClass)child)));
             }
         }
 

@@ -54,24 +54,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static AnimationInfo Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimationInfo>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimationInfo>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new AnimationInfo(client, node, true, NeoValueOwnership.Asset),
+                    _ => new AnimationInfo(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static AnimationInfo CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimationInfo>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimationInfo>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new AnimationInfo(client, node, false, node.ownership),
+                    _ => new AnimationInfo(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -108,7 +108,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<Sprite>(client, node.Get<NeoMemberList>("Frames"), (client, child) => ((NeoMemberSprite)child).Resolve() ?? throw new InvalidOperationException("Required Sprite 'List' has no synchronized asset."));
+                var memberNode = node.Get<NeoMemberList>("Frames");
+                if (TryGetStoredView<NeoReadOnlyList<Sprite>>("Frames", memberNode, out var cached)) return cached;
+                return CacheStoredView("Frames", memberNode, new NeoReadOnlyList<Sprite>(client, memberNode, (client, child) => ((NeoMemberSprite)child).Resolve() ?? throw new InvalidOperationException("Required Sprite 'List' has no synchronized asset.")));
             }
         }
 

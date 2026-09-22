@@ -33,17 +33,17 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static ConsoleTile Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ConsoleTile>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ConsoleTile>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "07db44f3-8cc5-4164-aace-098ca68460f4" => new BootGlyphTile(client, node, true, NeoValueOwnership.Asset),
-                    "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2" => new VoidTile(client, node, true, NeoValueOwnership.Asset),
-                    "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b" => new SealBarrierTile(client, node, true, NeoValueOwnership.Asset),
-                    "a8305a31-7f6c-4ff5-8a9f-5871ef451093" => new HullPlatingTile(client, node, true, NeoValueOwnership.Asset),
-                    "bda4cf72-c8da-4be0-8148-024d0fc2d826" => new GlassFloorTile(client, node, true, NeoValueOwnership.Asset),
-                    "d931c907-19cd-4f3d-b04a-e6f1945fb216" => new RedNovaWarningTile(client, node, true, NeoValueOwnership.Asset),
+                    "07db44f3-8cc5-4164-aace-098ca68460f4" => new BootGlyphTile(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2" => new VoidTile(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b" => new SealBarrierTile(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a8305a31-7f6c-4ff5-8a9f-5871ef451093" => new HullPlatingTile(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "bda4cf72-c8da-4be0-8148-024d0fc2d826" => new GlassFloorTile(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "d931c907-19cd-4f3d-b04a-e6f1945fb216" => new RedNovaWarningTile(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ConsoleTile' without a concrete client type id."),
                 };
             });
@@ -51,17 +51,17 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static ConsoleTile CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ConsoleTile>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ConsoleTile>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "07db44f3-8cc5-4164-aace-098ca68460f4" => new BootGlyphTile(client, node, false, node.ownership),
-                    "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2" => new VoidTile(client, node, false, node.ownership),
-                    "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b" => new SealBarrierTile(client, node, false, node.ownership),
-                    "a8305a31-7f6c-4ff5-8a9f-5871ef451093" => new HullPlatingTile(client, node, false, node.ownership),
-                    "bda4cf72-c8da-4be0-8148-024d0fc2d826" => new GlassFloorTile(client, node, false, node.ownership),
-                    "d931c907-19cd-4f3d-b04a-e6f1945fb216" => new RedNovaWarningTile(client, node, false, node.ownership),
+                    "07db44f3-8cc5-4164-aace-098ca68460f4" => new BootGlyphTile(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2" => new VoidTile(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b" => new SealBarrierTile(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a8305a31-7f6c-4ff5-8a9f-5871ef451093" => new HullPlatingTile(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "bda4cf72-c8da-4be0-8148-024d0fc2d826" => new GlassFloorTile(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "d931c907-19cd-4f3d-b04a-e6f1945fb216" => new RedNovaWarningTile(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ConsoleTile' without a concrete client type id."),
                 };
             });

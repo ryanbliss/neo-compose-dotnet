@@ -61,24 +61,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static BackgroundTileLayer Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<BackgroundTileLayer>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<BackgroundTileLayer>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new BackgroundTileLayer(client, node, true, NeoValueOwnership.Asset),
+                    _ => new BackgroundTileLayer(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal new static BackgroundTileLayer CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<BackgroundTileLayer>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<BackgroundTileLayer>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new BackgroundTileLayer(client, node, false, node.ownership),
+                    _ => new BackgroundTileLayer(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -158,8 +158,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var selected = node.Get<NeoMemberLookup>("SortingLayer").GetSelected();
-                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, (NeoMemberClass)selected[0]);
+                var selected = node.Get<NeoMemberLookup>("SortingLayer").GetFirstSelected();
+                return selected is null ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, (NeoMemberClass)selected);
             }
             set
             {

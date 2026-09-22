@@ -43,7 +43,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// <summary>
         /// Objects at the cells around this placement, in pattern order. Use GetObjects&lt;T&gt;(pattern) to filter by class. A repeated footprint can appear more than once.
         /// </summary>
-        IReadOnlyList<object?> GetObjects(NeoCompose.Runtime.NeoCellPattern pattern);
+        IReadOnlyList<IReadOnlyNeoObject> GetObjects(NeoCompose.Runtime.NeoCellPattern pattern);
 
 
         /// <summary>
@@ -63,17 +63,17 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static NeoObject Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObject>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObject>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(client, node, true, NeoValueOwnership.Asset),
-                    "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, true, NeoValueOwnership.Asset),
-                    "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, true, NeoValueOwnership.Asset),
-                    "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(client, node, true, NeoValueOwnership.Asset),
-                    "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(client, node, true, NeoValueOwnership.Asset),
-                    "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" => new ExitPromptObject987403(client, node, true, NeoValueOwnership.Asset),
+                    "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" => new ExitPromptObject987403(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObject' without a concrete client type id."),
                 };
             });
@@ -81,17 +81,17 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static NeoObject CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObject>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObject>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(client, node, false, node.ownership),
-                    "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, false, node.ownership),
-                    "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, false, node.ownership),
-                    "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(client, node, false, node.ownership),
-                    "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(client, node, false, node.ownership),
-                    "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" => new ExitPromptObject987403(client, node, false, node.ownership),
+                    "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" => new ExitPromptObject987403(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObject' without a concrete client type id."),
                 };
             });
@@ -192,7 +192,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<NeoObjectBase>(client, writableNode.Get<NeoMemberListWritable>("Children"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Children"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoObject.Children"), () => IsReadOnly);
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Children");
+                if (TryGetStoredView<NeoList<NeoObjectBase>>("Children", memberNode, out var cached)) return cached;
+                return CacheStoredView("Children", memberNode, new NeoList<NeoObjectBase>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Children"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoObject.Children"), () => IsReadOnly));
             }
         }
 
@@ -200,7 +202,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, node.Get<NeoMemberList>("Children"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child));
+                var memberNode = node.Get<NeoMemberList>("Children");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Children", memberNode, out var cached)) return cached;
+                return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
             }
         }
 
@@ -247,7 +251,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<NeoPlacementTile>(client, writableNode.Get<NeoMemberListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoObject.PlacementTiles"), () => IsReadOnly);
+                var memberNode = writableNode.Get<NeoMemberListWritable>("PlacementTiles");
+                if (TryGetStoredView<NeoList<NeoPlacementTile>>("PlacementTiles", memberNode, out var cached)) return cached;
+                return CacheStoredView("PlacementTiles", memberNode, new NeoList<NeoPlacementTile>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("PlacementTiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoObject.PlacementTiles"), () => IsReadOnly));
             }
         }
 
@@ -255,7 +261,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoPlacementTile>(client, node.Get<NeoMemberList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.Create(client, (NeoMemberClass)child));
+                var memberNode = node.Get<NeoMemberList>("PlacementTiles");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoPlacementTile>>("PlacementTiles", memberNode, out var cached)) return cached;
+                return CacheStoredView("PlacementTiles", memberNode, new NeoReadOnlyList<IReadOnlyNeoPlacementTile>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.Create(client, (NeoMemberClass)child)));
             }
         }
 
@@ -269,10 +277,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// <summary>
         /// Objects at the cells around this placement, in pattern order. Use GetObjects&lt;T&gt;(pattern) to filter by class. A repeated footprint can appear more than once.
         /// </summary>
-        public virtual IReadOnlyList<object?> GetObjects(NeoCompose.Runtime.NeoCellPattern pattern)
+        public virtual IReadOnlyList<IReadOnlyNeoObject> GetObjects(NeoCompose.Runtime.NeoCellPattern pattern)
         {
             var result = client.ScriptGridQueries.Invoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", this, new object?[] { pattern });
-            return (IReadOnlyList<object?>)result!;
+            return NeoGeneratedTypesSupport.ReadScriptList<IReadOnlyNeoObject>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, NeoObject.Create, NeoObject.CreateWritable); });
         }
 
         /// <summary>

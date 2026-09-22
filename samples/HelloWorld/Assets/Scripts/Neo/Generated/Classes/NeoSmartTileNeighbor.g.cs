@@ -51,24 +51,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoSmartTileNeighbor Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSmartTileNeighbor>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSmartTileNeighbor>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoSmartTileNeighbor(client, node, true, NeoValueOwnership.Asset),
+                    _ => new NeoSmartTileNeighbor(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static NeoSmartTileNeighbor CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSmartTileNeighbor>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSmartTileNeighbor>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoSmartTileNeighbor(client, node, false, node.ownership),
+                    _ => new NeoSmartTileNeighbor(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -101,7 +101,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyVector2Int(node.Get<NeoMemberVector2Int>("Cell"));
+                var memberNode = node.Get<NeoMemberVector2Int>("Cell");
+                if (TryGetStoredView<NeoReadOnlyVector2Int>("Cell", memberNode, out var cached)) return cached;
+                return CacheStoredView("Cell", memberNode, new NeoReadOnlyVector2Int(memberNode));
             }
         }
 

@@ -33,12 +33,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static NeoObjectLayerLink Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectLayerLink>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectLayerLink>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(client, node, true, NeoValueOwnership.Asset),
+                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectLayerLink' without a concrete client type id."),
                 };
             });
@@ -46,12 +46,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static NeoObjectLayerLink CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectLayerLink>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectLayerLink>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(client, node, false, node.ownership),
+                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new ObjectLayerLink(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectLayerLink' without a concrete client type id."),
                 };
             });
@@ -81,7 +81,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<NeoObjectBase>(client, writableNode.Get<NeoMemberListWritable>("Objects"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Objects"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoObjectLayerLink.Objects"), () => IsReadOnly);
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Objects");
+                if (TryGetStoredView<NeoList<NeoObjectBase>>("Objects", memberNode, out var cached)) return cached;
+                return CacheStoredView("Objects", memberNode, new NeoList<NeoObjectBase>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Objects"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoObjectLayerLink.Objects"), () => IsReadOnly));
             }
         }
 
@@ -89,7 +91,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, node.Get<NeoMemberList>("Objects"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child));
+                var memberNode = node.Get<NeoMemberList>("Objects");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Objects", memberNode, out var cached)) return cached;
+                return CacheStoredView("Objects", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
             }
         }
 

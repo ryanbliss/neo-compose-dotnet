@@ -48,24 +48,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoPlacementTile Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoPlacementTile>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoPlacementTile>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoPlacementTile(client, node, true, NeoValueOwnership.Asset),
+                    _ => new NeoPlacementTile(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
         internal static NeoPlacementTile CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoPlacementTile>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoPlacementTile>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = node.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    _ => new NeoPlacementTile(client, node, false, node.ownership),
+                    _ => new NeoPlacementTile(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
         }
@@ -94,12 +94,14 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector2Int(writableNode.Get<NeoMemberVector2IntWritable>("Cell"), this);
+                var memberNode = writableNode.Get<NeoMemberVector2IntWritable>("Cell");
+                if (TryGetStoredView<NeoVector2Int>("Cell", memberNode, out var cached)) return cached;
+                return CacheStoredView("Cell", memberNode, new NeoVector2Int(memberNode, this));
             }
             set
             {
                 ThrowIfReadOnly("NeoPlacementTile.Cell");
-                NeoGeneratedTypesSupport.SetVector2Int(writableNode, "Cell", value);
+                NeoGeneratedTypesSupport.SetPlacementVector2Int(writableNode, "Cell", value);
             }
         }
 
@@ -107,7 +109,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyVector2Int(node.Get<NeoMemberVector2Int>("Cell"));
+                var memberNode = node.Get<NeoMemberVector2Int>("Cell");
+                if (TryGetStoredView<NeoReadOnlyVector2Int>("Cell", memberNode, out var cached)) return cached;
+                return CacheStoredView("Cell", memberNode, new NeoReadOnlyVector2Int(memberNode));
             }
         }
 
