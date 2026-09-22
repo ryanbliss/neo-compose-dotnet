@@ -46,7 +46,7 @@ namespace NeoCompose.Runtime
             {
                 writable.value = doubleValue;
                 writable.updatedAt = nowIso;
-                client.SetWritableValue(ownership, writable, "value");
+                PublishWritableValue(writable);
                 // No NotifyChanged() here — the write above already raised it
                 // through this node's own OnValueIdChainChanged. See that
                 // method's remarks.

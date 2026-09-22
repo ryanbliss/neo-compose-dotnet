@@ -1403,6 +1403,17 @@ namespace NeoCompose.Runtime
             return ResolveStaticOwnership(member);
         }
 
+        // A static binding's ownership is a property of the member, so the
+        // dependency key is built once per member rather than per read.
+        private readonly Dictionary<string, string> staticReadKeys = new(System.StringComparer.Ordinal);
+
+        private string StaticReadKey(string memberId, NeoValueOwnership ownership)
+        {
+            if (!staticReadKeys.TryGetValue(memberId, out string? key))
+                staticReadKeys[memberId] = key = $"static:{ownership}:{memberId}";
+            return key;
+        }
+
         /// <summary>
         /// Resolves a static member's active target. Missing overlay entries
         /// inherit <see cref="Member.valueId"/>; a present null entry is an
@@ -1421,7 +1432,7 @@ namespace NeoCompose.Runtime
                 return false;
             }
             ownership = ResolveStaticOwnership(member);
-            NoteValueRead($"static:{ownership}:{memberId}");
+            NoteValueRead(StaticReadKey(memberId, ownership));
             if (ownership == NeoValueOwnership.Asset)
             {
                 valueId = member.valueId;
@@ -1724,6 +1735,7 @@ namespace NeoCompose.Runtime
             ScriptSchemaPlacements.Clear();
             ScriptCallableDispatch.Clear();
             instanceSurfaceMembers.Clear();
+            staticReadKeys.Clear();
             classInheritanceChains.Clear();
             instanceSurfaceSchemas.Clear();
             storedInstanceSchemas.Clear();

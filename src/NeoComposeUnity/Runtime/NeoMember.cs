@@ -712,6 +712,17 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// Publishes a candidate from <see cref="EnsureWritableValue"/> whose
+        /// <c>value</c> changed: a leaf store when the committed row allows
+        /// it, otherwise the full write plan.
+        /// </summary>
+        protected void PublishWritableValue(TValue writable)
+        {
+            if (!client.TryWriteLeaf(ownership, writable, member, "value"))
+                client.SetWritableValue(ownership, writable, "value");
+        }
+
+        /// <summary>
         /// Persists a freshly-minted <paramref name="newRow"/> for a node
         /// that had no bound value, then binds its id into the parent
         /// container's value map (via <see cref="BindChildValueId"/>) so it

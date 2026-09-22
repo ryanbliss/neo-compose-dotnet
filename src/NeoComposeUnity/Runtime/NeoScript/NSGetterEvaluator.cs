@@ -568,10 +568,13 @@ namespace NeoCompose.Runtime.NeoScript
             internal Func<ObjectInitializerPointer, NeoScriptScope, Context, object?>? objectInitializerHandler { get; private set; }
             internal Dictionary<string, SchemaPlacement?> schemaPlacementCache { get; }
             internal Dictionary<(string classId, string schemaKey), string?> callableDispatchCache { get; }
-            internal Dictionary<
-                string,
-                IReadOnlyDictionary<string, NeoGenericEnvEntry>>
-                genericEnvironmentCache { get; }
+            private Dictionary<string, IReadOnlyDictionary<string, NeoGenericEnvEntry>>? genericEnvironmentCacheStore;
+            // Most invocations never resolve a receiver-bound generic
+            // signature, so the cache is created on first use. Frames forked
+            // before that keep their own; the resolution is a pure function
+            // of the receiver, so a miss only repeats work.
+            internal Dictionary<string, IReadOnlyDictionary<string, NeoGenericEnvEntry>>
+                genericEnvironmentCache => genericEnvironmentCacheStore ??= new(System.StringComparer.Ordinal);
             internal NeoScriptAllocationTracker allocationTracker { get; private set; }
             internal ClassMember? initializerPlacement { get; set; }
             internal NeoScriptGridReads? gridReads { get; set; }
@@ -683,10 +686,7 @@ namespace NeoCompose.Runtime.NeoScript
                     ?? client.ScriptSchemaPlacements;
                 this.callableDispatchCache = callableDispatchCache
                     ?? client.ScriptCallableDispatch;
-                this.genericEnvironmentCache = genericEnvironmentCache
-                    ?? new Dictionary<
-                        string,
-                        IReadOnlyDictionary<string, NeoGenericEnvEntry>>();
+                genericEnvironmentCacheStore = genericEnvironmentCache;
                 this.constructionStack = constructionStack
                     ?? System.Array.Empty<string>();
                 this.delegateCallStack = delegateCallStack ?? new List<(string memberId, string? valueId)>();
@@ -965,11 +965,14 @@ namespace NeoCompose.Runtime.NeoScript
             // Getters, actions, setters, and NSFunctions now share the same
             // effect-capable executor. Writability is a compile/runtime target
             // property, not a reason to maintain a second pure interpreter.
+            // Immediate options let every getter frame share the client's
+            // prebuilt expression handlers instead of closing over its own.
             NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
                 ctx.client,
                 getter,
                 scope,
-                ctx);
+                ctx,
+                NeoScriptExecutionOptions.ForImmediate(ctx.client));
             if (result.IsPaused)
             {
                 throw new NSGetterRuntimeError(
@@ -1335,27 +1338,10 @@ namespace NeoCompose.Runtime.NeoScript
                     return InvokeDelegate(callable, args, ctx);
                 }
                 case CallActionPointer actionCall:
-                {
-                    object? actionValue = ReadActionWithOwner(
-                        actionCall.action,
-                        scope,
-                        ctx,
-                        out object? owner);
-                    var args = new object?[actionCall.args.Length];
-                    for (int i = 0; i < args.Length; i++)
-                    {
-                        args[i] = EvalPointer(actionCall.args[i], scope, ctx);
-                    }
-                    InvokeAction(
-                        actionValue,
-                        args,
-                        ctx,
-                        owner,
-                        () => ActionInvocationFrame(actionCall.action, owner, ctx));
                     // An NSAction is void by construction; the enclosing
                     // functionCall instruction discards this (P62 §3.1).
+                    EvalCallAction(actionCall, scope, ctx);
                     return null;
-                }
                 case FunctionErrorCheckPointer functionErrorCheck:
                     return EvalFunctionErrorCheck(functionErrorCheck, scope, ctx);
                 default:
@@ -1971,6 +1957,31 @@ namespace NeoCompose.Runtime.NeoScript
             return ctx.client.TryGetMember(memberId!, out JsonMember? member)
                 ? member.name
                 : memberId!;
+        }
+
+        // Separate from EvalPointer so the frame-name closure is only
+        // allocated for action calls, not for every pointer evaluation.
+        private static void EvalCallAction(
+            CallActionPointer actionCall,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            object? actionValue = ReadActionWithOwner(
+                actionCall.action,
+                scope,
+                ctx,
+                out object? owner);
+            var args = new object?[actionCall.args.Length];
+            for (int i = 0; i < args.Length; i++)
+            {
+                args[i] = EvalPointer(actionCall.args[i], scope, ctx);
+            }
+            InvokeAction(
+                actionValue,
+                args,
+                ctx,
+                owner,
+                () => ActionInvocationFrame(actionCall.action, owner, ctx));
         }
 
         /// <summary>
@@ -2806,6 +2817,17 @@ namespace NeoCompose.Runtime.NeoScript
                 case ArithmeticOperation arith:
                 {
                     var info = arith.arithmetic;
+                    if (info.pointers.Length == 2 && info.isDecimal != true)
+                    {
+                        // `a += b`, `x * y`: two number operands need no
+                        // operand array. Strings and mixed shapes take the
+                        // general path below.
+                        object? left = EvalPointer(info.pointers[0], scope, ctx);
+                        object? right = EvalPointer(info.pointers[1], scope, ctx);
+                        if (TryAsDouble(left, out double l) && TryAsDouble(right, out double r))
+                            return ApplyNumericArithmetic(info.type, l, r);
+                        return ApplyArithmetic(info.type, new[] { left, right }, false, ctx);
+                    }
                     var operands = new object?[info.pointers.Length];
                     for (int i = 0; i < info.pointers.Length; i++)
                     {
@@ -2869,56 +2891,51 @@ namespace NeoCompose.Runtime.NeoScript
                 }
             }
             // Numeric path. Coerce every operand to double; ints round-trip.
-            var nums = new double[operands.Length];
-            for (int i = 0; i < operands.Length; i++)
+            double folded = ToArithmeticOperand(operands[0]);
+            if (operands.Length == 1)
             {
-                if (!TryAsDouble(operands[i], out double d))
-                {
-                    throw new NSGetterRuntimeError(
-                        $"Arithmetic operand is not numeric: {ReceiverTypeName(operands[i])}");
-                }
-                nums[i] = d;
+                if (!IsArithmeticOp(op)) throw new NSGetterRuntimeError($"Unknown arithmetic op '{op}'");
+                if (op == ArithmeticOpKind.Addition) folded += 0d;
             }
+            for (int i = 1; i < operands.Length; i++)
+            {
+                folded = ApplyNumericArithmetic(op, folded, ToArithmeticOperand(operands[i]));
+            }
+            return folded;
+        }
+
+        private static double ToArithmeticOperand(object? operand)
+        {
+            if (!TryAsDouble(operand, out double d))
+            {
+                throw new NSGetterRuntimeError(
+                    $"Arithmetic operand is not numeric: {ReceiverTypeName(operand)}");
+            }
+            return d;
+        }
+
+        private static bool IsArithmeticOp(string op) =>
+            op == ArithmeticOpKind.Addition
+            || op == ArithmeticOpKind.Subtraction
+            || op == ArithmeticOpKind.Multiplication
+            || op == ArithmeticOpKind.Division
+            || op == ArithmeticOpKind.Remainder;
+
+        private static double ApplyNumericArithmetic(string op, double left, double right)
+        {
             switch (op)
             {
-                case ArithmeticOpKind.Addition:
-                {
-                    double sum = 0;
-                    foreach (var n in nums) sum += n;
-                    return sum;
-                }
-                case ArithmeticOpKind.Subtraction:
-                {
-                    double r = nums[0];
-                    for (int i = 1; i < nums.Length; i++) r -= nums[i];
-                    return r;
-                }
-                case ArithmeticOpKind.Multiplication:
-                {
-                    double r = 1;
-                    foreach (var n in nums) r *= n;
-                    return r;
-                }
+                // The TS evaluator folds addition from a 0 seed, which turns a
+                // -0 sum into +0; the trailing 0 keeps that parity.
+                case ArithmeticOpKind.Addition: return left + right + 0d;
+                case ArithmeticOpKind.Subtraction: return left - right;
+                case ArithmeticOpKind.Multiplication: return left * right;
                 case ArithmeticOpKind.Division:
-                {
-                    double r = nums[0];
-                    for (int i = 1; i < nums.Length; i++)
-                    {
-                        if (nums[i] == 0) throw new NSGetterRuntimeError("Division by zero");
-                        r /= nums[i];
-                    }
-                    return r;
-                }
+                    if (right == 0) throw new NSGetterRuntimeError("Division by zero");
+                    return left / right;
                 case ArithmeticOpKind.Remainder:
-                {
-                    double r = nums[0];
-                    for (int i = 1; i < nums.Length; i++)
-                    {
-                        if (nums[i] == 0) throw new NSGetterRuntimeError("Modulo by zero");
-                        r %= nums[i];
-                    }
-                    return r;
-                }
+                    if (right == 0) throw new NSGetterRuntimeError("Modulo by zero");
+                    return left % right;
                 default:
                     throw new NSGetterRuntimeError($"Unknown arithmetic op '{op}'");
             }
@@ -3033,7 +3050,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
-        private static bool EvalBooleanExpression(
+        internal static bool EvalBooleanExpression(
             BooleanExpression expression,
             NeoScriptScope scope,
             Context ctx)
