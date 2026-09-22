@@ -31,8 +31,8 @@ namespace NeoCompose.Runtime
             Member member,
             TPayload? payload,
             string id,
-            string createdAt,
-            string updatedAt)
+            NeoTimestamp createdAt,
+            NeoTimestamp updatedAt)
         {
             object? rawPayload = payload;
             string? classId = null;

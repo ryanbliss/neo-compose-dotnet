@@ -197,8 +197,7 @@ namespace NeoCompose.Runtime
             // reference equality.
             var ctx = client.CreateGetterContext(ownership);
             ctx.gridReads = ResetGridReads();
-            object? rootValue = ResolveRootValue(ctx);
-            ctx = ctx.WithRoot(rootValue);
+            ctx.BindRoot(ResolveRootValue(ctx));
 
             object? boundThis = thisValue;
             if (boundThis is null && thisRow is not null)
@@ -226,7 +225,8 @@ namespace NeoCompose.Runtime
             object? value;
             try
             {
-                value = NSGetterEvaluator.Evaluate(getter, ctx.WithThis(boundThis));
+                ctx.BindThis(boundThis);
+                value = NSGetterEvaluator.Evaluate(getter, ctx);
             }
             catch (NSGetterRuntimeError ex)
             {
@@ -260,13 +260,9 @@ namespace NeoCompose.Runtime
             object? thisValue,
             MemberValue? thisRow)
         {
-            var ctx = new NSGetterEvaluator.Context(
-                client,
-                thisValue: null,
-                rootValue: null,
-                valueOwnership: ownership);
+            var ctx = client.CreateGetterContext(ownership);
             object? rootValue = ResolveRootValue(ctx);
-            ctx = ctx.WithRoot(rootValue);
+            ctx.BindRoot(rootValue);
 
             object? boundThis = ResolveThisValue(thisValue, thisRow, ctx);
             if (boundThis is null)

@@ -907,32 +907,48 @@ namespace NeoCompose.Runtime
         private int animationFrameDepth;
         private readonly HashSet<System.Action> pendingAnimationRenderUpdates = new();
 
-        private NeoScript.NSGetterEvaluator.Context? animationEvaluationContext;
-        private static readonly Unity.Profiling.ProfilerMarker AnimationRowRefreshMarker = new("NeoCompose.Animation.RefreshRow");
+        // Unwrapped records, arrays, vectors and colours keep one CLR identity
+        // across evaluations, so a getter that reads the same rows every frame
+        // allocates no shapes. Each store change patches or evicts the rows it
+        // touched; bulk changes (schema, save load, partitions, virtual
+        // expansion, replay reclaim) drop the caches. A replay evaluates a
+        // throwaway graph at deterministic ids, so it gets a private context.
+        private NeoScript.NSGetterEvaluator.Context? sharedEvaluationContext;
+        private const int SharedRowCacheLimit = 8192;
+        private static readonly Unity.Profiling.ProfilerMarker EvaluationRowRefreshMarker = new("NeoCompose.Evaluation.RefreshRow");
 
         internal NeoScript.NSGetterEvaluator.Context CreateGetterContext(NeoValueOwnership ownership)
         {
-            if (animationFrameDepth > 0 && animationEvaluationContext is null)
-            {
-                animationEvaluationContext = new NeoScript.NSGetterEvaluator.Context(this, null, null);
-                OnWritableValueChanged += RefreshAnimationEvaluationRow;
-            }
-            var shared = animationEvaluationContext;
+            if (isReplayingVirtualInstance)
+                return new NeoScript.NSGetterEvaluator.Context(this, null, null, valueOwnership: ownership);
+            var shared = sharedEvaluationContext;
+            if (shared is null || shared.rowUnwrapCache.Count > SharedRowCacheLimit)
+                shared = sharedEvaluationContext = new NeoScript.NSGetterEvaluator.Context(this, null, null);
             return new NeoScript.NSGetterEvaluator.Context(this, null, null,
                 valueOwnership: ownership,
-                rowUnwrapCache: shared?.rowUnwrapCache,
-                rowReverseIndex: shared?.rowReverseIndex,
-                rowCacheKeysByRow: shared?.rowCacheKeysByRow);
+                rowUnwrapCache: shared.rowUnwrapCache,
+                rowReverseIndex: shared.rowReverseIndex,
+                rowCacheKeysByRow: shared.rowCacheKeysByRow);
         }
 
-        private void RefreshAnimationEvaluationRow(NeoValueOwnership ownership, string valueId)
+        private void RefreshSharedEvaluationRow(NeoValueOwnership ownership, string valueId)
         {
-            if (animationEvaluationContext is null) return;
-            using var marker = AnimationRowRefreshMarker.Auto();
+            var shared = sharedEvaluationContext;
+            if (shared is null) return;
+            using var marker = EvaluationRowRefreshMarker.Auto();
             if (TryGetValue(ownership, valueId, out MemberValue? row))
-                NeoScript.NSGetterEvaluator.RefreshCachedRowAfterWrite(row, animationEvaluationContext, ownership);
+                NeoScript.NSGetterEvaluator.RefreshCachedRowAfterWrite(row, shared, ownership);
             else
-                NeoScript.NSGetterEvaluator.EvictCachedRows(animationEvaluationContext, ownership, new[] { valueId });
+                NeoScript.NSGetterEvaluator.EvictCachedRow(shared, ownership, valueId);
+        }
+
+        /// <summary>Drops a row whose effective value changed without a commit (virtual expansion, replay reclaim).</summary>
+        private void EvictSharedEvaluationRow(string valueId)
+        {
+            var shared = sharedEvaluationContext;
+            if (shared is null) return;
+            NeoScript.NSGetterEvaluator.EvictCachedRow(shared, NeoValueOwnership.Save, valueId);
+            NeoScript.NSGetterEvaluator.EvictCachedRow(shared, NeoValueOwnership.Session, valueId);
         }
 
         internal void BeginAnimationFrame() => animationFrameDepth++;
@@ -940,8 +956,6 @@ namespace NeoCompose.Runtime
         internal void EndAnimationFrame()
         {
             if (--animationFrameDepth != 0) return;
-            OnWritableValueChanged -= RefreshAnimationEvaluationRow;
-            animationEvaluationContext = null;
             if (pendingAnimationRenderUpdates.Count == 0) return;
             var pending = pendingAnimationRenderUpdates.ToArray();
             pendingAnimationRenderUpdates.Clear();
@@ -1705,6 +1719,8 @@ namespace NeoCompose.Runtime
             authoredClassOwnedRoots = null;
             InvalidateGetterMemo();
             worldClassIds.Clear();
+            worldPlacementClassIds.Clear();
+            sharedEvaluationContext = null;
             worldKindByClass.Clear();
             ScriptSchemaPlacements.Clear();
             ScriptCallableDispatch.Clear();
@@ -2855,7 +2871,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     "Cannot tombstone an asset-owned value.");
             }
-            string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
             // Minimal marker — no payload, no child links. Resolution only checks
             // `mark`, so the stored value is genuinely null and the removed value's
             // children are no longer referenced through it.
@@ -2901,7 +2917,7 @@ namespace NeoCompose.Runtime
                 }
             }
             var plan = new NeoWritePlan(this);
-            var now = NeoTimestamp.Now();
+            NeoTimestamp now = NeoTimestamp.Now();
             plan.Set(ownership, new NullMemberValue
             { id = id, createdAt = now, updatedAt = now, mark = NeoValueMarks.Removed }, "mark");
             var reachableByOwnership = new Dictionary<NeoValueOwnership, HashSet<string>>();
@@ -5180,6 +5196,7 @@ namespace NeoCompose.Runtime
             {
                 InitializeVirtualInstanceValuesForLoadedRows(rows.Values);
             }
+            sharedEvaluationContext = null;
             OnValuePartitionChanged?.Invoke(mapKey);
         }
 
@@ -5220,6 +5237,7 @@ namespace NeoCompose.Runtime
             InvalidateGetterMemo();
             loadedPartitionRowIds.Remove(mapKey);
             if (authoredOwnershipBuilt) BuildAuthoredOwnershipMap();
+            sharedEvaluationContext = null;
             OnValuePartitionChanged?.Invoke(mapKey);
         }
 
@@ -8241,6 +8259,7 @@ namespace NeoCompose.Runtime
             // `DeserializeSaveData` returns null on empty/whitespace without throwing,
             // so a null/empty resolution still needs the default-build fallback.
             saveData = parsed ?? BuildDefaultSaveData();
+            sharedEvaluationContext = null;
             saveData.values ??= new();
             saveData.staticBindings ??= new();
             try

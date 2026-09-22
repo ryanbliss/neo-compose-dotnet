@@ -2129,9 +2129,9 @@ namespace NeoCompose.Runtime
             {
                 ValidateConstructibleNeoSchemaClass(client, classId);
             }
-            string nowIso = scope.ExistingEvaluationContext is { } timestampContext
+            NeoTimestamp nowIso = scope.ExistingEvaluationContext is { } timestampContext
                 ? timestampContext.allocationTracker.ConstructionTimestamp
-                : DateTime.UtcNow.ToString("o");
+                : NeoTimestamp.Now();
             var rows = new List<MemberValue>(valueRows);
             var parentRow = CreateWritableClassValueRow(
                 client,
@@ -3451,7 +3451,7 @@ namespace NeoCompose.Runtime
                 ?? new NeoConstructionScope(client, null);
             var value = new Dictionary<string, string>();
             var rows = new List<MemberValue>();
-            string? nowIso = null;
+            NeoTimestamp? nowIso = null;
             foreach (RuntimeConstructorField field in fields)
             {
                 Member member = metadata.membersBySchemaKey[field.schemaKey];
@@ -3470,7 +3470,7 @@ namespace NeoCompose.Runtime
                     rows,
                     nowIso ??= scope.ExistingEvaluationContext is { } fieldContext
                         ? fieldContext.allocationTracker.ConstructionTimestamp
-                        : DateTime.UtcNow.ToString("o"),
+                        : NeoTimestamp.Now(),
                     valueReference,
                     metadata.genericEnv,
                     $"{classTypeInfo.classId}.{field.schemaKey}",
@@ -4672,7 +4672,7 @@ namespace NeoCompose.Runtime
                 genericEnv,
                 classArguments);
             var scope = new NeoConstructionScope(client, null);
-            string nowIso = DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
             var rows = new List<MemberValue>();
             Dictionary<string, string> provided = CloneDefaultClassChildren(
                 client,
@@ -4866,7 +4866,7 @@ namespace NeoCompose.Runtime
                 ? new Dictionary<string, NeoGenericEnvEntry>()
                 : NeoNSFunctionRuntime.ResolveReceiverGenericEnv(client, ctx.thisValue, ctx, "Collection assignment");
             object? payload = ComputeRuntimeConstructorPayload(client, member, value, rows,
-                DateTime.UtcNow.ToString("o"), item =>
+                NeoTimestamp.Now(), item =>
                 {
                     var reference = NeoScript.NSGetterEvaluator.ConstructorReferenceOf(item, ctx);
                     if (reference is null) return null;
@@ -4886,7 +4886,7 @@ namespace NeoCompose.Runtime
             NeoScript.NSGetterEvaluator.Context ctx)
         {
             if (fields.Count == 0) return;
-            string nowIso = DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
             foreach (RuntimeConstructorField field in fields)
             {
                 Member member = resolved.membersBySchemaKey[field.schemaKey];
@@ -5434,7 +5434,7 @@ namespace NeoCompose.Runtime
             Member member,
             InitializerBody init,
             List<MemberValue> rows,
-            string nowIso,
+            NeoTimestamp nowIso,
             NeoConstructionScope scope,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
             string path)
@@ -5476,7 +5476,7 @@ namespace NeoCompose.Runtime
             Member member,
             object? runtimeValue,
             List<MemberValue> rows,
-            string nowIso,
+            NeoTimestamp nowIso,
             Func<object?, NeoConstructorValueReference?> valueReference,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
             string path,
@@ -5560,7 +5560,7 @@ namespace NeoCompose.Runtime
             Member member,
             object? runtimeValue,
             List<MemberValue> rows,
-            string nowIso,
+            NeoTimestamp nowIso,
             Func<object?, NeoConstructorValueReference?> valueReference,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
             string path,
@@ -6040,7 +6040,7 @@ namespace NeoCompose.Runtime
             string classId,
             Dictionary<string, string>? providedValue,
             List<MemberValue> rows,
-            string nowIso,
+            NeoTimestamp nowIso,
             NeoConstructionScope scope,
             string path,
             IReadOnlyDictionary<string, GenericBinding>? classArguments = null,
@@ -6347,7 +6347,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             Member schemaMember,
             List<MemberValue> rows,
-            string nowIso,
+            NeoTimestamp nowIso,
             NeoConstructionScope scope,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
             string path)
@@ -6547,7 +6547,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             ClassMember member,
             List<MemberValue> rows,
-            string nowIso,
+            NeoTimestamp nowIso,
             NeoConstructionScope scope,
             string path)
         {
@@ -6587,7 +6587,7 @@ namespace NeoCompose.Runtime
             Dictionary<string, string>? source,
             string classId,
             List<MemberValue> rows,
-            string nowIso,
+            NeoTimestamp nowIso,
             NeoConstructionScope scope,
             string path,
             IReadOnlyDictionary<string, GenericBinding>? classArguments = null,
@@ -6670,7 +6670,7 @@ namespace NeoCompose.Runtime
             ObjectMemberValue source,
             string classId,
             List<MemberValue> rows,
-            string nowIso,
+            NeoTimestamp nowIso,
             NeoConstructionScope scope,
             string path,
             IReadOnlyDictionary<string, GenericBinding>? classArguments,
@@ -6733,7 +6733,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             DictionaryMember member,
             List<MemberValue> rows,
-            string nowIso,
+            NeoTimestamp nowIso,
             NeoConstructionScope scope,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
             string path)
@@ -6761,7 +6761,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             ListMember member,
             List<MemberValue> rows,
-            string nowIso,
+            NeoTimestamp nowIso,
             NeoConstructionScope scope,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
             string path)
@@ -6790,7 +6790,7 @@ namespace NeoCompose.Runtime
             Member member,
             MemberValue source,
             List<MemberValue> rows,
-            string nowIso,
+            NeoTimestamp nowIso,
             NeoConstructionScope scope,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
             string path,
@@ -7115,7 +7115,7 @@ namespace NeoCompose.Runtime
             DictionaryMember member,
             ObjectMemberValue source,
             List<MemberValue> rows,
-            string nowIso,
+            NeoTimestamp nowIso,
             NeoConstructionScope scope,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
             string path,
@@ -7203,7 +7203,7 @@ namespace NeoCompose.Runtime
             ListMember member,
             ArrayMemberValue source,
             List<MemberValue> rows,
-            string nowIso,
+            NeoTimestamp nowIso,
             NeoConstructionScope scope,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
             string path,
@@ -7306,7 +7306,7 @@ namespace NeoCompose.Runtime
         }
 
         private static NullMemberValue CreateNullValueRow(
-            string nowIso,
+            NeoTimestamp nowIso,
             string? classId)
         {
             return new NullMemberValue
@@ -7319,7 +7319,7 @@ namespace NeoCompose.Runtime
         }
 
         private static Vector2MemberValue? CreateDefaultVector2Row(
-            string nowIso,
+            NeoTimestamp nowIso,
             MemberValueBase<NeoVector2Value?>? defaultValue)
         {
             return defaultValue is null
@@ -7335,7 +7335,7 @@ namespace NeoCompose.Runtime
         }
 
         private static Vector3MemberValue? CreateDefaultVector3Row(
-            string nowIso,
+            NeoTimestamp nowIso,
             MemberValueBase<NeoVector3Value?>? defaultValue)
         {
             return defaultValue is null
@@ -7354,7 +7354,7 @@ namespace NeoCompose.Runtime
         /// Materializes an authored Color default.
         /// </summary>
         private static ColorMemberValue? CreateDefaultColorRow(
-            string nowIso,
+            NeoTimestamp nowIso,
             MemberValueBase<NeoColorValue?>? defaultValue)
         {
             if (defaultValue is null) return null;
@@ -7399,7 +7399,7 @@ namespace NeoCompose.Runtime
         /// Materializes an authored Decimal default.
         /// </summary>
         private static StringMemberValue? CreateDefaultDecimalRow(
-            string nowIso,
+            NeoTimestamp nowIso,
             MemberValueBase<string?>? defaultValue)
         {
             if (defaultValue is null) return null;
@@ -7758,7 +7758,7 @@ namespace NeoCompose.Runtime
                     $"No generated read-only factory exists for class '{classId}'. Regenerate the project's C# types.");
             }
 
-            var now = NeoTimestamp.Now();
+            NeoTimestamp now = NeoTimestamp.Now();
             var member = new ClassMember
             {
                 id = $"__neo_class_default:{classId}",

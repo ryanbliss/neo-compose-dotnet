@@ -116,13 +116,8 @@ namespace NeoCompose.Runtime
                     $"thisValueId '{thisValueId}' was not found in {ownership.ToString().ToLowerInvariant()} values.");
             }
 
-            var ctx = new NSGetterEvaluator.Context(
-                client,
-                thisValue: null,
-                rootValue: null,
-                valueOwnership: ownership);
-            object? root = NeoScriptValueMarshaller.ResolveRoot(client, ctx);
-            ctx = ctx.WithRoot(root);
+            var ctx = client.CreateGetterContext(ownership);
+            ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
             object? receiver = NSGetterEvaluator.UnwrapRow(row, ctx, ownership);
             if (receiver is null)
             {
@@ -217,15 +212,9 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"NSFunction '{function.Member.name}' is an instance member and requires a receiver.");
             }
-            var ctx = new NSGetterEvaluator.Context(
-                client,
-                thisValue: null,
-                rootValue: null,
-                valueOwnership: NeoValueOwnership.Session);
-            return new Invocation(
-                function,
-                receiver: null,
-                ctx.WithRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx)));
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
+            ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+            return new Invocation(function, receiver: null, ctx);
         }
 
         private Task<object?> AwaitExecution(NeoScriptExecutionResult initial)

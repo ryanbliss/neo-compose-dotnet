@@ -194,7 +194,7 @@ namespace NeoCompose.Runtime
             if (entryMember.Requirement == NeoMemberRequirementKind.Required && (setValue is null || setValue.isNull))
                 throw new System.ArgumentNullException(nameof(setValue), "Cannot be null when entry member is required");
             var plan = new NeoWritePlan(client);
-            string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
             NeoValueOwnership entryOwnership = client.DeclaredOwnership(entryMember) ?? ownership;
             ObjectMemberValue parentRow = EnsureWritableObject(plan, nowIso);
             parentRow.value!.TryGetValue(key, out string? previousId);
@@ -233,7 +233,7 @@ namespace NeoCompose.Runtime
         {
             if (value?.value is null) return;
             if (!value.value.ContainsKey(key)) return;
-            string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
 
             // Clone-on-write the dict row (shadowing the authored default at
             // its stable id) and drop the key.
@@ -271,7 +271,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Cannot bind a child value on Dictionary '{member.id}': child is not a registered entry.");
             }
-            string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
             ObjectMemberValue parentRow = EnsureWritableObject(plan, nowIso);
             parentRow.value![key] = childValueId;
             parentRow.updatedAt = nowIso;
@@ -293,7 +293,7 @@ namespace NeoCompose.Runtime
         /// KeyNotFoundException), and an overwrite of one key would silently
         /// drop the sibling default entries.
         /// </summary>
-        private ObjectMemberValue EnsureWritableObject(string nowIso)
+        private ObjectMemberValue EnsureWritableObject(NeoTimestamp nowIso)
         {
             var plan = new NeoWritePlan(client);
             var row = EnsureWritableObject(plan, nowIso);
@@ -301,7 +301,7 @@ namespace NeoCompose.Runtime
             return row;
         }
 
-        private ObjectMemberValue EnsureWritableObject(NeoWritePlan plan, string nowIso)
+        private ObjectMemberValue EnsureWritableObject(NeoWritePlan plan, NeoTimestamp nowIso)
         {
             var writable = WritableCandidate(plan);
             if (writable is not null)

@@ -224,9 +224,9 @@ namespace NeoCompose.Runtime
         internal string PreparePayload(NeoWritePlan plan, object? payload)
         {
             EnsureWritable();
-            string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
             string valueId;
-            string createdAt = nowIso;
+            NeoTimestamp createdAt = nowIso;
             MemberValue? previous = null;
             if (client.TryResolveStaticBinding(
                     member.id,

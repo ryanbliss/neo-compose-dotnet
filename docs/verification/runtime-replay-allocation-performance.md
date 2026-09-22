@@ -88,3 +88,27 @@ Not fixed, and reported:
 - Full garbage collections take 40–50 ms at the editor's 1.5–1.7 GB managed heap. They are less frequent after this pass but no cheaper; a player build with a small heap will not see them at this size.
 - The half-second and one-second frames in the cursor run are `WaitForLastPresentation → Semaphore.WaitForSignal` (editor compositor waits) and one 141 ms render-culling frame, not SDK or game code.
 - The prebuilt boulder's "not save-owned" error was an ownership-classification bug fixed in this pass (authored ownership map rebuilt on partition load). The placed-seed break bug (object neither destroyed nor magnetic, items not returned) did not reproduce in the seed-break diagnostic; it is not fixed here.
+
+## Store writes without a write plan (0.39.8)
+
+Same fixture and profiler settings as the previous section (profiler recording on, in-editor, real Neowyn checkout). Per-call figures are the third repetition of twenty calls; per-frame figures are medians over a 6 s walk with the cursor circling.
+
+| measure | 0.39.7 | 0.39.8 |
+| --- | --- | --- |
+| scalar Save write, generated setter (`TotalRealSecondsPlayed`) | 3.2 KB | 0.38 KB / 7 µs |
+| `AddTime` (three NeoScript field writes) | 12.3 KB | 6.1 KB / 35 µs, of which the three writes are under 0.2 KB / 8 µs |
+| `OnUpdate` | 34.4 KB / 0.199 ms | 20.8 KB / 0.124 ms |
+| Position write (player body, a world object) | 11.4 KB / 0.213 ms | 8.6 KB / 0.069 ms (still through the plan; see below) |
+| per-frame garbage, no tool / pickaxe / seed (median) | 56–63 KB, 960–1039 allocations | 39.1 / 47.8 / 39.1 KB, 706 / 824 / 706 allocations |
+| frame time, no tool / pickaxe / seed (median) | 4.3–4.7 ms | 3.55 / 4.25 / 3.19 ms |
+| frames the cursor cell changed (median) | not measured | 3.80 / 4.58 / 3.39 ms |
+
+What changed: a leaf write is now a store write (`NeoClient.TryWriteLeaf`), timestamps are numeric, and NeoScript row shapes persist across evaluations in a client-owned cache. There is no per-write transaction left to batch: after the write itself, the per-write bookkeeping is a dictionary store, a revision increment, a memo lookup per row, and the change notifications, and nothing is serialized per write (the save file is written on scene transitions, the live session commit is a scheduled no-op unless a session is active).
+
+What the profile says is left, per frame while walking:
+
+- `NeoScript.AddTime` body execution: 19.6 KB/frame in the walk (5.3 KB per standalone call). This is interpreter garbage, not writes, and is the inline-cache pass.
+- Animation segment re-resolution: 8.6 KB/frame (`NeoCompose.Animation.ResolveSegment`, 0.4 calls/frame).
+- The player Position write: 3.5 KB/frame through `Write.Commit`, of which 5.85 KB per call is `ValidatePlacements`. The player body is a world object, so the leaf path refuses it; the placement API pass moves that write out of the setter.
+- Editor overhead (GUIView, canvases, profiler counters): about 11 KB/frame, absent in a player.
+

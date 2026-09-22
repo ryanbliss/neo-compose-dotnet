@@ -1128,7 +1128,7 @@ namespace NeoCompose.Runtime
 
         protected static ClassMember CreateClassDefaultMember(string classId, string memberId)
         {
-            var now = NeoTimestamp.Now();
+            NeoTimestamp now = NeoTimestamp.Now();
             return new ClassMember
             {
                 id = memberId,
@@ -2879,7 +2879,7 @@ namespace NeoCompose.Runtime
                     "tile-grid-placement-cell-key-missing",
                     $"Placement class '{placementClassId}' has no 'Cell' schema key.");
             }
-            var now = NeoTimestamp.Now();
+            NeoTimestamp now = NeoTimestamp.Now();
             // Storage partitions: the placement subtree lives in its
             // container's partition. The placement row would inherit through
             // its containerId; its owned Cell child has no

@@ -745,7 +745,7 @@ namespace NeoCompose.Runtime
         internal void SetSerializedValue(string key, NeoValueWritePayload? setValue)
         {
             AssertContainingClassesCanBeConstructed();
-            string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
 
             // Resolution flows through the merged schema (inheritance
             // chain), so a Set against a key inherited from an ancestor
@@ -865,14 +865,22 @@ namespace NeoCompose.Runtime
                 if (childMember is not ClassMember and not ListMember and not DictionaryMember
                     && setValue?.value is not NeoValuePayload { valueRows: { Count: > 0 } }
                     && client.TryGetWritableValue(childOwnership, existingValueId, out MemberValue? stored)
-                    && !stored.IsRemoved && stored.classId == next.classId && SameLeafValue(stored, next)) return;
+                    && !stored.IsRemoved && stored.classId == next.classId && NeoClient.SameLeafValue(stored, next)) return;
                 // A shadow of a stamped collection row keeps the immutable
                 // stamp (spec Decision 9/16); a row that predates the stamp
                 // recomputes the identical value from this record's env.
-                plan = new NeoWritePlan(client);
                 next.mapKey = existing.mapKey;
                 next.genericBindings = existing.genericBindings;
                 NeoGenericResolution.StampGenericBindings(client, childMember, next, GenericEnv);
+                // A leaf replacement with no payload rows stores in place.
+                if (setValue?.value is not NeoValuePayload { valueRows: { Count: > 0 } }
+                    && client.TryWriteLeaf(childOwnership, next, childMember, "value"))
+                {
+                    if (existingChild is null || existingChild.isDisposed) ReinitializeChildren();
+                    if (!childWillSelfNotify) NotifyChildChanged(key);
+                    return;
+                }
+                plan = new NeoWritePlan(client);
                 client.StageWritablePayloadRows(plan, childOwnership, setValue?.value);
                 plan.Set(
                     childOwnership,
@@ -944,27 +952,6 @@ namespace NeoCompose.Runtime
             NotifyChildChanged(key);
         }
 
-        private static bool SameLeafValue(MemberValue before, MemberValue after) => (before, after) switch
-        {
-            (NumberMemberValue a, NumberMemberValue b) => a.value == b.value,
-            (BoolMemberValue a, BoolMemberValue b) => a.value == b.value,
-            (StringMemberValue a, StringMemberValue b) => a.value == b.value && a.neoLocalizationMode == b.neoLocalizationMode,
-            (ArrayMemberValue a, ArrayMemberValue b) => a.value is null ? b.value is null
-                : b.value is not null && System.Linq.Enumerable.SequenceEqual(a.value, b.value),
-            (Vector3MemberValue a, Vector3MemberValue b) => a.value is null ? b.value is null
-                : b.value is not null && a.value.x == b.value.x && a.value.y == b.value.y && a.value.z == b.value.z,
-            (Vector2MemberValue a, Vector2MemberValue b) => a.value is null ? b.value is null
-                : b.value is not null && a.value.x == b.value.x && a.value.y == b.value.y,
-            (ColorMemberValue a, ColorMemberValue b) => a.value is null ? b.value is null
-                : b.value is not null && a.value.r == b.value.r && a.value.g == b.value.g
-                    && a.value.b == b.value.b && a.value.a == b.value.a,
-            (SpriteMemberValue a, SpriteMemberValue b) => a.value is null ? b.value is null
-                : b.value is not null && a.value.fileId == b.value.fileId && a.value.sliceIndex == b.value.sliceIndex,
-            (FileMemberValue a, FileMemberValue b) => a.value is null ? b.value is null
-                : b.value is not null && a.value.fileId == b.value.fileId,
-            _ => false,
-        };
-
         private void SetSerializedUnorderedList(
             NeoWritePlan plan, string key, NeoValueWritePayload? setValue, bool recordWritable)
         {
@@ -991,7 +978,7 @@ namespace NeoCompose.Runtime
             {
                 RejectReadOnlyInstanceMutation(key, SubstituteChildMember(rawMember));
             }
-            string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
             ObjectMemberValue record = EnsureWritableObject(plan, nowIso);
             record.value![key] = childValueId;
             record.updatedAt = nowIso;
@@ -1026,7 +1013,7 @@ namespace NeoCompose.Runtime
         /// clone-on-write shadow at the stable id), minting + binding a
         /// fresh empty record through the parent when nothing is bound yet.
         /// </summary>
-        private ObjectMemberValue EnsureWritableObject(string nowIso)
+        private ObjectMemberValue EnsureWritableObject(NeoTimestamp nowIso)
         {
             var plan = new NeoWritePlan(client);
             var row = EnsureWritableObject(plan, nowIso);
@@ -1034,7 +1021,7 @@ namespace NeoCompose.Runtime
             return row;
         }
 
-        private ObjectMemberValue EnsureWritableObject(NeoWritePlan plan, string nowIso)
+        private ObjectMemberValue EnsureWritableObject(NeoWritePlan plan, NeoTimestamp nowIso)
         {
             AssertContainingClassesCanBeConstructed();
             var writable = WritableCandidate(plan);
@@ -1085,7 +1072,7 @@ namespace NeoCompose.Runtime
                 && client.TryGetMember(schemaKeyedMemberId, out Member? resolvedMember)
                     ? SubstituteChildMember(resolvedMember)
                     : null;
-            string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
 
             // Clone-on-write the record (shadowing the authored default at
             // its stable id) and drop the key.

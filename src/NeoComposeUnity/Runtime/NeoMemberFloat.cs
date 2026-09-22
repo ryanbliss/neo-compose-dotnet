@@ -38,7 +38,7 @@ namespace NeoCompose.Runtime
                     nameof(newValue),
                     $"Cannot be null when {nameof(member)} requirement is Required");
             }
-            string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
             double? doubleValue = newValue.HasValue ? newValue.Value : (double?)null;
 
             var writable = EnsureWritableValue();

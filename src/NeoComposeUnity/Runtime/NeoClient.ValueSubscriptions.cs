@@ -33,6 +33,7 @@ namespace NeoCompose.Runtime
 
         private void PublishWritableValueChange(NeoValueOwnership ownership, string valueId)
         {
+            RefreshSharedEvaluationRow(ownership, valueId);
             // Invoke over a snapshot so reentrant writes, subscriptions and
             // disposal during a callback neither skip nor repeat a handler.
             if (writableValueSubscriptions.TryGetValue(valueId, out var handlers) && handlers.Count != 0)

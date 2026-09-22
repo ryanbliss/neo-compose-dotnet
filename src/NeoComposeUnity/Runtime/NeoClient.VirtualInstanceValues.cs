@@ -353,6 +353,7 @@ namespace NeoCompose.Runtime
             var outgoingVirtualIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (HashSet<string> ids in virtualValueIdsByRoot.Values)
                 outgoingVirtualIds.UnionWith(ids);
+            sharedEvaluationContext = null;
             virtualValues.Clear();
             virtualValueOwnership.Clear();
             virtualClassChildren.Clear();
@@ -967,8 +968,11 @@ namespace NeoCompose.Runtime
                     return;
                 }
                 foreach (string id in Ids)
+                {
+                    client.EvictSharedEvaluationRow(id);
                     if (client.sessionData.values.ContainsKey(id))
                         client.RemoveTemporaryWritableValueGraph(NeoValueOwnership.Session, id);
+                }
             }
         }
 
@@ -1575,6 +1579,7 @@ namespace NeoCompose.Runtime
             foreach (var pair in expansion.Values)
             {
                 virtualValues[pair.Key] = pair.Value;
+                EvictSharedEvaluationRow(pair.Key);
                 virtualValueOwnership[pair.Key] = expansion.Ownership[pair.Key];
                 TrackVirtualValue(rootId, pair.Key);
                 if (!string.IsNullOrEmpty(pair.Value.containerId))
@@ -2014,6 +2019,7 @@ namespace NeoCompose.Runtime
                 foreach (string valueId in valueIds)
                 {
                     virtualValues.Remove(valueId);
+                    EvictSharedEvaluationRow(valueId);
                     virtualValueOwnership.Remove(valueId);
                     if (virtualContainerByRow.TryGetValue(
                             valueId,

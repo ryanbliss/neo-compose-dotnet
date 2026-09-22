@@ -33,13 +33,10 @@ namespace NeoCompose.Runtime
 
         public object? Invoke(params object?[] args)
         {
-            var ctx = new NSGetterEvaluator.Context(
-                client,
-                thisValue: null,
-                rootValue: null,
-                valueOwnership: ownership);
-            ctx = ctx.WithRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
-            return InvokeCore(args, ctx.WithThis(ResolveLexicalThis(ctx))).result;
+            var ctx = client.CreateGetterContext(ownership);
+            ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+            ctx.BindThis(ResolveLexicalThis(ctx));
+            return InvokeCore(args, ctx).result;
         }
 
         public object? Invoke(string thisValueId, params object?[] args)
@@ -49,14 +46,10 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"thisValueId '{thisValueId}' was not found in {ownership.ToString().ToLowerInvariant()} values.");
             }
-            var ctx = new NSGetterEvaluator.Context(
-                client,
-                thisValue: null,
-                rootValue: null,
-                valueOwnership: ownership);
-            ctx = ctx.WithRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
-            object? receiver = NSGetterEvaluator.UnwrapRow(row, ctx, ownership);
-            return InvokeCore(args, ctx.WithThis(receiver)).result;
+            var ctx = client.CreateGetterContext(ownership);
+            ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+            ctx.BindThis(NSGetterEvaluator.UnwrapRow(row, ctx, ownership));
+            return InvokeCore(args, ctx).result;
         }
 
         /// <summary>
@@ -85,12 +78,8 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"Lexical this value '{lexicalThisValueId}' was not found in {lexicalThisOwnership.ToString().ToLowerInvariant()} values.");
             }
-            var ctx = new NSGetterEvaluator.Context(
-                client,
-                thisValue: null,
-                rootValue: null,
-                valueOwnership: lexicalThisOwnership);
-            ctx = ctx.WithRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+            var ctx = client.CreateGetterContext(lexicalThisOwnership);
+            ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
             object? receiver = NSGetterEvaluator.UnwrapRow(
                 row,
                 ctx,
@@ -102,8 +91,8 @@ namespace NeoCompose.Runtime
                 Array.Copy(args, 0, invocationArgs, 1, args.Length);
                 args = invocationArgs;
             }
-            (object? result, NSGetterEvaluator.Context invocationContext) =
-                InvokeCore(args, ctx.WithThis(passReceiverArgument ? null : receiver));
+            ctx.BindThis(passReceiverArgument ? null : receiver);
+            (object? result, NSGetterEvaluator.Context invocationContext) = InvokeCore(args, ctx);
             return NSGetterEvaluator.ConstructorReferenceOf(
                 result,
                 invocationContext);
@@ -221,7 +210,7 @@ namespace NeoCompose.Runtime
                     nameof(newValue),
                     $"Cannot be null when {nameof(member)} requirement is Required");
             }
-            string nowIso = DateTime.UtcNow.ToString("o");
+            NeoTimestamp nowIso = NeoTimestamp.Now();
             DelegateMemberValue? writable = EnsureWritableValue();
             if (writable is not null)
             {
