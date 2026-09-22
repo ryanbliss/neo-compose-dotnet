@@ -2526,6 +2526,105 @@ namespace NeoCompose.Tests
                     .value!.value);
         }
 
+        private sealed class SparseThingValue : NeoGeneratedClassValue
+        {
+            internal SparseThingValue(
+                NeoClient client,
+                NeoMemberClassWritable node)
+                : base(
+                    client,
+                    node,
+                    "thing-class",
+                    isReadOnly: false,
+                    inheritedStorageOwnership: NeoValueOwnership.Save)
+            {
+            }
+
+            internal static SparseThingValue CreateWritable(
+                NeoClient client,
+                NeoMemberClassWritable node)
+            {
+                return new SparseThingValue(client, node);
+            }
+        }
+
+        /// <summary>
+        /// A write under a constructed list entry stores the entry at its
+        /// deterministic id while the list above it stays virtual. The
+        /// stored row keeps only its explicit fields, so its init-backed
+        /// members still come from replaying the entry as its own nested
+        /// root. Expanding the outer root must find that stored row at
+        /// every depth of its virtual subtree instead of minting a second
+        /// copy, or a later ToVariant on the outer root binds the entry's
+        /// init-backed member to no row and fails to materialize it.
+        /// </summary>
+        [Test]
+        public void ReloadedListEntryWithAStoredLeafKeepsItsInitBackedMembersThroughToVariant()
+        {
+            string entryId;
+            string childrenId;
+            string saved;
+            using (NeoClient first = NeoTestSaveStack.ClientFromSchema(
+                BuildConstructedUnorderedChildrenProjectData()))
+            {
+                NeoMemberClassWritable thing = first.save
+                    .Get<NeoMemberClassWritable>("Thing");
+                NeoMemberList children = thing.Get<NeoMemberList>("Children");
+                childrenId = children.value!.id;
+                var entry = (NeoMemberClassWritable)children.Single();
+                entryId = entry.value!.id;
+                Assert.AreEqual(
+                    "call-site",
+                    entry.Get<NeoMemberStringWritable>("Label").value!.value);
+                entry.Get<NeoMemberStringWritable>("Tag").Set("tagged");
+                Assert.IsTrue(
+                    first.saveValues.ContainsKey(entryId),
+                    "the first write to an omitted member stores the entry at its stable id");
+                Assert.IsFalse(
+                    first.saveValues.ContainsKey(childrenId),
+                    "the list above the entry stays virtual");
+                saved = first.SerializeSaveData();
+            }
+
+            using NeoClient second = NeoTestSaveStack.ClientFromSchema(
+                BuildConstructedUnorderedChildrenProjectData(),
+                loadedSaveContent: saved);
+            NeoMemberClassWritable reloaded = second.save
+                .Get<NeoMemberClassWritable>("Thing");
+            AssertEntry(reloaded);
+            // Re-selecting the base variant over a stale selection replays
+            // the root as a variant candidate, the path ToVariant takes.
+            reloaded.value!.instanceVariantId = "previous-variant";
+            Assert.DoesNotThrow(() => NeoGeneratedTypesSupport.ApplyVariant(
+                new SparseThingValue(second, reloaded),
+                NeoGeneratedTypesSupport.ResolveBaseVariant<SparseThingValue>(
+                    second,
+                    "thing-class")));
+            AssertEntry(reloaded);
+
+            void AssertEntry(NeoMemberClassWritable root)
+            {
+                var entry = (NeoMemberClassWritable)root
+                    .Get<NeoMemberList>("Children")
+                    .Single();
+                Assert.AreEqual(
+                    entryId,
+                    entry.value!.id,
+                    "the stored entry is not re-minted under the root's namespace");
+                Assert.AreEqual(
+                    "tagged",
+                    entry.Get<NeoMemberStringWritable>("Tag").value!.value);
+                Assert.AreEqual(
+                    "unnamed",
+                    entry.Get<NeoMemberStringWritable>("Name").value!.value);
+                NeoMemberStringWritable label = entry.Get<NeoMemberStringWritable>("Label");
+                Assert.IsNotNull(
+                    label.value,
+                    "the init-backed member resolves to the entry's own replayed row");
+                Assert.AreEqual("call-site", label.value!.value);
+            }
+        }
+
         private sealed class SparseNestedValue : NeoGeneratedClassValue
         {
             internal SparseNestedValue(
@@ -4379,6 +4478,203 @@ namespace NeoCompose.Tests
             return data;
         }
 
+        /// <summary>
+        /// A constructed Save root whose constructor assigns an unordered
+        /// list of constructed entries. The entry's Label is init-backed by
+        /// its constructor argument, its Name is a plain declaration default,
+        /// and its optional Tag has no default, so the first Tag write adds
+        /// a key to the entry row and stores the entry itself.
+        /// </summary>
+        private static ProjectData BuildConstructedUnorderedChildrenProjectData()
+        {
+            ProjectData data = BuildProjectData();
+            var stringType = new PrimitiveTypeInfo
+            {
+                type = MemberKind.String,
+                required = true,
+            };
+            NeoSchemaClass entryClass = SchemaClass(
+                "entry-class",
+                "Entry",
+                NeoMemberStorage.Save);
+            entryClass.schema["Name"] = "entry-name";
+            entryClass.schema["Label"] = "entry-label";
+            entryClass.schema["Tag"] = "entry-tag";
+            entryClass.constructorIds = new[] { "entry-ctor" };
+            data.classes[entryClass.id] = entryClass;
+            var initialArgument = new FunctionArgumentTypeInfo
+            {
+                name = "Initial",
+                type = MemberKind.String,
+                required = true,
+            };
+            Variable[] entryParameters =
+            {
+                ConstructorVariable("__this__", ClassType(entryClass.id)),
+                ConstructorVariable("__root__", ClassType("__root__")),
+                ConstructorVariable("__arg_0__", initialArgument),
+            };
+            data.constructors["entry-ctor"] = new ConstructorRecord
+            {
+                id = "entry-ctor",
+                projectId = "p75-project",
+                classId = entryClass.id,
+                argumentTypes = new[] { initialArgument },
+                code = string.Empty,
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = entryParameters,
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Null,
+                        required = true,
+                    },
+                    instructions = Array.Empty<Instruction>(),
+                },
+            };
+            data.members["entry-name"] = new StringMember
+            {
+                id = "entry-name",
+                projectId = "p75-project",
+                name = "Name",
+                kind = MemberKind.String,
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new StringMemberValueBase { value = "unnamed" },
+            };
+            data.members["entry-tag"] = new StringMember
+            {
+                id = "entry-tag",
+                projectId = "p75-project",
+                name = "Tag",
+                kind = MemberKind.String,
+                Requirement = NeoMemberRequirementKind.Optional,
+            };
+            data.members["entry-label"] = new StringMember
+            {
+                id = "entry-label",
+                projectId = "p75-project",
+                name = "Label",
+                kind = MemberKind.String,
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new StringMemberValueBase
+                {
+                    init = ReturnVariableInitializer(
+                        "Initial",
+                        stringType,
+                        entryParameters,
+                        "__arg_0__"),
+                },
+            };
+            data.members["thing-child"] = new ClassMember
+            {
+                id = "thing-child",
+                projectId = "p75-project",
+                name = "Child",
+                kind = MemberKind.Class,
+                classId = entryClass.id,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            data.members["thing-children"] = new ListMember
+            {
+                id = "thing-children",
+                projectId = "p75-project",
+                name = "Children",
+                kind = MemberKind.List,
+                Requirement = NeoMemberRequirementKind.Required,
+                ListKind = NeoListKind.Unordered,
+                entryMemberId = "thing-child",
+                defaultValue = new ArrayMemberValueBase { value = Array.Empty<string>() },
+            };
+            NeoSchemaClass thingClass = data.classes["thing-class"];
+            thingClass.schema.Remove("Count");
+            data.members.Remove("thing-count");
+            thingClass.schema["Children"] = "thing-children";
+            thingClass.constructorIds = new[] { "thing-ctor" };
+            var childrenType = new CollectionTypeInfo
+            {
+                type = MemberKind.List,
+                required = true,
+                entryTypeInfo = ClassType(entryClass.id),
+            };
+            data.constructors["thing-ctor"] = new ConstructorRecord
+            {
+                id = "thing-ctor",
+                projectId = "p75-project",
+                classId = thingClass.id,
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                code = string.Empty,
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        ConstructorVariable("__this__", ClassType(thingClass.id)),
+                        ConstructorVariable("__root__", ClassType("__root__")),
+                    },
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Null,
+                        required = true,
+                    },
+                    instructions = new Instruction[]
+                    {
+                        new AssignInstruction
+                        {
+                            type = InstructionKind.Assign,
+                            operatorValue = "=",
+                            target = new WriteTarget
+                            {
+                                pointer = PointerKeyOf(
+                                    new VariablePointer
+                                    {
+                                        type = PointerKind.Variable,
+                                        variableId = "__this__",
+                                    },
+                                    "Children"),
+                                typeInfo = childrenType,
+                                writability = WritabilityKind.Session,
+                            },
+                            pointer = new ListLiteralPointer
+                            {
+                                type = PointerKind.ListLiteral,
+                                typeInfo = childrenType,
+                                entries = new Pointer[]
+                                {
+                                    new FunctionPointer
+                                    {
+                                        type = PointerKind.Function,
+                                        function = new DeclaredConstructorFunction
+                                        {
+                                            type = FunctionKind.DeclaredConstructor,
+                                            info = new DeclaredConstructorInfo
+                                            {
+                                                schemaClassInfo = ClassType(entryClass.id),
+                                                constructorId = "entry-ctor",
+                                                args = new[]
+                                                {
+                                                    new DeclaredConstructorArgument
+                                                    {
+                                                        name = "Initial",
+                                                        valuePointer = StringLiteral("call-site"),
+                                                    },
+                                                },
+                                                fields = Array.Empty<FunctionClassConstructorField>(),
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+            var root = (ObjectMemberValue)data.values["thing-instance"];
+            root.instanceConstructorId = "thing-ctor";
+            root.constructorArgs = new Dictionary<string, JToken?>();
+            return data;
+        }
+
         private static InitializerBody AggregateArgumentInitializer(
             string code,
             MemberKind kind,
@@ -4720,6 +5016,20 @@ namespace NeoCompose.Tests
             },
             createdAt = "x",
             updatedAt = "x",
+        };
+
+        private static ValuePointer StringLiteral(string value) => new()
+        {
+            type = PointerKind.Value,
+            value = new Value
+            {
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = MemberKind.String,
+                    required = true,
+                },
+                value = JToken.FromObject(value),
+            },
         };
 
         private static ValuePointer IntLiteral(double value) => new()

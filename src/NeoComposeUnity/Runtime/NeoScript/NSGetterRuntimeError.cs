@@ -28,6 +28,8 @@ namespace NeoCompose.Runtime.NeoScript
     public class NSGetterRuntimeError : System.Exception
     {
         public NSGetterRuntimeError(string message) : base(message) { }
+
+        public NSGetterRuntimeError(string message, System.Exception innerException) : base(message, innerException) { }
     }
 
     /// <summary>
