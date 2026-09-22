@@ -1719,7 +1719,6 @@ namespace NeoCompose.Runtime
             authoredClassOwnedRoots = null;
             InvalidateGetterMemo();
             worldClassIds.Clear();
-            placementMembers.Clear();
             sharedEvaluationContext = null;
             worldKindByClass.Clear();
             ScriptSchemaPlacements.Clear();

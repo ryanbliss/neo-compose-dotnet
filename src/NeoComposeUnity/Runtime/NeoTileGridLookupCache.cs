@@ -21,7 +21,7 @@ namespace NeoCompose.Runtime
     /// containerId-carrying row raises for its container — drops the layer
     /// index for a lazy rebuild. An object's Position write goes through the
     /// placement API instead, which patches only the moved footprint and its
-    /// projected tiles (see <see cref="PrepareObjectMove"/>).
+    /// projected tiles (see <see cref="ObjectMove.Prepare"/>).
     /// </summary>
     internal sealed partial class NeoTileGridLookupCache : IDisposable
     {
@@ -452,12 +452,12 @@ namespace NeoCompose.Runtime
             return new ObjectLayerIndex(records, byCell, dependencyIds);
         }
 
-        internal interface ILayerIndex
+        private interface ILayerIndex
         {
             HashSet<string> DependencyIds { get; }
         }
 
-        internal sealed class TileLayerIndex : ILayerIndex
+        private sealed class TileLayerIndex : ILayerIndex
         {
             public TileLayerIndex(
                 List<NeoTilePlacementRecord> records,
@@ -509,7 +509,7 @@ namespace NeoCompose.Runtime
             public HashSet<string> DependencyIds { get; }
         }
 
-        internal sealed class ObjectLayerIndex : ILayerIndex
+        private sealed class ObjectLayerIndex : ILayerIndex
         {
             public ObjectLayerIndex(
                 List<NeoObjectPlacementRecord> records,

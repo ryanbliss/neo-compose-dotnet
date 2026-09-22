@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
 using UnityEngine;
+using ObjectMove = NeoCompose.Runtime.NeoTileGridLookupCache.ObjectMove;
 
 namespace NeoCompose.Runtime
 {
@@ -23,26 +24,20 @@ namespace NeoCompose.Runtime
         private static readonly Unity.Profiling.ProfilerMarker PlacementWriteMarker = new("NeoCompose.Write.Placement");
         private const string PositionKey = "Position";
         private const string CellKey = "Cell";
-        private readonly Dictionary<(string classId, string key), bool> placementMembers = new();
-        private readonly List<NeoTileGridLookupCache.ObjectMove> objectMoveScratch = new();
+        private readonly List<ObjectMove> objectMoveScratch = new();
 
         /// <summary>
         /// Whether writes to <paramref name="key"/> on rows of
         /// <paramref name="classId"/> must go through the placement API.
+        /// Every other key answers from the switch alone;
+        /// <see cref="HasWorldKind"/> memoizes the two that do not.
         /// </summary>
-        internal bool IsPlacementMember(string? classId, string key)
+        internal bool IsPlacementMember(string? classId, string key) => key switch
         {
-            if (string.IsNullOrEmpty(classId)) return false;
-            var cacheKey = (classId!, key);
-            if (!placementMembers.TryGetValue(cacheKey, out bool placement))
-                placementMembers[cacheKey] = placement = key switch
-                {
-                    PositionKey => HasWorldKind(classId, "object"),
-                    CellKey => HasWorldKind(classId, "tile") || HasWorldKind(classId, "placementTile"),
-                    _ => false,
-                };
-            return placement;
-        }
+            PositionKey => HasWorldKind(classId, "object"),
+            CellKey => HasWorldKind(classId, "tile") || HasWorldKind(classId, "placementTile"),
+            _ => false,
+        };
 
         /// <summary>
         /// Writes <paramref name="next"/> as the value of <paramref name="key"/>
@@ -67,19 +62,19 @@ namespace NeoCompose.Runtime
                 throw PlacementError("object-position-invalid", $"Object '{owner.id}' requires a finite Position.");
             // Same rounding as the layer builders (ReadObjectOrigin).
             var cell = new Vector2Int(Mathf.RoundToInt(value.x), Mathf.RoundToInt(value.y));
-            List<NeoTileGridLookupCache.ObjectMove> moves = objectMoveScratch;
-            if (moves.Count != 0) moves = new List<NeoTileGridLookupCache.ObjectMove>();
+            List<ObjectMove> moves = objectMoveScratch;
+            if (moves.Count != 0) moves = new List<ObjectMove>();
             try
             {
                 // Validation changes no index; a collision leaves the store
                 // and every index as they were.
                 foreach (NeoTileGridLookupCache cache in gridLookupCaches.Values)
-                    if (cache.PrepareObjectMove(owner.id, cell) is { } move) moves.Add(move);
+                    if (ObjectMove.Prepare(cache, owner.id, cell) is { } move) moves.Add(move);
                 StoreLeaf(ownership, next);
                 if (moves.Count != 0)
                 {
                     InvalidateGridDependentGetterMemo();
-                    foreach (var move in moves) move.Cache.ApplyObjectMove(move);
+                    foreach (var move in moves) move.Apply();
                 }
                 NotifyWritableValueChanged(ownership, next.id, "value");
                 // Lifecycle filters read generated properties, whose nodes

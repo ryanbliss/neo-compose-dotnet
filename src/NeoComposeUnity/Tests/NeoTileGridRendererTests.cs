@@ -230,6 +230,43 @@ namespace NeoCompose.Tests
         private static NeoMemberClassWritable WritableTile(NeoClient client, string id) => new(client,
             new ClassMember { id = "placement-test-tile-member", name = "Tile", kind = MemberKind.Class, classId = TileClassId }, id, NeoValueOwnership.Save);
 
+        /// <summary>
+        /// A clip animating an object's Position applies its frames through
+        /// the compiled write, which must route the leaf through the placement
+        /// API. Writing it as a plain scalar stores the row and leaves the
+        /// lookup-cache indexes, the grid notification and the getter memo
+        /// describing the object's old cell.
+        /// </summary>
+        [Test]
+        public void AnimatedPositionWrite_MovesTheIndexedObjectAndRaisesAPositionsOnlyChange()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            var shop = WritableObject(client, "shop-1");
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
+            var notifications = new List<NeoTileGridChangedArgs>();
+            using var subscription = primitive.OnChanged(notifications.Add);
+            // Materialize the writable leaf and warm the immutable schema
+            // indexes, exactly as the first frame of a clip does.
+            AnimateTo(10, 20);
+            notifications.Clear();
+            Assert.AreEqual(new Vector2Int(10, 20), primitive.LookupCache.ObjectRecord(ObjectsLayerClassId, "shop-1")!.Cell);
+            client.OnWritableValuesPublished += (_, _) => Assert.Fail("An animated placement write stores in place; it commits no plan.");
+
+            AnimateTo(12, 20);
+
+            Assert.AreEqual(new Vector2Int(12, 20), primitive.LookupCache.ObjectRecord(ObjectsLayerClassId, "shop-1")!.Cell);
+            Assert.AreEqual("shop-1", primitive.LookupCache.ObjectCandidatesAt(ObjectsLayerClassId, new Vector2Int(12, 20))[0].InstanceId);
+            Assert.IsEmpty(primitive.LookupCache.ObjectCandidatesAt(ObjectsLayerClassId, new Vector2Int(10, 20)));
+            Assert.AreEqual("floor-local", primitive.LookupCache.TileCandidatesAt(BackgroundLayerClassId, new Vector2Int(11, 22))[0].PlacementValueId);
+            Assert.AreEqual(1, notifications.Count);
+            Assert.IsTrue(notifications[0].ObjectLayers[0].PositionsOnly);
+
+            // The entry point NeoAnimationCompiledWrite.Apply uses for every
+            // animated leaf, whole or composed from fields.
+            void AnimateTo(float x, float y) => NeoAnimationCompiler.WriteMember(client, shop, "Position",
+                NeoAnimationCompiler.Payload(new Vector3MemberValue { value = new NeoVector3Value { x = x, y = y } }));
+        }
+
         [Test]
         public void RuntimeMovement_RejectsCollisionAndNonfinitePositionWithoutPublishing()
         {

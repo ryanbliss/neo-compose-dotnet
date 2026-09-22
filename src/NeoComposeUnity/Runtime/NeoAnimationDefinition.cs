@@ -666,7 +666,7 @@ namespace NeoCompose.Runtime
             if (writableParent.value is null) return;
             if (fields is null)
             {
-                NeoGeneratedTypesSupport.SetValue(writableParent, writableKey, payload);
+                NeoAnimationCompiler.WriteMember(client, writableParent, writableKey, payload);
                 return;
             }
             object? composed = ComposeFieldValue(out string? skipReason);
@@ -675,7 +675,8 @@ namespace NeoCompose.Runtime
                 ReportSkip(skipReason);
                 return;
             }
-            NeoGeneratedTypesSupport.SetValue(
+            NeoAnimationCompiler.WriteMember(
+                client,
                 writableParent,
                 writableKey,
                 NeoValueWritePayload.FromValue(composed));
@@ -3011,7 +3012,8 @@ namespace NeoCompose.Runtime
                         // reached one more way. An EXPLICIT null value is a
                         // different row and still writes — P42 §6's null leaf.
                         if (row is null) return;
-                        NeoGeneratedTypesSupport.SetValue(
+                        WriteMember(
+                            client,
                             writeTarget.Node,
                             writeTarget.Key,
                             Payload(row));
@@ -3388,6 +3390,30 @@ namespace NeoCompose.Runtime
                     $"Unsupported animation payload row '{row.GetType().Name}'."),
             };
             return NeoValueWritePayload.FromValue(value);
+        }
+
+        /// <summary>
+        /// Writes one animated member on its owner node. An object's Position
+        /// and a tile's Cell carry grid invariants — the lookup-cache indexes,
+        /// the grid change notification and the grid-dependent getter memo all
+        /// read them — so those route through the placement API; every other
+        /// member is an ordinary scalar write. A clip that animates anything
+        /// else pays the two string compares of
+        /// <see cref="NeoClient.IsPlacementMember"/> per write and nothing
+        /// more, so the routing needs no per-binding cache.
+        /// </summary>
+        internal static void WriteMember(
+            NeoClient client,
+            NeoMemberClassWritable owner,
+            string key,
+            NeoValueWritePayload? payload)
+        {
+            if (client.IsPlacementMember(owner.value?.classId, key))
+            {
+                owner.SetPlacementValue(key, payload);
+                return;
+            }
+            NeoGeneratedTypesSupport.SetValue(owner, key, payload);
         }
 
         private static int ReadRequiredInt(
