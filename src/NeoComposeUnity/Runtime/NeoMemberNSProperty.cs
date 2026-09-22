@@ -325,7 +325,7 @@ namespace NeoCompose.Runtime
                     NeoScriptExecutionOptions
                         .ForUnity(client)
                         .ForProperty(effectiveMemberId),
-                    terminal => NeoScriptExecutor.ValidateStatementTerminal(
+                    (terminal, _) => NeoScriptExecutor.ValidateStatementTerminal(
                         terminal,
                         "NeoScript property setter"));
                 if (!execution.IsPaused) return NSSetterResult.Ok();

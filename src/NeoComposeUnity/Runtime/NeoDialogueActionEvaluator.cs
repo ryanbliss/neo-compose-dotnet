@@ -38,7 +38,7 @@ namespace NeoCompose.Runtime
                 scope,
                 ctx,
                 NeoScriptExecutionOptions.ForDialogue(client, logger),
-                terminal => NeoScriptExecutor.ValidateStatementTerminal(
+                (terminal, _) => NeoScriptExecutor.ValidateStatementTerminal(
                     terminal,
                     "Dialogue action"));
         }
@@ -50,6 +50,15 @@ namespace NeoCompose.Runtime
     /// own scope/context while sharing write targets, calls, and deferred
     /// continuations.
     /// </summary>
+    /// <summary>
+    /// Validates or marshals a completed body's terminal result. The frame
+    /// context is passed in so NSFunctions can share one normalizer per
+    /// resolved signature instead of closing over each invocation's context.
+    /// </summary>
+    internal delegate NeoScriptExecutionResult NeoScriptTerminalNormalizer(
+        NeoScriptExecutionResult terminal,
+        NSGetterEvaluator.Context ctx);
+
     internal static class NeoScriptExecutor
     {
         internal const int MaxLoopIterations = 10_000;
@@ -60,8 +69,7 @@ namespace NeoCompose.Runtime
             Dictionary<string, object?> scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options = null,
-            Func<NeoScriptExecutionResult, NeoScriptExecutionResult>?
-                normalizeTerminal = null) =>
+            NeoScriptTerminalNormalizer? normalizeTerminal = null) =>
             Execute(client, body, new NeoScriptScope(scope), ctx, options,
                 normalizeTerminal);
 
@@ -71,8 +79,7 @@ namespace NeoCompose.Runtime
             NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options = null,
-            Func<NeoScriptExecutionResult, NeoScriptExecutionResult>?
-                normalizeTerminal = null)
+            NeoScriptTerminalNormalizer? normalizeTerminal = null)
         {
             ValidateBodyForExecution(body);
             ctx.allocationTracker.EnterExecution();
@@ -110,7 +117,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             FunctionWithReturnType body,
             NSGetterEvaluator.Context ctx,
-            Func<NeoScriptExecutionResult, NeoScriptExecutionResult>? normalizeTerminal,
+            NeoScriptTerminalNormalizer? normalizeTerminal,
             NeoScriptExecutionResult result,
             ref bool exited)
         {
@@ -139,7 +146,7 @@ namespace NeoCompose.Runtime
                 // the authoritative validator/marshaller; validating the
                 // unresolved compiled body type first would reject valid
                 // closed invocations.
-                result = normalizeTerminal(result);
+                result = normalizeTerminal(result, ctx);
             }
             exited = true;
             ctx.allocationTracker.ExitExecution(client, ctx, allocationTerminal);
@@ -156,16 +163,14 @@ namespace NeoCompose.Runtime
             private readonly NeoClient client;
             private readonly FunctionWithReturnType body;
             private readonly NSGetterEvaluator.Context ctx;
-            private readonly Func<NeoScriptExecutionResult, NeoScriptExecutionResult>?
-                normalizeTerminal;
+            private readonly NeoScriptTerminalNormalizer? normalizeTerminal;
             private bool exited;
 
             internal SuspendedExecution(
                 NeoClient client,
                 FunctionWithReturnType body,
                 NSGetterEvaluator.Context ctx,
-                Func<NeoScriptExecutionResult, NeoScriptExecutionResult>?
-                    normalizeTerminal)
+                NeoScriptTerminalNormalizer? normalizeTerminal)
             {
                 this.client = client;
                 this.body = body;
@@ -522,28 +527,18 @@ namespace NeoCompose.Runtime
                                 {
                                     matched = true;
                                     var branchResult = ExecuteInstructions(client, branch.instructions, returnTypeInfo, scope, ctx, 0, null, options);
-                                    if (branchResult.IsPaused
-                                        || !branchResult.IsFallthrough)
-                                    {
-                                        return ThenWhenCompleted(branchResult, afterBranch =>
-                                            !afterBranch.IsFallthrough
-                                                ? afterBranch
-                                                : ExecuteInstructions(client, instructions, returnTypeInfo, scope, ctx, i + 1, null, options));
-                                    }
+                                    if (branchResult.IsPaused)
+                                        return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, branchResult, consumeTerminal: false);
+                                    if (!branchResult.IsFallthrough) return branchResult;
                                     break;
                                 }
                             }
                             if (!matched && ifInstruction.elseInstructions != null)
                             {
                                 var elseResult = ExecuteInstructions(client, ifInstruction.elseInstructions, returnTypeInfo, scope, ctx, 0, null, options);
-                                if (elseResult.IsPaused
-                                    || !elseResult.IsFallthrough)
-                                {
-                                    return ThenWhenCompleted(elseResult, afterElse =>
-                                        !afterElse.IsFallthrough
-                                            ? afterElse
-                                            : ExecuteInstructions(client, instructions, returnTypeInfo, scope, ctx, i + 1, null, options));
-                                }
+                                if (elseResult.IsPaused)
+                                    return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, elseResult, consumeTerminal: false);
+                                if (!elseResult.IsFallthrough) return elseResult;
                             }
                         }
                         catch (NeoFunctionCallSuspended suspended)
@@ -595,16 +590,7 @@ namespace NeoCompose.Runtime
                             if (nestedSetter is not null
                                 && (nestedSetter.IsPaused || nestedSetter.Returned))
                             {
-                                return ThenWhenCompleted(nestedSetter, _ =>
-                                    ExecuteInstructions(
-                                            client,
-                                            instructions,
-                                            returnTypeInfo,
-                                            scope,
-                                            ctx,
-                                            i + 1,
-                                            null,
-                                            options));
+                                return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, nestedSetter, consumeTerminal: true);
                             }
                         }
                         catch (NeoFunctionCallSuspended suspended)
@@ -655,21 +641,9 @@ namespace NeoCompose.Runtime
                             scope,
                             ctx,
                             options);
-                        if (loopResult.IsPaused || !loopResult.IsFallthrough)
-                        {
-                            return ThenWhenCompleted(loopResult, afterLoop =>
-                                !afterLoop.IsFallthrough
-                                    ? afterLoop
-                                    : ExecuteInstructions(
-                                        client,
-                                        instructions,
-                                        returnTypeInfo,
-                                        scope,
-                                        ctx,
-                                        i + 1,
-                                        null,
-                                        options));
-                        }
+                        if (loopResult.IsPaused)
+                            return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, loopResult, consumeTerminal: false);
+                        if (!loopResult.IsFallthrough) return loopResult;
                         break;
                     }
                     case ForEachInstruction forEachInstruction:
@@ -681,21 +655,9 @@ namespace NeoCompose.Runtime
                             scope,
                             ctx,
                             options);
-                        if (loopResult.IsPaused || !loopResult.IsFallthrough)
-                        {
-                            return ThenWhenCompleted(loopResult, afterLoop =>
-                                !afterLoop.IsFallthrough
-                                    ? afterLoop
-                                    : ExecuteInstructions(
-                                        client,
-                                        instructions,
-                                        returnTypeInfo,
-                                        scope,
-                                        ctx,
-                                        i + 1,
-                                        null,
-                                        options));
-                        }
+                        if (loopResult.IsPaused)
+                            return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, loopResult, consumeTerminal: false);
+                        if (!loopResult.IsFallthrough) return loopResult;
                         break;
                     }
                     case SwitchInstruction switchInstruction:
@@ -707,21 +669,9 @@ namespace NeoCompose.Runtime
                             scope,
                             ctx,
                             options);
-                        if (switchResult.IsPaused || !switchResult.IsFallthrough)
-                        {
-                            return ThenWhenCompleted(switchResult, afterSwitch =>
-                                !afterSwitch.IsFallthrough
-                                    ? afterSwitch
-                                    : ExecuteInstructions(
-                                        client,
-                                        instructions,
-                                        returnTypeInfo,
-                                        scope,
-                                        ctx,
-                                        i + 1,
-                                        null,
-                                        options));
-                        }
+                        if (switchResult.IsPaused)
+                            return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, switchResult, consumeTerminal: false);
+                        if (!switchResult.IsFallthrough) return switchResult;
                         break;
                     }
                     case TryInstruction tryInstruction:
@@ -733,21 +683,9 @@ namespace NeoCompose.Runtime
                             scope,
                             ctx,
                             options);
-                        if (tryResult.IsPaused || !tryResult.IsFallthrough)
-                        {
-                            return ThenWhenCompleted(tryResult, afterTry =>
-                                !afterTry.IsFallthrough
-                                    ? afterTry
-                                    : ExecuteInstructions(
-                                        client,
-                                        instructions,
-                                        returnTypeInfo,
-                                        scope,
-                                        ctx,
-                                        i + 1,
-                                        null,
-                                        options));
-                        }
+                        if (tryResult.IsPaused)
+                            return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, tryResult, consumeTerminal: false);
+                        if (!tryResult.IsFallthrough) return tryResult;
                         break;
                     }
                     case BreakInstruction:
@@ -2001,6 +1939,32 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>
+        /// Continues a frame at <paramref name="nextIndex"/> once a nested
+        /// block settles. Lives outside <see cref="ExecuteInstructions"/> so
+        /// the frame loop itself captures nothing: a lambda in that method
+        /// would allocate its closure on every frame, settled or not.
+        /// <paramref name="consumeTerminal"/> continues past a nested
+        /// setter's own return; otherwise a non-fallthrough result ends
+        /// the frame.
+        /// </summary>
+        private static NeoScriptExecutionResult ResumeInstructionsAfter(
+            NeoClient client,
+            Instruction[] instructions,
+            TypeInfo returnTypeInfo,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            int nextIndex,
+            NeoScriptExecutionOptions? options,
+            NeoScriptExecutionResult result,
+            bool consumeTerminal)
+        {
+            return ThenWhenCompleted(result, settled =>
+                !consumeTerminal && !settled.IsFallthrough
+                    ? settled
+                    : ExecuteInstructions(client, instructions, returnTypeInfo, scope, ctx, nextIndex, null, options));
+        }
+
         private static NeoScriptExecutionResult ThenWhenCompleted(
             NeoScriptExecutionResult result,
             Func<NeoScriptExecutionResult, NeoScriptExecutionResult> next)
@@ -2310,6 +2274,50 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>
+        /// Starts a deferred native Function and returns its inline result,
+        /// or suspends the frame. Kept out of <see cref="EvalFunctionCall"/>
+        /// so the completion closures are only allocated on this path.
+        /// </summary>
+        private static object? StartDeferredNativeFunction(
+            NeoClient client,
+            string memberId,
+            object? receiver,
+            object?[] args,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            string resumeKey)
+        {
+            var suspension = new DeferredNativeFunctionSuspension();
+            var deferredHandle = client.StartDeferredNativeFunction(
+                memberId,
+                receiver,
+                args,
+                result => suspension.Complete(NSGetterEvaluator.NormalizeNativeResult(memberId, result, ctx)),
+                suspension.Fail,
+                suspension.MarkInvokerReturned,
+                options?.CancelContinuationOnDeferredDisposal == true
+                    ? suspension.Cancel
+                    : suspension.Abandon);
+            if (suspension.TryGetInlineResult(
+                    out object? inlineValue,
+                    out Exception? inlineError))
+            {
+                if (inlineError is not null) throw inlineError;
+                return inlineValue;
+            }
+            throw new NeoFunctionCallSuspended(
+                resumeKey,
+                memberId,
+                NeoScriptExecutionResult.Paused(
+                    memberId,
+                    deferredHandle,
+                    suspension,
+                    inlineValue => NeoScriptExecutionResult.Completed(
+                        returned: true,
+                        inlineValue)));
+        }
+
         private static object? EvalFunctionCall(
             NeoClient client,
             CallFunctionPointer pointer,
@@ -2431,37 +2439,8 @@ namespace NeoCompose.Runtime
                                 "an immediate NeoScript frame called its deferred signature; " +
                                 "compiled call IR is stale/corrupt.");
                         }
-                        var suspension = new DeferredNativeFunctionSuspension();
-                        var deferredHandle = client.StartDeferredNativeFunction(
-                            memberId,
-                            receiver,
-                            args,
-                            result => suspension.Complete(NSGetterEvaluator.NormalizeNativeResult(memberId, result, ctx)),
-                            suspension.Fail,
-                            suspension.MarkInvokerReturned,
-                            options?.CancelContinuationOnDeferredDisposal == true
-                                ? suspension.Cancel
-                                : suspension.Abandon);
-                        if (suspension.TryGetInlineResult(
-                                out object? inlineValue,
-                                out Exception? inlineError))
-                        {
-                            if (inlineError is not null) throw inlineError;
-                            value = inlineValue;
-                        }
-                        else
-                        {
-                            throw new NeoFunctionCallSuspended(
-                                resumeKey,
-                                memberId,
-                                NeoScriptExecutionResult.Paused(
-                                    memberId,
-                                    deferredHandle,
-                                    suspension,
-                                    inlineValue => NeoScriptExecutionResult.Completed(
-                                        returned: true,
-                                        inlineValue)));
-                        }
+                        value = StartDeferredNativeFunction(
+                            client, memberId, receiver, args, ctx, options, resumeKey);
                     }
                 }
                 expressionState.StoreValue(resumeKey, value);
@@ -2484,18 +2463,7 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             string subject = "If condition")
         {
-            object? result = Eval(new OperationPointer
-            {
-                type = PointerKind.Operation,
-                operation = new BooleanOperation
-                {
-                    type = OperationKind.Boolean,
-                    expression = expression,
-                },
-            }, scope, ctx);
-            if (result is bool b) return b;
-            throw new NSGetterRuntimeError(
-                $"{subject} did not evaluate to bool.");
+            return NSGetterEvaluator.EvalBooleanExpression(expression, scope, ctx);
         }
 
         private static NeoScriptExecutionResult ExecuteSetterAssignment(
@@ -2590,7 +2558,7 @@ namespace NeoCompose.Runtime
                 nestedScope,
                 nestedCtx,
                 nestedOptions,
-                terminal => ValidateStatementTerminal(
+                (terminal, _) => ValidateStatementTerminal(
                     terminal,
                     "NeoScript property setter"));
         }
@@ -3028,25 +2996,16 @@ namespace NeoCompose.Runtime
             out JsonMember? member)
         {
             member = null;
-            IList<MergedSchemaEntry> merged;
+            MergedSchemaEntry? entry;
             try
             {
-                merged = NeoSchemaClassInheritance.MergeInstanceSchema(
-                    client.ResolveClassInheritanceChain(classId),
-                    id => client.TryGetMember(id, out JsonMember? member)
-                        ? member
-                        : null);
+                entry = client.ResolveInstanceSurfaceMember(classId, key);
             }
             catch (CircularInheritanceError)
             {
                 return false;
             }
-            foreach (var entry in merged)
-            {
-                if (entry.schemaKey != key) continue;
-                return client.TryGetMember(entry.memberId, out member);
-            }
-            return false;
+            return entry is not null && client.TryGetMember(entry.memberId, out member);
         }
 
         private static string? FindValueId(
@@ -3827,6 +3786,16 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 if (TryWriteLeaf(client, value, ctx)) return;
+                WriteThroughPlan(client, value, ctx);
+            }
+
+            // Separate from Write so a leaf write never pays for this
+            // method's plan closure.
+            private void WriteThroughPlan(
+                NeoClient client,
+                object? value,
+                NSGetterEvaluator.Context ctx)
+            {
                 PrepareWrite(client, plan =>
                 {
                     if (parentOwnership != NeoValueOwnership.Asset)

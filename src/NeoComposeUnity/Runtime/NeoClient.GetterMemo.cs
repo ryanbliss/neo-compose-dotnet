@@ -94,6 +94,11 @@ namespace NeoCompose.Runtime
         private List<GetterRead>? getterReadCapture;
         private HashSet<string>? getterValueReadCapture;
         private readonly Stack<HashSet<string>> valueReadCapturePool = new();
+        // Every write forgets the getters that read the row and the next
+        // evaluation records them again, so the read lists and per-row key
+        // sets are recycled instead of reallocated each frame.
+        private readonly Stack<List<GetterRead>> readCapturePool = new();
+        private readonly Stack<HashSet<GetterMemoKey>> memoKeySetPool = new();
 
         internal readonly struct GetterCaptureFrame
         {
@@ -111,7 +116,9 @@ namespace NeoCompose.Runtime
         internal GetterCaptureFrame BeginGetterReadCapture()
         {
             var previous = new GetterCaptureFrame(getterReadCapture, getterValueReadCapture);
-            getterReadCapture = new List<GetterRead>();
+            getterReadCapture = readCapturePool.Count != 0
+                ? readCapturePool.Pop()
+                : new List<GetterRead>();
             getterValueReadCapture = valueReadCapturePool.Count != 0
                 ? valueReadCapturePool.Pop()
                 : new HashSet<string>(StringComparer.Ordinal);
@@ -130,7 +137,10 @@ namespace NeoCompose.Runtime
             previous.valueReads?.UnionWith(values);
             values.Clear();
             valueReadCapturePool.Push(values);
-            return reads is null || reads.Count == 0 ? null : reads;
+            if (reads is null) return null;
+            if (reads.Count != 0) return reads;
+            readCapturePool.Push(reads);
+            return null;
         }
 
         /// <summary>A value-store read, reported to the active dependency captures.</summary>
@@ -196,7 +206,9 @@ namespace NeoCompose.Runtime
         private void IndexMemoDependency(string rowId, GetterMemoKey key)
         {
             if (!getterMemoKeysByRow.TryGetValue(rowId, out HashSet<GetterMemoKey>? keys))
-                getterMemoKeysByRow[rowId] = keys = new HashSet<GetterMemoKey>();
+                getterMemoKeysByRow[rowId] = keys = memoKeySetPool.Count != 0
+                    ? memoKeySetPool.Pop()
+                    : new HashSet<GetterMemoKey>();
             keys.Add(key);
         }
 
@@ -205,16 +217,23 @@ namespace NeoCompose.Runtime
             if (!getterMemo.Remove(key, out GetterMemoEntry? entry)) return;
             UnindexMemoDependency(key.rowId, key);
             gridDependentGetterMemoKeys.Remove(key);
-            if (entry.reads is null) return;
-            foreach (GetterRead read in entry.reads)
+            List<GetterRead>? reads = entry.reads;
+            if (reads is null) return;
+            foreach (GetterRead read in reads)
                 if (read.content is null) UnindexMemoDependency(read.id, key);
+            // The entry owned the list; nothing replays a forgotten entry.
+            entry.reads = null;
+            reads.Clear();
+            readCapturePool.Push(reads);
         }
 
         private void UnindexMemoDependency(string rowId, GetterMemoKey key)
         {
             if (!getterMemoKeysByRow.TryGetValue(rowId, out HashSet<GetterMemoKey>? keys)) return;
             keys.Remove(key);
-            if (keys.Count == 0) getterMemoKeysByRow.Remove(rowId);
+            if (keys.Count != 0) return;
+            getterMemoKeysByRow.Remove(rowId);
+            memoKeySetPool.Push(keys);
         }
 
         // Forgetting mutates the key sets being walked, so each pass copies

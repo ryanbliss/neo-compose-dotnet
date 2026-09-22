@@ -101,6 +101,10 @@ namespace NeoCompose.Runtime
             }
         }
 
+        // The synthetic call site that dispatches a direct invocation; it
+        // depends only on this node's member id.
+        private CallFunctionPointer? directCallPointer;
+
         private Invocation PrepareInvocation(string thisValueId, object?[] args)
         {
             if (string.IsNullOrWhiteSpace(thisValueId))
@@ -126,7 +130,7 @@ namespace NeoCompose.Runtime
             }
 
             string effectiveMemberId = NSGetterEvaluator.ResolveFunctionMemberId(
-                new CallFunctionPointer
+                directCallPointer ??= new CallFunctionPointer
                 {
                     type = PointerKind.CallFunction,
                     memberId = member.id,
@@ -307,6 +311,10 @@ namespace NeoCompose.Runtime
         internal Unity.Profiling.ProfilerMarker Profile { get; }
         // Receiver-bound generics are a property of the signature, not the call.
         internal bool HasGenericSignature { get; }
+        // Terminal marshalling for the declared (non-generic) return type;
+        // the resolved function is cached per client, so one delegate serves
+        // every invocation.
+        internal NeoScriptTerminalNormalizer? TerminalNormalizer;
 
         // Diagnostic subjects depend only on the signature. Formatting them
         // per call put three string allocations on every invocation.
@@ -494,14 +502,19 @@ namespace NeoCompose.Runtime
                 scope,
                 nestedCtx,
                 options.ForFunction(function.Deferred),
-                terminal => NormalizeTerminal(
-                    client,
-                    nestedCtx,
-                    terminal,
-                    function,
-                    effectiveReturnType));
+                ReferenceEquals(effectiveReturnType, function.ReturnTypeInfo)
+                    ? function.TerminalNormalizer ??= CreateTerminalNormalizer(client, function, effectiveReturnType)
+                    : CreateTerminalNormalizer(client, function, effectiveReturnType));
             return execution;
         }
+
+        // A separate method keeps the closure off ExecuteResolved's frame;
+        // non-generic signatures build it once per resolved function.
+        private static NeoScriptTerminalNormalizer CreateTerminalNormalizer(
+            NeoClient client,
+            NeoResolvedNSFunction function,
+            TypeInfo effectiveReturnType) =>
+            (terminal, ctx) => NormalizeTerminal(client, ctx, terminal, function, effectiveReturnType);
 
         private static NeoScriptExecutionResult NormalizeTerminal(
             NeoClient client,

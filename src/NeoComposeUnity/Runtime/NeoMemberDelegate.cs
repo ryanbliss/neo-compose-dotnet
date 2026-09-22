@@ -216,7 +216,7 @@ namespace NeoCompose.Runtime
             {
                 writable.value = newValue;
                 writable.updatedAt = nowIso;
-                client.SetWritableValue(ownership, writable, "value");
+                PublishWritableValue(writable);
                 return;
             }
             BindNewValue(new DelegateMemberValue

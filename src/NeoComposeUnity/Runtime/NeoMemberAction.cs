@@ -310,7 +310,7 @@ namespace NeoCompose.Runtime
             {
                 writable.value = next;
                 writable.updatedAt = nowIso;
-                client.SetWritableValue(ownership, writable, "value");
+                PublishWritableValue(writable);
                 return;
             }
             BindNewValue(new ActionMemberValue

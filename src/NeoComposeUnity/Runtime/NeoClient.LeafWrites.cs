@@ -51,6 +51,10 @@ namespace NeoCompose.Runtime
             if (next.IsRemoved || next.hasInstanceConstructorId || next.constructorArgs is not null
                 || next.instanceVariantId is not null || next.instanceVariantRowValueId is not null)
                 return false;
+            // A row a constructed graph read while it expanded (an initializer
+            // that copies this leaf) is a replay dependency of that graph;
+            // only a committed plan re-expands the dependents.
+            if (constructorArgumentRootsByValueId.ContainsKey(next.id)) return false;
             // The first write over a virtual (sparse) child materializes it
             // through the plan; from then on the store holds the row.
             if (!GetWritableStore(ownership).values.TryGetValue(next.id, out MemberValue? previous)
