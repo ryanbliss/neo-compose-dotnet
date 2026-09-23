@@ -5335,7 +5335,7 @@ namespace NeoCompose.Runtime.NeoScript
                 ArrayMemberValue a => a.value is null
                     ? null
                     : member is ListMember list && ctx.client.IsUnorderedList(list)
-                        ? NeoMemberList.ResolveEntryValueIds(ctx.client, a, true).Cast<object?>().ToArray()
+                        ? ToObjectArray(NeoMemberList.ResolveEntryValueIds(ctx.client, a, true))
                         : ToObjectArray(a.value),
                 ObjectMemberValue o => o.value is null
                     ? null
@@ -5803,10 +5803,12 @@ namespace NeoCompose.Runtime.NeoScript
             return ctx.client.Localization.ResolveTextTemplate(value.value);
         }
 
-        private static object?[] ToObjectArray(string[] arr)
+        // Always a new array, even when empty: an unwrapped List is keyed by
+        // reference, and a shared empty array would alias every empty row.
+        private static object?[] ToObjectArray(IReadOnlyList<string> arr)
         {
-            var result = new object?[arr.Length];
-            for (int i = 0; i < arr.Length; i++) result[i] = arr[i];
+            var result = new object?[arr.Count];
+            for (int i = 0; i < arr.Count; i++) result[i] = arr[i];
             return result;
         }
 
@@ -6393,10 +6395,15 @@ namespace NeoCompose.Runtime.NeoScript
         internal static JsonMember? CollectionEntryMember(object? collection, Context ctx) =>
             CollectionEntryMember(FindRowReference(collection, ctx), collection, ctx);
 
-        /// <summary>Gives a collection derived from another's value ids that source's entry member.</summary>
+        /// <summary>
+        /// Gives a collection derived from another's value ids that source's
+        /// entry member. An empty array has no entries to resolve and can be
+        /// a shared instance (<c>List.ToArray</c> returns one), so it is skipped.
+        /// </summary>
         internal static void KeepEntryMember(object derived, JsonMember? entryMember)
         {
-            if (entryMember is not null) DerivedEntryMembers.Add(derived, entryMember);
+            if (entryMember is null || derived is object?[] { Length: 0 }) return;
+            DerivedEntryMembers.Add(derived, entryMember);
         }
 
         internal static JsonMember? FindRowMemberByReference(object? value, Context ctx) =>

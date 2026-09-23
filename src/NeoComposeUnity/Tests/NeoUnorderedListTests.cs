@@ -309,6 +309,69 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
+        /// Every empty unordered List reads as its own array. A shared empty
+        /// array would alias the rows, so a local's mutation would land in
+        /// whichever empty List was read last.
+        /// </summary>
+        [Test]
+        public void NeoScript_EmptyUnorderedListsKeepTheirOwnIdentity()
+        {
+            ProjectData data = BuildProjectData();
+            data.values.Remove("item-a");
+            data.values.Remove("item-b");
+            data.members["other-items-member"] = new ListMember
+            {
+                id = "other-items-member", projectId = "project-a", name = "OtherItems", kind = MemberKind.List,
+                entryMemberId = "item-entry-member", ListKind = NeoListKind.Unordered,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            data.classes[BagClassId].schema["OtherItems"] = "other-items-member";
+            ((ObjectMemberValue)data.values["bag-value"]).value!["OtherItems"] = "bag-other-items-list";
+            data.values["bag-other-items-list"] = new ArrayMemberValue
+            {
+                id = "bag-other-items-list", value = System.Array.Empty<string>(),
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new Dictionary<string, object?>();
+            Pointer Reference(string id) => new ReferencePointer { type = PointerKind.Reference, valueId = id };
+            scope["items"] = NSGetterEvaluator.EvaluatePointer(Reference(ItemsListValueId), scope, ctx);
+            NSGetterEvaluator.EvaluatePointer(Reference("bag-other-items-list"), scope, ctx);
+            client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
+            {
+                id = "new-item", classId = ItemClassId, value = new Dictionary<string, string>(),
+            });
+            NeoScriptExecutor.Execute(client, new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = System.Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                instructions = new Instruction[]
+                {
+                    new CollectionCallInstruction
+                    {
+                        type = InstructionKind.CollectionCall,
+                        target = new WriteTarget
+                        {
+                            pointer = new VariablePointer { type = PointerKind.Variable, variableId = "items" },
+                            typeInfo = new CollectionTypeInfo
+                            {
+                                type = MemberKind.List, required = true,
+                                entryTypeInfo = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = ItemClassId },
+                            },
+                            writability = WritabilityKind.Local,
+                        },
+                        mutation = CollectionMutationKind.Add,
+                        args = new Pointer[] { Reference("new-item") },
+                    },
+                },
+            }, scope, ctx);
+
+            CollectionAssert.AreEqual(new[] { "new-item" }, client.GetUnorderedListEntryIds(ItemsListValueId));
+            CollectionAssert.IsEmpty(client.GetUnorderedListEntryIds("bag-other-items-list"));
+        }
+
+        /// <summary>
         /// A localized String entry stores its text id. Matching a script's
         /// value against entries compares the text a read returns, so
         /// <c>Remove("Alpha")</c> and a Lookup <c>Add("Beta")</c> find them.
