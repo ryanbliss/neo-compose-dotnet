@@ -3003,6 +3003,8 @@ namespace NeoCompose.Runtime
             out JsonMember? member)
         {
             member = null;
+            // A class member key compiles to a string literal, so the key
+            // eval is a cached primitive read; it runs only for class rows.
             return client.TryGetValue(receiverOwnership, receiverRowId, out MemberValue? row)
                 && row is ObjectMemberValue { classId: string classId } && classId.Length > 0
                 && Eval(keyOf.key, scope, ctx) is string key

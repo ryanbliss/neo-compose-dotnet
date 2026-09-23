@@ -12,7 +12,7 @@
   }
   ```
 
-- **Breaking:** require project export schema 32. An SDK at 31 rejects storage ordinal 4, so the exact-match gate refuses a schema-31 export instead of loading members with the wrong storage.
+- **Breaking:** require project export schema 32. An older SDK refuses a schema-32 export with the upgrade message instead of failing later on "Unknown member storage ordinal '4'".
 - A child member now resolves its storage from its declaration and its parent: `Inherit` takes the parent's storage, `Writable` is Save under Save and Session elsewhere, and a concrete storage is itself. Loading, cloning, save serialization, constructor placement, and NeoScript writes all use this one rule.
 - A `Writable` member of an Asset row exposes a writable node (for example `NeoMemberIntWritable`). A NeoScript write to it lands in Session. A write to an `Inherit` member of an Asset row still throws.
 - A NeoScript write through a variable typed as a `Writable` base class routes to the runtime class's own member storage, so a subclass that narrows the member to `Session` writes to Session.
