@@ -18,8 +18,8 @@ using NUnit.Framework;
 namespace NeoCompose.Tests
 {
     /// <summary>
-    /// The Unity half of the P50-P52 raw-IR control-flow parity gate. The web
-    /// test and this test evaluate the same hand-authored instruction stream,
+    /// The Unity half of the P50-P52 and enum dictionary raw-IR parity gate. The web
+    /// test and this test evaluate the same frozen instruction stream,
     /// vendored verbatim as <see cref="NeoScriptControlFlowParityFixture"/>.
     /// Keeping compilation out of this gate ensures neither runtime can hide a
     /// disagreement in wire shape, execution order, loop transfers, collection
@@ -31,9 +31,8 @@ namespace NeoCompose.Tests
             "Packages/com.ryanbliss.neocompose/Tests";
 
         /// <summary>
-        /// Every case in the shared fixture, in fixture order: 13 P50, 13 P51
-        /// and 11 P52 cases. Every case is stamped at the single compiler
-        /// revision this SDK executes.
+        /// Every case in fixture order: 13 P50, 13 P51, 11 P52, and two enum
+        /// dictionary cases. Every case uses the compiler revision this SDK executes.
         /// </summary>
         private static readonly string[] ExpectedCases =
         {
@@ -74,16 +73,18 @@ namespace NeoCompose.Tests
             "writes completed before a caught error remain visible",
             "try catches a deliberate arithmetic runtime error with its exact message",
             "try preserves an empty thrown message",
+            "enum dictionary Where compares keys as enum values",
+            "enum dictionary deconstructed foreach reads key and value then breaks",
         };
 
         [Test]
-        public void FixturePinsEveryP50P51AndP52ControlFlowBehavior()
+        public void FixturePinsEveryControlFlowAndEnumDictionaryBehavior()
         {
             JArray cases = EvaluateCases();
             Assert.AreEqual(
                 ExpectedCases.Length,
                 cases.Count,
-                "The shared control-flow fixture must contain the finalized 13 P50, 13 P51, and 11 P52 cases; re-vendor it from the web repo.");
+                "The shared control-flow fixture must contain 13 P50, 13 P51, 11 P52, and two enum dictionary cases; re-vendor it from the web repo.");
 
             var expectedNames = new HashSet<string>(ExpectedCases);
 
@@ -121,7 +122,7 @@ namespace NeoCompose.Tests
                     .Replace("-", string.Empty)
                     .ToLowerInvariant();
                 Assert.AreEqual(
-                    "e51af4442f6cb967daeb9c09d0b2206fc823df3042459be6a41ff716fda002e8",
+                    "8d38d1be820e5cf39a84be0c1665de102c625935ddb6bf824621f5ad474ee38d",
                     actual,
                     "The vendored fixture bytes drifted from the reviewed web source.");
             }

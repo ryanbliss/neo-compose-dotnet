@@ -4,8 +4,8 @@
 // VENDORED — DO NOT HAND-EDIT.
 // Source of record:
 // neo-compose/src/models/neoscript/neoscript-control-flow-parity-fixture.json
-// P50-P52 raw-IR parity fixture. The web and Unity evaluators consume the
-// identical authored instruction stream so a discriminator, execution-order,
+// P50-P52 and issue #1002 raw-IR parity fixture. The web and Unity evaluators consume the
+// identical frozen instruction stream so a discriminator, execution-order,
 // collection-snapshot, or control-transfer disagreement cannot be hidden by
 // either runtime compiler.
 //
@@ -20,7 +20,7 @@ namespace NeoCompose.Tests
     public static class NeoScriptControlFlowParityFixture
     {
         public const string Json = @"{
-  ""$comment"": ""P50-P52 cross-runtime NeoScript control-flow parity fixture with 13 P50, 13 P51, and 11 P52 cases. Hand-authored raw IR is consumed directly by the web test and must be vendored verbatim into the neo-compose-dotnet Unity tests; do not regenerate it from either compiler/runtime. P50 cases pin ordered loop control, outer-local updates, collection snapshot membership, JavaScript dictionary-value order (including numeric-like keys), empty, derived, and Lookup-contract collections, receiver evaluation count, throw/return propagation, and the shared 10,000-iteration budget. P51 cases additionally pin optional-int null normalization and switch/loop nesting transfer ownership. P52 cases additionally pin try-inside-switch recovery. Persisted write-intent needs project records and an effect-capable harness, so it is deliberately covered by compiler and runtime-specific tests rather than this getter-only empty-project fixture."",
+  ""$comment"": ""P50-P52 cross-runtime NeoScript control-flow parity fixture with 13 P50, 13 P51, and 11 P52 cases. Hand-authored raw IR is consumed directly by the web test and must be vendored verbatim into the neo-compose-dotnet Unity tests; do not regenerate it from either compiler/runtime. P50 cases pin ordered loop control, outer-local updates, collection snapshot membership, JavaScript dictionary-value order (including numeric-like keys), empty, derived, and Lookup-contract collections, receiver evaluation count, throw/return propagation, and the shared 10,000-iteration budget. P51 cases additionally pin optional-int null normalization and switch/loop nesting transfer ownership. P52 cases additionally pin try-inside-switch recovery. Persisted write-intent needs project records and an effect-capable harness, so it is deliberately covered by compiler and runtime-specific tests rather than this getter-only empty-project fixture. Issue #1002 adds two compiled enum-keyed dictionary cases for Where key equality and deconstructed foreach key/value reads with break; both runtimes evaluate the frozen IR without a runtime change."",
   ""evaluateCases"": [
     {
       ""name"": ""for consumes continue and break while updating an outer local"",
@@ -5551,6 +5551,701 @@ namespace NeoCompose.Tests
         }
       },
       ""expected"": """"
+    },
+    {
+      ""name"": ""enum dictionary Where compares keys as enum values"",
+      ""getter"": {
+        ""compilerRevision"": 15,
+        ""parameters"": [
+          {
+            ""id"": ""__this__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""id-46""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""id-46""
+                },
+                ""value"": null
+              }
+            }
+          },
+          {
+            ""id"": ""__root__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""__root__""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""__root__""
+                },
+                ""value"": null
+              }
+            }
+          }
+        ],
+        ""instructions"": [
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""labels"",
+              ""typeInfo"": {
+                ""type"": 5,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 3,
+                  ""required"": true
+                },
+                ""keyEnumId"": ""id-18""
+              },
+              ""pointer"": {
+                ""type"": ""dictLiteral"",
+                ""typeInfo"": {
+                  ""type"": 5,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 3,
+                    ""required"": true
+                  },
+                  ""keyEnumId"": ""id-18""
+                },
+                ""entries"": [
+                  {
+                    ""key"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""00000000-0000-4000-8000-000000000203""
+                      }
+                    },
+                    ""value"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""Gold""
+                      }
+                    }
+                  },
+                  {
+                    ""key"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""00000000-0000-4000-8000-000000000202""
+                      }
+                    },
+                    ""value"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""Silver""
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""function"",
+              ""function"": {
+                ""type"": ""count"",
+                ""info"": {
+                  ""collectionPointer"": {
+                    ""type"": ""function"",
+                    ""function"": {
+                      ""type"": ""where"",
+                      ""info"": {
+                        ""collectionPointer"": {
+                          ""type"": ""variable"",
+                          ""variableId"": ""labels""
+                        },
+                        ""function"": {
+                          ""compilerRevision"": 15,
+                          ""parameters"": [
+                            {
+                              ""id"": ""key"",
+                              ""typeInfo"": {
+                                ""type"": 3,
+                                ""required"": true
+                              },
+                              ""pointer"": {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 3,
+                                    ""required"": true
+                                  },
+                                  ""value"": null
+                                }
+                              }
+                            },
+                            {
+                              ""id"": ""value"",
+                              ""typeInfo"": {
+                                ""type"": 3,
+                                ""required"": true
+                              },
+                              ""pointer"": {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 3,
+                                    ""required"": true
+                                  },
+                                  ""value"": null
+                                }
+                              }
+                            }
+                          ],
+                          ""instructions"": [
+                            {
+                              ""type"": ""return"",
+                              ""pointer"": {
+                                ""type"": ""operation"",
+                                ""operation"": {
+                                  ""type"": ""boolean"",
+                                  ""expression"": {
+                                    ""condition"": {
+                                      ""type"": ""equalTo"",
+                                      ""operand1"": {
+                                        ""type"": ""listLiteral"",
+                                        ""typeInfo"": {
+                                          ""type"": 6,
+                                          ""required"": true,
+                                          ""entryTypeInfo"": {
+                                            ""type"": 3,
+                                            ""required"": true
+                                          }
+                                        },
+                                        ""entries"": [
+                                          {
+                                            ""type"": ""variable"",
+                                            ""variableId"": ""key""
+                                          }
+                                        ]
+                                      },
+                                      ""operand2"": {
+                                        ""type"": ""value"",
+                                        ""value"": {
+                                          ""typeInfo"": {
+                                            ""type"": 8,
+                                            ""required"": true,
+                                            ""enumId"": ""id-18""
+                                          },
+                                          ""value"": [
+                                            ""00000000-0000-4000-8000-000000000203""
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          ],
+                          ""typeInfo"": {
+                            ""type"": 1,
+                            ""required"": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        },
+        ""dependencies"": {
+          ""recordIds"": [""__root__"", ""id-18"", ""id-46""],
+          ""typeNames"": [""TierType""]
+        }
+      },
+      ""expected"": 1
+    },
+    {
+      ""name"": ""enum dictionary deconstructed foreach reads key and value then breaks"",
+      ""getter"": {
+        ""compilerRevision"": 15,
+        ""parameters"": [
+          {
+            ""id"": ""__this__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""id-46""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""id-46""
+                },
+                ""value"": null
+              }
+            }
+          },
+          {
+            ""id"": ""__root__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""__root__""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""__root__""
+                },
+                ""value"": null
+              }
+            }
+          }
+        ],
+        ""instructions"": [
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""scores"",
+              ""typeInfo"": {
+                ""type"": 5,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""keyEnumId"": ""id-18""
+              },
+              ""pointer"": {
+                ""type"": ""dictLiteral"",
+                ""typeInfo"": {
+                  ""type"": 5,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""keyEnumId"": ""id-18""
+                },
+                ""entries"": [
+                  {
+                    ""key"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""00000000-0000-4000-8000-000000000203""
+                      }
+                    },
+                    ""value"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        },
+                        ""value"": 10
+                      }
+                    }
+                  },
+                  {
+                    ""key"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""00000000-0000-4000-8000-000000000202""
+                      }
+                    },
+                    ""value"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        },
+                        ""value"": 20
+                      }
+                    }
+                  },
+                  {
+                    ""key"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""00000000-0000-4000-8000-000000000201""
+                      }
+                    },
+                    ""value"": {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        },
+                        ""value"": 30
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""seen"",
+              ""typeInfo"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                }
+              },
+              ""pointer"": {
+                ""type"": ""listLiteral"",
+                ""typeInfo"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                },
+                ""entries"": []
+              }
+            }
+          },
+          {
+            ""type"": ""forEach"",
+            ""binding"": {
+              ""id"": ""key"",
+              ""typeInfo"": {
+                ""type"": 8,
+                ""required"": true,
+                ""enumId"": ""id-18""
+              },
+              ""readonly"": true,
+              ""writability"": ""local""
+            },
+            ""collectionPointer"": {
+              ""type"": ""function"",
+              ""function"": {
+                ""type"": ""select"",
+                ""info"": {
+                  ""collectionPointer"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""scores""
+                  },
+                  ""function"": {
+                    ""compilerRevision"": 15,
+                    ""parameters"": [
+                      {
+                        ""id"": ""__foreach_key__"",
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""pointer"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 3,
+                              ""required"": true
+                            },
+                            ""value"": null
+                          }
+                        }
+                      },
+                      {
+                        ""id"": ""__foreach_value__"",
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        },
+                        ""pointer"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""value"": null
+                          }
+                        }
+                      }
+                    ],
+                    ""instructions"": [
+                      {
+                        ""type"": ""return"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
+                          ""typeInfo"": {
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 3,
+                              ""required"": true
+                            }
+                          },
+                          ""entries"": [
+                            {
+                              ""type"": ""variable"",
+                              ""variableId"": ""__foreach_key__""
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    ""typeInfo"": {
+                      ""type"": 8,
+                      ""required"": true,
+                      ""enumId"": ""id-18""
+                    }
+                  }
+                }
+              }
+            },
+            ""collectionTypeInfo"": {
+              ""type"": 6,
+              ""required"": true,
+              ""entryTypeInfo"": {
+                ""type"": 8,
+                ""required"": true,
+                ""enumId"": ""id-18""
+              },
+              ""readOnly"": true
+            },
+            ""instructions"": [
+              {
+                ""type"": ""if"",
+                ""branches"": [
+                  {
+                    ""expression"": {
+                      ""condition"": {
+                        ""type"": ""equalTo"",
+                        ""operand1"": {
+                          ""type"": ""variable"",
+                          ""variableId"": ""key""
+                        },
+                        ""operand2"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 8,
+                              ""required"": true,
+                              ""enumId"": ""id-18""
+                            },
+                            ""value"": [""00000000-0000-4000-8000-000000000203""]
+                          }
+                        }
+                      }
+                    },
+                    ""instructions"": [
+                      {
+                        ""type"": ""collectionCall"",
+                        ""target"": {
+                          ""pointer"": {
+                            ""type"": ""variable"",
+                            ""variableId"": ""seen""
+                          },
+                          ""typeInfo"": {
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            }
+                          },
+                          ""writability"": ""local""
+                        },
+                        ""mutation"": ""Add"",
+                        ""args"": [
+                          {
+                            ""type"": ""keyOf"",
+                            ""keyOf"": {
+                              ""pointer"": {
+                                ""type"": ""variable"",
+                                ""variableId"": ""scores""
+                              },
+                              ""key"": {
+                                ""type"": ""keyOf"",
+                                ""keyOf"": {
+                                  ""pointer"": {
+                                    ""type"": ""variable"",
+                                    ""variableId"": ""key""
+                                  },
+                                  ""key"": {
+                                    ""type"": ""value"",
+                                    ""value"": {
+                                      ""typeInfo"": {
+                                        ""type"": 2,
+                                        ""required"": true
+                                      },
+                                      ""value"": 0
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                ""else"": null
+              },
+              {
+                ""type"": ""if"",
+                ""branches"": [
+                  {
+                    ""expression"": {
+                      ""condition"": {
+                        ""type"": ""equalTo"",
+                        ""operand1"": {
+                          ""type"": ""variable"",
+                          ""variableId"": ""key""
+                        },
+                        ""operand2"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 8,
+                              ""required"": true,
+                              ""enumId"": ""id-18""
+                            },
+                            ""value"": [""00000000-0000-4000-8000-000000000202""]
+                          }
+                        }
+                      }
+                    },
+                    ""instructions"": [
+                      {
+                        ""type"": ""collectionCall"",
+                        ""target"": {
+                          ""pointer"": {
+                            ""type"": ""variable"",
+                            ""variableId"": ""seen""
+                          },
+                          ""typeInfo"": {
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            }
+                          },
+                          ""writability"": ""local""
+                        },
+                        ""mutation"": ""Add"",
+                        ""args"": [
+                          {
+                            ""type"": ""keyOf"",
+                            ""keyOf"": {
+                              ""pointer"": {
+                                ""type"": ""variable"",
+                                ""variableId"": ""scores""
+                              },
+                              ""key"": {
+                                ""type"": ""keyOf"",
+                                ""keyOf"": {
+                                  ""pointer"": {
+                                    ""type"": ""variable"",
+                                    ""variableId"": ""key""
+                                  },
+                                  ""key"": {
+                                    ""type"": ""value"",
+                                    ""value"": {
+                                      ""typeInfo"": {
+                                        ""type"": 2,
+                                        ""required"": true
+                                      },
+                                      ""value"": 0
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        ""type"": ""break""
+                      }
+                    ]
+                  }
+                ],
+                ""else"": null
+              }
+            ]
+          },
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""variable"",
+              ""variableId"": ""seen""
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 6,
+          ""required"": true,
+          ""entryTypeInfo"": {
+            ""type"": 2,
+            ""required"": true
+          }
+        },
+        ""dependencies"": {
+          ""recordIds"": [""__root__"", ""id-18"", ""id-46""],
+          ""typeNames"": [""TierType""]
+        }
+      },
+      ""expected"": [10, 20]
     }
   ]
 }
