@@ -43,7 +43,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
         /// <summary>
-        /// Nudges this sprite's draw order within its object. Added to the order derived from the object's layer group — it does not replace it. Leave unset for the default order.
+        /// Added to the object layer's sorting order; it does not replace it. The result competes with every renderer in the sorting layer, or in the enclosing sorting group, and among equal orders the renderer lower on screen draws in front. Leave unset to use the layer's order.
         /// </summary>
         new int? SortingOrder { get; }
 
@@ -190,7 +190,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         /// <summary>
-        /// Nudges this sprite's draw order within its object. Added to the order derived from the object's layer group — it does not replace it. Leave unset for the default order.
+        /// Added to the object layer's sorting order; it does not replace it. The result competes with every renderer in the sorting layer, or in the enclosing sorting group, and among equal orders the renderer lower on screen draws in front. Leave unset to use the layer's order.
         /// </summary>
         public virtual int? SortingOrder
         {
