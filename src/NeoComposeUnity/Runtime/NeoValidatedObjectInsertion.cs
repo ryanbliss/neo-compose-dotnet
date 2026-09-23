@@ -97,7 +97,7 @@ namespace NeoCompose.Runtime
             plan.ValidatedObjectInsertionGrid = primitive.GridValueId;
             plan.AfterCommit(() =>
             {
-                // Membership order orders cell queries. Shift only the following
+                // Membership order is the layer's enumeration order. Shift only the following
                 // ranks, without rereading any sibling's value graph; the shift
                 // keeps their relative order, so it is not a change.
                 for (int i = insertedAt; i < index.Records.Count; i++)
