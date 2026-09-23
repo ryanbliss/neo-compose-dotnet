@@ -2790,7 +2790,12 @@ namespace NeoCompose.Runtime
                 {
                     return new NeoLookupSetWriteTarget(rowId, lookupTypeInfo, ownership, preparedPlan);
                 }
-                return new NeoListWriteTarget(rowId, EntryTypeInfo(target.typeInfo), ownership, preparedPlan);
+                return new NeoListWriteTarget(
+                    rowId,
+                    EntryTypeInfo(target.typeInfo),
+                    client.TryResolveCollectionEntryMember(member, row),
+                    ownership,
+                    preparedPlan);
             }
             if (row is ObjectMemberValue)
             {
@@ -3233,6 +3238,18 @@ namespace NeoCompose.Runtime
                 updatedAt);
         }
 
+        /// <summary>
+        /// An entry's value as a read returns it. A localized String entry
+        /// stores its text id, so matching a script's value compares its text.
+        /// </summary>
+        private static object? ReadEntryValue(
+            MemberValue entry,
+            JsonMember? entryMember,
+            NSGetterEvaluator.Context ctx) =>
+            entry is StringMemberValue text && entryMember is StringMember stringMember
+                ? NSGetterEvaluator.ResolveStringValue(text, stringMember, ctx)
+                : ReadRowValue(entry);
+
         private static object? ReadRowValue(MemberValue row)
         {
             return row switch
@@ -3333,7 +3350,7 @@ namespace NeoCompose.Runtime
                 return valueId!;
             }
 
-            string? matchedValueId = FindLookupCollectionValueByPayload(client, collectionMember, collectionValue, value);
+            string? matchedValueId = FindLookupCollectionValueByPayload(client, collectionMember, collectionValue, value, ctx);
             if (matchedValueId is null)
             {
                 throw new NSGetterRuntimeError(
@@ -3346,13 +3363,15 @@ namespace NeoCompose.Runtime
             NeoClient client,
             JsonMember collectionMember,
             MemberValue collectionValue,
-            object? value)
+            object? value,
+            NSGetterEvaluator.Context ctx)
         {
             var childIds = NeoMemberLookup.ResolveCollectionEntryIds(client, collectionMember, collectionValue);
+            JsonMember? entryMember = client.TryResolveCollectionEntryMember(collectionMember, collectionValue);
             foreach (var childId in childIds)
             {
                 if (!client.TryGetValue(childId, out MemberValue? child)) continue;
-                if (JsEqual(ReadRowValue(child), value)) return childId;
+                if (JsEqual(ReadEntryValue(child, entryMember, ctx), value)) return childId;
             }
             return null;
         }
@@ -3379,15 +3398,18 @@ namespace NeoCompose.Runtime
             {
                 args[0] = ResolveLookupSelectionId(ctx.client, lookup, args[0], ctx);
             }
+            JsonMember? entryMember = NSGetterEvaluator.CollectionEntryMember(local, ctx);
             if (local is object?[] array)
             {
                 var arrayList = new List<object?>(array);
-                MutateLocalList(arrayList, collectionType.type, mutation, args, ctx);
-                return arrayList.ToArray();
+                MutateLocalList(arrayList, collectionType.type, mutation, args, entryMember, ctx);
+                object?[] mutated = arrayList.ToArray();
+                NSGetterEvaluator.KeepEntryMember(mutated, entryMember);
+                return mutated;
             }
             if (local is List<object?> list)
             {
-                MutateLocalList(list, collectionType.type, mutation, args, ctx);
+                MutateLocalList(list, collectionType.type, mutation, args, entryMember, ctx);
                 return list;
             }
             if (local is IDictionary<string, object?> dict)
@@ -3403,6 +3425,7 @@ namespace NeoCompose.Runtime
             MemberKind collectionKind,
             string mutation,
             object?[] args,
+            JsonMember? entryMember,
             NSGetterEvaluator.Context ctx)
         {
             switch (mutation)
@@ -3422,7 +3445,10 @@ namespace NeoCompose.Runtime
                     for (int i = 0; i < list.Count; i++)
                     {
                         ctx.allocationTracker.ConsumeCollectionVisit();
-                        if (!JsEqual(list[i], args[0])) continue;
+                        object? entry = entryMember is null
+                            ? list[i]
+                            : NSGetterEvaluator.ResolveValueIfId(list[i], ctx, member: entryMember);
+                        if (!JsEqual(entry, args[0])) continue;
                         list.RemoveAt(i);
                         break;
                     }
@@ -4437,7 +4463,7 @@ namespace NeoCompose.Runtime
                             ctx.allocationTracker.ConsumeCollectionVisit();
                             if (entryId == removeId || (removeId is null
                                 && client.TryGetValue(ownership, entryId, out MemberValue? entry)
-                                && JsEqual(ReadRowValue(entry), args[0])))
+                                && JsEqual(ReadEntryValue(entry, list.EntryMember, ctx), args[0])))
                             {
                                 list.RemoveById(entryId);
                                 break;
@@ -4463,13 +4489,20 @@ namespace NeoCompose.Runtime
             private readonly NeoWritePlan? preparedPlan;
             private readonly string rowId;
             private readonly TypeInfo entryTypeInfo;
+            private readonly JsonMember? entryMember;
             private readonly NeoValueOwnership ownership;
 
-            public NeoListWriteTarget(string rowId, TypeInfo entryTypeInfo, NeoValueOwnership ownership, NeoWritePlan? preparedPlan = null)
+            public NeoListWriteTarget(
+                string rowId,
+                TypeInfo entryTypeInfo,
+                JsonMember? entryMember,
+                NeoValueOwnership ownership,
+                NeoWritePlan? preparedPlan = null)
             {
                 this.preparedPlan = preparedPlan;
                 this.rowId = rowId;
                 this.entryTypeInfo = entryTypeInfo;
+                this.entryMember = entryMember;
                 this.ownership = ownership;
             }
 
@@ -4560,7 +4593,7 @@ namespace NeoCompose.Runtime
                                     return;
                                 }
                                 if (!client.TryGetValue(row.value[i], out MemberValue? child)) continue;
-                                if (!JsEqual(ReadRowValue(child), args[0])) continue;
+                                if (!JsEqual(ReadEntryValue(child, entryMember, ctx), args[0])) continue;
                                 RemoveAt(plan, client, ownership, row, i, now, entryTypeInfo, ctx);
                                 return;
                             }

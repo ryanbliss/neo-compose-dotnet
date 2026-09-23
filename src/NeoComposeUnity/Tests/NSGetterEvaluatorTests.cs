@@ -2189,6 +2189,194 @@ namespace NeoCompose.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        /// <summary>
+        /// A localized String entry stores its text id. Reading it through
+        /// its List or Dictionary resolves the text, as a member read does:
+        /// indexing, foreach, and collection callbacks all see the entry.
+        /// </summary>
+        [Test]
+        public void LocalizedCollectionEntryReads_ResolveTheirText()
+        {
+            var commandEntry = StringMember("member-command-entry", "Item");
+            var commands = ListMember("member-commands", "Commands", commandEntry.id);
+            var labelEntry = StringMember("member-label-entry", "Item");
+            var labels = DictionaryMember("member-labels", "Labels", labelEntry.id);
+            var rootAssetsMember = ClassMember("member-entries-root-assets", "Assets", "class-entries-root");
+            rootAssetsMember.valueId = "value-entries-root";
+            var rootSaveMember = ClassMember("member-entries-root-save", "Save", "class-entries-root");
+            rootSaveMember.DeclaredStorage = NeoMemberStorage.Save;
+            var rootSessionMember = ClassMember("member-entries-root-session", "Session", "class-entries-root");
+            rootSessionMember.DeclaredStorage = NeoMemberStorage.Session;
+            var rootClass = NeoSchemaClass(
+                "class-entries-root",
+                "EntriesRoot",
+                new Dictionary<string, string> { ["Commands"] = commands.id, ["Labels"] = labels.id });
+            var rootRow = ObjectValue(
+                "value-entries-root",
+                rootClass.id,
+                new Dictionary<string, string> { ["Commands"] = "value-commands", ["Labels"] = "value-labels" });
+            var data = new ProjectData
+            {
+                project = new Project
+                {
+                    id = "project-localized-entries",
+                    name = "Localized Entries",
+                    rootAssetsMemberId = rootAssetsMember.id,
+                    rootSaveFileMemberId = rootSaveMember.id,
+                    rootSessionMemberId = rootSessionMember.id,
+                    createdAt = "x",
+                    updatedAt = "x",
+                },
+                members = new Dictionary<string, NeoCompose.Runtime.Json.Member>
+                {
+                    [rootAssetsMember.id] = rootAssetsMember,
+                    [rootSaveMember.id] = rootSaveMember,
+                    [rootSessionMember.id] = rootSessionMember,
+                    [commands.id] = commands,
+                    [commandEntry.id] = commandEntry,
+                    [labels.id] = labels,
+                    [labelEntry.id] = labelEntry,
+                },
+                values = new Dictionary<string, MemberValue>
+                {
+                    [rootRow.id] = rootRow,
+                    ["value-commands"] = ArrayValue("value-commands", "value-command"),
+                    ["value-command"] = StringValue("value-command", "text-command"),
+                    ["value-labels"] = ObjectValue(
+                        "value-labels",
+                        null,
+                        new Dictionary<string, string> { ["first"] = "value-label" }),
+                    ["value-label"] = StringValue("value-label", "text-label"),
+                },
+                classes = new Dictionary<string, NeoSchemaClass> { [rootClass.id] = rootClass },
+            };
+            var localization = NeoLocalization.CreateEmpty(null);
+            Assert.IsTrue(localization.TryAddLoadedLocale(new ProjectLocalizationLocaleFile
+            {
+                schemaVersion = 1,
+                projectId = data.project.id,
+                versionId = "version-1",
+                locale = "en-US",
+                formattingSyntax = "smart-format",
+                values = new Dictionary<string, string?>
+                {
+                    ["text-command"] = "add pickaxe.stone",
+                    ["text-label"] = "First",
+                },
+            }));
+            using var client = NeoTestSaveStack.ClientFromSchema(data, localization: localization);
+            var root = new ReferencePointer { type = PointerKind.Reference, valueId = rootRow.id };
+            object? Evaluate(Pointer pointer, MemberKind returnType) => NSGetterEvaluator.Evaluate(
+                ReturnFunction(pointer, returnType),
+                new NSGetterEvaluator.Context(client, thisValue: null, rootValue: null));
+
+            var indexed = new KeyOfPointer
+            {
+                type = PointerKind.KeyOf,
+                keyOf = new KeyOf { pointer = KeyOf(root, "Commands"), key = IntPointer(0) },
+            };
+            Assert.AreEqual("add pickaxe.stone", Evaluate(indexed, MemberKind.String), "list[i]");
+            Assert.AreEqual("First", Evaluate(KeyOf(root, "Labels", "first"), MemberKind.String), "dictionary[key]");
+            var contains = new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new ContainsFunction
+                {
+                    type = FunctionKind.Contains,
+                    info = new FunctionCollectionContainsInfo
+                    {
+                        collectionPointer = KeyOf(root, "Commands"),
+                        valuePointer = StringPointer("add pickaxe.stone"),
+                    },
+                },
+            };
+            Assert.AreEqual(true, Evaluate(contains, MemberKind.Bool), "collection callbacks");
+            var ctx = new NSGetterEvaluator.Context(client, thisValue: null, rootValue: null);
+            object? list = NSGetterEvaluator.Evaluate(ReturnFunction(KeyOf(root, "Commands"), MemberKind.List), ctx);
+            Assert.AreEqual(
+                "add pickaxe.stone",
+                NSGetterEvaluator.SnapshotCollectionEntries(list, ctx)[0].Resolve(ctx),
+                "foreach");
+            var where = new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new WhereFunction
+                {
+                    type = FunctionKind.Where,
+                    info = new FunctionCollectionBoolInfo
+                    {
+                        collectionPointer = KeyOf(root, "Commands"),
+                        function = new FunctionWithReturnType
+                        {
+                            compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                            parameters = new[]
+                            {
+                                new Variable
+                                {
+                                    id = "entry",
+                                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true },
+                                    pointer = new VariablePointer { type = PointerKind.Variable, variableId = "entry" },
+                                },
+                            },
+                            typeInfo = new PrimitiveTypeInfo { type = MemberKind.Bool, required = true },
+                            instructions = new Instruction[]
+                            {
+                                new ReturnInstruction { type = InstructionKind.Return, pointer = BoolPointer(true) },
+                            },
+                        },
+                    },
+                },
+            };
+            var whereIndexed = new KeyOfPointer
+            {
+                type = PointerKind.KeyOf,
+                keyOf = new KeyOf { pointer = where, key = IntPointer(0) },
+            };
+            Assert.AreEqual("add pickaxe.stone", Evaluate(whereIndexed, MemberKind.String), "Where(...)[i]");
+            object? filtered = NSGetterEvaluator.Evaluate(ReturnFunction(where, MemberKind.List), ctx);
+            Assert.AreEqual(
+                "add pickaxe.stone",
+                NSGetterEvaluator.SnapshotCollectionEntries(filtered, ctx)[0].Resolve(ctx),
+                "foreach over Where");
+            var scope = new Dictionary<string, object?> { ["commands"] = filtered };
+            var local = new VariablePointer { type = PointerKind.Variable, variableId = "commands" };
+            void MutateLocal(string mutation, string text) => NeoScriptExecutor.Execute(client, new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = new Variable[0],
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                instructions = new Instruction[]
+                {
+                    new CollectionCallInstruction
+                    {
+                        type = InstructionKind.CollectionCall,
+                        target = new WriteTarget
+                        {
+                            pointer = local,
+                            typeInfo = new CollectionTypeInfo
+                            {
+                                type = MemberKind.List,
+                                required = true,
+                                entryTypeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true },
+                            },
+                            writability = WritabilityKind.Local,
+                        },
+                        mutation = mutation,
+                        args = new Pointer[] { StringPointer(text) },
+                    },
+                },
+            }, scope, ctx);
+            MutateLocal(CollectionMutationKind.Add, "look");
+            var localIndexed = new KeyOfPointer
+            {
+                type = PointerKind.KeyOf,
+                keyOf = new KeyOf { pointer = local, key = IntPointer(0) },
+            };
+            Assert.AreEqual("add pickaxe.stone", NSGetterEvaluator.EvaluatePointer(localIndexed, scope, ctx), "mutated local[i]");
+            MutateLocal(CollectionMutationKind.Remove, "add pickaxe.stone");
+            CollectionAssert.AreEqual(new object?[] { "look" }, (object?[])scope["commands"]!, "local Remove by text");
+        }
+
         private static NeoClient LoadAbstractReadonlyClassDefaultClient(
             out ObjectMemberValue rootRow,
             out ClassMember statsMember,
@@ -2305,6 +2493,40 @@ namespace NeoCompose.Tests
                 ["ClassChild"] = "v-child",
                 ["Enum"] = "v-enum",
                 ["LookupSet"] = "v-lookup",
+            };
+        }
+
+        private static ValuePointer BoolPointer(bool value)
+        {
+            return new ValuePointer
+            {
+                type = PointerKind.Value,
+                value = new Value
+                {
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Bool,
+                        required = true,
+                    },
+                    value = JToken.FromObject(value),
+                },
+            };
+        }
+
+        private static ValuePointer IntPointer(int value)
+        {
+            return new ValuePointer
+            {
+                type = PointerKind.Value,
+                value = new Value
+                {
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Int,
+                        required = true,
+                    },
+                    value = JToken.FromObject(value),
+                },
             };
         }
 
