@@ -6100,7 +6100,7 @@ namespace NeoCompose.Tests
             T Resolve<T>(string id) where T : class =>
                 (T)(object)NeoGeneratedTypesSupport.ResolveClassValue(client, id, factories, writableFactories)!;
             bool partReadyAtSpawn = false;
-            bool partReadyAtDespawn = false;
+            bool partReadyAtDespawn = false, carriedLinkReadyAtDespawn = false, gridLinkReadyAtDespawn = false;
             GameObject? spawnedPart = null;
             // Resolving any row of shop-1's graph wraps shop-1 first, so the
             // composition is wired in the factory rather than after the fact.
@@ -6114,7 +6114,12 @@ namespace NeoCompose.Tests
                         Resolve<TestComposedObject>("shop-part"),
                     },
                     Spawned = () => partReadyAtSpawn = Resolve<TestComposedObject>("shop-part").TryGetGameObject(out spawnedPart),
-                    Despawned = () => partReadyAtDespawn = Resolve<TestComposedObject>("shop-part").TryGetGameObject(out _),
+                    Despawned = () =>
+                    {
+                        partReadyAtDespawn = Resolve<TestComposedObject>("shop-part").TryGetGameObject(out _);
+                        carriedLinkReadyAtDespawn = Resolve<TestTileLayerLink>("part-link").TryGetGameObject(out _);
+                        gridLinkReadyAtDespawn = Resolve<TestObjectLayerLink>("objects-link").TryGetGameObject(out _);
+                    },
                 },
                 "shop-part" => new TestComposedObject(c, n, isReadOnly)
                 {
@@ -6171,11 +6176,13 @@ namespace NeoCompose.Tests
                 renderer.Clear();
 
                 Assert.IsTrue(partReadyAtDespawn, "clearing runs despawn hooks while parts still answer");
+                Assert.IsTrue(carriedLinkReadyAtDespawn, "clearing runs despawn hooks while carried links still answer");
+                Assert.IsTrue(gridLinkReadyAtDespawn, "clearing runs despawn hooks while grid links still answer");
                 Assert.IsFalse(part.TryGetGameObject(out _));
                 Assert.IsFalse(partLink.TryGetGameObject(out _));
                 Assert.IsFalse(objectsLink.TryGetGameObject(out _));
 
-                partReadyAtDespawn = false;
+                partReadyAtDespawn = gridLinkReadyAtDespawn = false;
                 Render();
                 Assert.IsTrue(part.TryGetGameObject(out _));
                 client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
@@ -6184,6 +6191,7 @@ namespace NeoCompose.Tests
                 });
                 Assert.IsFalse(renderer.TryGetObjectRoot("shop-1", out _));
                 Assert.IsTrue(partReadyAtDespawn, "removal runs despawn hooks while parts still answer");
+                Assert.IsTrue(gridLinkReadyAtDespawn, "removal runs despawn hooks while grid links still answer");
                 Assert.IsFalse(part.TryGetGameObject(out _));
             }
             finally

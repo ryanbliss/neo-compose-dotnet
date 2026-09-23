@@ -553,7 +553,6 @@ namespace NeoCompose.Runtime
             if (primitive == null) throw new ArgumentNullException(nameof(primitive));
             if (tileLayers == null) throw new ArgumentNullException(nameof(tileLayers));
 
-            renderedPrimitive = primitive;
             var grid = EnsureGrid();
             var createdTargets = new List<TileLayerTargetRegistration>();
             try
@@ -561,10 +560,14 @@ namespace NeoCompose.Runtime
                 bool clientChanged = TileCacheBelongsToAnotherClient(primitive.Client);
                 if (clearBeforeRender || clientChanged)
                 {
+                    NotifyRenderedObjectsDespawned();
                     DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.Replaced);
                     ClearChildren(grid.transform);
                     ClearRenderedIndexes();
                 }
+                // Set after the clear, so its despawn hooks resolve links
+                // through the primitive that drew them.
+                renderedPrimitive = primitive;
                 EnsureTileCacheClient(primitive.Client);
 
                 int sortingOrder = 0;
@@ -721,7 +724,6 @@ namespace NeoCompose.Runtime
             if (primitive == null) throw new ArgumentNullException(nameof(primitive));
             if (tileLayers == null) throw new ArgumentNullException(nameof(tileLayers));
 
-            renderedPrimitive = primitive;
             token.ThrowIfCancellationRequested();
 
             if (options.YieldBeforeRender)
@@ -749,14 +751,17 @@ namespace NeoCompose.Runtime
                 {
                     bool needsDestroyFrame = grid.transform.childCount > 0
                         || tileTargetsByLayerId.Count > 0;
+                    NotifyRenderedObjectsDespawned();
                     DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.Replaced);
                     ClearChildren(grid.transform);
                     ClearRenderedIndexes();
+                    renderedPrimitive = primitive;
                     EnsureTileCacheClient(primitive.Client);
                     if (needsDestroyFrame) await YieldRenderFrameAsync();
                 }
                 else
                 {
+                    renderedPrimitive = primitive;
                     EnsureTileCacheClient(primitive.Client);
                 }
 
@@ -863,6 +868,7 @@ namespace NeoCompose.Runtime
         {
             CancelInFlightRender();
             StopLiveSync();
+            NotifyRenderedObjectsDespawned();
             currentContent = null;
             renderedPrimitive = null;
             DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.RendererCleared);
@@ -883,6 +889,7 @@ namespace NeoCompose.Runtime
         {
             CancelInFlightRender();
             StopLiveSync();
+            NotifyRenderedObjectsDespawned();
             DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.RendererDestroyed);
             ClearRenderedIndexes();
             ClearTileBaseCache();
@@ -1379,6 +1386,16 @@ namespace NeoCompose.Runtime
             return unityGrid;
         }
 
+        // Play-mode destruction is deferred, so teardown runs despawn hooks
+        // first, while TryGetGameObject still answers for objects and links,
+        // as DestroyRenderedObject does.
+        private void NotifyRenderedObjectsDespawned()
+        {
+            foreach (var root in objectRootsByInstanceId.Values)
+                if (root != null && root.TryGetComponent(out NeoObjectBehaviour behaviour))
+                    behaviour.NotifyDespawned();
+        }
+
         private void ClearRenderedIndexes()
         {
             tilemapsByLayerId.Clear();
@@ -1388,11 +1405,6 @@ namespace NeoCompose.Runtime
             objectLayersByLayerId.Clear();
             objectLayerRootsByLayerId.Clear();
             DisposeObjectPositionSubscriptions();
-            // Play-mode destruction is deferred, so despawn hooks fire here,
-            // while TryGetGameObject still answers, as DestroyRenderedObject does.
-            foreach (var root in objectRootsByInstanceId.Values)
-                if (root != null && root.TryGetComponent(out NeoObjectBehaviour behaviour))
-                    behaviour.NotifyDespawned();
             objectRootsByInstanceId.Clear();
             foreach (var visibility in objectVisibilityByInstanceId.Values) visibility.Dispose();
             objectVisibilityByInstanceId.Clear();
@@ -1796,7 +1808,7 @@ namespace NeoCompose.Runtime
                     child,
                     sortingOrder,
                     visitedValueIds,
-                    depth + 1,
+                    depth,
                     visibility,
                     sprites);
             }
