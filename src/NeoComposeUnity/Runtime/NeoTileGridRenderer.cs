@@ -1021,9 +1021,9 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 // Reevaluate lifecycle filters, while retaining controllers and
-                // animation on an object that only moved or shifted membership rank.
-                if ((change.PositionsOnly || change.OrderOnlyInstances?.Contains(instanceId) == true)
-                    && objectRootsByInstanceId.TryGetValue(instanceId, out var existing) && existing != null) continue;
+                // animation on an object that remains visible after moving.
+                if (change.PositionsOnly && objectRootsByInstanceId.TryGetValue(instanceId, out var existing)
+                    && existing != null) continue;
                 DestroyRenderedObject(instanceId);
                 objectRootsByInstanceId[instanceId] =
                     SpawnObject(root.transform, layer, resolved, fallbackSortingOrder);

@@ -97,11 +97,9 @@ namespace NeoCompose.Runtime
             plan.ValidatedObjectInsertionGrid = primitive.GridValueId;
             plan.AfterCommit(() =>
             {
-                var changedIds = new List<NeoObjectInstanceId> { added.InstanceId };
-                var cells = new HashSet<Vector2Int>(added.Footprint);
-                var orderOnly = new HashSet<NeoObjectInstanceId>();
-                // Membership order is observable. Shift only the following
-                // ranks, without rereading any sibling's value graph.
+                // Membership order orders cell queries. Shift only the following
+                // ranks, without rereading any sibling's value graph; the shift
+                // keeps their relative order, so it is not a change.
                 for (int i = insertedAt; i < index.Records.Count; i++)
                 {
                     var before = index.Records[i];
@@ -115,9 +113,6 @@ namespace NeoCompose.Runtime
                         int slot = bucket.IndexOf(before);
                         if (slot >= 0) bucket[slot] = after;
                     }
-                    changedIds.Add(after.InstanceId);
-                    orderOnly.Add(after.InstanceId);
-                    cells.UnionWith(after.Footprint);
                 }
                 index.Records.Insert(insertedAt, added);
                 index.ById.Add(added.InstanceId, added);
@@ -128,8 +123,7 @@ namespace NeoCompose.Runtime
                 foreach (var layer in tileLayers.Values) layer.DependencyIds.UnionWith(tileDependencies);
                 var change = new NeoTileGridChangedArgs(primitive.GridValueId,
                     objectLayers: new[] { new NeoObjectLayerChangedArgs(layerId, Array.Empty<NeoObjectInstanceId>(),
-                        changedIds, new List<Vector2Int>(cells), NeoTileGridChangeSourceKind.Direct, null)
-                        { OrderOnlyInstances = orderOnly, ContentChangedCells = added.Footprint } },
+                        new NeoObjectInstanceId[] { added.InstanceId }, added.Footprint, NeoTileGridChangeSourceKind.Direct, null) },
                     source: primitive.Client.CurrentChangeSource);
                 primitive.Client.ScriptGridQueries.NotifyChanged(change);
                 plan.AfterNotifications(() => Changed?.Invoke(change));

@@ -74,9 +74,9 @@ namespace NeoCompose.Tests
                 Assert.AreSame(original, after, "An insertion must not reset sibling gameplay controllers.");
                 Assert.AreEqual(order, drawn.sortingOrder, "Membership rank is not draw order.");
                 var added = changed!.ObjectLayers.Single();
-                Assert.That(added.ChangedCells, Does.Contain(new Vector2Int(10, 20)), "Cell-order consumers still receive the sibling update.");
-                Assert.That(added.ContentChangedCells, Has.No.Member(new Vector2Int(10, 20)), "Unchanged sibling content must not wake local gameplay listeners.");
-                Assert.That(added.ContentChangedCells, Is.Not.Empty);
+                Assert.That(added.ChangedInstances, Has.No.Member(new NeoObjectInstanceId("shop-1")), "A shifted rank is not a sibling change.");
+                Assert.That(added.ChangedCells, Has.No.Member(new Vector2Int(10, 20)));
+                Assert.That(added.ChangedCells, Is.Not.Empty);
                 client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
                 {
                     id = "aaa-earlier", classId = ObjectClassId, containerId = "objects-link-objects", mark = NeoValueMarks.Removed,
@@ -84,7 +84,7 @@ namespace NeoCompose.Tests
                 Assert.IsTrue(renderer.TryGetObjectRoot("shop-1", out after));
                 Assert.AreSame(original, after);
                 Assert.AreEqual(order, drawn.sortingOrder);
-                Assert.That(changed!.ObjectLayers.Single().ContentChangedCells, Has.No.Member(new Vector2Int(10, 20)));
+                Assert.That(changed!.ObjectLayers.Single().ChangedCells, Has.No.Member(new Vector2Int(10, 20)));
             }
             finally
             {
@@ -423,15 +423,7 @@ namespace NeoCompose.Tests
                 objectLayers: new[] { new NeoObjectLayerChangedArgs(ObjectsLayerClassId, Array.Empty<NeoObjectInstanceId>(),
                     Array.Empty<NeoObjectInstanceId>(), new[] { changed }, NeoTileGridChangeSourceKind.Direct, null) }));
             Change(new Vector2Int(99, 99));
-            client.ScriptGridQueries.NotifyChanged(new NeoTileGridChangedArgs("town-grid",
-                objectLayers: new[] { new NeoObjectLayerChangedArgs(ObjectsLayerClassId,
-                    new[] { new NeoObjectInstanceId("shop-1") }, Array.Empty<NeoObjectInstanceId>(),
-                    new[] { new Vector2Int(60, 70) }, NeoTileGridChangeSourceKind.Direct, null)
-                {
-                    ContentChangedCells = Array.Empty<Vector2Int>(),
-                    OrderOnlyInstances = new HashSet<NeoObjectInstanceId> { new NeoObjectInstanceId("shop-1") },
-                } }));
-            Assert.AreEqual(0, invalidations, "Rank-only sibling changes do not change placement query results.");
+            Assert.AreEqual(0, invalidations);
             Change(new Vector2Int(60, 70));
             Assert.AreEqual(1, invalidations);
             Assert.AreEqual(1, created);
@@ -1216,7 +1208,7 @@ namespace NeoCompose.Tests
             Assert.AreSame(objects, primitive.LookupCache.ObjectRecords(ObjectsLayerClassId));
             Assert.AreSame(tiles, primitive.LookupCache.TileRecords(BackgroundLayerClassId));
             CollectionAssert.AreEquivalent(new[] { new Vector2Int(6, 6), new Vector2Int(6, 7) },
-                changes.Single().ObjectLayers.Single().ContentChangedCells);
+                changes.Single().ObjectLayers.Single().ChangedCells);
             var first = layer.GetObjectProjection(new Vector2Int(6, 6));
             Assert.NotNull(first);
             Assert.AreEqual(first!.InstanceId, layer.GetObjectProjection(new Vector2Int(6, 7))!.InstanceId);
