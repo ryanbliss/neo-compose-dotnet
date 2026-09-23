@@ -28,8 +28,62 @@ namespace NeoCompose.Tests
             Assert.AreEqual(NeoMemberStorage.Immutable, NeoMemberStorageResolution.Validate(NeoMemberStorage.Immutable));
             Assert.AreEqual(NeoMemberStorage.Save, NeoMemberStorageResolution.Validate(NeoMemberStorage.Save));
             Assert.AreEqual(NeoMemberStorage.Session, NeoMemberStorageResolution.Validate(NeoMemberStorage.Session));
+            Assert.AreEqual(NeoMemberStorage.Writable, NeoMemberStorageResolution.Validate(NeoMemberStorage.Writable));
             Assert.Throws<System.InvalidOperationException>(
-                () => NeoMemberStorageResolution.Validate((NeoMemberStorage)4));
+                () => NeoMemberStorageResolution.Validate((NeoMemberStorage)5));
+        }
+
+        /// <summary>
+        /// P93 §1.2 — hand-mirrors the TS <c>childEffectiveStorage</c> vectors
+        /// in <c>src/models/members/effective-storage.test.ts</c>, over
+        /// ownership (Asset is Immutable).
+        /// </summary>
+        [Test]
+        public void ChildOwnership_ResolvesEveryChildStorageCell()
+        {
+            const NeoValueOwnership Asset = NeoValueOwnership.Asset;
+            const NeoValueOwnership Save = NeoValueOwnership.Save;
+            const NeoValueOwnership Session = NeoValueOwnership.Session;
+            var parents = new[] { Asset, Save, Session };
+            var cells = new (NeoMemberStorage declared, NeoValueOwnership[] expected)[]
+            {
+                (NeoMemberStorage.Inherit, new[] { Asset, Save, Session }),
+                (NeoMemberStorage.Writable, new[] { Session, Save, Session }),
+                (NeoMemberStorage.Immutable, new[] { Asset, Asset, Asset }),
+                (NeoMemberStorage.Save, new[] { Save, Save, Save }),
+                (NeoMemberStorage.Session, new[] { Session, Session, Session }),
+            };
+            foreach (var (declared, expected) in cells)
+            {
+                for (int i = 0; i < parents.Length; i++)
+                {
+                    Assert.AreEqual(
+                        expected[i],
+                        NeoMemberStorageResolution.ChildOwnership(declared, parents[i]),
+                        $"{declared} under {parents[i]}");
+                }
+            }
+            Assert.IsNull(NeoMemberStorageResolution.ToOwnership(NeoMemberStorage.Writable));
+        }
+
+        [Test]
+        public void ConcreteDeclaredOwnership_IsNullForInheritAndWritable()
+        {
+            var client = LoadStorageClient();
+            var member = new IntMember { id = "m", name = "M", kind = MemberKind.Int };
+            foreach (var (storage, expected) in new (NeoMemberStorage, NeoValueOwnership?)[]
+            {
+                (NeoMemberStorage.Inherit, null),
+                (NeoMemberStorage.Writable, null),
+                (NeoMemberStorage.Immutable, NeoValueOwnership.Asset),
+                (NeoMemberStorage.Save, NeoValueOwnership.Save),
+                (NeoMemberStorage.Session, NeoValueOwnership.Session),
+            })
+            {
+                member.Storage = storage;
+                Assert.AreEqual(expected, client.ConcreteDeclaredOwnership(member), storage.ToString());
+            }
+            Assert.AreEqual(NeoValueOwnership.Save, client.ChildOwnership(null, NeoValueOwnership.Save));
         }
 
         [Test]

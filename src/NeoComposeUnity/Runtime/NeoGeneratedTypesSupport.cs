@@ -5131,7 +5131,7 @@ namespace NeoCompose.Runtime
                         entryMember = NeoGenericResolution.SubstituteMember(
                             client, entryMember, NeoGenericResolution.EnvFromStamp(row.genericBindings));
                     NeoValueOwnership entryStorage = entryMember is null ? storage
-                        : client.DeclaredOwnership(entryMember) ?? storage;
+                        : client.ChildOwnership(entryMember, storage);
 
                     // Constructor-only collections use their declared argument
                     // type; they need not also occupy a schema member.

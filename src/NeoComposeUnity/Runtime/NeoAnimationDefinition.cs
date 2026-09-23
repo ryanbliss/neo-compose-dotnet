@@ -1554,6 +1554,7 @@ namespace NeoCompose.Runtime
                                 overrides,
                                 targetRow: null,
                                 Array.Empty<string>(),
+                                NeoMemberStorage.Inherit,
                                 clipKey,
                                 frameIndex);
                         }
@@ -1563,7 +1564,7 @@ namespace NeoCompose.Runtime
                             frame,
                             clipKey,
                             frameIndex);
-                        ValidateExportChildOverrides(client, frame, clipKey, frameIndex);
+                        ValidateExportChildOverrides(client, targetClass.id, frame, clipKey, frameIndex);
                     }
                 }
 
@@ -1764,6 +1765,7 @@ namespace NeoCompose.Runtime
             NeoMemberClass partial,
             ObjectMemberValue? targetRow,
             string[] prefix,
+            NeoMemberStorage declaredAbove,
             string clipKey,
             int frameIndex)
         {
@@ -1783,6 +1785,8 @@ namespace NeoCompose.Runtime
                     pair.Key,
                     child.member,
                     out ObjectMemberValue? definitionRecord);
+                NeoMemberStorage declared = client.DeclaredStorage(child.member);
+                if (declared == NeoMemberStorage.Inherit) declared = declaredAbove;
                 if (child is NeoMemberClass childClass)
                 {
                     if (childClass.value is null)
@@ -1791,11 +1795,13 @@ namespace NeoCompose.Runtime
                             $"Animation clip '{clipKey}' frame {frameIndex} cannot descend through null Class path '{string.Join(".", path)}'.");
                     }
                     EnsureDefinitionIsDescendable(presence, where);
+                    EnsureStructurallyEligible(child, where);
                     ValidateExportOverrides(
                         client,
                         childClass,
                         definitionRecord,
                         path,
+                        declared,
                         clipKey,
                         frameIndex);
                     continue;
@@ -1811,35 +1817,47 @@ namespace NeoCompose.Runtime
                     }
                     // Eligibility is evaluated on the ENCLOSING leaf, never on
                     // the field — a field segment has no member id to walk.
-                    EnsureEligibleExportLeaf(client, child, where);
+                    EnsureEligibleExportLeaf(child, declared, where);
                     NeoAnimationLeafFields.Compile(leafKind, partialFields, where);
                     EnsureDefinitionIsDescendable(presence, where);
                     continue;
                 }
                 EnsureNoDeeperFieldPath(client, leafKind, pair.Value, where);
-                EnsureEligibleExportLeaf(client, child, where);
+                EnsureEligibleExportLeaf(child, declared, where);
             }
         }
 
+        /// <summary>
+        /// P93 §5, the port of the TS <c>animationTrackStorage</c>: a
+        /// structurally eligible path whose nearest non-Inherit declaration,
+        /// walking leaf to root, is Save, Session, or Writable.
+        /// <paramref name="declared"/> is that declaration, folded root to
+        /// leaf by <see cref="ValidateExportOverrides"/>.
+        /// </summary>
         private static void EnsureEligibleExportLeaf(
-            NeoClient client,
             NeoMember child,
+            NeoMemberStorage declared,
             string where)
         {
-            if (child is NeoMemberList or NeoMemberDictionary
-                || child.member is FunctionMember or NSFunctionMember or NSPropertyMember
-                || child.member.Mutability == NeoMemberMutabilityKind.ReadOnly
-                || child.member.Modifier == NeoMemberModifierKind.Static)
+            EnsureStructurallyEligible(child, where);
+            if (declared != NeoMemberStorage.Save
+                && declared != NeoMemberStorage.Session
+                && declared != NeoMemberStorage.Writable)
+            {
+                throw new InvalidOperationException(
+                    $"{where} is not a writable Save, Session, or Writable override leaf.");
+            }
+        }
+
+        private static void EnsureStructurallyEligible(NeoMember node, string where)
+        {
+            if (node is NeoMemberList or NeoMemberDictionary
+                || node.member is FunctionMember or NSFunctionMember or NSPropertyMember
+                || node.member.Mutability == NeoMemberMutabilityKind.ReadOnly
+                || node.member.Modifier == NeoMemberModifierKind.Static)
             {
                 throw new InvalidOperationException(
                     $"{where} is not an eligible runtime-writable leaf.");
-            }
-            NeoValueOwnership? ownership = client.DeclaredOwnership(child.member);
-            if (ownership != NeoValueOwnership.Save
-                && ownership != NeoValueOwnership.Session)
-            {
-                throw new InvalidOperationException(
-                    $"{where} resolves Immutable storage.");
             }
         }
 
@@ -2068,11 +2086,19 @@ namespace NeoCompose.Runtime
 
         private static void ValidateExportChildOverrides(
             NeoClient client,
+            string ownerClassId,
             NeoMemberClass frame,
             string clipKey,
             int frameIndex)
         {
             if (!frame.TryGet("ChildOverrides", out NeoMemberList? childOverrides)) return;
+            // P93 §5: a child track's declaration walk continues through the
+            // owner's Children member.
+            NeoMemberStorage childrenStorage =
+                client.ResolveInstanceSurfaceMember(ownerClassId, "Children") is MergedSchemaEntry children
+                && client.TryGetMember(children.memberId, out Member? childrenMember)
+                    ? client.DeclaredStorage(childrenMember)
+                    : NeoMemberStorage.Inherit;
             foreach (NeoMember item in childOverrides)
             {
                 if (item is not NeoMemberClass childOverride)
@@ -2093,6 +2119,7 @@ namespace NeoCompose.Runtime
                     overrides,
                     targetRow: null,
                     Array.Empty<string>(),
+                    childrenStorage,
                     clipKey,
                     frameIndex);
             }
@@ -2293,7 +2320,7 @@ namespace NeoCompose.Runtime
                 string[] path = Append(prefix, pair.Key);
                 string where = DescribeOverridePath(clipKey, frameIndex, path);
                 NeoValueOwnership ownership =
-                    client.DeclaredOwnership(child.member) ?? inheritedOwnership;
+                    client.ChildOwnership(child.member, inheritedOwnership);
                 if (child is NeoMemberClass childClass)
                 {
                     if (childClass.value is null)

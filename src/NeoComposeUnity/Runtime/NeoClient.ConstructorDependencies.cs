@@ -46,7 +46,7 @@ namespace NeoCompose.Runtime
                     copies.Add(CloneValueRow(row));
                 }
                 foreach (var child in EnumerateOwnedChildLinks(row, member))
-                    if (child.member is null || DeclaredOwnership(child.member) != sourceOwnership)
+                    if (ChildOwnership(child.member, targetOwnership) != sourceOwnership)
                         pending.Enqueue((child.valueId, child.member));
                 if (member is ListMember list && IsUnorderedList(list))
                 {

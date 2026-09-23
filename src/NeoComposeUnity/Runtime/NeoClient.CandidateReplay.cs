@@ -148,7 +148,7 @@ namespace NeoCompose.Runtime
                         && row is ObjectMemberValue { value: not null } current
                         && current.value.Any(field => field.Value == link.valueId
                             && prior.value.TryGetValue(field.Key, out string? oldId) && oldId == link.valueId)) continue;
-                    if (!Complete(link.valueId, link.member, DeclaredOwnership(link.member!) ?? ownership)) return false;
+                    if (!Complete(link.valueId, link.member, ChildOwnership(link.member, ownership))) return false;
                 }
                 // Unordered entries are independent rows in this write plan;
                 // they are validated and considered for replay individually.

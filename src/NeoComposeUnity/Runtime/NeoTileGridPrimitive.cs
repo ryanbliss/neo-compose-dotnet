@@ -1996,7 +1996,7 @@ namespace NeoCompose.Runtime
         private NeoValueOwnership? ResolveCollectionOwnership(string listValueId)
         {
             NeoValueOwnership? ownership = client.TryInferMemberForValueId(listValueId, out Member? member)
-                ? client.DeclaredOwnership(member) : null;
+                ? client.ConcreteDeclaredOwnership(member) : null;
             if (ownership is null && client.TryGetValueOwnership(listValueId, out var inherited)
                 && inherited != NeoValueOwnership.Asset)
                 ownership = inherited;

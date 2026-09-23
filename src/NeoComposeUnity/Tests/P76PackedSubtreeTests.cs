@@ -287,7 +287,7 @@ namespace NeoCompose.Tests
             StringAssert.Contains(
                 "Project export schema version 30 is unsupported",
                 error!.Message);
-            StringAssert.Contains("only schema version 31", error.Message);
+            StringAssert.Contains("only schema version 32", error.Message);
         }
 
         // -------------------------------------------------------------------

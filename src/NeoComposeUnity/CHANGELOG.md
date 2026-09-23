@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.42.0] - 2026-09-23
+
+- Add `Writable` member storage (P93). A `Writable` member is writable at runtime wherever its row lives. It is saved under a Save row. Under an Asset or Session row it lives in Session and resets on load.
+
+  ```csharp
+  public enum NeoMemberStorage
+  {
+      Inherit = 0, Immutable = 1, Save = 2, Session = 3,
+      Writable = 4,
+  }
+  ```
+
+- **Breaking:** require project export schema 32. An SDK at 31 rejects storage ordinal 4, so the exact-match gate refuses a schema-31 export instead of loading members with the wrong storage.
+- A child member now resolves its storage from its declaration and its parent: `Inherit` takes the parent's storage, `Writable` is Save under Save and Session elsewhere, and a concrete storage is itself. Loading, cloning, save serialization, constructor placement, and NeoScript writes all use this one rule.
+- A `Writable` member of an Asset row exposes a writable node (for example `NeoMemberIntWritable`). A NeoScript write to it lands in Session. A write to an `Inherit` member of an Asset row still throws.
+- A NeoScript write through a variable typed as a `Writable` base class routes to the runtime class's own member storage, so a subclass that narrows the member to `Session` writes to Session.
+- A class constrained to `Writable` storage can be placed in both Save and Session.
+- A read-only member rejects a `Writable` descendant, the same way it rejects `Save` and `Session`.
+- Animation tracks may target a `Writable` leaf. Track eligibility now follows the nearest non-`Inherit` declaration from the leaf up to the clip target, including a child override's `Children` member. Collections, functions, properties, and read-only or static members are rejected as before.
+
 ## [0.41.2] - 2026-09-23
 
 - Fix `ArgumentException: Key already in the list` from a NeoScript `Where` over a `List` that matched nothing, or a `Remove` that emptied a local holding a `Where` result. An empty result can be a shared empty array, and 0.41.1 registered its entry member again on the next empty result. Empty results now register nothing, since they have no entries to resolve.

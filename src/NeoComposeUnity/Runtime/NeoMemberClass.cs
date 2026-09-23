@@ -82,8 +82,8 @@ namespace NeoCompose.Runtime
         /// overrides this to return Writable kinds so descendants of a
         /// writeable Class are also writeable. An explicit declared
         /// storage on the child (specs/member-storage.md §2.1) overrides
-        /// the family default in both directions: a Save/Session-stamped
-        /// child is writable even under a read-only parent. Sets
+        /// the family default in both directions: a Save, Session, or
+        /// Writable child is writable even under a read-only parent. Sets
         /// <see cref="NeoMember.parent"/> on the constructed child so
         /// consumers (e.g., <see cref="NeoMemberNSProperty.Compute"/>)
         /// can walk up.
@@ -100,13 +100,7 @@ namespace NeoCompose.Runtime
                 // parent and always use the non-writable Asset family.
                 return Create(client, childMember, overrideValueId: null);
             }
-            NeoValueOwnership? declared = client.DeclaredOwnership(childMember);
-            NeoMember child =
-                declared == NeoValueOwnership.Save || declared == NeoValueOwnership.Session
-                    ? CreateWritable(client, childMember, overrideValueId, declared.Value)
-                    : Create(client, childMember, overrideValueId);
-            child.parent = this;
-            return child;
+            return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: false);
         }
 
         public NeoMember this[string key]
@@ -563,20 +557,7 @@ namespace NeoCompose.Runtime
             {
                 return Create(client, childMember, overrideValueId: null);
             }
-            // An explicit declared storage fixes the child's shape in both
-            // families (specs/member-storage.md §8.3): Immutable-stamped
-            // children stay read-only even under a writable parent;
-            // Save/Session stamps pin the child to that ownership store.
-            NeoValueOwnership? declared = client.DeclaredOwnership(childMember);
-            NeoMember child = declared switch
-            {
-                NeoValueOwnership.Asset => Create(client, childMember, overrideValueId),
-                NeoValueOwnership.Save or NeoValueOwnership.Session =>
-                    CreateWritable(client, childMember, overrideValueId, declared.Value),
-                _ => CreateWritable(client, childMember, overrideValueId, ownership),
-            };
-            child.parent = this;
-            return child;
+            return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: true);
         }
 
         public TNeoMember GetOrCreateCollection<TNeoMember>(string key)
@@ -792,7 +773,7 @@ namespace NeoCompose.Runtime
             // shadows into, independent of this record's own ownership — the
             // headline case being a Save-stamped field on a static record.
             NeoValueOwnership childOwnership =
-                client.DeclaredOwnership(childMember) ?? ownership;
+                client.ChildOwnership(childMember, ownership);
             if (childOwnership == NeoValueOwnership.Asset)
             {
                 throw new System.InvalidOperationException(
@@ -1099,7 +1080,7 @@ namespace NeoCompose.Runtime
             record.updatedAt = nowIso;
             plan.Set(ownership, record);
             NeoValueOwnership removedOwnership =
-                (removedMember is null ? null : client.DeclaredOwnership(removedMember)) ?? ownership;
+                client.ChildOwnership(removedMember, ownership);
             client.StageUnlinkedRemovals(plan, removedOwnership, new[] { removedValueId }, removedMember);
             plan.Commit();
             value = record;

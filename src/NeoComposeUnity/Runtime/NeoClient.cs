@@ -1205,7 +1205,7 @@ namespace NeoCompose.Runtime
             HashSet<string> visited)
         {
             NeoValueOwnership effective =
-                (member is null ? null : DeclaredOwnership(member)) ?? inherited;
+                ChildOwnership(member, inherited);
             if (!data.values.TryGetValue(valueId, out MemberValue row)) return;
             if (row is ObjectMemberValue obj
                 && obj.classId is string runtimeClassId
@@ -1267,10 +1267,21 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Ownership a declared storage stamp forces, or null when the
-        /// member inherits its placement parent's ownership.
+        /// The ownership of a member's value under a parent (P93 §1.2). A
+        /// null member (an unkeyed entry) inherits the parent.
         /// </summary>
-        internal NeoValueOwnership? DeclaredOwnership(Member member)
+        internal NeoValueOwnership ChildOwnership(Member? member, NeoValueOwnership parent)
+        {
+            return member is null
+                ? parent
+                : NeoMemberStorageResolution.ChildOwnership(DeclaredStorage(member), parent);
+        }
+
+        /// <summary>
+        /// Ownership a declared storage pins, or null when the placement
+        /// parent decides (Inherit and Writable).
+        /// </summary>
+        internal NeoValueOwnership? ConcreteDeclaredOwnership(Member member)
         {
             return NeoMemberStorageResolution.ToOwnership(DeclaredStorage(member));
         }
@@ -1372,7 +1383,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Member '{member.id}' is not a static Class member.");
             }
-            if (DeclaredOwnership(member) is NeoValueOwnership declared)
+            if (ConcreteDeclaredOwnership(member) is NeoValueOwnership declared)
             {
                 return declared;
             }
@@ -2329,7 +2340,7 @@ namespace NeoCompose.Runtime
             HashSet<string> visiting)
         {
             NeoMemberStorage storage = ResolveDeclaredStorage(member);
-            if (storage is NeoMemberStorage.Save or NeoMemberStorage.Session)
+            if (storage is NeoMemberStorage.Save or NeoMemberStorage.Session or NeoMemberStorage.Writable)
             {
                 throw new InvalidOperationException(
                     $"{rootSubject} owns writable descendant member '{member.name}' ({member.id}); its complete default graph must be Immutable.");
@@ -2939,7 +2950,7 @@ namespace NeoCompose.Runtime
                 foreach (var child in formerChildren)
                 {
                     NeoValueOwnership childOwnership =
-                        (child.member is null ? null : DeclaredOwnership(child.member)) ?? ownership;
+                        ChildOwnership(child.member, ownership);
                     if (childOwnership == NeoValueOwnership.Asset) continue;
                     if (!reachableByOwnership.TryGetValue(childOwnership, out var reachable))
                     {
@@ -3399,13 +3410,13 @@ namespace NeoCompose.Runtime
                                 TryResolveOwnedChildMember(sourceRow, sourceMember, pair.Key);
                             remapped[pair.Key] = childMember is not null
                                 && plan.TryGet(
-                                    DeclaredOwnership(childMember) ?? sourceOwnership,
+                                    ChildOwnership(childMember, sourceOwnership),
                                     pair.Value,
                                     out MemberValue? _)
                                     ? CloneOwnedValueGraphWithFreshIds(
                                         plan,
                                         targetOwnership,
-                                        DeclaredOwnership(childMember) ?? sourceOwnership,
+                                        ChildOwnership(childMember, sourceOwnership),
                                         pair.Value,
                                         childMember,
                                         path,
@@ -3430,7 +3441,7 @@ namespace NeoCompose.Runtime
                         for (int i = 0; i < arr.value.Length; i++)
                         {
                             NeoValueOwnership entryOwnership =
-                                DeclaredOwnership(entryMember) ?? sourceOwnership;
+                                ChildOwnership(entryMember, sourceOwnership);
                             remapped[i] = plan.TryGet(entryOwnership, arr.value[i], out MemberValue? _)
                                 ? CloneOwnedValueGraphWithFreshIds(
                                     plan,
@@ -3458,7 +3469,7 @@ namespace NeoCompose.Runtime
                     if (entryMember is not null)
                     {
                         NeoValueOwnership entryOwnership =
-                            DeclaredOwnership(entryMember) ?? sourceOwnership;
+                            ChildOwnership(entryMember, sourceOwnership);
                         foreach (string memberId in EnumerateContainerMemberValueIds(
                             sourceOwnership,
                             sourceValueId))
@@ -3579,7 +3590,7 @@ namespace NeoCompose.Runtime
                 foreach (var ownedChild in EnumerateOwnedChildLinks(parent, parentMember))
                 {
                     NeoValueOwnership edgeOwnership =
-                        DeclaredOwnership(ownedChild.member!) ?? candidate.ownership;
+                        ChildOwnership(ownedChild.member, candidate.ownership);
                     if (edgeOwnership == childOwnership
                         && ownedChild.valueId == childValueId)
                     {
@@ -3595,7 +3606,7 @@ namespace NeoCompose.Runtime
             foreach (Member candidate in memberCandidates)
             {
                 NeoValueOwnership effective;
-                if (DeclaredOwnership(candidate) is NeoValueOwnership declared)
+                if (ConcreteDeclaredOwnership(candidate) is NeoValueOwnership declared)
                 {
                     effective = declared;
                 }
@@ -3773,7 +3784,7 @@ namespace NeoCompose.Runtime
                 // Inherited children follow the adopted root. Explicit Session
                 // members stay transient; explicit Save children created in the
                 // construction Session graph move into their declared store.
-                NeoValueOwnership childTarget = DeclaredOwnership(child.member!) ?? targetOwnership;
+                NeoValueOwnership childTarget = ChildOwnership(child.member, targetOwnership);
                 if (childTarget != targetOwnership) continue;
                 PromoteValueGraph(
                     plan,
@@ -3785,7 +3796,7 @@ namespace NeoCompose.Runtime
             }
             if (sourceMember is ListMember list && IsUnorderedList(list)
                 && TryResolveCollectionEntryMember(list, row) is Member entry
-                && (DeclaredOwnership(entry) ?? targetOwnership) == targetOwnership)
+                && ChildOwnership(entry, targetOwnership) == targetOwnership)
             {
                 var entries = new HashSet<string>(EnumerateContainerMemberValueIds(sourceOwnership, valueId));
                 entries.UnionWith(plan.ContainerCandidates(valueId));
@@ -3827,7 +3838,7 @@ namespace NeoCompose.Runtime
             }
             foreach (var child in EnumerateOwnedChildLinks(sourceRow!, sourceMember))
             {
-                NeoValueOwnership childTarget = DeclaredOwnership(child.member!) ?? targetOwnership;
+                NeoValueOwnership childTarget = ChildOwnership(child.member, targetOwnership);
                 if (childTarget != targetOwnership) continue;
                 if (OwnedValueGraphCollidesWithOwnership(
                     sourceOwnership,
@@ -3843,7 +3854,7 @@ namespace NeoCompose.Runtime
                 && IsUnorderedList(list)
                 && TryResolveCollectionEntryMember(sourceMember)
                     is Member entryMember
-                && (DeclaredOwnership(entryMember) ?? targetOwnership)
+                && ChildOwnership(entryMember, targetOwnership)
                     == targetOwnership)
             {
                 foreach (string memberId in EnumerateContainerMemberValueIds(
@@ -4742,7 +4753,7 @@ namespace NeoCompose.Runtime
             foreach (var child in EnumerateOwnedChildLinks(val, sourceMember))
             {
                 NeoValueOwnership childOwnership =
-                    (child.member is null ? null : DeclaredOwnership(child.member)) ?? ownership;
+                    ChildOwnership(child.member, ownership);
                 if (childOwnership != ownership) continue;
                 RemoveWritableValueAndDescendantsCore(
                     ownership,
@@ -4756,7 +4767,7 @@ namespace NeoCompose.Runtime
             {
                 Member? entryMember = TryResolveCollectionEntryMember(sourceMember);
                 NeoValueOwnership entryOwnership =
-                    (entryMember is null ? null : DeclaredOwnership(entryMember)) ?? ownership;
+                    ChildOwnership(entryMember, ownership);
                 if (entryMember is not null && entryOwnership == ownership)
                 {
                     foreach (string memberId in EnumerateContainerMemberValueIds(ownership, valueId))
@@ -4865,7 +4876,7 @@ namespace NeoCompose.Runtime
             foreach (var child in EnumerateOwnedChildLinks(val, sourceMember))
             {
                 NeoValueOwnership childOwnership =
-                    (child.member is null ? null : DeclaredOwnership(child.member)) ?? ownership;
+                    ChildOwnership(child.member, ownership);
                 if (childOwnership != ownership) continue;
                 RemoveWritableValueAndDescendantsIfUnlinked(
                     ownership,
@@ -4879,7 +4890,7 @@ namespace NeoCompose.Runtime
             {
                 Member? entryMember = TryResolveCollectionEntryMember(sourceMember);
                 NeoValueOwnership entryOwnership =
-                    (entryMember is null ? null : DeclaredOwnership(entryMember)) ?? ownership;
+                    ChildOwnership(entryMember, ownership);
                 if (entryMember is not null && entryOwnership == ownership)
                 {
                     foreach (string memberId in EnumerateContainerMemberValueIds(ownership, valueId))
@@ -7531,7 +7542,8 @@ namespace NeoCompose.Runtime
             foreach (var key in row.value.Keys)
             {
                 var member = TryResolveOwnedChildMember(row, null, key);
-                if (member is not null && DeclaredOwnership(member) == NeoValueOwnership.Session)
+                if (member is not null
+                    && ChildOwnership(member, NeoValueOwnership.Save) == NeoValueOwnership.Session)
                     fields.Remove(key);
             }
         }
@@ -7807,9 +7819,9 @@ namespace NeoCompose.Runtime
                         Member? parentMember = TryInferMemberForValueId(parentId, out var inferred) ? inferred : null;
                         if (obj.constructorArgs?.Values.Any(token => token?.Type == JTokenType.String && (string?)token == id) == true
                             || obj.value is not null && (EnumerateOwnedChildLinks(obj, parentMember)
-                                .Any(link => link.valueId == id && (link.member is null ? ownership : DeclaredOwnership(link.member) ?? ownership) == ownership)
+                                .Any(link => link.valueId == id && ChildOwnership(link.member, ownership) == ownership)
                                 || TryResolveVirtualPlacement(id, out var placement) && placement.parentValueId == parentId
-                                    && (DeclaredOwnership(placement.member) ?? ownership) == ownership))
+                                    && ChildOwnership(placement.member, ownership) == ownership))
                             pending.Enqueue(parentId);
                     }
                     else if (parent is ArrayMemberValue { value: not null } array && System.Array.IndexOf(array.value, id) >= 0)
@@ -8053,9 +8065,7 @@ namespace NeoCompose.Runtime
                     current.valueId))
                 {
                     NeoValueOwnership childOwnership =
-                        (virtualChild.member is null
-                            ? null
-                            : DeclaredOwnership(virtualChild.member)) ?? ownership;
+                        ChildOwnership(virtualChild.member, ownership);
                     if (childOwnership != ownership) continue;
                     pending.Enqueue((virtualChild.valueId, virtualChild.member));
                 }
@@ -8072,7 +8082,7 @@ namespace NeoCompose.Runtime
                 foreach (var child in EnumerateOwnedChildLinks(val, currentMember))
                 {
                     NeoValueOwnership childOwnership =
-                        (child.member is null ? null : DeclaredOwnership(child.member)) ?? ownership;
+                        ChildOwnership(child.member, ownership);
                     if (childOwnership == ownership)
                     {
                         pending.Enqueue((child.valueId, child.member));

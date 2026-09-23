@@ -1666,9 +1666,7 @@ namespace NeoCompose.Runtime
                     if (stored is not null)
                         stored.TryGetValue(pair.Key, out childMaterializedId);
                     NeoValueOwnership childOwnership =
-                        (pair.Value.member is null
-                            ? null
-                            : DeclaredOwnership(pair.Value.member)) ?? ownership;
+                        ChildOwnership(pair.Value.member, ownership);
                     if (childMaterializedId is null)
                     {
                         if (!expansion.ClassChildren.TryGetValue(
@@ -1825,9 +1823,7 @@ namespace NeoCompose.Runtime
                 // pins materialize under (an Outpost's OutpostSaveData after
                 // the collapse virtualized the key).
                 NeoValueOwnership childOwnership =
-                    (child.member is null
-                        ? null
-                        : DeclaredOwnership(child.member)) ?? ownership;
+                    ChildOwnership(child.member, ownership);
                 if (child.member is not null)
                 {
                     expansion.TrackPlacement(

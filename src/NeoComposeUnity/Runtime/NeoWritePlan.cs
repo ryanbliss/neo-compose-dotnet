@@ -432,7 +432,7 @@ namespace NeoCompose.Runtime
                 foreach (var child in EnumerateOwnedChildLinks(row, member))
                 {
                     NeoValueOwnership childOwnership = child.member is null
-                        ? ownership : DeclaredOwnership(child.member) ?? ownership;
+                        ? ownership : ChildOwnership(child.member, ownership);
                     if (childOwnership != ownership) continue;
                     StageOwnedRemoval(plan, ownership, child.valueId, child.member, false, visited, reachable, removals);
                 }
