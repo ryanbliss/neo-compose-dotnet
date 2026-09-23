@@ -17,6 +17,22 @@ namespace NeoCompose.Runtime
         { Records = records; DependencyIds = dependencyIds; }
     }
 
+    /// <summary>One tile layer's flattened records and what flattening them read.</summary>
+    internal sealed class NeoTileLayerBuild
+    {
+        internal readonly List<NeoTilePlacementRecord> Records = new();
+        /// <summary>Every row read; a committed write to any re-flattens the layer.</summary>
+        internal readonly HashSet<string> DependencyIds = new();
+        /// <summary>
+        /// The Enabled and nested Position rows carried links read. A runtime
+        /// leaf write skips the plan, so these re-flatten the layer from the
+        /// leaf path instead (<see cref="NeoTileGridLookupCache.InvalidateLeaf"/>).
+        /// </summary>
+        internal readonly HashSet<string> LeafDependencyIds = new();
+        /// <summary>The object-carried links that flatten into this layer, enabled or not.</summary>
+        internal readonly HashSet<string> CarriedLinkIds = new();
+    }
+
     /// <summary>A prepared data edit. Building it never changes the live graph.</summary>
     internal sealed class NeoWritePlan
     {
@@ -26,7 +42,7 @@ namespace NeoCompose.Runtime
         internal string? ValidatedObjectInsertionGrid;
         internal readonly HashSet<string> UnchangedValueIds = new();
         internal readonly List<NeoValidatedTileConversion> ValidatedTileConversions = new();
-        internal readonly Dictionary<(string gridId, string layerId), NeoPreparedLayerRecords<NeoTilePlacementRecord>> PreparedTileLayers = new();
+        internal readonly Dictionary<(string gridId, string layerId), NeoTileLayerBuild> PreparedTileLayers = new();
         internal readonly Dictionary<(string gridId, string layerId), NeoPreparedLayerRecords<NeoObjectPlacementRecord>> PreparedObjectLayers = new();
         internal readonly Dictionary<(NeoValueOwnership ownership, string id), MemberValue?> Rows = new();
         internal readonly Dictionary<(NeoValueOwnership ownership, string id), string?> Fields = new();

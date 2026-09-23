@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using NeoCompose.Runtime.Json;
@@ -44,9 +45,10 @@ namespace NeoCompose.Runtime
     /// <summary>
     /// Default runtime renderer for Neo TileGrid content. It renders winning
     /// tile candidates into Unity Tilemaps and object instances into child
-    /// GameObjects with SpriteRenderers. Advanced SmartTile rules, tile-layer
-    /// links, and authored collider-shape mapping are layered on top of this
-    /// primitive renderer.
+    /// GameObjects with SpriteRenderers. Tile layer links, including the ones
+    /// an object carries, flatten into their target layer's Tilemap and never
+    /// get a GameObject of their own. Advanced SmartTile rules and authored
+    /// collider-shape mapping are layered on top of this primitive renderer.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class NeoTileGridRenderer : MonoBehaviour
@@ -70,7 +72,6 @@ namespace NeoCompose.Runtime
         private bool addSpriteBoundsColliders;
 
         private const int FallbackSortingOrderStride = 1000;
-        private const int MaxObjectCompositionDepth = 32;
 
         /// <summary>
         /// Schema key of <see cref="INeoWorldObjectValue.Enabled"/> on the
@@ -90,6 +91,7 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<TileBase, (NeoClient client, string classId, bool smart)> tileClasses = new();
         private readonly HashSet<TileBase> transientTileBases =
             new(ReferenceComparer<TileBase>.Instance);
+        // The client this renderer draws, attached to it for TryGetGameObject.
         private NeoClient? tileCacheClient;
         private readonly Dictionary<string, Tilemap> tilemapsByLayerId = new();
         private readonly Dictionary<string, TileLayerTargetRegistration>
@@ -105,18 +107,15 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<NeoObjectInstanceId, GameObject> objectRootsByInstanceId = new();
         private readonly Dictionary<NeoObjectInstanceId, IDisposable>
             objectPositionSubscriptionsByInstanceId = new();
-        // Every GameObject an instance's object graph rendered, bucketed by the
+        // Every GameObject an instance's object graph rendered, paired with the
         // value it came from, so a runtime Enabled write can toggle it without
-        // re-walking the composition. A tile-layer-link child contributes one
-        // GameObject per tile because its tiles are bare siblings with no root,
-        // but they all share the link's single bucket.
+        // re-walking the composition.
         private readonly Dictionary<NeoObjectInstanceId, ObjectVisibilityIndex>
             objectVisibilityByInstanceId = new();
+        // The same GameObjects by value id, for NeoGeneratedWorldObjectValue.TryGetGameObject.
+        private readonly Dictionary<string, GameObject> gameObjectsByValueId = new();
         // Every SpriteRenderer an instance rendered from a sprite OBJECT,
-        // paired with the value that governs it. Tile-layer-link tiles are
-        // absent on purpose: they are not world objects and their sprite comes
-        // from the tile asset factory, not from a Sprite member anything can
-        // write. See SyncObjectSprites.
+        // paired with the value that governs it. See SyncObjectSprites.
         private readonly Dictionary<NeoObjectInstanceId, List<RenderedObjectSprite>>
             objectSpritesByInstanceId = new();
         private readonly Dictionary<string, int> objectLayerFallbackSortingOrdersByLayerId = new();
@@ -128,22 +127,22 @@ namespace NeoCompose.Runtime
         private List<TileLayerTargetRegistration>? activeRenderTargets;
 
         /// <summary>
-        /// One world object value and every rendered GameObject its
+        /// One world object value and the rendered GameObject its
         /// <see cref="INeoWorldObjectValue.Enabled"/> decides the active state
         /// of. Deactivating a composition root hides its whole subtree, so a
-        /// nested part contributes only its own root here; a tile-layer link
-        /// contributes one GameObject per tile.
+        /// nested part contributes only its own root here.
         /// </summary>
         private sealed class RenderedObjectVisibility
         {
-            public RenderedObjectVisibility(INeoWorldObjectValue value)
+            public RenderedObjectVisibility(INeoWorldObjectValue value, GameObject gameObject)
             {
                 Value = value;
+                GameObject = gameObject;
             }
 
             public INeoWorldObjectValue Value { get; }
 
-            public List<GameObject> GameObjects { get; } = new();
+            public GameObject GameObject { get; }
 
             /// <summary>
             /// The state last pushed to Unity, or null before the first apply.
@@ -157,16 +156,11 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Every GameObject one placed instance rendered, bucketed by the value
-        /// that governs its visibility. Bucketing is what keeps reconciling
-        /// cheap: a 400-tile layer-link child is one bucket, not 400 entries.
+        /// Every GameObject one placed instance rendered, paired with the value
+        /// that governs its visibility.
         /// </summary>
         private sealed class ObjectVisibilityIndex : IDisposable
         {
-            private readonly Dictionary<INeoWorldObjectValue, RenderedObjectVisibility>
-                bucketsByValue =
-                    new(ReferenceComparer<INeoWorldObjectValue>.Instance);
-
             private readonly NeoTileGridRenderer renderer;
 
             public ObjectVisibilityIndex(NeoTileGridRenderer renderer) => this.renderer = renderer;
@@ -175,7 +169,14 @@ namespace NeoCompose.Runtime
 
             public void Dispose()
             {
-                foreach (var bucket in Buckets) bucket.PositionBinding?.Dispose();
+                foreach (var bucket in Buckets)
+                {
+                    bucket.PositionBinding?.Dispose();
+                    if (bucket.Value.valueId is string valueId
+                        && renderer.gameObjectsByValueId.TryGetValue(valueId, out var registered)
+                        && ReferenceEquals(registered, bucket.GameObject))
+                        renderer.gameObjectsByValueId.Remove(valueId);
+                }
             }
 
             /// <summary>
@@ -191,19 +192,15 @@ namespace NeoCompose.Runtime
                 bool trackPosition = true,
                 SortPointPair? sortPoint = null)
             {
-                if (!bucketsByValue.TryGetValue(value, out var bucket))
+                var bucket = new RenderedObjectVisibility(value, gameObject);
+                Buckets.Add(bucket);
+                if (trackPosition && value is NeoGeneratedClassValue generated)
                 {
-                    bucket = new RenderedObjectVisibility(value);
-                    bucketsByValue[value] = bucket;
-                    Buckets.Add(bucket);
-                    if (trackPosition && value is NeoGeneratedClassValue generated)
-                    {
-                        bucket.PositionBinding = new NestedObjectPositionBinding(
-                            renderer, value, generated, sortPoint);
-                    }
+                    bucket.PositionBinding = new NestedObjectPositionBinding(
+                        renderer, value, generated, sortPoint);
+                    bucket.PositionBinding.Register(gameObject.transform);
                 }
-                bucket.GameObjects.Add(gameObject);
-                bucket.PositionBinding?.Register(gameObject.transform);
+                if (value.valueId is string valueId) renderer.gameObjectsByValueId[valueId] = gameObject;
             }
         }
 
@@ -556,7 +553,6 @@ namespace NeoCompose.Runtime
             if (primitive == null) throw new ArgumentNullException(nameof(primitive));
             if (tileLayers == null) throw new ArgumentNullException(nameof(tileLayers));
 
-            renderedPrimitive = primitive;
             var grid = EnsureGrid();
             var createdTargets = new List<TileLayerTargetRegistration>();
             try
@@ -564,10 +560,14 @@ namespace NeoCompose.Runtime
                 bool clientChanged = TileCacheBelongsToAnotherClient(primitive.Client);
                 if (clearBeforeRender || clientChanged)
                 {
+                    NotifyRenderedObjectsDespawned();
                     DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.Replaced);
                     ClearChildren(grid.transform);
                     ClearRenderedIndexes();
                 }
+                // Set after the clear, so its despawn hooks resolve links
+                // through the primitive that drew them.
+                renderedPrimitive = primitive;
                 EnsureTileCacheClient(primitive.Client);
 
                 int sortingOrder = 0;
@@ -724,7 +724,6 @@ namespace NeoCompose.Runtime
             if (primitive == null) throw new ArgumentNullException(nameof(primitive));
             if (tileLayers == null) throw new ArgumentNullException(nameof(tileLayers));
 
-            renderedPrimitive = primitive;
             token.ThrowIfCancellationRequested();
 
             if (options.YieldBeforeRender)
@@ -752,14 +751,17 @@ namespace NeoCompose.Runtime
                 {
                     bool needsDestroyFrame = grid.transform.childCount > 0
                         || tileTargetsByLayerId.Count > 0;
+                    NotifyRenderedObjectsDespawned();
                     DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.Replaced);
                     ClearChildren(grid.transform);
                     ClearRenderedIndexes();
+                    renderedPrimitive = primitive;
                     EnsureTileCacheClient(primitive.Client);
                     if (needsDestroyFrame) await YieldRenderFrameAsync();
                 }
                 else
                 {
+                    renderedPrimitive = primitive;
                     EnsureTileCacheClient(primitive.Client);
                 }
 
@@ -866,6 +868,7 @@ namespace NeoCompose.Runtime
         {
             CancelInFlightRender();
             StopLiveSync();
+            NotifyRenderedObjectsDespawned();
             currentContent = null;
             renderedPrimitive = null;
             DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.RendererCleared);
@@ -886,9 +889,35 @@ namespace NeoCompose.Runtime
         {
             CancelInFlightRender();
             StopLiveSync();
+            NotifyRenderedObjectsDespawned();
             DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.RendererDestroyed);
             ClearRenderedIndexes();
             ClearTileBaseCache();
+        }
+
+        /// <summary>
+        /// The GameObject this renderer drew a value into: a world object's
+        /// own GameObject, or the Tilemap or object layer root a layer link
+        /// flattens into.
+        /// </summary>
+        internal bool TryGetGameObject(string valueId, bool isLink, [NotNullWhen(true)] out GameObject? gameObject)
+        {
+            if (gameObjectsByValueId.TryGetValue(valueId, out gameObject) && gameObject != null) return true;
+            gameObject = null;
+            if (!isLink
+                || renderedPrimitive is null
+                || !renderedPrimitive.LookupCache.TryGetLinkLayer(valueId, out var layerId, out bool isTileLayer))
+                return false;
+            if (isTileLayer)
+            {
+                if (tilemapsByLayerId.TryGetValue(layerId, out var tilemap) && tilemap != null)
+                    gameObject = tilemap.gameObject;
+            }
+            else if (objectLayerRootsByLayerId.TryGetValue(layerId, out var root) && root != null)
+            {
+                gameObject = root;
+            }
+            return gameObject != null;
         }
 
         /// <summary>
@@ -1118,24 +1147,26 @@ namespace NeoCompose.Runtime
         private void DestroyRenderedObject(NeoObjectInstanceId instanceId)
         {
             DisposeObjectPositionSubscription(instanceId);
-            if (objectVisibilityByInstanceId.Remove(instanceId, out var visibility))
-                visibility.Dispose();
             objectSpritesByInstanceId.Remove(instanceId);
+            objectVisibilityByInstanceId.Remove(instanceId, out var visibility);
             if (!objectRootsByInstanceId.TryGetValue(instanceId, out var root) ||
                 root == null)
             {
                 objectRootsByInstanceId.Remove(instanceId);
+                visibility?.Dispose();
                 return;
             }
 
             objectRootsByInstanceId.Remove(instanceId);
             // Explicit despawn notification while the root is still intact;
             // NeoObjectBehaviour.OnDestroy is only the fallback for destroy
-            // paths that bypass the renderer.
+            // paths that bypass the renderer. TryGetGameObject still answers
+            // for this object until the hook returns.
             if (root.TryGetComponent(out NeoObjectBehaviour behaviour))
             {
                 behaviour.NotifyDespawned();
             }
+            visibility?.Dispose();
             DestroyCompositionRoot(root);
         }
 
@@ -1313,12 +1344,9 @@ namespace NeoCompose.Runtime
                 // a value that actually flipped reaches a native GameObject.
                 if (bucket.Applied == enabled) continue;
                 bucket.Applied = enabled;
-                foreach (var gameObject in bucket.GameObjects)
-                {
-                    if (gameObject == null) continue;
-                    if (gameObject.activeSelf == enabled) continue;
-                    gameObject.SetActive(enabled);
-                }
+                var gameObject = bucket.GameObject;
+                if (gameObject == null || gameObject.activeSelf == enabled) continue;
+                gameObject.SetActive(enabled);
             }
         }
 
@@ -1356,6 +1384,16 @@ namespace NeoCompose.Runtime
 
             unityGrid.cellSize = new Vector3(cellSize, cellSize, 0f);
             return unityGrid;
+        }
+
+        // Play-mode destruction is deferred, so teardown runs despawn hooks
+        // first, while TryGetGameObject still answers for objects and links,
+        // as DestroyRenderedObject does.
+        private void NotifyRenderedObjectsDespawned()
+        {
+            foreach (var root in objectRootsByInstanceId.Values)
+                if (root != null && root.TryGetComponent(out NeoObjectBehaviour behaviour))
+                    behaviour.NotifyDespawned();
         }
 
         private void ClearRenderedIndexes()
@@ -1706,16 +1744,7 @@ namespace NeoCompose.Runtime
 
             if (instance.Object is not INeoSpriteObjectValue spriteObject) return go;
 
-            RenderSpriteChild(
-                content,
-                layer,
-                spriteObject.Name,
-                spriteObject,
-                spriteObject.Sprite,
-                Vector3.zero,
-                CellSpanFromSize(spriteObject.Size),
-                sortingOrder,
-                sprites);
+            RenderSpriteChild(content, layer, spriteObject, Vector3.zero, sortingOrder, sprites);
             return go;
         }
 
@@ -1759,7 +1788,7 @@ namespace NeoCompose.Runtime
             ObjectVisibilityIndex visibility,
             List<RenderedObjectSprite> sprites)
         {
-            if (depth > MaxObjectCompositionDepth) return 0;
+            if (depth > NeoReadOnlyTileGridPrimitive.MaxCompositionDepth) return 0;
             if (value is not INeoObjectCompositionSource composition) return 0;
 
             var valueId = value.valueId;
@@ -1779,7 +1808,7 @@ namespace NeoCompose.Runtime
                     child,
                     sortingOrder,
                     visitedValueIds,
-                    depth + 1,
+                    depth,
                     visibility,
                     sprites);
             }
@@ -1801,28 +1830,14 @@ namespace NeoCompose.Runtime
             ObjectVisibilityIndex visibility,
             List<RenderedObjectSprite> sprites)
         {
+            // A tile layer link flattens into its target layer's Tilemap
+            // (NeoTileGridPrimitive.BuildTileLayerRecords), not under the object.
+            if (child is INeoTileLayerLinkValue) return 0;
             var childOffset = CellOffsetToLocalPosition(child.Position);
-            var rendered = RenderTileLayerLinkChild(
-                parent,
-                layer,
-                child,
-                childOffset,
-                sortingOrder,
-                visibility);
-            if (rendered > 0) return rendered;
 
             if (child is INeoSpriteObjectValue spriteChild)
             {
-                var spriteGo = RenderSpriteChild(
-                    parent,
-                    layer,
-                    spriteChild.Name,
-                    spriteChild,
-                    spriteChild.Sprite,
-                    childOffset,
-                    CellSpanFromSize(spriteChild.Size),
-                    sortingOrder,
-                    sprites);
+                var spriteGo = RenderSpriteChild(parent, layer, spriteChild, childOffset, sortingOrder, sprites);
                 visibility.Register(child, spriteGo);
                 return 1;
             }
@@ -1852,62 +1867,15 @@ namespace NeoCompose.Runtime
                     colliderSpec.Offset * cellSize, colliderSpec.IsTrigger));
                 childRendered++;
             }
-            if (childRendered == 0)
-            {
-                DestroyCompositionRoot(childRoot);
-                return childRendered;
-            }
+            // Kept even when nothing under it draws, so every world object
+            // answers TryGetGameObject; an empty one still counts as nothing
+            // for its parent's sprite fallback.
             visibility.Register(child, childRoot, sortPoint: sortPoint);
             return childRendered;
         }
 
-        private int RenderTileLayerLinkChild(
-            Transform parent,
-            IReadOnlyNeoObjectLayerRuntime layer,
-            INeoValueReference link,
-            Vector3 linkOffset,
-            int sortingOrder,
-            ObjectVisibilityIndex visibility)
-        {
-            if (link is not INeoTileLayerLinkValue tileLayerLink) return 0;
-
-            var rendered = 0;
-            foreach (var tileInstance in tileLayerLink.GetTileProjections())
-            {
-                var tileValue = tileInstance.Tile;
-
-                // Tiles are not world objects, so they carry no sprite
-                // contract: the tile asset factory stays the sprite source
-                // here, and the child takes the sprite's own name.
-                var sprite = NeoTileAssetFactory.ResolveSprite(tileValue);
-                if (sprite == null) continue;
-
-                // A link's tiles are bare siblings under the shared parent with
-                // no root of their own, so each one is registered against the
-                // link value that governs them.
-                var tileGo = RenderSpriteChild(
-                    parent,
-                    layer,
-                    sprite.name,
-                    spriteObject: null,
-                    sprite,
-                    linkOffset + CellOffsetToLocalPosition(tileInstance.Cell),
-                    Vector3.one,
-                    sortingOrder,
-                    sprites: null);
-                if (link is INeoWorldObjectValue linkObject)
-                {
-                    visibility.Register(linkObject, tileGo);
-                }
-                rendered++;
-            }
-            return rendered;
-        }
-
         /// <summary>
-        /// Renders one sprite child. <paramref name="spriteObject"/> is the
-        /// authored sprite state and is null for tile-layer-link tiles, which
-        /// are not world objects and carry no renderer metadata.
+        /// Renders one sprite object.
         /// </summary>
         /// <returns>
         /// The GameObject created, so the caller can register it for
@@ -1916,14 +1884,14 @@ namespace NeoCompose.Runtime
         private GameObject RenderSpriteChild(
             Transform parent,
             IReadOnlyNeoObjectLayerRuntime layer,
-            string name,
-            INeoSpriteObjectValue? spriteObject,
-            Sprite? sprite,
+            INeoSpriteObjectValue spriteObject,
             Vector3 localPosition,
-            Vector3 cellSpan,
             int sortingOrder,
-            List<RenderedObjectSprite>? sprites)
+            List<RenderedObjectSprite> sprites)
         {
+            var name = spriteObject.Name;
+            var sprite = spriteObject.Sprite;
+            var cellSpan = CellSpanFromSize(spriteObject.Size);
             var go = new GameObject(
                 string.IsNullOrWhiteSpace(name) ? (sprite != null ? sprite.name : "Sprite") : name);
             go.transform.SetParent(parent, false);
@@ -1934,30 +1902,23 @@ namespace NeoCompose.Runtime
             var boundsCollider = addSpriteBoundsColliders ? go.AddComponent<BoxCollider2D>() : null;
             ApplySpriteGeometry(renderer, cellSpan, boundsCollider);
             // Recorded so a later Sprite / FlipX / FlipY write on the same
-            // value reaches this renderer (SyncObjectSprites). Tile-layer-link
-            // tiles pass a null list: they carry no sprite-object value, so
-            // there is nothing to re-read them from.
-            if (spriteObject != null)
-            {
-                sprites?.Add(new RenderedObjectSprite(spriteObject, renderer, cellSpan, boundsCollider, sortingOrder));
-            }
+            // value reaches this renderer (SyncObjectSprites).
+            sprites.Add(new RenderedObjectSprite(spriteObject, renderer, cellSpan, boundsCollider, sortingOrder));
             // The authored order is an offset on the order derived from the
             // object's layer group, so an object layer's sorting order still
             // moves the sprite with it.
             ApplySorting(
                 renderer,
                 layer.SortingLayerName,
-                sortingOrder + (spriteObject?.SortingOrder ?? 0));
+                sortingOrder + (spriteObject.SortingOrder ?? 0));
 
             return go;
         }
 
         private static void ApplySpriteState(
             SpriteRenderer renderer,
-            INeoSpriteObjectValue? spriteObject)
+            INeoSpriteObjectValue spriteObject)
         {
-            if (spriteObject == null) return;
-
             renderer.flipX = spriteObject.FlipX;
             renderer.flipY = spriteObject.FlipY;
             renderer.maskInteraction =
@@ -2107,6 +2068,7 @@ namespace NeoCompose.Runtime
             if (ReferenceEquals(tileCacheClient, client)) return;
             ClearTileBaseCache();
             tileCacheClient = client;
+            client.AttachRenderer(this);
         }
 
         private void ClearTileBaseCache()
@@ -2126,6 +2088,7 @@ namespace NeoCompose.Runtime
             transientTileBases.Clear();
             tileBasesByClassId.Clear();
             tileClasses.Clear();
+            tileCacheClient?.DetachRenderer(this);
             tileCacheClient = null;
         }
 

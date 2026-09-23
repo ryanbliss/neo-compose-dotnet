@@ -38,9 +38,6 @@ namespace NeoCompose.Runtime
     /// </summary>
     public static class NeoLayerLinkLookupExtensions
     {
-        internal static IReadOnlyList<NeoTileProjection> GetTileProjections(
-            this INeoTileLayerLinkValue link) => ProjectTiles(link).Winners;
-
         public static IReadOnlyList<NeoGeneratedClassValue> GetTiles(
             this INeoTileLayerLinkValue link)
         {

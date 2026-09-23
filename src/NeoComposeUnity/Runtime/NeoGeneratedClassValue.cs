@@ -57,7 +57,6 @@ namespace NeoCompose.Runtime
         internal NeoMemberClassWritable WritableBackingNode => writableNode;
         internal string AnimationInstanceIdentity =>
             valueId ?? $"wrapper:{animationWrapperIdentity}";
-        internal NeoRenderBindingStore RenderBindings { get; } = new();
 
         internal void MarkClassDefaultReference()
         {
@@ -141,7 +140,6 @@ namespace NeoCompose.Runtime
                 subscription.Dispose();
             }
             subscriptions.Clear();
-            RenderBindings.Dispose();
             node.OnChanged -= HandleNodeChanged;
             node.OnDisposed -= HandleNodeDisposed;
             if (writableNodeCache is not null && !ReferenceEquals(writableNodeCache, node))

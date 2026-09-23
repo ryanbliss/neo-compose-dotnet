@@ -49,7 +49,7 @@ namespace NeoCompose.Runtime
             var members = new List<string>();
             foreach (var link in links) members.AddRange(primitive.ResolveListEntryIds(link.ListValueId, null));
             var tileDependencies = new HashSet<string>();
-            if (primitive.HasObjectCarriedTiles(root.id, tileDependencies)) return false;
+            if (primitive.HasObjectCarriedTiles(root, tileDependencies)) return false;
             var dependencies = new HashSet<string> { root.id };
             Vector2Int origin = primitive.ReadObjectOrigin(root, dependencies);
             tileDependencies.UnionWith(dependencies);
