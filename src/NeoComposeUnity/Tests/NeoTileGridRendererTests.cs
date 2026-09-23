@@ -5155,16 +5155,8 @@ namespace NeoCompose.Tests
                 var artWorld = drawn.transform.position;
 
                 // Assigning a new group disposes the node the pair read from.
-                var replacement = NeoGeneratedTypesSupport.CreateWritableClassValue(
-                    client,
-                    SortingGroupClassId,
-                    new NeoGeneratedConstructorValue(
-                        "SortPoint", "sorting-group-sort-point-member", new Vector2(1.5f, 0.25f)));
                 var previous = ((TestNodeSortingGroup)grouped.SortingGroup!).BackingNode;
-                Assert.DoesNotThrow(() => NeoGeneratedTypesSupport.SetValue(
-                    NeoGeneratedTypesSupport.AsWritable(grouped.BackingNode),
-                    "SortingGroup",
-                    NeoGeneratedTypesSupport.ValueReference(new TestNodeSortingGroup(client, replacement))));
+                Assert.DoesNotThrow(() => AssignSortingGroup(client, grouped, new Vector2(1.5f, 0.25f)));
                 Assert.IsTrue(previous.isDisposed);
                 AssertSamePosition(new Vector3(3, 0.5f, 0), pair.localPosition);
                 AssertSamePosition(-pair.localPosition, content.localPosition);
@@ -5176,17 +5168,83 @@ namespace NeoCompose.Tests
 
                 // A later Position write moves the owner and keeps the pair.
                 var ownerWorld = owner.position;
-                grouped.Position = new NeoReadOnlyVector3(2, 3, 0);
-                Assert.DoesNotThrow(() => NeoGeneratedTypesSupport.SetValue(
-                    NeoGeneratedTypesSupport.AsWritable(grouped.BackingNode),
-                    "Position",
-                    NeoValueWritePayload.FromValue(new Vector3(2, 3, 0))));
+                Assert.DoesNotThrow(() => WritePosition(grouped, new Vector3(2, 3, 0)));
                 Assert.AreNotEqual(ownerWorld, owner.position);
                 AssertSamePosition(new Vector3(-1, 4, 0), pair.localPosition);
                 AssertSamePosition(-pair.localPosition, content.localPosition);
                 AssertSamePosition(artWorld + (owner.position - ownerWorld), drawn.transform.position);
             }
             finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Render_NullSortingGroupKeepsThePairUntilTheNextGroup(bool composition)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
+            var (root, grouped) = BuildSortPointOwner(client, composition);
+            var go = new GameObject("Null sort point");
+            try
+            {
+                var renderer = RenderSortPointOwner(go, client, root);
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var placed));
+                var owner = composition ? placed.transform.Find("Part") : placed.transform;
+                var pair = owner.Find("Sorting Group");
+                var content = pair.Find("Content");
+                AssignSortingGroup(client, grouped, new Vector2(1.5f, 0.25f));
+                AssertSamePosition(new Vector3(3, 0.5f, 0), pair.localPosition);
+
+                // Null keeps the group node but clears its value, so its
+                // SortPoint is gone; the pair keeps its last point.
+                var node = ((TestNodeSortingGroup)grouped.SortingGroup!).BackingNode;
+                Assert.DoesNotThrow(() => AssignSortingGroup(client, grouped, null));
+                Assert.IsNull(grouped.SortingGroup);
+                Assert.IsFalse(node.isDisposed);
+                Assert.DoesNotThrow(() => WritePosition(grouped, new Vector3(2, 3, 0)));
+                AssertSamePosition(new Vector3(3, 0.5f, 0), pair.localPosition);
+                AssertSamePosition(-pair.localPosition, content.localPosition);
+
+                // The next group takes over the pair.
+                Assert.DoesNotThrow(() => AssignSortingGroup(client, grouped, new Vector2(0.75f, 1f)));
+                AssertSamePosition(new Vector3(1.5f, 2, 0), pair.localPosition);
+                AssertSamePosition(-pair.localPosition, content.localPosition);
+                WriteSortPoint(grouped, new Vector2(-0.5f, 2f));
+                AssertSamePosition(new Vector3(-1, 4, 0), pair.localPosition);
+                AssertSamePosition(-pair.localPosition, content.localPosition);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        /// <summary>
+        /// Writes a new sorting group at <paramref name="point"/>, or null,
+        /// into the owner's <c>SortingGroup</c> key, as a generated setter
+        /// assigning a value does.
+        /// </summary>
+        private static void AssignSortingGroup(NeoClient client, TestComposedObject obj, Vector2? point)
+        {
+            NeoValueWritePayload? payload = null;
+            if (point is { } sortPoint)
+            {
+                var group = NeoGeneratedTypesSupport.CreateWritableClassValue(
+                    client,
+                    SortingGroupClassId,
+                    new NeoGeneratedConstructorValue("SortPoint", "sorting-group-sort-point-member", sortPoint));
+                payload = NeoGeneratedTypesSupport.ValueReference(new TestNodeSortingGroup(client, group));
+            }
+            NeoGeneratedTypesSupport.SetValue(
+                NeoGeneratedTypesSupport.AsWritable(obj.BackingNode), "SortingGroup", payload);
+        }
+
+        /// <summary>
+        /// A Position write the renderer reads back through the test double.
+        /// </summary>
+        private static void WritePosition(TestComposedObject obj, Vector3 position)
+        {
+            obj.Position = new NeoReadOnlyVector3(position);
+            NeoGeneratedTypesSupport.SetValue(
+                NeoGeneratedTypesSupport.AsWritable(obj.BackingNode),
+                "Position",
+                NeoValueWritePayload.FromValue(position));
         }
 
         /// <summary>
@@ -7040,16 +7098,18 @@ namespace NeoCompose.Tests
             private INeoSortingGroup? sortingGroup;
 
             /// <summary>
-            /// A node-backed group reads the owner's current child node, as a
-            /// generated getter does, so replacing the group value is seen.
+            /// A node-backed group reads the owner's current child node as a
+            /// generated getter does: null when that node's value is null,
+            /// otherwise a group over the node, so replacing it is seen.
             /// </summary>
             public INeoSortingGroup? SortingGroup
             {
                 get
                 {
-                    if (sortingGroup is TestNodeSortingGroup current
-                        && BackingNode.TryGet(nameof(SortingGroup), out NeoMemberClass? node)
-                        && !ReferenceEquals(current.BackingNode, node))
+                    if (sortingGroup is not TestNodeSortingGroup current) return sortingGroup;
+                    var node = BackingNode.Get<NeoMemberClass>(nameof(SortingGroup));
+                    if (node.value?.value is null) return null;
+                    if (!ReferenceEquals(current.BackingNode, node))
                         sortingGroup = new TestNodeSortingGroup(Client, node);
                     return sortingGroup;
                 }

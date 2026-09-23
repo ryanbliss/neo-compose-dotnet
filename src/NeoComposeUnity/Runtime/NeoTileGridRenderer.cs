@@ -219,7 +219,7 @@ namespace NeoCompose.Runtime
             private readonly INeoSortingGroupSource source;
             private readonly Transform sortingGroup;
             private INeoSortingGroup? group;
-            private NeoMember? groupNode;
+            private NeoMemberClass? groupNode;
             private Vector3 applied;
 
             public SortPointPair(
@@ -246,8 +246,8 @@ namespace NeoCompose.Runtime
             /// <summary>
             /// Whether a change reported to the owner can move the point: the
             /// group node itself or one of its leaves, or any change once
-            /// assigning a new group has disposed that node. A group without a
-            /// backing node cannot rule any change out.
+            /// assigning a new group has disposed that node. With no group, or
+            /// a group without a backing node, no change can be ruled out.
             /// </summary>
             public bool IsGroupChange(NeoMember changed) =>
                 groupNode is null or { isDisposed: true }
@@ -257,13 +257,15 @@ namespace NeoCompose.Runtime
             /// <summary>
             /// Two transform writes that touch no child, skipped when the point
             /// equals the last one applied or the pair is already destroyed.
-            /// A disposed group node means the owner was assigned a new group,
-            /// so the pair re-reads it from the owner first.
+            /// The pair re-reads the owner's group when it has none, or when
+            /// its node was disposed (a new group was assigned) or went null;
+            /// with no group it keeps the last point.
             /// </summary>
             public void Apply()
             {
                 if (sortingGroup == null) return;
-                if (groupNode is { isDisposed: true })
+                if (group is null
+                    || groupNode is { isDisposed: true } or { value: null or { value: null } })
                 {
                     group = source.SortingGroup;
                     groupNode = (group as NeoGeneratedClassValue)?.BackingNode;
