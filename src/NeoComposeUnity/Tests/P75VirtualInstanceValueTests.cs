@@ -2550,13 +2550,14 @@ namespace NeoCompose.Tests
 
         /// <summary>
         /// A write under a constructed list entry stores the entry at its
-        /// deterministic id while the list above it stays virtual. The
-        /// stored row keeps only its explicit fields, so its init-backed
-        /// members still come from replaying the entry as its own nested
-        /// root. Expanding the outer root must find that stored row at
-        /// every depth of its virtual subtree instead of minting a second
-        /// copy, or a later ToVariant on the outer root binds the entry's
-        /// init-backed member to no row and fails to materialize it.
+        /// deterministic id while the list above it stays virtual (P75 §3.3).
+        /// The stored row is a spine of the outer expansion, not a separate
+        /// root: its omitted members — the entry constructor's init-backed
+        /// <c>Label</c> and the call site's <c>Name</c> initializer, which only
+        /// the outer constructor's replay carries — still resolve there, live,
+        /// after a reload, and through a variant replay of the outer root.
+        /// Neowyn's damage variants find their sprite child by that
+        /// <c>Name</c>.
         /// </summary>
         [Test]
         public void ReloadedListEntryWithAStoredLeafKeepsItsInitBackedMembersThroughToVariant()
@@ -2569,6 +2570,9 @@ namespace NeoCompose.Tests
             {
                 NeoMemberClassWritable thing = first.save
                     .Get<NeoMemberClassWritable>("Thing");
+                // A variant replay keeps the constructed unordered entry:
+                // its only ownership edge is its container stamp.
+                ReplayAsVariant(first, thing);
                 NeoMemberList children = thing.Get<NeoMemberList>("Children");
                 childrenId = children.value!.id;
                 var entry = (NeoMemberClassWritable)children.Single();
@@ -2583,6 +2587,9 @@ namespace NeoCompose.Tests
                 Assert.IsFalse(
                     first.saveValues.ContainsKey(childrenId),
                     "the list above the entry stays virtual");
+                AssertEntry(thing);
+                ReplayAsVariant(first, thing);
+                AssertEntry(thing);
                 saved = first.SerializeSaveData();
             }
 
@@ -2592,15 +2599,20 @@ namespace NeoCompose.Tests
             NeoMemberClassWritable reloaded = second.save
                 .Get<NeoMemberClassWritable>("Thing");
             AssertEntry(reloaded);
+            ReplayAsVariant(second, reloaded);
+            AssertEntry(reloaded);
+
             // Re-selecting the base variant over a stale selection replays
             // the root as a variant candidate, the path ToVariant takes.
-            reloaded.value!.instanceVariantId = "previous-variant";
-            Assert.DoesNotThrow(() => NeoGeneratedTypesSupport.ApplyVariant(
-                new SparseThingValue(second, reloaded),
-                NeoGeneratedTypesSupport.ResolveBaseVariant<SparseThingValue>(
-                    second,
-                    "thing-class")));
-            AssertEntry(reloaded);
+            static void ReplayAsVariant(NeoClient client, NeoMemberClassWritable root)
+            {
+                root.value!.instanceVariantId = "previous-variant";
+                Assert.DoesNotThrow(() => NeoGeneratedTypesSupport.ApplyVariant(
+                    new SparseThingValue(client, root),
+                    NeoGeneratedTypesSupport.ResolveBaseVariant<SparseThingValue>(
+                        client,
+                        "thing-class")));
+            }
 
             void AssertEntry(NeoMemberClassWritable root)
             {
@@ -2615,13 +2627,173 @@ namespace NeoCompose.Tests
                     "tagged",
                     entry.Get<NeoMemberStringWritable>("Tag").value!.value);
                 Assert.AreEqual(
-                    "unnamed",
-                    entry.Get<NeoMemberStringWritable>("Name").value!.value);
+                    "Sprite",
+                    entry.Get<NeoMemberStringWritable>("Name").value!.value,
+                    "the call-site initializer resolves through the outer root");
                 NeoMemberStringWritable label = entry.Get<NeoMemberStringWritable>("Label");
                 Assert.IsNotNull(
                     label.value,
-                    "the init-backed member resolves to the entry's own replayed row");
+                    "the init-backed member resolves through the outer root");
                 Assert.AreEqual("call-site", label.value!.value);
+            }
+        }
+
+        /// <summary>
+        /// The overrides stored under a root — a materialized spine and the
+        /// leaf that stored it — live at ids minted from that root's
+        /// namespace, so they die with the root, whether an authored root is
+        /// tombstoned or a save-owned one is dropped. Neowyn despawns a
+        /// destroyed boulder whose sprite child an earlier hit stored; the
+        /// orphaned spine's live node then refreshed against the expansion
+        /// the removal had just retired.
+        /// </summary>
+        [TestCase(true)]
+        [TestCase(false)]
+        public void RemovingARootRemovesTheOverridesStoredUnderIt(bool authored)
+        {
+            const string thingId = "thing-instance";
+            ProjectData data = BuildConstructedUnorderedChildrenProjectData();
+            var root = (ObjectMemberValue)data.values[thingId];
+            string saved;
+            using (NeoClient first = NeoTestSaveStack.ClientFromSchema(
+                BuildConstructedUnorderedChildrenProjectData()))
+            {
+                var entry = (NeoMemberClassWritable)first.save
+                    .Get<NeoMemberClassWritable>("Thing")
+                    .Get<NeoMemberList>("Children")
+                    .Single();
+                entry.Get<NeoMemberStringWritable>("Tag").Set("tagged");
+                saved = first.SerializeSaveData();
+            }
+            if (!authored)
+            {
+                var save = JObject.Parse(saved);
+                ((JObject)save["values"]!)[thingId] = JObject.FromObject(root);
+                saved = save.ToString();
+                data.values.Remove(thingId);
+            }
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                data,
+                loadedSaveContent: saved);
+            var live = (NeoMemberClassWritable)client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberList>("Children")
+                .Single();
+            string spineId = live.value!.id;
+            string tagId = live.Get<NeoMemberStringWritable>("Tag").value!.id;
+            Assert.IsTrue(client.saveValues.ContainsKey(spineId));
+            Assert.IsTrue(client.saveValues.ContainsKey(tagId));
+
+            Assert.DoesNotThrow(() =>
+            {
+                if (authored)
+                {
+                    client.WriteRemovalTombstone(NeoValueOwnership.Save, thingId);
+                    return;
+                }
+                var plan = new NeoWritePlan(client);
+                client.StageOwnedRemoval(plan, NeoValueOwnership.Save, thingId, data.members["thing-member"]);
+                plan.Commit();
+            });
+            Assert.IsFalse(client.saveValues.ContainsKey(spineId), "the spine dies with its root");
+            Assert.IsFalse(client.saveValues.ContainsKey(tagId), "so does the leaf under it");
+        }
+
+        /// <summary>
+        /// Removing a root drops the overrides stored in its namespace in the
+        /// removal's own store, never in a lower one: a Session tombstone
+        /// over the root keeps the Save overrides for when it lifts.
+        /// </summary>
+        [Test]
+        public void ASessionTombstoneOverARootKeepsItsSaveOverrides()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                BuildConstructedUnorderedChildrenProjectData());
+            var entry = (NeoMemberClassWritable)client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberList>("Children")
+                .Single();
+            entry.Get<NeoMemberStringWritable>("Tag").Set("tagged");
+            string spineId = entry.value!.id;
+            string tagId = entry.Get<NeoMemberStringWritable>("Tag").value!.id;
+
+            Assert.DoesNotThrow(() => client.WriteRemovalTombstone(
+                NeoValueOwnership.Session,
+                "thing-instance"));
+
+            Assert.IsTrue(client.saveValues.ContainsKey(spineId), "the Save spine outlives a Session removal");
+            Assert.IsTrue(client.saveValues.ContainsKey(tagId), "so does the Save leaf under it");
+        }
+
+        /// <summary>
+        /// Selecting a variant on the stored entry itself gives it a recipe
+        /// of its own, live and after a reload; re-selecting Base returns it
+        /// to the outer root's spine, call-site initializer included.
+        /// </summary>
+        [Test]
+        public void AStoredEntrySelectingItsOwnVariantLeavesTheSpineAndBaseReturnsIt()
+        {
+            string saved;
+            using (NeoClient first = NeoTestSaveStack.ClientFromSchema(
+                BuildConstructedUnorderedChildrenProjectData()))
+            {
+                NeoMemberClassWritable thing = first.save.Get<NeoMemberClassWritable>("Thing");
+                Entry(thing).Get<NeoMemberStringWritable>("Tag").Set("tagged");
+                Assert.DoesNotThrow(() => NeoGeneratedTypesSupport.ApplyVariant(
+                    new SparseEntryValue(first, Entry(thing)),
+                    first.GetOrCreateVariant<SparseEntryValue>("entry-variant")));
+                AssertEntry(thing, "unnamed", "variant");
+                saved = first.SerializeSaveData();
+            }
+            using (NeoClient second = NeoTestSaveStack.ClientFromSchema(
+                BuildConstructedUnorderedChildrenProjectData(),
+                loadedSaveContent: saved))
+            {
+                NeoMemberClassWritable thing = second.save.Get<NeoMemberClassWritable>("Thing");
+                AssertEntry(thing, "unnamed", "variant");
+                Assert.DoesNotThrow(() => NeoGeneratedTypesSupport.ApplyVariant(
+                    new SparseEntryValue(second, Entry(thing)),
+                    NeoGeneratedTypesSupport.ResolveBaseVariant<SparseEntryValue>(second, "entry-class")));
+                AssertEntry(thing, "Sprite", "call-site");
+                saved = second.SerializeSaveData();
+            }
+            using NeoClient third = NeoTestSaveStack.ClientFromSchema(
+                BuildConstructedUnorderedChildrenProjectData(),
+                loadedSaveContent: saved);
+            AssertEntry(third.save.Get<NeoMemberClassWritable>("Thing"), "Sprite", "call-site");
+        }
+
+        private static NeoMemberClassWritable Entry(NeoMemberClassWritable thing)
+            => (NeoMemberClassWritable)thing.Get<NeoMemberList>("Children").Single();
+
+        private static void AssertEntry(NeoMemberClassWritable thing, string name, string label)
+        {
+            NeoMemberClassWritable entry = Entry(thing);
+            Assert.AreEqual("tagged", entry.Get<NeoMemberStringWritable>("Tag").value!.value);
+            Assert.AreEqual(name, entry.Get<NeoMemberStringWritable>("Name").value!.value);
+            Assert.AreEqual(label, entry.Get<NeoMemberStringWritable>("Label").value?.value);
+        }
+
+        private sealed class SparseEntryValue : NeoGeneratedClassValue
+        {
+            internal SparseEntryValue(
+                NeoClient client,
+                NeoMemberClassWritable node)
+                : base(
+                    client,
+                    node,
+                    "entry-class",
+                    isReadOnly: false,
+                    inheritedStorageOwnership: NeoValueOwnership.Save)
+            {
+            }
+
+            internal static SparseEntryValue CreateWritable(
+                NeoClient client,
+                NeoMemberClassWritable node)
+            {
+                return new SparseEntryValue(client, node);
             }
         }
 
@@ -4641,28 +4813,14 @@ namespace NeoCompose.Tests
                                 typeInfo = childrenType,
                                 entries = new Pointer[]
                                 {
-                                    new FunctionPointer
-                                    {
-                                        type = PointerKind.Function,
-                                        function = new DeclaredConstructorFunction
+                                    EntryConstruction(
+                                        "call-site",
+                                        new FunctionClassConstructorField
                                         {
-                                            type = FunctionKind.DeclaredConstructor,
-                                            info = new DeclaredConstructorInfo
-                                            {
-                                                schemaClassInfo = ClassType(entryClass.id),
-                                                constructorId = "entry-ctor",
-                                                args = new[]
-                                                {
-                                                    new DeclaredConstructorArgument
-                                                    {
-                                                        name = "Initial",
-                                                        valuePointer = StringLiteral("call-site"),
-                                                    },
-                                                },
-                                                fields = Array.Empty<FunctionClassConstructorField>(),
-                                            },
-                                        },
-                                    },
+                                            schemaKey = "Name",
+                                            memberId = "entry-name",
+                                            valuePointer = StringLiteral("Sprite"),
+                                        }),
                                 },
                             },
                         },
@@ -4672,8 +4830,87 @@ namespace NeoCompose.Tests
             var root = (ObjectMemberValue)data.values["thing-instance"];
             root.instanceConstructorId = "thing-ctor";
             root.constructorArgs = new Dictionary<string, JToken?>();
+
+            // Entry.Variants.Other: Initialize is `new Entry("variant")`.
+            var variantClass = SchemaClass("entry-variant-class", "NeoVariant", NeoMemberStorage.Immutable);
+            variantClass.schema["Initialize"] = "entry-variant-initialize";
+            data.classes[variantClass.id] = variantClass;
+            data.members["entry-variant-initialize"] = new DelegateMember
+            {
+                id = "entry-variant-initialize",
+                projectId = "p75-project",
+                name = "Initialize",
+                kind = MemberKind.NSDelegate,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Immutable,
+                returnTypeInfo = ClassType(entryClass.id),
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+            };
+            data.values["entry-variant-graph"] = ObjectValue(
+                "entry-variant-graph",
+                variantClass.id,
+                new Dictionary<string, string> { ["Initialize"] = "entry-variant-closure" });
+            data.values["entry-variant-closure"] = new DelegateMemberValue
+            {
+                id = "entry-variant-closure",
+                value = new NeoDelegateValue
+                {
+                    code = "() => new Entry(\"variant\")",
+                    action = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = new[]
+                        {
+                            ConstructorVariable("__this__", ClassType(entryClass.id)),
+                            ConstructorVariable("__root__", ClassType("__root__")),
+                        },
+                        typeInfo = ClassType(entryClass.id),
+                        instructions = new Instruction[]
+                        {
+                            new ReturnInstruction
+                            {
+                                type = InstructionKind.Return,
+                                pointer = EntryConstruction("variant"),
+                            },
+                        },
+                    },
+                },
+            };
+            data.variants["entry-variant"] = new VariantRecord
+            {
+                id = "entry-variant",
+                projectId = "p75-project",
+                classId = entryClass.id,
+                name = "Other",
+                valueId = "entry-variant-graph",
+            };
             return data;
         }
+
+        private static FunctionPointer EntryConstruction(
+            string initial,
+            params FunctionClassConstructorField[] fields) => new()
+        {
+            type = PointerKind.Function,
+            function = new DeclaredConstructorFunction
+            {
+                type = FunctionKind.DeclaredConstructor,
+                info = new DeclaredConstructorInfo
+                {
+                    schemaClassInfo = ClassType("entry-class"),
+                    constructorId = "entry-ctor",
+                    args = new[]
+                    {
+                        new DeclaredConstructorArgument
+                        {
+                            name = "Initial",
+                            valuePointer = StringLiteral(initial),
+                        },
+                    },
+                    fields = fields,
+                },
+            },
+        };
 
         private static InitializerBody AggregateArgumentInitializer(
             string code,

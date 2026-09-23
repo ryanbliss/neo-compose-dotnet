@@ -389,13 +389,13 @@ namespace NeoCompose.Runtime
             {
                 if (CanProveUnreachable(ownership, removals))
                 {
-                    foreach (string id in removals) plan.Remove(ownership, id);
+                    foreach (string id in removals) RemoveOwnedRow(plan, ownership, id);
                     return;
                 }
                 reachable = BuildReachableWritableValueIds(ownership);
             }
             foreach (string id in removals)
-                if (!reachable.Contains(id)) plan.Remove(ownership, id);
+                if (!reachable.Contains(id)) RemoveOwnedRow(plan, ownership, id);
         }
 
         internal void StageOwnedRemoval(
@@ -436,11 +436,44 @@ namespace NeoCompose.Runtime
                 {
                     id = valueId, createdAt = now, updatedAt = now, mark = NeoValueMarks.Removed,
                 }, "mark");
+                StageVirtualFootprintRemoval(plan, ownership, valueId);
             }
             else if (plan.TryGetWritable(ownership, valueId, out _))
             {
                 if (removals is not null) removals.Add(valueId);
-                else plan.Remove(ownership, valueId);
+                else RemoveOwnedRow(plan, ownership, valueId);
+            }
+        }
+
+        private void RemoveOwnedRow(NeoWritePlan plan, NeoValueOwnership ownership, string valueId)
+        {
+            plan.Remove(ownership, valueId);
+            StageVirtualFootprintRemoval(plan, ownership, valueId);
+        }
+
+        /// <summary>
+        /// P75: a virtual root's stored overrides (materialized spines, pins)
+        /// live at ids minted from that root's namespace, so nothing else owns
+        /// them and they die with it, along with what they own. Reachability
+        /// cannot prove this before the write installs: the root's committed
+        /// expansion still links them. A removal stays in its own store, plus
+        /// the Session overlay above a removed Save root; a Session tombstone
+        /// over a Save root leaves the Save overrides for when it lifts.
+        /// </summary>
+        private void StageVirtualFootprintRemoval(NeoWritePlan plan, NeoValueOwnership ownership, string rootId)
+        {
+            if (!virtualFootprintByRoot.TryGetValue(rootId, out var footprint)) return;
+            foreach (string id in footprint)
+            {
+                if (id == rootId) continue;
+                Drop(ownership, id);
+                if (ownership == NeoValueOwnership.Save) Drop(NeoValueOwnership.Session, id);
+            }
+
+            void Drop(NeoValueOwnership store, string id)
+            {
+                if (plan.TryGetWritable(store, id, out _))
+                    StageOwnedRemoval(plan, store, id, TryInferMemberForValueId(id, out Member? member) ? member : null);
             }
         }
     }

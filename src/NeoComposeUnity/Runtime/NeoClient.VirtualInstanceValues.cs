@@ -474,6 +474,10 @@ namespace NeoCompose.Runtime
         {
             try
             {
+                // A materialized spine is overlaid by the root that owns it.
+                if (IsVirtualInstanceRoot(root)
+                    && virtualRootByFootprintId.TryGetValue(root.id, out string? spineOwner)
+                    && spineOwner != root.id) return;
                 if (!IsVirtualInstanceRoot(root))
                 {
                     if (!virtualFootprintByRoot.ContainsKey(root.id)
@@ -1641,16 +1645,12 @@ namespace NeoCompose.Runtime
                 expansion.TrackPlacement(node.parent.effectiveId, node.effectiveId, node.member, ownership);
             if (materialized.id != instanceRoot.id
                 && materialized is ObjectMemberValue nestedRoot
-                && IsVirtualInstanceRoot(nestedRoot))
+                && IsVirtualInstanceRoot(nestedRoot)
+                && !IsMaterializedSpine(nestedRoot, node))
             {
                 // A nested construction owns its own UUID namespace and is
                 // replayed independently. Do not retain an unreachable copy
-                // of its virtual remainder in the outer root's namespace,
-                // unless its recorded arguments name this root's copies of
-                // its children: a stored template copy replays against rows
-                // only this expansion mints.
-                if (RecordedArgumentsNameVirtualChildren(nestedRoot, node))
-                    IndexVirtualSubtree(expansion, node, instanceRoot, ownership);
+                // of its virtual remainder in the outer root's namespace.
                 return;
             }
             string effectiveId = materialized?.id ?? node.virtualId;
@@ -1751,8 +1751,7 @@ namespace NeoCompose.Runtime
                     // A write under a nested instance stores it at its
                     // deterministic id, with no source id to match above.
                     // Probe that stable id before minting the entry again, or
-                    // this root claims a second copy of a row that already
-                    // replays as its own nested root.
+                    // this root claims a second copy of a stored row.
                     if (childMaterializedId is null
                         && IsNestedInstanceNode(child)
                         && TryGetOverlaidValue(ownership, child.virtualId, out MemberValue? _))
@@ -1851,8 +1850,8 @@ namespace NeoCompose.Runtime
         /// the entry object under a still-virtual Children list. Reads see
         /// the stored row at any depth, so the index must probe for it
         /// before minting the subtree, or this root claims a second copy of
-        /// a row that already replays as its own nested root and the two
-        /// disagree about who answers its omitted members.
+        /// the stored row and the two disagree about who answers its omitted
+        /// members.
         /// </summary>
         private void IndexVirtualChild(
             PreparedVirtualExpansion expansion,
@@ -1870,30 +1869,24 @@ namespace NeoCompose.Runtime
             => node.row is ObjectMemberValue row && IsVirtualInstanceRoot(row);
 
         /// <summary>
-        /// Whether a stored nested root's recorded constructor arguments name
-        /// the rows this expansion mints for its children. A template copy
-        /// placed by a declaration default records its settled aggregate
-        /// arguments at the copy's deterministic child ids, so once the copy
-        /// itself is stored, only this root's remainder can still supply
-        /// them. A construction whose arguments are literals or external
-        /// references needs nothing from this namespace.
+        /// P75 §3.1: materializing a value writes a real row under the id its
+        /// virtual copy had. A write under this expansion's copy of a nested
+        /// construction therefore stores that copy at the id this expansion
+        /// minted, carrying the construction stamp its replay row had. It is a
+        /// spine of this graph, not a separate root: its omitted members,
+        /// call-site initializers included, and whatever this root's variant
+        /// applied to it, resolve here. Only a variant selected on the nested
+        /// value itself gives it a recipe of its own; a new construction
+        /// assigned into the slot keeps its own id, so it never lands here.
         /// </summary>
-        private bool RecordedArgumentsNameVirtualChildren(
+        private static bool IsMaterializedSpine(
             ObjectMemberValue stored,
             VirtualExpansionNode node)
-        {
-            if (stored.constructorArgs is null || node.member is not ClassMember) return false;
-            foreach (var link in EnumerateConstructorSettledAggregateLinks(
-                stored,
-                node.member,
-                includeMaterializedChildren: true))
-            {
-                if (node.classChildren.TryGetValue(link.schemaKey, out VirtualExpansionNode? child)
-                    && child.virtualId == link.valueId)
-                    return true;
-            }
-            return false;
-        }
+            => stored.id == node.virtualId && SameVariantSelection(stored, node.row);
+
+        private static bool SameVariantSelection(MemberValue left, MemberValue right)
+            => left.instanceVariantId == right.instanceVariantId
+                && left.instanceVariantRowValueId == right.instanceVariantRowValueId;
 
         /// <summary>
         /// The reachability edges the virtual index owns for one already
