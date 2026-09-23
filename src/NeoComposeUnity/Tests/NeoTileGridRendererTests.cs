@@ -46,7 +46,7 @@ namespace NeoCompose.Tests
         private const string ObjectsLayerClassId = "objects-layer-class";
 
         [Test]
-        public void InsertingEarlierObjectPreservesSiblingRootAndUpdatesItsSorting()
+        public void InsertingEarlierObjectPreservesSiblingRootAndSorting()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
             var sprite = CreateTestSprite("ordered-sibling");
@@ -72,11 +72,11 @@ namespace NeoCompose.Tests
                 });
                 Assert.IsTrue(renderer.TryGetObjectRoot("shop-1", out var after));
                 Assert.AreSame(original, after, "An insertion must not reset sibling gameplay controllers.");
-                Assert.AreEqual(order + 1, drawn.sortingOrder);
+                Assert.AreEqual(order, drawn.sortingOrder, "Membership rank is not draw order.");
                 var added = changed!.ObjectLayers.Single();
-                Assert.That(added.ChangedCells, Does.Contain(new Vector2Int(10, 20)), "Draw-order consumers still receive the sibling update.");
-                Assert.That(added.ContentChangedCells, Has.No.Member(new Vector2Int(10, 20)), "Unchanged sibling content must not wake local gameplay listeners.");
-                Assert.That(added.ContentChangedCells, Is.Not.Empty);
+                Assert.That(added.ChangedInstances, Has.No.Member(new NeoObjectInstanceId("shop-1")), "A shifted rank is not a sibling change.");
+                Assert.That(added.ChangedCells, Has.No.Member(new Vector2Int(10, 20)));
+                Assert.That(added.ChangedCells, Is.Not.Empty);
                 client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
                 {
                     id = "aaa-earlier", classId = ObjectClassId, containerId = "objects-link-objects", mark = NeoValueMarks.Removed,
@@ -84,7 +84,7 @@ namespace NeoCompose.Tests
                 Assert.IsTrue(renderer.TryGetObjectRoot("shop-1", out after));
                 Assert.AreSame(original, after);
                 Assert.AreEqual(order, drawn.sortingOrder);
-                Assert.That(changed!.ObjectLayers.Single().ContentChangedCells, Has.No.Member(new Vector2Int(10, 20)));
+                Assert.That(changed!.ObjectLayers.Single().ChangedCells, Has.No.Member(new Vector2Int(10, 20)));
             }
             finally
             {
@@ -423,15 +423,7 @@ namespace NeoCompose.Tests
                 objectLayers: new[] { new NeoObjectLayerChangedArgs(ObjectsLayerClassId, Array.Empty<NeoObjectInstanceId>(),
                     Array.Empty<NeoObjectInstanceId>(), new[] { changed }, NeoTileGridChangeSourceKind.Direct, null) }));
             Change(new Vector2Int(99, 99));
-            client.ScriptGridQueries.NotifyChanged(new NeoTileGridChangedArgs("town-grid",
-                objectLayers: new[] { new NeoObjectLayerChangedArgs(ObjectsLayerClassId,
-                    new[] { new NeoObjectInstanceId("shop-1") }, Array.Empty<NeoObjectInstanceId>(),
-                    new[] { new Vector2Int(60, 70) }, NeoTileGridChangeSourceKind.Direct, null)
-                {
-                    ContentChangedCells = Array.Empty<Vector2Int>(),
-                    OrderOnlyDeltas = new Dictionary<NeoObjectInstanceId, int> { [new NeoObjectInstanceId("shop-1")] = 1 },
-                } }));
-            Assert.AreEqual(0, invalidations, "Sorting-only sibling changes do not change placement query results.");
+            Assert.AreEqual(0, invalidations);
             Change(new Vector2Int(60, 70));
             Assert.AreEqual(1, invalidations);
             Assert.AreEqual(1, created);
@@ -1216,7 +1208,7 @@ namespace NeoCompose.Tests
             Assert.AreSame(objects, primitive.LookupCache.ObjectRecords(ObjectsLayerClassId));
             Assert.AreSame(tiles, primitive.LookupCache.TileRecords(BackgroundLayerClassId));
             CollectionAssert.AreEquivalent(new[] { new Vector2Int(6, 6), new Vector2Int(6, 7) },
-                changes.Single().ObjectLayers.Single().ContentChangedCells);
+                changes.Single().ObjectLayers.Single().ChangedCells);
             var first = layer.GetObjectProjection(new Vector2Int(6, 6));
             Assert.NotNull(first);
             Assert.AreEqual(first!.InstanceId, layer.GetObjectProjection(new Vector2Int(6, 7))!.InstanceId);
@@ -4880,6 +4872,7 @@ namespace NeoCompose.Tests
                 Assert.AreSame(childSprite, spriteChildRenderer.sprite);
                 Assert.AreEqual(4f, spriteChildRenderer.bounds.size.x, 0.0001f);
                 Assert.AreEqual(2f, spriteChildRenderer.bounds.size.y, 0.0001f);
+                Assert.AreEqual(12, spriteChildRenderer.sortingOrder);
 
                 var tileChild = objectRoot.Find("child-tile");
                 Assert.IsNotNull(tileChild);
@@ -4888,6 +4881,7 @@ namespace NeoCompose.Tests
                 Assert.AreSame(tileSprite, tileChildRenderer.sprite);
                 Assert.AreEqual(2f, tileChildRenderer.bounds.size.x, 0.0001f);
                 Assert.AreEqual(2f, tileChildRenderer.bounds.size.y, 0.0001f);
+                Assert.AreEqual(12, tileChildRenderer.sortingOrder, "Carried tiles take the layer's order, not their index.");
             }
             finally
             {
@@ -4925,8 +4919,8 @@ namespace NeoCompose.Tests
                     out UnityEngine.Rendering.SortingGroup sortingGroup));
                 Assert.IsTrue(sortingGroup.sortAtRoot);
                 Assert.AreEqual("Default", sortingGroup.sortingLayerName);
-                // Layer order 12 plus the instance's authored order 1.
-                Assert.AreEqual(13, sortingGroup.sortingOrder);
+                // The layer's order; membership rank never adds to it.
+                Assert.AreEqual(12, sortingGroup.sortingOrder);
             }
             finally
             {
@@ -5048,13 +5042,13 @@ namespace NeoCompose.Tests
                 var plain = objectRoot.Find("Plain");
                 Assert.IsNotNull(nudged);
                 Assert.IsNotNull(plain);
-                // Layer 12 + instance order 1 + composition index 0 + the
-                // authored offset 5.
+                // Layer 12 + the authored offset 5.
                 Assert.AreEqual(
-                    18,
+                    17,
                     nudged!.GetComponent<SpriteRenderer>().sortingOrder);
+                // A later sibling gains nothing from its position in Children.
                 Assert.AreEqual(
-                    14,
+                    12,
                     plain!.GetComponent<SpriteRenderer>().sortingOrder);
             }
             finally
@@ -5104,7 +5098,7 @@ namespace NeoCompose.Tests
                 Assert.AreSame(sprite, childRenderer.sprite);
                 Assert.IsTrue(childRenderer.flipX);
                 Assert.IsFalse(childRenderer.flipY);
-                Assert.AreEqual(11, childRenderer.sortingOrder);
+                Assert.AreEqual(10, childRenderer.sortingOrder);
             }
             finally
             {
@@ -6854,7 +6848,7 @@ namespace NeoCompose.Tests
                     new List<ReadOnlyNeoTileLayerRuntime>(),
                     new[] { ObjectLayerWithSingleInstance(root, "Default", 12) });
                 var drawn = go.GetComponentInChildren<SpriteRenderer>();
-                Assert.That(drawn.sortingOrder, Is.EqualTo(18));
+                Assert.That(drawn.sortingOrder, Is.EqualTo(17));
                 int notification = 0;
                 foreach (int? offset in new int?[] { -4, null, 30, 5 })
                 {
@@ -6862,7 +6856,7 @@ namespace NeoCompose.Tests
                     if (placed != null) placed.SortingOrder = offset;
                     NeoGeneratedTypesSupport.SetValue(NeoGeneratedTypesSupport.AsWritable(obj.BackingNode),
                         "SortingOrder", NeoValueWritePayload.FromValue(++notification));
-                    Assert.That(drawn.sortingOrder, Is.EqualTo(13 + (offset ?? 0)));
+                    Assert.That(drawn.sortingOrder, Is.EqualTo(12 + (offset ?? 0)));
                     Assert.That(go.GetComponentInChildren<SpriteRenderer>(), Is.SameAs(drawn));
                 }
             }

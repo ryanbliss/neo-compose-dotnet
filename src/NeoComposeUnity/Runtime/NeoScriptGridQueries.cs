@@ -36,8 +36,8 @@ namespace NeoCompose.Runtime
                         foreach (var layer in change.ObjectLayers)
                         {
                             foreach (var id in layer.ChangedInstances)
-                                if (reads.placements.Contains(id.Value) && layer.OrderOnlyDeltas?.ContainsKey(id) != true) { Invalidate(); return; }
-                            foreach (var changed in layer.ContentChangedCells)
+                                if (reads.placements.Contains(id.Value)) { Invalidate(); return; }
+                            foreach (var changed in layer.ChangedCells)
                                 if (reads.objects.Contains(changed)) { Invalidate(); return; }
                         }
                         foreach (var layer in change.TileLayers)
