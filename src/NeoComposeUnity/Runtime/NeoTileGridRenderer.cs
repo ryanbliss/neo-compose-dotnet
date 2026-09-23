@@ -216,18 +216,22 @@ namespace NeoCompose.Runtime
         private sealed class SortPointPair
         {
             private readonly NeoTileGridRenderer renderer;
+            private readonly INeoSortingGroupSource source;
             private readonly Transform sortingGroup;
-            private readonly NeoMember? groupNode;
+            private INeoSortingGroup? group;
+            private NeoMember? groupNode;
             private Vector3 applied;
 
             public SortPointPair(
                 NeoTileGridRenderer renderer,
+                INeoSortingGroupSource source,
                 INeoSortingGroup group,
                 Transform sortingGroup,
                 Transform content)
             {
                 this.renderer = renderer;
-                Group = group;
+                this.source = source;
+                this.group = group;
                 this.sortingGroup = sortingGroup;
                 Content = content;
                 // The contract exposes no member key, so writes match by node.
@@ -237,28 +241,35 @@ namespace NeoCompose.Runtime
                 content.localPosition = -applied;
             }
 
-            public INeoSortingGroup Group { get; }
-
             public Transform Content { get; }
 
             /// <summary>
             /// Whether a change reported to the owner can move the point: the
-            /// group node itself or one of its leaves. A group without a
+            /// group node itself or one of its leaves, or any change once
+            /// assigning a new group has disposed that node. A group without a
             /// backing node cannot rule any change out.
             /// </summary>
             public bool IsGroupChange(NeoMember changed) =>
-                groupNode is null
+                groupNode is null or { isDisposed: true }
                 || ReferenceEquals(changed, groupNode)
                 || ReferenceEquals(changed.parent, groupNode);
 
             /// <summary>
             /// Two transform writes that touch no child, skipped when the point
             /// equals the last one applied or the pair is already destroyed.
+            /// A disposed group node means the owner was assigned a new group,
+            /// so the pair re-reads it from the owner first.
             /// </summary>
             public void Apply()
             {
                 if (sortingGroup == null) return;
-                var point = renderer.CellOffsetToLocalPosition(Group.SortPoint);
+                if (groupNode is { isDisposed: true })
+                {
+                    group = source.SortingGroup;
+                    groupNode = (group as NeoGeneratedClassValue)?.BackingNode;
+                }
+                if (group is null) return;
+                var point = renderer.CellOffsetToLocalPosition(group.SortPoint);
                 if (point == applied) return;
                 sortingGroup.localPosition = point;
                 Content.localPosition = -point;
@@ -1733,7 +1744,7 @@ namespace NeoCompose.Runtime
             var sortingGroup = groupGo.AddComponent<UnityEngine.Rendering.SortingGroup>();
             sortingGroup.sortAtRoot = group.SortAtRoot;
             ApplySorting(sortingGroup, layer.SortingLayerName, sortingOrder);
-            return new SortPointPair(this, group, groupGo.transform, content.transform);
+            return new SortPointPair(this, source, group, groupGo.transform, content.transform);
         }
 
         private int RenderObjectComposition(

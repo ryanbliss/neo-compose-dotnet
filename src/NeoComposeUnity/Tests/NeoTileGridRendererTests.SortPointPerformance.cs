@@ -181,20 +181,16 @@ namespace NeoCompose.Tests
 
         private readonly struct SortPointSample
         {
-            public SortPointSample(double ms, long gcBytes, long threadBytes)
+            public SortPointSample(double ms, long gcBytes)
             {
                 Ms = ms;
                 GcBytes = gcBytes;
-                ThreadBytes = threadBytes;
             }
 
             public double Ms { get; }
 
             /// <summary>Unity's "GC Allocated In Frame" counter.</summary>
             public long GcBytes { get; }
-
-            /// <summary><see cref="GC.GetAllocatedBytesForCurrentThread"/>.</summary>
-            public long ThreadBytes { get; }
         }
 
         private static List<SortPointSample> Sample(Action action)
@@ -215,29 +211,24 @@ namespace NeoCompose.Tests
             Assert.IsTrue(recorder.Valid, "Unity GC allocation counter is unavailable.");
             recorder.Start();
             long gcBefore = recorder.CurrentValue;
-            long threadBefore = GC.GetAllocatedBytesForCurrentThread();
             var stopwatch = Stopwatch.StartNew();
             action();
             stopwatch.Stop();
-            long threadAfter = GC.GetAllocatedBytesForCurrentThread();
             long gcAfter = recorder.CurrentValue;
             recorder.Stop();
             return new SortPointSample(
                 stopwatch.Elapsed.TotalMilliseconds,
-                gcAfter - gcBefore,
-                threadAfter - threadBefore);
+                gcAfter - gcBefore);
         }
 
         private static void Report(string name, int count, List<SortPointSample> samples, int per)
         {
             var ms = samples.Select(sample => sample.Ms).OrderBy(value => value).ToArray();
             var bytes = samples.Select(sample => sample.GcBytes).OrderBy(value => value).ToArray();
-            var threadBytes = samples.Select(sample => sample.ThreadBytes).OrderBy(value => value).ToArray();
             TestContext.WriteLine(
                 $"P92 {name} objects={count} per={per} " +
                 $"medianMs={ms[ms.Length / 2]:F3} minMs={ms[0]:F3} maxMs={ms[^1]:F3} " +
                 $"medianBytes={bytes[bytes.Length / 2]} minBytes={bytes[0]} maxBytes={bytes[^1]} " +
-                $"medianThreadBytes={threadBytes[threadBytes.Length / 2]} " +
                 $"samplesMs=[{string.Join(",", samples.Select(sample => sample.Ms.ToString("F3")))}] " +
                 $"samplesBytes=[{string.Join(",", samples.Select(sample => sample.GcBytes))}]");
         }

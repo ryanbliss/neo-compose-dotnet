@@ -15,7 +15,7 @@
 
   Generated code from an older schema no longer compiles against this contract. Synchronize to regenerate `NeoSortingGroup`.
 - A grouped object's rendered hierarchy is now `root / Sorting Group / Content / children`. The `SortingGroup` component moves from the root to `Sorting Group`, which sits at the sort point. `Content` cancels that offset, so the art stays in place. The root keeps its placement, collider, and behaviour. Grouped composition children get the same pair, measured from the child's origin. Code that finds rendered children by path under a grouped root must add `Sorting Group/Content/`. Ungrouped objects get no extra GameObjects.
-- The sort point is live. A `SortPoint` write moves only the pair's two transforms in the same coalesced refresh as other animation writes, and never respawns the object. A Position write does not read the sort point.
+- The sort point is live. A `SortPoint` write, including one from an in-place variant swap, moves only the pair's two transforms in the same coalesced refresh as other animation writes, and never respawns the object. Assigning the object a new sorting group moves the pair to the new group's sort point; `SortAtRoot` stays as read at spawn. A Position write does not read the sort point.
 - Measured in EditMode (`NeoTileGridRendererTests.SortPointPerformance_SpawnMoveAndSortPointWrite`, three sprite children per object, medians of three alternating runs against `main`):
   - Spawn adds 241 B and 15 to 22 µs per grouped object, for example 6.08 → 7.60 ms at 100 objects. Two empty parented GameObjects alone cost about 10 µs and 160 B.
   - A Position write adds no allocation (332 B per write on both) and stays within run-to-run noise.
