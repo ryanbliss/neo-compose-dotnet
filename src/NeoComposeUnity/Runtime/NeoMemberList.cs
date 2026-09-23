@@ -76,13 +76,7 @@ namespace NeoCompose.Runtime
             Member childMember,
             string? overrideValueId)
         {
-            NeoValueOwnership? declared = client.DeclaredOwnership(childMember);
-            NeoMember child =
-                declared == NeoValueOwnership.Save || declared == NeoValueOwnership.Session
-                    ? CreateWritable(client, childMember, overrideValueId, declared.Value)
-                    : Create(client, childMember, overrideValueId);
-            child.parent = this;
-            return child;
+            return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: false);
         }
 
         public NeoMember this[int index] => childMembers[index];
@@ -484,16 +478,7 @@ namespace NeoCompose.Runtime
             Member childMember,
             string? overrideValueId)
         {
-            NeoValueOwnership? declared = client.DeclaredOwnership(childMember);
-            NeoMember child = declared switch
-            {
-                NeoValueOwnership.Asset => Create(client, childMember, overrideValueId),
-                NeoValueOwnership.Save or NeoValueOwnership.Session =>
-                    CreateWritable(client, childMember, overrideValueId, declared.Value),
-                _ => CreateWritable(client, childMember, overrideValueId, ownership),
-            };
-            child.parent = this;
-            return child;
+            return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: true);
         }
 
         /// <summary>
@@ -532,7 +517,7 @@ namespace NeoCompose.Runtime
             }
             NeoTimestamp nowIso = NeoTimestamp.Now();
             NeoValueOwnership entryOwnership =
-                client.DeclaredOwnership(entryMember) ?? ownership;
+                client.ChildOwnership(entryMember, ownership);
             ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso);
 
             string newValueId;
@@ -605,7 +590,7 @@ namespace NeoCompose.Runtime
             NeoTimestamp nowIso = NeoTimestamp.Now();
             string entryValueId = value.value[index];
             NeoValueOwnership entryOwnership =
-                client.DeclaredOwnership(entryMember) ?? ownership;
+                client.ChildOwnership(entryMember, ownership);
 
             if (entryValue?.isValueReference == true)
             {
@@ -715,7 +700,7 @@ namespace NeoCompose.Runtime
             parentRow.value = nextArr;
             parentRow.updatedAt = nowIso;
             plan.Set(ownership, parentRow);
-            NeoValueOwnership entryOwnership = client.DeclaredOwnership(entryMember) ?? ownership;
+            NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);
             client.StageUnlinkedRemovals(plan, entryOwnership, new[] { removedValueId }, entryMember);
             plan.Commit();
             value = parentRow;
@@ -751,7 +736,7 @@ namespace NeoCompose.Runtime
             parentRow.value = System.Array.Empty<string>();
             parentRow.updatedAt = nowIso;
             plan.Set(ownership, parentRow);
-            client.StageUnlinkedRemovals(plan, client.DeclaredOwnership(entryMember) ?? ownership, removedValueIds, entryMember);
+            client.StageUnlinkedRemovals(plan, client.ChildOwnership(entryMember, ownership), removedValueIds, entryMember);
             plan.Commit();
             value = parentRow;
 
@@ -822,7 +807,7 @@ namespace NeoCompose.Runtime
             }
 
             NeoValueOwnership entryOwnership =
-                client.DeclaredOwnership(entryMember) ?? ownership;
+                client.ChildOwnership(entryMember, ownership);
             RemoveUnorderedEntry(entryOwnership, entryValueId);
             ReinitializeChildren();
             NotifyListChanged(new NeoListChangedArgs(
@@ -834,7 +819,7 @@ namespace NeoCompose.Runtime
         {
             NeoTimestamp nowIso = NeoTimestamp.Now();
             NeoValueOwnership entryOwnership =
-                client.DeclaredOwnership(entryMember) ?? ownership;
+                client.ChildOwnership(entryMember, ownership);
             ArrayMemberValue containerRow = ResolveUnorderedContainerForAdd(plan, nowIso);
             string containerValueId = containerRow.id;
             // Storage partitions (spec §6): created member rows live in their
@@ -941,7 +926,7 @@ namespace NeoCompose.Runtime
                     {
                         MemberValue adopted = client.CloneRowForWrite(retained);
                         adopted.containerId = container.id;
-                        plan.Set(client.DeclaredOwnership(entryMember) ?? ownership, adopted);
+                        plan.Set(client.ChildOwnership(entryMember, ownership), adopted);
                     }
                     continue;
                 }
@@ -973,7 +958,7 @@ namespace NeoCompose.Runtime
 
         private void PrepareRemoveUnorderedEntry(NeoWritePlan plan, string entryValueId)
         {
-            NeoValueOwnership entryOwnership = client.DeclaredOwnership(entryMember) ?? ownership;
+            NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);
             MemberValue? row = plan.Resolve(entryValueId);
             string? listId = valueId;
             bool joined = row?.containerId == listId

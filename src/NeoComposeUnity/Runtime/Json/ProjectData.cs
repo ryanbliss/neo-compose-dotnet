@@ -13,6 +13,10 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 32 admits the P93 <c>Writable</c> member storage ordinal (4). An
+        /// older SDK would fail the load with "Unknown member storage ordinal
+        /// '4'" instead of this gate's upgrade message.
+        ///
         /// 31 admits P76 packed subtree storage. The export ships the PHYSICAL
         /// row set, so a packed parent carries <c>{"~packed": {…}}</c> at a
         /// child position where every prior schema guaranteed a child-id
@@ -87,7 +91,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 31;
+        public const int CurrentSchemaVersion = 32;
 
         internal static string? GetSchemaVersionError(ProjectExportMetadata? metadata)
         {

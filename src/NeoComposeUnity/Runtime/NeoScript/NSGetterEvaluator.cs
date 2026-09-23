@@ -5212,8 +5212,18 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (at is not string id) return at;
             ctx.client.ReadNestedConstructorResult(id);
-            var ownership = (member is null ? null : ctx.client.DeclaredOwnership(member))
-                ?? preferredOwnership ?? ResolveOwnershipForValueId(ctx, id);
+            NeoValueOwnership ownership;
+            if (preferredOwnership is NeoValueOwnership parent)
+            {
+                ownership = ctx.client.ChildOwnership(member, parent);
+            }
+            else
+            {
+                NeoValueOwnership? declared = member is null
+                    ? null
+                    : ctx.client.ConcreteDeclaredOwnership(member);
+                ownership = declared ?? ResolveOwnershipForValueId(ctx, id);
+            }
             if (!ctx.client.TryGetReplayReference(id, out MemberValue? row, ownership)) return at;
             var v = UnwrapCached(row, ctx, ownership, member);
             if (member is LookupMember lookup

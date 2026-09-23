@@ -2876,7 +2876,7 @@ namespace NeoCompose.Runtime
                             NeoNSFunctionRuntime.ResolveReceiverGenericEnv(
                                 client, receiver!, ctx, $"Member '{memberMember.name}'"));
                     }
-                    NeoValueOwnership fieldOwnership = client.DeclaredOwnership(memberMember!) ?? receiverOwnership;
+                    NeoValueOwnership fieldOwnership = client.ChildOwnership(memberMember, receiverOwnership);
                     if (fieldOwnership != ownership || fieldOwnership == NeoValueOwnership.Asset)
                         throw new NSGetterRuntimeError($"Member '{memberMember!.name}' is not {ownership}-owned.");
                     return new NeoClassMemberWriteTarget(receiverRowId, keyString, memberMember!, ownership, receiverOwnership);
@@ -2971,13 +2971,45 @@ namespace NeoCompose.Runtime
             if (contextualOwnership is not null)
             {
                 ownership = contextualOwnership.Value;
-                return true;
+                if (pointer is not KeyOfPointer) return true;
             }
             string? rowId = pointer is ReferencePointer reference
                 ? reference.valueId
                 : FindValueId(resolvedTarget, ctx);
-            return rowId is not null
-                && client.TryGetValueOwnership(rowId, out ownership);
+            if (contextualOwnership is null
+                && (rowId is null || !client.TryGetValueOwnership(rowId, out ownership)))
+            {
+                return false;
+            }
+            // P93 §4. A class member write routes by the receiver row's
+            // runtime-class member, so a Writable member of an asset row
+            // resolves Session rather than the receiver's Asset.
+            if (pointer is KeyOfPointer keyed
+                && rowId is not null
+                && TryResolveKeyedClassMember(client, keyed.keyOf, rowId, ownership, scope, ctx, out JsonMember? classMember))
+            {
+                ownership = client.ChildOwnership(classMember, ownership);
+            }
+            return true;
+        }
+
+        private static bool TryResolveKeyedClassMember(
+            NeoClient client,
+            KeyOf keyOf,
+            string receiverRowId,
+            NeoValueOwnership receiverOwnership,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            out JsonMember? member)
+        {
+            member = null;
+            // A class member key compiles to a string literal, so the key
+            // eval is a cached primitive read; it runs only for class rows.
+            return client.TryGetValue(receiverOwnership, receiverRowId, out MemberValue? row)
+                && row is ObjectMemberValue { classId: string classId } && classId.Length > 0
+                && Eval(keyOf.key, scope, ctx) is string key
+                && TryResolveClassMemberMember(client, classId, key, out member)
+                && member!.Mutability != NeoMemberMutabilityKind.ReadOnly;
         }
 
         private static string EnsureWritableRow(NeoClient client, string rowId, NeoValueOwnership ownership)
@@ -3529,7 +3561,7 @@ namespace NeoCompose.Runtime
             plan.Set(ownership, row);
             if (removedChildren.Length != 0)
                 client.StageUnlinkedRemovals(plan, ownership, removedChildren.Where(child =>
-                    (child.member is null ? ownership : client.DeclaredOwnership(child.member) ?? ownership) == ownership));
+                    client.ChildOwnership(child.member, ownership) == ownership));
             plan.AfterCommit(() => NSGetterEvaluator.RefreshCachedRowAfterWrite(row, ctx, ownership));
         }
 

@@ -20,6 +20,11 @@ namespace NeoCompose.Runtime
         Save = 2,
         /// <summary>Writable; in-memory only, resets each session.</summary>
         Session = 3,
+        /// <summary>
+        /// Always writable; Save under a Save parent and Session otherwise
+        /// (P93 §1.2). Declared-only: never a resolved ownership.
+        /// </summary>
+        Writable = 4,
     }
 
     public static class NeoMemberStorageResolution
@@ -36,6 +41,7 @@ namespace NeoCompose.Runtime
                 case NeoMemberStorage.Immutable:
                 case NeoMemberStorage.Save:
                 case NeoMemberStorage.Session:
+                case NeoMemberStorage.Writable:
                     return value;
                 default:
                     throw new System.InvalidOperationException(
@@ -45,7 +51,8 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Maps a concrete storage class onto the value-ownership vocabulary.
-        /// <see cref="NeoMemberStorage.Inherit"/> maps to null — the
+        /// <see cref="NeoMemberStorage.Inherit"/> and
+        /// <see cref="NeoMemberStorage.Writable"/> map to null — the
         /// placement context decides.
         /// </summary>
         public static NeoValueOwnership? ToOwnership(NeoMemberStorage storage)
@@ -53,6 +60,7 @@ namespace NeoCompose.Runtime
             switch (storage)
             {
                 case NeoMemberStorage.Inherit:
+                case NeoMemberStorage.Writable:
                     return null;
                 case NeoMemberStorage.Immutable:
                     return NeoValueOwnership.Asset;
@@ -63,6 +71,27 @@ namespace NeoCompose.Runtime
                 default:
                     throw new System.InvalidOperationException(
                         $"Unknown member storage '{storage}'.");
+            }
+        }
+
+        /// <summary>
+        /// The ownership of a value placed under a parent (P93 §1.2, Asset is
+        /// Immutable). Mirrors the TS-side <c>childEffectiveStorage</c>.
+        /// </summary>
+        internal static NeoValueOwnership ChildOwnership(
+            NeoMemberStorage declared,
+            NeoValueOwnership parent)
+        {
+            switch (declared)
+            {
+                case NeoMemberStorage.Inherit:
+                    return parent;
+                case NeoMemberStorage.Writable:
+                    return parent == NeoValueOwnership.Save
+                        ? NeoValueOwnership.Save
+                        : NeoValueOwnership.Session;
+                default:
+                    return ToOwnership(declared)!.Value;
             }
         }
     }

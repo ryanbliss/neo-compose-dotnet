@@ -322,7 +322,33 @@ namespace NeoCompose.Tests
             // evaluated on the ENCLOSING leaf, so the field write is rejected.
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 BuildClient(Frame(0, ("Locked", PartialRow("{\"sliceIndex\":1}")))));
-            StringAssert.Contains("resolves Immutable storage", error!.Message);
+            StringAssert.Contains("not a writable Save, Session, or Writable override leaf", error!.Message);
+        }
+
+        /// <summary>
+        /// P93 §5 — SDK load agrees with the pane's <c>animationTrackStorage</c>:
+        /// a Save, Session, or Writable leaf is eligible, and an Inherit leaf
+        /// with no declaring ancestor or an Immutable leaf is not.
+        /// </summary>
+        [TestCase(NeoMemberStorage.Writable, true)]
+        [TestCase(NeoMemberStorage.Session, true)]
+        [TestCase(NeoMemberStorage.Save, true)]
+        [TestCase(NeoMemberStorage.Inherit, false)]
+        [TestCase(NeoMemberStorage.Immutable, false)]
+        public void Validation_TrackEligibilityFollowsTheLeafDeclaration(
+            NeoMemberStorage storage,
+            bool eligible)
+        {
+            ProjectData data = BuildProjectData(new[] { Frame(0, ("Count", Number("pending", 3))) });
+            data.members["count-member"].Storage = storage;
+            if (eligible)
+            {
+                Assert.DoesNotThrow(() => NeoTestSaveStack.ClientFromSchema(data).Dispose());
+                return;
+            }
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                NeoTestSaveStack.ClientFromSchema(data));
+            StringAssert.Contains("not a writable Save, Session, or Writable override leaf", error!.Message);
         }
 
         [Test]

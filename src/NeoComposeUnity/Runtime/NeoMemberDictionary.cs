@@ -50,13 +50,7 @@ namespace NeoCompose.Runtime
             Member childMember,
             string? overrideValueId)
         {
-            NeoValueOwnership? declared = client.DeclaredOwnership(childMember);
-            NeoMember child =
-                declared == NeoValueOwnership.Save || declared == NeoValueOwnership.Session
-                    ? CreateWritable(client, childMember, overrideValueId, declared.Value)
-                    : Create(client, childMember, overrideValueId);
-            child.parent = this;
-            return child;
+            return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: false);
         }
 
         public NeoMember this[string key] => childMembers[key];
@@ -170,16 +164,7 @@ namespace NeoCompose.Runtime
             Member childMember,
             string? overrideValueId)
         {
-            NeoValueOwnership? declared = client.DeclaredOwnership(childMember);
-            NeoMember child = declared switch
-            {
-                NeoValueOwnership.Asset => Create(client, childMember, overrideValueId),
-                NeoValueOwnership.Save or NeoValueOwnership.Session =>
-                    CreateWritable(client, childMember, overrideValueId, declared.Value),
-                _ => CreateWritable(client, childMember, overrideValueId, ownership),
-            };
-            child.parent = this;
-            return child;
+            return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: true);
         }
 
         /// <summary>
@@ -195,7 +180,7 @@ namespace NeoCompose.Runtime
                 throw new System.ArgumentNullException(nameof(setValue), "Cannot be null when entry member is required");
             var plan = new NeoWritePlan(client);
             NeoTimestamp nowIso = NeoTimestamp.Now();
-            NeoValueOwnership entryOwnership = client.DeclaredOwnership(entryMember) ?? ownership;
+            NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);
             ObjectMemberValue parentRow = EnsureWritableObject(plan, nowIso);
             parentRow.value!.TryGetValue(key, out string? previousId);
             MemberValue? previous = previousId is null ? null : plan.Resolve(entryOwnership, previousId);
@@ -243,7 +228,7 @@ namespace NeoCompose.Runtime
             parentRow.value.Remove(key);
             parentRow.updatedAt = nowIso;
             plan.Set(ownership, parentRow);
-            NeoValueOwnership entryOwnership = client.DeclaredOwnership(entryMember) ?? ownership;
+            NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);
             client.StageUnlinkedRemovals(plan, entryOwnership, new[] { removedValueId }, entryMember);
             plan.Commit();
             value = parentRow;

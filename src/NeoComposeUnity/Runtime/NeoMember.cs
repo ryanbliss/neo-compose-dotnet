@@ -212,6 +212,32 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// Creates a container child in its storage's family (member storage
+        /// §8.3, P93 §2.2): Immutable children are read-only, Inherit children
+        /// follow this container's family, and every other storage is writable
+        /// in the ownership it resolves to under this container.
+        /// </summary>
+        protected NeoMember CreateOwnedChild(
+            NeoClient client,
+            Member childMember,
+            string? overrideValueId,
+            bool writableFamily)
+        {
+            NeoMemberStorage declared = client.DeclaredStorage(childMember);
+            NeoMember child =
+                declared == NeoMemberStorage.Immutable
+                || (declared == NeoMemberStorage.Inherit && !writableFamily)
+                    ? Create(client, childMember, overrideValueId)
+                    : CreateWritable(
+                        client,
+                        childMember,
+                        overrideValueId,
+                        client.ChildOwnership(childMember, ownership));
+            child.parent = this;
+            return child;
+        }
+
+        /// <summary>
         /// Read-only factory — instantiates the matching
         /// <c>NeoMember{Kind}</c> for the given member. Use
         /// <see cref="CreateWritable"/> when constructing a writeable
