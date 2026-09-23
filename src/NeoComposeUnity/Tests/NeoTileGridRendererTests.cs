@@ -22,10 +22,11 @@ using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Tests
 {
-    public class NeoTileGridRendererTests
+    public partial class NeoTileGridRendererTests
     {
         private const string TileClassId = "tile-class";
         private const string ObjectClassId = "object-class";
+        private const string SortingGroupClassId = "sorting-group-class";
         private const string PlacementTileClassId = "object-placement-tile-class";
         /// <summary>
         /// The real system enum id (P48 §2.1). Pinned rather than synthesized
@@ -4915,7 +4916,11 @@ namespace NeoCompose.Tests
                     .Find("Object Layer - Objects")
                     ?.Find("Object - object-1");
                 Assert.IsNotNull(objectRoot);
-                Assert.IsTrue(objectRoot!.TryGetComponent(
+                // P92 §2.2: the component sits on the sort-point child, never
+                // on the placed root.
+                Assert.IsFalse(objectRoot!.TryGetComponent(
+                    out UnityEngine.Rendering.SortingGroup _));
+                Assert.IsTrue(objectRoot.Find("Sorting Group").TryGetComponent(
                     out UnityEngine.Rendering.SortingGroup sortingGroup));
                 Assert.IsTrue(sortingGroup.sortAtRoot);
                 Assert.AreEqual("Default", sortingGroup.sortingLayerName);
@@ -4949,12 +4954,445 @@ namespace NeoCompose.Tests
                 Assert.IsNotNull(objectRoot);
                 Assert.IsFalse(objectRoot!.TryGetComponent(
                     out UnityEngine.Rendering.SortingGroup _));
+                Assert.IsNull(objectRoot.Find("Sorting Group"));
             }
             finally
             {
                 UnityEngine.Object.DestroyImmediate(go);
             }
         }
+
+        [Test]
+        public void Render_SortingGroupPairSitsAtSortPointAndLeavesArtInPlace()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
+            var root = (TestComposedObject)SpawnAnimationTestObject(client).Info;
+            var part = (TestComposedObject)SpawnAnimationTestObject(client, new Vector2Int(5, 5)).Info;
+            part.Name = "Part";
+            part.Position = new NeoReadOnlyVector3(1, 2, 0);
+            part.Children = new INeoWorldObjectValue[]
+            {
+                new TestSpriteChild { Name = "Art", Position = new(0.25f, 0.5f, 0), Size = new(2, 3, 0) },
+            };
+            root.Children = new INeoWorldObjectValue[]
+            {
+                part, new TestSpriteChild { Name = "Base", Position = new(-1, 0, 0) },
+            };
+            GameObject? go = null;
+            NeoTileGridRenderer RenderInto(string name)
+            {
+                go = new GameObject(name);
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.CellSize = 2;
+                renderer.Render(NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(root, "Default", 12) });
+                return renderer;
+            }
+            try
+            {
+                RenderInto("Ungrouped");
+                var ungrouped = go!.GetComponentsInChildren<SpriteRenderer>(true)
+                    .ToDictionary(sprite => sprite.name, sprite => sprite.transform.position);
+                int ungroupedTransforms = go.GetComponentsInChildren<Transform>(true).Length;
+                Assert.AreEqual(2, ungrouped.Count);
+                Assert.IsEmpty(go.GetComponentsInChildren<UnityEngine.Rendering.SortingGroup>(true));
+                UnityEngine.Object.DestroyImmediate(go);
+
+                root.SortingGroup = SortingGroupOf(client, root);
+                part.SortingGroup = SortingGroupOf(client, part);
+                WriteSortPoint(root, new Vector2(1.25f, 0.4f));
+                WriteSortPoint(part, new Vector2(0.5f, 0.75f));
+                var renderer = RenderInto("Grouped");
+
+                // Every renderer is still found, and each one is exactly where
+                // the ungrouped render put it: the pair moves no art.
+                var grouped = go!.GetComponentsInChildren<SpriteRenderer>(true);
+                CollectionAssert.AreEquivalent(ungrouped.Keys, grouped.Select(sprite => sprite.name));
+                foreach (var sprite in grouped)
+                    AssertSamePosition(ungrouped[sprite.name], sprite.transform.position);
+                // Two groups, two GameObjects each; nothing else is added.
+                Assert.AreEqual(ungroupedTransforms + 4, go.GetComponentsInChildren<Transform>(true).Length);
+
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var placed));
+                Assert.IsFalse(placed.TryGetComponent(out UnityEngine.Rendering.SortingGroup _));
+                var pair = placed.transform.Find("Sorting Group");
+                var content = pair.Find("Content");
+                AssertSamePosition(new Vector3(2.5f, 0.8f, 0), pair.localPosition);
+                AssertSamePosition(-pair.localPosition, content.localPosition);
+                Assert.IsTrue(pair.TryGetComponent(out UnityEngine.Rendering.SortingGroup sortingGroup));
+                Assert.AreEqual(12, sortingGroup.sortingOrder);
+                Assert.IsNotNull(content.Find("Base"));
+
+                // The composition child's pair hangs under its own root,
+                // measured from that child's origin.
+                var partRoot = content.Find("Part");
+                AssertSamePosition(new Vector3(2, 4, 0), partRoot.localPosition);
+                Assert.IsFalse(partRoot.TryGetComponent(out UnityEngine.Rendering.SortingGroup _));
+                var nested = partRoot.Find("Sorting Group");
+                AssertSamePosition(new Vector3(1, 1.5f, 0), nested.localPosition);
+                Assert.IsTrue(nested.TryGetComponent(out UnityEngine.Rendering.SortingGroup _));
+                AssertSamePosition(-nested.localPosition, nested.Find("Content").localPosition);
+                Assert.IsNotNull(nested.Find("Content/Art"));
+            }
+            finally
+            {
+                if (go != null) UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Render_SortPointWriteMovesOnlyThePairInTheSameRefresh(bool composition)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
+            // A composition child's Position stays unchanged throughout, so
+            // only the group filter can refresh it.
+            var (root, grouped) = BuildSortPointOwner(client, composition);
+            var go = new GameObject("Live sort point");
+            try
+            {
+                var renderer = RenderSortPointOwner(go, client, root);
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var placed));
+                var owner = composition ? placed.transform.Find("Part") : placed.transform;
+                var pair = owner.Find("Sorting Group");
+                var content = pair.Find("Content");
+                var drawn = go.GetComponentInChildren<SpriteRenderer>();
+                var artWorld = drawn.transform.position;
+                var artLocal = drawn.transform.localPosition;
+                var rootLocal = placed.transform.localPosition;
+                var ownerLocal = owner.localPosition;
+                AssertSamePosition(new Vector3(1, 0, 0), pair.localPosition);
+
+                foreach (var point in new[] { new Vector2(1.5f, 0.25f), new Vector2(-0.5f, 2f) })
+                {
+                    WriteSortPoint(grouped, point);
+                    AssertSamePosition(new Vector3(point.x * 2, point.y * 2, 0), pair.localPosition);
+                    AssertSamePosition(-pair.localPosition, content.localPosition);
+                    AssertSamePosition(artWorld, drawn.transform.position);
+                    Assert.AreEqual(artLocal, drawn.transform.localPosition);
+                    Assert.AreEqual(rootLocal, placed.transform.localPosition);
+                    Assert.AreEqual(ownerLocal, owner.localPosition);
+                }
+
+                // A frame's writes coalesce into its one refresh.
+                client.BeginAnimationFrame();
+                WriteSortPoint(grouped, new Vector2(3, 3));
+                WriteSortPoint(grouped, new Vector2(0.75f, 0.125f));
+                client.EndAnimationFrame();
+                AssertSamePosition(new Vector3(1.5f, 0.25f, 0), pair.localPosition);
+                AssertSamePosition(artWorld, drawn.transform.position);
+
+                // Nothing was respawned.
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var after));
+                Assert.AreSame(placed, after);
+                Assert.AreSame(drawn, go.GetComponentInChildren<SpriteRenderer>());
+
+                // Edit Mode never dispatches OnDestroy, so the bindings outlive
+                // the destroyed hierarchy; a later write must not reach it.
+                UnityEngine.Object.DestroyImmediate(go);
+                Assert.DoesNotThrow(() => WriteSortPoint(grouped, Vector2.one));
+            }
+            finally { if (go != null) UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Render_VariantSortPointWriteMovesOnlyThePair(bool composition)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
+            var (root, grouped) = BuildSortPointOwner(client, composition);
+            var go = new GameObject("Variant sort point");
+            try
+            {
+                var renderer = RenderSortPointOwner(go, client, root);
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var placed));
+                var owner = composition ? placed.transform.Find("Part") : placed.transform;
+                var pair = owner.Find("Sorting Group");
+                var content = pair.Find("Content");
+                var drawn = go.GetComponentInChildren<SpriteRenderer>();
+                var artWorld = drawn.transform.position;
+                var rootLocal = placed.transform.localPosition;
+                var ownerLocal = owner.localPosition;
+
+                // An in-place variant swap writes the group's SortPoint row.
+                var group = ((TestNodeSortingGroup)grouped.SortingGroup!).BackingNode;
+                string pointId = group.Get<NeoMemberVector2>("SortPoint").value!.id;
+                client.PrepareVariantApply(
+                    NeoGeneratedTypesSupport.AsWritable(grouped.BackingNode),
+                    _ => client.SetWritableValue(NeoValueOwnership.Session, new Vector2MemberValue
+                    {
+                        id = pointId, value = new NeoVector2Value { x = 1.5f, y = 0.25f },
+                    }));
+
+                AssertSamePosition(new Vector3(3, 0.5f, 0), pair.localPosition);
+                AssertSamePosition(-pair.localPosition, content.localPosition);
+                AssertSamePosition(artWorld, drawn.transform.position);
+                Assert.AreEqual(rootLocal, placed.transform.localPosition);
+                Assert.AreEqual(ownerLocal, owner.localPosition);
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var after));
+                Assert.AreSame(placed, after);
+                Assert.AreSame(drawn, go.GetComponentInChildren<SpriteRenderer>());
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Render_SortingGroupReplacementMovesThePairToTheNewGroup(bool composition)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
+            var (root, grouped) = BuildSortPointOwner(client, composition);
+            var go = new GameObject("Replaced sort point");
+            try
+            {
+                var renderer = RenderSortPointOwner(go, client, root);
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var placed));
+                var owner = composition ? placed.transform.Find("Part") : placed.transform;
+                var pair = owner.Find("Sorting Group");
+                var content = pair.Find("Content");
+                var drawn = go.GetComponentInChildren<SpriteRenderer>();
+                var artWorld = drawn.transform.position;
+
+                // Assigning a new group disposes the node the pair read from.
+                var previous = ((TestNodeSortingGroup)grouped.SortingGroup!).BackingNode;
+                Assert.DoesNotThrow(() => AssignSortingGroup(client, grouped, new Vector2(1.5f, 0.25f)));
+                Assert.IsTrue(previous.isDisposed);
+                AssertSamePosition(new Vector3(3, 0.5f, 0), pair.localPosition);
+                AssertSamePosition(-pair.localPosition, content.localPosition);
+                AssertSamePosition(artWorld, drawn.transform.position);
+
+                // The pair follows the new group's own writes.
+                WriteSortPoint(grouped, new Vector2(-0.5f, 2f));
+                AssertSamePosition(new Vector3(-1, 4, 0), pair.localPosition);
+
+                // A later Position write moves the owner and keeps the pair.
+                var ownerWorld = owner.position;
+                Assert.DoesNotThrow(() => WritePosition(grouped, new Vector3(2, 3, 0)));
+                Assert.AreNotEqual(ownerWorld, owner.position);
+                AssertSamePosition(new Vector3(-1, 4, 0), pair.localPosition);
+                AssertSamePosition(-pair.localPosition, content.localPosition);
+                AssertSamePosition(artWorld + (owner.position - ownerWorld), drawn.transform.position);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Render_NullSortingGroupKeepsThePairUntilTheNextGroup(bool composition)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
+            var (root, grouped) = BuildSortPointOwner(client, composition);
+            var go = new GameObject("Null sort point");
+            try
+            {
+                var renderer = RenderSortPointOwner(go, client, root);
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var placed));
+                var owner = composition ? placed.transform.Find("Part") : placed.transform;
+                var pair = owner.Find("Sorting Group");
+                var content = pair.Find("Content");
+                AssignSortingGroup(client, grouped, new Vector2(1.5f, 0.25f));
+                AssertSamePosition(new Vector3(3, 0.5f, 0), pair.localPosition);
+
+                // Null keeps the group node but clears its value, so its
+                // SortPoint is gone; the pair keeps its last point.
+                var node = ((TestNodeSortingGroup)grouped.SortingGroup!).BackingNode;
+                Assert.DoesNotThrow(() => AssignSortingGroup(client, grouped, null));
+                Assert.IsNull(grouped.SortingGroup);
+                Assert.IsFalse(node.isDisposed);
+                Assert.DoesNotThrow(() => WritePosition(grouped, new Vector3(2, 3, 0)));
+                AssertSamePosition(new Vector3(3, 0.5f, 0), pair.localPosition);
+                AssertSamePosition(-pair.localPosition, content.localPosition);
+
+                // The next group takes over the pair.
+                Assert.DoesNotThrow(() => AssignSortingGroup(client, grouped, new Vector2(0.75f, 1f)));
+                AssertSamePosition(new Vector3(1.5f, 2, 0), pair.localPosition);
+                AssertSamePosition(-pair.localPosition, content.localPosition);
+                WriteSortPoint(grouped, new Vector2(-0.5f, 2f));
+                AssertSamePosition(new Vector3(-1, 4, 0), pair.localPosition);
+                AssertSamePosition(-pair.localPosition, content.localPosition);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        /// <summary>
+        /// Writes a new sorting group at <paramref name="point"/>, or null,
+        /// into the owner's <c>SortingGroup</c> key, as a generated setter
+        /// assigning a value does.
+        /// </summary>
+        private static void AssignSortingGroup(NeoClient client, TestComposedObject obj, Vector2? point)
+        {
+            NeoValueWritePayload? payload = null;
+            if (point is { } sortPoint)
+            {
+                var group = NeoGeneratedTypesSupport.CreateWritableClassValue(
+                    client,
+                    SortingGroupClassId,
+                    new NeoGeneratedConstructorValue("SortPoint", "sorting-group-sort-point-member", sortPoint));
+                payload = NeoGeneratedTypesSupport.ValueReference(new TestNodeSortingGroup(client, group));
+            }
+            NeoGeneratedTypesSupport.SetValue(
+                NeoGeneratedTypesSupport.AsWritable(obj.BackingNode), "SortingGroup", payload);
+        }
+
+        /// <summary>
+        /// A Position write the renderer reads back through the test double.
+        /// </summary>
+        private static void WritePosition(TestComposedObject obj, Vector3 position)
+        {
+            obj.Position = new NeoReadOnlyVector3(position);
+            NeoGeneratedTypesSupport.SetValue(
+                NeoGeneratedTypesSupport.AsWritable(obj.BackingNode),
+                "Position",
+                NeoValueWritePayload.FromValue(position));
+        }
+
+        /// <summary>
+        /// A placed root whose group lives on the root itself or, with
+        /// <paramref name="composition"/>, on its one composition child
+        /// <c>Part</c>. Either way the group carries one art child.
+        /// </summary>
+        private static (TestComposedObject Root, TestComposedObject Grouped) BuildSortPointOwner(
+            NeoClient client,
+            bool composition)
+        {
+            var root = (TestComposedObject)SpawnAnimationTestObject(client).Info;
+            var art = new TestSpriteChild { Name = "Art", Position = new(0.25f, 0.5f, 0) };
+            var grouped = root;
+            if (composition)
+            {
+                grouped = (TestComposedObject)SpawnAnimationTestObject(client, new Vector2Int(5, 5)).Info;
+                grouped.Name = "Part";
+                grouped.Position = new NeoReadOnlyVector3(1, 2, 0);
+                grouped.Children = new INeoWorldObjectValue[] { art };
+                root.Children = new INeoWorldObjectValue[] { grouped };
+            }
+            else
+            {
+                root.Children = new INeoWorldObjectValue[] { art };
+            }
+            grouped.SortingGroup = SortingGroupOf(client, grouped);
+            return (root, grouped);
+        }
+
+        private static NeoTileGridRenderer RenderSortPointOwner(
+            GameObject go,
+            NeoClient client,
+            TestComposedObject root)
+        {
+            var renderer = go.AddComponent<NeoTileGridRenderer>();
+            renderer.CellSize = 2;
+            renderer.Render(NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                new List<ReadOnlyNeoTileLayerRuntime>(),
+                new[] { ObjectLayerWithSingleInstance(root, "Default", 12) });
+            return renderer;
+        }
+
+        [Test]
+        public void Render_ObjectsOrderBySortPointYAndSwapWithIt()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
+            var a = (TestComposedObject)SpawnAnimationTestObject(client).Info;
+            var b = (TestComposedObject)SpawnAnimationTestObject(client, new Vector2Int(5, 5)).Info;
+            b.Position = new NeoReadOnlyVector3(1, 0, 0);
+            foreach (var obj in new[] { a, b })
+            {
+                obj.Children = new INeoWorldObjectValue[] { new TestSpriteChild { Name = "Art" } };
+                obj.SortingGroup = SortingGroupOf(client, obj);
+            }
+            WriteSortPoint(a, new Vector2(0.5f, 0.2f));
+            WriteSortPoint(b, new Vector2(0.5f, 0.8f));
+            var layer = new TestObjectLayerRuntime("object-layer", "Objects", ObjectClassId, "Default", 12,
+                new[]
+                {
+                    new NeoObjectProjection("object-a", "object-layer", Vector2Int.zero, new[] { Vector2Int.zero }, a, 1),
+                    new NeoObjectProjection("object-b", "object-layer", Vector2Int.right, new[] { Vector2Int.right }, b, 2),
+                });
+            var go = new GameObject("Sort point order");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(), new[] { layer });
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-a", out var rootA));
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-b", out var rootB));
+                var groupA = rootA.GetComponentInChildren<UnityEngine.Rendering.SortingGroup>();
+                var groupB = rootB.GetComponentInChildren<UnityEngine.Rendering.SortingGroup>();
+                var artA = rootA.GetComponentInChildren<SpriteRenderer>().transform.position;
+                var artB = rootB.GetComponentInChildren<SpriteRenderer>().transform.position;
+                // Unity resolves draw order on the render thread and exposes no
+                // order to a headless EditMode test. What it sorts by is: equal
+                // sorting layer and order, then distance along the camera's
+                // transparency sort axis — (0, 1, 0) in Neowyn — measured at
+                // each group's own transform. Equal keys plus those positions
+                // are therefore the observable stacking.
+                Assert.AreEqual(groupA.sortingLayerID, groupB.sortingLayerID);
+                Assert.AreEqual(groupA.sortingOrder, groupB.sortingOrder);
+                Assert.Greater(groupB.transform.position.y, groupA.transform.position.y,
+                    "B sorts farther along the axis, so it draws first and A draws in front.");
+
+                WriteSortPoint(a, new Vector2(0.5f, 0.8f));
+                WriteSortPoint(b, new Vector2(0.5f, 0.2f));
+                Assert.Greater(groupA.transform.position.y, groupB.transform.position.y,
+                    "Swapping the points swaps the stacking.");
+                AssertSamePosition(artA, rootA.GetComponentInChildren<SpriteRenderer>().transform.position);
+                AssertSamePosition(artB, rootB.GetComponentInChildren<SpriteRenderer>().transform.position);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        private static void AssertSamePosition(Vector3 expected, Vector3 actual) =>
+            Assert.Less((expected - actual).sqrMagnitude, 1e-8f, $"Expected {expected:F4}, got {actual:F4}.");
+
+        /// <summary>
+        /// <see cref="BuildPlacementAnimationProjectData"/> with a
+        /// <c>NeoSortingGroup</c>-shaped member on the object class, backed
+        /// by real nodes, so a <c>SortPoint</c> write notifies the renderer
+        /// the way a generated value's does.
+        /// </summary>
+        private static ProjectData BuildSortPointProjectData()
+        {
+            var data = BuildPlacementAnimationProjectData();
+            data.classes[SortingGroupClassId] = new NeoSchemaClass
+            {
+                id = SortingGroupClassId,
+                projectId = "project-a",
+                name = "Sorting Group",
+                schema = new Dictionary<string, string> { ["SortPoint"] = "sorting-group-sort-point-member" },
+                system = JObject.FromObject(new { worldKind = "sortingGroup" }),
+            };
+            data.members["sorting-group-sort-point-member"] = new Vector2Member
+            {
+                id = "sorting-group-sort-point-member", projectId = "project-a", name = "SortPoint",
+                kind = MemberKind.Vector2, DeclaredStorage = NeoMemberStorage.Session,
+            };
+            data.members["object-sorting-group-member"] = new ClassMember
+            {
+                id = "object-sorting-group-member", projectId = "project-a", name = "SortingGroup",
+                kind = MemberKind.Class, classId = SortingGroupClassId, DeclaredStorage = NeoMemberStorage.Session,
+            };
+            data.classes[ObjectClassId].schema["SortingGroup"] = "object-sorting-group-member";
+            ((ObjectMemberValue)data.values["shop-object"]).value!["SortingGroup"] = "shop-object-sorting-group";
+            data.values["shop-object-sorting-group"] = new ObjectMemberValue
+            {
+                id = "shop-object-sorting-group", classId = SortingGroupClassId,
+                value = new Dictionary<string, string> { ["SortPoint"] = "shop-object-sort-point" },
+            };
+            data.values["shop-object-sort-point"] = new Vector2MemberValue
+            {
+                id = "shop-object-sort-point", value = new NeoVector2Value { x = 0.5f, y = 0 },
+            };
+            return data;
+        }
+
+        private static TestNodeSortingGroup SortingGroupOf(NeoClient client, TestComposedObject obj) =>
+            new(client, obj.BackingNode.Get<NeoMemberClass>("SortingGroup"));
+
+        private static void WriteSortPoint(TestComposedObject obj, Vector2 point) =>
+            NeoGeneratedTypesSupport.SetVector2(
+                NeoGeneratedTypesSupport.AsWritable(((TestNodeSortingGroup)obj.SortingGroup!).BackingNode),
+                "SortPoint",
+                point);
 
         [Test]
         public void Render_AppliesAuthoredSpriteFlipsAndMaskInteraction()
@@ -6657,7 +7095,27 @@ namespace NeoCompose.Tests
             public IReadOnlyList<INeoWorldObjectValue> Children { get; set; } =
                 new List<INeoWorldObjectValue>();
             public INeoCollider? Collider { get; set; }
-            public INeoSortingGroup? SortingGroup { get; set; }
+            private INeoSortingGroup? sortingGroup;
+
+            /// <summary>
+            /// A node-backed group reads the owner's current child node as a
+            /// generated getter does: null when that node's value is null,
+            /// otherwise a group over the node, so replacing it is seen.
+            /// </summary>
+            public INeoSortingGroup? SortingGroup
+            {
+                get
+                {
+                    if (sortingGroup is not TestNodeSortingGroup current) return sortingGroup;
+                    var node = BackingNode.Get<NeoMemberClass>(nameof(SortingGroup));
+                    if (node.value?.value is null) return null;
+                    if (!ReferenceEquals(current.BackingNode, node))
+                        sortingGroup = new TestNodeSortingGroup(Client, node);
+                    return sortingGroup;
+                }
+                set => sortingGroup = value;
+            }
+
             public Action? Spawned { get; set; }
             public void OnObjectSpawned(NeoObjectBehaviour behaviour) => Spawned?.Invoke();
             public void OnObjectDespawned(NeoObjectBehaviour behaviour) { }
@@ -6763,6 +7221,32 @@ namespace NeoCompose.Tests
         {
             public string? valueId => null;
             public bool SortAtRoot { get; set; }
+            public NeoReadOnlyVector2 SortPoint { get; set; } = new(0.5f, 0f);
+        }
+
+        /// <summary>
+        /// Stands in for a generated <c>NeoSortingGroup</c> over a real node.
+        /// <see cref="SortPoint"/> mirrors the generated getter: one cached
+        /// view that reads the live member.
+        /// </summary>
+        private sealed class TestNodeSortingGroup : NeoGeneratedClassValue, INeoSortingGroup
+        {
+            public TestNodeSortingGroup(NeoClient client, NeoMemberClass node)
+                : base(client, node, SortingGroupClassId)
+            {
+            }
+
+            public bool SortAtRoot => false;
+
+            public NeoReadOnlyVector2 SortPoint
+            {
+                get
+                {
+                    var memberNode = node.Get<NeoMemberVector2>("SortPoint");
+                    if (TryGetStoredView<NeoReadOnlyVector2>("SortPoint", memberNode, out var cached)) return cached;
+                    return CacheStoredView("SortPoint", memberNode, new NeoReadOnlyVector2(memberNode));
+                }
+            }
         }
 
         private sealed class TestObjectCollider : INeoCollider

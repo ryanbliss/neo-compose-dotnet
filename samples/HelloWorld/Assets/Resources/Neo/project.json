@@ -7248,7 +7248,7 @@
             "system": {
                 "kind": "worldAuthoring"
             },
-            "updatedAt": 1788081175744
+            "updatedAt": 1790132150269
         },
         "system_7202cfb6-9cc4-49d3-b3fb-e44a23915b40": {
             "createdAt": 1782971224672,
@@ -9005,6 +9005,24 @@
                 "kind": "worldAuthoring"
             },
             "updatedAt": 1788081175744
+        },
+        "system_c5d39776-03d6-4673-84bb-16ba81ae9e0a": {
+            "createdAt": 1790132150269,
+            "defaultValue": {
+                "value": {
+                    "x": 0.5,
+                    "y": 0
+                }
+            },
+            "id": "system_c5d39776-03d6-4673-84bb-16ba81ae9e0a",
+            "kind": 14,
+            "name": "SortPoint",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "requirement": 1,
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "updatedAt": 1790132150269
         },
         "system_c609fed3-53e4-5147-b493-e4aa23031d79": {
             "code": "return this.GetCell();",
@@ -11832,13 +11850,14 @@
             "name": "NeoSortingGroup",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "schema": {
-                "SortAtRoot": "system_fb90f48f-fcc0-4c98-bc22-70a8ea01170e"
+                "SortAtRoot": "system_fb90f48f-fcc0-4c98-bc22-70a8ea01170e",
+                "SortPoint": "system_c5d39776-03d6-4673-84bb-16ba81ae9e0a"
             },
             "system": {
                 "kind": "worldAuthoring",
                 "worldKind": "sortingGroup"
             },
-            "updatedAt": 1788081185682
+            "updatedAt": 1790132150269
         },
         "system_8b540423-5920-4c83-a632-1415448e7fd7": {
             "createdAt": 1778021392334,

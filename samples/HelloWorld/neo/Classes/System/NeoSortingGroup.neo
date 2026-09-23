@@ -5,4 +5,9 @@ class NeoSortingGroup {
   @id("system_fb90f48f-fcc0-4c98-bc22-70a8ea01170e")
   @system(kind: .WorldAuthoring)
   public virtual bool SortAtRoot = false;
+
+  /// Where this group sorts along the camera's transparency sort axis, as an offset from the object's origin-cell corner in cells, like NeoCollider.Offset. It is the group's pivot: put it where the art meets the ground. Moving it never moves the art.
+  @id("system_c5d39776-03d6-4673-84bb-16ba81ae9e0a")
+  @system(kind: .WorldAuthoring)
+  public virtual Vector2 SortPoint = new(0.5, 0);
 }

@@ -26,6 +26,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// Sort this group against the scene root, ignoring any enclosing sorting group. Maps to SortingGroup.sortAtRoot.
         /// </summary>
         new bool SortAtRoot { get; }
+
+
+        /// <summary>
+        /// Where this group sorts along the camera's transparency sort axis, as an offset from the object's origin-cell corner in cells, like NeoCollider.Offset. It is the group's pivot: put it where the art meets the ground. Moving it never moves the art.
+        /// </summary>
+        new NeoReadOnlyVector2 SortPoint { get; }
     }
 
     public partial class NeoSortingGroup : NeoGeneratedClassValue, IReadOnlyNeoSortingGroup, INeoSortingGroup
@@ -35,18 +41,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public NeoSortingGroup(bool? SortAtRoot = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(SortAtRoot), false, NeoValueOwnership.Session)
+        public NeoSortingGroup(bool? SortAtRoot = null, NeoVector2? SortPoint = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(SortAtRoot, SortPoint), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(bool? SortAtRoot = null)
+        private static NeoMemberClassWritable CreateFactoryNode(bool? SortAtRoot = null, NeoVector2? SortPoint = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "system_69150540-b653-4bd0-a4fa-43a9f39da72b",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortAtRoot", "system_fb90f48f-fcc0-4c98-bc22-70a8ea01170e", SortAtRoot)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortAtRoot", "system_fb90f48f-fcc0-4c98-bc22-70a8ea01170e", SortAtRoot),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortPoint", "system_c5d39776-03d6-4673-84bb-16ba81ae9e0a", SortPoint)
             );
         }
 
@@ -94,6 +101,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoSortingGroup>(out writable);
         }
 
+        NeoReadOnlyVector2 INeoSortingGroup.SortPoint => SortPoint;
+
         /// <summary>
         /// Sort this group against the scene root, ignoring any enclosing sorting group. Maps to SortingGroup.sortAtRoot.
         /// </summary>
@@ -110,11 +119,41 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        /// <summary>
+        /// Where this group sorts along the camera's transparency sort axis, as an offset from the object's origin-cell corner in cells, like NeoCollider.Offset. It is the group's pivot: put it where the art meets the ground. Moving it never moves the art.
+        /// </summary>
+        public virtual NeoVector2 SortPoint
+        {
+            get
+            {
+                var memberNode = writableNode.Get<NeoMemberVector2Writable>("SortPoint");
+                if (TryGetStoredView<NeoVector2>("SortPoint", memberNode, out var cached)) return cached;
+                return CacheStoredView("SortPoint", memberNode, new NeoVector2(memberNode, this));
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoSortingGroup.SortPoint");
+                NeoGeneratedTypesSupport.SetVector2(writableNode, "SortPoint", value);
+            }
+        }
+
+        NeoReadOnlyVector2 IReadOnlyNeoSortingGroup.SortPoint
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberVector2>("SortPoint");
+                if (TryGetStoredView<NeoReadOnlyVector2>("SortPoint", memberNode, out var cached)) return cached;
+                return CacheStoredView("SortPoint", memberNode, new NeoReadOnlyVector2(memberNode));
+            }
+        }
+
         public sealed class Fields
         {
             private Fields() {}
 
             public static readonly NeoField<bool> SortAtRoot = new("SortAtRoot");
+
+            public static readonly NeoField<NeoVector2> SortPoint = new("SortPoint");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -122,6 +161,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.SortAtRoot] = () => null,
+                [Fields.SortPoint] = () => null,
             };
         }
 
@@ -140,6 +180,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.SortAtRoot] = () => SortAtRoot,
+                [Fields.SortPoint] = () => SortPoint,
             };
         }
 

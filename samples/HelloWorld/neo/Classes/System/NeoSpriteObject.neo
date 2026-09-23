@@ -22,7 +22,7 @@ class NeoSpriteObject : NeoObjectBase {
   @system(kind: .WorldAuthoring)
   public virtual string Name = "";
 
-  /// Nudges this sprite's draw order within its object. Added to the order derived from the object's layer group — it does not replace it. Leave unset for the default order.
+  /// Added to the object layer's sorting order; it does not replace it. The result competes with every renderer in the sorting layer, or in the enclosing sorting group, and among equal orders the renderer lower on screen draws in front. Leave unset to use the layer's order.
   @id("system_6f32f1f2-83ea-42fc-8647-34ed0946b7f1")
   @settings(min: -32768, max: 32767)
   @system(kind: .WorldAuthoring)

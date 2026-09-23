@@ -90,7 +90,8 @@ namespace NeoCompose.Runtime
     /// Runtime contract implemented by generated sorting group values (world
     /// kind <c>sortingGroup</c>, e.g. a generated <c>NeoSortingGroup</c>
     /// family). Sorting layer and order still come from the object's layer
-    /// group; only <see cref="SortAtRoot"/> is authored here.
+    /// group; <see cref="SortAtRoot"/> and <see cref="SortPoint"/> are
+    /// authored here.
     /// </summary>
     public interface INeoSortingGroup : INeoValueReference
     {
@@ -100,6 +101,17 @@ namespace NeoCompose.Runtime
         /// once at spawn.
         /// </summary>
         bool SortAtRoot { get; }
+
+        /// <summary>
+        /// Where the group sorts along the camera's transparency sort axis, in
+        /// cells from the object's origin-cell corner, the same space as
+        /// <see cref="INeoCollider.Offset"/>. The renderer moves only the
+        /// <c>SortingGroup</c> component's GameObject to this point and cancels
+        /// the offset beneath it, so the art never moves. Unlike
+        /// <see cref="SortAtRoot"/> it is live: a write applies on the next
+        /// coalesced refresh.
+        /// </summary>
+        NeoReadOnlyVector2 SortPoint { get; }
     }
 
     /// <summary>
