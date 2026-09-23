@@ -99,7 +99,7 @@ namespace NeoCompose.Runtime
             {
                 var changedIds = new List<NeoObjectInstanceId> { added.InstanceId };
                 var cells = new HashSet<Vector2Int>(added.Footprint);
-                var orderOnly = new Dictionary<NeoObjectInstanceId, int>();
+                var orderOnly = new HashSet<NeoObjectInstanceId>();
                 // Membership order is observable. Shift only the following
                 // ranks, without rereading any sibling's value graph.
                 for (int i = insertedAt; i < index.Records.Count; i++)
@@ -116,7 +116,7 @@ namespace NeoCompose.Runtime
                         if (slot >= 0) bucket[slot] = after;
                     }
                     changedIds.Add(after.InstanceId);
-                    orderOnly[after.InstanceId] = 1;
+                    orderOnly.Add(after.InstanceId);
                     cells.UnionWith(after.Footprint);
                 }
                 index.Records.Insert(insertedAt, added);
@@ -129,7 +129,7 @@ namespace NeoCompose.Runtime
                 var change = new NeoTileGridChangedArgs(primitive.GridValueId,
                     objectLayers: new[] { new NeoObjectLayerChangedArgs(layerId, Array.Empty<NeoObjectInstanceId>(),
                         changedIds, new List<Vector2Int>(cells), NeoTileGridChangeSourceKind.Direct, null)
-                        { OrderOnlyDeltas = orderOnly, ContentChangedCells = added.Footprint } },
+                        { OrderOnlyInstances = orderOnly, ContentChangedCells = added.Footprint } },
                     source: primitive.Client.CurrentChangeSource);
                 primitive.Client.ScriptGridQueries.NotifyChanged(change);
                 plan.AfterNotifications(() => Changed?.Invoke(change));

@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.39.10] - 2026-09-22
+
+- Sort rendered objects by their authored sorting order only. The renderer added each instance's rank in its layer's object list, each composition child's index in `Children`, and each object-carried tile's index to the sorting order. Unity compares sorting order before the transparency sort axis, so objects on a layer drew in collection order and never Y-sorted; in Neowyn, flowers drew over the player. A rendered sprite or sorting group now takes its object layer's sorting order plus its own authored `SortingOrder`. Membership rank still orders `GetObjects(cell)` results; inserting or removing an entry no longer rewrites its siblings' renderers. Composition children that relied on their position in `Children` to layer must now author `SortingOrder`.
+
 ## [0.39.9] - 2026-09-22
 
 - Keep a materialized nested instance's call-site initializers and variant-applied members. 0.39.8 left a stored nested instance to its own replay whenever the outer expansion reached its stable id. When that row sits at the id the outer expansion mints for it, with the same variant selection, it is not an independent construction: it is the outer root's materialized spine (P75 §3.1), and only the outer replay carries the initializers written at the call site (`new AnimationSpriteObject { Name = "Sprite" }`) and the members the variant applies. Replaying the spine alone dropped them, so New Game failed with "Vector3 'Position' has no value" and a destructable's variant swap lost its sprite binding. The outer root now overlays its materialized spines, and a spine owned by another root's footprint is not expanded as its own root. A variant selected on the nested value itself still gives it a recipe of its own, and a write that changes that selection replays the placing root too, so the value leaves or rejoins the outer graph immediately instead of after a reload.

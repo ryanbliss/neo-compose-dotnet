@@ -307,14 +307,14 @@ namespace NeoCompose.Runtime
                         contentCells.UnionWith(previous.Value.Footprint);
                     }
                 var updated = new List<NeoObjectInstanceId>();
-                Dictionary<NeoObjectInstanceId, int>? orderOnly = null;
+                HashSet<NeoObjectInstanceId>? orderOnly = null;
                 foreach (var current in next.ById)
                 {
                     if (pair.Value.ById.TryGetValue(current.Key, out var previous)
                         && !ObjectChanged(previous, current.Value, changedIds)) continue;
                     updated.Add(current.Key);
                     if (previous is not null && !ObjectChanged(previous, current.Value, changedIds, ignoreOrder: true))
-                        (orderOnly ??= new())[current.Key] = current.Value.Order - previous.Order;
+                        (orderOnly ??= new()).Add(current.Key);
                     else
                     {
                         if (previous is not null) contentCells.UnionWith(previous.Footprint);
@@ -325,7 +325,7 @@ namespace NeoCompose.Runtime
                 }
                 if (removed.Count == 0 && updated.Count == 0 && cells.Count == 0) continue;
                 objects.Add(new NeoObjectLayerChangedArgs(pair.Key, removed, updated,
-                    new List<Vector2Int>(cells), NeoTileGridChangeSourceKind.Direct, null) { OrderOnlyDeltas = orderOnly, ContentChangedCells = new List<Vector2Int>(contentCells) });
+                    new List<Vector2Int>(cells), NeoTileGridChangeSourceKind.Direct, null) { OrderOnlyInstances = orderOnly, ContentChangedCells = new List<Vector2Int>(contentCells) });
             }
             changedTileLayers.Clear();
             changedObjectLayers.Clear();

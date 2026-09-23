@@ -1051,7 +1051,7 @@ namespace NeoCompose.Runtime
     public sealed class NeoObjectLayerChangedArgs
     {
         internal bool PositionsOnly { get; set; }
-        internal IReadOnlyDictionary<NeoObjectInstanceId, int>? OrderOnlyDeltas { get; set; }
+        internal HashSet<NeoObjectInstanceId>? OrderOnlyInstances { get; set; }
         public NeoObjectLayerChangedArgs(
             string layerId,
             IReadOnlyList<NeoObjectInstanceId> removedInstances,
@@ -1082,7 +1082,7 @@ namespace NeoCompose.Runtime
         public IReadOnlyList<NeoObjectInstanceId> AddedOrChangedInstances { get; }
         public IReadOnlyList<NeoObjectInstanceId> ChangedInstances { get; }
         public IReadOnlyList<Vector2Int> ChangedCells { get; }
-        /// <summary>Cells whose object content changed, excluding unchanged siblings whose draw-order rank shifted.</summary>
+        /// <summary>Cells whose object content changed, excluding unchanged siblings whose membership rank shifted.</summary>
         public IReadOnlyList<Vector2Int> ContentChangedCells { get; internal set; }
         public NeoTileGridChangeSourceKind SourceKind { get; }
         public string? SourceId { get; }

@@ -1021,27 +1021,9 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 // Reevaluate lifecycle filters, while retaining controllers and
-                // animation on an object that remains visible after moving.
-                if (change.PositionsOnly && objectRootsByInstanceId.TryGetValue(instanceId, out var existing)
-                    && existing != null) continue;
-                if (change.OrderOnlyDeltas != null && change.OrderOnlyDeltas.TryGetValue(instanceId, out int orderDelta)
-                    && objectRootsByInstanceId.TryGetValue(instanceId, out var reordered) && reordered != null)
-                {
-                    // Inserting/removing an unordered collection entry can shift
-                    // its siblings' render ranks. Keep their gameplay controllers.
-                    foreach (var sprite in reordered.GetComponentsInChildren<SpriteRenderer>(true))
-                        sprite.sortingOrder += orderDelta;
-                    foreach (var group in reordered.GetComponentsInChildren<UnityEngine.Rendering.SortingGroup>(true))
-                        group.sortingOrder += orderDelta;
-                    if (objectSpritesByInstanceId.TryGetValue(instanceId, out var bindings))
-                        for (int i = 0; i < bindings.Count; i++)
-                        {
-                            var binding = bindings[i];
-                            bindings[i] = new RenderedObjectSprite(binding.Value, binding.Renderer,
-                                binding.CellSpan, binding.BoundsCollider, binding.BaseSortingOrder + orderDelta);
-                        }
-                    continue;
-                }
+                // animation on an object that only moved or shifted membership rank.
+                if ((change.PositionsOnly || change.OrderOnlyInstances?.Contains(instanceId) == true)
+                    && objectRootsByInstanceId.TryGetValue(instanceId, out var existing) && existing != null) continue;
                 DestroyRenderedObject(instanceId);
                 objectRootsByInstanceId[instanceId] =
                     SpawnObject(root.transform, layer, resolved, fallbackSortingOrder);
@@ -1140,7 +1122,7 @@ namespace NeoCompose.Runtime
         /// interaction from the value that governs it. The value model is the
         /// single source of truth for what is drawn, the same way it already is
         /// for position and visibility.
-        /// Sorting uses the retained composition base plus the current authored
+        /// Sorting uses the retained layer order plus the current authored
         /// offset, so repeated writes never accumulate the previous offset.
         /// </summary>
         private void SyncObjectSprites(NeoObjectInstanceId instanceId)
@@ -1598,8 +1580,9 @@ namespace NeoCompose.Runtime
                 visibility.Register(rootObject, go, trackPosition: false);
             }
 
-            var sortingOrder =
-                (layer.SortingOrder ?? layerFallbackSortingOrder) + instance.Order;
+            // Membership rank and child index add nothing: only authored orders
+            // separate objects, so the camera's transparency sort axis decides.
+            var sortingOrder = layer.SortingOrder ?? layerFallbackSortingOrder;
             // Attached before children render so every descendant renderer is
             // parented under a group that already exists.
             AttachSortingGroup(go, layer, instance.Object, sortingOrder);
@@ -1648,8 +1631,8 @@ namespace NeoCompose.Runtime
         /// Adds a Unity SortingGroup when the value authored one, so the
         /// object and its children sort as a single unit. Sorting layer and
         /// order come from the object layer group, exactly as they do for a
-        /// SpriteRenderer, which is what makes the group take the object's
-        /// computed position in the layer.
+        /// SpriteRenderer, so the group ties with the layer's other objects
+        /// and sorts along the transparency axis.
         /// </summary>
         private static void AttachSortingGroup(
             GameObject target,
@@ -1669,7 +1652,7 @@ namespace NeoCompose.Runtime
             Transform parent,
             IReadOnlyNeoObjectLayerRuntime layer,
             INeoValueReference value,
-            int baseSortingOrder,
+            int sortingOrder,
             HashSet<string> visitedValueIds,
             int depth,
             ObjectVisibilityIndex visibility,
@@ -1686,7 +1669,6 @@ namespace NeoCompose.Runtime
             }
 
             var rendered = 0;
-            var childIndex = 0;
             foreach (var child in composition.Children)
             {
                 if (child == null) continue;
@@ -1694,8 +1676,7 @@ namespace NeoCompose.Runtime
                     parent,
                     layer,
                     child,
-                    baseSortingOrder,
-                    childIndex++,
+                    sortingOrder,
                     visitedValueIds,
                     depth + 1,
                     visibility,
@@ -1713,21 +1694,19 @@ namespace NeoCompose.Runtime
             Transform parent,
             IReadOnlyNeoObjectLayerRuntime layer,
             INeoWorldObjectValue child,
-            int baseSortingOrder,
-            int orderOffset,
+            int sortingOrder,
             HashSet<string> visitedValueIds,
             int depth,
             ObjectVisibilityIndex visibility,
             List<RenderedObjectSprite> sprites)
         {
             var childOffset = CellOffsetToLocalPosition(child.Position);
-            var childSortingOrder = baseSortingOrder + orderOffset;
             var rendered = RenderTileLayerLinkChild(
                 parent,
                 layer,
                 child,
                 childOffset,
-                childSortingOrder,
+                sortingOrder,
                 visibility);
             if (rendered > 0) return rendered;
 
@@ -1741,7 +1720,7 @@ namespace NeoCompose.Runtime
                     spriteChild.Sprite,
                     childOffset,
                     CellSpanFromSize(spriteChild.Size),
-                    childSortingOrder,
+                    sortingOrder,
                     sprites);
                 visibility.Register(child, spriteGo);
                 return 1;
@@ -1751,7 +1730,7 @@ namespace NeoCompose.Runtime
                 string.IsNullOrWhiteSpace(child.Name) ? "Object" : child.Name);
             childRoot.transform.SetParent(parent, false);
             childRoot.transform.localPosition = childOffset;
-            AttachSortingGroup(childRoot, layer, child, childSortingOrder);
+            AttachSortingGroup(childRoot, layer, child, sortingOrder);
             // The subtree is built even when the child is disabled, so a
             // runtime write can toggle it back on and so a clip playing through
             // it keeps resolving. Deactivation happens later still, once the
@@ -1760,7 +1739,7 @@ namespace NeoCompose.Runtime
                 childRoot.transform,
                 layer,
                 child,
-                childSortingOrder,
+                sortingOrder,
                 visitedValueIds,
                 depth + 1,
                 visibility,
@@ -1785,13 +1764,12 @@ namespace NeoCompose.Runtime
             IReadOnlyNeoObjectLayerRuntime layer,
             INeoValueReference link,
             Vector3 linkOffset,
-            int baseSortingOrder,
+            int sortingOrder,
             ObjectVisibilityIndex visibility)
         {
             if (link is not INeoTileLayerLinkValue tileLayerLink) return 0;
 
             var rendered = 0;
-            var tileIndex = 0;
             foreach (var tileInstance in tileLayerLink.GetTileProjections())
             {
                 var tileValue = tileInstance.Tile;
@@ -1813,7 +1791,7 @@ namespace NeoCompose.Runtime
                     sprite,
                     linkOffset + CellOffsetToLocalPosition(tileInstance.Cell),
                     Vector3.one,
-                    baseSortingOrder + tileIndex++,
+                    sortingOrder,
                     sprites: null);
                 if (link is INeoWorldObjectValue linkObject)
                 {
