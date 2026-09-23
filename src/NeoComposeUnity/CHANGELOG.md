@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.41.2] - 2026-09-23
+
+- Fix `ArgumentException: Key already in the list` from a NeoScript `Where` over a `List` that matched nothing, or a `Remove` that emptied a local holding a `Where` result. An empty result can be a shared empty array, and 0.41.1 registered its entry member again on the next empty result. Empty results now register nothing, since they have no entries to resolve.
+- Keep each empty unordered `List` its own value. Every empty unordered List read back as one shared empty array, so a local holding one could `Add` into whichever empty unordered List was read last.
+
 ## [0.41.1] - 2026-09-23
 
 - Resolve localized entries read through a `List` or `Dictionary`. A localized `List<string>` entry stores its text id, and NeoScript returned that id instead of the text when it indexed the list (`Commands[0]`), read a dictionary key, iterated with `foreach`, called `Contains`, `Count`, `IndexOf`, `Where`, or `Select`, or read a `Where` result (also after `Add` or `Remove` on a local holding it). Entry reads now use the collection's declared entry member, the same way a member read uses its own member, so they return the localized text. Entries declared `@settings(format: .Plain)` and literal entries still return their stored text.

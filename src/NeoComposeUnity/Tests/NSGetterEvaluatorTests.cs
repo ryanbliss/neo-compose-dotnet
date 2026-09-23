@@ -2297,7 +2297,7 @@ namespace NeoCompose.Tests
                 "add pickaxe.stone",
                 NSGetterEvaluator.SnapshotCollectionEntries(list, ctx)[0].Resolve(ctx),
                 "foreach");
-            var where = new FunctionPointer
+            FunctionPointer Where(bool keep) => new FunctionPointer
             {
                 type = PointerKind.Function,
                 function = new WhereFunction
@@ -2321,18 +2321,26 @@ namespace NeoCompose.Tests
                             typeInfo = new PrimitiveTypeInfo { type = MemberKind.Bool, required = true },
                             instructions = new Instruction[]
                             {
-                                new ReturnInstruction { type = InstructionKind.Return, pointer = BoolPointer(true) },
+                                new ReturnInstruction { type = InstructionKind.Return, pointer = BoolPointer(keep) },
                             },
                         },
                     },
                 },
             };
+            FunctionPointer where = Where(keep: true);
             var whereIndexed = new KeyOfPointer
             {
                 type = PointerKind.KeyOf,
                 keyOf = new KeyOf { pointer = where, key = IntPointer(0) },
             };
             Assert.AreEqual("add pickaxe.stone", Evaluate(whereIndexed, MemberKind.String), "Where(...)[i]");
+            // An empty result can be the shared empty array; filtering to
+            // nothing repeatedly must not register it twice.
+            FunctionPointer none = Where(keep: false);
+            CollectionAssert.IsEmpty((object?[])Evaluate(none, MemberKind.List)!, "first empty Where");
+            var empty = (object?[])Evaluate(none, MemberKind.List)!;
+            CollectionAssert.IsEmpty(empty, "second empty Where");
+            Assert.IsNull(NSGetterEvaluator.CollectionEntryMember(empty, ctx), "a shared empty array carries no entry member");
             object? filtered = NSGetterEvaluator.Evaluate(ReturnFunction(where, MemberKind.List), ctx);
             Assert.AreEqual(
                 "add pickaxe.stone",
