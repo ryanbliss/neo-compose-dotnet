@@ -140,6 +140,20 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void RuntimeWrite_ToAWritableMemberOfASaveRowLandsInSave()
+        {
+            ProjectData data = Build();
+            string saved;
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                ExecuteRuntimeWrite(client, "Save", "Thing", "Size", 6);
+                saved = client.SerializeSaveData();
+            }
+            using NeoClient reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.AreEqual(6d, reopened.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberInt>("Size").value!.value);
+        }
+
+        [Test]
         public void RuntimeWrite_ToAnInheritMemberOfAnAssetRowStillThrows()
         {
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(Build());
