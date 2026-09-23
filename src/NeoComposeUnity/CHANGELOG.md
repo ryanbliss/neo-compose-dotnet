@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.40.0] - 2026-09-22
+
+- Add a sort point to sorting groups (P92). A grouped object now sorts at its authored `SortPoint`, in cells from its origin-cell corner (the same space as `INeoCollider.Offset`), instead of at its root. `INeoSortingGroup` gains the member:
+
+  ```csharp
+  public interface INeoSortingGroup : INeoValueReference
+  {
+      bool SortAtRoot { get; }
+
+      NeoReadOnlyVector2 SortPoint { get; }
+  }
+  ```
+
+  Generated code from an older schema no longer compiles against this contract. Synchronize to regenerate `NeoSortingGroup`.
+- A grouped object's rendered hierarchy is now `root / Sorting Group / Content / children`. The `SortingGroup` component moves from the root to `Sorting Group`, which sits at the sort point. `Content` cancels that offset, so the art stays in place. The root keeps its placement, collider, and behaviour. Grouped composition children get the same pair, measured from the child's origin. Code that finds rendered children by path under a grouped root must add `Sorting Group/Content/`. Ungrouped objects get no extra GameObjects.
+- The sort point is live. A `SortPoint` write moves only the pair's two transforms in the same coalesced refresh as other animation writes, and never respawns the object. A Position write does not read the sort point.
+- Measured in EditMode (`NeoTileGridRendererTests.SortPointPerformance_SpawnMoveAndSortPointWrite`, three sprite children per object, medians of three alternating runs against `main`):
+  - Spawn adds 241 B and 15 to 22 µs per grouped object, for example 6.08 → 7.60 ms at 100 objects. Two empty parented GameObjects alone cost about 10 µs and 160 B.
+  - A Position write adds no allocation (332 B per write on both) and stays within run-to-run noise.
+  - A `SortPoint` write allocates exactly what the store write alone does, 376 B.
+
 ## [0.39.10] - 2026-09-22
 
 - Sort rendered objects by their authored sorting order only. The renderer added each instance's rank in its layer's object list, each composition child's index in `Children`, and each object-carried tile's index to the sorting order. Unity compares sorting order before the transparency sort axis, so objects on a layer drew in collection order and never Y-sorted; in Neowyn, flowers drew over the player. A rendered sprite or sorting group now takes its object layer's sorting order plus its own authored `SortingOrder`. Membership rank still orders a layer's `GetObjects()` enumeration; a reorder that moves no placement raises no change. Inserting or removing an entry no longer reports its later siblings as changed: shifting their ranks keeps their relative order, so nothing they draw or answer changes. `NeoObjectLayerChangedArgs.ContentChangedCells`, which existed to filter those reports out, is removed; use `ChangedCells`. Composition children that relied on their position in `Children` to layer must now author `SortingOrder`.
