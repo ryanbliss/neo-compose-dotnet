@@ -308,6 +308,94 @@ namespace NeoCompose.Tests
             }
         }
 
+        /// <summary>
+        /// A localized String entry stores its text id. Matching a script's
+        /// value against entries compares the text a read returns, so
+        /// <c>Remove("Alpha")</c> and a Lookup <c>Add("Beta")</c> find them.
+        /// </summary>
+        [Test]
+        public void NeoScript_PayloadMatchesCompareLocalizedEntryText([Values(false, true)] bool unordered)
+        {
+            ProjectData data = BuildProjectData();
+            var items = (ListMember)data.members["items-member"];
+            items.ListKind = unordered ? NeoListKind.Unordered : NeoListKind.Ordered;
+            data.members["item-entry-member"] = new StringMember
+            {
+                id = "item-entry-member", kind = MemberKind.String,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            foreach (string id in new[] { "item-a", "item-b" })
+                data.values[id] = new StringMemberValue
+                {
+                    id = id, containerId = unordered ? ItemsListValueId : null, value = "text-" + id,
+                };
+            if (!unordered)
+                ((ArrayMemberValue)data.values[ItemsListValueId]).value = new[] { "item-a", "item-b" };
+            data.members["selected-member"] = new LookupMember
+            {
+                id = "selected-member", projectId = "project-a", name = "Selected", kind = MemberKind.Lookup,
+                collectionMemberId = items.id, Selection = NeoMemberSelectionKind.Multi,
+            };
+            data.classes[BagClassId].schema["Selected"] = "selected-member";
+            ((ObjectMemberValue)data.values["bag-value"]).value!["Selected"] = "selected-set";
+            data.values["selected-set"] = new ArrayMemberValue { id = "selected-set", value = System.Array.Empty<string>() };
+            var localization = NeoLocalization.CreateEmpty(null);
+            Assert.IsTrue(localization.TryAddLoadedLocale(new ProjectLocalizationLocaleFile
+            {
+                schemaVersion = 1,
+                projectId = data.project.id,
+                versionId = "version-1",
+                locale = "en-US",
+                formattingSyntax = "smart-format",
+                values = new Dictionary<string, string?> { ["text-item-a"] = "Alpha", ["text-item-b"] = "Beta" },
+            }));
+            using var client = NeoTestSaveStack.ClientFromSchema(data, localization: localization);
+            var stringType = new PrimitiveTypeInfo { type = MemberKind.String, required = true };
+            void Mutate(string valueId, TypeInfo typeInfo, string mutation, string text) =>
+                NeoScriptExecutor.Execute(client, new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = System.Array.Empty<Variable>(),
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = new Instruction[]
+                    {
+                        new CollectionCallInstruction
+                        {
+                            type = InstructionKind.CollectionCall,
+                            target = new WriteTarget
+                            {
+                                pointer = new ReferencePointer { type = PointerKind.Reference, valueId = valueId },
+                                typeInfo = typeInfo,
+                                writability = WritabilityKind.Save,
+                            },
+                            mutation = mutation,
+                            args = new Pointer[]
+                            {
+                                new ValuePointer
+                                {
+                                    type = PointerKind.Value,
+                                    value = new Value { typeInfo = stringType, value = Newtonsoft.Json.Linq.JToken.FromObject(text) },
+                                },
+                            },
+                        },
+                    },
+                }, new Dictionary<string, object?>(), new NSGetterEvaluator.Context(client, null, null));
+
+            Mutate("selected-set", new LookupTypeInfo
+            {
+                type = MemberKind.Lookup, required = true, entryTypeInfo = stringType,
+                collectionMemberId = items.id, collectionValueId = ItemsListValueId,
+            }, CollectionMutationKind.Add, "Beta");
+            Mutate(ItemsListValueId, new CollectionTypeInfo
+            {
+                type = MemberKind.List, required = true, entryTypeInfo = stringType,
+            }, CollectionMutationKind.Remove, "Alpha");
+
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "selected-set", out ArrayMemberValue? selected));
+            CollectionAssert.AreEqual(new[] { "item-b" }, selected!.value, "Lookup Add by text");
+            CollectionAssert.AreEqual(new[] { "item-b" }, ResolveItems(client).ResolveEntryValueIds(), "Remove by text");
+        }
+
         [Test]
         public void Evaluator_DoesNotRetainInvalidatedListViews()
         {

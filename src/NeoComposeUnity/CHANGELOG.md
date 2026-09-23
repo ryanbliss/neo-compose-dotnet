@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.41.1] - 2026-09-23
+
+- Resolve localized entries read through a `List` or `Dictionary`. A localized `List<string>` entry stores its text id, and NeoScript returned that id instead of the text when it indexed the list (`Commands[0]`), read a dictionary key, iterated with `foreach`, called `Contains`, `Count`, `IndexOf`, `Where`, or `Select`, or read a `Where` result (also after `Add` or `Remove` on a local holding it). Entry reads now use the collection's declared entry member, the same way a member read uses its own member, so they return the localized text. Entries declared `@settings(format: .Plain)` and literal entries still return their stored text.
+- Match localized entries by their text. `Remove(value)` on a List and `Add`/`Remove` on a `Set` over a localized collection compared the script's value with each entry's stored text id, so `Commands.Remove("add pickaxe.stone")` removed nothing. They now compare the text a read returns.
+
 ## [0.41.0] - 2026-09-23
 
 - Add `NeoGeneratedWorldObjectValue`, the SDK base of the generated root world object class. Generated `NeoObjectBase` now derives from it instead of `NeoGeneratedClassValue`, so every object, composition child, and layer link inherits world object APIs the SDK adds without a codegen change. Synchronize after the Neo Compose deploy to regenerate `NeoObjectBase`.

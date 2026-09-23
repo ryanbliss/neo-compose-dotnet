@@ -437,6 +437,10 @@ namespace NeoCompose.Runtime.NeoScript
     {
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
             object, Dictionary<string, int>> ListIdentityIndexes = new();
+        // A Where result re-emits its source's value ids, and a mutated local
+        // copy keeps them, so their entries keep the source's entry member.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
+            object, JsonMember> DerivedEntryMembers = new();
 
         /// <summary>
         /// Per-evaluation context: the project, the bound
@@ -907,6 +911,9 @@ namespace NeoCompose.Runtime.NeoScript
             public NeoValueOwnership ownership { get; }
             public string? classId { get; }
             internal JsonMember? member { get; }
+            private bool collectionMembersResolved;
+            private JsonMember? collectionMember;
+            private JsonMember? entryMember;
 
             public RowReference(
                 string valueId,
@@ -918,6 +925,38 @@ namespace NeoCompose.Runtime.NeoScript
                 this.ownership = ownership;
                 this.classId = classId;
                 this.member = member;
+            }
+
+            /// <summary>The row's member, inferred once when the read carried none.</summary>
+            internal JsonMember? CollectionMember(NeoClient client)
+            {
+                ResolveCollectionMembers(client);
+                return collectionMember;
+            }
+
+            /// <summary>
+            /// The declared entry member of a List or Dictionary row, resolved
+            /// on the first entry read. Authored String entries carry no
+            /// localization mode, so only this member says an entry stores a
+            /// text id; entry reads pass it as a member read passes its own.
+            /// </summary>
+            internal JsonMember? EntryMember(NeoClient client)
+            {
+                ResolveCollectionMembers(client);
+                return entryMember;
+            }
+
+            private void ResolveCollectionMembers(NeoClient client)
+            {
+                if (collectionMembersResolved) return;
+                collectionMembersResolved = true;
+                collectionMember = member;
+                // A class row is never a collection; skip the parent walk.
+                if (collectionMember is null && classId is null)
+                    client.TryInferMemberForValueId(valueId, out collectionMember);
+                if (collectionMember is ListMember or DictionaryMember
+                    && client.TryGetValue(ownership, valueId, out MemberValue? row))
+                    entryMember = client.TryResolveCollectionEntryMember(collectionMember, row);
             }
         }
 
@@ -2443,6 +2482,9 @@ namespace NeoCompose.Runtime.NeoScript
             // exact stable value ids (including numeric-looking strings).
             if (receiver is object?[] arr)
             {
+                RowReference? listRef = FindRowReference(receiver, ctx);
+                NeoValueOwnership? listOwnership = listRef?.ownership;
+                JsonMember? entryMember = CollectionEntryMember(listRef, receiver, ctx);
                 if (key is string valueId)
                 {
                     Dictionary<string, int> identity = ListIdentityIndexes.GetValue(
@@ -2453,10 +2495,7 @@ namespace NeoCompose.Runtime.NeoScript
                         throw new NSGetterRuntimeError(
                             $"Value id '{valueId}' is not a member of this List");
                     }
-                    return ResolveValueIfId(
-                        arr[valueIndex],
-                        ctx,
-                        FindRowOwnershipByReference(receiver, ctx));
+                    return ResolveValueIfId(arr[valueIndex], ctx, listOwnership, entryMember);
                 }
                 int idx = ToIntKey(key);
                 if (idx < 0 || idx >= arr.Length)
@@ -2464,7 +2503,7 @@ namespace NeoCompose.Runtime.NeoScript
                     throw new NSGetterRuntimeError(
                         $"List index out of bounds: {key}");
                 }
-                return ResolveValueIfId(arr[idx], ctx, FindRowOwnershipByReference(receiver, ctx));
+                return ResolveValueIfId(arr[idx], ctx, listOwnership, entryMember);
             }
 
             string k = key?.ToString() ?? "null";
@@ -2523,7 +2562,12 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 if (record!.TryGetValue(k, out var at))
                 {
-                    return ResolveValueIfId(at, ctx, FindRowOwnershipByReference(receiver, ctx));
+                    RowReference? recordRef = FindRowReference(receiver, ctx);
+                    return ResolveValueIfId(
+                        at,
+                        ctx,
+                        RowOwnership(recordRef, receiver),
+                        CollectionEntryMember(recordRef, receiver, ctx));
                 }
                 throw new NSGetterRuntimeError($"Missing key '{k}' on object");
             }
@@ -3756,6 +3800,7 @@ namespace NeoCompose.Runtime.NeoScript
                     object result = isList
                         ? ((List<object?>)outAcc).ToArray()
                         : outAcc;
+                    KeepEntryMember(result, CollectionEntryMember(c, ctx));
                     callback.CompleteOperator(result);
                     return result;
                 }
@@ -4813,15 +4858,18 @@ namespace NeoCompose.Runtime.NeoScript
             private readonly object? raw;
             private readonly NeoValueOwnership? ownership;
             private readonly MemberValue? retainedRow;
+            private readonly JsonMember? entryMember;
 
             internal CollectionEntrySnapshot(
                 object? raw,
                 NeoValueOwnership? ownership,
-                MemberValue? retainedRow)
+                MemberValue? retainedRow,
+                JsonMember? entryMember)
             {
                 this.raw = raw;
                 this.ownership = ownership;
                 this.retainedRow = retainedRow;
+                this.entryMember = entryMember;
             }
 
             internal object? Resolve(Context ctx)
@@ -4840,11 +4888,11 @@ namespace NeoCompose.Runtime.NeoScript
                         id,
                         out MemberValue? currentRow))
                 {
-                    return UnwrapCached(currentRow, ctx, resolvedOwnership);
+                    return UnwrapCached(currentRow, ctx, resolvedOwnership, entryMember);
                 }
                 return retainedRow is null
                     ? raw
-                    : UnwrapCached(retainedRow, ctx, resolvedOwnership);
+                    : UnwrapCached(retainedRow, ctx, resolvedOwnership, entryMember);
             }
         }
 
@@ -4919,9 +4967,9 @@ namespace NeoCompose.Runtime.NeoScript
                     "foreach receiver must be a List, Dictionary, Set/Lookup, or derived collection view.");
             }
 
-            JsonMember? collectionMember = FindRowMemberByReference(collection, ctx);
-            if (collectionMember is null && FindRowIdByReference(collection, ctx) is string collectionId)
-                ctx.client.TryInferMemberForValueId(collectionId, out collectionMember);
+            RowReference? collectionRef = FindRowReference(collection, ctx);
+            JsonMember? collectionMember = collectionRef?.CollectionMember(ctx.client);
+            JsonMember? entryMember = CollectionEntryMember(collectionRef, collection, ctx);
             var snapshot = new List<CollectionEntrySnapshot>();
             foreach (OrderedRawCollectionEntry entry in
                 OrderedRawCollectionEntries(collection))
@@ -4943,7 +4991,8 @@ namespace NeoCompose.Runtime.NeoScript
                 snapshot.Add(new CollectionEntrySnapshot(
                     entry.Raw,
                     entryOwnership,
-                    retainedRow));
+                    retainedRow,
+                    entryMember));
             }
             return snapshot.ToArray();
         }
@@ -4968,13 +5017,15 @@ namespace NeoCompose.Runtime.NeoScript
             Func<object? /*entry*/, object /*key*/, string? /*valueId*/,
                 CollectionIterationControl> callback)
         {
+            JsonMember? entryMember = CollectionEntryMember(c, ctx);
             foreach (OrderedRawCollectionEntry rawEntry in
                 OrderedRawCollectionEntries(c))
             {
                 ctx.allocationTracker.ConsumeCollectionVisit();
                 object? entry = ResolveValueIfId(
                     rawEntry.Raw,
-                    ctx);
+                    ctx,
+                    member: entryMember);
                 CollectionIterationControl control = callback(
                     entry,
                     rawEntry.Key,
@@ -5737,7 +5788,7 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? member = null) =>
             new RowCacheKey(ownership, rowId, member?.id);
 
-        private static string? ResolveStringValue(
+        internal static string? ResolveStringValue(
             StringMemberValue value,
             StringMember member,
             Context ctx)
@@ -6322,18 +6373,43 @@ namespace NeoCompose.Runtime.NeoScript
                 : null;
         }
 
+        private static RowReference? FindRowReference(object? value, Context ctx) =>
+            TryFindRowReferenceByReference(value, ctx, out RowReference rowRef) ? rowRef : null;
+
+        /// <summary>
+        /// The declared entry member of a collection's entries: a List or
+        /// Dictionary row's own, or its source's for a Where result.
+        /// </summary>
+        private static JsonMember? CollectionEntryMember(
+            RowReference? collectionRef,
+            object? collection,
+            Context ctx) =>
+            collectionRef is not null
+                ? collectionRef.EntryMember(ctx.client)
+                : collection is not null && DerivedEntryMembers.TryGetValue(collection, out JsonMember? entryMember)
+                    ? entryMember
+                    : null;
+
+        internal static JsonMember? CollectionEntryMember(object? collection, Context ctx) =>
+            CollectionEntryMember(FindRowReference(collection, ctx), collection, ctx);
+
+        /// <summary>Gives a collection derived from another's value ids that source's entry member.</summary>
+        internal static void KeepEntryMember(object derived, JsonMember? entryMember)
+        {
+            if (entryMember is not null) DerivedEntryMembers.Add(derived, entryMember);
+        }
+
         internal static JsonMember? FindRowMemberByReference(object? value, Context ctx) =>
             TryFindRowReferenceByReference(value, ctx, out RowReference rowRef) ? rowRef.member : null;
 
-        internal static NeoValueOwnership? FindRowOwnershipByReference(object? value, Context ctx)
-        {
-            // Row-backed arguments can cross evaluator contexts. Their original
-            // reverse index is then unavailable, but the record still carries
-            // the exact selected store, including sparse authored fallbacks.
-            return TryFindRowReferenceByReference(value, ctx, out RowReference rowRef)
-                ? rowRef.ownership
-                : value is NeoObjectRecord record ? record.valueOwnership : null;
-        }
+        internal static NeoValueOwnership? FindRowOwnershipByReference(object? value, Context ctx) =>
+            RowOwnership(FindRowReference(value, ctx), value);
+
+        // Row-backed arguments can cross evaluator contexts. Their original
+        // reverse index is then unavailable, but the record still carries
+        // the exact selected store, including sparse authored fallbacks.
+        private static NeoValueOwnership? RowOwnership(RowReference? rowRef, object? value) =>
+            rowRef?.ownership ?? (value as NeoObjectRecord)?.valueOwnership;
 
         /// <summary>The stored row an unwrapped value came from, for the top-level getter memo.</summary>
         internal static bool TryFindRowReference(object? value, Context ctx, out RowReference rowRef) =>

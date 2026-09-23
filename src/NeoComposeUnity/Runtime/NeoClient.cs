@@ -4027,7 +4027,7 @@ namespace NeoCompose.Runtime
         private static bool NeedsOwnedMemberContext(Member member) => member is GenericMember
             || member is ClassMember constructed && constructed.classArguments?.Values.Any(argument => argument.IsForward) == true;
 
-        private Member? TryResolveCollectionEntryMember(Member? collectionMember, MemberValue? row = null)
+        internal Member? TryResolveCollectionEntryMember(Member? collectionMember, MemberValue? row = null)
         {
             string? entryMemberId = collectionMember switch
             {
