@@ -2516,6 +2516,62 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void CarriedTileLayerLinksFlattenThroughNestedObjectsAtTheirSummedPositions()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildNestedCarriedLinkProjectData());
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+
+            var nested = primitive.GetTileProjections(BackgroundLayerClassId, TileClassId)
+                .Single(tile => tile.SourceTileLayerLinkId == "part-link");
+
+            Assert.AreEqual(new Vector2Int(14, 21), nested.Cell, "shop (10, 20) + part (3, 1) + link (1, 0) + cell (0, 0)");
+            Assert.AreEqual("shop-1", nested.SourceObjectInstanceId);
+        }
+
+        [Test]
+        public void CarriedTilesFollowEnabledAndNestedPositionWrites()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildNestedCarriedLinkProjectData());
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid", factories, writableFactories);
+            var layer = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(BackgroundLayerClassId, new[] { TileClassId });
+            var changes = new List<NeoTileLayerChangedArgs>();
+            using var subscription = layer.OnChanged(changes.Add);
+            NeoMemberClassWritable Writable(string id) => NeoGeneratedTypesSupport.AsWritable(
+                ((NeoGeneratedClassValue)NeoGeneratedTypesSupport.ResolveClassValue(client, id, factories, writableFactories)!).BackingNode);
+            Vector2Int? NestedCell() => primitive.GetTileProjections(BackgroundLayerClassId, TileClassId)
+                .SingleOrDefault(tile => tile.SourceTileLayerLinkId == "part-link")?.Cell;
+            Assert.AreEqual(new Vector2Int(14, 21), NestedCell());
+
+            var part = Writable("shop-part");
+            var partEnabled = part.Get<NeoMemberBoolWritable>("Enabled");
+            Vector2Int? cellSeenByHandler = new Vector2Int(-1, -1);
+            partEnabled.OnChanged += _ => cellSeenByHandler = NestedCell();
+            partEnabled.Set(false);
+            Assert.IsNull(NestedCell(), "a disabled part carries no tiles");
+            Assert.IsNull(cellSeenByHandler, "value handlers already read the re-flattened grid");
+            CollectionAssert.AreEqual(new[] { new Vector2Int(14, 21) }, changes.Single().CellsToClear);
+
+            part.Get<NeoMemberBoolWritable>("Enabled").Set(true);
+            Assert.AreEqual(new Vector2Int(14, 21), NestedCell());
+
+            NeoGeneratedTypesSupport.SetValue(part, "Position", NeoValueWritePayload.FromValue(new Vector3(5f, 1f, 0f)));
+            Assert.AreEqual(new Vector2Int(16, 21), NestedCell(), "a nested Position write moves the carried tiles");
+            CollectionAssert.AreEqual(new[] { new Vector2Int(14, 21) }, changes.Last().CellsToClear);
+            CollectionAssert.AreEqual(new[] { new Vector2Int(16, 21) }, changes.Last().CellsToSetOrRefresh);
+
+            NeoGeneratedTypesSupport.SetValue(Writable("part-link"), "Enabled", NeoValueWritePayload.FromValue(false));
+            Assert.IsNull(NestedCell(), "a disabled link carries no tiles");
+            NeoGeneratedTypesSupport.SetValue(Writable("part-link"), "Enabled", NeoValueWritePayload.FromValue(true));
+
+            Writable("shop-1").Get<NeoMemberBoolWritable>("Enabled").Set(false);
+            Assert.IsEmpty(primitive.GetTileProjections(BackgroundLayerClassId, TileClassId)
+                .Where(tile => tile.SourceObjectInstanceId == "shop-1"), "a disabled placed object carries no tiles");
+        }
+
+        [Test]
         public void TileLayerLinkPayloadsStopResolvingWhenSourceTilesAreCleared()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
@@ -3887,13 +3943,9 @@ namespace NeoCompose.Tests
                 factories,
                 writableFactories)!;
 
-            var tiles = link.GetTileProjections();
+            var tiles = link.GetTiles();
             Assert.AreEqual(1, tiles.Count);
-            Assert.AreEqual(new Vector2Int(2, 3), tiles[0].Cell);
-            Assert.AreEqual(NeoTileOutputSourceKind.TileLayerLink, tiles[0].SourceKind);
-            Assert.AreEqual("background-link", tiles[0].SourceTileLayerLinkId);
-            Assert.AreEqual(BackgroundLayerClassId, tiles[0].LayerId);
-            Assert.AreEqual("class-backed-placement", tiles[0].Info.valueId);
+            Assert.AreEqual("class-backed-placement", tiles[0].valueId);
 
             Assert.IsNotNull(link.GetTile(new Vector2Int(2, 3)));
             Assert.IsNotNull(link.GetTile<TestTile>(new Vector2Int(2, 3)));
@@ -4861,7 +4913,7 @@ namespace NeoCompose.Tests
                 Assert.AreEqual(new Vector3(6f, 8f, 0f), objectRoot!.localPosition);
 
                 var spriteRenderers = objectRoot.GetComponentsInChildren<SpriteRenderer>();
-                Assert.AreEqual(2, spriteRenderers.Length);
+                Assert.AreEqual(1, spriteRenderers.Length, "A tile layer link flattens into its Tilemap, not under the object.");
                 Assert.IsFalse(System.Array.Exists(
                     spriteRenderers,
                     spriteRenderer => spriteRenderer.sprite == parentSprite));
@@ -4874,15 +4926,7 @@ namespace NeoCompose.Tests
                 Assert.AreEqual(4f, spriteChildRenderer.bounds.size.x, 0.0001f);
                 Assert.AreEqual(2f, spriteChildRenderer.bounds.size.y, 0.0001f);
                 Assert.AreEqual(12, spriteChildRenderer.sortingOrder);
-
-                var tileChild = objectRoot.Find("child-tile");
-                Assert.IsNotNull(tileChild);
-                var tileChildRenderer = tileChild!.GetComponent<SpriteRenderer>();
-                Assert.AreEqual(new Vector3(-1f, 5f, 0f), tileChild.localPosition);
-                Assert.AreSame(tileSprite, tileChildRenderer.sprite);
-                Assert.AreEqual(2f, tileChildRenderer.bounds.size.x, 0.0001f);
-                Assert.AreEqual(2f, tileChildRenderer.bounds.size.y, 0.0001f);
-                Assert.AreEqual(12, tileChildRenderer.sortingOrder, "Carried tiles take the layer's order, not their index.");
+                Assert.AreEqual(1, objectRoot.childCount);
             }
             finally
             {
@@ -5921,62 +5965,6 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Render_NestedTileLinkPositionPreservesDistinctTileAnchors()
-        {
-            var data = BuildClassBackedTileGridProjectData();
-            data.classes[TileLayerLinkClassId].schema["Position"] = "object-position-member";
-            data.members["object-position-member"].DeclaredStorage = NeoMemberStorage.Session;
-            var second = JObject.FromObject(data.values["floor-local"]).ToObject<ObjectMemberValue>()!;
-            second.id = "second-floor";
-            second.value!["Cell"] = "second-cell";
-            data.values[second.id] = second;
-            data.values["second-cell"] = new Vector2MemberValue
-            {
-                id = "second-cell", value = new NeoVector2Value { x = 3, y = -2 },
-            };
-            using var client = NeoTestSaveStack.ClientFromSchema(data);
-            SeedWritableTileLayerLink(client);
-            client.AddSaveValue("shop-floor-link-tiles", new ArrayMemberValue
-            {
-                id = "shop-floor-link-tiles", value = new[] { "floor-local", "second-floor" },
-            });
-            var art = CreateTestSprite("tile");
-            var factories = BuildClassBackedReadOnlyFactories(art);
-            var writable = BuildClassBackedWritableFactories();
-            client.RegisterGeneratedClassFactories(factories, writable);
-            var link = (TestTileLayerLink)NeoGeneratedTypesSupport.ResolveClassValue(
-                client, "shop-floor-link", factories, writable)!;
-            var root = ResolveComposedTestObject(client);
-            root.Children = new INeoWorldObjectValue[] { link };
-            var go = new GameObject("Nested tile link positions");
-            try
-            {
-                var renderer = go.AddComponent<NeoTileGridRenderer>();
-                renderer.CellSize = 2;
-                renderer.Render(NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
-                    new List<ReadOnlyNeoTileLayerRuntime>(),
-                    new[] { ObjectLayerWithSingleInstance(root, "Default", 12) });
-                var drawn = go.GetComponentsInChildren<SpriteRenderer>();
-                Assert.AreEqual(2, drawn.Length);
-                var anchors = drawn.Select(tile => tile.transform.localPosition).ToArray();
-                Assert.AreNotEqual(anchors[0], anchors[1]);
-                foreach (var offset in new[] { new Vector3(.125f, -.25f, 0), Vector3.zero })
-                {
-                    link.Position = new NeoReadOnlyVector3(offset);
-                    NeoGeneratedTypesSupport.SetValue(NeoGeneratedTypesSupport.AsWritable(link.BackingNode),
-                        "Position", NeoValueWritePayload.FromValue(offset));
-                    for (int i = 0; i < drawn.Length; i++)
-                        Assert.AreEqual(anchors[i] + offset * 2, drawn[i].transform.localPosition);
-                }
-            }
-            finally
-            {
-                UnityEngine.Object.DestroyImmediate(go);
-                DestroyTestSprite(art);
-            }
-        }
-
-        [Test]
         public void Render_RuntimeEnabledWriteTogglesAnAlreadyRenderedObject()
         {
             ProjectData data = BuildPlacementAnimationProjectData();
@@ -6037,8 +6025,7 @@ namespace NeoCompose.Tests
         /// The hot path: a clip animating a placement writes a leaf on the
         /// placement itself every frame, and none of those writes can carry an
         /// <c>Enabled</c>. Reconciling visibility on them would put the whole
-        /// rendered subtree — up to 400 GameObjects for a tile-layer-link child
-        /// — on the per-frame budget.
+        /// rendered subtree on the per-frame budget.
         /// </summary>
         [Test]
         public void Render_UnrelatedMemberWriteLeavesTheVisibilityIndexAlone()
@@ -6100,67 +6087,166 @@ namespace NeoCompose.Tests
             }
         }
 
-        [Test]
-        public void Render_DeactivatesTilesOfADisabledTileLayerLinkChild()
+        [UnityTest]
+        public IEnumerator Render_FlattensCarriedLinksIntoTheTilemapAndAnswersTryGetGameObject()
         {
-            var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
-            var tileSprite = CreateTestSprite("child-tile");
+            // Spawn hooks only run in play mode.
+            yield return new EnterPlayMode();
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildNestedCarriedLinkProjectData());
+            var tileSprite = CreateTestSprite("carried-tile");
+            var partSprite = CreateTestSprite("part");
             var factories = BuildClassBackedReadOnlyFactories(tileSprite);
             var writableFactories = BuildClassBackedWritableFactories();
-            client.RegisterGeneratedClassFactories(factories, writableFactories);
-            var childSprite = CreateTestSprite("sprite-child");
-            var obj = (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(
-                client,
-                "shop-object",
-                factories,
-                writableFactories)!;
-            var tile = (TestTile)NeoGeneratedTypesSupport.ResolveClassValue(
-                client,
-                "floor-local",
-                factories,
-                writableFactories)!;
-            var tileLayerLink = (TestTileLayerLink)NeoGeneratedTypesSupport.ResolveClassValue(
-                client,
-                "shop-floor-link",
-                factories,
-                writableFactories)!;
-            tile.Sprite = tileSprite;
-            // A layer group base is an object base, so a link carries Enabled —
-            // but its tiles are bare siblings with no root of their own.
-            tileLayerLink.Enabled = false;
-            obj.Children = new INeoWorldObjectValue[]
+            T Resolve<T>(string id) where T : class =>
+                (T)(object)NeoGeneratedTypesSupport.ResolveClassValue(client, id, factories, writableFactories)!;
+            bool partReadyAtSpawn = false;
+            bool partReadyAtDespawn = false;
+            GameObject? spawnedPart = null;
+            // Resolving any row of shop-1's graph wraps shop-1 first, so the
+            // composition is wired in the factory rather than after the fact.
+            TestComposedObject Composed(NeoClient c, NeoMemberClass n, bool isReadOnly) => n.value?.id switch
             {
-                new TestSpriteChild { Name = "Sprite Child", Sprite = childSprite },
-                tileLayerLink,
+                "shop-1" => new TestComposedObject(c, n, isReadOnly)
+                {
+                    Children = new INeoWorldObjectValue[]
+                    {
+                        Resolve<TestTileLayerLink>("shop-floor-link"),
+                        Resolve<TestComposedObject>("shop-part"),
+                    },
+                    Spawned = () => partReadyAtSpawn = Resolve<TestComposedObject>("shop-part").TryGetGameObject(out spawnedPart),
+                    Despawned = () => partReadyAtDespawn = Resolve<TestComposedObject>("shop-part").TryGetGameObject(out _),
+                },
+                "shop-part" => new TestComposedObject(c, n, isReadOnly)
+                {
+                    Name = "Part",
+                    Children = new INeoWorldObjectValue[]
+                    {
+                        new TestSpriteChild { Name = "Art", Sprite = partSprite },
+                        Resolve<TestTileLayerLink>("part-link"),
+                    },
+                },
+                _ => new TestComposedObject(c, n, isReadOnly),
             };
-            var go = new GameObject("NeoTileGridRenderer disabled link test");
-
+            factories[ObjectClassId] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(c, n, () => Composed(c, n, true));
+            writableFactories[ObjectClassId] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(c, n, () => Composed(c, n, false));
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid", factories, writableFactories);
+            var go = new GameObject("Carried link flattening");
             try
             {
                 var renderer = go.AddComponent<NeoTileGridRenderer>();
-                renderer.Render(
-                    NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
-                    new List<ReadOnlyNeoTileLayerRuntime>(),
-                    new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) });
+                void Render() => renderer.Render(new TestTileGridContent(primitive,
+                    new[] { primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(BackgroundLayerClassId, new[] { TileClassId }) },
+                    new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) }));
+                Render();
 
-                var objectRoot = go.transform
-                    .Find("Object Layer - Objects")
-                    ?.Find("Object - object-1");
-                Assert.IsNotNull(objectRoot);
-                var tileChild = objectRoot!.Find("child-tile");
-                Assert.IsNotNull(tileChild, "the link's tiles must still be built");
-                Assert.IsFalse(tileChild!.gameObject.activeSelf);
-                var spriteChild = objectRoot.Find("Sprite Child");
-                Assert.IsNotNull(spriteChild);
-                Assert.IsTrue(
-                    spriteChild!.gameObject.activeSelf,
-                    "the disabled link must not hide its siblings");
+                var tilemap = go.GetComponentInChildren<Tilemap>();
+                Assert.AreSame(tileSprite, tilemap.GetSprite(new Vector3Int(9, 22, 0)), "a direct child link");
+                Assert.AreSame(tileSprite, tilemap.GetSprite(new Vector3Int(14, 21, 0)), "a nested link at shop + part + link + cell");
+                Assert.IsTrue(renderer.TryGetObjectRoot("shop-1", out var root));
+                CollectionAssert.AreEqual(
+                    new[] { partSprite },
+                    root.GetComponentsInChildren<SpriteRenderer>().Select(drawn => drawn.sprite).ToArray(),
+                    "no link draws under the object");
+
+                var part = Resolve<TestComposedObject>("shop-part");
+                var partLink = Resolve<TestTileLayerLink>("part-link");
+                var floorLink = Resolve<TestTileLayerLink>("shop-floor-link");
+                var objectsLink = Resolve<TestObjectLayerLink>("objects-link");
+                Assert.IsTrue(partReadyAtSpawn, "a spawn hook can already read its parts");
+                Assert.IsTrue(part.TryGetGameObject(out var partGo));
+                Assert.AreSame(spawnedPart, partGo);
+                Assert.AreEqual("Part", partGo!.name);
+                Assert.AreSame(root.transform, partGo.transform.parent);
+                Assert.IsTrue(Resolve<TestComposedObject>("shop-1").TryGetGameObject(out var shopGo));
+                Assert.AreSame(root, shopGo);
+                Assert.IsTrue(partLink.TryGetGameObject(out var partLinkGo));
+                Assert.AreSame(tilemap.gameObject, partLinkGo);
+                Assert.IsTrue(floorLink.TryGetGameObject(out var floorLinkGo));
+                Assert.AreSame(tilemap.gameObject, floorLinkGo);
+                Assert.IsTrue(objectsLink.TryGetGameObject(out var layerRoot));
+                Assert.AreSame(root.transform.parent.gameObject, layerRoot);
+                Assert.IsTrue(Resolve<TestTileLayerLink>("background-link").TryGetGameObject(out var gridLinkGo));
+                Assert.AreSame(tilemap.gameObject, gridLinkGo, "a grid link answers with its layer's Tilemap");
+
+                renderer.Clear();
+
+                Assert.IsTrue(partReadyAtDespawn, "clearing runs despawn hooks while parts still answer");
+                Assert.IsFalse(part.TryGetGameObject(out _));
+                Assert.IsFalse(partLink.TryGetGameObject(out _));
+                Assert.IsFalse(objectsLink.TryGetGameObject(out _));
+
+                partReadyAtDespawn = false;
+                Render();
+                Assert.IsTrue(part.TryGetGameObject(out _));
+                client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
+                {
+                    id = "shop-1", classId = ObjectClassId, containerId = "objects-link-objects", mark = NeoValueMarks.Removed,
+                });
+                Assert.IsFalse(renderer.TryGetObjectRoot("shop-1", out _));
+                Assert.IsTrue(partReadyAtDespawn, "removal runs despawn hooks while parts still answer");
+                Assert.IsFalse(part.TryGetGameObject(out _));
             }
             finally
             {
                 UnityEngine.Object.DestroyImmediate(go);
-                DestroyTestSprite(childSprite);
                 DestroyTestSprite(tileSprite);
+                DestroyTestSprite(partSprite);
+            }
+            yield return new ExitPlayMode();
+        }
+
+        [Test]
+        public void Render_LinkOnlyChildrenKeepTheObjectSpriteAndTheirPartsGameObject()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildNestedCarriedLinkProjectData());
+            var shopSprite = CreateTestSprite("shop");
+            var factories = BuildClassBackedReadOnlyFactories();
+            var writableFactories = BuildClassBackedWritableFactories();
+            T Resolve<T>(string id) where T : class =>
+                (T)(object)NeoGeneratedTypesSupport.ResolveClassValue(client, id, factories, writableFactories)!;
+            // The part's only child is a link, so nothing draws under it.
+            NeoGeneratedClassValue Composed(NeoClient c, NeoMemberClass n, bool isReadOnly) => n.value?.id switch
+            {
+                "shop-1" => new TestComposedSpriteObject(c, n)
+                {
+                    Sprite = shopSprite,
+                    Children = new INeoWorldObjectValue[]
+                    {
+                        Resolve<TestTileLayerLink>("shop-floor-link"),
+                        Resolve<TestComposedObject>("shop-part"),
+                    },
+                },
+                "shop-part" => new TestComposedObject(c, n, isReadOnly)
+                {
+                    Name = "Part",
+                    Children = new INeoWorldObjectValue[] { Resolve<TestTileLayerLink>("part-link") },
+                },
+                _ => new TestComposedObject(c, n, isReadOnly),
+            };
+            factories[ObjectClassId] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(c, n, () => Composed(c, n, true));
+            writableFactories[ObjectClassId] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(c, n, () => Composed(c, n, false));
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid", factories, writableFactories);
+            var go = new GameObject("Link-only children");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(new TestTileGridContent(primitive, Array.Empty<IReadOnlyNeoTileLayerRuntime>(),
+                    new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) }));
+
+                Assert.IsTrue(renderer.TryGetObjectRoot("shop-1", out var root));
+                CollectionAssert.AreEqual(
+                    new[] { shopSprite },
+                    root.GetComponentsInChildren<SpriteRenderer>().Select(drawn => drawn.sprite).ToArray(),
+                    "links draw nothing under the object, so its own sprite draws");
+                Assert.IsTrue(Resolve<TestComposedObject>("shop-part").TryGetGameObject(out var partGo),
+                    "a part that draws nothing is still a rendered world object");
+                Assert.AreEqual("Part", partGo!.name);
+                Assert.AreEqual(0, partGo.transform.childCount);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(shopSprite);
             }
         }
 
@@ -6303,7 +6389,7 @@ namespace NeoCompose.Tests
             obj.Children = new INeoWorldObjectValue[]
             {
                 // Enabled, but empty: nothing under it renders, so its
-                // composition root is destroyed and contributes no count.
+                // composition root stays empty and contributes no count.
                 new TestComposedChild { Name = "Head" },
             };
             var go = new GameObject("NeoTileGridRenderer empty part fallback test");
@@ -6320,9 +6406,10 @@ namespace NeoCompose.Tests
                     .Find("Object Layer - Objects")
                     ?.Find("Object - object-1");
                 Assert.IsNotNull(objectRoot);
-                Assert.IsNull(
-                    objectRoot!.Find("Head"),
-                    "a part that renders nothing is destroyed, not kept");
+                Assert.AreEqual(
+                    0,
+                    objectRoot!.Find("Head").childCount,
+                    "a part that renders nothing is kept, empty");
                 var placedBody = objectRoot.Find("Placed Body");
                 Assert.IsNotNull(
                     placedBody,
@@ -6725,7 +6812,7 @@ namespace NeoCompose.Tests
         /// tile layer link.
         /// </summary>
         private sealed class TestTileLayerLink
-            : NeoGeneratedClassValue,
+            : NeoGeneratedWorldObjectValue,
               INeoTileLayerLinkValue,
               INeoWorldObjectValue
         {
@@ -6761,14 +6848,21 @@ namespace NeoCompose.Tests
             }
         }
 
+        // Generated object layer links inherit NeoObjectBase, so they are world objects.
         private sealed class TestObjectLayerLink
-            : NeoGeneratedClassValue,
-              INeoObjectLayerLinkValue
+            : NeoGeneratedWorldObjectValue,
+              INeoObjectLayerLinkValue,
+              INeoWorldObjectValue
         {
             public TestObjectLayerLink(NeoClient client, NeoMemberClass node)
                 : base(client, node, ObjectLayerLinkClassId)
             {
             }
+
+            public string Name => "";
+            public NeoReadOnlyVector3 Position => new(Vector3.zero);
+            public NeoReadOnlyVector3 Size => new(Vector3.one);
+            public bool Enabled => true;
         }
 
         private sealed class TestAuthoredTileLayer : NeoGeneratedTileLayerValue
@@ -7071,7 +7165,7 @@ namespace NeoCompose.Tests
         /// sorting group contracts on top of the object base contract.
         /// </summary>
         private sealed class TestComposedObject
-            : NeoGeneratedClassValue,
+            : NeoGeneratedWorldObjectValue,
               INeoWorldObjectValue,
               INeoObjectCompositionSource,
               INeoColliderSource,
@@ -7117,8 +7211,9 @@ namespace NeoCompose.Tests
             }
 
             public Action? Spawned { get; set; }
+            public Action? Despawned { get; set; }
             public void OnObjectSpawned(NeoObjectBehaviour behaviour) => Spawned?.Invoke();
-            public void OnObjectDespawned(NeoObjectBehaviour behaviour) { }
+            public void OnObjectDespawned(NeoObjectBehaviour behaviour) => Despawned?.Invoke();
         }
 
         /// <summary>
@@ -7146,7 +7241,7 @@ namespace NeoCompose.Tests
         /// sprite fallback path, which needs a resolvable class value.
         /// </summary>
         private sealed class TestSpriteObject
-            : NeoGeneratedClassValue,
+            : NeoGeneratedWorldObjectValue,
               INeoSpriteObjectValue
         {
             public TestSpriteObject(NeoClient client, NeoMemberClass node)
@@ -7193,7 +7288,7 @@ namespace NeoCompose.Tests
         /// is drawn only when the composition renders nothing.
         /// </summary>
         private sealed class TestComposedSpriteObject
-            : NeoGeneratedClassValue,
+            : NeoGeneratedWorldObjectValue,
               INeoObjectCompositionSource,
               INeoSpriteObjectValue
         {
@@ -7574,6 +7669,71 @@ namespace NeoCompose.Tests
                     id = "shop-floor-link-tiles",
                     value = new[] { "floor-local" },
                 });
+        }
+
+        /// <summary>
+        /// shop-1 at (10, 20) also carries a part at (3, 1) whose link at
+        /// (1, 0) holds one tile at (0, 0). Enabled and Position are session
+        /// storage and every nested one is an explicit row, so runtime writes
+        /// to them are leaf writes.
+        /// </summary>
+        private static ProjectData BuildNestedCarriedLinkProjectData()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.members["object-position-member"].DeclaredStorage = NeoMemberStorage.Session;
+            data.members["object-enabled-member"].DeclaredStorage = NeoMemberStorage.Session;
+            data.classes[TileLayerLinkClassId].schema["Position"] = "object-position-member";
+            data.classes[TileLayerLinkClassId].schema["Enabled"] = "object-enabled-member";
+            ((ArrayMemberValue)data.values["shop-1-children"]).value = new[] { "shop-floor-link", "shop-part" };
+            data.values["shop-part"] = new ObjectMemberValue
+            {
+                id = "shop-part",
+                classId = ObjectClassId,
+                value = new Dictionary<string, string>
+                {
+                    ["Position"] = "shop-part-position",
+                    ["Enabled"] = "shop-part-enabled",
+                    ["Children"] = "shop-part-children",
+                },
+            };
+            data.values["shop-part-position"] = new Vector3MemberValue
+            {
+                id = "shop-part-position",
+                value = new NeoVector3Value { x = 3, y = 1, z = 0 },
+            };
+            data.values["shop-part-enabled"] = new BoolMemberValue { id = "shop-part-enabled", value = true };
+            data.values["shop-part-children"] = new ArrayMemberValue { id = "shop-part-children", value = new[] { "part-link" } };
+            data.values["part-link"] = new ObjectMemberValue
+            {
+                id = "part-link",
+                classId = TileLayerLinkClassId,
+                value = new Dictionary<string, string>
+                {
+                    ["TileLayer"] = "shop-floor-link-layer",
+                    ["Tiles"] = "part-link-tiles",
+                    ["Position"] = "part-link-position",
+                    ["Enabled"] = "part-link-enabled",
+                },
+            };
+            data.values["part-link-position"] = new Vector3MemberValue
+            {
+                id = "part-link-position",
+                value = new NeoVector3Value { x = 1, y = 0, z = 0 },
+            };
+            data.values["part-link-enabled"] = new BoolMemberValue { id = "part-link-enabled", value = true };
+            data.values["part-link-tiles"] = new ArrayMemberValue { id = "part-link-tiles", value = new[] { "part-tile" } };
+            data.values["part-tile"] = new ObjectMemberValue
+            {
+                id = "part-tile",
+                classId = TileClassId,
+                value = new Dictionary<string, string> { ["Cell"] = "part-tile-cell" },
+            };
+            data.values["part-tile-cell"] = new Vector2MemberValue
+            {
+                id = "part-tile-cell",
+                value = new NeoVector2Value { x = 0, y = 0 },
+            };
+            return data;
         }
 
         private const string GridClassId = "grid-class";

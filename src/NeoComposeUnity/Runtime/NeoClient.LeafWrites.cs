@@ -20,7 +20,9 @@ namespace NeoCompose.Runtime
         //
         // The grid indexes read two scalar members: an object's Position and
         // a tile's Cell. Writers of those members call the placement API in
-        // NeoClient.Placement.cs instead; this path does not consult the grid.
+        // NeoClient.Placement.cs instead. The only other leaves the grid reads
+        // are the Enabled and nested Position rows its carried tile links
+        // flatten through, which InvalidateGridLeaf re-flattens.
         private static readonly Unity.Profiling.ProfilerMarker LeafWriteMarker = new("NeoCompose.Write.Leaf");
 
         /// <summary>
@@ -33,8 +35,29 @@ namespace NeoCompose.Runtime
             if (!CanWriteLeaf(ownership, next, member)) return false;
             using var marker = LeafWriteMarker.Auto();
             StoreLeaf(ownership, next);
+            bool gridLeaf = InvalidateGridLeaf(next.id);
             NotifyWritableValueChanged(ownership, next.id, changedField);
+            if (gridLeaf) PublishGridLeaf(ownership, next.id);
             return true;
+        }
+
+        /// <summary>
+        /// Drops the carried tiles that read the written row, before value
+        /// notifications run, so nothing reads the grid stale.
+        /// </summary>
+        private bool InvalidateGridLeaf(string valueId)
+        {
+            bool invalidated = false;
+            foreach (NeoTileGridLookupCache cache in gridLookupCaches.Values)
+                invalidated |= cache.InvalidateLeaf(valueId);
+            if (invalidated) InvalidateGridDependentGetterMemo();
+            return invalidated;
+        }
+
+        /// <summary>Reports the cells the re-flattened carried tiles changed.</summary>
+        private void PublishGridLeaf(NeoValueOwnership ownership, string valueId)
+        {
+            foreach (NeoTileGridLookupCache cache in gridLookupCaches.Values) cache.PublishLeaf(ownership, valueId);
         }
 
         /// <summary>

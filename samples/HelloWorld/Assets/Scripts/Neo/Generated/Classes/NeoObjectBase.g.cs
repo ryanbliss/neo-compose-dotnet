@@ -34,7 +34,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         new NeoReadOnlyVector3 Size { get; }
     }
 
-    public abstract partial class NeoObjectBase : NeoGeneratedClassValue, IReadOnlyNeoObjectBase, INeoWorldObjectValue
+    public abstract partial class NeoObjectBase : NeoGeneratedWorldObjectValue, IReadOnlyNeoObjectBase, INeoWorldObjectValue
     {
         internal NeoObjectBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, "system_61b30a92-90dc-4bf8-8503-ee4f6414effc", isReadOnly, inheritedStorageOwnership)

@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.41.0] - 2026-09-23
+
+- Add `NeoGeneratedWorldObjectValue`, the SDK base of the generated root world object class. Generated `NeoObjectBase` now derives from it instead of `NeoGeneratedClassValue`, so every object, composition child, and layer link inherits world object APIs the SDK adds without a codegen change. Synchronize after the Neo Compose deploy to regenerate `NeoObjectBase`.
+
+  ```csharp
+  public abstract class NeoGeneratedWorldObjectValue : NeoGeneratedClassValue
+  {
+      public bool TryGetGameObject([NotNullWhen(true)] out GameObject? gameObject);
+  }
+
+  public abstract partial class NeoObjectBase : NeoGeneratedWorldObjectValue, IReadOnlyNeoObjectBase, INeoWorldObjectValue
+  ```
+
+- Add `TryGetGameObject` to world objects, so gameplay code reaches what a grid renderer drew through the object's data instead of searching the hierarchy by path:
+
+  ```csharp
+  if (body.Torso.TryGetGameObject(out var torso)) torso.GetComponent<SpriteRenderer>().color = skin;
+  ```
+
+  A placed object and each composition child answer with their own GameObject. It is registered before the object's spawn hooks run and stays until its despawn hooks return, including when the renderer is cleared, re-rendered, or destroyed. A tile layer link answers with its target layer's Tilemap GameObject, and an object layer link with its layer's root. It returns false when no renderer currently draws the value.
+- Give every nested world object a GameObject. A composition child whose subtree drew nothing (only links, or no children at all) was destroyed, so it had nothing to answer with. It is now kept, empty. It still counts as nothing drawn for its parent's sprite fallback.
+- Stop drawing an object's tile layer links as sprites. The renderer also built one `SpriteRenderer` GameObject per tile under any object that carried a `TileLayerLink`, so those tiles drew twice: once in the layer's Tilemap and again as loose sprites. Links are now data only and flatten into their target layer's Tilemap. Code that looked for those per-tile GameObjects under an object will find nothing. Because links no longer draw under the object, a sprite object whose only children are links now draws its own sprite.
+- Flatten tile layer links from nested objects. The flattening read only the placed object's direct `Children`, so a link inside a nested part never reached the Tilemap. It now walks the whole composition (up to 32 levels, skipping cycles). A nested link's tiles land at the placed cell plus every `Position` on the way down, the link's own included, rounded once at the end. The link's own `Position` used to be ignored. A disabled link, a disabled object between it and the placed object, or a disabled placed object contributes no tiles.
+- Carried tiles follow `Enabled` and nested `Position` writes at runtime. Those writes take the plan-free leaf path, which skipped the grid. The grid now records which of those rows each tile layer's flattening read. A leaf write to one of them drops that layer before value handlers run, so they read the new tiles, then publishes the changed cells so the renderer clears the old ones and draws the new ones. A placed object's own `Position` still moves through the placement API.
+
 ## [0.40.0] - 2026-09-22
 
 - Add a sort point to sorting groups (P92). A grouped object now sorts at its authored `SortPoint`, in cells from its origin-cell corner (the same space as `INeoCollider.Offset`), instead of at its root. `INeoSortingGroup` gains the member:

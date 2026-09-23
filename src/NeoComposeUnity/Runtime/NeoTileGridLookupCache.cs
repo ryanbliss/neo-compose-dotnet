@@ -21,7 +21,9 @@ namespace NeoCompose.Runtime
     /// containerId-carrying row raises for its container — drops the layer
     /// index for a lazy rebuild. An object's Position write goes through the
     /// placement API instead, which patches only the moved footprint and its
-    /// projected tiles (see <see cref="ObjectMove.Prepare"/>).
+    /// projected tiles (see <see cref="ObjectMove.Prepare"/>). A leaf write
+    /// to an Enabled or nested Position a carried link flattens through
+    /// re-flattens its layers through <see cref="InvalidateLeaf"/>.
     /// </summary>
     internal sealed partial class NeoTileGridLookupCache : IDisposable
     {
@@ -185,7 +187,7 @@ namespace NeoCompose.Runtime
             InvalidateDependents(objectLayers, changedObjectLayers, ids);
             foreach (string layerId in changedTileLayers.Keys)
                 if (plan.PreparedTileLayers.TryGetValue((primitive.GridValueId, layerId), out var prepared))
-                    tileLayers[layerId] = BuildTileLayerIndex(prepared.Records, prepared.DependencyIds);
+                    tileLayers[layerId] = BuildTileLayerIndex(prepared);
             foreach (string layerId in changedObjectLayers.Keys)
                 if (plan.PreparedObjectLayers.TryGetValue((primitive.GridValueId, layerId), out var prepared))
                     objectLayers[layerId] = BuildObjectLayerIndex(prepared.Records, prepared.DependencyIds);
@@ -265,6 +267,53 @@ namespace NeoCompose.Runtime
             {
                 indexes.Remove(layerId);
             }
+        }
+
+        /// <summary>
+        /// Drops the tile layers whose carried links read a row a runtime
+        /// leaf write just replaced: an Enabled, or a Position below the
+        /// placed object. A placed object's own Position moves through
+        /// <see cref="ObjectMove"/> instead. <see cref="PublishLeaf"/> reports
+        /// the re-flattened cells once value notifications have run, the
+        /// order a plan commit uses.
+        /// </summary>
+        internal bool InvalidateLeaf(string valueId)
+        {
+            foreach (var layer in tileLayers.Values)
+            {
+                if (!layer.LeafDependencyIds.Contains(valueId)) continue;
+                InvalidateDependents(tileLayers, changedTileLayers, new HashSet<string> { valueId });
+                return true;
+            }
+            return false;
+        }
+
+        internal void PublishLeaf(NeoValueOwnership ownership, string valueId) =>
+            NotifyPublishedValues(new[] { (ownership, valueId) });
+
+        /// <summary>
+        /// The layer a link on this grid flattens into: a grid link's own
+        /// layer, or the tile layer an object-carried link targets.
+        /// </summary>
+        internal bool TryGetLinkLayer(string linkValueId, out string layerId, out bool isTileLayer)
+        {
+            foreach (var link in primitive.ResolveGridLinks(null))
+            {
+                if (link.LinkValueId != linkValueId) continue;
+                layerId = link.LayerId;
+                isTileLayer = link.IsTileLink;
+                return true;
+            }
+            foreach (string tileLayerId in TileLayerIds)
+            {
+                if (!GetTileLayerIndex(tileLayerId).CarriedLinkIds.Contains(linkValueId)) continue;
+                layerId = tileLayerId;
+                isTileLayer = true;
+                return true;
+            }
+            layerId = "";
+            isTileLayer = false;
+            return false;
         }
 
         private void NotifyPublishedValues(
@@ -369,18 +418,15 @@ namespace NeoCompose.Runtime
         {
             knownTileLayers.Add(layerId);
             if (tileLayers.TryGetValue(layerId, out var index)) return index;
-            var dependencyIds = new HashSet<string>();
-            var records = primitive.BuildTileLayerRecords(layerId, dependencyIds);
-            index = BuildTileLayerIndex(records, dependencyIds);
+            index = BuildTileLayerIndex(primitive.BuildTileLayerRecords(layerId));
             tileLayers[layerId] = index;
             return index;
         }
 
-        private static TileLayerIndex BuildTileLayerIndex(
-            List<NeoTilePlacementRecord> records, HashSet<string> dependencyIds)
+        private static TileLayerIndex BuildTileLayerIndex(NeoTileLayerBuild build)
         {
             var byCell = new Dictionary<Vector2Int, List<NeoTilePlacementRecord>>();
-            foreach (var record in records)
+            foreach (var record in build.Records)
             {
                 if (!byCell.TryGetValue(record.Cell, out var cellRecords))
                 {
@@ -396,7 +442,7 @@ namespace NeoCompose.Runtime
                 // id asc), and readers take the LAST resolvable candidate.
                 cellRecords.Sort(CompareLoserToWinner);
             }
-            return new TileLayerIndex(records, byCell, dependencyIds);
+            return new TileLayerIndex(build, byCell);
         }
 
         private static int CompareLoserToWinner(
@@ -448,10 +494,10 @@ namespace NeoCompose.Runtime
         private sealed class TileLayerIndex : ILayerIndex
         {
             public TileLayerIndex(
-                List<NeoTilePlacementRecord> records,
-                Dictionary<Vector2Int, List<NeoTilePlacementRecord>> candidatesByCell,
-                HashSet<string> dependencyIds)
+                NeoTileLayerBuild build,
+                Dictionary<Vector2Int, List<NeoTilePlacementRecord>> candidatesByCell)
             {
+                var records = build.Records;
                 Records = records;
                 FirstRecordIndexByPlacementId = new Dictionary<string, int>(records.Count);
                 for (int i = 0; i < records.Count; i++)
@@ -463,7 +509,9 @@ namespace NeoCompose.Runtime
                     indices.Add(i);
                 }
                 CandidatesByCell = candidatesByCell;
-                DependencyIds = dependencyIds;
+                DependencyIds = build.DependencyIds;
+                LeafDependencyIds = build.LeafDependencyIds;
+                CarriedLinkIds = build.CarriedLinkIds;
                 for (int i = 0; i < records.Count; i++)
                     if (records[i].SourceObjectInstanceId is string objectId)
                     {
@@ -495,6 +543,8 @@ namespace NeoCompose.Runtime
             public Dictionary<string, List<int>> AdditionalRecordIndicesByPlacementId { get; } = new();
             public Dictionary<Vector2Int, List<NeoTilePlacementRecord>> CandidatesByCell { get; }
             public HashSet<string> DependencyIds { get; }
+            public HashSet<string> LeafDependencyIds { get; }
+            public HashSet<string> CarriedLinkIds { get; }
         }
 
         private sealed class ObjectLayerIndex : ILayerIndex

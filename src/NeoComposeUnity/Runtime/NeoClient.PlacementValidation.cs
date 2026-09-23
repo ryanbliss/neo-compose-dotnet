@@ -342,10 +342,9 @@ namespace NeoCompose.Runtime
             foreach (string layerId in primitive.ResolveTileLayerIds())
             {
                 var occupied = new HashSet<(string source, Vector2Int cell)>();
-                var dependencies = new HashSet<string>();
-                var records = primitive.BuildTileLayerRecords(layerId, dependencies);
-                plan.PreparedTileLayers[(gridId, layerId)] = new NeoPreparedLayerRecords<NeoTilePlacementRecord>(records, dependencies);
-                foreach (NeoTilePlacementRecord tile in records)
+                var build = primitive.BuildTileLayerRecords(layerId);
+                plan.PreparedTileLayers[(gridId, layerId)] = build;
+                foreach (NeoTilePlacementRecord tile in build.Records)
                 {
                     ValidateTileRow(tile.PlacementValueId);
                     ValidateLayerClass(tile.AssetClassId, layerId, tileImports, true, compatibleLayers);

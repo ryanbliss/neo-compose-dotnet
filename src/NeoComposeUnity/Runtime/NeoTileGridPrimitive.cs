@@ -723,6 +723,9 @@ namespace NeoCompose.Runtime
         private static readonly string[] CellKeyCandidates = { "Cell" };
         private static readonly string[] PositionKeyCandidates = { "Position" };
         private static readonly string[] PlacementTilesKeyCandidates = { "PlacementTiles" };
+        private static readonly string[] EnabledKeyCandidates = { "Enabled" };
+        /// <summary>How deep composition walks go; the renderer and carried-link flattening share it.</summary>
+        internal const int MaxCompositionDepth = 32;
 
         protected NeoReadOnlyTileGridPrimitive(
             NeoClient client,
@@ -1706,11 +1709,11 @@ namespace NeoCompose.Runtime
             return ids;
         }
 
-        internal List<NeoTilePlacementRecord> BuildTileLayerRecords(
-            string layerId,
-            HashSet<string>? dependencyIds)
+        internal NeoTileLayerBuild BuildTileLayerRecords(string layerId)
         {
-            var records = new List<NeoTilePlacementRecord>();
+            var build = new NeoTileLayerBuild();
+            var records = build.Records;
+            var dependencyIds = build.DependencyIds;
             int order = 0;
             var links = ResolveGridLinks(dependencyIds);
             foreach (var link in links)
@@ -1736,128 +1739,180 @@ namespace NeoCompose.Runtime
             }
 
             // Object-carried tile layer links (stamps): each placed object's
-            // "Children" may host TileLayerLink values whose tiles project
-            // into this layer at the object's origin.
+            // composition may host TileLayerLink values, at any depth, whose
+            // tiles flatten into this layer.
+            var carried = new List<ObjectCarriedLink>();
+            var visiting = new HashSet<string>();
             foreach (var link in links)
             {
                 if (link.IsTileLink) continue;
                 int objectIndex = 0;
                 foreach (var objectValueId in ResolveListEntryIds(link.ListValueId, dependencyIds))
                 {
-                    AppendObjectCarriedTiles(
-                        layerId,
-                        objectValueId,
-                        objectIndex,
-                        records,
-                        dependencyIds);
+                    AppendObjectCarriedTiles(layerId, objectValueId, objectIndex, carried, visiting, build);
                     objectIndex += 1;
                 }
             }
-            return records;
+            return build;
         }
 
         private void AppendObjectCarriedTiles(
             string layerId,
             string objectValueId,
             int objectIndex,
-            List<NeoTilePlacementRecord> records,
-            HashSet<string>? dependencyIds)
+            List<ObjectCarriedLink> carried,
+            HashSet<string> visiting,
+            NeoTileLayerBuild build)
         {
-            dependencyIds?.Add(objectValueId);
+            var dependencyIds = build.DependencyIds;
+            dependencyIds.Add(objectValueId);
             if (client.ResolveValueRow(objectValueId) is not ObjectMemberValue objectRow) return;
             if (objectRow.IsRemoved) return;
             if (string.IsNullOrEmpty(objectRow.classId)) return;
+            carried.Clear();
+            visiting.Clear();
+            visiting.Add(objectValueId);
+            CollectCarriedLinks(objectRow, visiting, 0, carried, dependencyIds, build.LeafDependencyIds);
+            if (carried.Count == 0) return;
+            foreach (var link in carried)
+                if (link.LayerId == layerId) build.CarriedLinkIds.Add(link.LinkValueId);
+            // Read only for an object that carries a link, so every other
+            // object's Enabled and Position writes leave the layer alone.
+            if (!ReadEnabled(objectRow, dependencyIds, build.LeafDependencyIds)) return;
             Vector2Int origin = ReadObjectOrigin(objectRow, dependencyIds);
 
-            int linkIndex = -1;
-            foreach (var carried in ResolveObjectCarriedLinks(objectValueId, dependencyIds))
+            for (int linkIndex = 0; linkIndex < carried.Count; linkIndex++)
             {
-                linkIndex = carried.ChildIndex;
-                if (carried.LayerId != layerId) continue;
+                var link = carried[linkIndex];
+                if (!link.Enabled || link.LayerId != layerId) continue;
+                var linkOrigin = origin + new Vector2Int(
+                    Mathf.RoundToInt(link.Offset.x), Mathf.RoundToInt(link.Offset.y));
                 int sourceOrder = objectIndex * 1000 + linkIndex;
                 int tileIndex = 0;
-                var ownership = ResolveCollectionOwnership(carried.TilesListValueId);
-                foreach (var entryId in ResolveListEntryIds(carried.TilesListValueId, dependencyIds))
+                var ownership = ResolveCollectionOwnership(link.TilesListValueId);
+                foreach (var entryId in ResolveListEntryIds(link.TilesListValueId, dependencyIds))
                 {
                     var record = ResolveObjectCarriedTileRecord(
                         objectValueId,
-                        carried.LinkValueId,
+                        link.LinkValueId,
                         entryId,
-                        origin,
+                        linkOrigin,
                         sourceOrder,
                         tileIndex,
                         dependencyIds,
                         ownership);
                     tileIndex += 1;
                     if (record is null) continue;
-                    records.Add(record);
+                    build.Records.Add(record);
                 }
             }
         }
 
-        internal bool HasObjectCarriedTiles(string objectValueId, HashSet<string> dependencies)
+        /// <summary>Whether the object's composition holds a tile layer link at any depth, enabled or not.</summary>
+        internal bool HasObjectCarriedTiles(ObjectMemberValue objectRow, HashSet<string> dependencies)
         {
-            foreach (var _ in ResolveObjectCarriedLinks(objectValueId, dependencies)) return true;
-            return false;
+            var links = new List<ObjectCarriedLink>();
+            CollectCarriedLinks(objectRow, new HashSet<string> { objectRow.id }, 0, links, dependencies, null);
+            return links.Count != 0;
         }
 
         private readonly struct ObjectCarriedLink
         {
-            public ObjectCarriedLink(string linkValueId, string layerId, string tilesListValueId, int childIndex)
+            public ObjectCarriedLink(string linkValueId, string layerId, string tilesListValueId, Vector2 offset, bool enabled)
             {
                 LinkValueId = linkValueId;
                 LayerId = layerId;
                 TilesListValueId = tilesListValueId;
-                ChildIndex = childIndex;
+                Offset = offset;
+                Enabled = enabled;
             }
 
             public string LinkValueId { get; }
             public string LayerId { get; }
             public string TilesListValueId { get; }
-            public int ChildIndex { get; }
+            /// <summary>The Positions between the placed object and the link's tiles, the link's own included.</summary>
+            public Vector2 Offset { get; }
+            /// <summary>False when the link or any object between it and the placed object is disabled.</summary>
+            public bool Enabled { get; }
+
+            public ObjectCarriedLink Under(Vector2 position, bool enabled) =>
+                new(LinkValueId, LayerId, TilesListValueId, Offset + position, Enabled && enabled);
         }
 
-        private IEnumerable<ObjectCarriedLink> ResolveObjectCarriedLinks(
-            string objectValueId,
-            HashSet<string>? dependencyIds)
+        /// <summary>
+        /// Collects every tile layer link in an object's composition, depth
+        /// first. Only the Position and Enabled rows on a path to a link are
+        /// read; those are the leaf dependencies a runtime write can change
+        /// without a plan.
+        /// </summary>
+        private void CollectCarriedLinks(
+            ObjectMemberValue objectRow,
+            HashSet<string> visiting,
+            int depth,
+            List<ObjectCarriedLink> links,
+            HashSet<string>? dependencyIds,
+            HashSet<string>? leafDependencyIds)
         {
-            dependencyIds?.Add(objectValueId);
-            if (client.ResolveValueRow(objectValueId) is not ObjectMemberValue objectRow) yield break;
-            if (objectRow.IsRemoved) yield break;
-            if (string.IsNullOrEmpty(objectRow.classId)) yield break;
             string? childrenKey = FindSchemaKey(objectRow.classId!, ChildrenKeyCandidates);
-            if (childrenKey is null) yield break;
-            if (client.ResolveClassChildRow(objectRow, childrenKey)
-                    is not ArrayMemberValue childrenList)
+            if (childrenKey is null) return;
+            if (client.ResolveClassChildRow(objectRow, childrenKey) is not ArrayMemberValue childrenList) return;
+            foreach (var childValueId in ResolveListEntryIds(childrenList.id, dependencyIds))
             {
-                yield break;
-            }
-            string childrenListId = childrenList.id;
-
-            int childIndex = -1;
-            foreach (var childValueId in ResolveListEntryIds(childrenListId, dependencyIds))
-            {
-                childIndex += 1;
                 dependencyIds?.Add(childValueId);
                 if (client.ResolveValueRow(childValueId) is not ObjectMemberValue childRow) continue;
                 if (childRow.IsRemoved) continue;
                 if (string.IsNullOrEmpty(childRow.classId)) continue;
+                int first = links.Count;
                 string? tilesKey = FindSchemaKey(childRow.classId!, TilesKeyCandidates);
-                if (tilesKey is null) continue;
-                if (client.ResolveClassChildRow(childRow, tilesKey)
-                        is not ArrayMemberValue tilesList)
+                if (tilesKey is not null)
                 {
-                    continue;
+                    if (client.ResolveClassChildRow(childRow, tilesKey) is not ArrayMemberValue tilesList) continue;
+                    dependencyIds?.Add(tilesList.id);
+                    string targetLayerId = NeoWorldLayerLinkResolver.ResolveTargetLayerClassId(
+                        client,
+                        childValueId,
+                        childRow.classId!,
+                        isTileLink: true);
+                    links.Add(new ObjectCarriedLink(childValueId, targetLayerId, tilesList.id, Vector2.zero, enabled: true));
                 }
-                string tilesListId = tilesList.id;
-                string targetLayerId = NeoWorldLayerLinkResolver.ResolveTargetLayerClassId(
-                    client,
-                    childValueId,
-                    childRow.classId!,
-                    isTileLink: true);
-                dependencyIds?.Add(tilesListId);
-                yield return new ObjectCarriedLink(childValueId, targetLayerId, tilesListId, childIndex);
+                else if (depth < MaxCompositionDepth && visiting.Add(childValueId))
+                {
+                    CollectCarriedLinks(childRow, visiting, depth + 1, links, dependencyIds, leafDependencyIds);
+                    visiting.Remove(childValueId);
+                }
+                if (links.Count == first) continue;
+                bool enabled = ReadEnabled(childRow, dependencyIds, leafDependencyIds);
+                Vector2 position = ReadPosition(childRow, dependencyIds, leafDependencyIds);
+                for (int i = first; i < links.Count; i++) links[i] = links[i].Under(position, enabled);
             }
+        }
+
+        /// <summary>A world object's Enabled, true when its class declares none.</summary>
+        private bool ReadEnabled(
+            ObjectMemberValue row,
+            HashSet<string>? dependencyIds,
+            HashSet<string>? leafDependencyIds)
+        {
+            string? key = FindSchemaKey(row.classId!, EnabledKeyCandidates);
+            if (key is null) return true;
+            if (client.ResolveClassChildRow(row, key) is not BoolMemberValue enabled) return true;
+            dependencyIds?.Add(enabled.id);
+            leafDependencyIds?.Add(enabled.id);
+            return enabled.value != false;
+        }
+
+        /// <summary>A nested world object's Position, relative to its parent.</summary>
+        private Vector2 ReadPosition(
+            ObjectMemberValue row,
+            HashSet<string>? dependencyIds,
+            HashSet<string>? leafDependencyIds)
+        {
+            string? key = FindSchemaKey(row.classId!, PositionKeyCandidates);
+            if (key is null) return Vector2.zero;
+            if (client.ResolveClassChildRow(row, key) is not MemberValue position) return Vector2.zero;
+            dependencyIds?.Add(position.id);
+            leafDependencyIds?.Add(position.id);
+            return ReadVector(position) ?? Vector2.zero;
         }
 
         private NeoTilePlacementRecord? ResolveObjectCarriedTileRecord(
@@ -2171,9 +2226,11 @@ namespace NeoCompose.Runtime
                 Mathf.RoundToInt(vector.Value.y));
         }
 
-        private Vector2? ReadVectorRow(string valueId)
+        private Vector2? ReadVectorRow(string valueId) => ReadVector(client.ResolveValueRow(valueId));
+
+        private static Vector2? ReadVector(MemberValue? row)
         {
-            switch (client.ResolveValueRow(valueId))
+            switch (row)
             {
                 case Vector2MemberValue v2 when v2.value is not null:
                     return new Vector2(v2.value.x, v2.value.y);
