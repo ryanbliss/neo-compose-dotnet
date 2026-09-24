@@ -291,7 +291,9 @@ namespace NeoCompose.Runtime
         }
 
         // A setter reports its own key once it has written, so its refresh
-        // skips that key. Frames nest: a watcher may write another field.
+        // skips that key until the key is first reported. A watcher's later
+        // rebind is a new change. Frames nest: a watcher may write another
+        // field.
         private protected string? BeginReporting(string key)
         {
             string? outer = reportingKey;
@@ -484,11 +486,18 @@ namespace NeoCompose.Runtime
 
         protected void HandleChildChanged(NeoMember child)
         {
+            if (reportingKey is not null
+                && childMembers.TryGetValue(reportingKey, out NeoMember? reporting)
+                && ReferenceEquals(reporting, child))
+            {
+                reportingKey = null;
+            }
             NotifyChanged(child);
         }
 
         protected void NotifyChildChanged(string key)
         {
+            if (key == reportingKey) reportingKey = null;
             if (childMembers.TryGetValue(key, out NeoMember? child))
             {
                 NotifyChanged(child);

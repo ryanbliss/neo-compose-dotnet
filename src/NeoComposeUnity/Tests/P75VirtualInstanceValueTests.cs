@@ -3650,10 +3650,11 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(new[] { "Nested" }, changed.Where(key => key is not null), string.Join(", ", changed));
         }
 
-        // A field watcher can rebind a sibling field while its own setter is
-        // still reporting. Only the setter's own key is left to the setter.
-        [Test]
-        public void ReentrantSiblingRebindIsReported()
+        // A field watcher can rebind a field, including the setter's own,
+        // while the setter is still reporting. Each rebind is reported.
+        [TestCase("Other")]
+        [TestCase("Nested")]
+        public void ReentrantRebindIsReported(string target)
         {
             ProjectData data = BuildReboundFieldProjectData();
             data.classes["thing-class"].schema["Other"] = "thing-other";
@@ -3663,25 +3664,21 @@ namespace NeoCompose.Tests
                 classId = "nested-class", Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new ObjectMemberValueBase { value = new Dictionary<string, string>() },
             };
-            data.classes["assets-root-class"].schema["OtherPreset"] = "assets-other-preset";
-            data.members["assets-other-preset"] = new ClassMember
-            {
-                id = "assets-other-preset", projectId = "p75-project", name = "OtherPreset", kind = MemberKind.Class,
-                classId = "nested-class", Requirement = NeoMemberRequirementKind.Required,
-            };
-            ((ObjectMemberValue)data.values["value-assets"]).value!["OtherPreset"] = "asset-other-preset";
-            data.values["asset-other-preset"] = ObjectValue("asset-other-preset", "nested-class");
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
             var thing = client.save.Get<NeoMemberClassWritable>("Thing");
             List<string?> changed = RecordChangedKeys(thing);
+            string? reported = null;
             thing.OnChanged += member =>
             {
-                if (thing.TryGetSchemaKeyForChild(member, out string? key) && key == "Nested") AssignPreset(client, "Other", "OtherPreset");
+                if (reported is not null || !thing.TryGetSchemaKeyForChild(member, out string? key) || key != "Nested") return;
+                reported = BoundRowId(thing, "Nested");
+                AssignPreset(client, target, "OtherPreset");
             };
 
             thing.SetSerializedValue("Nested", NeoValueWritePayload.FromValueReference("asset-preset"));
 
-            CollectionAssert.AreEqual(new[] { "Nested", "Other" }, changed.Where(key => key is not null), string.Join(", ", changed));
+            CollectionAssert.AreEqual(new[] { "Nested", target }, changed.Where(key => key is not null), string.Join(", ", changed));
+            if (target == "Nested") Assert.AreNotEqual(reported, BoundRowId(thing, "Nested"), "The watcher's rebind wins.");
         }
 
         // Removing a field rebinds it to its default row.
@@ -3709,6 +3706,14 @@ namespace NeoCompose.Tests
             };
             ((ObjectMemberValue)data.values["value-assets"]).value!["Preset"] = "asset-preset";
             data.values["asset-preset"] = ObjectValue("asset-preset", "nested-class");
+            data.classes["assets-root-class"].schema["OtherPreset"] = "assets-other-preset";
+            data.members["assets-other-preset"] = new ClassMember
+            {
+                id = "assets-other-preset", projectId = "p75-project", name = "OtherPreset", kind = MemberKind.Class,
+                classId = "nested-class", Requirement = NeoMemberRequirementKind.Required,
+            };
+            ((ObjectMemberValue)data.values["value-assets"]).value!["OtherPreset"] = "asset-other-preset";
+            data.values["asset-other-preset"] = ObjectValue("asset-other-preset", "nested-class");
             return data;
         }
 
