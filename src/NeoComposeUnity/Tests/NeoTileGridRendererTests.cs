@@ -8562,10 +8562,10 @@ namespace NeoCompose.Tests
             string placementTilesValueId = $"{objectValueId}-placement-tiles";
             if (data.values.TryGetValue(placementTilesValueId, out var previous))
             {
-                foreach (string placementValueId in ((ArrayMemberValue)previous).value!)
+                for (int index = 0; index < ((ArrayMemberValue)previous).value!.Length; index += 1)
                 {
-                    data.values.Remove(placementValueId);
-                    data.values.Remove(placementValueId.Replace("-placement-", "-placement-cell-"));
+                    data.values.Remove($"{objectValueId}-placement-{index}");
+                    data.values.Remove($"{objectValueId}-placement-cell-{index}");
                 }
             }
             ((ObjectMemberValue)data.values[objectValueId]).value!["PlacementTiles"] =
