@@ -2,7 +2,7 @@
 
 ## [0.42.2] - 2026-09-23
 
-- Fix a generated field's `OnChanged` not firing when NeoScript assigns a Class value to it. For example, `this.HeldItemColor = item?.Color` rebinds the field to another row by rewriting the parent row. The parent reported only an unkeyed change, which field watchers ignore. It now also reports each field a row change rebinds, including P75 sparse roots that refresh before they publish.
+- Fix a generated field's `OnChanged` not firing when a change rebinds the field to another row. For example, NeoScript `this.HeldItemColor = item?.Color` points the field at the item's color row by rewriting the parent row, and the parent reported only an unkeyed change, which field watchers ignore. Every change that rebinds a field now reports that field once: NeoScript Class assignment (including P75 sparse roots and a Partial row's first assignment), `Remove`, and a sibling rebind made from inside another field's `OnChanged`.
 
 ## [0.42.1] - 2026-09-23
 

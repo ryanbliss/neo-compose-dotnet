@@ -54,8 +54,8 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, NeoGenericEnvEntry> GenericEnv { get; private set; }
             = NeoGenericResolution.EmptyEnv;
         protected Dictionary<string, NeoMember> childMembers = new();
-        private List<NeoMember>? reboundChildren;
-        private protected int mutations;
+        private List<string>? reboundKeys;
+        private string? reportingKey;
 
         public NeoMemberClass(NeoClient client, string memberId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
             : base(client, memberId, overrideValueId, ownership)
@@ -269,36 +269,40 @@ namespace NeoCompose.Runtime
             ResolveClassContext();
             // The new value's record may carry a different keyset —
             // re-walk so disposed-orphans get released and any new
-            // schema-keys get nodes.
-            var previous = childMembers;
-            ReinitializeChildren();
-            // Only the replaced children remain in previous. A write to this
-            // row can rebind a field to another row (a NeoScript Class
-            // assignment does); P75 replay refreshes before it publishes, so
-            // keep the rebound children for the next change notification.
-            foreach (var pair in previous)
-            {
-                if (childMembers.TryGetValue(pair.Key, out NeoMember? child)
-                    && (pair.Value.overrideValueId ?? pair.Value.value?.id) != (child.overrideValueId ?? child.value?.id))
-                    (reboundChildren ??= new List<NeoMember>()).Add(child);
-            }
+            // schema-keys get nodes. A write to this row can rebind a field
+            // to another row (a NeoScript Class assignment does); P75 replay
+            // refreshes before it publishes, so record the rebound fields for
+            // the next change notification.
+            ReinitializeChildren(recordRebound: true);
         }
 
         // Field watchers key changes by child, so report each rebound field
-        // after this node's own change. A mutator reports its own key.
+        // after this node's own change.
         protected override void OnValueIdChainChanged()
         {
             base.OnValueIdChainChanged();
-            if (reboundChildren is null || mutations > 0) return;
-            var rebound = reboundChildren;
-            reboundChildren = null;
-            foreach (var child in rebound)
-                if (!child.isDisposed) NotifyChanged(child);
+            if (reboundKeys is not { } rebound) return;
+            reboundKeys = null;
+            foreach (string key in rebound)
+            {
+                if (key != reportingKey && childMembers.TryGetValue(key, out NeoMember? child))
+                    NotifyChanged(child);
+            }
         }
 
-        private protected void EndMutation()
+        // A setter reports its own key once it has written, so its refresh
+        // skips that key. Frames nest: a watcher may write another field.
+        private protected string? BeginReporting(string key)
         {
-            if (--mutations == 0) reboundChildren = null;
+            string? outer = reportingKey;
+            reportingKey = key;
+            return outer;
+        }
+
+        private protected void EndReporting(string key, string? outer)
+        {
+            reboundKeys?.Remove(key);
+            reportingKey = outer;
         }
 
         public override void Dispose()
@@ -336,7 +340,7 @@ namespace NeoCompose.Runtime
         /// schema is wired (post-base-ctor), and again whenever a
         /// Writable mutation invalidates the cached children.
         /// </summary>
-        protected void ReinitializeChildren()
+        protected void ReinitializeChildren(bool recordRebound = false)
         {
             var previousChildren = childMembers;
             childMembers = new();
@@ -450,6 +454,14 @@ namespace NeoCompose.Runtime
                 }
                 child.OnChanged += HandleChildChanged;
                 childMembers[entry.schemaKey] = child;
+                if (recordRebound
+                    && (child.overrideValueId ?? child.value?.id)
+                        != (previousChildren.TryGetValue(entry.schemaKey, out NeoMember? replaced)
+                            ? replaced.overrideValueId ?? replaced.value?.id
+                            : null))
+                {
+                    (reboundKeys ??= new List<string>()).Add(entry.schemaKey);
+                }
             }
             DisposeChildren(previousChildren.Values);
         }
@@ -769,9 +781,9 @@ namespace NeoCompose.Runtime
 
         private void SetSerializedValue(string key, NeoValueWritePayload? setValue, bool placement)
         {
-            mutations++;
+            string? outer = BeginReporting(key);
             try { WriteSerializedValue(key, setValue, placement); }
-            finally { EndMutation(); }
+            finally { EndReporting(key, outer); }
         }
 
         private void WriteSerializedValue(string key, NeoValueWritePayload? setValue, bool placement)
@@ -1095,13 +1107,6 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Remove(string key)
         {
-            mutations++;
-            try { RemoveKey(key); }
-            finally { EndMutation(); }
-        }
-
-        private void RemoveKey(string key)
-        {
             string? memberId = LookupMergedMemberId(key);
             if (memberId is not null
                 && client.TryGetMember(memberId, out Member? rawMember))
@@ -1160,13 +1165,6 @@ namespace NeoCompose.Runtime
         /// value. Throws if the field is required.
         /// </summary>
         public void Unset(string key)
-        {
-            mutations++;
-            try { UnsetKey(key); }
-            finally { EndMutation(); }
-        }
-
-        private void UnsetKey(string key)
         {
             string? memberId = LookupMergedMemberId(key);
             if (memberId is null)
