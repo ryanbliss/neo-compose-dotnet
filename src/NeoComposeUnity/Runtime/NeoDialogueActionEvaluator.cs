@@ -3549,15 +3549,34 @@ namespace NeoCompose.Runtime
             return rowId;
         }
 
-        private static void StoreWritableRow(NeoWritePlan plan, NeoClient client,
+        private static void StoreWritableRow(NeoWritePlan plan,
             NeoValueOwnership ownership, MemberValue row, NSGetterEvaluator.Context ctx)
         {
-            // Nulling a class slot preserves the slot id, but releases the
-            // previous object's owned fields (including sparse instances).
-            // Other rows here are field writes to the same instance.
-            if (row is ObjectMemberValue { value: null }) client.StageInPlaceReplacement(plan, ownership, row, null);
-            else plan.Set(ownership, row);
+            plan.Set(ownership, row);
             plan.AfterCommit(() => NSGetterEvaluator.RefreshCachedRowAfterWrite(row, ctx, ownership));
+        }
+
+        // A member built from a TypeInfo names no schema entry member, so it
+        // can't reach a nested List or Dictionary's entries. Releasing one
+        // takes the schema member instead.
+        private static JsonMember ReleaseMember(NeoClient client, string valueId, TypeInfo typeInfo) =>
+            typeInfo.type is MemberKind.List or MemberKind.Dictionary
+                && client.TryInferMemberForValueId(valueId, out JsonMember? member)
+                ? member : MemberFromTypeInfo(typeInfo);
+
+        private static JsonMember EntryReleaseMember(NeoClient client, MemberValue collectionRow, TypeInfo entryTypeInfo) =>
+            entryTypeInfo.type is MemberKind.List or MemberKind.Dictionary
+                && client.TryInferMemberForValueId(collectionRow.id, out JsonMember? collection)
+                && client.TryResolveCollectionEntryMember(collection, collectionRow) is JsonMember entry
+                ? entry : MemberFromTypeInfo(entryTypeInfo);
+
+        // An assigned value replaces the slot's row at the same id, so the
+        // previous value's owned rows are released.
+        private static void StoreReplacedRow(NeoWritePlan plan, NeoClient client,
+            NeoValueOwnership ownership, MemberValue next, JsonMember? member, NSGetterEvaluator.Context ctx)
+        {
+            client.StageInPlaceReplacement(plan, ownership, next, member);
+            plan.AfterCommit(() => NSGetterEvaluator.RefreshCachedRowAfterWrite(next, ctx, ownership));
         }
 
         internal static string ImportClassValueReference(NeoWritePlan plan, NeoClient client,
@@ -3625,7 +3644,7 @@ namespace NeoCompose.Runtime
                         existing.createdAt,
                         NeoTimestamp.Now());
                     next.classId = existing.classId;
-                    StoreWritableRow(plan, client, ownership, next, ctx);
+                    StoreReplacedRow(plan, client, ownership, next, ReleaseMember(client, writableRowId, typeInfo), ctx);
                 });
             }
         }
@@ -3919,7 +3938,7 @@ namespace NeoCompose.Runtime
                                 importedId,
                                 parentRowId));
                             rebound.updatedAt = now;
-                            StoreWritableRow(plan, client, parentOwnership, rebound, ctx);
+                            StoreWritableRow(plan, parentOwnership, rebound, ctx);
                             client.StageUnlinkedRemovals(plan, ownership, new[] { existingId }, member);
                             return;
                         }
@@ -3937,7 +3956,7 @@ namespace NeoCompose.Runtime
                         }
                         var replaced = CreateValueRow(plan, client, ownership, member, value, existingId, existing!.createdAt, now);
                         replaced.classId = existing.classId;
-                        StoreWritableRow(plan, client, ownership, replaced, ctx);
+                        StoreReplacedRow(plan, client, ownership, replaced, member, ctx);
                         return;
                     }
                     if (parentOwnership == NeoValueOwnership.Asset)
@@ -3962,11 +3981,11 @@ namespace NeoCompose.Runtime
                     {
                         var childId = Guid.NewGuid().ToString();
                         var next = CreateValueRow(plan, client, ownership, member, value, childId, now, now);
-                        StoreWritableRow(plan, client, ownership, next, ctx);
+                        StoreWritableRow(plan, ownership, next, ctx);
                         linked.value![key] = childId;
                     }
                     linked.updatedAt = now;
-                    StoreWritableRow(plan, client, parentOwnership, linked, ctx);
+                    StoreWritableRow(plan, parentOwnership, linked, ctx);
                 });
             }
         }
@@ -4046,7 +4065,7 @@ namespace NeoCompose.Runtime
                     }
                     ApplyField(row, value);
                     row.updatedAt = NeoTimestamp.Now();
-                    StoreWritableRow(plan, client, ownership, row, ctx);
+                    StoreWritableRow(plan, ownership, row, ctx);
                 });
             }
 
@@ -4410,8 +4429,8 @@ namespace NeoCompose.Runtime
                             importedId,
                             parentRowId));
                         parent.updatedAt = NeoTimestamp.Now();
-                        StoreWritableRow(plan, client, ownership, parent, ctx);
-                        client.StageUnlinkedRemovals(plan, ownership, new[] { childId }, MemberFromTypeInfo(typeInfo));
+                        StoreWritableRow(plan, ownership, parent, ctx);
+                        client.StageUnlinkedRemovals(plan, ownership, new[] { childId }, EntryReleaseMember(client, parent, typeInfo));
                         return;
                     }
                     if (!client.TryGetValue(childId, out MemberValue? existing))
@@ -4427,7 +4446,7 @@ namespace NeoCompose.Runtime
                         existing.createdAt,
                         NeoTimestamp.Now());
                     next.classId = existing.classId;
-                    StoreWritableRow(plan, client, ownership, next, ctx);
+                    StoreReplacedRow(plan, client, ownership, next, EntryReleaseMember(client, parent, typeInfo), ctx);
                 });
             }
         }
@@ -4571,7 +4590,7 @@ namespace NeoCompose.Runtime
                                 referencedNext[row.value.Length] = importedId;
                                 row.value = referencedNext;
                                 row.updatedAt = now;
-                                StoreWritableRow(plan, client, ownership, row, ctx);
+                                StoreWritableRow(plan, ownership, row, ctx);
                                 return;
                             }
                             var childId = Guid.NewGuid().ToString();
@@ -4583,13 +4602,13 @@ namespace NeoCompose.Runtime
                                 childId,
                                 now,
                                 now);
-                            StoreWritableRow(plan, client, ownership, child, ctx);
+                            StoreWritableRow(plan, ownership, child, ctx);
                             var next = new string[row.value.Length + 1];
                             Array.Copy(row.value, next, row.value.Length);
                             next[row.value.Length] = childId;
                             row.value = next;
                             row.updatedAt = now;
-                            StoreWritableRow(plan, client, ownership, row, ctx);
+                            StoreWritableRow(plan, ownership, row, ctx);
                             return;
                         }
                         case CollectionMutationKind.RemoveAt:
@@ -4633,8 +4652,8 @@ namespace NeoCompose.Runtime
                                 removedIds.Length);
                             row.value = Array.Empty<string>();
                             row.updatedAt = now;
-                            StoreWritableRow(plan, client, ownership, row, ctx);
-                            client.StageUnlinkedRemovals(plan, ownership, removedIds, MemberFromTypeInfo(entryTypeInfo));
+                            StoreWritableRow(plan, ownership, row, ctx);
+                            client.StageUnlinkedRemovals(plan, ownership, removedIds, EntryReleaseMember(client, row, entryTypeInfo));
                             return;
                         }
                         default:
@@ -4665,8 +4684,8 @@ namespace NeoCompose.Runtime
                 }
                 row.value = next;
                 row.updatedAt = now;
-                StoreWritableRow(plan, client, ownership, row, ctx);
-                client.StageUnlinkedRemovals(plan, ownership, new[] { removedId }, MemberFromTypeInfo(entryTypeInfo));
+                StoreWritableRow(plan, ownership, row, ctx);
+                client.StageUnlinkedRemovals(plan, ownership, new[] { removedId }, EntryReleaseMember(client, row, entryTypeInfo));
             }
         }
 
@@ -4716,7 +4735,7 @@ namespace NeoCompose.Runtime
                             next[row.value.Length] = selectionId;
                             row.value = next;
                             row.updatedAt = now;
-                            StoreWritableRow(plan, client, ownership, row, ctx);
+                            StoreWritableRow(plan, ownership, row, ctx);
                             return;
                         }
                         case CollectionMutationKind.Remove:
@@ -4741,7 +4760,7 @@ namespace NeoCompose.Runtime
                             }
                             row.value = next;
                             row.updatedAt = now;
-                            StoreWritableRow(plan, client, ownership, row, ctx);
+                            StoreWritableRow(plan, ownership, row, ctx);
                             return;
                         }
                         case CollectionMutationKind.Clear:
@@ -4749,7 +4768,7 @@ namespace NeoCompose.Runtime
                                 row.value.Length);
                             row.value = Array.Empty<string>();
                             row.updatedAt = now;
-                            StoreWritableRow(plan, client, ownership, row, ctx);
+                            StoreWritableRow(plan, ownership, row, ctx);
                             return;
                         default:
                             throw new NSGetterRuntimeError($"Unsupported lookup set mutation '{mutation}'.");
@@ -4838,8 +4857,8 @@ namespace NeoCompose.Runtime
                                 importedId,
                                 rowId));
                             row.updatedAt = now;
-                            StoreWritableRow(plan, client, ownership, row, ctx);
-                            client.StageUnlinkedRemovals(plan, ownership, new[] { existingId }, MemberFromTypeInfo(entryTypeInfo));
+                            StoreWritableRow(plan, ownership, row, ctx);
+                            client.StageUnlinkedRemovals(plan, ownership, new[] { existingId }, EntryReleaseMember(client, row, entryTypeInfo));
                             return;
                         }
                         var next = CreateValueRow(
@@ -4851,7 +4870,7 @@ namespace NeoCompose.Runtime
                             existing.createdAt,
                             now);
                         next.classId = existing.classId;
-                        StoreWritableRow(plan, client, ownership, next, ctx);
+                        StoreReplacedRow(plan, client, ownership, next, EntryReleaseMember(client, row, entryTypeInfo), ctx);
                     }
                     else
                     {
@@ -4870,7 +4889,7 @@ namespace NeoCompose.Runtime
                                 row.value[key],
                                 rowId));
                             row.updatedAt = now;
-                            StoreWritableRow(plan, client, ownership, row, ctx);
+                            StoreWritableRow(plan, ownership, row, ctx);
                             return;
                         }
                         var childId = Guid.NewGuid().ToString();
@@ -4882,11 +4901,11 @@ namespace NeoCompose.Runtime
                             childId,
                             now,
                             now);
-                        StoreWritableRow(plan, client, ownership, next, ctx);
+                        StoreWritableRow(plan, ownership, next, ctx);
                         row.value[key] = childId;
                     }
                     row.updatedAt = now;
-                    StoreWritableRow(plan, client, ownership, row, ctx);
+                    StoreWritableRow(plan, ownership, row, ctx);
                 }, preparedPlan);
             }
 
@@ -4906,8 +4925,8 @@ namespace NeoCompose.Runtime
                     }
                     row.value.Remove(key);
                     row.updatedAt = NeoTimestamp.Now();
-                    StoreWritableRow(plan, client, ownership, row, ctx);
-                    client.StageUnlinkedRemovals(plan, ownership, new[] { removedId }, MemberFromTypeInfo(entryTypeInfo));
+                    StoreWritableRow(plan, ownership, row, ctx);
+                    client.StageUnlinkedRemovals(plan, ownership, new[] { removedId }, EntryReleaseMember(client, row, entryTypeInfo));
                 }, preparedPlan);
             }
 
@@ -4927,8 +4946,8 @@ namespace NeoCompose.Runtime
                     ctx.allocationTracker.ConsumeCollectionVisit(removedIds.Count);
                     row.value.Clear();
                     row.updatedAt = NeoTimestamp.Now();
-                    StoreWritableRow(plan, client, ownership, row, ctx);
-                    client.StageUnlinkedRemovals(plan, ownership, removedIds, MemberFromTypeInfo(entryTypeInfo));
+                    StoreWritableRow(plan, ownership, row, ctx);
+                    client.StageUnlinkedRemovals(plan, ownership, removedIds, EntryReleaseMember(client, row, entryTypeInfo));
                 }, preparedPlan);
             }
         }

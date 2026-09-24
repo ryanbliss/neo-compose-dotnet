@@ -273,7 +273,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Static member '{member.name}' resolves to storage partition '{declaredMapKey ?? "main"}', but its existing value '{valueId}' is stamped '{row.mapKey ?? "main"}'.");
             }
-            plan.Set(Ownership, row);
+            client.StageInPlaceReplacement(plan, Ownership, row, member);
             if (currentValueId is null)
                 plan.Bind(Ownership, member.id, true, valueId);
             return valueId;
