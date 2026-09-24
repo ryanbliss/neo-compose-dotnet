@@ -77,7 +77,7 @@ namespace NeoCompose.Tests
                 var added = changed!.ObjectLayers.Single();
                 Assert.That(added.ChangedInstances, Has.No.Member(new NeoObjectInstanceId("shop-1")), "A shifted rank is not a sibling change.");
                 Assert.That(added.ChangedCells, Has.No.Member(new Vector2Int(10, 20)));
-                Assert.That(added.ChangedCells, Is.Not.Empty);
+                Assert.That(added.AddedOrChangedInstances, Has.Member(new NeoObjectInstanceId("aaa-earlier")));
                 client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
                 {
                     id = "aaa-earlier", classId = ObjectClassId, containerId = "objects-link-objects", mark = NeoValueMarks.Removed,
@@ -276,6 +276,7 @@ namespace NeoCompose.Tests
                 containerId = "objects-link-objects", value = new Dictionary<string, string> { ["Position"] = "other-position" } };
             data.values["other-position"] = new Vector3MemberValue { id = "other-position",
                 value = new NeoVector3Value { x = 12, y = 20 } };
+            SetPlacementTiles(data, "other-shop", Vector2Int.zero);
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             var shop = WritableObject(client, "shop-1");
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
@@ -297,6 +298,29 @@ namespace NeoCompose.Tests
             }
         }
 
+        [Test]
+        public void RuntimeMovement_ObjectsWithoutPlacementTilesShareCells()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            SetPlacementTiles(data, "shop-1");
+            data.values["other-shop"] = new ObjectMemberValue { id = "other-shop", classId = ObjectClassId,
+                containerId = "objects-link-objects", value = new Dictionary<string, string> { ["Position"] = "other-position" } };
+            data.values["other-position"] = new Vector3MemberValue { id = "other-position",
+                value = new NeoVector3Value { x = 12, y = 20 } };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var shop = WritableObject(client, "shop-1");
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
+
+            NeoGeneratedTypesSupport.SetPlacementVector3(shop, "Position", new NeoReadOnlyVector3(12, 20, 0));
+            client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue { id = "other-position",
+                value = new NeoVector3Value { x = 12, y = 20 } });
+
+            Assert.AreEqual(new Vector2Int(12, 20), primitive.LookupCache.ObjectRecord(ObjectsLayerClassId, "shop-1")!.Cell);
+            Assert.AreEqual(new Vector2Int(12, 20), primitive.LookupCache.ObjectRecord(ObjectsLayerClassId, "other-shop")!.Cell);
+            Assert.IsEmpty(primitive.LookupCache.ObjectCandidatesAt(ObjectsLayerClassId, new Vector2Int(12, 20)),
+                "objects without placement tiles reserve no cells");
+        }
+
         // Raw row writes take the plan, which rebuilds the affected layers.
         // Two positions written in one plan swap atomically.
         [Test]
@@ -306,6 +330,7 @@ namespace NeoCompose.Tests
             data.values["other-shop"] = new ObjectMemberValue { id = "other-shop", classId = ObjectClassId,
                 containerId = "objects-link-objects", value = new Dictionary<string, string> { ["Position"] = "other-position" } };
             data.values["other-position"] = Position("other-position", 12);
+            SetPlacementTiles(data, "other-shop", Vector2Int.zero);
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
             primitive.LookupCache.ObjectRecords(ObjectsLayerClassId);
@@ -443,14 +468,15 @@ namespace NeoCompose.Tests
             ctx.gridReads = insertionReads;
             client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
                 new object?[] { new NeoCellPattern(new Vector2Int(50, 50)) }, ctx, out _);
-            client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue
+            client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]
             {
-                id = "new-shop-position", value = new NeoVector3Value { x = 61, y = 70, z = 0 },
-            });
-            client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
-            {
-                id = "new-shop", classId = ObjectClassId, containerId = "objects-link-objects",
-                value = new Dictionary<string, string> { ["Position"] = "new-shop-position" },
+                new Vector3MemberValue { id = "new-shop-position", value = new NeoVector3Value { x = 61, y = 70, z = 0 } },
+                new Vector2MemberValue { id = "new-shop-origin-cell", value = new NeoVector2Value() },
+                new ObjectMemberValue { id = "new-shop-origin", classId = PlacementTileClassId, containerId = "new-shop-placement-tiles",
+                    value = new Dictionary<string, string> { ["Cell"] = "new-shop-origin-cell" } },
+                new ArrayMemberValue { id = "new-shop-placement-tiles", value = new[] { "new-shop-origin" } },
+                new ObjectMemberValue { id = "new-shop", classId = ObjectClassId, containerId = "objects-link-objects",
+                    value = new Dictionary<string, string> { ["Position"] = "new-shop-position", ["PlacementTiles"] = "new-shop-placement-tiles" } },
             });
             Assert.AreEqual(3, invalidations, "New containment membership must invalidate a prior empty-cell query.");
 
@@ -1259,9 +1285,10 @@ namespace NeoCompose.Tests
 
                 Assert.IsTrue(placed.Ok, placed.Message);
                 Assert.AreEqual(1, changed);
-                var resolved = layer.GetObjectProjection(new Vector2Int(4, 5));
-                Assert.NotNull(resolved);
-                Assert.IsInstanceOf<TestComposedObject>(resolved!.Info);
+                // A constructed object has no placement tiles, so it reserves no
+                // cell to query by; find it by its origin.
+                var resolved = layer.GetObjectProjections().Single(p => p.Cell == new Vector2Int(4, 5));
+                Assert.IsInstanceOf<TestComposedObject>(resolved.Info);
                 Assert.AreEqual(resolved.InstanceId.Value, resolved.Info.valueId);
                 var writtenRows = useSession ? client.sessionValues : client.saveValues;
                 var placement = (ObjectMemberValue)writtenRows[resolved.InstanceId.Value];
@@ -4034,7 +4061,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ObjectLayerQueries_EmptyPlacementTilesOccupyOnlyOriginRegardlessOfVisualSize()
+        public void ObjectLayerQueries_ObjectWithoutPlacementTilesReservesNoCellsRegardlessOfVisualSize()
         {
             var data = BuildClassBackedTileGridProjectData();
             // The old Size-based expansion overflows its List capacity for this
@@ -4056,11 +4083,11 @@ namespace NeoCompose.Tests
 
             NeoObjectProjection placed = layer.GetObjectProjections()[0];
 
-            CollectionAssert.AreEqual(
-                new[] { new Vector2Int(10, 20) },
-                placed.Footprint);
-            Assert.IsNotNull(layer.GetObjectProjection(new Vector2Int(10, 20)));
-            Assert.IsNull(layer.GetObjectProjection(new Vector2Int(10, 21)));
+            Assert.AreEqual(new Vector2Int(10, 20), placed.Cell, "the object is still placed");
+            CollectionAssert.IsEmpty(placed.Footprint);
+            Assert.IsNull(
+                layer.GetObjectProjection(new Vector2Int(10, 20)),
+                "an object without placement tiles does not occupy its origin");
         }
 
         [Test]
@@ -8500,20 +8527,6 @@ namespace NeoCompose.Tests
             params Vector2Int[] placementCells)
         {
             data.classes[ObjectClassId].schema["Size"] = "object-size-member";
-            data.classes[ObjectClassId].schema["PlacementTiles"] =
-                "object-placement-tiles-member";
-            data.classes[PlacementTileClassId] = new NeoSchemaClass
-            {
-                id = PlacementTileClassId,
-                projectId = "project-a",
-                name = "Placement Tile",
-                schema = new Dictionary<string, string> { ["Cell"] = "object-placement-cell-member" },
-                system = JObject.FromObject(new { worldKind = "placementTile" }),
-            };
-            data.members["object-placement-cell-member"] = new Vector2IntMember
-            {
-                id = "object-placement-cell-member", name = "Cell", kind = MemberKind.Vector2Int,
-            };
             data.members["object-size-member"] = new Vector3Member
             {
                 id = "object-size-member",
@@ -8521,28 +8534,8 @@ namespace NeoCompose.Tests
                 name = "Size",
                 kind = MemberKind.Vector3,
             };
-            data.members["object-placement-tiles-member"] = new ListMember
-            {
-                id = "object-placement-tiles-member",
-                projectId = "project-a",
-                name = "PlacementTiles",
-                kind = MemberKind.List,
-                entryMemberId = "object-placement-tile-entry-member",
-            };
-            data.members["object-placement-tile-entry-member"] = new ClassMember
-            {
-                id = "object-placement-tile-entry-member",
-                projectId = "project-a",
-                name = "PlacementTile",
-                kind = MemberKind.Class,
-                classId = PlacementTileClassId,
-            };
-
-            var shop = (ObjectMemberValue)data.values[objectValueId];
             string sizeValueId = $"{objectValueId}-size";
-            string placementTilesValueId = $"{objectValueId}-placement-tiles";
-            shop.value!["Size"] = sizeValueId;
-            shop.value["PlacementTiles"] = placementTilesValueId;
+            ((ObjectMemberValue)data.values[objectValueId]).value!["Size"] = sizeValueId;
             data.values[sizeValueId] = new Vector3MemberValue
             {
                 id = sizeValueId,
@@ -8553,6 +8546,30 @@ namespace NeoCompose.Tests
                     z = 0,
                 },
             };
+            SetPlacementTiles(data, objectValueId, placementCells);
+        }
+
+        /// <summary>
+        /// Replaces an object's PlacementTiles. An object without placement tiles
+        /// reserves no cells, so fixture objects that are queried or moved by cell
+        /// carry an origin tile.
+        /// </summary>
+        private static void SetPlacementTiles(
+            ProjectData data,
+            string objectValueId,
+            params Vector2Int[] placementCells)
+        {
+            string placementTilesValueId = $"{objectValueId}-placement-tiles";
+            if (data.values.TryGetValue(placementTilesValueId, out var previous))
+            {
+                for (int index = 0; index < ((ArrayMemberValue)previous).value!.Length; index += 1)
+                {
+                    data.values.Remove($"{objectValueId}-placement-{index}");
+                    data.values.Remove($"{objectValueId}-placement-cell-{index}");
+                }
+            }
+            ((ObjectMemberValue)data.values[objectValueId]).value!["PlacementTiles"] =
+                placementTilesValueId;
 
             var placementValueIds = new string[placementCells.Length];
             for (int index = 0; index < placementCells.Length; index += 1)
@@ -8741,8 +8758,17 @@ namespace NeoCompose.Tests
                     // as a property on the test double.
                     ["Enabled"] = "object-enabled-member",
                     ["Children"] = "object-children-member",
+                    ["PlacementTiles"] = "object-placement-tiles-member",
                 },
                 system = JObject.FromObject(new { worldKind = "object" }),
+            };
+            var placementTileClass = new NeoSchemaClass
+            {
+                id = PlacementTileClassId,
+                projectId = "project-a",
+                name = "Placement Tile",
+                schema = new Dictionary<string, string> { ["Cell"] = "object-placement-cell-member" },
+                system = JObject.FromObject(new { worldKind = "placementTile" }),
             };
             var tileLayerLinkClass = new NeoSchemaClass
             {
@@ -8793,7 +8819,7 @@ namespace NeoCompose.Tests
                 extendsClassId = BaseTileClassId,
                 schema = new Dictionary<string, string>(),
             };
-            return new ProjectData
+            var data = new ProjectData
             {
                 project = new Project
                 {
@@ -8847,6 +8873,29 @@ namespace NeoCompose.Tests
                         name = "Children",
                         kind = MemberKind.List,
                         entryMemberId = "grid-child-entry-member",
+                    },
+                    ["object-placement-tiles-member"] = new ListMember
+                    {
+                        id = "object-placement-tiles-member",
+                        projectId = "project-a",
+                        name = "PlacementTiles",
+                        kind = MemberKind.List,
+                        entryMemberId = "object-placement-tile-entry-member",
+                    },
+                    ["object-placement-tile-entry-member"] = new ClassMember
+                    {
+                        id = "object-placement-tile-entry-member",
+                        projectId = "project-a",
+                        name = "PlacementTile",
+                        kind = MemberKind.Class,
+                        classId = PlacementTileClassId,
+                    },
+                    ["object-placement-cell-member"] = new Vector2IntMember
+                    {
+                        id = "object-placement-cell-member",
+                        projectId = "project-a",
+                        name = "Cell",
+                        kind = MemberKind.Vector2Int,
                     },
                     ["tile-instance-cell-member"] = new Vector2IntMember
                     {
@@ -9039,6 +9088,7 @@ namespace NeoCompose.Tests
                     [GridClassId] = gridClass,
                     [TileClassId] = tileClass,
                     [ObjectClassId] = objectClass,
+                    [PlacementTileClassId] = placementTileClass,
                     [TileLayerLinkClassId] = tileLayerLinkClass,
                     [ObjectLayerLinkClassId] = objectLayerLinkClass,
                     [BaseTileClassId] = baseTileClass,
@@ -9047,6 +9097,9 @@ namespace NeoCompose.Tests
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             };
+            SetPlacementTiles(data, "shop-object", Vector2Int.zero);
+            SetPlacementTiles(data, "shop-1", Vector2Int.zero);
+            return data;
         }
 
         private static ClassMember RootMember(

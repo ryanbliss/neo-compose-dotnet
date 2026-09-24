@@ -2054,6 +2054,10 @@ namespace NeoCompose.Runtime
             return ReadCellRow(positionRowId) ?? Vector2Int.zero;
         }
 
+        /// <summary>
+        /// The cells an object's placement tiles reserve. An object without
+        /// placement tiles reserves none: it neither blocks nor answers cell queries.
+        /// </summary>
         internal IReadOnlyList<Vector2Int> ReadObjectFootprint(
             ObjectMemberValue objectRow,
             Vector2Int origin,
@@ -2066,7 +2070,7 @@ namespace NeoCompose.Runtime
                 || client.ResolveClassChildRow(objectRow, placementTilesKey)
                     is not ArrayMemberValue placementTilesList)
             {
-                return new[] { origin };
+                return Array.Empty<Vector2Int>();
             }
             string placementTilesListId = placementTilesList.id;
 
@@ -2094,7 +2098,7 @@ namespace NeoCompose.Runtime
                 PlacementTilesKeyCandidates);
             if (placementTilesEntry is null)
             {
-                return new[] { origin };
+                return Array.Empty<Vector2Int>();
             }
 
             if (authoredValues is not null
@@ -2113,7 +2117,7 @@ namespace NeoCompose.Runtime
                     out Json.Member? placementTilesMember)
                 || placementTilesMember is not ListMember listMember)
             {
-                return new[] { origin };
+                return Array.Empty<Vector2Int>();
             }
             if (listMember.valueId is not null)
             {
@@ -2135,7 +2139,7 @@ namespace NeoCompose.Runtime
         {
             if (placementValueIds.Count == 0)
             {
-                return new[] { origin };
+                return Array.Empty<Vector2Int>();
             }
 
             var cells = new List<Vector2Int>(placementValueIds.Count);
@@ -2187,7 +2191,7 @@ namespace NeoCompose.Runtime
                 if (seen.Add(cell)) cells.Add(cell);
             }
 
-            if (cells.Count == 0) return new[] { origin };
+            if (cells.Count == 0) return Array.Empty<Vector2Int>();
             return cells;
         }
 
