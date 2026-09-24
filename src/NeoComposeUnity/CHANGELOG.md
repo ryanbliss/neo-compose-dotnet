@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.43.0] - 2026-09-24
+
+- **Behavior change:** an object without placement tiles reserves no cells. It used to reserve its origin cell. As a result, two such objects (for example, characters that walk the grid) threw "tile-grid-object-cell-occupied" when one loaded or moved onto the other's cell. Now they share cells freely: they don't block placement and don't answer `GetObject(cell)` or NeoScript cell queries. They still render, move, and count toward the map bounds. An object that should block its cell declares a `PlacementTile` at `(0, 0)`.
+
 ## [0.42.2] - 2026-09-23
 
 - Fix a generated field's `OnChanged` not firing when a change rebinds the field to another row. For example, NeoScript `this.HeldItemColor = item?.Color` points the field at the item's color row by rewriting the parent row, and the parent reported only an unkeyed change, which field watchers ignore. Every change that rebinds a field now reports that field once: NeoScript Class assignment (including P75 sparse roots and a Partial row's first assignment), `Remove`, and a sibling rebind made from inside another field's `OnChanged`.
