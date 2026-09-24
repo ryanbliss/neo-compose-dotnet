@@ -3616,6 +3616,52 @@ namespace NeoCompose.Tests
             Assert.IsNull(((NeoMemberClassWritable)reopened.save.Get<NeoMemberDictionaryWritable>("ThingsByKey")["a"]).value?.value);
         }
 
+        // Assigning a Class value rebinds the field to another row through
+        // the parent row (NeoScript `this.Color = item.Color`, or a generated
+        // setter). Field watchers hear about the field exactly once, not just
+        // an unkeyed parent change.
+        [TestCase(true)]
+        [TestCase(false)]
+        public void ClassReassignmentReportsTheReboundFieldOnce(bool script)
+        {
+            ProjectData data = BuildNestedProjectData();
+            data.classes["assets-root-class"].schema["Preset"] = "assets-preset";
+            data.members["assets-preset"] = new ClassMember
+            {
+                id = "assets-preset", projectId = "p75-project", name = "Preset", kind = MemberKind.Class,
+                classId = "nested-class", Requirement = NeoMemberRequirementKind.Required,
+            };
+            ((ObjectMemberValue)data.values["value-assets"]).value!["Preset"] = "asset-preset";
+            data.values["asset-preset"] = ObjectValue("asset-preset", "nested-class");
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            string? before = thing.Get<NeoMemberClassWritable>("Nested").value?.id;
+            var changed = new List<string?>();
+            thing.OnChanged += member => changed.Add(thing.TryGetSchemaKeyForChild(member, out string? key) ? key : null);
+
+            if (script)
+            {
+                ExecuteSaveInstruction(client, new AssignInstruction
+                {
+                    type = InstructionKind.Assign, operatorValue = "=",
+                    target = new WriteTarget
+                    {
+                        pointer = PointerKeyOf(SavePointer("Thing"), "Nested"),
+                        typeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = "nested-class", required = true },
+                        writability = WritabilityKind.Save,
+                    },
+                    pointer = PointerKeyOf(PointerKeyOf(RootPointer(), "Assets"), "Preset"),
+                });
+            }
+            else
+            {
+                thing.SetSerializedValue("Nested", NeoValueWritePayload.FromValueReference("asset-preset"));
+            }
+
+            Assert.AreNotEqual(before, thing.Get<NeoMemberClassWritable>("Nested").value?.id, "The field is rebound to another row.");
+            Assert.AreEqual(1, changed.Count(key => key == "Nested"), string.Join(", ", changed));
+        }
+
         // NeoScript assignment also replaces the slot's row at its id, and a
         // pin under a sparse slot is only in the root's footprint.
         [Test]
