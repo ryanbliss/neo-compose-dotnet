@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.42.1] - 2026-09-23
+
+- Fix saves that fail to load with "P75 sparse instance root … is not reachable through a Class member placement" after a write replaced an instance in place. For example, C# `inventory.Stacks[0] = null`, or NeoScript `this.Stacks = []`. The write kept the slot's row id and dropped the instance, but the rows the instance owned stayed saved with nothing linking them. On reload the loader rejected the first such class row. Every in-place replacement now releases the owned rows the new value no longer links, plus the replaced instance's sparse overrides:
+  - C# List entry, Dictionary entry and Class member writes, and static member payload writes.
+  - NeoScript assignments to a member, List index or Dictionary key. Nulling a class slot released its linked fields before, but not the sparse overrides written under it.
+  - NeoScript List and Dictionary removals and replacements whose entries are themselves Lists or Dictionaries (for example `Dictionary<string, List<Thing>>`), which never released the inner entries.
+
 ## [0.42.0] - 2026-09-23
 
 - Add `Writable` member storage (P93). A `Writable` member is writable at runtime wherever its row lives. It is saved under a Save row. Under an Asset or Session row it lives in Session and resets on load.

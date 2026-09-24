@@ -414,6 +414,30 @@ namespace NeoCompose.Runtime
                 if (!reachable.Contains(id)) RemoveOwnedRow(plan, ownership, id);
         }
 
+        /// <summary>
+        /// Stages <paramref name="next"/> over the row at its own id. An
+        /// in-place replacement keeps the slot id, so nothing else frees what
+        /// the replaced row owned. It releases the owned children that
+        /// <paramref name="next"/> no longer links, plus the replaced
+        /// instance's sparse footprint.
+        /// </summary>
+        internal void StageInPlaceReplacement(
+            NeoWritePlan plan, NeoValueOwnership ownership, MemberValue next, Member? member,
+            string? changedField = null)
+        {
+            MemberValue? previous = plan.Resolve(ownership, next.id);
+            plan.Set(ownership, next, changedField);
+            StageVirtualFootprintRemoval(plan, ownership, next.id);
+            if (previous is null) return;
+            List<(string valueId, Member? member)>? released = null;
+            foreach (var child in EnumerateOwnedChildLinks(previous, member))
+                if (ChildOwnership(child.member, ownership) == ownership) (released ??= new()).Add(child);
+            if (released is null) return;
+            var kept = new HashSet<string>(EnumerateOwnedChildLinks(next, member).Select(child => child.valueId));
+            released.RemoveAll(child => kept.Contains(child.valueId));
+            if (released.Count != 0) StageUnlinkedRemovals(plan, ownership, released);
+        }
+
         internal void StageOwnedRemoval(
             NeoWritePlan plan, NeoValueOwnership ownership, string valueId, Member? member,
             bool tombstone = false)

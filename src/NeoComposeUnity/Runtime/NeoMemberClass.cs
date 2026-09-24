@@ -879,9 +879,11 @@ namespace NeoCompose.Runtime
                 }
                 plan = new NeoWritePlan(client);
                 client.StageWritablePayloadRows(plan, childOwnership, setValue?.value);
-                plan.Set(
+                client.StageInPlaceReplacement(
+                    plan,
                     childOwnership,
                     next,
+                    childMember,
                     childMember is ClassMember or ListMember or DictionaryMember
                         ? null
                         : "value");
