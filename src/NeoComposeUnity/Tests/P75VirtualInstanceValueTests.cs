@@ -3616,6 +3616,132 @@ namespace NeoCompose.Tests
             Assert.IsNull(((NeoMemberClassWritable)reopened.save.Get<NeoMemberDictionaryWritable>("ThingsByKey")["a"]).value?.value);
         }
 
+        // Assigning a Class value rebinds the field to another row through
+        // the parent row (NeoScript `this.Color = item.Color`, or a generated
+        // setter). Field watchers hear about the field exactly once, not just
+        // an unkeyed parent change. A stored Partial row has neither a child
+        // nor a virtual row for the absent field, so NeoScript links it
+        // instead of rebinding it.
+        [TestCase(true, false)]
+        [TestCase(false, false)]
+        [TestCase(true, true)]
+        [TestCase(false, true)]
+        public void ClassReassignmentReportsTheReboundFieldOnce(bool script, bool partial)
+        {
+            ProjectData data = BuildReboundFieldProjectData();
+            if (partial)
+            {
+                ((ClassMember)data.members["thing-member"]).Payload = NeoMemberPayloadKind.Partial;
+                data.values["thing-instance"] = ObjectValue("thing-instance", "thing-class");
+            }
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            string? before = BoundRowId(thing, "Nested");
+            Assert.AreEqual(partial, before is null, "Only the Partial row leaves the field unbound.");
+            Assert.AreEqual(!partial, client.TryGetVirtualClassChildValueId(thing.value!.id, "Nested", out _),
+                "NeoScript rebinds the sparse root's virtual child, but links the Partial row's missing field.");
+            List<string?> changed = RecordChangedKeys(thing);
+
+            if (script) AssignPreset(client, "Nested");
+            else thing.SetSerializedValue("Nested", NeoValueWritePayload.FromValueReference("asset-preset"));
+
+            Assert.IsNotNull(BoundRowId(thing, "Nested"));
+            Assert.AreNotEqual(before, BoundRowId(thing, "Nested"), "The field is bound to another row.");
+            CollectionAssert.AreEqual(new[] { "Nested" }, changed.Where(key => key is not null), string.Join(", ", changed));
+        }
+
+        // A field watcher can rebind a field, including the setter's own,
+        // while the setter is still reporting. Each rebind is reported.
+        [TestCase("Other")]
+        [TestCase("Nested")]
+        public void ReentrantRebindIsReported(string target)
+        {
+            ProjectData data = BuildReboundFieldProjectData();
+            data.classes["thing-class"].schema["Other"] = "thing-other";
+            data.members["thing-other"] = new ClassMember
+            {
+                id = "thing-other", projectId = "p75-project", name = "Other", kind = MemberKind.Class,
+                classId = "nested-class", Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ObjectMemberValueBase { value = new Dictionary<string, string>() },
+            };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            List<string?> changed = RecordChangedKeys(thing);
+            string? reported = null;
+            thing.OnChanged += member =>
+            {
+                if (reported is not null || !thing.TryGetSchemaKeyForChild(member, out string? key) || key != "Nested") return;
+                reported = BoundRowId(thing, "Nested");
+                AssignPreset(client, target, "OtherPreset");
+            };
+
+            thing.SetSerializedValue("Nested", NeoValueWritePayload.FromValueReference("asset-preset"));
+
+            CollectionAssert.AreEqual(new[] { "Nested", target }, changed.Where(key => key is not null), string.Join(", ", changed));
+            if (target == "Nested") Assert.AreNotEqual(reported, BoundRowId(thing, "Nested"), "The watcher's rebind wins.");
+        }
+
+        // Removing a field rebinds it to its default row.
+        [Test]
+        public void RemoveReportsTheRemovedFieldOnce()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildReboundFieldProjectData());
+            var thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            thing.SetSerializedValue("Nested", NeoValueWritePayload.FromValueReference("asset-preset"));
+            List<string?> changed = RecordChangedKeys(thing);
+
+            thing.Remove("Nested");
+
+            CollectionAssert.AreEqual(new[] { "Nested" }, changed.Where(key => key is not null), string.Join(", ", changed));
+        }
+
+        private static ProjectData BuildReboundFieldProjectData()
+        {
+            ProjectData data = BuildNestedProjectData();
+            data.classes["assets-root-class"].schema["Preset"] = "assets-preset";
+            data.members["assets-preset"] = new ClassMember
+            {
+                id = "assets-preset", projectId = "p75-project", name = "Preset", kind = MemberKind.Class,
+                classId = "nested-class", Requirement = NeoMemberRequirementKind.Required,
+            };
+            ((ObjectMemberValue)data.values["value-assets"]).value!["Preset"] = "asset-preset";
+            data.values["asset-preset"] = ObjectValue("asset-preset", "nested-class");
+            data.classes["assets-root-class"].schema["OtherPreset"] = "assets-other-preset";
+            data.members["assets-other-preset"] = new ClassMember
+            {
+                id = "assets-other-preset", projectId = "p75-project", name = "OtherPreset", kind = MemberKind.Class,
+                classId = "nested-class", Requirement = NeoMemberRequirementKind.Required,
+            };
+            ((ObjectMemberValue)data.values["value-assets"]).value!["OtherPreset"] = "asset-other-preset";
+            data.values["asset-other-preset"] = ObjectValue("asset-other-preset", "nested-class");
+            return data;
+        }
+
+        private static string? BoundRowId(NeoMemberClassWritable node, string key) =>
+            node.FirstOrDefault(pair => pair.Key == key).Value?.value?.id;
+
+        private static List<string?> RecordChangedKeys(NeoMemberClassWritable node)
+        {
+            var changed = new List<string?>();
+            node.OnChanged += member => changed.Add(node.TryGetSchemaKeyForChild(member, out string? key) ? key : null);
+            return changed;
+        }
+
+        private static void AssignPreset(NeoClient client, string key, string preset = "Preset")
+        {
+            ExecuteSaveInstruction(client, new AssignInstruction
+            {
+                type = InstructionKind.Assign, operatorValue = "=",
+                target = new WriteTarget
+                {
+                    pointer = PointerKeyOf(SavePointer("Thing"), key),
+                    typeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = "nested-class", required = true },
+                    writability = WritabilityKind.Save,
+                },
+                pointer = PointerKeyOf(PointerKeyOf(RootPointer(), "Assets"), preset),
+            });
+        }
+
         // NeoScript assignment also replaces the slot's row at its id, and a
         // pin under a sparse slot is only in the root's footprint.
         [Test]

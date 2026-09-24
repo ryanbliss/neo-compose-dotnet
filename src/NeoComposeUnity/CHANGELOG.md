@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.42.2] - 2026-09-23
+
+- Fix a generated field's `OnChanged` not firing when a change rebinds the field to another row. For example, NeoScript `this.HeldItemColor = item?.Color` points the field at the item's color row by rewriting the parent row, and the parent reported only an unkeyed change, which field watchers ignore. Every change that rebinds a field now reports that field once: NeoScript Class assignment (including P75 sparse roots and a Partial row's first assignment), `Remove`, and a sibling rebind made from inside another field's `OnChanged`.
+
 ## [0.42.1] - 2026-09-23
 
 - Fix saves that fail to load with "P75 sparse instance root … is not reachable through a Class member placement" after a write replaced an instance in place. For example, C# `inventory.Stacks[0] = null`, or NeoScript `this.Stacks = []`. The write kept the slot's row id and dropped the instance, but the rows the instance owned stayed saved with nothing linking them. On reload the loader rejected the first such class row. Every in-place replacement now releases the owned rows the new value no longer links, plus the replaced instance's sparse overrides:

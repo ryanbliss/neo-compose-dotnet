@@ -54,6 +54,8 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, NeoGenericEnvEntry> GenericEnv { get; private set; }
             = NeoGenericResolution.EmptyEnv;
         protected Dictionary<string, NeoMember> childMembers = new();
+        private List<string>? reboundKeys;
+        private string? reportingKey;
 
         public NeoMemberClass(NeoClient client, string memberId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
             : base(client, memberId, overrideValueId, ownership)
@@ -267,8 +269,42 @@ namespace NeoCompose.Runtime
             ResolveClassContext();
             // The new value's record may carry a different keyset —
             // re-walk so disposed-orphans get released and any new
-            // schema-keys get nodes.
-            ReinitializeChildren();
+            // schema-keys get nodes. A write to this row can rebind a field
+            // to another row (a NeoScript Class assignment does); P75 replay
+            // refreshes before it publishes, so record the rebound fields for
+            // the next change notification.
+            ReinitializeChildren(recordRebound: true);
+        }
+
+        // Field watchers key changes by child, so report each rebound field
+        // after this node's own change.
+        protected override void OnValueIdChainChanged()
+        {
+            base.OnValueIdChainChanged();
+            if (reboundKeys is not { } rebound) return;
+            reboundKeys = null;
+            foreach (string key in rebound)
+            {
+                if (key != reportingKey && childMembers.TryGetValue(key, out NeoMember? child))
+                    NotifyChanged(child);
+            }
+        }
+
+        // A setter reports its own key once it has written, so its refresh
+        // skips that key until the key is first reported. A watcher's later
+        // rebind is a new change. Frames nest: a watcher may write another
+        // field.
+        private protected string? BeginReporting(string key)
+        {
+            string? outer = reportingKey;
+            reportingKey = key;
+            return outer;
+        }
+
+        private protected void EndReporting(string key, string? outer)
+        {
+            reboundKeys?.Remove(key);
+            reportingKey = outer;
         }
 
         public override void Dispose()
@@ -306,7 +342,7 @@ namespace NeoCompose.Runtime
         /// schema is wired (post-base-ctor), and again whenever a
         /// Writable mutation invalidates the cached children.
         /// </summary>
-        protected void ReinitializeChildren()
+        protected void ReinitializeChildren(bool recordRebound = false)
         {
             var previousChildren = childMembers;
             childMembers = new();
@@ -420,6 +456,14 @@ namespace NeoCompose.Runtime
                 }
                 child.OnChanged += HandleChildChanged;
                 childMembers[entry.schemaKey] = child;
+                if (recordRebound
+                    && (child.overrideValueId ?? child.value?.id)
+                        != (previousChildren.TryGetValue(entry.schemaKey, out NeoMember? replaced)
+                            ? replaced.overrideValueId ?? replaced.value?.id
+                            : null))
+                {
+                    (reboundKeys ??= new List<string>()).Add(entry.schemaKey);
+                }
             }
             DisposeChildren(previousChildren.Values);
         }
@@ -442,11 +486,18 @@ namespace NeoCompose.Runtime
 
         protected void HandleChildChanged(NeoMember child)
         {
+            if (reportingKey is not null
+                && childMembers.TryGetValue(reportingKey, out NeoMember? reporting)
+                && ReferenceEquals(reporting, child))
+            {
+                reportingKey = null;
+            }
             NotifyChanged(child);
         }
 
         protected void NotifyChildChanged(string key)
         {
+            if (key == reportingKey) reportingKey = null;
             if (childMembers.TryGetValue(key, out NeoMember? child))
             {
                 NotifyChanged(child);
@@ -738,6 +789,13 @@ namespace NeoCompose.Runtime
             SetSerializedValue(key, setValue, placement: true);
 
         private void SetSerializedValue(string key, NeoValueWritePayload? setValue, bool placement)
+        {
+            string? outer = BeginReporting(key);
+            try { WriteSerializedValue(key, setValue, placement); }
+            finally { EndReporting(key, outer); }
+        }
+
+        private void WriteSerializedValue(string key, NeoValueWritePayload? setValue, bool placement)
         {
             AssertContainingClassesCanBeConstructed();
             NeoTimestamp nowIso = NeoTimestamp.Now();
