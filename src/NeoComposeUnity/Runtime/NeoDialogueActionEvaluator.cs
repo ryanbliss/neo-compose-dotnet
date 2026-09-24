@@ -3554,14 +3554,9 @@ namespace NeoCompose.Runtime
         {
             // Nulling a class slot preserves the slot id, but releases the
             // previous object's owned fields (including sparse instances).
-            var removedChildren = row is ObjectMemberValue { value: null }
-                && plan.Resolve(ownership, row.id) is ObjectMemberValue previous
-                ? client.EnumerateOwnedChildLinks(previous, null).ToArray()
-                : Array.Empty<(string valueId, Member? member)>();
-            plan.Set(ownership, row);
-            if (removedChildren.Length != 0)
-                client.StageUnlinkedRemovals(plan, ownership, removedChildren.Where(child =>
-                    client.ChildOwnership(child.member, ownership) == ownership));
+            // Other rows here are field writes to the same instance.
+            if (row is ObjectMemberValue { value: null }) client.StageInPlaceReplacement(plan, ownership, row, null);
+            else plan.Set(ownership, row);
             plan.AfterCommit(() => NSGetterEvaluator.RefreshCachedRowAfterWrite(row, ctx, ownership));
         }
 

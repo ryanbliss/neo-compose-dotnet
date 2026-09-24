@@ -3559,6 +3559,108 @@ namespace NeoCompose.Tests
             Assert.IsNull(reopened.save.Get<NeoMemberClassWritable>("Thing").value?.value);
         }
 
+        // A host write of null keeps the slot's row id, so nothing else frees
+        // what the replaced instance owned (the NeoScript path above).
+        [Test]
+        public void HostNullClassAssignmentReleasesOwnedChildrenBeforeSaveReload()
+        {
+            var data = BuildHostSlotProjectData();
+            ((ClassMember)data.members["thing-member"]).Requirement = NeoMemberRequirementKind.Optional;
+            string saved;
+            using (var client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                string countId = WriteDeepCount(client.save.Get<NeoMemberClassWritable>("Thing"));
+                client.save.SetSerializedValue("Thing", null);
+                AssertReleased(client, countId);
+                saved = client.SerializeSaveData();
+            }
+            using var reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.IsNull(reopened.save.Get<NeoMemberClassWritable>("Thing").value?.value);
+        }
+
+        [Test]
+        public void HostNullListEntryReleasesOwnedChildrenBeforeSaveReload()
+        {
+            var data = BuildHostSlotProjectData();
+            string saved;
+            using (var client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                var things = client.save.Get<NeoMemberListWritable>("Things");
+                things.AddSerialized(NeoValueWritePayload.FromValue(new Dictionary<string, string>()));
+                string countId = WriteDeepCount((NeoMemberClassWritable)things[0]);
+                things.SetSerialized(0, null);
+                AssertReleased(client, countId);
+                saved = client.SerializeSaveData();
+            }
+            using var reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            var reloaded = reopened.save.Get<NeoMemberListWritable>("Things");
+            Assert.AreEqual(1, reloaded.Count);
+            Assert.IsNull(((NeoMemberClassWritable)reloaded[0]).value?.value);
+        }
+
+        [Test]
+        public void HostNullDictionaryEntryReleasesOwnedChildrenBeforeSaveReload()
+        {
+            var data = BuildHostSlotProjectData();
+            string saved;
+            using (var client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                var things = client.save.Get<NeoMemberDictionaryWritable>("ThingsByKey");
+                things.SetSerialized("a", NeoValueWritePayload.FromValue(new Dictionary<string, string>()));
+                string countId = WriteDeepCount((NeoMemberClassWritable)things["a"]);
+                things.SetSerialized("a", null);
+                AssertReleased(client, countId);
+                saved = client.SerializeSaveData();
+            }
+            using var reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.IsNull(((NeoMemberClassWritable)reopened.save.Get<NeoMemberDictionaryWritable>("ThingsByKey")["a"]).value?.value);
+        }
+
+        private static string WriteDeepCount(NeoMemberClassWritable thing)
+        {
+            var count = thing.Get<NeoMemberClassWritable>("Nested")
+                .Get<NeoMemberClassWritable>("Deep")
+                .Get<NeoMemberIntWritable>("Count");
+            count.Set(42);
+            return count.value!.id;
+        }
+
+        private static void AssertReleased(NeoClient client, string countId)
+        {
+            Assert.IsFalse(client.saveValues.ContainsKey(countId), "The replaced instance's owned rows are released.");
+            CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
+        }
+
+        /// <summary>Nested things in a class slot, an ordered List and a Dictionary on Save.</summary>
+        private static ProjectData BuildHostSlotProjectData()
+        {
+            ProjectData data = BuildNestedProjectData();
+            var saveRoot = data.classes["save-root-class"];
+            saveRoot.schema["Things"] = "things-member";
+            saveRoot.schema["ThingsByKey"] = "things-by-key-member";
+            data.members["thing-entry"] = new ClassMember
+            {
+                id = "thing-entry", projectId = "p75-project", name = "Thing", kind = MemberKind.Class,
+                classId = "thing-class", Requirement = NeoMemberRequirementKind.Optional,
+            };
+            data.members["things-member"] = new ListMember
+            {
+                id = "things-member", projectId = "p75-project", name = "Things", kind = MemberKind.List,
+                entryMemberId = "thing-entry", Requirement = NeoMemberRequirementKind.Required,
+            };
+            data.members["things-by-key-member"] = new DictionaryMember
+            {
+                id = "things-by-key-member", projectId = "p75-project", name = "ThingsByKey", kind = MemberKind.Dictionary,
+                entryMemberId = "thing-entry", KeyKind = NeoDictionaryKeyKind.String, Requirement = NeoMemberRequirementKind.Required,
+            };
+            var saveValue = (ObjectMemberValue)data.values["value-save"];
+            saveValue.value!["Things"] = "things-list";
+            saveValue.value["ThingsByKey"] = "things-by-key";
+            data.values["things-list"] = new ArrayMemberValue { id = "things-list", value = Array.Empty<string>() };
+            data.values["things-by-key"] = ObjectValue("things-by-key", null!);
+            return data;
+        }
+
         [Test]
         public void GarbageCollectorKeepsOverridesWrittenUnderASparseSpine()
         {

@@ -200,7 +200,7 @@ namespace NeoCompose.Runtime
                 next.mapKey = previous?.mapKey ?? client.ResolveCreatedValueMapKey(entryMember, parentRow.mapKey, parentRow.classId);
                 NeoGenericResolution.StampGenericBindings(client, entryMember, next, NeoGenericResolution.EnvFromStamp(parentRow.genericBindings));
                 client.StageWritablePayloadRows(plan, entryOwnership, setValue?.value);
-                plan.Set(entryOwnership, next);
+                client.StageInPlaceReplacement(plan, entryOwnership, next, entryMember);
             }
             parentRow.value[key] = nextId;
             parentRow.updatedAt = nowIso;

@@ -649,7 +649,7 @@ namespace NeoCompose.Runtime
                 next,
                 NeoGenericResolution.EnvFromStamp(value?.genericBindings));
             client.StageWritablePayloadRows(plan, entryOwnership, entryValue?.value);
-            plan.Set(entryOwnership, next);
+            client.StageInPlaceReplacement(plan, entryOwnership, next, entryMember);
             plan.Commit();
             NeoMember replacedChild = childMembers[index];
             replacedChild.OnChanged -= HandleChildChanged;
