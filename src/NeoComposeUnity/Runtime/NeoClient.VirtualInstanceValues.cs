@@ -2042,7 +2042,13 @@ namespace NeoCompose.Runtime
                 ids = new HashSet<string>(StringComparer.Ordinal);
                 virtualFootprintByRoot[rootId] = ids;
             }
-            if (ids.Add(valueId)) virtualRootByFootprintId[valueId] = rootId;
+            // A nested root that expands itself keeps its own mapping, as the
+            // full rebuild leaves it. An enclosing root replayed later must not
+            // take it over, or the nested root's next write skips it as a spine
+            // and drops its virtual children.
+            if (ids.Add(valueId)
+                && (valueId == rootId || !virtualFootprintByRoot.ContainsKey(valueId)))
+                virtualRootByFootprintId[valueId] = rootId;
         }
 
         private void ClearVirtualInstanceRoot(string rootId)
