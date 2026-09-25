@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.43.1] - 2026-09-24
+
+- Fix `ToVariant` rejecting a sparse placed object with "Variant must preserve the occupied cells" when its footprint didn't change. Applying a variant replays the object twice before committing. The second replay mistook the first one's default rows, including a default `PlacementTiles` list, for stored rows and dropped them, so the check read an empty footprint. Before 0.43.0 an unreadable list counted as the origin cell, which hid the bug.
+
 ## [0.43.0] - 2026-09-24
 
 - **Behavior change:** an object without placement tiles reserves no cells. It used to reserve its origin cell. As a result, two such objects (for example, characters that walk the grid) threw "tile-grid-object-cell-occupied" when one loaded or moved onto the other's cell. Now they share cells freely: they don't block placement and don't answer `GetObject(cell)` or NeoScript cell queries. They still render, move, and count toward the map bounds. An object that should block its cell declares a `PlacementTile` at `(0, 0)`.

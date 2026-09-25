@@ -596,19 +596,7 @@ namespace NeoCompose.Runtime
 
             internal void Add(PreparedVirtualExpansion expansion)
             {
-                if (Expansions.TryGetValue(expansion.Root.id, out var previous))
-                {
-                    foreach (string id in previous.Values.Keys) { Values.Remove(id); Ownership.Remove(id); }
-                    foreach (string id in previous.ClassChildren.Keys) ClassChildren.Remove(id);
-                    foreach (string id in previous.Placements.Keys) Placements.Remove(id);
-                    foreach (var pair in previous.Values)
-                        if (pair.Value.containerId is string container
-                            && VirtualContainerMembers.TryGetValue(container, out var members))
-                        {
-                            members.Remove(pair.Key);
-                            if (members.Count == 0) VirtualContainerMembers.Remove(container);
-                        }
-                }
+                Remove(expansion.Root.id);
                 Expansions[expansion.Root.id] = expansion;
                 foreach (var pair in expansion.Values)
                 {
@@ -624,6 +612,22 @@ namespace NeoCompose.Runtime
                 foreach (var pair in expansion.ClassChildren) ClassChildren[pair.Key] = pair.Value;
                 foreach (var pair in expansion.Placements) Placements[pair.Key] = pair.Value;
                 foreach (var nested in expansion.Nested) Add(nested);
+            }
+
+            /// <summary>Withdraws a root's expansion from the proposed graph.</summary>
+            internal void Remove(string rootId)
+            {
+                if (!Expansions.Remove(rootId, out var previous)) return;
+                foreach (string id in previous.Values.Keys) { Values.Remove(id); Ownership.Remove(id); }
+                foreach (string id in previous.ClassChildren.Keys) ClassChildren.Remove(id);
+                foreach (string id in previous.Placements.Keys) Placements.Remove(id);
+                foreach (var pair in previous.Values)
+                    if (pair.Value.containerId is string container
+                        && VirtualContainerMembers.TryGetValue(container, out var members))
+                    {
+                        members.Remove(pair.Key);
+                        if (members.Count == 0) VirtualContainerMembers.Remove(container);
+                    }
             }
 
             internal void Apply(NeoWritePlan plan)
