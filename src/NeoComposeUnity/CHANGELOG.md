@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.43.2] - 2026-09-25
+
+- Fix a reloaded save losing a sparse row's default members after a few writes, which surfaced as NeoScript "Missing key '…' on object". A stored class row inside a sparse root, for example Neowyn's `Save.World.Time`, replays as its own root when it omits a defaulted member such as a Session `NeoAction`. A write that replayed the enclosing root claimed the row's footprint. The next write under the row then treated it as the enclosing root's spine and dropped its virtual members, including the action's listeners. The row now keeps its own mapping, as a fresh load leaves it.
+
 ## [0.43.1] - 2026-09-24
 
 - Fix `ToVariant` rejecting a sparse placed object with "Variant must preserve the occupied cells" when its footprint didn't change. Applying a variant replays the object twice before committing. The second replay mistook the first one's default rows, including a default `PlacementTiles` list, for stored rows and dropped them, so the check read an empty footprint. Before 0.43.0 an unreadable list counted as the origin cell, which hid the bug.

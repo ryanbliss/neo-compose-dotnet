@@ -2526,6 +2526,77 @@ namespace NeoCompose.Tests
                     .value!.value);
         }
 
+        /// <summary>
+        /// A stored row inside a sparse root that omits a defaulted member
+        /// replays as its own root and owns its footprint mapping. A later
+        /// replay of the enclosing root must not take that mapping over, or
+        /// the next write under the row skips it as the enclosing root's
+        /// spine and clears its virtual children. Neowyn's reloaded
+        /// <c>WorldTime</c> lost its Session <c>OnMorningStart</c> listeners
+        /// on the second day end that way.
+        /// </summary>
+        [Test]
+        public void AStoredNestedRootKeepsItsVirtualChildrenAfterItsEnclosingRootReplays()
+        {
+            static ProjectData Build()
+            {
+                ProjectData data = BuildNestedProjectData();
+                data.classes["thing-class"].schema["Items"] = "items";
+                data.members["items"] = new ListMember
+                {
+                    id = "items", name = "Items", kind = MemberKind.List, entryMemberId = "entry",
+                    defaultValue = new ArrayMemberValueBase { value = new[] { "first", "second" } },
+                };
+                data.members["entry"] = new StringMember { id = "entry", name = "Entry", kind = MemberKind.String };
+                data.values["first"] = new StringMemberValue { id = "first", value = "one" };
+                data.values["second"] = new StringMemberValue { id = "second", value = "two" };
+                data.classes["deep-class"].schema["Marks"] = "marks";
+                data.members["marks"] = new ListMember
+                {
+                    id = "marks", name = "Marks", kind = MemberKind.List, entryMemberId = "entry",
+                    defaultValue = new ArrayMemberValueBase { value = new[] { "first", "second" } },
+                };
+                data.classes["deep-class"].schema["Extra"] = "deep-extra";
+                data.members["deep-extra"] = new IntMember
+                {
+                    id = "deep-extra", projectId = "p75-project", name = "Extra", kind = MemberKind.Int,
+                    Requirement = NeoMemberRequirementKind.Required, Storage = NeoMemberStorage.Session,
+                    defaultValue = new NumberMemberValueBase { value = 7 },
+                };
+                return data;
+            }
+            static NeoMemberClassWritable Deep(NeoClient client) => client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberClassWritable>("Nested")
+                .Get<NeoMemberClassWritable>("Deep");
+            string saved;
+            using (NeoClient first = NeoTestSaveStack.ClientFromSchema(Build()))
+            {
+                NeoMemberClassWritable deep = Deep(first);
+                deep.Get<NeoMemberIntWritable>("Count").Set(8);
+                // Neowyn's save stores the row itself, linking its Save fields.
+                var save = JObject.Parse(first.SerializeSaveData());
+                save["values"]![deep.value!.id] = JObject.FromObject(ObjectValue(
+                    deep.value.id,
+                    "deep-class",
+                    new Dictionary<string, string> { ["Count"] = deep.Get<NeoMemberIntWritable>("Count").value!.id }));
+                saved = save.ToString();
+            }
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(Build(), loadedSaveContent: saved);
+            string deepId = Deep(client).value!.id;
+            Assert.IsTrue(client.saveValues.ContainsKey(deepId), "The save stores Deep without its Session member.");
+            Assert.IsTrue(client.TryGetVirtualClassChildValueId(deepId, "Extra", out string? extraId));
+            Deep(client).Get<NeoMemberIntWritable>("Extra").Set(3);
+
+            client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberListWritable>("Items").RemoveAt(0);
+            Deep(client).Get<NeoMemberListWritable>("Marks").RemoveAt(0);
+
+            Assert.IsTrue(client.TryGetVirtualClassChildValueId(deepId, "Extra", out string? afterId));
+            Assert.AreEqual(extraId, afterId);
+            Assert.AreEqual(3d, Deep(client).Get<NeoMemberIntWritable>("Extra").value!.value);
+        }
+
         private sealed class SparseThingValue : NeoGeneratedClassValue
         {
             internal SparseThingValue(
