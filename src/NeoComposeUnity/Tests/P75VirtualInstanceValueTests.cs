@@ -2639,6 +2639,106 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
+        /// Applying a variant replays its sparse root twice inside one
+        /// candidate: once for the new selection, once after its declarative
+        /// halves. The second replay must not read the first one's defaults as
+        /// stored rows, or they vanish from the candidate. Neowyn's boulder
+        /// lost its default <c>PlacementTiles</c> that way, and the placement
+        /// check rejected an unchanged footprint.
+        /// </summary>
+        [Test]
+        public void ApplyingAVariantKeepsTheRootsVirtualDefaultsInItsCandidate()
+        {
+            ProjectData data = BuildConstructedUnorderedChildrenProjectData();
+            // Thing.Variants.Other: Initialize is `new Thing()`.
+            var variantClass = SchemaClass("thing-variant-class", "NeoVariant", NeoMemberStorage.Immutable);
+            variantClass.schema["Initialize"] = "thing-variant-initialize";
+            data.classes[variantClass.id] = variantClass;
+            data.members["thing-variant-initialize"] = new DelegateMember
+            {
+                id = "thing-variant-initialize",
+                projectId = "p75-project",
+                name = "Initialize",
+                kind = MemberKind.NSDelegate,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Immutable,
+                returnTypeInfo = ClassType("thing-class"),
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+            };
+            data.values["thing-variant-graph"] = ObjectValue(
+                "thing-variant-graph",
+                variantClass.id,
+                new Dictionary<string, string> { ["Initialize"] = "thing-variant-closure" });
+            data.values["thing-variant-closure"] = new DelegateMemberValue
+            {
+                id = "thing-variant-closure",
+                value = new NeoDelegateValue
+                {
+                    code = "() => new Thing()",
+                    action = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = new[]
+                        {
+                            ConstructorVariable("__this__", ClassType("thing-class")),
+                            ConstructorVariable("__root__", ClassType("__root__")),
+                        },
+                        typeInfo = ClassType("thing-class"),
+                        instructions = new Instruction[]
+                        {
+                            new ReturnInstruction
+                            {
+                                type = InstructionKind.Return,
+                                pointer = new FunctionPointer
+                                {
+                                    type = PointerKind.Function,
+                                    function = new DeclaredConstructorFunction
+                                    {
+                                        type = FunctionKind.DeclaredConstructor,
+                                        info = new DeclaredConstructorInfo
+                                        {
+                                            schemaClassInfo = ClassType("thing-class"),
+                                            constructorId = "thing-ctor",
+                                            args = Array.Empty<DeclaredConstructorArgument>(),
+                                            fields = Array.Empty<FunctionClassConstructorField>(),
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+            data.variants["thing-variant"] = new VariantRecord
+            {
+                id = "thing-variant",
+                projectId = "p75-project",
+                classId = "thing-class",
+                name = "Other",
+                valueId = "thing-variant-graph",
+            };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            string rootId = thing.value!.id;
+            string childrenId = client.ResolveClassChildRow(thing.value, "Children")!.id;
+            Assert.IsFalse(client.saveValues.ContainsKey(childrenId), "Children is a virtual default.");
+            Assert.IsTrue(client.TryGetVariant("thing-variant", out VariantRecord? record));
+
+            MemberValue? candidateChildren = null;
+            client.PrepareVariantApply(thing, scoped =>
+            {
+                NeoVariantSupport.ApplyToNode(client, record, scoped, NeoValueOwnership.Save);
+                candidateChildren = client.ResolveClassChildRow(
+                    (ObjectMemberValue)client.ResolveValueRow(rootId)!, "Children");
+            });
+
+            Assert.AreEqual(childrenId, candidateChildren?.id, "The candidate still answers the virtual Children list.");
+            Assert.AreEqual("thing-variant", ((ObjectMemberValue)client.ResolveValueRow(rootId)!).instanceVariantId);
+            var entry = (NeoMemberClassWritable)thing.Get<NeoMemberList>("Children").Single();
+            Assert.AreEqual("Sprite", entry.Get<NeoMemberStringWritable>("Name").value!.value);
+        }
+
+        /// <summary>
         /// The overrides stored under a root — a materialized spine and the
         /// leaf that stored it — live at ids minted from that root's
         /// namespace, so they die with the root, whether an authored root is

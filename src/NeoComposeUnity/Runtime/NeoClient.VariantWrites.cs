@@ -94,6 +94,11 @@ namespace NeoCompose.Runtime
             candidate.AffectedRoots.Add(root.id);
             if (virtualValueIdsByRoot.TryGetValue(root.id, out var previous))
                 candidate.HiddenVirtualIds.UnionWith(previous);
+            // A variant replays its root for the new selection and again after
+            // its declarative halves. A replay must not read the previous
+            // one's defaults as stored rows: it would omit them, and Add
+            // discards the old ones.
+            candidate.Remove(root.id);
             if (!replayingVirtualRootIds.Add(root.id))
                 throw new InvalidOperationException($"Sparse constructor dependency cycle at '{root.id}'.");
             try { candidate.Add(ExpandVirtualInstanceRootCore(root, prepareOnly: true)); }
