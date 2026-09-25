@@ -2,7 +2,7 @@
 
 ## [0.43.2] - 2026-09-25
 
-- Fix a reloaded save losing a sparse row's default members after a few writes, which surfaced as NeoScript "Missing key '…' on object". A stored class row inside a sparse root, for example Neowyn's `Save.World.Time`, replays as its own root when it omits a defaulted member such as a Session `NeoAction`. A write that replayed the enclosing root claimed the row's footprint. The next write under the row then treated it as the enclosing root's spine and dropped its virtual members, including the action's listeners. The row now keeps its own mapping, as a fresh load leaves it.
+- Fix a reloaded save losing a sparse row's default members after a few writes, which surfaced as NeoScript "Missing key '…' on object". A stored class row inside a sparse root, for example Neowyn's `Save.World.Time`, replays as its own root when it omits a defaulted member such as a Session `NeoAction`. A write that replayed the enclosing root took the row over as part of its own footprint. The next write under the row then treated it as the enclosing root's spine and dropped its virtual members, including the action's listeners. The row now stays its own root, as it is after a fresh load.
 
 ## [0.43.1] - 2026-09-24
 
